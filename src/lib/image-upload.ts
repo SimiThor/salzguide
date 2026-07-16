@@ -46,6 +46,36 @@ export async function fileToWebp(file: File, maxDim = 1600, quality = 0.82): Pro
 }
 
 /**
+ * Wie `fileToWebp`, aber schneidet mittig auf ein Quadrat zu.
+ *
+ * Für runde Porträts (Gründer, Toni). Ohne den Zuschnitt läge ein Hochformat-Foto im
+ * Storage, von dem der Browser nachher per object-cover ohnehin nur die Mitte zeigt: Wir
+ * lüden also Bildfläche hoch, die nie jemand sieht.
+ */
+export async function fileToSquareWebp(file: File, dim = 512, quality = 0.85): Promise<WebpImage> {
+  const bitmap = await createImageBitmap(file);
+  const side = Math.min(bitmap.width, bitmap.height);
+  // Mittig: Bei einem Porträt ist das Gesicht fast immer dort. Wer den Ausschnitt genau
+  // will, schneidet vorher selbst zu.
+  const sx = (bitmap.width - side) / 2;
+  const sy = (bitmap.height - side) / 2;
+  // Ein kleines Bild NICHT hochrechnen: Das macht es nur gross, nicht besser.
+  const out = Math.min(dim, side);
+  const canvas = document.createElement("canvas");
+  canvas.width = out;
+  canvas.height = out;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas nicht verfügbar");
+  ctx.drawImage(bitmap, sx, sy, side, side, 0, 0, out, out);
+  bitmap.close?.();
+  const blob: Blob | null = await new Promise((res) =>
+    canvas.toBlob((b) => res(b), "image/webp", quality),
+  );
+  if (!blob) throw new Error("WebP-Konvertierung fehlgeschlagen");
+  return { blob, width: out, height: out };
+}
+
+/**
  * Legt ein Blob unter einem frischen UUID-Pfad ab und gibt die öffentliche URL zurück.
  * Frischer Pfad + upsert:false ist die Bedingung dafür, dass IMMUTABLE_CACHE_SECONDS
  * gefahrlos ist: Unter einer URL liegt für immer dasselbe Bild (siehe storage.ts).

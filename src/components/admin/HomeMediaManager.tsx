@@ -4,7 +4,7 @@ import { useMemo, useRef, useState, useTransition } from "react";
 import Image from "next/image";
 import { useRouter } from "@/i18n/navigation";
 import { saveHomeMedia } from "@/lib/admin-actions";
-import { fileToWebp, uploadWebp } from "@/lib/image-upload";
+import { fileToWebp, fileToSquareWebp, uploadWebp } from "@/lib/image-upload";
 import type { HomeMedia } from "@/lib/home-content";
 import type { LandingImage } from "@/lib/landing-media";
 import VideoUploader from "./VideoUploader";
@@ -17,13 +17,17 @@ import VideoUploader from "./VideoUploader";
 // diesem einen Master alle Gerätegrössen und liefert AVIF/WebP aus. Zu klein hochgeladen
 // heisst unscharf am grossen Bildschirm, und das lässt sich nachträglich nicht retten.
 type ImageSlot = {
-  key: "heroPortrait" | "heroLandscape" | "founders";
+  key: "heroPortrait" | "heroLandscape" | "antonPhoto" | "simonPhoto";
   title: string;
   note: string;
   /** Lange Kante des Masters. */
   maxDim: number;
+  /** Mittig auf ein Quadrat zuschneiden. Für die runden Porträts. */
+  square?: boolean;
   /** Rahmen der Vorschau, damit man sofort sieht, welches Format hier hingehört. */
   previewClass: string;
+  /** Breite der Vorschau für next/image. Muss zur Breite in previewClass passen. */
+  previewSize: string;
 };
 
 const IMAGE_SLOTS: readonly ImageSlot[] = [
@@ -33,6 +37,7 @@ const IMAGE_SLOTS: readonly ImageSlot[] = [
     note: "Hochformat 9:16, etwa 1200 × 2133. Das erste Bild, das jemand von SalzGuide sieht.",
     maxDim: 2133,
     previewClass: "aspect-[9/16] w-[120px]",
+    previewSize: "120px",
   },
   {
     key: "heroLandscape",
@@ -40,13 +45,27 @@ const IMAGE_SLOTS: readonly ImageSlot[] = [
     note: "Querformat 16:9, etwa 2400 × 1350.",
     maxDim: 2400,
     previewClass: "aspect-[16/9] w-[240px]",
+    previewSize: "240px",
+  },
+  // Zwei Porträts, nicht eines: Die Gründer-Section zeigt jedes Foto neben SEINEM Namen.
+  // Ein gemeinsames Bild hiesse, dasselbe Gesicht zweimal zu zeigen.
+  {
+    key: "antonPhoto",
+    title: "Anton",
+    note: "Porträt. Wird rund und klein gezeigt, also nah am Gesicht. Der Zuschnitt auf ein Quadrat passiert beim Hochladen.",
+    maxDim: 512,
+    square: true,
+    previewClass: "aspect-square w-[96px]",
+    previewSize: "96px",
   },
   {
-    key: "founders",
-    title: "Anton & Simon",
-    note: "Quadratisch oder hoch. Steht in der Gründer-Section neben dem Video.",
-    maxDim: 1600,
-    previewClass: "aspect-square w-[160px]",
+    key: "simonPhoto",
+    title: "Simon",
+    note: "Porträt, gleiches Format wie bei Anton.",
+    maxDim: 512,
+    square: true,
+    previewClass: "aspect-square w-[96px]",
+    previewSize: "96px",
   },
 ];
 
@@ -159,7 +178,9 @@ function ImageSlotRow({
     setErr("");
     setBusy(true);
     try {
-      const { blob, width, height } = await fileToWebp(file, slot.maxDim);
+      const { blob, width, height } = slot.square
+        ? await fileToSquareWebp(file, slot.maxDim)
+        : await fileToWebp(file, slot.maxDim);
       const src = await uploadWebp(blob);
       // Alt-Text beim Austausch behalten: Wer nur ein besseres Foto nachlegt, hat ihn
       // sonst still verloren, und niemandem fällt es auf.
@@ -178,10 +199,14 @@ function ImageSlotRow({
 
       <div className="mt-3 flex flex-wrap items-start gap-4">
         <div
-          className={`relative shrink-0 overflow-hidden rounded-[10px] bg-black/[0.06] ring-1 ring-black/10 ${slot.previewClass}`}
+          className={`relative shrink-0 overflow-hidden bg-black/[0.06] ring-1 ring-black/10 ${
+            // Rund vorschauen, wenn es auf der Seite rund ist: Sonst sieht man erst live,
+            // dass oben ein Stück Kopf fehlt.
+            slot.square ? "rounded-full" : "rounded-[10px]"
+          } ${slot.previewClass}`}
         >
           {value ? (
-            <Image src={value.src} alt="" fill sizes="240px" className="object-cover" />
+            <Image src={value.src} alt="" fill sizes={slot.previewSize} className="object-cover" />
           ) : (
             <span className="grid h-full w-full place-items-center text-[11px] text-muted" aria-hidden>
               leer

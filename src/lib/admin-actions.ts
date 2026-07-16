@@ -1854,7 +1854,8 @@ export async function saveHomeMedia(media: HomeMedia): Promise<{ ok: boolean; er
     heroPortrait: parseLandingImage(media.heroPortrait),
     heroLandscape: parseLandingImage(media.heroLandscape),
     explainerVideo: parseLandingVideo(media.explainerVideo),
-    founders: parseLandingImage(media.founders),
+    antonPhoto: parseLandingImage(media.antonPhoto),
+    simonPhoto: parseLandingImage(media.simonPhoto),
   };
 
   // Ein Bild, das der Client geschickt hat und das die Prüfung NICHT überlebt, wäre sonst

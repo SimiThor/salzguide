@@ -262,7 +262,8 @@ const EMPTY_MEDIA: HomeMedia = {
   heroPortrait: null,
   heroLandscape: null,
   explainerVideo: null,
-  founders: null,
+  antonPhoto: null,
+  simonPhoto: null,
 };
 
 export async function getHomeContentAdmin(): Promise<AdminHomeContent> {
@@ -323,8 +324,22 @@ export async function getHomeContentAdmin(): Promise<AdminHomeContent> {
     heroPortrait: parseLandingImage(m.heroPortrait),
     heroLandscape: parseLandingImage(m.heroLandscape),
     explainerVideo: parseLandingVideo(m.explainerVideo),
-    founders: parseLandingImage(m.founders),
+    antonPhoto: parseLandingImage(m.antonPhoto),
+    simonPhoto: parseLandingImage(m.simonPhoto),
   };
 
   return { texts, fromDb, translated, stale, state, media, migrationMissing: false };
+}
+
+/**
+ * Nur der Übersetzungs-Status der Startseite, für den Verweis in den Einstellungen.
+ *
+ * Baut bewusst auf getHomeContentAdmin auf, statt die Veraltet-Rechnung ein zweites Mal
+ * hinzuschreiben: Zwei Kopien driften auseinander, und dann sagt die Kachel „aktuell",
+ * während das Formular „veraltet" zeigt. Die eine Abfrage mehr kostet auf einer
+ * Admin-Seite nichts.
+ */
+export async function getHomeStatus(): Promise<{ state: TranslationState }> {
+  const { state } = await getHomeContentAdmin();
+  return { state };
 }

@@ -28,10 +28,17 @@ import deMessages from "../../messages/de.json";
 // hat, soll in JEDER Sprache den NEUEN deutschen Text sehen, nicht den alten aus der Datei.
 
 export type HomeMedia = {
+  /** Hero, Handy: Hochformat 9:16. */
   heroPortrait: LandingImage | null;
+  /** Hero, Desktop: Querformat ~16:9. */
   heroLandscape: LandingImage | null;
+  /** Erklär-/Gründervideo, Hochformat 9:16. Ein Video reicht für beide Geräte. */
   explainerVideo: LandingVideo | null;
-  founders: LandingImage | null;
+  // ZWEI Gesichter, nicht eines. Hier stand ein einzelner `founders`-Slot, und die
+  // Gründer-Section rendert ihn PRO PERSON: Antons Foto hätte also neben Simons Namen
+  // gestanden. Zwei Gründer sind zwei Bilder, und der Typ sagt das jetzt.
+  antonPhoto: LandingImage | null;
+  simonPhoto: LandingImage | null;
 };
 
 type Row = {
@@ -90,7 +97,8 @@ export async function getHomeMedia(): Promise<HomeMedia> {
     heroPortrait: parseLandingImage(m.heroPortrait),
     heroLandscape: parseLandingImage(m.heroLandscape),
     explainerVideo: parseLandingVideo(m.explainerVideo),
-    founders: parseLandingImage(m.founders),
+    antonPhoto: parseLandingImage(m.antonPhoto),
+    simonPhoto: parseLandingImage(m.simonPhoto),
   };
 }
 

@@ -38,12 +38,15 @@ export default function FoundersSection({
               {texts.foundersBody}
             </p>
 
+            {/* Jeder mit SEINEM Foto. Hier stand `media.founders` für beide, also zweimal
+                dasselbe Gesicht neben zwei verschiedenen Namen. Das ist der Grund, warum
+                der Slot pro Person existiert und nicht pro Section. */}
             <div className="mt-7 space-y-4">
               {(["anton", "simon"] as const).map((who) => (
                 <div key={who} className="flex items-start gap-4 text-left">
                   <div className="h-12 w-12 shrink-0 transform-gpu isolate overflow-hidden rounded-full">
                     <MediaSlot
-                      image={media.founders}
+                      image={media[`${who}Photo`]}
                       hint=""
                       sizes="48px"
                       className="h-full w-full object-cover"
