@@ -10,6 +10,8 @@ import { localeMeta } from "@/i18n/locales";
 import { hashSpotTexts, translationsPublishable } from "./spot-hash";
 import { blurPreviewFor } from "./blur-preview";
 import { stripEmDashFields } from "./em-dash";
+import { HOME_KEYS } from "./home-fields";
+import { translateHomeTextsWith } from "./home-translate";
 import { MAX_HOME_FEATURED } from "./home-featured";
 
 export type SpotInput = {
@@ -1745,4 +1747,93 @@ export async function saveHomeFeatured(
   for (const l of routing.locales) revalidatePath(`/${l}`);
 
   return { ok: true, saved: ordered.length };
+}
+
+// ---------------------------------------------------------------------------
+// Startseite: Texte pflegen und übersetzen (home_content, Migration 0036)
+// ---------------------------------------------------------------------------
+
+// Deutsche Texte der Startseite speichern.
+//
+// Der source_hash wird bewusst NICHT mitgeschrieben: Er markiert den Stand, zu dem zuletzt
+// übersetzt wurde. Bleibt er stehen, während sich Deutsch ändert, weicht er ab und der
+// Admin zeigt „veraltet" — genau das ist der Sinn. Würde man ihn hier mit-aktualisieren,
+// wären die Übersetzungen für immer scheinbar aktuell.
+export async function saveHomeTexts(
+  texts: Record<string, string>,
+): Promise<{ ok: boolean; error?: string }> {
+  const gate = await assertAdmin();
+  if (!gate.ok) return { ok: false, error: gate.error };
+  if (!texts || typeof texts !== "object") return { ok: false, error: "Ungültige Texte." };
+
+  // Nur bekannte Keys durchlassen: Was der Client sonst schickt, hätte auf der Seite
+  // ohnehin keinen Platz und würde nur die Zeile aufblähen.
+  const clean: Record<string, string> = {};
+  for (const k of HOME_KEYS) {
+    const v = texts[k];
+    if (typeof v === "string") clean[k] = v.trim();
+  }
+
+  // Gedankenstrich raus, auch wenn ein Mensch getippt hat: Die Regel gilt für die Seite,
+  // nicht für ihre Herkunft (brand-voice.ts). Beim Einfügen aus einem KI-Chat käme er
+  // sonst durch die Hintertür wieder rein.
+  const cleaned = stripEmDashFields(clean, "de");
+
+  const svc = createServiceClient();
+  const { error } = await svc
+    .from("home_content")
+    .update({ texts: cleaned, updated_at: new Date().toISOString() })
+    .eq("id", 1);
+  if (error) return { ok: false, error: error.message };
+
+  // Die Startseite ist statisch gerendert -> ohne revalidate bliebe der alte Text stehen,
+  // und im Admin sähe alles richtig aus. Alle Sprachen, weil jede die deutschen Texte als
+  // Auffangnetz nutzt (siehe home-content.ts).
+  for (const l of routing.locales) revalidatePath(`/${l}`);
+  return { ok: true };
+}
+
+// „In alle Sprachen übersetzen": Deutsch -> alle Ziel-Locales, in einem Rutsch.
+// Schreibt die Übersetzungen UND den source_hash des Standes, der übersetzt wurde.
+export async function fillHomeTranslations(): Promise<{
+  ok: boolean;
+  error?: string;
+  failed?: string[];
+  rejected?: string[];
+}> {
+  const gate = await assertAdmin();
+  if (!gate.ok) return { ok: false, error: gate.error };
+
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) return { ok: false, error: "ANTHROPIC_API_KEY fehlt." };
+
+  const svc = createServiceClient();
+  const { data, error } = await svc
+    .from("home_content")
+    .select("texts")
+    .eq("id", 1)
+    .maybeSingle();
+  if (error) return { ok: false, error: error.message };
+
+  const de = (data?.texts ?? {}) as Record<string, string>;
+  if (!Object.values(de).some((v) => (v ?? "").trim()))
+    return { ok: false, error: "Erst die deutschen Texte speichern." };
+
+  const res = await translateHomeTextsWith(de, apiKey);
+  if (!res.ok || !res.translations)
+    return { ok: false, error: res.error === "empty" ? "Keine Texte." : "Übersetzung fehlgeschlagen." };
+
+  const { error: upErr } = await svc
+    .from("home_content")
+    .update({
+      translations: res.translations,
+      // Marke des Standes, der übersetzt wurde. Ändert Anton danach ein Wort, weicht sie ab.
+      source_hash: res.sourceHash,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", 1);
+  if (upErr) return { ok: false, error: upErr.message };
+
+  for (const l of routing.locales) revalidatePath(`/${l}`);
+  return { ok: true, failed: res.failed, rejected: res.rejected };
 }

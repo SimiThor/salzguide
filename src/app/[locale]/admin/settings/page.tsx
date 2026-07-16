@@ -4,8 +4,14 @@ import ToniAvatarSettings from "@/components/admin/ToniAvatarSettings";
 import CategoryManager from "@/components/admin/CategoryManager";
 import LocalManager from "@/components/admin/LocalManager";
 import HomeFeaturedManager from "@/components/admin/HomeFeaturedManager";
+import HomeContentManager from "@/components/admin/HomeContentManager";
 import { getToniAvatarUrl } from "@/lib/settings";
-import { getCategoriesAdmin, getLocalsFull, getHomeFeaturedAdmin } from "@/lib/admin";
+import {
+  getCategoriesAdmin,
+  getLocalsFull,
+  getHomeFeaturedAdmin,
+  getHomeContentAdmin,
+} from "@/lib/admin";
 
 // Admin-Einstellungen. Zugriff ist über das Admin-Layout (Rollen-Guard) geschützt.
 export const dynamic = "force-dynamic";
@@ -17,11 +23,12 @@ export default async function AdminSettingsPage({
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const [toniAvatar, categories, locals, homeSpots] = await Promise.all([
+  const [toniAvatar, categories, locals, homeSpots, homeContent] = await Promise.all([
     getToniAvatarUrl(),
     getCategoriesAdmin(),
     getLocalsFull(),
     getHomeFeaturedAdmin(),
+    getHomeContentAdmin(),
   ]);
 
   return (
@@ -31,6 +38,7 @@ export default async function AdminSettingsPage({
         <h1 className="text-2xl font-bold text-ink">Einstellungen</h1>
         <p className="mt-1 text-[13px] text-muted">Allgemeine Einstellungen der Plattform.</p>
       </div>
+      <HomeContentManager {...homeContent} />
       <HomeFeaturedManager {...homeSpots} />
       <ToniAvatarSettings current={toniAvatar} />
       <LocalManager locals={locals} />

@@ -2,6 +2,9 @@ import { createClient } from "./supabase/server";
 import { imagesFromMedia } from "./spots";
 import { routing } from "@/i18n/routing";
 import { translationStatus, type TranslationState } from "./spot-hash";
+import { HOME_KEYS, type HomeTexts } from "./home-fields";
+import { homeSourceHash } from "./home-content";
+import deMessages from "../../messages/de.json";
 
 // Aktuellen User zurückgeben, falls Admin – sonst null.
 export async function getAdminUserId(): Promise<string | null> {
@@ -230,4 +233,76 @@ export async function getHomeFeaturedAdmin(): Promise<AdminHomeFeatured> {
     };
   });
   return { spots, migrationMissing: false };
+}
+
+// Die Startseiten-Texte fürs Admin-Formular, plus ihr Übersetzungs-Status.
+//
+// VORBEFÜLLEN: Ist die DB-Zeile leer (Normalfall beim ersten Öffnen), kommen die Texte aus
+// messages/de.json. Anton muss also nichts abtippen: Er sieht, was live steht, ändert was
+// er will, drückt einmal Speichern, und ab dann gehört die Seite ihm. Ohne das wäre der
+// erste Kontakt mit dem Formular 40 leere Felder.
+export type AdminHomeContent = {
+  /** Deutsche Texte, aus der DB oder (falls leer) aus messages/de.json. */
+  texts: HomeTexts;
+  /** Steht schon etwas in der DB, oder ist das noch der Datei-Stand? */
+  fromDb: boolean;
+  /** Welche Sprachen übersetzt sind. */
+  translated: string[];
+  /** Übersetzungen vorhanden, aber der deutsche Text hat sich seither geändert. */
+  stale: boolean;
+  state: TranslationState;
+  /** Die Spalte fehlt noch (Migration 0036 nicht eingespielt). */
+  migrationMissing: boolean;
+};
+
+export async function getHomeContentAdmin(): Promise<AdminHomeContent> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("home_content")
+    .select("texts, translations, source_hash")
+    .eq("id", 1)
+    .maybeSingle();
+
+  const fileTexts: HomeTexts = Object.fromEntries(
+    HOME_KEYS.map((k) => [k, (deMessages as { Home?: Record<string, string> }).Home?.[k] ?? ""]),
+  );
+
+  if (error) {
+    console.error("getHomeContentAdmin:", error.message);
+    // PostgREST meldet eine unbekannte Tabelle/Spalte mit 42P01 bzw. 42703.
+    const missing =
+      error.code === "42P01" || error.code === "42703" || /home_content/.test(error.message);
+    return {
+      texts: fileTexts,
+      fromDb: false,
+      translated: [],
+      stale: false,
+      state: "none",
+      migrationMissing: missing,
+    };
+  }
+
+  const dbTexts = (data?.texts ?? {}) as HomeTexts;
+  const fromDb = Object.values(dbTexts).some((v) => typeof v === "string" && v.trim());
+  const texts = fromDb ? { ...fileTexts, ...dbTexts } : fileTexts;
+
+  const translations = (data?.translations ?? {}) as Record<string, HomeTexts>;
+  const targets = routing.locales.filter((l) => l !== "de");
+  const translated = targets.filter((l) => Object.values(translations[l] ?? {}).some((v) => v?.trim()));
+
+  // Veraltet: Es gibt Übersetzungen, aber sie wurden zu einem ANDEREN deutschen Stand
+  // gemacht. Gleiche Mechanik wie bei Spots und Events (spot-hash.ts).
+  const stale =
+    translated.length > 0 && !!data?.source_hash && data.source_hash !== homeSourceHash(texts);
+
+  const state: TranslationState =
+    translated.length === 0
+      ? "none"
+      : translated.length < targets.length
+        ? "partial"
+        : stale
+          ? "stale"
+          : "complete";
+
+  return { texts, fromDb, translated, stale, state, migrationMissing: false };
 }
