@@ -60,10 +60,10 @@ export default function SpotCardDesktop({
       <div className="pointer-events-auto mx-auto w-full max-w-sm overflow-hidden rounded-[20px] bg-white shadow-[0_18px_50px_-12px_rgba(0,0,0,0.4)]">
         <div className="relative">
           {spot.locked ? (
+            // Kein Abzeichen: Die Überschrift darunter sagt bereits "🤫 Geheimtipp".
             <LockedMedia
               previewBlur={spot.previewBlur}
               emoji={spot.emoji}
-              label={t("lockedLabel")}
               className="aspect-[16/10] w-full"
             />
           ) : spot.imageUrl ? (
@@ -107,7 +107,7 @@ export default function SpotCardDesktop({
         <div className="p-4">
           {spot.locked ? (
             <>
-              <h3 className="text-[15px] font-semibold text-ink">{t("lockedTitle")}</h3>
+              <h3 className="text-[15px] font-semibold text-ink">{t("lockedLabel")}</h3>
               <p className="mt-1 text-[13px] leading-snug text-muted">{t("proTeaser")}</p>
               <Link
                 href="/pro"

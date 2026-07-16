@@ -12,13 +12,21 @@ import sharp from "sharp";
 // lässt. Der optische Weichzeichner in der UI ist dann nur noch Kosmetik auf einem
 // Bild, das ohnehin keine Details enthält.
 //
-// 48px ist bewusst gewählt: Farben und grobe Formen (Wasser, Wald, Fels, Himmel)
-// sind erkennbar -> Vorfreude. Gesichter, Schilder oder Wegverläufe nicht mehr
-// -> die Lage bleibt Premium-Info.
+// 160px dient der CONVERSION, nicht der Geheimhaltung: Das Motiv soll WIRKEN
+// ("türkise Schlucht mit Steg") – die Fotos sind das beste Verkaufsargument, ein
+// dunkler Matsch verkauft nichts. Was Pro wert ist, sind Name und exakte Lage, und
+// die verlassen den Server ohnehin nie (Titel geschwärzt, Koordinaten auf ~1 km
+// gerundet). Gegen jemanden, der ernsthaft Aufwand betreibt, schützt eine kleinere
+// Vorschau nicht – der findet den Ort auch durch Recherche.
+//
+// Kosten im Blick behalten: Die Vorschau geht als Text in JEDE Seite, in der der Spot
+// vorkommt (bei mehreren Karussells also mehrfach). ~5-10 kB pro Bild sind bei wenigen
+// Geheimtipps irrelevant; bei vielen gesperrten Spots auf einer Seite summiert sich das
+// und der Wert gehört überprüft.
 // ACHTUNG: Wird dieser Wert geändert, sind bestehende Vorschauen veraltet. Sie
 // werden NICHT automatisch neu gebaut -> `npm run backfill:blur -- --force`.
-const PREVIEW_WIDTH = 48;
-const PREVIEW_QUALITY = 60;
+const PREVIEW_WIDTH = 160;
+const PREVIEW_QUALITY = 72;
 // Schutz gegen absurd große Quellbilder (Speicher) – 25 MB reicht für jedes Hero-Foto.
 const MAX_SOURCE_BYTES = 25 * 1024 * 1024;
 const FETCH_TIMEOUT_MS = 10_000;
