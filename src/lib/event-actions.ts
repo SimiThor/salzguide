@@ -3,6 +3,7 @@
 import { createClient } from "./supabase/server";
 import { fetchWithRetry, safeJsonParse } from "./ai-fetch";
 import { BRAND_VOICE } from "./brand-voice";
+import { stripEmDashFields } from "./em-dash";
 import { routing } from "@/i18n/routing";
 import { hashTexts, translationsPublishable } from "./spot-hash";
 import { runWeekResearch, type WeekResult } from "./event-research";
@@ -457,17 +458,24 @@ GROUNDING: NUR recherchierte Fakten. Datum/Uhrzeit nicht sicher? -> all_day=true
     if (!t) return { ok: false, error: "Keine Event-Felder erhalten" };
 
     const draft: EventDraft = {
-      title: String(t.title ?? "").trim(),
-      titleEn: String(t.title_en ?? "").trim(),
-      description: String(t.description ?? "").trim(),
-      descriptionEn: String(t.description_en ?? "").trim(),
+      // Der Prompt verbietet den Gedankenstrich, aber ein Prompt ist eine Bitte. Hier wird
+      // er zum Zwang, bevor der Entwurf ins Formular und damit in die DB geht (em-dash.ts).
+      // Nur die Fliesstext-Felder: sourceUrl ist eine URL, an der nichts zu säubern ist.
+      // Ohne Locale, weil hier Deutsch und Englisch nebeneinander stehen und für beide
+      // dasselbe gilt (ausgenommen wäre nur Chinesisch, das hier nicht vorkommt).
+      ...stripEmDashFields({
+        title: String(t.title ?? "").trim(),
+        titleEn: String(t.title_en ?? "").trim(),
+        description: String(t.description ?? "").trim(),
+        descriptionEn: String(t.description_en ?? "").trim(),
+        locationName: String(t.location_name ?? "").trim(),
+      }),
       category: coerceCategory(t.category),
       emoji: String(t.emoji ?? "").trim(),
       startsAt: normWall(t.start),
       endsAt: normWall(t.end),
       allDay: Boolean(t.all_day),
       isFree: Boolean(t.is_free),
-      locationName: String(t.location_name ?? "").trim(),
       sourceUrl:
         String(t.source_url ?? "").trim() || r.sources[0] || "",
     };
@@ -563,8 +571,15 @@ export async function translateEventTexts(input: {
     if (!t) return { ok: false, error: "Keine Übersetzung erhalten" };
     return {
       ok: true,
-      titleEn: t.title?.trim() || input.title.trim(),
-      descriptionEn: input.description.trim() ? (t.description ?? "").trim() : "",
+      // Auch hier erzwingen statt hoffen: Modelle setzen den Strich gerade beim
+      // Übersetzen besonders gern (em-dash.ts).
+      ...stripEmDashFields(
+        {
+          titleEn: t.title?.trim() || input.title.trim(),
+          descriptionEn: input.description.trim() ? (t.description ?? "").trim() : "",
+        },
+        "en",
+      ),
     };
   } catch {
     return {
