@@ -7,7 +7,8 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import BottomSheet from "./BottomSheet";
-import MobileSheet, { MOBILE_SHEET_PEEK } from "./MobileSheet";
+import MobileSheet from "./MobileSheet";
+import { SHEET_PEEK_VAR, readCssLength } from "@/lib/sheet-metrics";
 import { RecenterControl } from "./mapControls";
 
 const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
@@ -101,14 +102,15 @@ export default function WaterExplore({
     if (valid.length === 0) return;
     const b = new mapboxgl.LngLatBounds();
     valid.forEach((l) => b.extend([l.lng, l.lat]));
-    // Padding: Desktop rundum Luft; Mobile unten Platz fürs Peek-Sheet + Navleiste,
-    // damit kein Marker verdeckt wird (analog zur Explore-Karte).
+    // Padding: Desktop rundum Luft; Mobile unten Platz fürs Peek-Sheet (die Tab-Leiste
+    // steckt in --sg-sheet-peek schon drin), damit kein Marker verdeckt wird – analog
+    // zur Explore-Karte, aus derselben CSS-Variable gelesen.
     const pad = isDesktop
       ? { top: 70, right: 70, bottom: 70, left: 70 }
       : {
           top: 120,
           right: 40,
-          bottom: Math.round((window.innerHeight || 800) * MOBILE_SHEET_PEEK) + 48,
+          bottom: Math.round(readCssLength(SHEET_PEEK_VAR)) + 24,
           left: 40,
         };
     map.fitBounds(b, { padding: pad, maxZoom: 12, duration });
@@ -268,11 +270,11 @@ export default function WaterExplore({
     <div className="fixed inset-0 z-0 md:top-[var(--sg-header-h)]">
       {/* --sg-map-bottom: hebt Mapbox-Logo und -Attribution über das Peek-Sheet mit der
           Seenliste – dieselbe Mechanik wie auf der Startseite (Lizenzpflicht, siehe
-          globals.css). Das Sheet liegt hier dauerhaft mit MOBILE_SHEET_PEEK an, nicht
-          erst bei der Auswahl eines Sees – das ist das separate Detail-Sheet. */}
+          globals.css). Das Sheet liegt hier dauerhaft im Peek an, nicht erst bei der
+          Auswahl eines Sees – das ist das separate Detail-Sheet. */}
       <div
         className="absolute inset-0 md:left-[var(--sg-panel-water)]"
-        style={{ "--sg-map-bottom": `calc(${MOBILE_SHEET_PEEK * 100}vh + 10px)` } as React.CSSProperties}
+        style={{ "--sg-map-bottom": `calc(var(${SHEET_PEEK_VAR}) + 10px)` } as React.CSSProperties}
       >
         {TOKEN ? (
           <div ref={mapEl} className="h-full w-full" />

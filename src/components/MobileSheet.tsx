@@ -1,126 +1,346 @@
 "use client";
 
-import { animate, motion, useDragControls, useMotionValue, type PanInfo } from "framer-motion";
+import {
+  animate,
+  motion,
+  useDragControls,
+  useMotionValue,
+  useReducedMotion,
+  type PanInfo,
+} from "framer-motion";
 import {
   useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
+  type CSSProperties,
   type ReactNode,
 } from "react";
+import { NAV_H_VAR, SHEET_PEEK_VAR, readCssLength } from "@/lib/sheet-metrics";
 import { useBodyDrag } from "./useBodyDrag";
 
-const SPRING = { type: "spring" as const, damping: 36, stiffness: 380 };
-
 // Persistentes, ziehbares Bottom-Sheet (Mobile) mit Detents/Grabber – iOS-2026.
-// Anteil der Viewport-Höhe, den das Sheet im Ruhezustand (Peek) abdeckt. EINE Quelle:
-// Explore rechnet damit das Karten-Padding UND den Freiraum, den Mapbox-Logo und
-// -Attribution brauchen, um nicht unter dem Sheet zu verschwinden (Pflicht, siehe
-// globals.css). Vorher stand die Zahl doppelt im Code und wäre beim Ändern
-// auseinandergelaufen.
-export const MOBILE_SHEET_PEEK = 0.18;
+//
+// AUFBAU – zwei Ebenen, und das ist der Kern:
+//
+//   Schiene (div)   absolute bottom-0, Höhe = oberster Detent,
+//                   transform: translate3d(0, calc(100% - Peek), 0)   <- reines CSS
+//     Sheet (motion.div)  y = Abstand zur Ruheposition, 0 = Peek       <- framer-motion
+//
+// Die Schiene hält die Ruheposition in CSS. `100%` ist ihre eigene Höhe, die Peek-Höhe
+// kommt aus --sg-sheet-peek – beides löst der Browser beim Parsen auf. Das Sheet sitzt
+// dadurch schon im Server-HTML exakt richtig, ohne JavaScript.
+//
+// Deshalb ist y ein OFFSET (0 = Peek, negativ = aufgezogen, positiv = versteckt) und
+// nicht die absolute Position: y = 0 ist der Ruhezustand, also genau das, was SSR
+// rendert. Es gibt keinen Startwert, der erst korrigiert werden müsste.
+//
+// Vorher stand die Position in JS: y startete bei 99999, ein useEffect maß
+// window.innerHeight und ließ eine Feder von dort zur Ruheposition laufen. Über die
+// ~99400px Weg sammelte die (leicht unterdämpfte) Feder so viel Tempo, dass sie rund
+// 50px über das Ziel hinausschoss und zurückfiel – das war der Sprung beim Laden.
+// Jetzt animiert beim Mounten gar nichts mehr, weil nichts mehr zu korrigieren ist.
+//
+// JS misst nur noch für die INTERAKTION (Detent-Rechnung). Käme die Messung zu spät,
+// wäre höchstens ein Ziehen in der ersten Millisekunde ungenau – die Position stimmt
+// unabhängig davon.
 
-// Aus Explore ausgelagert, damit Start- und Wasserseite dieselbe Mechanik teilen.
+// Apples Sheet-Bewegung. Die Kurve steht auch in globals.css (--sg-ease-sheet):
+// framer-motion braucht sie als Zahlen, CSS als Text. Beide meinen dieselbe Kurve.
+// 0.5s ist SwiftUIs Standard-Dauer, die Kurve schwingt bewusst nicht über.
+const EASE_IOS: [number, number, number, number] = [0.32, 0.72, 0, 1];
+const DURATION = 0.5;
+
+// Schwellen beim Loslassen (px/s), aus Vauls Sheet-Logik – drei Stufen, und die
+// mittlere ist die, die sich richtig anfühlt:
+//  - über FLICK: entschlossener Wisch -> ans Ende, Zwischenstufen überspringen
+//  - über STEP bei kurzem Weg: gezielter Wisch -> genau EINE Stufe weiter
+//  - sonst: zur nächstgelegenen Stufe (langes Ziehen = Position zählt, nicht Tempo)
+const V_FLICK = 2000;
+const V_STEP = 400;
+const STEP_MAX_DRAG = 0.4; // Anteil der Container-Höhe
+
+// Luft zwischen dem, was eine Stufe zeigen soll, und der Tab-Leiste darunter.
+const DETENT_AIR = 16;
+
+// Eine Stufe ist entweder ein Anteil der Container-Höhe (0.9 = 90%) ODER die Ansage
+// „hoch genug, dass DIESES Element noch ganz drübersteht". Letzteres ist das, was Apple
+// mit einem eigenen Detent macht: eine Zahl aus dem Kontext rechnen statt raten.
+// Nötig, weil sich der Inhalt nicht in Pixel schreiben lässt – eine Spot-Karte ist
+// 76vw breit mit 4:3-Bild, also auf jedem iPhone verschieden hoch.
+export type Detent = number | { fits: string; fallback: number };
+
+// Modul-Konstante, kein Inline-Default: sonst wäre es bei jedem Render ein neues Array.
+const DEFAULT_DETENTS: Detent[] = [0.5, 0.9];
+
+// Unterkante eines Elements, gemessen ab Oberkante des Sheets.
+//
+// Über offsetTop statt getBoundingClientRect: offsetTop ist reines Layout und ignoriert
+// transforms. Beim Saison-Wechsel fährt der Inhalt animiert ein (transform), und das
+// Sheet selbst hängt dauernd an einem transform – mit Rects wäre die Messung genau dann
+// daneben, wenn gerade etwas läuft. offsetTop ist auch vom Scrollstand unabhängig.
+function offsetBottomWithin(el: HTMLElement, sheet: HTMLElement): number {
+  let top = 0;
+  let node: HTMLElement | null = el;
+  // Die Kette endet am Sheet, weil es `relative` ist und damit offsetParent.
+  while (node && node !== sheet) {
+    top += node.offsetTop;
+    node = node.offsetParent as HTMLElement | null;
+  }
+  return top + el.offsetHeight;
+}
+
 export default function MobileSheet({
   children,
   hide,
-  detents = [MOBILE_SHEET_PEEK, 0.5, 0.9],
+  peek,
+  detents = DEFAULT_DETENTS,
 }: {
   children: ReactNode;
   hide: boolean;
-  detents?: number[];
+  // CSS-Länge, überschreibt --sg-sheet-peek nur für dieses Sheet (z.B. "34svh").
+  // Muss eine Länge sein, kein Prozentwert: die Property ist als <length> registriert.
+  peek?: string;
+  // Die weiteren Stufen, von unten nach oben. Peek ist immer die unterste und steht
+  // NICHT hier drin – die kommt aus CSS. Die LETZTE muss ein Anteil sein: sie bestimmt
+  // die Höhe des Sheets selbst.
+  detents?: Detent[];
 }) {
-  const dts = useMemo(() => detents, [detents]);
-  const [vh, setVh] = useState(0);
-  const y = useMotionValue(99999);
-  const dragControls = useDragControls();
-  const idxRef = useRef(0);
-  const [atFull, setAtFull] = useState(false);
+  const railRef = useRef<HTMLDivElement>(null);
+  const sheetRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
+  const y = useMotionValue(0); // 0 = Peek = die Ruheposition aus CSS
+  const dragControls = useDragControls();
+  const idxRef = useRef(0); // 0 = Peek, dann die Detents
+  const [atFull, setAtFull] = useState(false);
   const bodyDrag = useBodyDrag(dragControls, bodyRef, atFull);
+  const reduceMotion = useReducedMotion();
 
-  const full = dts[dts.length - 1];
-  const base = vh || 800;
-  const sheetH = base * full;
-  const snapY = useCallback((d: number) => (full - d) * base, [full, base]);
+  // Nur für die Interaktion, nicht für die Position (siehe Kopf).
+  const [metrics, setMetrics] = useState({ peekPx: 0, fullPx: 0, containerPx: 0 });
+
+  // Die oberste Stufe gibt dem Sheet seine Höhe, muss also ein Anteil sein.
+  const last = detents[detents.length - 1];
+  const fullFraction = typeof last === "number" ? last : 0.9;
+
+  const transition = useMemo(
+    () => (reduceMotion ? { duration: 0 } : { duration: DURATION, ease: EASE_IOS }),
+    [reduceMotion],
+  );
 
   useEffect(() => {
-    const u = () => setVh(window.innerHeight);
-    u();
-    window.addEventListener("resize", u);
-    return () => window.removeEventListener("resize", u);
-  }, []);
+    const rail = railRef.current;
+    if (!rail) return;
+    const measure = () => {
+      // Die Schiene ist `fullFraction` der Container-Höhe -> daraus fällt beides ab.
+      const fullPx = rail.getBoundingClientRect().height;
+      if (!fullPx) return;
+      setMetrics({
+        peekPx: readCssLength(SHEET_PEEK_VAR, rail),
+        fullPx,
+        containerPx: fullPx / fullFraction,
+      });
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    window.addEventListener("orientationchange", measure);
+    return () => {
+      window.removeEventListener("resize", measure);
+      window.removeEventListener("orientationchange", measure);
+    };
+  }, [fullFraction]);
 
+  // y-Offset je Stufe. stops[0] ist immer 0 (Peek = Ruheposition).
+  //
+  // Wird bei JEDER Interaktion frisch gerechnet, nicht gecacht. Eine `fits`-Stufe hängt
+  // am tatsächlichen Inhalt, und der wechselt (Saison-Umschalter tauscht die Regale,
+  // Schriften/Bilder laden nach). Ein gecachter Wert wäre irgendwann still falsch;
+  // Messen kostet hier nur ein paar offsetTop-Zugriffe, und zwar genau dann, wenn
+  // ohnehin etwas passiert.
+  const computeStops = useCallback((): number[] => {
+    const rail = railRef.current;
+    const sheet = sheetRef.current;
+    if (!rail || !sheet) return [0];
+    const fullPx = rail.getBoundingClientRect().height;
+    if (!fullPx) return [0];
+    const containerPx = fullPx / fullFraction;
+    const peekPx = readCssLength(SHEET_PEEK_VAR, rail);
+    const navPx = readCssLength(NAV_H_VAR, rail);
+
+    const heights = detents.map((d) => {
+      if (typeof d === "number") return d * containerPx;
+      const el = bodyRef.current?.querySelector<HTMLElement>(d.fits);
+      // Kein Anker da (leere Saison, Inhalt noch nicht gerendert) -> Rückfall auf einen
+      // Anteil, damit die Stufe nie verschwindet.
+      if (!el) return d.fallback * containerPx;
+      // Die Tab-Leiste liegt über dem Sheet -> ihre Höhe gehört zur Stufe dazu, sonst
+      // steht der Anker zwar im Sheet, aber hinter der Leiste.
+      return offsetBottomWithin(el, sheet) + DETENT_AIR + navPx;
+    });
+
+    return [peekPx, ...heights].map((h) =>
+      // Nie unter Peek und nie über die Sheet-Höhe: ein sehr hohes Regal wird sonst zu
+      // einer Stufe, die es nicht gibt.
+      peekPx - Math.min(fullPx, Math.max(peekPx, h)),
+    );
+  }, [detents, fullFraction]);
+
+  const snapTo = useCallback(
+    (i: number) => {
+      const stops = computeStops();
+      const c = Math.max(0, Math.min(stops.length - 1, i));
+      idxRef.current = c;
+      setAtFull(c === stops.length - 1);
+      animate(y, stops[c], transition);
+    },
+    [computeStops, transition, y],
+  );
+
+  // Ein-/Ausblenden, wenn die Spot-Vorschau aufgeht. Die einzige Animation von außen.
+  const mounted = useRef(false);
   useEffect(() => {
-    if (!vh) return;
-    animate(y, hide ? sheetH : snapY(dts[idxRef.current]), SPRING);
+    // Beim Mounten NICHT animieren: die CSS-Ruheposition stimmt bereits. Eine
+    // Animation von irgendwo nach hier WÄRE der Sprung, den wir loswerden wollten.
+    if (!mounted.current) {
+      mounted.current = true;
+      return;
+    }
+    if (!metrics.fullPx) return;
+    animate(y, hide ? metrics.peekPx : computeStops()[idxRef.current], transition);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hide, vh]);
+  }, [hide]);
 
-  const tapStart = useRef({ y: 0 });
+  // Resize/Drehung: neu einrasten, aber NIE animieren. iOS fährt beim Scrollen die
+  // Toolbar ein und aus, das löst resize aus – eine Animation darauf würde dem
+  // Toolbar-Wechsel sichtbar hinterherruckeln.
+  useEffect(() => {
+    if (!metrics.fullPx) return;
+    y.jump(hide ? metrics.peekPx : computeStops()[idxRef.current]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [metrics]);
 
-  function snapToIndex(i: number) {
-    const clamped = Math.max(0, Math.min(dts.length - 1, i));
-    idxRef.current = clamped;
-    setAtFull(clamped === dts.length - 1);
-    animate(y, snapY(dts[clamped]), SPRING);
+  function onDragStart() {
+    draggingRef.current = true;
+  }
+  function onDragEnd(_e: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) {
+    draggingRef.current = false;
+    const cur = y.get();
+    const stops = computeStops();
+    let best = 0;
+    for (let i = 1; i < stops.length; i++) {
+      if (Math.abs(stops[i] - cur) < Math.abs(stops[best] - cur)) best = i;
+    }
+    const v = info.velocity.y; // negativ = nach oben
+    const shortDrag = Math.abs(info.offset.y) < metrics.containerPx * STEP_MAX_DRAG;
+    if (v < -V_FLICK) best = stops.length - 1;
+    else if (v > V_FLICK) best = 0;
+    else if (shortDrag && v < -V_STEP) best = idxRef.current + 1;
+    else if (shortDrag && v > V_STEP) best = idxRef.current - 1;
+    snapTo(best);
   }
 
-  const handleDragEnd = (
-    _event: MouseEvent | TouchEvent | PointerEvent,
-    info: PanInfo,
-  ) => {
-    void _event;
-    const points = dts.map((d) => snapY(d));
-    const cur = y.get();
-    let best = 0;
-    for (let i = 0; i < points.length; i++) {
-      if (Math.abs(points[i] - cur) < Math.abs(points[best] - cur)) best = i;
-    }
-    if (info.velocity.y < -400 && best < dts.length - 1) best += 1;
-    if (info.velocity.y > 400 && best > 0) best -= 1;
-    snapToIndex(best);
-  };
+  // Eine `fits`-Stufe hängt am Inhalt – wechselt der, sind die gemessenen Werte falsch.
+  // Genau dafür hat Apple invalidateDetents(): "If the closure depends on any external
+  // inputs, call invalidateDetents() when the external inputs change."
+  //
+  // Der MutationObserver fängt jeden Wechsel selbst (Saison-Umschalter tauscht die
+  // Regale, Inhalte laden nach) – die Seite muss nichts melden und kann es nicht
+  // vergessen.
+  //
+  // Stört dabei nichts: Peek und die oberste Stufe hängen NICHT am Inhalt, dort ist das
+  // Ziel unverändert und es passiert schlicht nichts. Bewegt wird nur, wenn das Sheet
+  // wirklich auf einer inhaltsabhängigen Stufe steht – dann aber muss es.
+  const hideRef = useRef(hide);
+  useEffect(() => {
+    hideRef.current = hide;
+  }, [hide]);
+  const draggingRef = useRef(false);
+  useEffect(() => {
+    const body = bodyRef.current;
+    if (!body) return;
+    let raf = 0;
+    const invalidate = () => {
+      cancelAnimationFrame(raf);
+      // Ein Frame warten: beim Saison-Wechsel hängt kurz noch das alte Regal im DOM.
+      raf = requestAnimationFrame(() => {
+        if (hideRef.current || draggingRef.current) return;
+        const target = computeStops()[idxRef.current];
+        if (Math.abs(y.get() - target) > 1) animate(y, target, transition);
+      });
+    };
+    const mo = new MutationObserver(invalidate);
+    mo.observe(body, { childList: true, subtree: true });
+    return () => {
+      mo.disconnect();
+      cancelAnimationFrame(raf);
+    };
+  }, [computeStops, transition, y]);
 
-  function onHeaderPointerDown(e: React.PointerEvent) {
-    tapStart.current.y = e.clientY;
+  const tapStart = useRef(0);
+  function onGrabberDown(e: React.PointerEvent) {
+    tapStart.current = e.clientY;
     dragControls.start(e);
   }
-  function onHeaderPointerUp(e: React.PointerEvent) {
-    if (Math.abs(e.clientY - tapStart.current.y) < 6) {
-      snapToIndex(idxRef.current < dts.length - 1 ? idxRef.current + 1 : 0);
+  function onGrabberUp(e: React.PointerEvent) {
+    // Tippen (statt ziehen) geht eine Stufe weiter, oben wieder zurück auf Peek.
+    // detents.length = oberste Stufe (Peek ist die zusätzliche unterste).
+    if (Math.abs(e.clientY - tapStart.current) < 6) {
+      snapTo(idxRef.current < detents.length ? idxRef.current + 1 : 0);
     }
   }
 
+  const railStyle = {
+    height: `${fullFraction * 100}%`,
+    // DIE Zeile, die den Ladesprung beseitigt: Ruheposition = Peek, komplett in CSS.
+    // `100%` ist die Höhe dieses Elements, --sg-sheet-peek kommt aus globals.css.
+    transform: `translate3d(0, calc(100% - var(${SHEET_PEEK_VAR})), 0)`,
+    ...(peek ? { [SHEET_PEEK_VAR]: peek } : null),
+  } as CSSProperties;
+
   return (
-    <motion.div
-      style={{ y, height: sheetH }}
-      drag="y"
-      dragListener={false}
-      dragControls={dragControls}
-      dragConstraints={{ top: 0, bottom: snapY(dts[0]) }}
-      dragElastic={0.08}
-      onDragEnd={handleDragEnd}
-      className="absolute inset-x-0 bottom-0 z-[45] flex flex-col rounded-t-[22px] bg-cream/95 shadow-2xl backdrop-blur-xl"
+    <div
+      ref={railRef}
+      style={railStyle}
+      className="pointer-events-none absolute inset-x-0 bottom-0 z-[45]"
     >
-      <div
-        onPointerDown={onHeaderPointerDown}
-        onPointerUp={onHeaderPointerUp}
-        className="flex cursor-pointer touch-none flex-col items-center gap-1 pb-2 pt-3 active:cursor-grabbing"
+      <motion.div
+        ref={sheetRef}
+        data-sg="mobile-sheet"
+        style={{ y }}
+        drag="y"
+        dragListener={false}
+        dragControls={dragControls}
+        // Ziehbar zwischen ganz auf und Peek. Aus metrics, nicht aus computeStops():
+        // die Grenzen sind reine Geometrie und dürfen nicht am Inhalt hängen.
+        dragConstraints={{ top: metrics.peekPx - metrics.fullPx, bottom: 0 }}
+        dragElastic={0.08}
+        onDragStart={onDragStart}
+        onDragEnd={onDragEnd}
+        className="pointer-events-auto relative flex h-full flex-col rounded-t-[22px] bg-cream/95 shadow-2xl backdrop-blur-xl"
       >
-        <span className="h-1.5 w-10 rounded-full bg-black/15" aria-hidden />
-      </div>
-      <div
-        ref={bodyRef}
-        {...bodyDrag}
-        style={{ touchAction: atFull ? "auto" : "pan-x" }}
-        className={`flex-1 overscroll-contain pb-28 pt-1 ${
-          atFull ? "overflow-y-auto" : "overflow-y-hidden"
-        }`}
-      >
-        {children}
-      </div>
-    </motion.div>
+        <div
+          onPointerDown={onGrabberDown}
+          onPointerUp={onGrabberUp}
+          className="sg-native-tap flex shrink-0 cursor-pointer touch-none select-none flex-col items-center gap-1 pb-2 pt-3 active:cursor-grabbing"
+        >
+          <span className="h-1.5 w-10 rounded-full bg-black/15" aria-hidden />
+        </div>
+        <div
+          ref={bodyRef}
+          {...bodyDrag}
+          style={{ touchAction: atFull ? "auto" : "pan-x" }}
+          className={`flex-1 overscroll-contain pb-[calc(var(--sg-nav-h)+16px)] pt-1 ${
+            atFull ? "overflow-y-auto" : "overflow-y-hidden"
+          }`}
+        >
+          {children}
+        </div>
+        {/* Zieht man das Sheet über den obersten Detent hinaus (dragElastic), rutscht
+            seine Unterkante ins Bild und die Karte blitzte darunter durch. Diese
+            Fläche hängt unter dem Sheet und füllt das. */}
+        <div aria-hidden className="absolute inset-x-0 top-full h-1/2 bg-cream/95" />
+      </motion.div>
+    </div>
   );
 }

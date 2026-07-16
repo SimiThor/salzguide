@@ -18,7 +18,11 @@ import LockedMedia from "./LockedMedia";
 import { useLoginGate } from "./auth/LoginGate";
 import { useBodyDrag } from "./useBodyDrag";
 
-const SPRING = { type: "spring" as const, damping: 36, stiffness: 380 };
+// Dieselbe Bewegung wie beim Explore-Sheet (siehe MobileSheet / --sg-ease-sheet in
+// globals.css): Apples Sheet-Kurve, 0.5s, ohne Überschwingen. Beide Sheets liegen
+// übereinander – liefen sie unterschiedlich, fiele genau das auf.
+const EASE_IOS: [number, number, number, number] = [0.32, 0.72, 0, 1];
+const TRANSITION = { duration: 0.5, ease: EASE_IOS };
 // Peek-Detent = Anteil der vh, den das Sheet unten abdeckt (halb: Bild sichtbar).
 // Exportiert, damit die Explore-Karte den Spot GENAU über das Sheet einpasst
 // (eine Quelle der Wahrheit -> bleibt synchron).
@@ -97,18 +101,34 @@ export default function SpotSheet({
     return () => window.removeEventListener("resize", u);
   }, []);
 
-  // Beim Öffnen / Spot-Wechsel auf Peek einfahren
+  // Beim Öffnen / Spot-Wechsel auf Peek einfahren. Das ist die EINE gewollte Animation
+  // dieses Sheets: Es kommt auf Tippen hin von unten herein.
+  // Absichtlich an `measured` statt an `vh`: sonst liefe sie bei jedem resize erneut –
+  // und iOS löst resize beim Ein-/Ausfahren der Safari-Toolbar aus. Ein aufgezogenes
+  // Sheet klappte dann mitten im Lesen auf Peek zurück.
+  const measured = vh > 0;
   useEffect(() => {
-    if (vh) {
-      idxRef.current = 0;
-      setAtFull(false);
-      animate(y, snapY(DETENTS[0]), SPRING);
-    }
+    if (!measured) return;
+    idxRef.current = 0;
+    setAtFull(false);
+    animate(y, snapY(DETENTS[0]), TRANSITION);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [vh, spot.slug]);
+  }, [spot.slug, measured]);
+
+  // resize/Drehung: nur neu rechnen, nie animieren und nie die Stufe zurücksetzen.
+  const settled = useRef(false);
+  useEffect(() => {
+    if (!vh) return;
+    if (!settled.current) {
+      settled.current = true; // erster Messwert -> gehört der Öffnen-Animation oben
+      return;
+    }
+    y.jump(snapY(DETENTS[idxRef.current]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vh]);
 
   function dismiss() {
-    animate(y, closedY, SPRING).then(() => onClose());
+    animate(y, closedY, TRANSITION).then(() => onClose());
   }
 
   // Esc schließt
@@ -130,7 +150,7 @@ export default function SpotSheet({
     const c = Math.max(0, Math.min(DETENTS.length - 1, i));
     idxRef.current = c;
     setAtFull(c === DETENTS.length - 1);
-    animate(y, snapY(DETENTS[c]), SPRING);
+    animate(y, snapY(DETENTS[c]), TRANSITION);
   }
   function handleDragEnd(_e: unknown, info: PanInfo) {
     const cur = y.get();
@@ -163,6 +183,7 @@ export default function SpotSheet({
 
   return (
     <motion.div
+      data-sg="spot-sheet"
       style={{ y, height: sheetH }}
       drag="y"
       dragListener={false}
@@ -176,7 +197,7 @@ export default function SpotSheet({
       <div
         onPointerDown={onHandleDown}
         onPointerUp={onHandleUp}
-        className="flex cursor-grab touch-none justify-center py-3 active:cursor-grabbing"
+        className="sg-native-tap flex cursor-grab touch-none select-none justify-center py-3 active:cursor-grabbing"
       >
         <span className="h-1.5 w-10 rounded-full bg-black/15" aria-hidden />
       </div>
