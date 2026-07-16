@@ -265,7 +265,7 @@ export default function WaterExplore({
   );
 
   return (
-    <div className="fixed inset-0 z-0 md:top-14">
+    <div className="fixed inset-0 z-0 md:top-[var(--sg-header-h)]">
       {/* --sg-map-bottom: hebt Mapbox-Logo und -Attribution über das Peek-Sheet mit der
           Seenliste – dieselbe Mechanik wie auf der Startseite (Lizenzpflicht, siehe
           globals.css). Das Sheet liegt hier dauerhaft mit MOBILE_SHEET_PEEK an, nicht

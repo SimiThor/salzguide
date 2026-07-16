@@ -40,9 +40,22 @@ body {
    sichtbar sind (Panel = 16px px-4 + Karte + 12px gap + Karte + 12px gap + halbe Karte
    => Karte = (Panel - 40px) / 2.5) -> ein sauberer, robuster Halb-Anschnitt als klares
    "seitlich scrollbar"-Signal, bei jeder Breite. */
+/* Höhe des Top-Headers: EINE Quelle der Wahrheit.
+   Hängt an mehr Stellen als man denkt – Inhalts-Abstand (main md:pt), Offset der
+   vollflächigen Karten-Seiten (md:top), beide Header selbst und der Abstand der
+   Mapbox-Controls auf dem Handy. Als Zahl verstreut lief das beim nächsten Ändern
+   garantiert auseinander (Controls rutschen unter den Header, Inhalt darunter).
+   Mobil knapper als am Desktop: Am Handy zählt jeder Pixel Inhalt, am Desktop wirkt
+   ein zu flacher Balken gedrängt. */
 :root {
+  --sg-header-h: 60px;
   --sg-panel: 27rem; /* md (>=768): ~432px */
   --sg-card: calc((var(--sg-panel) - 40px) / 2.5);
+}
+@media (min-width: 768px) {
+  :root {
+    --sg-header-h: 72px;
+  }
 }
 @media (min-width: 1024px) {
   :root {
@@ -451,10 +464,12 @@ body {
 .mapboxgl-ctrl-top-left {
   padding: 4px 0 0 6px;
 }
-/* Auf dem Handy unter den App-Header rücken (Explore/Gespeichert haben mobil einen Header) */
+/* Auf dem Handy unter den App-Header rücken (Explore/Gespeichert haben mobil einen Header).
+   Aus --sg-header-h abgeleitet statt fest 64px: Die 64 waren die Header-Höhe plus 8px
+   Luft – wächst der Header, rutschten die Controls sonst darunter. */
 @media (max-width: 767px) {
   .mapboxgl-ctrl-top-right {
-    padding-top: calc(env(safe-area-inset-top) + 64px);
+    padding-top: calc(env(safe-area-inset-top) + var(--sg-header-h) + 8px);
   }
   /* Detail-Karte hat KEINEN Mobile-Header -> Controls bleiben oben-rechts */
   .sg-ctrl-top .mapboxgl-ctrl-top-right {

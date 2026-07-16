@@ -82,7 +82,7 @@ export default async function LocaleLayout({
               <MobileHeader />
               <DesktopHeader />
               {/* Mobile: Platz unten für BottomNav. Desktop: Platz oben für Header. */}
-              <main className="flex flex-1 flex-col md:pt-14">
+              <main className="flex flex-1 flex-col md:pt-[var(--sg-header-h)]">
                 {children}
                 {/* Globaler Footer inkl. gesetzlichem Widerruf-Zugang (§ 13a FAGG) auf jeder
                     Seite; blendet sich auf der vollflächigen Karten-Startseite selbst aus. */}

@@ -256,7 +256,7 @@ export default function Explore({
   );
 
   return (
-    <div className="fixed inset-0 z-0 md:top-14">
+    <div className="fixed inset-0 z-0 md:top-[var(--sg-header-h)]">
       {/* Karte: mobil vollflächig, Desktop um die Sidebar versetzt */}
       {/* --sg-map-bottom: hebt Mapbox-Logo und -Attribution über das Peek-Sheet und
           die Navigationsleiste. Beide sind Lizenzpflicht und müssen sichtbar bleiben

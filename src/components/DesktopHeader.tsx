@@ -25,8 +25,8 @@ export default function DesktopHeader() {
   ];
 
   return (
-    <header className="fixed inset-x-0 top-0 z-50 hidden h-14 items-center justify-between border-b border-black/5 bg-cream/80 px-6 backdrop-blur-xl md:flex">
-      <Link href="/" className="text-xl font-bold text-accent">
+    <header className="fixed inset-x-0 top-0 z-50 hidden h-[var(--sg-header-h)] items-center justify-between border-b border-black/5 bg-cream/80 px-6 backdrop-blur-xl md:flex">
+      <Link href="/" className="text-[26px] font-bold tracking-tight text-accent">
         SalzGuide
       </Link>
 

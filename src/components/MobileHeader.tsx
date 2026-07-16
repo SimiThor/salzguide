@@ -57,7 +57,7 @@ export default function MobileHeader() {
   return (
     <>
       <header className="fixed inset-x-0 top-0 z-40 flex items-center justify-between border-b border-black/5 bg-cream/80 px-4 pt-safe backdrop-blur-xl md:hidden">
-        <Link href="/" className="flex h-14 items-center text-xl font-bold text-accent">
+        <Link href="/" className="flex h-[var(--sg-header-h)] items-center text-[22px] font-bold tracking-tight text-accent">
           SalzGuide
         </Link>
         <button

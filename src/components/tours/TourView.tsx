@@ -294,7 +294,7 @@ export default function TourView({
   );
 
   return (
-    <div className="fixed inset-0 z-0 md:top-14">
+    <div className="fixed inset-0 z-0 md:top-[var(--sg-header-h)]">
       {/* Fullscreen-Karte: mobil vollflächig, Desktop um das Panel versetzt */}
       <div className="absolute inset-0 md:left-[var(--sg-panel)]">
         {markers.length > 0 ? (
