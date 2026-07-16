@@ -74,8 +74,11 @@ export default async function LocaleLayout({
     <html lang={locale} dir={localeDir(locale)} className={`${inter.variable} h-full`}>
       <body className="flex min-h-dvh flex-col bg-cream text-ink antialiased">
         <NextIntlClientProvider messages={messages}>
-          <AiProvider>
-            <LoginGateProvider>
+          {/* LoginGateProvider MUSS aussen liegen: AiProvider rendert das Chat-Sheet
+              als Geschwister von {children}. Laege das Gate innen, haetten die
+              Spot-/Event-Karten IM Chat keinen Provider -> Absturz beim Merken. */}
+          <LoginGateProvider>
+            <AiProvider>
               <MobileHeader />
               <DesktopHeader />
               {/* Mobile: Platz unten für BottomNav. Desktop: Platz oben für Header. */}
@@ -87,8 +90,8 @@ export default async function LocaleLayout({
               </main>
               <BottomNav />
               <Analytics />
-            </LoginGateProvider>
-          </AiProvider>
+            </AiProvider>
+          </LoginGateProvider>
         </NextIntlClientProvider>
       </body>
     </html>
