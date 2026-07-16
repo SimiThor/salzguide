@@ -1,0 +1,58 @@
+{
+  "DIFFICULTY": {
+    "leicht": {"en":"easy","it":"facile","nl":"makkelijk","ko":"쉬움","fr":"facile","zh":"简单","es":"fácil","pt":"fácil"},
+    "mittel": {"en":"moderate","it":"medio","nl":"gemiddeld","ko":"보통","fr":"modéré","zh":"中等","es":"moderado","pt":"moderado"},
+    "schwer": {"en":"hard","it":"difficile","nl":"zwaar","ko":"어려움","fr":"difficile","zh":"困难","es":"difícil","pt":"difícil"}
+  },
+  "SEASON": {
+    "Ganzjährig": {"en":"Year-round","it":"Tutto l'anno","nl":"Hele jaar","ko":"연중","fr":"Toute l'année","zh":"全年","es":"Todo el año","pt":"Todo o ano"},
+    "Frühling bis Herbst": {"en":"Spring to autumn","it":"Da primavera a autunno","nl":"Lente tot herfst","ko":"봄~가을","fr":"Printemps à automne","zh":"春季至秋季","es":"De primavera a otoño","pt":"Primavera a outono"},
+    "Mai bis Oktober": {"en":"May to October","it":"Da maggio a ottobre","nl":"Mei tot oktober","ko":"5월~10월","fr":"Mai à octobre","zh":"5月至10月","es":"De mayo a octubre","pt":"Maio a outubro"},
+    "Juni bis September": {"en":"June to September","it":"Da giugno a settembre","nl":"Juni tot september","ko":"6월~9월","fr":"Juin à septembre","zh":"6月至9月","es":"De junio a septiembre","pt":"Junho a setembro"},
+    "Sommer": {"en":"Summer","it":"Estate","nl":"Zomer","ko":"여름","fr":"Été","zh":"夏季","es":"Verano","pt":"Verão"},
+    "Frühling": {"en":"Spring","it":"Primavera","nl":"Lente","ko":"봄","fr":"Printemps","zh":"春季","es":"Primavera","pt":"Primavera"},
+    "Herbst": {"en":"Autumn","it":"Autunno","nl":"Herfst","ko":"가을","fr":"Automne","zh":"秋季","es":"Otoño","pt":"Outono"},
+    "Winter": {"en":"Winter","it":"Inverno","nl":"Winter","ko":"겨울","fr":"Hiver","zh":"冬季","es":"Invierno","pt":"Inverno"}
+  },
+  "FAME": {
+    "Hidden Gem": {"en":"Hidden gem","it":"Gemma nascosta","nl":"Verborgen parel","ko":"숨은 명소","fr":"Trésor caché","zh":"小众宝藏","es":"Joya oculta","pt":"Joia escondida"},
+    "Lokal beliebt": {"en":"Local favourite","it":"Amato dai locali","nl":"Lokale favoriet","ko":"현지인 인기","fr":"Prisé des locaux","zh":"本地人最爱","es":"Favorito local","pt":"Favorito local"},
+    "Bekannt": {"en":"Well-known","it":"Conosciuto","nl":"Bekend","ko":"유명","fr":"Connu","zh":"知名","es":"Conocido","pt":"Conhecido"},
+    "Institution": {"en":"Institution","it":"Istituzione","nl":"Instituut","ko":"지역 명물","fr":"Institution","zh":"老字号","es":"Institución","pt":"Instituição"},
+    "Touristen-Hotspot": {"en":"Tourist hotspot","it":"Meta turistica","nl":"Toeristische hotspot","ko":"관광 명소","fr":"Site touristique","zh":"热门景点","es":"Punto turístico","pt":"Ponto turístico"}
+  },
+  "SUBTYPE": {
+    "Wanderung": {"en":"Hike","it":"Escursione","nl":"Wandeling","ko":"하이킹","fr":"Randonnée","zh":"徒步","es":"Senderismo","pt":"Caminhada"},
+    "Rundwanderung": {"en":"Loop hike","it":"Anello escursionistico","nl":"Rondwandeling","ko":"순환 하이킹","fr":"Boucle de randonnée","zh":"环形徒步","es":"Ruta circular","pt":"Percurso circular"},
+    "Aussichtspunkt": {"en":"Viewpoint","it":"Punto panoramico","nl":"Uitzichtpunt","ko":"전망대","fr":"Point de vue","zh":"观景点","es":"Mirador","pt":"Miradouro"},
+    "See & Baden": {"en":"Lake & swimming","it":"Lago e nuoto","nl":"Meer & zwemmen","ko":"호수 수영","fr":"Lac et baignade","zh":"湖泊游泳","es":"Lago y baño","pt":"Lago e banho"},
+    "Klamm": {"en":"Gorge","it":"Gola","nl":"Kloof","ko":"협곡","fr":"Gorge","zh":"峡谷","es":"Garganta","pt":"Desfiladeiro"},
+    "Wasserfall": {"en":"Waterfall","it":"Cascata","nl":"Waterval","ko":"폭포","fr":"Cascade","zh":"瀑布","es":"Cascada","pt":"Cascata"},
+    "Radtour": {"en":"Bike tour","it":"Giro in bici","nl":"Fietstocht","ko":"자전거 투어","fr":"Sortie à vélo","zh":"骑行","es":"Ruta en bici","pt":"Passeio de bicicleta"},
+    "Therme": {"en":"Thermal spa","it":"Terme","nl":"Thermen","ko":"온천 스파","fr":"Thermes","zh":"温泉水疗","es":"Termas","pt":"Termas"},
+    "Gipfel": {"en":"Summit","it":"Cima","nl":"Top","ko":"정상","fr":"Sommet","zh":"山顶","es":"Cumbre","pt":"Cume"},
+    "Spazierweg": {"en":"Easy walk","it":"Passeggiata","nl":"Wandelpad","ko":"산책로","fr":"Promenade","zh":"步行道","es":"Paseo","pt":"Passeio"},
+    "Spaziergang": {"en":"Stroll","it":"Camminata","nl":"Wandeling","ko":"산책","fr":"Balade","zh":"散步","es":"Caminata","pt":"Passeio a pé"},
+    "Stadtspaziergang": {"en":"City stroll","it":"Passeggiata in città","nl":"Stadswandeling","ko":"도시 산책","fr":"Balade en ville","zh":"城市漫步","es":"Paseo urbano","pt":"Passeio pela cidade"},
+    "Bergtour": {"en":"Mountain tour","it":"Tour in montagna","nl":"Bergtocht","ko":"산행","fr":"Sortie en montagne","zh":"登山","es":"Ruta de montaña","pt":"Rota de montanha"},
+    "Bergwanderung": {"en":"Mountain hike","it":"Escursione in montagna","nl":"Bergwandeling","ko":"산악 하이킹","fr":"Randonnée en montagne","zh":"山地徒步","es":"Senderismo de montaña","pt":"Caminhada na montanha"},
+    "Klettersteig": {"en":"Via ferrata","it":"Via ferrata","nl":"Via ferrata","ko":"비아 페라타","fr":"Via ferrata","zh":"铁索攀岩","es":"Vía ferrata","pt":"Via ferrata"},
+    "Rodelbahn": {"en":"Toboggan run","it":"Pista da slittino","nl":"Rodelbaan","ko":"썰매장","fr":"Piste de luge","zh":"雪橇道","es":"Pista de trineo","pt":"Pista de trenó"},
+    "Café": {"en":"Café","it":"Caffè","nl":"Café","ko":"카페","fr":"Café","zh":"咖啡馆","es":"Café","pt":"Café"},
+    "Restaurant": {"en":"Restaurant","it":"Ristorante","nl":"Restaurant","ko":"레스토랑","fr":"Restaurant","zh":"餐厅","es":"Restaurante","pt":"Restaurante"},
+    "Gasthof": {"en":"Inn","it":"Locanda","nl":"Herberg","ko":"전통 식당","fr":"Auberge","zh":"客栈","es":"Posada","pt":"Estalagem"},
+    "Bar": {"en":"Bar","it":"Bar","nl":"Bar","ko":"바","fr":"Bar","zh":"酒吧","es":"Bar","pt":"Bar"},
+    "Bäckerei": {"en":"Bakery","it":"Panetteria","nl":"Bakkerij","ko":"베이커리","fr":"Boulangerie","zh":"面包店","es":"Panadería","pt":"Padaria"},
+    "Eisdiele": {"en":"Ice cream parlour","it":"Gelateria","nl":"IJssalon","ko":"아이스크림 가게","fr":"Glacier","zh":"冰淇淋店","es":"Heladería","pt":"Gelataria"},
+    "Pizzeria": {"en":"Pizzeria","it":"Pizzeria","nl":"Pizzeria","ko":"피자집","fr":"Pizzeria","zh":"披萨店","es":"Pizzería","pt":"Pizzaria"},
+    "Hütte": {"en":"Mountain hut","it":"Rifugio","nl":"Berghut","ko":"산장","fr":"Refuge","zh":"山间小屋","es":"Refugio","pt":"Refúgio"},
+    "Beisl": {"en":"Pub","it":"Osteria","nl":"Kroeg","ko":"선술집","fr":"Troquet","zh":"小酒馆","es":"Taberna","pt":"Taberna"},
+    "Bistro": {"en":"Bistro","it":"Bistrot","nl":"Bistro","ko":"비스트로","fr":"Bistro","zh":"小餐馆","es":"Bistró","pt":"Bistrô"},
+    "Heuriger": {"en":"Wine tavern","it":"Taverna del vino","nl":"Wijncafé","ko":"와인 주점","fr":"Taverne à vin","zh":"葡萄酒馆","es":"Taberna de vino","pt":"Taberna de vinho"}
+  },
+  "ACCESS": {
+    "oeffis": {"en":"Transit","it":"Trasporti pubblici","nl":"OV","ko":"대중교통","fr":"Transports","zh":"公共交通","es":"Transporte público","pt":"Transportes públicos"},
+    "auto": {"en":"Car","it":"Auto","nl":"Auto","ko":"자동차","fr":"Voiture","zh":"自驾","es":"Coche","pt":"Carro"},
+    "beides": {"en":"Transit & Car","it":"Trasporti e auto","nl":"OV & auto","ko":"대중교통·자동차","fr":"Transports et voiture","zh":"公共交通与自驾","es":"Transporte y coche","pt":"Transportes e carro"}
+  }
+}

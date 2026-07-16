@@ -1,0 +1,483 @@
+@import "tailwindcss";
+
+/*
+  SalzGuide Design-Tokens (siehe CLAUDE.md / docs/02 §0).
+  In Tailwind v4 erzeugen diese @theme-Variablen automatisch Utilities:
+  --color-accent  -> bg-accent / text-accent / border-accent
+  --radius-card   -> rounded-card
+  --font-sans     -> font-sans
+*/
+@theme {
+  --color-cream: #faf6ec; /* Hintergrund (Creme) */
+  --color-ink: #111111; /* Text */
+  --color-muted: #6c5b57; /* Sekundärtext (warmes Braun) */
+  --color-accent: #cc2924; /* SalzGuide-Rot */
+
+  --radius-card: 16px;
+  --radius-sheet: 22px;
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
+    "SF Pro Text", "Segoe UI", sans-serif;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background-color: var(--color-cream);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Desktop-Layout der Karten-Seiten (Start-/Wasserseite): EINE Quelle der Wahrheit.
+   --sg-panel steuert die Breite der linken Spalte, den Karten-Offset (map md:left)
+   UND – daraus abgeleitet – die Karussell-Kartenbreite. Die Spalte wächst sanft mit
+   der Bildschirmbreite, damit sie neben der grossen Karte nie zu schmal wirkt.
+   --sg-card ist so berechnet, dass im Karussell IMMER genau 2 volle + 1 halbe Karte
+   sichtbar sind (Panel = 16px px-4 + Karte + 12px gap + Karte + 12px gap + halbe Karte
+   => Karte = (Panel - 40px) / 2.5) -> ein sauberer, robuster Halb-Anschnitt als klares
+   "seitlich scrollbar"-Signal, bei jeder Breite. */
+:root {
+  --sg-panel: 27rem; /* md (>=768): ~432px */
+  --sg-card: calc((var(--sg-panel) - 40px) / 2.5);
+}
+@media (min-width: 1024px) {
+  :root {
+    --sg-panel: 30rem;
+  } /* ~480px */
+}
+@media (min-width: 1280px) {
+  :root {
+    --sg-panel: 33rem;
+  } /* ~528px */
+}
+@media (min-width: 1536px) {
+  :root {
+    --sg-panel: 36rem;
+  } /* ~576px */
+}
+
+/* Wasserseite: nur eine schlanke Liste (Seename + Temperatur) -> braucht KEINE
+   breite Karussell-Spalte. Eigene, deutlich schmalere Breite -> mehr Platz für die
+   Karte. Wächst nur minimal mit der Bildschirmbreite. */
+:root {
+  --sg-panel-water: 22rem; /* ~352px */
+}
+@media (min-width: 1280px) {
+  :root {
+    --sg-panel-water: 24rem;
+  } /* ~384px */
+}
+
+/* iOS Safe-Area-Helfer (Notch / Home-Indicator) */
+@layer utilities {
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* Mapbox Emoji-Marker (docs/10).
+   Wrapper (.sg-pin) wird von Mapbox per inline-transform positioniert -> NICHT
+   animieren. Das innere .sg-marker trägt Optik + alle Animationen (unabhängig
+   von der Positionierung). */
+.sg-pin {
+  appearance: none;
+  -webkit-appearance: none;
+  background: none;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  line-height: 0;
+  cursor: pointer;
+}
+.sg-marker {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  font-size: 1.15rem;
+  line-height: 1;
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 9999px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  /* federnder Übergang (Bounce) + „Drop-in" beim Erscheinen */
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: sg-pin-in 0.42s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+}
+.sg-pin:hover .sg-marker {
+  transform: scale(1.12);
+}
+/* Nummerierte Tour-Stopps: iOS-2026-Typo – Inter, kräftig, tabellarische Ziffern,
+   Akzentfarbe passend zur roten Route. Etwas kompakter als die Emoji-Pins. */
+.sg-marker--num {
+  width: 2rem;
+  height: 2rem;
+  font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
+  font-weight: 800;
+  font-size: 0.98rem;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-accent, #cc2924);
+}
+
+@keyframes sg-pin-in {
+  from {
+    opacity: 0;
+    transform: translateY(-9px) scale(0.4);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* KI-„arbeitet"-Indikator (iOS-2026): sanft schimmernder Text + pulsierende Punkte.
+   Reines CSS -> läuft durchgehend, zeigt Fortschritt bei jeder KI-Aktion. */
+@keyframes sg-ai-shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+@keyframes sg-ai-dot {
+  0%,
+  80%,
+  100% {
+    opacity: 0.2;
+    transform: translateY(0);
+  }
+  40% {
+    opacity: 1;
+    transform: translateY(-1.5px);
+  }
+}
+.sg-ai-text {
+  background: linear-gradient(
+    90deg,
+    var(--color-muted) 20%,
+    var(--color-accent) 50%,
+    var(--color-muted) 80%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: sg-ai-shimmer 1.6s linear infinite;
+}
+.sg-ai-dot {
+  animation: sg-ai-dot 1s ease-in-out infinite;
+}
+
+/* KI-Button (Apple-Intelligence-Stil, iOS-2026): während die KI arbeitet, umläuft
+   den Button ein weicher, iridescenter Rand-Glow in den Brand-Rottönen (langsam
+   fliessend, wie die Siri-/Apple-Intelligence-Kante), dazu ein ruhig atmender
+   Schein. Premium & minimalistisch – der Text (z-10) bleibt darüber klar lesbar.
+   Der animierte Farbwinkel läuft über @property; wird das nicht unterstützt,
+   bleibt der Verlaufsrand einfach statisch stehen (sauberer Fallback). */
+@property --sg-ai-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+@keyframes sg-ai-rotate {
+  to {
+    --sg-ai-angle: 360deg;
+  }
+}
+@keyframes sg-ai-glow {
+  0%,
+  100% {
+    box-shadow: 0 1px 10px -4px rgba(204, 41, 36, 0.4);
+  }
+  50% {
+    box-shadow: 0 3px 22px -4px rgba(204, 41, 36, 0.66);
+  }
+}
+.sg-ai-btn {
+  color: #fff;
+  /* ruhige, leicht tiefe Brand-Rot-Fläche als Basis */
+  background-image: linear-gradient(135deg, #c0261f 0%, #cc2924 55%, #b31f1a 100%);
+  animation: sg-ai-glow 3.4s ease-in-out infinite;
+}
+/* fliessender iridescenter Rand (nur ein dünner Ring dank Mask) */
+.sg-ai-btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  padding: 1.4px;
+  background: conic-gradient(
+    from var(--sg-ai-angle),
+    #ffb088,
+    #cc2924,
+    #ff6f61,
+    #ffd9b0,
+    #cc2924,
+    #ffb088
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: sg-ai-rotate 3.4s linear infinite;
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sg-ai-text {
+    animation: none;
+    color: var(--color-accent);
+  }
+  .sg-ai-dot {
+    animation: none;
+    opacity: 0.7;
+  }
+  .sg-ai-btn {
+    animation: none;
+  }
+  .sg-ai-btn::before {
+    animation: none;
+  }
+}
+
+/* Desktop-KI-Launcher: dezenter, atmender Glow (Aufmerksamkeit OHNE Bewegung/Wackeln). */
+@keyframes sg-launcher-glow {
+  0%,
+  100% {
+    box-shadow: 0 8px 24px -8px rgba(204, 41, 36, 0.4);
+  }
+  50% {
+    box-shadow: 0 10px 34px -6px rgba(204, 41, 36, 0.66);
+  }
+}
+.sg-launcher-glow {
+  animation: sg-launcher-glow 3.2s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sg-launcher-glow {
+    animation: none;
+    box-shadow: 0 8px 24px -8px rgba(204, 41, 36, 0.45);
+  }
+}
+
+/* Audio-Tour-Scrubber: schlanke iOS-Range mit Akzent-Track + rundem Thumb. */
+.sg-scrubber {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 22px;
+  background: transparent;
+  cursor: pointer;
+  touch-action: none;
+}
+/* Abgespielter Teil rot (wie Spotify): Track ist ein Verlauf bis --sg-progress. */
+.sg-scrubber::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(
+    to right,
+    var(--color-accent, #cc2924) var(--sg-progress, 0%),
+    rgba(0, 0, 0, 0.12) var(--sg-progress, 0%)
+  );
+}
+.sg-scrubber::-moz-range-track {
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.12);
+}
+/* Firefox: eigener Fortschritts-Pseudoelement-Track. */
+.sg-scrubber::-moz-range-progress {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--color-accent, #cc2924);
+}
+.sg-scrubber::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  margin-top: -6px;
+  height: 16px;
+  width: 16px;
+  border-radius: 999px;
+  background: var(--color-accent, #cc2924);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+}
+.sg-scrubber::-moz-range-thumb {
+  height: 16px;
+  width: 16px;
+  border: none;
+  border-radius: 999px;
+  background: var(--color-accent, #cc2924);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+}
+.sg-scrubber:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Skeleton-Ladeplatzhalter (iOS-2026): sanfter, heller Lichtschimmer über neutraler
+   Fläche. Als Hintergrund hinter noch nicht geladenen Bildern ODER als eigene Blöcke
+   in Sektions-Fallbacks. Respektiert prefers-reduced-motion. */
+@keyframes sg-shimmer {
+  0% {
+    background-position: -150% 0;
+  }
+  100% {
+    background-position: 150% 0;
+  }
+}
+.sg-skeleton {
+  background-color: rgb(0 0 0 / 0.09);
+  background-image: linear-gradient(
+    100deg,
+    transparent 25%,
+    rgb(255 255 255 / 0.65) 50%,
+    transparent 75%
+  );
+  background-size: 200% 100%;
+  background-repeat: no-repeat;
+  animation: sg-shimmer 1.4s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sg-skeleton {
+    animation: none;
+  }
+}
+
+/* Reader-Modus fürs Transkript: angenehm lesbar (Lesebreite, Zeilenhöhe, Trennung). */
+.sg-reader {
+  max-inline-size: 62ch;
+  font-size: 17px;
+  line-height: 1.75;
+  color: rgb(17 17 17 / 0.9);
+  hyphens: auto;
+}
+.sg-reader p + p {
+  margin-top: 0.9em;
+}
+
+/* Ausgewählter Spot: Pin wächst einmal federnd + ruhiger, statischer Akzent-Ring
+   (kein Dauer-Pulsieren -> aufgeräumt, iOS-2026). */
+.sg-pin--active {
+  z-index: 6;
+}
+.sg-pin--active .sg-marker,
+.sg-pin--active:hover .sg-marker {
+  transform: scale(1.18);
+  border-color: rgba(204, 41, 36, 0.35);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.28),
+    0 0 0 4px rgba(204, 41, 36, 0.16);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sg-marker {
+    animation: none;
+    transition: none;
+  }
+}
+
+/* Mapbox-Controls im SalzGuide-Stil (Glas, rund, weicher Schatten) */
+.mapboxgl-ctrl-group {
+  border-radius: 11px !important;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.82) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(0, 0, 0, 0.05) !important;
+  box-shadow: 0 3px 14px -4px rgba(0, 0, 0, 0.22) !important;
+}
+.mapboxgl-ctrl-group button {
+  width: 32px !important;
+  height: 32px !important;
+  background-color: transparent !important;
+  color: var(--color-ink);
+}
+.mapboxgl-ctrl-group button + button {
+  border-top: 1px solid rgba(0, 0, 0, 0.07) !important;
+}
+.mapboxgl-ctrl-group button:hover {
+  background-color: rgba(0, 0, 0, 0.05) !important;
+}
+.mapboxgl-ctrl-group button:focus:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
+/* Saubere Karten-Ebenen (auf JEDER Karte gleich):
+   Marker/Badges (z-index bis 6) < Standort-Punkt (8) < Bedien-Buttons (10).
+   WICHTIG: Der z-index MUSS auf dem Marker-WRAPPER `.mapboxgl-user-location`
+   liegen (nicht auf dem inneren `.mapboxgl-user-location-dot`). Der Wrapper hat
+   `will-change:transform` -> eigener Stacking-Context; ein z-index am inneren
+   Punkt bleibt darin eingesperrt und tritt nie gegen die Badges an. Nur der
+   Wrapper konkurriert als Geschwister im Canvas-Container mit den Markern. */
+.mapboxgl-user-location {
+  z-index: 8;
+}
+/* Der grosse, transluzente Genauigkeits-Kreis behält bewusst sein Default
+   (z-index auto) -> liegt damit unter den Badges und färbt sie nicht ein;
+   nur der präzise Standort-Punkt (oben) liegt über den Markern. */
+/* Controls immer ÜBER den Markern und dem Standort-Punkt -> Buttons werden nie
+   von einem Marker verdeckt oder blockiert. */
+.mapboxgl-ctrl-top-left,
+.mapboxgl-ctrl-top-right,
+.mapboxgl-ctrl-bottom-left,
+.mapboxgl-ctrl-bottom-right {
+  z-index: 10 !important;
+}
+/* etwas mehr Luft zum Rand */
+.mapboxgl-ctrl-top-right {
+  padding: 4px 6px 0 0;
+}
+.mapboxgl-ctrl-top-left {
+  padding: 4px 0 0 6px;
+}
+/* Auf dem Handy unter den App-Header rücken (Explore/Gespeichert haben mobil einen Header) */
+@media (max-width: 767px) {
+  .mapboxgl-ctrl-top-right {
+    padding-top: calc(env(safe-area-inset-top) + 64px);
+  }
+  /* Detail-Karte hat KEINEN Mobile-Header -> Controls bleiben oben-rechts */
+  .sg-ctrl-top .mapboxgl-ctrl-top-right {
+    padding-top: 4px;
+  }
+  /* Vollbild-Karte deckt den Notch ab -> nur Safe-Area-Abstand */
+  .sg-ctrl-safe .mapboxgl-ctrl-top-right {
+    padding-top: calc(env(safe-area-inset-top) + 8px);
+  }
+  /* Wie sg-ctrl-safe, aber Controls rücken unter die schwebende Speichern-Pille
+     (Runden-Builder-Ergebnis) statt sie zu überlappen. */
+  .sg-ctrl-tour .mapboxgl-ctrl-top-right {
+    padding-top: calc(env(safe-area-inset-top) + 60px);
+  }
+}
+
+/* Keine Pfeil-Stepper bei Zahlenfeldern (einfach eintippen) */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* Dezenter Highlight-Punkt (Sync Höhenprofil <-> Karte) */
+.sg-hl-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 9999px;
+  background: var(--color-accent, #cc2924);
+  border: 2.5px solid #fff;
+  box-shadow:
+    0 1px 5px rgba(0, 0, 0, 0.4),
+    0 0 0 6px rgba(204, 41, 36, 0.18);
+  pointer-events: none;
+}
