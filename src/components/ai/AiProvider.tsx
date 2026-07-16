@@ -8,6 +8,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { usePathname } from "@/i18n/navigation";
 import AiAssistant from "./AiAssistant";
 import ToniLauncher from "./ToniLauncher";
 import { createClient } from "@/lib/supabase/client";
@@ -53,6 +54,20 @@ export default function AiProvider({ children }: { children: ReactNode }) {
     });
     return () => sub.subscription.unsubscribe();
   }, []);
+
+  // Seitenwechsel schließt den Chat. Er ist ein Overlay ÜBER der aktuellen Seite –
+  // bleibt er offen, verdeckt er das Ziel. Sichtbar wurde das beim Login-Gate: Der
+  // Button schickt auf /profil, und der Chat lag weiter darüber. Hier statt im Gate,
+  // weil es für JEDE Navigation gilt (auch für Links im Chat selbst).
+  // React-Muster "State beim Rendern anpassen" (wie EventCard.tsx:76) statt Effekt:
+  // greift synchron vor dem Paint (kein kurzes Aufblitzen des Chats auf der neuen
+  // Seite) und verstößt nicht gegen react-hooks/set-state-in-effect.
+  const pathname = usePathname();
+  const [prevPath, setPrevPath] = useState(pathname);
+  if (pathname !== prevPath) {
+    setPrevPath(pathname);
+    setIsOpen(false);
+  }
 
   const open = useCallback(() => setIsOpen(true), []);
   const close = useCallback(() => setIsOpen(false), []);
