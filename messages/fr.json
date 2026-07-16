@@ -82,7 +82,6 @@
     "save": "Enregistrer le parcours",
     "saving": "Enregistrement…",
     "saveError": "Non enregistré",
-    "saveLogin": "Connecte-toi pour enregistrer",
     "yourRoutes": "Tes parcours",
     "curatedRoutes": "Sélectionnés par des locaux",
     "savedHint": "Enregistré – tu le retrouves ici à tout moment.",
@@ -364,5 +363,27 @@
     "tagline": "Ton guide numérique de la région de Salzburg.",
     "rights": "Tous droits réservés.",
     "deOnly": "Ces textes juridiques ne sont disponibles qu'en allemand ; la version allemande fait foi."
+  },
+  "LoginGate": {
+    "cta": "S'inscrire gratuitement",
+    "hint": "Avec ton e-mail, sans mot de passe.",
+    "reason": {
+      "default": {
+        "title": "Il te faut un compte pour ça",
+        "body": "Connecte-toi vite fait, puis tu reprends ici."
+      },
+      "saveSpot": {
+        "title": "Garder ce spot",
+        "body": "Avec un compte, tu rassembles tes spots et tu les as sur chaque appareil."
+      },
+      "saveEvent": {
+        "title": "Garder cet événement",
+        "body": "Avec un compte, tes dates te suivent sur chaque appareil."
+      },
+      "buildTour": {
+        "title": "Créer ta propre boucle",
+        "body": "Tes boucles audio, tu les crées et les gardes avec un compte. Les boucles préparées marchent sans."
+      }
+    }
   }
 }

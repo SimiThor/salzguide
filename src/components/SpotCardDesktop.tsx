@@ -2,12 +2,13 @@
 
 import Image from "next/image";
 import { useTransition } from "react";
-import { useTranslations } from "next-intl";
-import { Link, useRouter } from "@/i18n/navigation";
+import { useLocale, useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import type { ExploreSpot } from "@/lib/spots";
 import { toggleSaved } from "@/lib/saved-actions";
 import { Bookmark, BookmarkFilled } from "./icons";
 import LockedMedia from "./LockedMedia";
+import { useLoginGate } from "./auth/LoginGate";
 
 function X() {
   return (
@@ -32,23 +33,25 @@ export default function SpotCardDesktop({
   onSavedChange?: (slug: string, saved: boolean) => void;
 }) {
   const t = useTranslations("Explore");
-  const router = useRouter();
+  const locale = useLocale();
+  const gate = useLoginGate();
   const [, startTransition] = useTransition();
 
   function onSave() {
-    if (!loggedIn) {
-      router.push("/profil");
-      return;
-    }
     const next = !saved;
     // Optimistisch: Explore aktualisiert die Quelle der Wahrheit -> Icon flippt sofort.
-    onSavedChange?.(spot.slug, next);
+    if (loggedIn) onSavedChange?.(spot.slug, next);
     startTransition(async () => {
-      const r = await toggleSaved(spot.slug);
-      if (typeof r.saved === "boolean" && r.saved !== next) {
+      // next: Der offene Spot steht nur im Client-State der Karte, nie in der URL –
+      // nach dem Login käme man sonst auf der nackten Karte raus.
+      const r = await gate.run(
+        { loggedIn, reason: "saveSpot", next: `/${locale}/spot/${spot.slug}` },
+        () => toggleSaved(spot.slug),
+      );
+      if (r && typeof r.saved === "boolean" && r.saved !== next) {
         onSavedChange?.(spot.slug, r.saved);
       }
-      if (r.needLogin) router.push("/profil");
+      if (!r || r.needLogin) onSavedChange?.(spot.slug, saved);
     });
   }
 

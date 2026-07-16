@@ -82,7 +82,6 @@
     "save": "Salva il giro",
     "saving": "Salvo…",
     "saveError": "Non salvato",
-    "saveLogin": "Accedi per salvare",
     "yourRoutes": "I tuoi giri",
     "curatedRoutes": "Curati dai local",
     "savedHint": "Salvato – lo ritrovi qui quando vuoi.",
@@ -364,5 +363,27 @@
     "tagline": "La tua guida digitale per la regione di Salisburgo.",
     "rights": "Tutti i diritti riservati.",
     "deOnly": "Questi testi legali sono disponibili solo in tedesco; la versione tedesca è quella giuridicamente vincolante."
+  },
+  "LoginGate": {
+    "cta": "Iscriviti gratis",
+    "hint": "Con la tua e-mail, senza password.",
+    "reason": {
+      "default": {
+        "title": "Per questo ti serve un account",
+        "body": "Accedi un attimo, poi riprendi da qui."
+      },
+      "saveSpot": {
+        "title": "Salva lo spot",
+        "body": "Con un account raccogli i tuoi spot e li hai su ogni dispositivo."
+      },
+      "saveEvent": {
+        "title": "Salva l'evento",
+        "body": "Con un account hai le tue date su ogni dispositivo."
+      },
+      "buildTour": {
+        "title": "Crea il tuo giro",
+        "body": "I giri audio tuoi li crei e li salvi con un account. Quelli curati li ascolti anche senza."
+      }
+    }
   }
 }

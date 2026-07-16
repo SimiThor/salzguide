@@ -82,7 +82,6 @@
     "save": "Guardar volta",
     "saving": "A guardar…",
     "saveError": "Não guardado",
-    "saveLogin": "Inicia sessão para guardar",
     "yourRoutes": "As tuas voltas",
     "curatedRoutes": "Escolhidas por locais",
     "savedHint": "Guardada – encontra-la aqui sempre que quiseres.",
@@ -364,5 +363,27 @@
     "tagline": "O teu guia digital para a região de Salzburg.",
     "rights": "Todos os direitos reservados.",
     "deOnly": "Estes textos legais só estão disponíveis em alemão; a versão alemã é a juridicamente vinculativa."
+  },
+  "LoginGate": {
+    "cta": "Criar conta grátis",
+    "hint": "Com o teu e-mail, sem palavra-passe.",
+    "reason": {
+      "default": {
+        "title": "Para isto precisas de uma conta",
+        "body": "Entra rapidinho e continuas aqui mesmo."
+      },
+      "saveSpot": {
+        "title": "Guardar o spot",
+        "body": "Com conta juntas os teus spots e tens-nos em qualquer dispositivo."
+      },
+      "saveEvent": {
+        "title": "Guardar o evento",
+        "body": "Com conta tens as tuas datas em qualquer dispositivo."
+      },
+      "buildTour": {
+        "title": "Cria a tua volta",
+        "body": "As tuas voltas de áudio crias e guardas com conta. As voltas preparadas ouves sem ela."
+      }
+    }
   }
 }

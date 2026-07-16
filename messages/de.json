@@ -82,7 +82,6 @@
     "save": "Runde merken",
     "saving": "Speichere…",
     "saveError": "Nicht gespeichert",
-    "saveLogin": "Zum Merken anmelden",
     "yourRoutes": "Deine Runden",
     "curatedRoutes": "Von Locals kuratiert",
     "savedHint": "Gemerkt – du findest sie jederzeit hier wieder.",
@@ -364,5 +363,27 @@
     "tagline": "Dein digitaler Guide fürs Salzburger Land.",
     "rights": "Alle Rechte vorbehalten.",
     "deOnly": "Diese Rechtstexte sind nur auf Deutsch verfügbar; rechtlich verbindlich ist die deutsche Fassung."
+  },
+  "LoginGate": {
+    "cta": "Kostenlos anmelden",
+    "hint": "Mit deiner E-Mail, ohne Passwort.",
+    "reason": {
+      "default": {
+        "title": "Dafür brauchst du ein Konto",
+        "body": "Kurz anmelden, dann machst du hier weiter."
+      },
+      "saveSpot": {
+        "title": "Spot merken",
+        "body": "Mit Konto sammelst du deine Spots und hast sie auf jedem Gerät dabei."
+      },
+      "saveEvent": {
+        "title": "Event merken",
+        "body": "Mit Konto hast du deine Termine auf jedem Gerät dabei."
+      },
+      "buildTour": {
+        "title": "Eigene Runde bauen",
+        "body": "Eigene Audio-Runden baust und speicherst du mit Konto. Kuratierte Runden hörst du auch ohne."
+      }
+    }
   }
 }

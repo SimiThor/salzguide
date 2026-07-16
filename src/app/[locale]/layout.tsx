@@ -10,6 +10,7 @@ import DesktopHeader from "@/components/DesktopHeader";
 import MobileHeader from "@/components/MobileHeader";
 import LegalFooter from "@/components/LegalFooter";
 import AiProvider from "@/components/ai/AiProvider";
+import LoginGateProvider from "@/components/auth/LoginGate";
 import Analytics from "@/components/Analytics";
 import "../globals.css";
 
@@ -74,17 +75,19 @@ export default async function LocaleLayout({
       <body className="flex min-h-dvh flex-col bg-cream text-ink antialiased">
         <NextIntlClientProvider messages={messages}>
           <AiProvider>
-            <MobileHeader />
-            <DesktopHeader />
-            {/* Mobile: Platz unten für BottomNav. Desktop: Platz oben für Header. */}
-            <main className="flex flex-1 flex-col md:pt-14">
-              {children}
-              {/* Globaler Footer inkl. gesetzlichem Widerruf-Zugang (§ 13a FAGG) auf jeder
-                  Seite; blendet sich auf der vollflächigen Karten-Startseite selbst aus. */}
-              <LegalFooter />
-            </main>
-            <BottomNav />
-            <Analytics />
+            <LoginGateProvider>
+              <MobileHeader />
+              <DesktopHeader />
+              {/* Mobile: Platz unten für BottomNav. Desktop: Platz oben für Header. */}
+              <main className="flex flex-1 flex-col md:pt-14">
+                {children}
+                {/* Globaler Footer inkl. gesetzlichem Widerruf-Zugang (§ 13a FAGG) auf jeder
+                    Seite; blendet sich auf der vollflächigen Karten-Startseite selbst aus. */}
+                <LegalFooter />
+              </main>
+              <BottomNav />
+              <Analytics />
+            </LoginGateProvider>
           </AiProvider>
         </NextIntlClientProvider>
       </body>

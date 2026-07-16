@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "@/i18n/navigation";
 import { toggleSaved } from "@/lib/saved-actions";
 import { Bookmark, BookmarkFilled } from "./icons";
+import { useLoginGate } from "./auth/LoginGate";
 
 // Speichern-Button im Hero (docs/30). Speichert echt in die Merkliste (Auftrag G).
-// Nicht eingeloggt -> zum Login (Profil).
+// Ohne Konto -> Login-Gate (erklärt kurz, statt hart auf /profil zu springen).
 export default function SaveButton({
   label,
   slug,
@@ -20,18 +20,16 @@ export default function SaveButton({
 }) {
   const [saved, setSaved] = useState(initialSaved);
   const [, startTransition] = useTransition();
-  const router = useRouter();
+  const gate = useLoginGate();
 
   function onClick() {
-    if (!loggedIn) {
-      router.push("/profil");
-      return;
-    }
-    setSaved((s) => !s); // optimistisch
+    if (loggedIn) setSaved((s) => !s); // optimistisch
     startTransition(async () => {
-      const r = await toggleSaved(slug);
-      if (typeof r.saved === "boolean") setSaved(r.saved);
-      if (r.needLogin) router.push("/profil");
+      // Die Detailseite steht selbst in der URL – kein eigenes next nötig, das Gate
+      // nimmt die aktuelle Adresse und schickt den Nutzer nach dem Login hierher zurück.
+      const r = await gate.run({ loggedIn, reason: "saveSpot" }, () => toggleSaved(slug));
+      if (r && typeof r.saved === "boolean") setSaved(r.saved);
+      if (!r || r.needLogin) setSaved(initialSaved); // optimistischen Flip zurücknehmen
     });
   }
 
