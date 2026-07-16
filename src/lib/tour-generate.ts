@@ -177,6 +177,7 @@ export async function generateTour(
     title: x.p.title,
     shortDesc: null,
     emoji: x.p.emoji,
+    // Bild ist öffentlicher Teaser, auch bei locked (0029) – nur Audio ist Pro.
     imageUrl: x.p.img,
     lat: x.p.lat,
     lng: x.p.lng,

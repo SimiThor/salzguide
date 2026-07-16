@@ -117,7 +117,7 @@ export default function Explore({
           lat: s.lat as number,
           lng: s.lng as number,
           emoji: s.emoji,
-          locked: s.isPro,
+          locked: s.locked,
           title: s.title,
         })),
     [seasonSpots],
@@ -142,7 +142,9 @@ export default function Explore({
     const slug = previewSlug;
     if (!slug) return;
     const spot = seasonSpots.find((s) => s.slug === slug);
-    if (!spot || spot.type !== "activity" || spot.isPro) return;
+    // An `locked` hängen, nicht an `isPro` – sonst bleibt die Route für zahlende
+    // Pro-Kunden aus (getSpotRoute gibt sie ihnen sehr wohl heraus).
+    if (!spot || spot.type !== "activity" || spot.locked) return;
     if (slug in routeCache) return; // schon geladen (auch null gecacht)
     let alive = true;
     getSpotRoute(slug).then((coords) => {
@@ -155,7 +157,7 @@ export default function Explore({
 
   // Route des aktuell gewählten Spots (falls Wanderung + schon geladen)
   const activeRoute =
-    previewSpot && previewSpot.type === "activity" && !previewSpot.isPro
+    previewSpot && previewSpot.type === "activity" && !previewSpot.locked
       ? (routeCache[previewSpot.slug] ?? null)
       : null;
 
@@ -227,8 +229,9 @@ export default function Explore({
                       shortDesc={s.shortDesc}
                       emoji={s.emoji}
                       imageUrl={s.imageUrl}
+                      previewBlur={s.previewBlur}
                       isPro={s.isPro}
-                      locked={s.isPro}
+                      locked={s.locked}
                       lockedLabel={t("lockedLabel")}
                       sizeClassName="w-[76vw] max-w-[300px] md:w-[var(--sg-card)] md:max-w-none"
                     />

@@ -14,6 +14,7 @@ import { Link, useRouter } from "@/i18n/navigation";
 import type { ExploreSpot } from "@/lib/spots";
 import { toggleSaved } from "@/lib/saved-actions";
 import { Bookmark, BookmarkFilled } from "./icons";
+import LockedMedia from "./LockedMedia";
 import { useBodyDrag } from "./useBodyDrag";
 
 const SPRING = { type: "spring" as const, damping: 36, stiffness: 380 };
@@ -184,10 +185,10 @@ export default function SpotSheet({
       >
         <div className="flex items-start justify-between gap-3">
           <h2 className="text-2xl font-bold leading-tight text-ink">
-            {spot.isPro ? t("lockedTitle") : spot.title}
+            {spot.locked ? t("lockedTitle") : spot.title}
           </h2>
           <div className="flex shrink-0 gap-2">
-            {!spot.isPro && (
+            {!spot.locked && (
               <button
                 type="button"
                 onClick={onSave}
@@ -208,7 +209,7 @@ export default function SpotSheet({
           </div>
         </div>
 
-        {spot.isPro ? (
+        {spot.locked ? (
           <>
             <p className="mt-2 text-[15px] leading-relaxed text-muted">
               {t("proTeaser")}
@@ -236,10 +237,18 @@ export default function SpotSheet({
           </>
         )}
 
-        {/* Bild / Emoji-Platzhalter (sichtbar beim Hochziehen) */}
-        <div className="mt-5 overflow-hidden rounded-[16px]">
-          {!spot.isPro && spot.imageUrl ? (
-            <div className="relative aspect-[16/10] w-full overflow-hidden">
+        {/* Bild (sichtbar beim Hochziehen). Gesperrt -> Blur-Vorschau statt Foto,
+            gleiche Darstellung wie Startseiten-Karte und Audio-Guide-Stopp. */}
+        <div className="mt-5">
+          {spot.locked ? (
+            <LockedMedia
+              previewBlur={spot.previewBlur}
+              emoji={spot.emoji}
+              label={t("lockedLabel")}
+              className="aspect-[16/10] w-full rounded-[16px]"
+            />
+          ) : spot.imageUrl ? (
+            <div className="relative aspect-[16/10] w-full overflow-hidden rounded-[16px]">
               <Image
                 src={spot.imageUrl}
                 alt={spot.title}
@@ -249,9 +258,9 @@ export default function SpotSheet({
               />
             </div>
           ) : (
-            <div className="flex aspect-[16/10] items-center justify-center bg-gradient-to-br from-accent/20 to-muted/20">
+            <div className="flex aspect-[16/10] items-center justify-center overflow-hidden rounded-[16px] bg-gradient-to-br from-accent/20 to-muted/20">
               <span className="text-6xl" aria-hidden>
-                {spot.isPro ? "🤫" : (spot.emoji ?? "📍")}
+                {spot.emoji ?? "📍"}
               </span>
             </div>
           )}

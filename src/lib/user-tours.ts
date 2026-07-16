@@ -239,6 +239,7 @@ export async function getUserTourDetail(
     title: x.title,
     shortDesc: null,
     emoji: (x.point.emoji as string | null) ?? null,
+    // Bild ist öffentlicher Teaser, auch bei locked (0029) – nur Audio ist Pro.
     imageUrl: (x.point.image_url as string | null) ?? null,
     lat: (x.point.lat as number | null) ?? null,
     lng: (x.point.lng as number | null) ?? null,

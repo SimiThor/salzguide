@@ -176,6 +176,10 @@ export async function getTourDetail(
       title: p.st?.title ?? "",
       shortDesc: null,
       emoji: (point.emoji as string | null) ?? null,
+      // Titel, Bild und Position sind bei Touren bewusst ÖFFENTLICHE Teaser – nur
+      // Audio-Text und MP3 sind die Pro-Ware (Migration 0029, Entscheidung 2026-07-10).
+      // Anders als bei Geheimtipp-Spots wird hier also NICHT geblankt: Wer die Runde
+      // kaufen soll, muss vorher sehen, wohin sie führt.
       imageUrl: (point.image_url as string | null) ?? null,
       lat: (point.lat as number | null) ?? null,
       lng: (point.lng as number | null) ?? null,

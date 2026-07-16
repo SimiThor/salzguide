@@ -5,6 +5,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { getExploreData, getSpotDetail, type ExploreSpot } from "@/lib/spots";
 import { getSavedSlugs } from "@/lib/saved";
+import LockedMedia from "@/components/LockedMedia";
 import { createClient } from "@/lib/supabase/server";
 import { buildMapsLink } from "@/lib/maps";
 import type { Metadata } from "next";
@@ -102,18 +103,23 @@ export default async function SpotPage({
     />
   );
 
+  const HERO_BOX = "h-[42vh] max-h-[460px] min-h-[300px] w-full";
   const Hero = ({ children }: { children?: React.ReactNode }) => (
     <div className="relative">
-      {!children && spot.images[0] ? (
+      {spot.locked ? (
+        // Gesperrt: nur die Blur-Vorschau – gleiche Darstellung wie Karte, Sheet und
+        // Audio-Guide. Das Foto selbst liefert der Server nicht aus.
+        <LockedMedia previewBlur={spot.previewBlur} emoji={spot.emoji} className={HERO_BOX} />
+      ) : !children && spot.images[0] ? (
         <GalleryImage
           index={0}
           src={spot.images[0]}
           alt={spot.title}
           className="block w-full cursor-zoom-in"
-          imgClassName="h-[42vh] max-h-[460px] min-h-[300px] w-full object-cover"
+          imgClassName={`${HERO_BOX} object-cover`}
         />
       ) : (
-        <div className="flex h-[42vh] max-h-[460px] min-h-[300px] w-full items-center justify-center bg-gradient-to-br from-accent/20 to-muted/20">
+        <div className={`flex ${HERO_BOX} items-center justify-center bg-gradient-to-br from-accent/20 to-muted/20`}>
           <span className="text-[64px] opacity-90" aria-hidden>
             {children ?? spot.emoji ?? "📍"}
           </span>
@@ -154,7 +160,8 @@ export default async function SpotPage({
   if (spot.locked) {
     return (
       <div className="pb-16">
-        <Hero>🤫</Hero>
+        {/* Hero zeigt bei locked selbst die Blur-Vorschau – kein 🤫 mehr nötig. */}
+        <Hero />
         <div className="mx-auto w-full max-w-[760px] px-4">
           <div className={`${CARD} relative z-10 -mt-9 flex flex-col items-start gap-4 p-6`}>
             <p className="text-[15px] leading-relaxed text-muted">{t("proTeaser")}</p>
@@ -427,14 +434,17 @@ export default async function SpotPage({
             {t("related")}
           </h2>
           <Carousel railPadClass="px-0" scrollPadClass="scroll-px-0">
+            {/* An `locked` hängen, nicht an `isPro`: Für einen zahlenden Pro-Kunden
+                (oder Admin) sind Pro-Spots normale, anklickbare Karten. */}
             {related.map((s) =>
-              s.isPro ? (
+              s.locked ? (
                 <div key={s.slug}>
                   <SpotCard
                     title={s.title}
                     shortDesc={s.shortDesc}
                     emoji={s.emoji}
                     imageUrl={s.imageUrl}
+                    previewBlur={s.previewBlur}
                     isPro
                     locked
                     lockedLabel={t("lockedLabel")}

@@ -86,6 +86,10 @@ export async function getSavedSpots(locale: string): Promise<SavedSpot[] | null>
       slug: s.slug,
       emoji: s.emoji,
       imageUrl: imagesFromMedia(s.media)[0] ?? null,
+      // Läuft über den anon-Key: Die RLS (Migration 0017) lässt Pro-Spots nur durch,
+      // wenn der eingeloggte Betrachter sie sehen darf. Gespeichertes ist nie gesperrt.
+      locked: false,
+      previewBlur: null,
       isPro: s.is_pro,
       type: s.type,
       title: t?.title ?? s.slug,
