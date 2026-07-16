@@ -62,8 +62,9 @@ export default function SpotCardDesktop({
           {spot.locked ? (
             // Kein Abzeichen: Die Überschrift darunter sagt bereits "🤫 Geheimtipp".
             <LockedMedia
-              previewBlur={spot.previewBlur}
+              previewUrl={spot.previewUrl}
               emoji={spot.emoji}
+              eager
               className="aspect-[16/10] w-full"
             />
           ) : spot.imageUrl ? (

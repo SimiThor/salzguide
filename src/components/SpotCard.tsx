@@ -13,7 +13,7 @@ type SpotCardProps = {
   imageUrl?: string | null;
   // Winzige Blur-Vorschau für gesperrte Spots (data:-URI). Bei locked ist imageUrl
   // serverseitig null – das echte Foto verlässt den Server nicht.
-  previewBlur?: string | null;
+  previewUrl?: string | null;
   isPro?: boolean;
   locked?: boolean;
   lockedLabel?: string; // z.B. "🤫 Geheimtipp" / "🤫 Secret Spot"
@@ -28,7 +28,7 @@ export default function SpotCard({
   shortDesc,
   emoji,
   imageUrl,
-  previewBlur = null,
+  previewUrl = null,
   locked = false,
   lockedLabel = "🤫 Geheimtipp",
   sizeClassName = "w-[76vw] max-w-[300px]",
@@ -38,7 +38,7 @@ export default function SpotCard({
       {/* data-carousel-media: Anker, an dem das Karussell seine Pfeile vertikal zentriert. */}
       {locked ? (
         <LockedMedia
-          previewBlur={previewBlur}
+          previewUrl={previewUrl}
           emoji={emoji}
           label={lockedLabel}
           className="aspect-[4/3] w-full rounded-card shadow-sm"

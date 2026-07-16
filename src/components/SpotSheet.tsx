@@ -236,8 +236,9 @@ export default function SpotSheet({
           // iPhone 15 390x844 -> Button in beiden Fällen über der Tab-Leiste.
           <>
             <LockedMedia
-              previewBlur={spot.previewBlur}
+              previewUrl={spot.previewUrl}
               emoji={spot.emoji}
+              eager
               className="mt-3 h-[20vh] max-h-[220px] min-h-[120px] w-full rounded-[16px]"
             />
             <Link

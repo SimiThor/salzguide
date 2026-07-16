@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { setToniAvatarUrl } from "@/lib/admin-actions";
+import { IMMUTABLE_CACHE_SECONDS } from "@/lib/storage";
 
 // Bild client-seitig quadratisch (Center-Crop) zu WebP -> klein & rund passend.
 async function fileToSquareWebp(file: File, dim = 512, quality = 0.85): Promise<Blob> {
@@ -43,7 +44,7 @@ export default function ToniAvatarSettings({ current }: { current: string | null
       const path = `site/toni-${crypto.randomUUID()}.webp`;
       const { error } = await supabase.storage
         .from("spot-media")
-        .upload(path, blob, { contentType: "image/webp", upsert: false });
+        .upload(path, blob, { contentType: "image/webp", upsert: false, cacheControl: IMMUTABLE_CACHE_SECONDS });
       if (error) throw new Error(error.message);
       const publicUrl = supabase.storage.from("spot-media").getPublicUrl(path).data.publicUrl;
       const r = await setToniAvatarUrl(publicUrl);

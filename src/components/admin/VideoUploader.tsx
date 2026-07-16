@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import type { FFmpeg } from "@ffmpeg/ffmpeg";
 import { createClient } from "@/lib/supabase/client";
+import { IMMUTABLE_CACHE_SECONDS } from "@/lib/storage";
 
 // 9:16-Video je Spot: IMMER komprimieren, NIE das Original hochladen (zu unperformant).
 // Kompression via ffmpeg.wasm -> läuft in JEDEM Browser inkl. Safari (reines WebAssembly,
@@ -169,7 +170,7 @@ export default function VideoUploader({
       const vidPath = `spots/video-${crypto.randomUUID()}.mp4`;
       const up = await supabase.storage
         .from("spot-media")
-        .upload(vidPath, mp4, { contentType: "video/mp4", upsert: false });
+        .upload(vidPath, mp4, { contentType: "video/mp4", upsert: false, cacheControl: IMMUTABLE_CACHE_SECONDS });
       if (up.error) {
         const m = up.error.message || "";
         setErr(
@@ -186,7 +187,7 @@ export default function VideoUploader({
         const pPath = `spots/video-poster-${crypto.randomUUID()}.webp`;
         const pUp = await supabase.storage
           .from("spot-media")
-          .upload(pPath, poster, { contentType: "image/webp", upsert: false });
+          .upload(pPath, poster, { contentType: "image/webp", upsert: false, cacheControl: IMMUTABLE_CACHE_SECONDS });
         if (!pUp.error) {
           newPosterUrl = supabase.storage.from("spot-media").getPublicUrl(pPath).data.publicUrl;
         }

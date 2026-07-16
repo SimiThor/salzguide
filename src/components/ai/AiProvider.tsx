@@ -20,6 +20,11 @@ type AiContextValue = {
   open: () => void;
   close: () => void;
   isOpen: boolean;
+  // Ein fokussiertes Overlay (aktuell die Spot-Karte auf der Explore-Karte) meldet sich
+  // hier an. Toni hält dann seine Sprechblase zurück, statt darüber zu liegen: Beide
+  // schweben unten rechts, und die Blase ist bis zu 230px breit -> sie überlappte die
+  // Karte auf jeder Desktop-Breite (gemessen bei 768px und 1280px).
+  setOverlayOpen: (v: boolean) => void;
 };
 
 const AiContext = createContext<AiContextValue | null>(null);
@@ -32,6 +37,7 @@ export function useAi(): AiContextValue {
 
 export default function AiProvider({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [overlayOpen, setOverlayOpen] = useState(false);
   const [loggedIn, setLoggedIn] = useState(false);
 
   useEffect(() => {
@@ -52,10 +58,10 @@ export default function AiProvider({ children }: { children: ReactNode }) {
   const close = useCallback(() => setIsOpen(false), []);
 
   return (
-    <AiContext.Provider value={{ open, close, isOpen }}>
+    <AiContext.Provider value={{ open, close, isOpen, setOverlayOpen }}>
       {children}
       <AiAssistant open={isOpen} loggedIn={loggedIn} onClose={close} />
-      <ToniLauncher open={open} isOpen={isOpen} />
+      <ToniLauncher open={open} isOpen={isOpen} bubbleBlocked={overlayOpen} />
     </AiContext.Provider>
   );
 }

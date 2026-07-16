@@ -109,7 +109,7 @@ export default async function SpotPage({
       {spot.locked ? (
         // Gesperrt: nur die Blur-Vorschau – gleiche Darstellung wie Karte, Sheet und
         // Audio-Guide. Das Foto selbst liefert der Server nicht aus.
-        <LockedMedia previewBlur={spot.previewBlur} emoji={spot.emoji} className={HERO_BOX} />
+        <LockedMedia previewUrl={spot.previewUrl} emoji={spot.emoji} eager className={HERO_BOX} />
       ) : !children && spot.images[0] ? (
         <GalleryImage
           index={0}
@@ -444,7 +444,7 @@ export default async function SpotPage({
                     shortDesc={s.shortDesc}
                     emoji={s.emoji}
                     imageUrl={s.imageUrl}
-                    previewBlur={s.previewBlur}
+                    previewUrl={s.previewUrl}
                     isPro
                     locked
                     lockedLabel={t("lockedLabel")}

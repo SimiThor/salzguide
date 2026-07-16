@@ -34,7 +34,7 @@ type MediaRow = {
   url: string;
   role: string | null;
   sort_order: number | null;
-  blur_data_url?: string | null;
+  blur_url?: string | null;
 };
 function sortedMedia(media: unknown): MediaRow[] {
   const arr = (Array.isArray(media) ? media : []) as MediaRow[];
@@ -52,11 +52,11 @@ export function imagesFromMedia(media: unknown): string[] {
   return sortedMedia(media).map((m) => m.url);
 }
 
-// Winzige Blur-Vorschau des Hero-Bilds (data:-URI, siehe lib/blur-preview.ts).
-// Das EINZIGE Bild-Datum, das gesperrte Pro-Spots ausliefern dürfen. null, wenn der
-// Spot kein Foto hat oder die Vorschau noch nicht erzeugt wurde (-> Emoji-Fallback).
-export function heroBlurFromMedia(media: unknown): string | null {
-  return sortedMedia(media)[0]?.blur_data_url ?? null;
+// URL der Vorschau des Hero-Bilds (~160px, siehe lib/blur-preview.ts). Das EINZIGE
+// Bild, das gesperrte Pro-Spots ausliefern dürfen. null, wenn der Spot kein Foto hat
+// oder die Vorschau noch nicht erzeugt wurde (-> Emoji-Fallback).
+export function heroPreviewFromMedia(media: unknown): string | null {
+  return sortedMedia(media)[0]?.blur_url ?? null;
 }
 
 export type SpotCardData = {
@@ -67,8 +67,8 @@ export type SpotCardData = {
   // kein Pro-Zugang). Nicht aus isPro ableiten: Ein zahlender Pro-User sieht Pro-Spots
   // ganz normal, für ihn ist isPro true, locked aber false.
   locked: boolean;
-  // Winzige Blur-Vorschau (data:-URI) – nur bei locked gesetzt, als Teaser fürs Foto.
-  previewBlur: string | null;
+  // URL der Blur-Vorschau – nur bei locked gesetzt, als Teaser fürs Foto.
+  previewUrl: string | null;
   isPro: boolean;
   type: "activity" | "food";
   title: string;
@@ -136,7 +136,7 @@ export async function getPublishedSpots(locale: string): Promise<SpotCardData[]>
       // Läuft über den anon-Key: Die RLS (Migration 0017) lässt Pro-Spots nur durch,
       // wenn der Betrachter sie sehen darf. Was hier ankommt, ist also nie gesperrt.
       locked: false,
-      previewBlur: null,
+      previewUrl: null,
       isPro: s.is_pro,
       type: s.type,
       title: t?.title ?? s.slug,
@@ -206,7 +206,7 @@ export async function getExploreData(locale: string): Promise<ExploreData> {
     supabase
       .from("spots")
       .select(
-        "slug, emoji, is_pro, type, lat, lng, seasons, route_geojson, spot_translations!inner(title, short_desc, lang), spot_categories(categories(key, season)), media(url, role, sort_order, blur_data_url)",
+        "slug, emoji, is_pro, type, lat, lng, seasons, route_geojson, spot_translations!inner(title, short_desc, lang), spot_categories(categories(key, season)), media(url, role, sort_order, blur_url)",
       )
       .eq("status", "published")
       .in("spot_translations.lang", localeWithFallback(locale))
@@ -245,9 +245,8 @@ export async function getExploreData(locale: string): Promise<ExploreData> {
       slug: locked ? `locked-${i}` : s.slug,
       emoji: locked ? null : s.emoji,
       imageUrl: locked ? null : (imagesFromMedia(s.media)[0] ?? null),
-      // Statt des Fotos nur die 48px-Vorschau: genug für Farben und Formen
-      // (Vorfreude), zu wenig für Details oder eine Rückwärtssuche.
-      previewBlur: locked ? heroBlurFromMedia(s.media) : null,
+      // Statt des Fotos nur die Vorschau (~160px): Motiv erkennbar, Ort nicht.
+      previewUrl: locked ? heroPreviewFromMedia(s.media) : null,
       locked,
       isPro: s.is_pro,
       type: s.type,
@@ -285,9 +284,9 @@ export type SpotDetail = {
   isPro: boolean;
   locked: boolean; // Pro + (noch) kein Zugriff -> Paywall statt Inhalt
   images: string[]; // Fotos (Hero zuerst), leer wenn gesperrt
-  // Winzige Blur-Vorschau (data:-URI) – nur bei locked gesetzt, als Teaser auf der
-  // Paywall. Einziges Bild-Datum, das ein gesperrter Spot ausliefert.
-  previewBlur: string | null;
+  // URL der Blur-Vorschau – nur bei locked gesetzt, als Teaser auf der Paywall.
+  // Einziges Bild, das ein gesperrter Spot ausliefert.
+  previewUrl: string | null;
   duration: string | null;
   route: [number, number][] | null; // Wanderroute (LineString-Koordinaten)
   elevation: ElevationProfile | null; // Höhenprofil (nur Wanderungen)
@@ -336,7 +335,7 @@ export const getSpotDetail = cache(async function getSpotDetail(
   // sensiblen Felder werden unten bei `locked` autoritativ genullt (kein Leak).
   const supabase = createServiceClient();
   const select =
-    "slug, type, subtype, emoji, is_pro, duration, lat, lng, parking_lat, parking_lng, transit_lat, transit_lng, route_geojson, elevation_profile, difficulty, best_season, access, price_level, area, fame, has_opening_hours, phone, website_url, ticket_url, ticket_partner, lake_name, google_place_id, video_url, video_poster_url, media(url, role, sort_order, blur_data_url), local:locals(id, name, role, avatar_url), spot_translations!inner(title, short_desc, general, insider_tip, section_a, section_b, location_text, insider_author, lang)";
+    "slug, type, subtype, emoji, is_pro, duration, lat, lng, parking_lat, parking_lng, transit_lat, transit_lng, route_geojson, elevation_profile, difficulty, best_season, access, price_level, area, fame, has_opening_hours, phone, website_url, ticket_url, ticket_partner, lake_name, google_place_id, video_url, video_poster_url, media(url, role, sort_order, blur_url), local:locals(id, name, role, avatar_url), spot_translations!inner(title, short_desc, general, insider_tip, section_a, section_b, location_text, insider_author, lang)";
 
   const run = (lang: string) =>
     supabase
@@ -404,7 +403,7 @@ export const getSpotDetail = cache(async function getSpotDetail(
       isPro: true,
       locked: true,
       images: [],
-      previewBlur: heroBlurFromMedia(data.media),
+      previewUrl: heroPreviewFromMedia(data.media),
       duration: null,
       route: null,
       elevation: null,
@@ -451,7 +450,7 @@ export const getSpotDetail = cache(async function getSpotDetail(
     isPro: data.is_pro,
     locked: false,
     images: imagesFromMedia(data.media),
-    previewBlur: null, // nicht gesperrt -> das echte Foto wird gezeigt
+    previewUrl: null, // nicht gesperrt -> das echte Foto wird gezeigt
     duration: data.duration,
     route,
     elevation: (data.elevation_profile as ElevationProfile | null) ?? null,

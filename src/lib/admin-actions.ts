@@ -365,7 +365,7 @@ export async function saveSpot(input: SpotInput): Promise<SaveResult> {
   // ein Speichern überlebt, bei dem sich am Bild nichts geändert hat.
   const { data: prevHero } = await supabase
     .from("media")
-    .select("url, blur_data_url")
+    .select("url, blur_url")
     .eq("spot_id", spotId)
     .eq("type", "image")
     .eq("role", "hero")
@@ -378,9 +378,10 @@ export async function saveSpot(input: SpotInput): Promise<SaveResult> {
     // Schlägt die Erzeugung fehl, bleibt die Spalte null und die UI fällt auf das
     // Emoji zurück – das Speichern des Spots darf daran nicht scheitern.
     const heroBlur = await blurPreviewFor(
+      supabase.storage,
       input.images[0],
       prevHero?.url,
-      prevHero?.blur_data_url,
+      prevHero?.blur_url,
     );
     await supabase.from("media").insert(
       input.images.map((url, i) => ({
@@ -389,7 +390,7 @@ export async function saveSpot(input: SpotInput): Promise<SaveResult> {
         role: i === 0 ? "hero" : "gallery",
         url,
         sort_order: i,
-        blur_data_url: i === 0 ? heroBlur : null,
+        blur_url: i === 0 ? heroBlur : null,
       })),
     );
   }

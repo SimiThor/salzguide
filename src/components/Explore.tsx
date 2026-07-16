@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ExploreCategory, ExploreSpot } from "@/lib/spots";
 import { getSpotRoute } from "@/lib/spot-actions";
+import { useAi } from "./ai/AiProvider";
 import Carousel from "./Carousel";
 import SpotCardDesktop from "./SpotCardDesktop";
 import SpotSheet, { SPOT_SHEET_PEEK } from "./SpotSheet";
@@ -41,6 +42,13 @@ export default function Explore({
   const [headerH, setHeaderH] = useState(56);
   const [previewSlug, setPreviewSlug] = useState<string | null>(null);
   const [sheetClosing, setSheetClosing] = useState(false);
+  // Solange eine Spot-Vorschau offen ist, hält Toni seine Sprechblase zurück – beide
+  // schweben unten rechts und lägen sonst übereinander.
+  const { setOverlayOpen } = useAi();
+  useEffect(() => {
+    setOverlayOpen(!!previewSlug);
+    return () => setOverlayOpen(false); // beim Verlassen der Seite nicht blockiert lassen
+  }, [previewSlug, setOverlayOpen]);
   // On-demand geladene Wanderrouten (pro Spot), clientseitig gecacht -> die
   // Startseite lädt keine Routen vorab (Performance). null = keine Route.
   const [routeCache, setRouteCache] = useState<Record<string, [number, number][] | null>>({});
@@ -229,7 +237,7 @@ export default function Explore({
                       shortDesc={s.shortDesc}
                       emoji={s.emoji}
                       imageUrl={s.imageUrl}
-                      previewBlur={s.previewBlur}
+                      previewUrl={s.previewUrl}
                       isPro={s.isPro}
                       locked={s.locked}
                       lockedLabel={t("lockedLabel")}

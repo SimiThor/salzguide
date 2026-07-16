@@ -1,7 +1,8 @@
-// Erzeugt die Blur-Vorschauen für Bestands-Hero-Fotos (media.blur_data_url).
+// Erzeugt die Vorschaubilder für Bestands-Hero-Fotos (media.blur_url).
 // Neue Uploads bekommen sie automatisch (saveSpot).
 //
-// Nutzt bewusst dieselbe buildBlurPreview() wie der Upload -> identische Vorschauen.
+// Nutzt bewusst dieselbe blurPreviewFor() wie der Upload -> identische Vorschauen und
+// dieselbe Aufräum-Logik (alte Vorschau-Datei wird beim Ersetzen gelöscht).
 //
 // Aufruf:
 //   npm run backfill:blur            nur fehlende (idempotent, gefahrlos wiederholbar)
@@ -10,7 +11,7 @@
 //                                    bleiben bestehende Vorschauen auf dem alten Stand.
 import { createClient } from "@supabase/supabase-js";
 import { readFileSync } from "node:fs";
-import { buildBlurPreview } from "../src/lib/blur-preview.ts";
+import { blurPreviewFor } from "../src/lib/blur-preview.ts";
 
 // .env.local einlesen (gleiches Muster wie scripts/seed.mjs)
 const env = Object.fromEntries(
@@ -37,59 +38,43 @@ if (force) console.log("--force: ALLE Vorschauen werden neu erzeugt.\n");
 
 // Nur Spot-Hero-Fotos. Tour-Stopps brauchen KEINE Vorschau: Dort sind Titel, Bild und
 // Position bewusst öffentliche Teaser, nur das Audio ist Pro (Migration 0029).
-const TARGETS = [
-  {
-    label: "Spot-Hero-Fotos",
-    table: "media",
-    column: "blur_data_url",
-    load: () => {
-      const q = supabase
-        .from("media")
-        .select("id, url")
-        .eq("type", "image")
-        .eq("role", "hero");
-      return force ? q : q.is("blur_data_url", null);
-    },
-  },
-];
+const base = supabase.from("media").select("id, url, blur_url").eq("type", "image").eq("role", "hero");
+const { data, error } = await (force ? base : base.is("blur_url", null));
+
+if (error) {
+  console.error("Laden fehlgeschlagen:", error.message);
+  process.exit(1);
+}
+
+const rows = (data ?? []).filter((r) => typeof r.url === "string" && r.url);
+if (!rows.length) {
+  console.log("Nichts zu tun – alle Hero-Fotos haben eine Vorschau.");
+  process.exit(0);
+}
+
+console.log(`${rows.length} Hero-Foto(s) ${force ? "werden neu erzeugt" : "ohne Vorschau"}.`);
 
 let done = 0;
 let failed = 0;
 
-for (const target of TARGETS) {
-  const { data, error } = await target.load();
-  if (error) {
-    console.error(`${target.label}: Laden fehlgeschlagen – ${error.message}`);
+for (const row of rows) {
+  // Bei --force die alte URL absichtlich NICHT als "prev" durchreichen: Sonst gälte das
+  // Bild als unverändert und die alte Vorschau bliebe stehen – genau das, was --force
+  // verhindern soll. Die alte Datei wird trotzdem aufgeräumt (prevPreviewUrl).
+  const preview = await blurPreviewFor(supabase.storage, row.url, force ? null : row.url, row.blur_url);
+  if (!preview) {
+    console.warn(`  ✗ ${row.url} – Vorschau konnte nicht erzeugt werden`);
     failed++;
     continue;
   }
-
-  const rows = (data ?? []).filter((r) => typeof r.url === "string" && r.url);
-  if (!rows.length) {
-    console.log(`${target.label}: nichts zu tun.`);
+  const up = await supabase.from("media").update({ blur_url: preview }).eq("id", row.id);
+  if (up.error) {
+    console.warn(`  ✗ ${row.url} – Speichern fehlgeschlagen: ${up.error.message}`);
+    failed++;
     continue;
   }
-
-  console.log(`${target.label}: ${rows.length} ${force ? "werden neu erzeugt" : "ohne Vorschau"}.`);
-  for (const row of rows) {
-    const blur = await buildBlurPreview(row.url);
-    if (!blur) {
-      console.warn(`  ✗ ${row.url} – Vorschau konnte nicht erzeugt werden`);
-      failed++;
-      continue;
-    }
-    const up = await supabase
-      .from(target.table)
-      .update({ [target.column]: blur })
-      .eq("id", row.id);
-    if (up.error) {
-      console.warn(`  ✗ ${row.url} – Speichern fehlgeschlagen: ${up.error.message}`);
-      failed++;
-      continue;
-    }
-    done++;
-    console.log(`  ✓ ${row.url.split("/").pop()} (${blur.length} Zeichen)`);
-  }
+  done++;
+  console.log(`  ✓ ${row.url.split("/").pop()} -> ${preview.split("/").pop()}`);
 }
 
 console.log(`\nFertig: ${done} erzeugt, ${failed} fehlgeschlagen.`);
