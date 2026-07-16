@@ -3,6 +3,7 @@
 import { createServiceClient } from "./supabase/service";
 import { viewerCanSeePro } from "./spots";
 import { fetchWithRetry } from "./ai-fetch";
+import { stripEmDash } from "./em-dash";
 import { saveUserTour } from "./user-tours";
 import { routing } from "@/i18n/routing";
 import { localeMeta } from "@/i18n/locales";
@@ -257,7 +258,7 @@ Regeln:
 - Gib NUR IDs aus der Liste zurück (exakt kopiert). Erfinde nichts.
 - Match über Tags/Typ/Titel zu den Interessen. Gibt es wenig Passendes, wähle trotzdem eine schöne, abwechslungsreiche Mischung.
 - Reihenfolge egal (die optimale Route wird danach berechnet).
-- NAME: kurz (max ~4 Wörter), cool und konkret, im Stil unserer Zielgruppe (junge Locals & junge Reisende). ANTI-Kitsch: keine Wörter wie „bezaubernd", „traumhaft", „versteckte Perle", „magisch". Kein Doppelpunkt-Klischee. Sprache des Namens: ${nameLang}.
+- NAME: kurz (max ~4 Wörter), cool und konkret, im Stil unserer Zielgruppe (junge Locals & junge Reisende). ANTI-Kitsch: keine Wörter wie „bezaubernd", „traumhaft", „versteckte Perle", „magisch". Kein Doppelpunkt-Klischee. NIE einen Gedankenstrich („—") verwenden: der verrät sofort, dass eine Maschine getextet hat. Sprache des Namens: ${nameLang}.
 - EMOJI: genau EIN passendes Emoji zur Runde.`;
   const userMsg = `Interessen: ${interests || "(keine speziellen – allgemein spannende Mischung)"}\n\nPool (JSON):\n${JSON.stringify(list)}\n\nGib Auswahl + Name + Emoji über das Tool "build_route" zurück.`;
   try {
@@ -305,7 +306,10 @@ Regeln:
     if (!Array.isArray(ids)) return null;
     return {
       ids: ids.filter((x): x is string => typeof x === "string"),
-      name: typeof block?.input?.name === "string" ? block.input.name : "",
+      // Der Runden-Name steht später in der App. Der Prompt bittet um keinen
+      // Gedankenstrich, hier wird es erzwungen (siehe em-dash.ts).
+      name:
+        typeof block?.input?.name === "string" ? stripEmDash(block.input.name, locale) : "",
       emoji: typeof block?.input?.emoji === "string" ? block.input.emoji : "",
     };
   } catch {
