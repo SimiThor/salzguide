@@ -229,7 +229,7 @@ export async function setTourStatus(
 }
 
 // ── 1-Klick-Übersetzung der Tour-Texte ins Englische ─────────────────────────
-const EN_VOICE = `You translate SalzGuide content from German to English. Keep it natural, casual and local — like a young Salzburg local talking to a friend, not a tourist brochure. Avoid clichés (breathtaking, hidden gem, paradise, must-see). Keep proper nouns and place names. Translate faithfully; invent nothing. Return every field via the tool; keep empty fields empty.`;
+const EN_VOICE = `You translate SalzGuide content from German to English. Keep it natural, casual and local — like a young Salzburg local talking to a friend, not a tourist brochure. Avoid clichés (breathtaking, hidden gem, paradise, must-see). NEVER use em dashes (—). They are the clearest tell of AI-written text and cost us the trust this brand is built on. Write like a human types: full stop, comma, colon, or a plain hyphen. The ONLY exception is Chinese, where the doubled "——" is standard punctuation. Keep proper nouns and place names. Translate faithfully; invent nothing. Return every field via the tool; keep empty fields empty.`;
 
 export type TourTexts = { title: string; subtitle: string; description: string };
 export type TourTranslateResult = { ok: boolean; texts?: TourTexts; error?: string };
