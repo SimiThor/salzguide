@@ -374,15 +374,15 @@
       },
       "saveSpot": {
         "title": "Guardar o spot",
-        "body": "Com conta juntas os teus spots e tens-nos em qualquer dispositivo."
+        "body": "Vai direto para a tua lista – para o encontrares quando saíres mesmo."
       },
       "saveEvent": {
         "title": "Guardar o evento",
-        "body": "Com conta tens as tuas datas em qualquer dispositivo."
+        "body": "Vai direto para a tua lista – para não te escapar a data."
       },
       "buildTour": {
         "title": "Cria a tua volta",
-        "body": "As tuas voltas de áudio crias e guardas com conta. As voltas preparadas ouves sem ela."
+        "body": "Para a tua volta continuar lá depois de fechares a página. As voltas já feitas funcionam sem conta."
       }
     }
   }

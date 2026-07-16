@@ -22,9 +22,14 @@ import BottomSheet from "@/components/BottomSheet";
 export type LoginReason = "default" | "saveSpot" | "saveEvent" | "buildTour";
 
 // Emoji gehört in den Code, nicht in messages/*.json: sprachneutral, sonst 9x pflegen.
+//
+// Bewusst die Emojis, die die App für DIESE Inhalte ohnehin schon nutzt: 📍 als
+// Spot-Platzhalter (SpotCard, LockedMedia), 📅 für Events (EventCard), 🎧 für
+// Audio-Runden (touren/bauen). Das Emoji zeigt also, worum es GEHT – der Titel sagt,
+// was passiert. Ein Lesezeichen-Symbol hätte stattdessen die Mechanik beschrieben.
 const EMOJI: Record<LoginReason, string> = {
-  default: "🔒",
-  saveSpot: "🔖",
+  default: "👋",
+  saveSpot: "📍",
   saveEvent: "📅",
   buildTour: "🎧",
 };

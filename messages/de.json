@@ -374,15 +374,15 @@
       },
       "saveSpot": {
         "title": "Spot merken",
-        "body": "Mit Konto sammelst du deine Spots und hast sie auf jedem Gerät dabei."
+        "body": "Landet in deiner Liste – damit du ihn wiederfindest, wenn du wirklich losziehst."
       },
       "saveEvent": {
         "title": "Event merken",
-        "body": "Mit Konto hast du deine Termine auf jedem Gerät dabei."
+        "body": "Landet in deiner Liste – damit du den Termin nicht verschwitzt."
       },
       "buildTour": {
         "title": "Eigene Runde bauen",
-        "body": "Eigene Audio-Runden baust und speicherst du mit Konto. Kuratierte Runden hörst du auch ohne."
+        "body": "Damit deine Runde nicht weg ist, sobald du die Seite zumachst. Fertige Runden hörst du auch ohne."
       }
     }
   }

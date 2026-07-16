@@ -374,15 +374,15 @@
       },
       "saveSpot": {
         "title": "Garder ce spot",
-        "body": "Avec un compte, tu rassembles tes spots et tu les as sur chaque appareil."
+        "body": "Direct dans ta liste – pour le retrouver quand tu pars vraiment."
       },
       "saveEvent": {
         "title": "Garder cet événement",
-        "body": "Avec un compte, tes dates te suivent sur chaque appareil."
+        "body": "Direct dans ta liste – pour ne pas laisser filer la date."
       },
       "buildTour": {
         "title": "Créer ta propre boucle",
-        "body": "Tes boucles audio, tu les crées et les gardes avec un compte. Les boucles préparées marchent sans."
+        "body": "Pour que ta boucle soit encore là après avoir fermé l'onglet. Les boucles toutes faites marchent sans."
       }
     }
   }

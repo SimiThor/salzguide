@@ -374,15 +374,15 @@
       },
       "saveSpot": {
         "title": "Save this spot",
-        "body": "With an account you collect your spots and have them on every device."
+        "body": "Goes straight to your list – so you find it again when you actually head out."
       },
       "saveEvent": {
         "title": "Save this event",
-        "body": "With an account your dates are on every device."
+        "body": "Goes straight to your list – so the date doesn't slip past you."
       },
       "buildTour": {
         "title": "Build your own route",
-        "body": "You build and save your own audio routes with an account. Curated routes work without one."
+        "body": "So your route is still there after you close the tab. Ready-made routes work without an account."
       }
     }
   }

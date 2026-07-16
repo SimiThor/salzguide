@@ -374,15 +374,15 @@
       },
       "saveSpot": {
         "title": "Spot bewaren",
-        "body": "Met een account verzamel je je spots en heb je ze op elk apparaat bij je."
+        "body": "Belandt in je lijst – zodat je hem terugvindt als je er echt op uit gaat."
       },
       "saveEvent": {
         "title": "Event bewaren",
-        "body": "Met een account heb je je afspraken op elk apparaat bij je."
+        "body": "Belandt in je lijst – zodat de datum je niet ontglipt."
       },
       "buildTour": {
         "title": "Eigen route bouwen",
-        "body": "Eigen audioroutes bouw en bewaar je met een account. Samengestelde routes werken ook zonder."
+        "body": "Zodat je route er nog is als je het tabblad sluit. Kant-en-klare routes werken ook zonder."
       }
     }
   }
