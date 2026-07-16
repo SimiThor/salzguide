@@ -1,6 +1,6 @@
-import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { getFeaturedSpots } from "@/lib/spots";
+import type { HomeTexts } from "@/lib/home-fields";
 import SpotCard from "@/components/SpotCard";
 import Carousel from "@/components/Carousel";
 import { CTA_PRIMARY } from "./cta";
@@ -27,11 +27,15 @@ import { LANDING_CONTAINER_BLEED } from "./layout";
 // featuredEyebrow darf KEINE Anzahl nennen. Hier stand „Drei Beispiele", während der
 // Admin bis zu MAX_HOME_FEATURED (6) Spots auswählen darf: Beim vierten Spot hätte die
 // Zeile gelogen, ohne dass irgendetwas kaputtgegangen wäre.
-export default async function FeaturedSpots({ locale }: { locale: string }) {
-  const [t, spots] = await Promise.all([
-    getTranslations({ locale, namespace: "Home" }),
-    getFeaturedSpots(locale),
-  ]);
+export default async function FeaturedSpots({
+  texts,
+  locale,
+}: {
+  texts: HomeTexts;
+  /** Nur für die Spot-Abfrage: die Spot-Titel kommen weiterhin aus spot_translations. */
+  locale: string;
+}) {
+  const spots = await getFeaturedSpots(locale);
 
   if (spots.length === 0) return null;
 
@@ -40,10 +44,10 @@ export default async function FeaturedSpots({ locale }: { locale: string }) {
       <div className={LANDING_CONTAINER_BLEED}>
         <div className="px-6">
           <p className="text-[13px] font-semibold uppercase tracking-wider text-accent">
-            {t("featuredEyebrow")}
+            {texts.featuredEyebrow}
           </p>
           <h2 className="mt-2 max-w-[24ch] text-balance text-[28px] font-bold leading-[1.15] tracking-tight text-ink md:text-[38px]">
-            {t("featuredTitle")}
+            {texts.featuredTitle}
           </h2>
         </div>
 
@@ -90,7 +94,7 @@ export default async function FeaturedSpots({ locale }: { locale: string }) {
 
         <div className="px-6">
           <Link href="/explore" className={`mt-8 inline-block ${CTA_PRIMARY}`}>
-            {t("featuredCta")}
+            {texts.featuredCta}
           </Link>
         </div>
       </div>

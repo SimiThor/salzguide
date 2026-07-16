@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { useTranslations } from "next-intl";
 import type { LandingVideo as LandingVideoAsset } from "@/lib/landing-media";
 import { Play } from "@/components/icons";
 
@@ -21,11 +20,13 @@ import { Play } from "@/components/icons";
 export default function LandingVideo({
   video,
   hint,
+  playLabel,
 }: {
   video: LandingVideoAsset | null;
   hint: string;
+  /** Beschriftung des Play-Knopfs für Screenreader. Kommt aus der DB, siehe home-content.ts. */
+  playLabel: string;
 }) {
-  const t = useTranslations("Home");
   const [playing, setPlaying] = useState(false);
 
   return (
@@ -53,7 +54,7 @@ export default function LandingVideo({
         <button
           type="button"
           onClick={() => setPlaying(true)}
-          aria-label={t("videoPlay")}
+          aria-label={playLabel}
           className="group relative h-full w-full"
         >
           <Image

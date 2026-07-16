@@ -1,6 +1,6 @@
-import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
-import { LANDING_MEDIA } from "@/lib/landing-media";
+import type { HomeTexts } from "@/lib/home-fields";
+import type { HomeMedia } from "@/lib/home-content";
 import MediaSlot from "./MediaSlot";
 import { CTA_PRIMARY } from "./cta";
 import { LANDING_CONTAINER } from "./layout";
@@ -11,9 +11,7 @@ import { LANDING_CONTAINER } from "./layout";
 // Zwei Bilder statt eines: mobil Hochformat (die Mehrheit kommt übers iPhone), am Desktop
 // Querformat. Ein zugeschnittenes Querformat-Bild auf dem Handy wäre entweder winzig oder
 // beschnitten — beides kostet genau die Wirkung, für die das Bild da ist.
-export default async function Hero({ locale }: { locale: string }) {
-  const t = await getTranslations({ locale, namespace: "Home" });
-
+export default function Hero({ texts, media }: { texts: HomeTexts; media: HomeMedia }) {
   return (
     <section className="relative flex min-h-dvh flex-col justify-end overflow-hidden">
       {/* Bild-Ebene. Das Umschalten Hoch-/Querformat sitzt auf WRAPPERN, nicht auf dem
@@ -23,7 +21,7 @@ export default async function Hero({ locale }: { locale: string }) {
       <div className="absolute inset-0 -z-10">
         <div className="h-full w-full md:hidden">
           <MediaSlot
-            image={LANDING_MEDIA.heroPortrait}
+            image={media.heroPortrait}
             hint="Hero Hochformat 9:16, Anton & Simon vor der Festung"
             sizes="100vw"
             priority
@@ -32,7 +30,7 @@ export default async function Hero({ locale }: { locale: string }) {
         </div>
         <div className="hidden h-full w-full md:block">
           <MediaSlot
-            image={LANDING_MEDIA.heroLandscape}
+            image={media.heroLandscape}
             hint="Hero Querformat 16:9, Anton & Simon vor der Festung"
             sizes="100vw"
             priority
@@ -46,10 +44,10 @@ export default async function Hero({ locale }: { locale: string }) {
 
       <div className={`${LANDING_CONTAINER} pb-[calc(env(safe-area-inset-bottom)+3.5rem)] text-center md:pb-24`}>
         <h1 className="mx-auto max-w-[15ch] text-balance text-[40px] font-bold leading-[1.05] tracking-tight text-white drop-shadow-md md:text-[68px]">
-          {t("heroTitle")}
+          {texts.heroTitle}
         </h1>
         <p className="mx-auto mt-4 max-w-[32ch] text-balance text-[17px] leading-relaxed text-white/90 drop-shadow md:mt-5 md:text-[21px]">
-          {t("heroSubtitle")}
+          {texts.heroSubtitle}
         </p>
 
         {/* EIN Weg nach vorn. Hier stand mal ein zweiter Knopf („Was drinsteht"), der auf
@@ -60,7 +58,7 @@ export default async function Hero({ locale }: { locale: string }) {
             href="/explore"
             className={`w-full max-w-[320px] text-center md:w-auto md:px-8 ${CTA_PRIMARY}`}
           >
-            {t("heroCta")}
+            {texts.heroCta}
           </Link>
         </div>
       </div>

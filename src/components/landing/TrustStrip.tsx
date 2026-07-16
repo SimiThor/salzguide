@@ -1,5 +1,6 @@
-import { getTranslations } from "next-intl/server";
 import type { SpotCount } from "@/lib/spots";
+import type { HomeTexts } from "@/lib/home-fields";
+import { fill } from "@/lib/home-content";
 import { LANDING_CONTAINER } from "./layout";
 
 // Vertrauen direkt unter dem Hero, bevor irgendetwas erklärt oder verkauft wird.
@@ -7,28 +8,27 @@ import { LANDING_CONTAINER } from "./layout";
 // Nichts hinzufügen, wofür es keine Abfrage gibt: die Zielgruppe (18–45, laut BRAND_VOICE
 // „allergisch auf Tourismus-Marketing") riecht eine aufgeblasene Zahl zuerst, und dann ist
 // der ganze „zwei ehrliche Locals"-Aufbau tot.
-export default async function TrustStrip({
-  locale,
+export default function TrustStrip({
+  texts,
   spotCount,
 }: {
-  locale: string;
+  texts: HomeTexts;
   /** Live aus der DB (siehe getSpotCount). null = keine Spots -> Aussage weglassen. */
   spotCount: SpotCount | null;
 }) {
-  const t = await getTranslations({ locale, namespace: "Home" });
-
   const items = [
     // Belegt: Anton und Simon gibt es, sie sind in Salzburg aufgewachsen.
-    { icon: "👋", title: t("trustLocalsTitle"), body: t("trustLocalsBody") },
+    { icon: "👋", title: texts.trustLocalsTitle, body: texts.trustLocalsBody },
     // Belegt: Live-Count aus Supabase (getSpotCount). Zwei Texte, weil „60+ Spots" bei
     // 8 Spots „0+" ergäbe — dann zeigen wir die exakte Zahl statt einer kaputten Null.
     spotCount
       ? {
           icon: "🗺️",
-          title: spotCount.rounded
-            ? t("trustSpotsTitle", { count: spotCount.value })
-            : t("trustSpotsTitleExact", { count: spotCount.value }),
-          body: t("trustSpotsBody"),
+          title: fill(
+            spotCount.rounded ? texts.trustSpotsTitle : texts.trustSpotsTitleExact,
+            { count: spotCount.value },
+          ),
+          body: texts.trustSpotsBody,
         }
       : null,
     // HERKUNFT DER ZAHL, bitte lesen, bevor jemand sie weiterverwendet:
@@ -49,7 +49,7 @@ export default async function TrustStrip({
     // eine Aussage über Nutzung, für die kein Messwert existiert (UWG § 2, AT).
     //
     // Format und zweite Zeile sind wörtlich von der alten SalzGuide-Seite (Antons Wunsch).
-    { icon: "❤️", title: t("trustVisitorsTitle"), body: t("trustVisitorsBody") },
+    { icon: "❤️", title: texts.trustVisitorsTitle, body: texts.trustVisitorsBody },
   ].filter((i) => i !== null);
 
   return (

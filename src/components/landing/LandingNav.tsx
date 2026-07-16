@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { CTA_COMPACT } from "./cta";
@@ -12,8 +11,10 @@ import { CTA_COMPACT } from "./cta";
 //
 // Über dem Hero transparent (der Hero ist dunkel, Schrift weiss), ab dem ersten Scrollen
 // dieselbe Glas-Leiste wie im Rest der App -> das Bild bleibt oben ungestört.
-export default function LandingNav() {
-  const t = useTranslations("Home");
+// ctaLabel als Prop statt useTranslations: Die Startseiten-Texte kommen aus der DB
+// (home_content), nicht mehr aus messages/*.json. Der Server liest sie einmal und reicht
+// durch, damit diese Client-Komponente keine eigene Quelle braucht.
+export default function LandingNav({ ctaLabel }: { ctaLabel: string }) {
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -75,7 +76,7 @@ export default function LandingNav() {
               scrolled ? "opacity-100" : "pointer-events-none translate-y-1 opacity-0"
             }`}
           >
-            {t("navCta")}
+            {ctaLabel}
           </Link>
         </div>
       </div>

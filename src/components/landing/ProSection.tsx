@@ -2,6 +2,7 @@ import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { getProPrice, formatProPrice } from "@/lib/pro";
 import { PRO_FEATURES } from "@/components/proFeatures";
+import type { HomeTexts } from "@/lib/home-fields";
 import { ProWordmark } from "@/components/ProBadge";
 import { CTA_PRIMARY } from "./cta";
 
@@ -20,8 +21,14 @@ import { CTA_PRIMARY } from "./cta";
 //
 // Preis kommt LIVE aus Stripe (lib/pro.ts), nie hier hinschreiben. Anzeige == Zahlung.
 // Vorteile kommen aus PRO_FEATURES, der einen Quelle, die auch /pro und /profil nutzen.
-export default async function ProSection({ locale }: { locale: string }) {
-  const t = await getTranslations({ locale, namespace: "Home" });
+export default async function ProSection({
+  texts,
+  locale,
+}: {
+  texts: HomeTexts;
+  /** Für den Pro-Namespace und den Preis: beide bleiben bei next-intl bzw. Stripe. */
+  locale: string;
+}) {
   const tPro = await getTranslations({ locale, namespace: "Pro" });
   const price = formatProPrice(await getProPrice(), locale);
 
@@ -35,7 +42,7 @@ export default async function ProSection({ locale }: { locale: string }) {
           <div className="px-7 pt-8 text-center">
             <ProWordmark name={tPro("title")} className="text-[15px]" />
             <h2 className="mt-5 text-[27px] font-bold leading-[1.15] tracking-tight text-ink">
-              {t("proTitle")}
+              {texts.proTitle}
             </h2>
           </div>
 
@@ -69,7 +76,7 @@ export default async function ProSection({ locale }: { locale: string }) {
               href="/pro"
               className={`mt-4 block w-full text-center ${CTA_PRIMARY}`}
             >
-              {t("proCta")}
+              {texts.proCta}
             </Link>
           </div>
         </div>

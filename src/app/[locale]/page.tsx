@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { getSpotCount } from "@/lib/spots";
+import { getHomeTexts, getHomeMedia } from "@/lib/home-content";
 import { alternatesFor } from "@/lib/metadata";
 import LandingNav from "@/components/landing/LandingNav";
 import Hero from "@/components/landing/Hero";
@@ -53,36 +54,43 @@ export default async function HomePage({
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const t = await getTranslations({ locale, namespace: "Home" });
 
-  // Live aus der DB: ab 10 Spots auf Zehner abgerundet („60+"), darunter exakt („8").
-  // Wächst ohne manuelle Pflege mit — hier ist NIE eine Zahl einzutragen.
-  const spotCount = await getSpotCount();
+  // Texte und Medien kommen aus der DB (home_content), NICHT mehr über next-intl. Die Seite
+  // holt sie EINMAL und reicht sie durch, statt dass jede Section selbst fragt: So ist es
+  // ein Lesevorgang statt acht, und die Sections bleiben dumme Darstellung.
+  // Fällt die DB aus oder ist ein Feld leer, greift messages/de.json (siehe home-content.ts).
+  const [texts, media, spotCount] = await Promise.all([
+    getHomeTexts(locale),
+    getHomeMedia(),
+    // Live aus der DB: ab 10 Spots auf Zehner abgerundet („60+"), darunter exakt („8").
+    // Wächst ohne manuelle Pflege mit, hier ist NIE eine Zahl einzutragen.
+    getSpotCount(),
+  ]);
 
   return (
     <>
-      <LandingNav />
-      <Hero locale={locale} />
-      <TrustStrip locale={locale} spotCount={spotCount} />
-      {/* Echte Plätze, bevor irgendetwas erklärt wird. Auswahl im Admin unter
+      <LandingNav ctaLabel={texts.navCta} />
+      <Hero texts={texts} media={media} />
+      <TrustStrip texts={texts} spotCount={spotCount} />
+      {/* Echte Spots, bevor irgendetwas erklärt wird. Auswahl im Admin unter
           Einstellungen; ohne Auswahl blendet sich die Section selbst aus. */}
-      <FeaturedSpots locale={locale} />
-      <Story locale={locale} />
-      <FoundersSection locale={locale} />
-      <ToniSection locale={locale} />
-      <ProSection locale={locale} />
+      <FeaturedSpots texts={texts} locale={locale} />
+      <Story texts={texts} />
+      <FoundersSection texts={texts} media={media} />
+      <ToniSection texts={texts} />
+      <ProSection texts={texts} locale={locale} />
 
       {/* Schluss-CTA: wer bis hier gelesen hat, ist überzeugt — nicht noch ein Argument,
           sondern der Weg raus. */}
       <section className="px-6 pb-16 pt-4 text-center md:pb-20">
         <h2 className="mx-auto max-w-[18ch] text-balance text-[30px] font-bold leading-[1.15] tracking-tight text-ink md:text-[40px]">
-          {t("finalTitle")}
+          {texts.finalTitle}
         </h2>
         <Link
           href="/explore"
           className={`mt-7 inline-block w-full max-w-[320px] text-center md:w-auto ${CTA_PRIMARY}`}
         >
-          {t("heroCta")}
+          {texts.heroCta}
         </Link>
       </section>
     </>

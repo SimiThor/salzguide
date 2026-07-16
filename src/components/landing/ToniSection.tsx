@@ -1,4 +1,4 @@
-import { getTranslations } from "next-intl/server";
+import type { HomeTexts } from "@/lib/home-fields";
 import { Link } from "@/i18n/navigation";
 import ToniAvatar from "@/components/ai/ToniAvatar";
 import { CTA_PRIMARY } from "./cta";
@@ -12,9 +12,7 @@ import { LANDING_CONTAINER } from "./layout";
 // Treffer". Es sind also nicht genau einer, und der Nutzen ist ohnehin die Passung, nicht
 // die Anzahl. Wer eine Zahl in den Text schreibt, muss sie im Prompt nachlesen.
 // Toni heisst nutzersichtbar Toni, nicht Anton, wie ältere Docs behaupten.
-export default async function ToniSection({ locale }: { locale: string }) {
-  const t = await getTranslations({ locale, namespace: "Home" });
-
+export default function ToniSection({ texts }: { texts: HomeTexts }) {
   return (
     <section className="py-16 md:py-24">
       <div className={LANDING_CONTAINER}>
@@ -27,19 +25,19 @@ export default async function ToniSection({ locale }: { locale: string }) {
             </div>
             <div className="text-center md:text-left">
               <p className="text-[13px] font-semibold uppercase tracking-wider text-accent">
-                {t("toniEyebrow")}
+                {texts.toniEyebrow}
               </p>
               <h2 className="mt-2 text-balance text-[26px] font-bold leading-[1.15] tracking-tight text-ink md:text-[34px]">
-                {t("toniTitle")}
+                {texts.toniTitle}
               </h2>
               <p className="mt-3 text-balance text-[16px] leading-relaxed text-muted md:text-[17px]">
-                {t("toniBody")}
+                {texts.toniBody}
               </p>
               <Link
                 href="/explore"
                 className={`mt-6 inline-block ${CTA_PRIMARY}`}
               >
-                {t("toniCta")}
+                {texts.toniCta}
               </Link>
             </div>
           </div>

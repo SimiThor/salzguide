@@ -1,4 +1,4 @@
-import { getTranslations } from "next-intl/server";
+import type { HomeTexts } from "@/lib/home-fields";
 import { LANDING_CONTAINER } from "./layout";
 
 // Warum es SalzGuide gibt, plus was drin ist.
@@ -40,25 +40,23 @@ const FEATURES = [
   { key: "feat3", icon: "🔥" },
 ] as const;
 
-export default async function Story({ locale }: { locale: string }) {
-  const t = await getTranslations({ locale, namespace: "Home" });
-
+export default function Story({ texts }: { texts: HomeTexts }) {
   return (
     <section id="how" className="scroll-mt-24 bg-white/60 py-16 md:py-24">
       <div className={LANDING_CONTAINER}>
         <div className="mx-auto max-w-[820px] text-center">
           <p className="text-[13px] font-semibold uppercase tracking-wider text-accent">
-            {t("pitchEyebrow")}
+            {texts.pitchEyebrow}
           </p>
           {/* ACHTUNG bei `ch`: die Einheit rechnet gegen die Schriftgrösse des Elements, an
               dem sie steht. Ein max-w-[38ch] am Wrapper (16px) ergibt 384px und presst die
               42px-Überschrift darin auf vier Zeilen. Zeilenlängen also IMMER am Text-Element
               selbst begrenzen, nie am Container. So macht es auch der Hero. */}
           <h2 className="mx-auto mt-3 max-w-[27ch] text-balance text-[30px] font-bold leading-[1.15] tracking-tight text-ink md:text-[42px]">
-            {t("pitchTitle")}
+            {texts.pitchTitle}
           </h2>
           <p className="mx-auto mt-4 max-w-[52ch] text-balance text-[16px] leading-relaxed text-muted md:text-[18px]">
-            {t("pitchBody")}
+            {texts.pitchBody}
           </p>
         </div>
 
@@ -72,9 +70,9 @@ export default async function Story({ locale }: { locale: string }) {
                 {f.icon}
               </span>
               <p className="mt-4 text-[19px] font-bold leading-snug tracking-tight text-ink">
-                {t(`${f.key}Title`)}
+                {texts[`${f.key}Title`]}
               </p>
-              <p className="mt-2 text-[15px] leading-relaxed text-muted">{t(`${f.key}Body`)}</p>
+              <p className="mt-2 text-[15px] leading-relaxed text-muted">{texts[`${f.key}Body`]}</p>
             </li>
           ))}
         </ul>
