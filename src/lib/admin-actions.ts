@@ -9,6 +9,7 @@ import { routing } from "@/i18n/routing";
 import { localeMeta } from "@/i18n/locales";
 import { hashSpotTexts, translationsPublishable } from "./spot-hash";
 import { blurPreviewFor } from "./blur-preview";
+import { stripEmDashFields } from "./em-dash";
 import { MAX_HOME_FEATURED } from "./home-featured";
 
 export type SpotInput = {
@@ -785,14 +786,19 @@ ${input.notes.trim() || "- (keine)"}${
     if (!t) return { ok: false, error: "Keine Textausgabe erhalten" };
     return {
       ok: true,
-      texts: {
-        general: t.general ?? "",
-        insiderTip: t.insider_tip ?? "",
-        sectionA: t.section_a ?? "",
-        sectionB: t.section_b ?? "",
-        locationText: t.location_text ?? "",
-        shortDesc: t.short_desc ?? "",
-      },
+      // Der Prompt verbietet den Gedankenstrich, aber ein Prompt ist eine Bitte. Hier wird
+      // er zum Zwang, bevor der Text ins Formular und damit in die DB geht (em-dash.ts).
+      texts: stripEmDashFields(
+        {
+          general: t.general ?? "",
+          insiderTip: t.insider_tip ?? "",
+          sectionA: t.section_a ?? "",
+          sectionB: t.section_b ?? "",
+          locationText: t.location_text ?? "",
+          shortDesc: t.short_desc ?? "",
+        },
+        "de",
+      ),
       sources,
       searchCount,
     };
@@ -936,15 +942,18 @@ export async function translateSpotTexts(input: SpotTexts): Promise<TranslateRes
     const keep = (deVal: string, enVal?: string) => (deVal.trim() ? (enVal ?? "").trim() : "");
     return {
       ok: true,
-      texts: {
-        title: t.title?.trim() || input.title.trim(),
-        shortDesc: keep(input.shortDesc, t.short_desc),
-        general: keep(input.general, t.general),
-        insiderTip: keep(input.insiderTip, t.insider_tip),
-        sectionA: keep(input.sectionA, t.section_a),
-        sectionB: keep(input.sectionB, t.section_b),
-        locationText: keep(input.locationText, t.location_text),
-      },
+      texts: stripEmDashFields(
+        {
+          title: t.title?.trim() || input.title.trim(),
+          shortDesc: keep(input.shortDesc, t.short_desc),
+          general: keep(input.general, t.general),
+          insiderTip: keep(input.insiderTip, t.insider_tip),
+          sectionA: keep(input.sectionA, t.section_a),
+          sectionB: keep(input.sectionB, t.section_b),
+          locationText: keep(input.locationText, t.location_text),
+        },
+        "en",
+      ),
     };
   } catch {
     return { ok: false, error: "KI-Dienst gerade nicht erreichbar – bitte nochmal versuchen." };
@@ -1048,15 +1057,20 @@ async function translateSpotTextsTo(
     const t = block?.input;
     if (!t) return null;
     const keep = (deVal: string, val?: string) => (deVal.trim() ? (val ?? "").trim() : "");
-    return {
-      title: t.title?.trim() || input.title.trim(),
-      shortDesc: keep(input.shortDesc, t.short_desc),
-      general: keep(input.general, t.general),
-      insiderTip: keep(input.insiderTip, t.insider_tip),
-      sectionA: keep(input.sectionA, t.section_a),
-      sectionB: keep(input.sectionB, t.section_b),
-      locationText: keep(input.locationText, t.location_text),
-    };
+    // targetLocale mitgeben: Chinesisch braucht seinen Strich (破折号), er wird dort
+    // nicht gesäubert.
+    return stripEmDashFields(
+      {
+        title: t.title?.trim() || input.title.trim(),
+        shortDesc: keep(input.shortDesc, t.short_desc),
+        general: keep(input.general, t.general),
+        insiderTip: keep(input.insiderTip, t.insider_tip),
+        sectionA: keep(input.sectionA, t.section_a),
+        sectionB: keep(input.sectionB, t.section_b),
+        locationText: keep(input.locationText, t.location_text),
+      },
+      targetLocale,
+    );
   } catch {
     return null;
   }

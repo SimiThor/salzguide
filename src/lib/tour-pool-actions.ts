@@ -8,6 +8,7 @@ import { TAG_KEYS } from "./tour-tags";
 import { routing } from "@/i18n/routing";
 import { localeMeta } from "@/i18n/locales";
 import { hashTexts } from "./spot-hash";
+import { stripEmDashFields } from "./em-dash";
 
 const POINT_TARGET_LOCALES = routing.locales.filter((l) => l !== "de");
 
@@ -661,10 +662,14 @@ async function translatePointTo(
     ) as { input?: Record<string, string> } | undefined;
     const t = block?.input;
     if (!t) return null;
-    return {
-      title: (t.title ?? "").trim() || src.title.trim(),
-      audioText: src.audioText.trim() ? (t.audio_text ?? "").trim() : "",
-    };
+    // locale mitgeben: Chinesisch braucht seinen Strich (破折号).
+    return stripEmDashFields(
+      {
+        title: (t.title ?? "").trim() || src.title.trim(),
+        audioText: src.audioText.trim() ? (t.audio_text ?? "").trim() : "",
+      },
+      locale,
+    );
   } catch {
     return null;
   }

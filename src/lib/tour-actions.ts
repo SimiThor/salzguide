@@ -2,6 +2,7 @@
 
 import { createClient } from "./supabase/server";
 import { fetchWithRetry } from "./ai-fetch";
+import { stripEmDashFields } from "./em-dash";
 
 // Server-Actions für Audio-Touren. Muster wie admin-actions.ts:
 // - jede Action beginnt mit assertAdmin() (Defense-in-depth zusätzlich zur RLS)
@@ -299,13 +300,17 @@ export async function translateTourText(input: TourTexts): Promise<TourTranslate
     const tt = block?.input;
     if (!tt) return { ok: false, error: "Keine Übersetzung erhalten" };
     const keep = (deVal: string, enVal?: string) => (deVal.trim() ? (enVal ?? "").trim() : "");
+    // Der Prompt verbietet den Gedankenstrich, aber ein Prompt ist eine Bitte (em-dash.ts).
     return {
       ok: true,
-      texts: {
-        title: tt.title?.trim() || input.title.trim(),
-        subtitle: keep(input.subtitle, tt.subtitle),
-        description: keep(input.description, tt.description),
-      },
+      texts: stripEmDashFields(
+        {
+          title: tt.title?.trim() || input.title.trim(),
+          subtitle: keep(input.subtitle, tt.subtitle),
+          description: keep(input.description, tt.description),
+        },
+        "en",
+      ),
     };
   } catch {
     return { ok: false, error: "KI-Dienst gerade nicht erreichbar – bitte nochmal versuchen." };

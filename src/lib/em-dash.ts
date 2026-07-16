@@ -68,3 +68,22 @@ export function stripEmDash(text: string, locale?: string): string {
 
   return out;
 }
+
+// Säubert alle String-Felder eines KI-Rückgabe-Objekts auf einmal.
+//
+// Warum das hier steht und nicht an jeder Aufrufstelle einzeln: Die KI liefert ihre Texte
+// als Objekt mit vielen Feldern (title, short_desc, general, insider_tip …). Jedes Feld von
+// Hand durchzuschicken heisst, beim nächsten neuen Feld genau eines zu vergessen. Genau so
+// ist die Regel schon dreimal durchgerutscht.
+//
+// `locale` ist die ZIEL-Sprache des Textes, damit die Chinesisch-Ausnahme greift.
+export function stripEmDashFields<T extends Record<string, unknown>>(
+  obj: T,
+  locale?: string,
+): T {
+  const out: Record<string, unknown> = { ...obj };
+  for (const [k, v] of Object.entries(out)) {
+    if (typeof v === "string") out[k] = stripEmDash(v, locale);
+  }
+  return out as T;
+}

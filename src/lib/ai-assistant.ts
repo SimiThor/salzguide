@@ -22,6 +22,7 @@ import { LAKES, findLake } from "./lakes";
 import { getWeatherFromToday } from "./weather";
 import { buildMapsLink } from "./maps";
 import { getSpotOpeningWeek } from "./opening-hours-server";
+import { stripEmDash } from "./em-dash";
 import {
   computeStatus,
   viennaNowWM,
@@ -851,7 +852,14 @@ export async function runAssistant(
     .sort((a, b) => b.tempC - a.tempC)
     .slice(0, 6);
   return {
-    text: base.text,
+    // Der Prompt verbietet den Gedankenstrich, aber ein Prompt ist eine Bitte. Toni ist der
+    // sichtbarste KI-Text der App, also wird die Regel hier zum Zwang (siehe em-dash.ts).
+    //
+    // NACH extractCards und nicht davor: das sieht damit weiterhin die rohe Modell-Ausgabe,
+    // und die Karten-/Link-Erkennung kann sich an einer Säuberung nicht verschlucken.
+    //
+    // ctx.locale mitgeben: Chinesisch braucht seinen Strich (破折号).
+    text: stripEmDash(base.text, ctx.locale),
     cards: {
       ...base.cards,
       water: water.length ? water : undefined,
