@@ -12,7 +12,7 @@ import SpotSheet, { SPOT_SHEET_PEEK } from "./SpotSheet";
 import SeasonToggle, { type Season } from "./SeasonToggle";
 import SpotCard from "./SpotCard";
 import SpotMap, { type MapMarker } from "./SpotMap";
-import MobileSheet from "./MobileSheet";
+import MobileSheet, { MOBILE_SHEET_PEEK } from "./MobileSheet";
 
 function defaultSeason(): Season {
   const m = new Date().getMonth(); // 0 = Jan
@@ -95,7 +95,7 @@ export default function Explore({
     () =>
       isDesktop
         ? { top: 70, right: 70, left: 70, bottom: 70 }
-        : { top: 120, right: 40, left: 40, bottom: Math.round((vh || 800) * 0.18) + 48 },
+        : { top: 120, right: 40, left: 40, bottom: Math.round((vh || 800) * MOBILE_SHEET_PEEK) + 48 },
     [isDesktop, vh],
   );
 
@@ -258,7 +258,13 @@ export default function Explore({
   return (
     <div className="fixed inset-0 z-0 md:top-14">
       {/* Karte: mobil vollflächig, Desktop um die Sidebar versetzt */}
-      <div className="absolute inset-0 md:left-[var(--sg-panel)]">
+      {/* --sg-map-bottom: hebt Mapbox-Logo und -Attribution über das Peek-Sheet und
+          die Navigationsleiste. Beide sind Lizenzpflicht und müssen sichtbar bleiben
+          (siehe globals.css). Der Wert erbt in die Karte hinein. */}
+      <div
+        className="absolute inset-0 md:left-[var(--sg-panel)]"
+        style={{ "--sg-map-bottom": `calc(${MOBILE_SHEET_PEEK * 100}vh + 10px)` } as React.CSSProperties}
+      >
         <SpotMap
           markers={markers}
           onMarkerClick={onMarkerClick}

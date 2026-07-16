@@ -469,6 +469,19 @@ body {
   .sg-ctrl-tour .mapboxgl-ctrl-top-right {
     padding-top: calc(env(safe-area-inset-top) + 60px);
   }
+  /* Mapbox-Logo (unten links) und Attribution (unten rechts) sind LIZENZPFLICHT und
+     müssen sichtbar bleiben: "attribution must be legible"
+     (docs.mapbox.com/help/getting-started/attribution). Auf den vollflächigen Karten
+     (Start, Wasser) liegt die App-Navigation permanent darüber, auf der Startseite
+     zusätzlich das Peek-Sheet -> beide Pflichtelemente waren komplett verdeckt
+     (gemessen: iPhone 15, Attribution y=810, Sheet ab y=692, Leiste ab y=773).
+     Wie viel Platz nötig ist, weiß nur die jeweilige Seite -> sie setzt
+     --sg-map-bottom. Ohne Angabe bleibt es bei 0: Eingebettete Karten (Detailseite)
+     werden von nichts überlagert und sollen keinen Platz verschenken. */
+  .mapboxgl-ctrl-bottom-left,
+  .mapboxgl-ctrl-bottom-right {
+    padding-bottom: var(--sg-map-bottom, 0px);
+  }
 }
 
 /* Keine Pfeil-Stepper bei Zahlenfeldern (einfach eintippen) */

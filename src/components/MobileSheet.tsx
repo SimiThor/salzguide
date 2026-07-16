@@ -14,11 +14,18 @@ import { useBodyDrag } from "./useBodyDrag";
 const SPRING = { type: "spring" as const, damping: 36, stiffness: 380 };
 
 // Persistentes, ziehbares Bottom-Sheet (Mobile) mit Detents/Grabber – iOS-2026.
+// Anteil der Viewport-Höhe, den das Sheet im Ruhezustand (Peek) abdeckt. EINE Quelle:
+// Explore rechnet damit das Karten-Padding UND den Freiraum, den Mapbox-Logo und
+// -Attribution brauchen, um nicht unter dem Sheet zu verschwinden (Pflicht, siehe
+// globals.css). Vorher stand die Zahl doppelt im Code und wäre beim Ändern
+// auseinandergelaufen.
+export const MOBILE_SHEET_PEEK = 0.18;
+
 // Aus Explore ausgelagert, damit Start- und Wasserseite dieselbe Mechanik teilen.
 export default function MobileSheet({
   children,
   hide,
-  detents = [0.18, 0.5, 0.9],
+  detents = [MOBILE_SHEET_PEEK, 0.5, 0.9],
 }: {
   children: ReactNode;
   hide: boolean;
