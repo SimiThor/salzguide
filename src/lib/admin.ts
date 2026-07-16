@@ -3,7 +3,8 @@ import { imagesFromMedia } from "./spots";
 import { routing } from "@/i18n/routing";
 import { translationStatus, type TranslationState } from "./spot-hash";
 import { HOME_KEYS, type HomeTexts } from "./home-fields";
-import { homeSourceHash } from "./home-content";
+import { homeSourceHash, type HomeMedia } from "./home-content";
+import { parseLandingImage, parseLandingVideo } from "./landing-media";
 import deMessages from "../../messages/de.json";
 
 // Aktuellen User zurückgeben, falls Admin – sonst null.
@@ -251,15 +252,24 @@ export type AdminHomeContent = {
   /** Übersetzungen vorhanden, aber der deutsche Text hat sich seither geändert. */
   stale: boolean;
   state: TranslationState;
+  /** Bilder und Video. Steht in derselben Zeile, also in derselben Abfrage. */
+  media: HomeMedia;
   /** Die Spalte fehlt noch (Migration 0036 nicht eingespielt). */
   migrationMissing: boolean;
+};
+
+const EMPTY_MEDIA: HomeMedia = {
+  heroPortrait: null,
+  heroLandscape: null,
+  explainerVideo: null,
+  founders: null,
 };
 
 export async function getHomeContentAdmin(): Promise<AdminHomeContent> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("home_content")
-    .select("texts, translations, source_hash")
+    .select("texts, translations, source_hash, media")
     .eq("id", 1)
     .maybeSingle();
 
@@ -278,6 +288,7 @@ export async function getHomeContentAdmin(): Promise<AdminHomeContent> {
       translated: [],
       stale: false,
       state: "none",
+      media: EMPTY_MEDIA,
       migrationMissing: missing,
     };
   }
@@ -304,5 +315,16 @@ export async function getHomeContentAdmin(): Promise<AdminHomeContent> {
           ? "stale"
           : "complete";
 
-  return { texts, fromDb, translated, stale, state, migrationMissing: false };
+  // Geprüft wie im Lesepfad: Das Formular soll denselben Stand zeigen wie die Startseite,
+  // nicht den rohen DB-Inhalt. Sonst sähe im Admin ein Bild gültig aus, das auf der Seite
+  // gar nicht erscheint.
+  const m = (data?.media ?? {}) as Record<string, unknown>;
+  const media: HomeMedia = {
+    heroPortrait: parseLandingImage(m.heroPortrait),
+    heroLandscape: parseLandingImage(m.heroLandscape),
+    explainerVideo: parseLandingVideo(m.explainerVideo),
+    founders: parseLandingImage(m.founders),
+  };
+
+  return { texts, fromDb, translated, stale, state, media, migrationMissing: false };
 }

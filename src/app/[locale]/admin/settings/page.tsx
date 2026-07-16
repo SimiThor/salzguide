@@ -5,6 +5,7 @@ import CategoryManager from "@/components/admin/CategoryManager";
 import LocalManager from "@/components/admin/LocalManager";
 import HomeFeaturedManager from "@/components/admin/HomeFeaturedManager";
 import HomeContentManager from "@/components/admin/HomeContentManager";
+import HomeMediaManager from "@/components/admin/HomeMediaManager";
 import { getToniAvatarUrl } from "@/lib/settings";
 import {
   getCategoriesAdmin,
@@ -39,6 +40,7 @@ export default async function AdminSettingsPage({
         <p className="mt-1 text-[13px] text-muted">Allgemeine Einstellungen der Plattform.</p>
       </div>
       <HomeContentManager {...homeContent} />
+      <HomeMediaManager media={homeContent.media} />
       <HomeFeaturedManager {...homeSpots} />
       <ToniAvatarSettings current={toniAvatar} />
       <LocalManager locals={locals} />

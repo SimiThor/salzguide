@@ -12,6 +12,8 @@ import { blurPreviewFor } from "./blur-preview";
 import { stripEmDashFields } from "./em-dash";
 import { HOME_KEYS } from "./home-fields";
 import { translateHomeTextsWith } from "./home-translate";
+import { parseLandingImage, parseLandingVideo } from "./landing-media";
+import type { HomeMedia } from "./home-content";
 import { MAX_HOME_FEATURED } from "./home-featured";
 
 export type SpotInput = {
@@ -1836,4 +1838,42 @@ export async function fillHomeTranslations(): Promise<{
 
   for (const l of routing.locales) revalidatePath(`/${l}`);
   return { ok: true, failed: res.failed, rejected: res.rejected };
+}
+
+// Bilder und Video der Startseite speichern.
+//
+// Dieselbe Prüfung wie beim Lesen (landing-media.ts): Was hier nicht durchkommt, wird zu
+// null statt zu einer halben Zeile in der DB. Der Alt-Text läuft NICHT durch die
+// Übersetzung — er gehört zum Bild, nicht zu den Texten.
+export async function saveHomeMedia(media: HomeMedia): Promise<{ ok: boolean; error?: string }> {
+  const gate = await assertAdmin();
+  if (!gate.ok) return { ok: false, error: gate.error };
+  if (!media || typeof media !== "object") return { ok: false, error: "Ungültige Medien." };
+
+  const clean = {
+    heroPortrait: parseLandingImage(media.heroPortrait),
+    heroLandscape: parseLandingImage(media.heroLandscape),
+    explainerVideo: parseLandingVideo(media.explainerVideo),
+    founders: parseLandingImage(media.founders),
+  };
+
+  // Ein Bild, das der Client geschickt hat und das die Prüfung NICHT überlebt, wäre sonst
+  // still weg: Anton lädt hoch, sieht die Vorschau, drückt Speichern, und die Seite bleibt
+  // leer. Also sagen, welcher Slot es war.
+  const lost = (Object.keys(clean) as (keyof HomeMedia)[]).filter((k) => media[k] && !clean[k]);
+  if (lost.length)
+    return {
+      ok: false,
+      error: `Nicht gespeichert: ${lost.join(", ")} hat keine gültige Datei aus unserem Speicher. Bitte neu hochladen.`,
+    };
+
+  const svc = createServiceClient();
+  const { error } = await svc
+    .from("home_content")
+    .update({ media: clean, updated_at: new Date().toISOString() })
+    .eq("id", 1);
+  if (error) return { ok: false, error: error.message };
+
+  for (const l of routing.locales) revalidatePath(`/${l}`);
+  return { ok: true };
 }

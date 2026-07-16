@@ -3,7 +3,12 @@ import { cache } from "react";
 import { createClient } from "./supabase/server";
 import { hashTexts } from "./spot-hash";
 import { homeTextParts, type HomeTexts } from "./home-fields";
-import type { LandingImage, LandingVideo } from "./landing-media";
+import {
+  parseLandingImage,
+  parseLandingVideo,
+  type LandingImage,
+  type LandingVideo,
+} from "./landing-media";
 import deMessages from "../../messages/de.json";
 
 // Texte und Medien der Startseite aus der DB (home_content, Migration 0036), mit
@@ -27,13 +32,6 @@ export type HomeMedia = {
   heroLandscape: LandingImage | null;
   explainerVideo: LandingVideo | null;
   founders: LandingImage | null;
-};
-
-const EMPTY_MEDIA: HomeMedia = {
-  heroPortrait: null,
-  heroLandscape: null,
-  explainerVideo: null,
-  founders: null,
 };
 
 type Row = {
@@ -85,7 +83,15 @@ export async function getHomeTexts(locale: string): Promise<HomeTexts> {
 /** Bilder und Videos der Startseite. Sprach-unabhängig. */
 export async function getHomeMedia(): Promise<HomeMedia> {
   const row = await readRow();
-  return { ...EMPTY_MEDIA, ...(row?.media ?? {}) };
+  const m = (row?.media ?? {}) as Record<string, unknown>;
+  // Jeder Slot einzeln geprüft: Ein kaputter Eintrag kostet SEINEN Platzhalter, nicht die
+  // Seite. Ungeprüft durchgereicht („...row.media") landete alles direkt in next/image.
+  return {
+    heroPortrait: parseLandingImage(m.heroPortrait),
+    heroLandscape: parseLandingImage(m.heroLandscape),
+    explainerVideo: parseLandingVideo(m.explainerVideo),
+    founders: parseLandingImage(m.founders),
+  };
 }
 
 /** Versionsmarke der deutschen Texte. Weicht sie ab, sind die Übersetzungen veraltet. */
