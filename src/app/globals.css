@@ -431,6 +431,19 @@ body {
 .mapboxgl-ctrl-bottom-right {
   z-index: 10 !important;
 }
+/* Scroll-Schutzfläche ("Use ⌘ + scroll to zoom") ganz oben – der Abschluss der
+   Ebenen-Leiter: Marker (bis 6) < Standort (8) < Buttons (10) < Schutzfläche (20).
+   Mapbox gibt ihr KEINEN eigenen z-index, sie stapelte sich also nur nach
+   DOM-Reihenfolge und lag unter allem, was einen z-index hat: Die Karte war
+   abgedunkelt, Pins und Buttons leuchteten unberührt darüber.
+   Rein optisch – Mapbox setzt auf der Fläche pointer-events:none, es wird also
+   nichts unklickbar.
+   Hängt an Mapbox' eigener Klasse -> gilt automatisch für JEDE Karte, auch für
+   künftige, ohne dass jemand daran denken muss. */
+.mapboxgl-scroll-zoom-blocker,
+.mapboxgl-touch-pan-blocker {
+  z-index: 20;
+}
 /* etwas mehr Luft zum Rand */
 .mapboxgl-ctrl-top-right {
   padding: 4px 6px 0 0;
