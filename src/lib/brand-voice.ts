@@ -12,6 +12,7 @@ TON & STIL:
 
 STRENG VERBOTEN (niemals verwenden):
 - Reiseführer-/Märchen-Wörter: "thront", "malerisch", "atemberaubend", "magisch", "verzaubert", "goldener Herbst", "episch", "Paradies", "Juwel", "Perle", "ein Muss", "Geheimtipp".
+- "losziehen" (und Formen wie "Losziehen", "zieh los"): klingt nach Wanderprospekt, nicht nach einem Kumpel. Schreib konkret, was der Mensch tut: "hinfahren", "hin willst", "vorbeischauen", "raufgehen".
 - Übertriebene Vergleiche ("wie ein Infinity-Pool").
 - Marketing-Floskeln und leere Superlative.
 

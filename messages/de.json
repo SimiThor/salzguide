@@ -136,7 +136,7 @@
     "placeholder": "Frag Toni …",
     "send": "Senden",
     "thinking": "Toni überlegt …",
-    "disclaimer": "Toni ist eine KI und kann Fehler machen. Details vorm Losziehen kurz checken.",
+    "disclaimer": "Toni ist eine KI und kann Fehler machen. Details vorher kurz checken.",
     "error": "Ups, das hat gerade nicht geklappt. Versuch's nochmal.",
     "newChat": "Neuer Chat",
     "history": "Verlauf",
@@ -374,7 +374,7 @@
       },
       "saveSpot": {
         "title": "Spot merken",
-        "body": "Landet in deiner Liste – damit du ihn wiederfindest, wenn du wirklich losziehst."
+        "body": "Landet in deiner Liste – damit du ihn wiederfindest, wenn du wirklich hin willst."
       },
       "saveEvent": {
         "title": "Event merken",
