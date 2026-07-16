@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { createClient } from "./supabase/server";
 import { createServiceClient } from "./supabase/service";
 import { BRAND_VOICE } from "./brand-voice";
@@ -8,6 +9,7 @@ import { routing } from "@/i18n/routing";
 import { localeMeta } from "@/i18n/locales";
 import { hashSpotTexts, translationsPublishable } from "./spot-hash";
 import { blurPreviewFor } from "./blur-preview";
+import { MAX_HOME_FEATURED } from "./home-featured";
 
 export type SpotInput = {
   id?: string;
@@ -831,6 +833,7 @@ STYLE:
 - Translate the MEANING into natural English, never word-for-word.
 - Keep ALL proper nouns and place names exactly (Hochkeil, Arthurhaus, Mandlwand, Salzburg, hut/dish names …). Keep numbers and units.
 
+NEVER use em dashes (—). They are the clearest tell of AI-written text and cost us the trust this brand is built on. Write like a human types: full stop, comma, colon, or a plain hyphen. The ONLY exception is Chinese, where the doubled "——" is standard punctuation.
 STRICTLY AVOID travel-brochure clichés: "breathtaking", "hidden gem", "paradise", "a must", "magical", "stunning vista", "nestled", "picturesque", "jewel".
 
 RULES:
@@ -961,6 +964,7 @@ STYLE:
 - Translate the MEANING into natural ${langName}, never word-for-word.
 - Keep ALL proper nouns and place names exactly (Hochkeil, Arthurhaus, Salzburg, hut/dish names …). Keep numbers and units.
 
+NEVER use em dashes (—). They are the clearest tell of AI-written text and cost us the trust this brand is built on. Write like a human types: full stop, comma, colon, or a plain hyphen. The ONLY exception is Chinese, where the doubled "——" is standard punctuation.
 STRICTLY AVOID travel-brochure clichés (the ${langName} equivalents of "breathtaking", "hidden gem", "paradise", "a must", "magical", "stunning", "nestled", "picturesque", "jewel").
 
 RULES:
@@ -1666,4 +1670,65 @@ export async function translateLocalRole(
   } catch {
     return { ok: false, error: "ai" };
   }
+}
+
+// Welche Spots auf der Startseite gezeigt werden, in welcher Reihenfolge.
+// `slugs` ist die gewünschte Reihenfolge; Position 1 = erste Karte.
+//
+// 🔒 Drei Dinge, die hier bewusst passieren:
+//  1. Die Rangfolge wird SERVERSEITIG aus der Array-Position vergeben (1..n), nicht vom
+//     Client übernommen. So kann kein doppelter oder krummer Rang entstehen.
+//  2. Es werden nur freie, veröffentlichte Spots akzeptiert — was der Client sonst noch
+//     schickt, fliegt raus. Bei Pro-Spots verlässt das Foto den Server nie; eine
+//     gefeaturedte Pro-Karte wäre leer oder ein Leak.
+//  3. Erst wird ALLES zurückgesetzt, dann neu gesetzt. Ohne den Reset bliebe ein
+//     abgewählter Spot mit seinem alten Rang stehen und stünde weiter auf der Startseite.
+export async function saveHomeFeatured(
+  slugs: string[],
+): Promise<{ ok: boolean; error?: string; saved?: number }> {
+  const gate = await assertAdmin();
+  if (!gate.ok) return { ok: false, error: gate.error };
+
+  if (!Array.isArray(slugs)) return { ok: false, error: "Ungültige Auswahl." };
+  if (slugs.length > MAX_HOME_FEATURED)
+    return { ok: false, error: `Höchstens ${MAX_HOME_FEATURED} Spots auf der Startseite.` };
+
+  const svc = createServiceClient();
+
+  // Nur das durchlassen, was wirklich frei und veröffentlicht ist. Der Client könnte
+  // veraltete oder manipulierte Slugs schicken.
+  const wanted = [...new Set(slugs)];
+  const { data: valid, error: checkErr } = await svc
+    .from("spots")
+    .select("slug")
+    .in("slug", wanted.length ? wanted : ["__none__"])
+    .eq("status", "published")
+    .eq("is_pro", false);
+  if (checkErr) return { ok: false, error: checkErr.message };
+
+  const allowed = new Set((valid ?? []).map((s) => s.slug as string));
+  const ordered = wanted.filter((s) => allowed.has(s));
+
+  // Alles abräumen — auch die, die gerade nicht in `wanted` stehen.
+  const { error: clearErr } = await svc
+    .from("spots")
+    .update({ home_rank: null })
+    .not("home_rank", "is", null);
+  if (clearErr) return { ok: false, error: clearErr.message };
+
+  // Neu vergeben, Position = Rang.
+  for (const [i, slug] of ordered.entries()) {
+    const { error } = await svc
+      .from("spots")
+      .update({ home_rank: i + 1 })
+      .eq("slug", slug);
+    if (error) return { ok: false, error: error.message };
+  }
+
+  // Die Startseite ist statisch gerendert -> ohne revalidate bliebe die alte Auswahl
+  // stehen, und im Admin sähe alles richtig aus. Genau die Sorte Fehler, die man erst
+  // Wochen später bemerkt.
+  for (const l of routing.locales) revalidatePath(`/${l}`);
+
+  return { ok: true, saved: ordered.length };
 }

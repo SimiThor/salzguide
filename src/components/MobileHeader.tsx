@@ -45,7 +45,7 @@ export default function MobileHeader() {
 
   // Aktuell verfügbar vs. bald
   const ready = [
-    { key: "explore", href: "/" as const },
+    { key: "explore", href: "/explore" as const },
     { key: "tours", href: "/touren" as const },
     { key: "water", href: "/wasser" as const },
     { key: "events", href: "/events" as const },
@@ -57,7 +57,8 @@ export default function MobileHeader() {
   return (
     <>
       <header className="fixed inset-x-0 top-0 z-40 flex items-center justify-between border-b border-black/5 bg-cream/80 px-4 pt-safe backdrop-blur-xl md:hidden">
-        <Link href="/" className="flex h-[var(--sg-header-h)] items-center text-[22px] font-bold tracking-tight text-accent">
+        {/* Logo -> /explore (identisch zu DesktopHeader, siehe Kommentar dort). */}
+        <Link href="/explore" className="flex h-[var(--sg-header-h)] items-center text-[22px] font-bold tracking-tight text-accent">
           SalzGuide
         </Link>
         <button

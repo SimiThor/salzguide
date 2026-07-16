@@ -5,13 +5,9 @@ import { hasLocale, NextIntlClientProvider } from "next-intl";
 import { getMessages, getTranslations, setRequestLocale } from "next-intl/server";
 import { routing } from "@/i18n/routing";
 import { localeDir } from "@/i18n/locales";
-import BottomNav from "@/components/BottomNav";
-import DesktopHeader from "@/components/DesktopHeader";
-import MobileHeader from "@/components/MobileHeader";
-import LegalFooter from "@/components/LegalFooter";
+import AppChrome from "@/components/AppChrome";
 import AiProvider from "@/components/ai/AiProvider";
 import LoginGateProvider from "@/components/auth/LoginGate";
-import Analytics from "@/components/Analytics";
 import "../globals.css";
 
 const inter = Inter({
@@ -33,15 +29,10 @@ export async function generateMetadata({
     ),
     title: { default: "SalzGuide", template: "%s · SalzGuide" },
     description: t("description"),
-    alternates: {
-      canonical: `/${locale}`,
-      // hreflang für ALLE Sprachen (dynamisch aus der Config) + x-default -> vollständige
-      // Sprach-Auszeichnung für Suchmaschinen. Neue Sprache in locales.ts = automatisch dabei.
-      languages: {
-        ...Object.fromEntries(routing.locales.map((l) => [l, `/${l}`])),
-        "x-default": `/${routing.defaultLocale}`,
-      },
-    },
+    // BEWUSST KEIN `alternates` hier: Next vererbt Metadata nach unten, ein Canonical im
+    // Layout gilt also für JEDE Unterseite und weist sie alle als Kopie der Startseite
+    // aus -> sie werden nicht sauber indexiert. Jede Seite setzt ihr eigenes Canonical
+    // über `alternatesFor(locale, path)` aus src/lib/metadata.ts.
   };
 }
 
@@ -79,17 +70,9 @@ export default async function LocaleLayout({
               Spot-/Event-Karten IM Chat keinen Provider -> Absturz beim Merken. */}
           <LoginGateProvider>
             <AiProvider>
-              <MobileHeader />
-              <DesktopHeader />
-              {/* Mobile: Platz unten für BottomNav. Desktop: Platz oben für Header. */}
-              <main className="flex flex-1 flex-col md:pt-[var(--sg-header-h)]">
-                {children}
-                {/* Globaler Footer inkl. gesetzlichem Widerruf-Zugang (§ 13a FAGG) auf jeder
-                    Seite; blendet sich auf der vollflächigen Karten-Startseite selbst aus. */}
-                <LegalFooter />
-              </main>
-              <BottomNav />
-              <Analytics />
+              {/* Kopf-/Fusszeile, Tab-Leiste und Analytics: AppChrome entscheidet an EINER
+                  Stelle, ob eine Route App-Navigation trägt oder Marketing ist. */}
+              <AppChrome>{children}</AppChrome>
             </AiProvider>
           </LoginGateProvider>
         </NextIntlClientProvider>

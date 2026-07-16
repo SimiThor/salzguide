@@ -108,6 +108,99 @@ function lockedName(locale: string): string {
   return LOCKED_NAME[locale] ?? LOCKED_NAME.de;
 }
 
+// Anzahl veröffentlichter Spots für die Startseite. Zählt in Postgres (head: true
+// überträgt KEINE Zeilen), pro Request nur einmal (cache).
+//
+// Zwei Darstellungen, EINE Quelle — die Zahl ist immer sichtbar und immer wahr:
+//   >= 10 Spots -> auf Zehner ABGERUNDET, mit Plus:  67 -> „60+ Spots"
+//   <  10 Spots -> exakt, ohne Plus:                  8 -> „8 Spots"
+//
+// Warum abrunden statt runden: „60+" muss bei 67 wahr sein. Aufrunden wäre eine Zahl, die
+// wir nicht haben — und die Zielgruppe ist laut BRAND_VOICE allergisch auf aufgeblasenes
+// Tourismus-Marketing. Lieber untertreiben als sich erwischen lassen.
+//
+// Warum unter 10 exakt: Abrunden ergäbe „0+ Spots". Die exakte Zahl ist ehrlich und liest
+// sich bei einem kuratierten Katalog sogar bewusst — anders als eine kaputte Null.
+//
+// Der Übergang passiert von selbst: sobald der 10. Spot online geht, steht dort „10+",
+// bei den 76 aus der alten Seite „70+". Niemand muss je eine Zahl eintippen.
+export type SpotCount = { value: number; rounded: boolean };
+
+export const getSpotCount = cache(async function getSpotCount(): Promise<SpotCount | null> {
+  // Service-Client, NICHT der anon-Key: die RLS aus Migration 0017 lässt anonyme Leser nur
+  // Nicht-Pro-Spots sehen. Über den anon-Key zählte die Startseite also für Ausgeloggte
+  // eine kleinere Zahl als für Pro-Kunden — die Aussage hinge am Betrachter statt am
+  // Katalog. Gemeint ist der GESAMTE Katalog; die Pro-Spots sind ja das, was Pro verkauft.
+  // Unbedenklich: eine Zahl verrät keine Titel, Slugs oder Koordinaten.
+  const supabase = createServiceClient();
+  const { count, error } = await supabase
+    .from("spots")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "published");
+
+  if (error || count == null || count === 0) {
+    // Zahl unbekannt oder null -> Aussage weglassen, statt zu raten oder „0 Spots" zu
+    // behaupten. Die Startseite blendet die Kachel dann aus.
+    if (error) console.error("getSpotCount:", error.message);
+    return null;
+  }
+  return count >= 10
+    ? { value: Math.floor(count / 10) * 10, rounded: true }
+    : { value: count, rounded: false };
+});
+
+// Die im Admin für die Startseite ausgewählten Spots (spots.home_rank), in ihrer
+// Reihenfolge. Eine Seite über schöne Orte muss ein paar davon zeigen.
+//
+// 🔒 `.eq("is_pro", false)` ist hier PFLICHT und nicht bloss Vorsicht: Bei Pro-Spots
+// verlässt das Foto den Server nie (nur die Blur-Vorschau) und der Titel wird geschwärzt
+// — ein gefeaturedter Pro-Spot wäre also entweder ein Leak oder eine leere Karte. Die
+// Admin-Oberfläche bietet ohnehin nur freie Spots an und ein DB-Trigger räumt home_rank
+// weg, sobald ein Spot auf Pro gestellt wird; dieser Filter ist die Linie, die auch dann
+// hält, wenn jemand die anderen beiden umgeht. Nicht entfernen.
+//
+// Service-Client wie getExploreData: konsistente Sicht, unabhängig davon, wer schaut —
+// die Startseite zeigt allen dasselbe.
+export const getFeaturedSpots = cache(async function getFeaturedSpots(
+  locale: string,
+): Promise<SpotCardData[]> {
+  const supabase = createServiceClient();
+  const { data, error } = await supabase
+    .from("spots")
+    .select(
+      "slug, emoji, is_pro, type, spot_translations!inner(title, short_desc, lang), media(url, role, sort_order)",
+    )
+    .eq("status", "published")
+    .eq("is_pro", false)
+    .not("home_rank", "is", null)
+    .in("spot_translations.lang", localeWithFallback(locale))
+    .order("home_rank", { ascending: true });
+
+  if (error) {
+    // Kein Grund, die ganze Startseite zu killen: ohne Spots blendet die Section sich aus.
+    console.error("getFeaturedSpots:", error.message);
+    return [];
+  }
+
+  return (data ?? []).map((s) => {
+    const t = pickTranslation(
+      s.spot_translations as { title: string; short_desc: string | null; lang: string }[],
+      locale,
+    );
+    return {
+      slug: s.slug,
+      emoji: s.emoji,
+      imageUrl: imagesFromMedia(s.media)[0] ?? null,
+      locked: false, // nur freie Spots kommen hier an (siehe Filter oben)
+      previewUrl: null,
+      isPro: false,
+      type: s.type,
+      title: t?.title ?? s.slug,
+      shortDesc: t?.short_desc ?? null,
+    };
+  });
+});
+
 // Veröffentlichte Spots inkl. Übersetzung in der gewünschten Sprache (mit DE-Fallback).
 // Liest über den anon-Key → RLS lässt nur status='published' durch.
 export async function getPublishedSpots(locale: string): Promise<SpotCardData[]> {

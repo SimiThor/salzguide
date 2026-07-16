@@ -177,3 +177,57 @@ export async function getSpotForEdit(id: string) {
   const images = imagesFromMedia(data.media);
   return { spot: data, de, translations, translationsSourceHash, categoryIds, images };
 }
+
+// Alle Spots, die für die Startseite ausgewählt WERDEN KÖNNEN — plus, ob sie es sind.
+//
+// 🔒 Nur freie Spots: Bei Pro-Spots verlässt das Foto den Server nie und der Titel wird
+// geschwärzt; auf der Startseite wäre so eine Karte leer. Sie gar nicht erst anzubieten
+// ist ehrlicher, als sie später kommentarlos wegzufiltern (das tut die Startseiten-
+// Abfrage zusätzlich, und ein Trigger räumt home_rank weg, wenn ein Spot auf Pro kippt).
+export type AdminHomeSpot = {
+  slug: string;
+  title: string;
+  emoji: string | null;
+  imageUrl: string | null;
+  /** Position auf der Startseite (1 = erste). null = nicht ausgewählt. */
+  homeRank: number | null;
+};
+
+// `spots` = auswählbare Spots. `migrationMissing` = die Spalte home_rank fehlt noch
+// (Migration 0035 nicht eingespielt). Das ist BEWUSST unterschieden: Beides führte sonst
+// zu einer leeren Liste, und die Oberfläche behauptete „keine Spots vorhanden" — obwohl es
+// welche gibt und in Wahrheit nur die Migration fehlt. Ein Fehler, der wie ein Datenstand
+// aussieht, kostet eine Stunde Suchen.
+export type AdminHomeFeatured = { spots: AdminHomeSpot[]; migrationMissing: boolean };
+
+export async function getHomeFeaturedAdmin(): Promise<AdminHomeFeatured> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("spots")
+    .select(
+      "slug, emoji, home_rank, spot_translations(title, lang), media(url, role, sort_order)",
+    )
+    .eq("status", "published")
+    .eq("is_pro", false)
+    .order("sort_weight", { ascending: false });
+
+  if (error) {
+    console.error("getHomeFeaturedAdmin:", error.message);
+    // PostgREST meldet eine unbekannte Spalte mit 42703.
+    const missing = error.code === "42703" || /home_rank/.test(error.message);
+    return { spots: [], migrationMissing: missing };
+  }
+
+  const spots = (data ?? []).map((s) => {
+    const trs = (s.spot_translations ?? []) as { title: string; lang: string }[];
+    return {
+      slug: s.slug as string,
+      // Admin-Oberfläche ist deutsch — Titel entsprechend, mit Slug als Notnagel.
+      title: trs.find((t) => t.lang === "de")?.title ?? trs[0]?.title ?? (s.slug as string),
+      emoji: (s.emoji as string | null) ?? null,
+      imageUrl: imagesFromMedia(s.media)[0] ?? null,
+      homeRank: (s.home_rank as number | null) ?? null,
+    };
+  });
+  return { spots, migrationMissing: false };
+}

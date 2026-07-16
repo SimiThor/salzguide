@@ -50,7 +50,7 @@ export default async function GespeichertPage({
           </p>
           <p className="mt-2 text-[15px] leading-relaxed text-muted">{t("empty")}</p>
           <Link
-            href="/"
+            href="/explore"
             className="mt-4 inline-block rounded-full bg-accent px-5 py-3 text-sm font-semibold text-white active:scale-[0.98]"
           >
             {t("discover")}

@@ -1,6 +1,12 @@
 {
   "Meta": {
-    "description": "Salzburg ohne Stress – die besten Spots, kuratiert von Locals."
+    "description": "Salzburg ohne Stress – die besten Spots, kuratiert von Locals.",
+    "homeTitle": "SalzGuide: Google kennt Salzburg. Wir waren dort.",
+    "homeDescription": "Zwei Salzburger, eine Karte: unsere Lieblings-Spots im Salzburger Land, mit einem Tipp bei jedem. Wir waren an jedem selbst. Dazu Toni, die KI, die nur diese Spots kennt.",
+    "exploreTitle": "Entdecken",
+    "exploreDescription": "Salzburg ohne Stress – die besten Spots, kuratiert von Locals.",
+    "proTitle": "Pro",
+    "proDescription": "Alle Geheimtipp-Spots, alle Audio-Touren und Toni ohne Limit. Einmal zahlen, kein Abo."
   },
   "Common": {
     "back": "Zurück",
@@ -17,7 +23,46 @@
     "legal": "Impressum · Datenschutz · AGB"
   },
   "Home": {
-    "tagline": "Salzburg ohne Stress – die besten Spots, kuratiert von Locals."
+    "tagline": "Die Spots im Salzburger Land, die wir Freunden schicken.",
+    "navCta": "Karte öffnen",
+    "heroTitle": "Google kennt Salzburg. Wir waren dort.",
+    "heroSubtitle": "Eine Karte mit unseren Lieblings-Spots im Salzburger Land: Seen, Wanderungen, Aussichten, Cafés. Wir waren an jedem selbst.",
+    "heroCta": "Karte öffnen",
+    "trustLocalsTitle": "Anton & Simon",
+    "trustLocalsBody": "Zwei Salzburger. Beide hier aufgewachsen.",
+    "trustSpotsTitle": "{count}+ Spots, eine Karte",
+    "trustSpotsTitleExact": "{count} Spots, eine Karte",
+    "trustSpotsBody": "Alle im Salzburger Land. Wir waren an jedem selbst.",
+    "trustVisitorsTitle": "10.000+ Trips geplant",
+    "trustVisitorsBody": "Von Reisenden wie dir.",
+    "featuredEyebrow": "Kostprobe",
+    "featuredTitle": "Die Spots, an die wir selbst fahren.",
+    "featuredCta": "Alle auf der Karte",
+    "pitchEyebrow": "Der Unterschied",
+    "pitchTitle": "ChatGPT war noch nie am Fuschlsee.",
+    "pitchBody": "Der Fuschlsee ist ein Badesee zwanzig Minuten östlich von Salzburg. Wir waren dort. Und an jedem anderen Spot auf der Karte. Was wir gelernt haben, steht dabei. Toni kennt genau diese Spots, keine anderen.",
+    "feat1Title": "Alles auf einer Karte.",
+    "feat1Body": "Seen, Wanderungen, Aussichten, Cafés. Alles, wofür du sonst dreissig Tabs offen hast.",
+    "feat2Title": "Bei jedem Spot ein Tipp.",
+    "feat2Body": "„Frag nach dem Filterkaffee des Tages.“ „Das Ostufer ist ruhiger.“ Sowas weiss nur, wer da war.",
+    "feat3Title": "Was gerade in Salzburg läuft.",
+    "feat3Body": "Konzerte, Partys, Feste, Sport. Jeden Montag frisch, ohne dass du suchen musst.",
+    "toniEyebrow": "Toni, unser KI-Guide",
+    "toniTitle": "Jeden Spot, den Toni dir zeigt, haben wir selbst gesehen.",
+    "toniBody": "Frag ihn, worauf du Lust hast. „Morgen baden, welcher See ist warm genug?“ Toni schaut nach: Wassertemperatur, Wetter für morgen, was am Weg liegt. Dann empfiehlt er, was zu dir passt.",
+    "toniCta": "Toni fragen",
+    "foundersEyebrow": "Herzensprojekt",
+    "foundersTitle": "Anton & Simon. Zwei Salzburger.",
+    "foundersBody": "Wir zeigen dir, wo wir selbst hinfahren.",
+    "antonName": "Anton 🎥",
+    "antonBody": "Videoproduzent. Dreht Werbefilme für Tourismusverbände und Hotels, weiss also, wie ein gekaufter Spot aussieht.",
+    "simonName": "Simon 🖥️",
+    "simonBody": "Webdesigner, auch von hier. Hat die Karte gebaut, die du gleich aufmachst.",
+    "proEyebrow": "SalzGuide Pro",
+    "proTitle": "Alles freischalten. Einmal zahlen.",
+    "proCta": "Pro freischalten",
+    "finalTitle": "Wir waren dort. Jetzt du.",
+    "videoPlay": "Video abspielen"
   },
   "Nav": {
     "explore": "Entdecken",
@@ -207,8 +252,15 @@
     "view": "Ansehen",
     "weatherSoon": "Wetter folgt in Kürze",
     "openingSoon": "Öffnungszeiten folgen in Kürze",
-    "weather": { "title": "Wetter", "today": "Heute" },
-    "water": { "title": "Wassertemperatur", "asOf": "Stand {date}", "source": "Quelle" },
+    "weather": {
+      "title": "Wetter",
+      "today": "Heute"
+    },
+    "water": {
+      "title": "Wassertemperatur",
+      "asOf": "Stand {date}",
+      "source": "Quelle"
+    },
     "opening": {
       "title": "Öffnungszeiten",
       "open": "Geöffnet",

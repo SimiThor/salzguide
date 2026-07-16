@@ -73,7 +73,9 @@ export default function AccountDataControls({
         setAction(null);
         return;
       }
-      // Konto weg -> zur Startseite, Server-Zustand neu laden (ausgeloggt).
+      // Konto weg -> auf die öffentliche Startseite, Server-Zustand neu laden (ausgeloggt).
+      // „/" ist hier ABSICHT und kein Überbleibsel des /-nach-/explore-Umzugs: wer sein
+      // Konto gerade gelöscht hat, gehört nicht in die App, sondern nach draussen.
       router.replace("/");
       router.refresh();
     });
