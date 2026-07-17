@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import type { FFmpeg } from "@ffmpeg/ffmpeg";
 import { createClient } from "@/lib/supabase/client";
 import { IMMUTABLE_CACHE_SECONDS } from "@/lib/storage";
+import { encodeCanvas, uploadImage } from "@/lib/image-upload";
 
 // 9:16-Video je Spot: IMMER komprimieren, NIE das Original hochladen (zu unperformant).
 // Kompression via ffmpeg.wasm -> läuft in JEDEM Browser inkl. Safari (reines WebAssembly,
@@ -81,7 +82,9 @@ async function makePoster(mp4: Blob): Promise<Blob | null> {
     const ctx = c.getContext("2d");
     if (!ctx) return null;
     ctx.drawImage(v, 0, 0, w, h);
-    return await new Promise((res) => c.toBlob((b) => res(b), "image/webp", 0.8));
+    // encodeCanvas prüft, ob wirklich WebP herauskam, und weicht sonst auf JPEG aus.
+    // Ohne die Prüfung läge (wie lange bei den Fotos) ein PNG unter dem Namen .webp.
+    return await encodeCanvas(c, 0.8);
   } catch {
     return null;
   } finally {
@@ -184,12 +187,12 @@ export default function VideoUploader({
 
       let newPosterUrl: string | null = null;
       if (poster) {
-        const pPath = `spots/video-poster-${crypto.randomUUID()}.webp`;
-        const pUp = await supabase.storage
-          .from("spot-media")
-          .upload(pPath, poster, { contentType: "image/webp", upsert: false, cacheControl: IMMUTABLE_CACHE_SECONDS });
-        if (!pUp.error) {
-          newPosterUrl = supabase.storage.from("spot-media").getPublicUrl(pPath).data.publicUrl;
+        // Endung folgt dem echten Blob-Typ (webp oder jpg). Ein Fehlschlag beim Poster
+        // darf den Video-Upload nicht kippen, das Standbild ist nachrangig.
+        try {
+          newPosterUrl = await uploadImage(poster, "spots");
+        } catch {
+          newPosterUrl = null;
         }
       }
       onChange(newVideoUrl, newPosterUrl);

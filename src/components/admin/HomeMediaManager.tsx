@@ -4,7 +4,13 @@ import { useMemo, useRef, useState, useTransition } from "react";
 import Image from "next/image";
 import { useRouter } from "@/i18n/navigation";
 import { saveHomeMedia } from "@/lib/admin-actions";
-import { fileToWebp, fileToSquareWebp, uploadWebp } from "@/lib/image-upload";
+import {
+  compressImage,
+  compressSquareImage,
+  uploadImage,
+  HERO_MAX_DIM,
+  AVATAR_DIM,
+} from "@/lib/image-upload";
 import type { HomeMedia } from "@/lib/home-content";
 import type { LandingImage } from "@/lib/landing-media";
 import VideoUploader from "./VideoUploader";
@@ -34,16 +40,16 @@ const IMAGE_SLOTS: readonly ImageSlot[] = [
   {
     key: "heroPortrait",
     title: "Hero, Handy",
-    note: "Hochformat 9:16, etwa 1200 × 2133. Das erste Bild, das jemand von SalzGuide sieht.",
-    maxDim: 2133,
+    note: "Hochformat 9:16, etwa 1150 × 2048. Das erste Bild, das jemand von SalzGuide sieht.",
+    maxDim: HERO_MAX_DIM,
     previewClass: "aspect-[9/16] w-[120px]",
     previewSize: "120px",
   },
   {
     key: "heroLandscape",
     title: "Hero, Desktop",
-    note: "Querformat 16:9, etwa 2400 × 1350.",
-    maxDim: 2400,
+    note: "Querformat 16:9, etwa 2048 × 1150.",
+    maxDim: HERO_MAX_DIM,
     previewClass: "aspect-[16/9] w-[240px]",
     previewSize: "240px",
   },
@@ -53,7 +59,7 @@ const IMAGE_SLOTS: readonly ImageSlot[] = [
     key: "antonPhoto",
     title: "Anton",
     note: "Porträt. Wird rund und klein gezeigt, also nah am Gesicht. Der Zuschnitt auf ein Quadrat passiert beim Hochladen.",
-    maxDim: 512,
+    maxDim: AVATAR_DIM,
     square: true,
     previewClass: "aspect-square w-[96px]",
     previewSize: "96px",
@@ -62,7 +68,7 @@ const IMAGE_SLOTS: readonly ImageSlot[] = [
     key: "simonPhoto",
     title: "Simon",
     note: "Porträt, gleiches Format wie bei Anton.",
-    maxDim: 512,
+    maxDim: AVATAR_DIM,
     square: true,
     previewClass: "aspect-square w-[96px]",
     previewSize: "96px",
@@ -179,9 +185,9 @@ function ImageSlotRow({
     setBusy(true);
     try {
       const { blob, width, height } = slot.square
-        ? await fileToSquareWebp(file, slot.maxDim)
-        : await fileToWebp(file, slot.maxDim);
-      const src = await uploadWebp(blob);
+        ? await compressSquareImage(file, slot.maxDim)
+        : await compressImage(file, slot.maxDim);
+      const src = await uploadImage(blob);
       // Alt-Text beim Austausch behalten: Wer nur ein besseres Foto nachlegt, hat ihn
       // sonst still verloren, und niemandem fällt es auf.
       onChange({ src, alt: value?.alt ?? "", width, height });

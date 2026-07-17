@@ -63,6 +63,10 @@ const nextConfig: NextConfig = {
   // lädt ~44px statt 1600px). Quelle = öffentlicher Supabase-Storage.
   images: {
     formats: ["image/avif", "image/webp"],
+    // Jede Quell-URL zeigt für immer auf dasselbe Bild (fester UUID-Pfad, upsert:false,
+    // siehe lib/image-upload.ts). Also darf next/image die einmal gerechnete Fassung ein
+    // Jahr behalten, statt sie nach wenigen Stunden neu aus dem Storage zu holen.
+    minimumCacheTTL: 31536000,
     remotePatterns: [
       {
         protocol: "https",
