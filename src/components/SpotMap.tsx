@@ -358,6 +358,7 @@ export default function SpotMap({
         if (clickable) (wrap as HTMLButtonElement).type = "button";
         wrap.className = "sg-pin";
         wrap.style.zIndex = String(z);
+        wrap.dataset.baseZ = String(z);
         const inner = document.createElement("span");
         inner.className = "sg-marker";
         inner.textContent = emoji;
@@ -644,8 +645,10 @@ export default function SpotMap({
       const wrap = document.createElement("button");
       wrap.type = "button";
       wrap.className = "sg-pin sg-pin--poi";
-      // Über den Routen-Enden, unter der aktiven Auswahl.
+      // Ruhe-Ebene über den Routen-Enden. baseZ = wohin der Pin zurückfällt, wenn er
+      // nicht mehr gewählt ist (der Hervorhebungs-Effekt hebt den gewählten kurz an).
       wrap.style.zIndex = "5";
+      wrap.dataset.baseZ = "5";
       wrap.setAttribute("aria-label", p.name ? `${p.name} (${p.label ?? ""})`.trim() : p.label ?? emoji);
       const inner = document.createElement("span");
       inner.className = "sg-marker";
@@ -664,14 +667,18 @@ export default function SpotMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [poiSig]);
 
-  // Gewählten Punkt hervorheben (Pin wächst leicht) — POI-Pins und Routen-Enden.
+  // Gewählten Punkt hervorheben (Pin wächst leicht) UND nach vorn holen, damit er nicht
+  // hinter einem Nachbar-Pin liegt. z=6 ist über allen Pins (max Basis 5), aber weiter im
+  // Marker-Layer der Karte -> die Karten-UI (Kärtchen, Controls) liegt ohnehin darüber.
+  // Abgewählt fällt der Pin auf seine Basis-Ebene zurück (dataset.baseZ).
   useEffect(() => {
-    poiEls.current.forEach((el, key) => {
-      el.classList.toggle("sg-pin--active", key === selectedPoiKey);
-    });
-    routeEndEls.current.forEach((el, key) => {
-      el.classList.toggle("sg-pin--active", key === selectedPoiKey);
-    });
+    const apply = (el: HTMLElement, key: string) => {
+      const active = key === selectedPoiKey;
+      el.classList.toggle("sg-pin--active", active);
+      el.style.zIndex = active ? "6" : (el.dataset.baseZ ?? "");
+    };
+    poiEls.current.forEach(apply);
+    routeEndEls.current.forEach(apply);
   }, [selectedPoiKey, poiSig]);
 
   if (!TOKEN) {
