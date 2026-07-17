@@ -6,16 +6,21 @@ import {
   removeProMigration,
   parseEmails,
   sendMigrationAnnouncement,
+  sendTestAnnouncement,
   setRelaunchNotice,
+  saveRelaunchMailTexts,
+  previewRelaunchMail,
 } from "@/lib/migration-actions";
 import type { ProMigrationList } from "@/lib/admin";
+import type { RelaunchMailTexts } from "@/lib/relaunch-mail";
 
-// Adressen einfügen, prüfen, speichern.
+// Der Umzug in vier Schritten, in der Reihenfolge, in der man sie wirklich macht:
+// Adressen rein, Mail ansehen, Mail raus, Hinweis an.
 //
-// DIE VORSCHAU IST DER PUNKT: Wer 100 Adressen aus einem WordPress-Export hineinkopiert,
-// soll VOR dem Speichern sehen, wie viele gültig sind und was verworfen wird. Ohne sie
-// klickt man auf Speichern und hofft — und ein Tippfehler in einer Adresse heisst, dass ein
-// zahlender Kunde vor der Tür steht und keiner weiss warum.
+// Hier stand vorher viel Fliesstext, der die Entscheidungen dahinter erklärte (warum keine
+// Konten vorab, warum der Hinweis für alle gilt). Das gehört in den Code, nicht auf den
+// Bildschirm: Wer diese Seite öffnet, will Adressen eintragen. Die Begründungen stehen in
+// migration-actions.ts und relaunch-mail.ts, wo sie jemand liest, der sie ändern will.
 
 const dtFmt = new Intl.DateTimeFormat("de-AT", {
   timeZone: "Europe/Vienna",
@@ -25,124 +30,351 @@ const dtFmt = new Intl.DateTimeFormat("de-AT", {
 });
 const fmt = (iso: string) => dtFmt.format(new Date(iso));
 
+const CARD = "space-y-3 rounded-[18px] bg-white p-5 shadow-sm";
+const FIELD =
+  "w-full rounded-[12px] border border-black/10 bg-white px-3 py-2 text-[13px] text-ink outline-none focus:border-accent";
+const BTN = "rounded-full px-4 py-2 text-xs font-semibold transition disabled:opacity-50";
+const BTN_SOFT = `${BTN} bg-black/5 text-ink`;
+const BTN_ACCENT = `${BTN} bg-accent text-white`;
+
+function Step({ n, title, hint }: { n: number; title: string; hint?: string }) {
+  return (
+    <div className="flex items-start gap-2.5">
+      <span
+        aria-hidden
+        className="mt-px flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent text-[11px] font-bold text-white"
+      >
+        {n}
+      </span>
+      <div className="min-w-0">
+        <h2 className="text-[15px] font-semibold leading-tight text-ink">{title}</h2>
+        {hint && <p className="mt-1 text-xs leading-relaxed text-muted">{hint}</p>}
+      </div>
+    </div>
+  );
+}
+
 export default function ProMigrationManager({
   list,
   noticeOn,
+  mailTexts,
 }: {
   list: ProMigrationList;
   noticeOn: boolean;
+  mailTexts: RelaunchMailTexts;
 }) {
   const [notice, setNotice] = useState(noticeOn);
-  const [announce, setAnnounce] = useState("");
-  const [confirmSend, setConfirmSend] = useState(false);
+  const [texts, setTexts] = useState(mailTexts);
+  const [dirty, setDirty] = useState(false);
+  const [html, setHtml] = useState<string | null>(null);
   const [raw, setRaw] = useState("");
   const [note, setNote] = useState("");
-  const [preview, setPreview] = useState<{ valid: string[]; invalid: string[] } | null>(null);
+  const [checked, setChecked] = useState<{ valid: string[]; invalid: string[] } | null>(null);
+  const [confirmSend, setConfirmSend] = useState(false);
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
   const [pending, start] = useTransition();
 
-  function check() {
+  // Eine Stelle fürs Aufräumen: Jede Aktion löscht erst die Meldung der vorigen. Sonst
+  // steht nach einem Fehler noch das „Gespeichert" von davor daneben.
+  //
+  // UND EINE STELLE FÜRS SCHEITERN: Bis hierher fing niemand den Fall ab, dass der Aufruf
+  // selbst nicht ankommt (Netz weg, Server antwortet 500, Sitzung abgelaufen). Die Aktion
+  // gibt dann kein `{ok:false}` zurück, sie wirft. Ohne catch heisst das: Der Knopf federt,
+  // nichts passiert, keine Meldung. Man klickt nochmal und glaubt irgendwann, es sei
+  // gespeichert. Bei einem Knopf, der Mails an 100 zahlende Kunden schickt, ist stilles
+  // Scheitern die schlechteste Antwort von allen.
+  const run = (fn: () => Promise<void>) => {
     setErr("");
     setMsg("");
-    start(async () => setPreview(await parseEmails(raw)));
-  }
-
-  function save() {
-    setErr("");
-    setMsg("");
     start(async () => {
-      const r = await addProMigrations(raw, note);
-      if (!r.ok) {
-        setErr(r.error === "empty" ? "Keine gültige Adresse dabei." : (r.error ?? "Fehlgeschlagen"));
-        return;
+      try {
+        await fn();
+      } catch (e) {
+        console.error("ProMigrationManager:", e);
+        // Bewusst NICHT „nichts wurde geändert": Wenn die Antwort verloren geht, kann die
+        // Aktion trotzdem gelaufen sein. Beim Sende-Knopf wäre so eine Beruhigung
+        // gefährlich, man klickt nochmal und schreibt alle zweimal an. Also: nachsehen,
+        // nicht vertrauen.
+        setErr("Der Server hat nicht geantwortet. Lade die Seite neu und schau nach, ob es trotzdem durchgegangen ist, bevor du es nochmal versuchst.");
       }
-      setMsg(
-        `${r.added} eingetragen` +
-          (r.skipped ? `, ${r.skipped} standen schon drauf` : "") +
-          ". Lade die Seite neu, um sie unten zu sehen.",
-      );
-      setRaw("");
-      setPreview(null);
     });
-  }
+  };
 
-  function remove(email: string) {
-    setErr("");
-    start(async () => {
-      const r = await removeProMigration(email);
-      if (!r.ok) setErr(r.error ?? "Fehlgeschlagen");
-      else setMsg(`${email} entfernt. Lade die Seite neu.`);
-    });
-  }
-
-  function toggleNotice() {
-    setErr("");
-    const next = !notice;
-    start(async () => {
-      const r = await setRelaunchNotice(next);
-      if (r.ok) setNotice(next);
-      else setErr(r.error ?? "Fehlgeschlagen");
-    });
-  }
-
-  function sendAll() {
-    setErr("");
-    setAnnounce("");
-    setConfirmSend(false);
-    start(async () => {
-      const r = await sendMigrationAnnouncement();
-      if (!r.ok) {
-        setErr(r.error ?? "Fehlgeschlagen");
-        return;
-      }
-      setAnnounce(
-        r.sent === 0 && r.failed === 0
-          ? "Alle haben die Ankündigung schon."
-          : `${r.sent} verschickt` +
-              (r.failed ? `, ${r.failed} fehlgeschlagen (beim nächsten Klick nochmal)` : "") +
-              ". Lade die Seite neu.",
-      );
-    });
-  }
+  const edit = (patch: Partial<RelaunchMailTexts>) => {
+    setTexts((t) => ({ ...t, ...patch }));
+    setDirty(true);
+  };
 
   return (
     <div className="space-y-4">
-      {/* Fortschritt: die eine Zahl, die man am Umzugstag wirklich braucht. */}
-      <div className="flex flex-wrap gap-3">
+      {/* Der Fortschritt: die Zahlen, um die es am Umzugstag geht. */}
+      <div className="flex gap-3">
         {[
-          { label: "auf der Liste", value: list.total },
-          { label: "haben sich angemeldet", value: list.claimed },
-          { label: "stehen noch aus", value: list.open },
+          { label: "auf der Liste", value: list.total, hot: false },
+          { label: "angemeldet", value: list.claimed, hot: false },
+          { label: "stehen aus", value: list.open, hot: list.open > 0 },
         ].map((s) => (
-          <div key={s.label} className="flex-1 rounded-[16px] bg-white p-4 shadow-sm">
-            <p className="text-[22px] font-bold leading-none text-ink">{s.value}</p>
+          <div key={s.label} className="flex-1 rounded-[18px] bg-white p-4 shadow-sm">
+            <p className={`text-[26px] font-bold leading-none ${s.hot ? "text-accent" : "text-ink"}`}>
+              {s.value}
+            </p>
             <p className="mt-1 text-[12px] text-muted">{s.label}</p>
           </div>
         ))}
       </div>
 
-      {/* Ankündigung. Steht ÜBER dem Einfügen, weil das die Reihenfolge am Umzugstag ist:
-          erst Adressen rein, dann Mail raus, dann Hinweis an. */}
-      <div className="space-y-3 rounded-[16px] bg-white p-5 shadow-sm">
-        <h2 className="text-[15px] font-semibold text-ink">Ankündigung verschicken</h2>
+      {/* ── 1 ── */}
+      <div className={CARD}>
+        <Step
+          n={1}
+          title="Adressen eintragen"
+          hint="Eine pro Zeile, Komma und Semikolon gehen auch. Gross/klein egal, doppelte werden übersprungen."
+        />
+        <textarea
+          value={raw}
+          onChange={(e) => {
+            setRaw(e.target.value);
+            setChecked(null); // Die Prüfung gehört zum alten Text. Sonst trägt man ein, was man nicht gesehen hat.
+          }}
+          rows={5}
+          placeholder={"anna@example.at\nberni@example.at, chris@example.at"}
+          className={`${FIELD} resize-y font-mono`}
+        />
+        <input
+          type="text"
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          maxLength={200}
+          placeholder="Notiz (optional), z. B. Export vom 17.07."
+          className={FIELD}
+        />
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => run(async () => setChecked(await parseEmails(raw)))}
+            disabled={pending || !raw.trim()}
+            className={BTN_SOFT}
+          >
+            Prüfen
+          </button>
+          {/* Erst prüfen, dann eintragen: Man soll die Zahl gesehen haben, bevor 100
+              Adressen in der Datenbank landen. */}
+          <button
+            type="button"
+            onClick={() =>
+              run(async () => {
+                const r = await addProMigrations(raw, note);
+                if (!r.ok) {
+                  setErr(r.error === "empty" ? "Keine gültige Adresse dabei." : (r.error ?? "Fehlgeschlagen"));
+                  return;
+                }
+                setMsg(
+                  `${r.added} eingetragen${r.skipped ? `, ${r.skipped} standen schon drauf` : ""}. Seite neu laden.`,
+                );
+                setRaw("");
+                setChecked(null);
+              })
+            }
+            disabled={pending || !checked || checked.valid.length === 0}
+            className={BTN_ACCENT}
+          >
+            {checked ? `${checked.valid.length} eintragen` : "Erst prüfen"}
+          </button>
+        </div>
+        {checked && (
+          <div className="rounded-[12px] bg-black/[0.03] p-3 text-[12px] leading-relaxed">
+            <p>
+              <span className="font-semibold text-ink">
+                {checked.valid.length} gültig{checked.valid.length === 1 ? "e Adresse" : "e Adressen"}
+              </span>
+              {checked.invalid.length > 0 && (
+                <span className="text-accent">
+                  {" · "}
+                  {checked.invalid.length} verworfen: {checked.invalid.join(", ")}
+                </span>
+              )}
+            </p>
+            {checked.valid.length > 0 && (
+              <p className="mt-1 break-all text-muted">
+                {checked.valid.slice(0, 4).join(", ")}
+                {checked.valid.length > 4 && ` … +${checked.valid.length - 4}`}
+              </p>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* ── 2 ── */}
+      <div className={CARD}>
+        <Step
+          n={2}
+          title="Mail schreiben und ansehen"
+          hint="Du schreibst die Worte, das Aussehen kommt aus dem Code. Ein leeres Feld nimmt den Standardtext."
+        />
+        {/* Der Platzhalter muss dastehen, sonst kennt ihn niemand: Ein Feature, das man nur
+            findet, wenn man den Standardtext nie überschrieben hat, gibt es nicht. */}
         <p className="text-xs leading-relaxed text-muted">
-          Eine Mail an alle, die sie noch nicht haben: Was neu ist, dass ihr Pro unbegrenzt
-          bleibt, und wie sie sich anmelden (E-Mail eingeben, Link antippen, kein Passwort
-          mehr). Wer schon angeschrieben wurde, bekommt sie <strong>nicht nochmal</strong> —
-          jede Adresse wird einzeln vermerkt, sobald ihre Mail draußen ist. Bricht der Lauf
-          ab, schickt der nächste Klick genau den Rest.
+          <code className="rounded bg-black/5 px-1 font-mono text-[11px] text-ink">{"{spots}"}</code> und{" "}
+          <code className="rounded bg-black/5 px-1 font-mono text-[11px] text-ink">{"{languages}"}</code> werden
+          beim Senden durch die echten Zahlen ersetzt. Tipp sie nicht selbst, sonst stimmen
+          sie ab dem nächsten Spot oder der nächsten Sprache nicht mehr.
         </p>
+        <input
+          type="text"
+          value={texts.subject}
+          onChange={(e) => edit({ subject: e.target.value })}
+          maxLength={200}
+          placeholder="Betreff"
+          aria-label="Betreff"
+          className={FIELD}
+        />
+        <input
+          type="text"
+          value={texts.headline}
+          onChange={(e) => edit({ headline: e.target.value })}
+          maxLength={200}
+          placeholder="Überschrift"
+          aria-label="Überschrift"
+          className={FIELD}
+        />
+        <textarea
+          value={texts.body}
+          onChange={(e) => edit({ body: e.target.value })}
+          rows={7}
+          placeholder="Text. Leerzeile macht einen neuen Absatz."
+          aria-label="Text"
+          className={`${FIELD} resize-y leading-relaxed`}
+        />
+        <input
+          type="text"
+          value={texts.cta}
+          onChange={(e) => edit({ cta: e.target.value })}
+          maxLength={80}
+          placeholder="Knopf-Text"
+          aria-label="Knopf-Text"
+          className={FIELD}
+        />
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() =>
+              run(async () => {
+                const r = await previewRelaunchMail(texts);
+                if (!r.ok) {
+                  setErr(r.error ?? "Fehlgeschlagen");
+                  return;
+                }
+                setHtml(r.html ?? null);
+              })
+            }
+            disabled={pending}
+            className={BTN_SOFT}
+          >
+            {html ? "Vorschau aktualisieren" : "Vorschau zeigen"}
+          </button>
+          <button
+            type="button"
+            onClick={() =>
+              run(async () => {
+                const r = await saveRelaunchMailTexts(texts);
+                if (!r.ok) {
+                  setErr(r.error ?? "Fehlgeschlagen");
+                  return;
+                }
+                setDirty(false);
+                setMsg("Gespeichert.");
+              })
+            }
+            disabled={pending || !dirty}
+            className={dirty ? BTN_ACCENT : BTN_SOFT}
+          >
+            {dirty ? "Speichern" : "Gespeichert"}
+          </button>
+          {/* Der Testknopf geht NUR an dich und markiert nichts. Die Alternative wäre
+              „trag dich in die Liste ein, sende, nimm dich raus" — und beim Senden
+              erwischt man dann gleich alle 100. */}
+          <button
+            type="button"
+            onClick={() =>
+              run(async () => {
+                const r = await sendTestAnnouncement();
+                if (!r.ok) {
+                  setErr(
+                    r.error === "send_failed"
+                      ? "Versand fehlgeschlagen. Steht RESEND_KEY?"
+                      : r.error === "no_email"
+                        ? "Zu deinem Konto liegt keine Adresse vor."
+                        : (r.error ?? "Fehlgeschlagen"),
+                  );
+                  return;
+                }
+                setMsg("Testmail an dich unterwegs.");
+              })
+            }
+            disabled={pending}
+            className={`${BTN} border border-accent/30 text-accent`}
+          >
+            ✉️ Test an mich
+          </button>
+        </div>
+        {/* Die Testmail liest die GESPEICHERTEN Texte (sie läuft auf dem Server, ohne die
+            Eingabefelder). Ungespeichert bekäme man den alten Text und hielte ihn für den
+            neuen — das muss dranstehen, solange es so ist. */}
+        {dirty && (
+          <p className="text-[12px] text-muted">
+            Noch nicht gespeichert. Die Vorschau zeigt deine Änderung, die Testmail noch nicht.
+          </p>
+        )}
+        {html && (
+          // iframe: Das Mail-CSS bleibt in der Mail und färbt nicht das Admin ein. Und es
+          // ist dasselbe HTML, das rausgeht, keine Nachbildung.
+          <iframe
+            title="Vorschau der Umzugs-Mail"
+            srcDoc={html}
+            sandbox=""
+            className="h-[540px] w-full rounded-[12px] border border-black/10 bg-white"
+          />
+        )}
+      </div>
+
+      {/* ── 3 ── */}
+      <div className={CARD}>
+        <Step
+          n={3}
+          title="An alle senden"
+          hint={
+            list.total === 0
+              ? "Sobald Adressen auf der Liste stehen, geht die Mail von hier raus."
+              : `Geht an die ${list.open}, die noch keine haben. Wer schon angeschrieben wurde, bekommt sie nicht nochmal.`
+          }
+        />
         {confirmSend ? (
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-[13px] font-semibold text-ink">
-              An {list.total - list.claimed} Menschen wirklich senden?
+              An {list.open} {list.open === 1 ? "Menschen" : "Menschen"} senden?
             </span>
             <button
               type="button"
-              onClick={sendAll}
+              onClick={() =>
+                run(async () => {
+                  setConfirmSend(false);
+                  const r = await sendMigrationAnnouncement();
+                  if (!r.ok) {
+                    setErr(r.error ?? "Fehlgeschlagen");
+                    return;
+                  }
+                  setMsg(
+                    r.sent === 0 && r.failed === 0
+                      ? "Alle haben sie schon."
+                      : `${r.sent} verschickt${
+                          r.failed ? `, ${r.failed} fehlgeschlagen (der nächste Klick versucht es nochmal)` : ""
+                        }. Seite neu laden.`,
+                  );
+                })
+              }
               disabled={pending}
-              className="rounded-full bg-accent px-4 py-2 text-xs font-semibold text-white disabled:opacity-50"
+              className={BTN_ACCENT}
             >
               {pending ? "sendet …" : "Ja, senden"}
             </button>
@@ -155,137 +387,82 @@ export default function ProMigrationManager({
           <button
             type="button"
             onClick={() => setConfirmSend(true)}
-            disabled={pending || list.total === 0}
-            className="rounded-full bg-black/5 px-4 py-2 text-xs font-semibold text-ink disabled:opacity-50"
+            disabled={pending || list.open === 0}
+            className={BTN_SOFT}
           >
-            ✉️ Ankündigung senden
+            ✉️ Ankündigung an alle
           </button>
         )}
-        {announce && <p className="text-[12px] text-ink">{announce}</p>}
       </div>
 
-      {/* Der Hinweis am Login. */}
-      <div className="space-y-2 rounded-[16px] bg-white p-5 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-[15px] font-semibold text-ink">Hinweis auf der Anmeldeseite</h2>
+      {/* ── 4 ── */}
+      <div className={CARD}>
+        <div className="flex items-start justify-between gap-3">
+          <Step
+            n={4}
+            title="Hinweis am Login"
+            hint="Steht für alle da, nicht nur für Alt-Käufer. Schalt ihn wieder aus, wenn die alte Seite vergessen ist."
+          />
           <button
             type="button"
-            onClick={toggleNotice}
+            onClick={() =>
+              run(async () => {
+                const next = !notice;
+                const r = await setRelaunchNotice(next);
+                if (!r.ok) {
+                  setErr(r.error ?? "Fehlgeschlagen");
+                  return;
+                }
+                setNotice(next);
+              })
+            }
             disabled={pending}
-            className={`rounded-full px-4 py-1.5 text-xs font-semibold transition disabled:opacity-50 ${
+            aria-pressed={notice}
+            className={`shrink-0 rounded-full px-4 py-1.5 text-xs font-semibold transition disabled:opacity-50 ${
               notice ? "bg-accent text-white" : "bg-black/5 text-ink"
             }`}
           >
             {notice ? "An" : "Aus"}
           </button>
         </div>
-        <p className="text-xs leading-relaxed text-muted">
-          Zeigt beim Anmelden für <strong>alle</strong> einen Satz: {"„"}SalzGuide ist neu
-          gebaut. Schon auf der alten Seite gekauft? Melde dich mit derselben E-Mail an, dein
-          Pro ist da.{"“"}
-        </p>
-        <p className="text-xs leading-relaxed text-muted">
-          Für alle, weil wir die eingegebene Adresse bewusst <strong>nicht</strong> prüfen:
-          Ein Hinweis, der nur bei Alt-Käufern erschiene, wäre ein Automat, der jedem verrät,
-          ob eine beliebige Adresse zahlender Kunde ist. Schalt ihn aus, wenn die alte Seite
-          vergessen ist — für Leute, die uns zum ersten Mal besuchen, ist der Satz dann nur
-          noch Ballast.
-        </p>
       </div>
 
-      <div className="space-y-3 rounded-[16px] bg-white p-5 shadow-sm">
-        <h2 className="text-[15px] font-semibold text-ink">Adressen einfügen</h2>
-        <p className="text-xs text-muted">
-          Eine pro Zeile, Komma oder Semikolon gehen auch — so exportieren die meisten
-          Plugins. Gross/klein ist egal, wir schreiben alles klein. Wer schon draufsteht,
-          wird übersprungen, nicht überschrieben.
-        </p>
-        <textarea
-          value={raw}
-          onChange={(e) => {
-            setRaw(e.target.value);
-            setPreview(null);
-          }}
-          rows={7}
-          placeholder={"anna@example.at\nberni@example.at, chris@example.at"}
-          className="w-full resize-y rounded-[12px] border border-black/10 bg-white px-3 py-2 font-mono text-[13px] text-ink outline-none focus:border-accent"
-        />
-        <input
-          type="text"
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          maxLength={200}
-          placeholder="Notiz, z. B. „Export Membership-Plugin 17.07.2026“"
-          className="w-full rounded-[12px] border border-black/10 bg-white px-3 py-2 text-[13px] text-ink outline-none focus:border-accent"
-        />
-
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={check}
-            disabled={pending || !raw.trim()}
-            className="rounded-full bg-black/5 px-4 py-2 text-xs font-semibold text-ink disabled:opacity-50"
-          >
-            Prüfen
-          </button>
-          {/* Speichern erst NACH dem Prüfen: Man soll die Zahl gesehen haben. */}
-          <button
-            type="button"
-            onClick={save}
-            disabled={pending || !preview || preview.valid.length === 0}
-            className="rounded-full bg-accent px-4 py-2 text-xs font-semibold text-white disabled:opacity-50"
-          >
-            {pending ? "…" : preview ? `${preview.valid.length} eintragen` : "Erst prüfen"}
-          </button>
-        </div>
-
-        {preview && (
-          <div className="rounded-[12px] bg-black/[0.03] p-3 text-[12px] leading-relaxed">
-            <p className="font-semibold text-ink">
-              {preview.valid.length} gültige Adresse{preview.valid.length === 1 ? "" : "n"}
-            </p>
-            {preview.invalid.length > 0 && (
-              <p className="mt-1 text-accent">
-                {preview.invalid.length} verworfen: {preview.invalid.join(", ")}
-              </p>
-            )}
-            <p className="mt-1 break-all text-muted">
-              {preview.valid.slice(0, 5).join(", ")}
-              {preview.valid.length > 5 && ` … und ${preview.valid.length - 5} weitere`}
-            </p>
-          </div>
-        )}
-
-        {msg && <p className="text-[12px] text-ink">{msg}</p>}
-        {err && <p className="text-[12px] text-accent">{err}</p>}
-      </div>
+      {/* Eine Stelle für Meldungen, ganz unten: Vorher hatte jede Karte ihre eigene, und
+          man suchte nach dem Klick, wo die Antwort steht. */}
+      {msg && <p className="px-1 text-[13px] font-medium text-ink">{msg}</p>}
+      {err && <p className="px-1 text-[13px] text-accent">{err}</p>}
 
       {list.rows.length > 0 && (
-        <ul className="divide-y divide-black/5 overflow-hidden rounded-[16px] bg-white shadow-sm">
+        <ul className="divide-y divide-black/5 overflow-hidden rounded-[18px] bg-white shadow-sm">
           {list.rows.map((r) => (
-            <li key={r.email} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5">
+            <li key={r.email} className="flex items-center justify-between gap-2 px-4 py-2.5">
               <div className="min-w-0">
                 <p className="truncate text-[13px] text-ink">{r.email}</p>
                 <p className="text-[11px] text-muted">
-                  {r.claimedAt
-                    ? `angemeldet ${fmt(r.claimedAt)}`
-                    : `wartet seit ${fmt(r.createdAt)}`}
+                  {r.claimedAt ? `angemeldet ${fmt(r.claimedAt)}` : `wartet seit ${fmt(r.createdAt)}`}
                   {r.note && ` · ${r.note}`}
                 </p>
               </div>
               {r.claimedAt ? (
-                <span className="shrink-0 rounded-full bg-black/5 px-2 py-0.5 text-[11px] font-semibold text-muted">
-                  eingelöst
-                </span>
+                <span className="shrink-0 text-[11px] font-semibold text-muted">eingelöst</span>
               ) : (
-                // Nur offene lassen sich entfernen. Eine eingelöste Zeile ist der Beleg,
-                // warum dieser Mensch Pro hat — die löscht man nicht nebenbei weg.
+                // Nur offene lassen sich entfernen: Eine eingelöste Zeile ist der Beleg,
+                // warum dieser Mensch Pro hat.
                 <button
                   type="button"
-                  onClick={() => remove(r.email)}
+                  onClick={() =>
+                    run(async () => {
+                      const res = await removeProMigration(r.email);
+                      if (!res.ok) {
+                        setErr(res.error ?? "Fehlgeschlagen");
+                        return;
+                      }
+                      setMsg(`${r.email} entfernt. Seite neu laden.`);
+                    })
+                  }
                   disabled={pending}
                   className="shrink-0 rounded-full px-2 py-1 text-[11px] text-muted disabled:opacity-50"
-                  title="Von der Liste nehmen"
+                  title={`${r.email} von der Liste nehmen`}
                 >
                   ✕
                 </button>

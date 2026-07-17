@@ -13,7 +13,17 @@ export function emailEnabled(): boolean {
 export async function sendEmail(mail: {
   to: string;
   subject: string;
+  /**
+   * Reintext. PFLICHT, auch wenn `html` dabei ist.
+   *
+   * Nicht aus Prinzip, sondern weil sonst zwei Dinge passieren: Mail-Programme, die kein
+   * HTML zeigen (und Vorschau-Zeilen im Posteingang), stehen leer da, und Spamfilter werten
+   * eine Mail ohne Textteil ab. Bei 100 zahlenden Kunden ist der Spam-Ordner die teuerste
+   * Zustellart.
+   */
   text: string;
+  /** Optionale HTML-Fassung. Wer beides schickt, überlässt dem Programm die Wahl. */
+  html?: string;
   replyTo?: string;
 }): Promise<boolean> {
   const key = process.env.RESEND_KEY?.trim();
@@ -31,6 +41,7 @@ export async function sendEmail(mail: {
         to: [mail.to],
         subject: mail.subject,
         text: mail.text,
+        ...(mail.html ? { html: mail.html } : {}),
         ...(mail.replyTo ? { reply_to: mail.replyTo } : {}),
       }),
       cache: "no-store",

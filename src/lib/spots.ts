@@ -251,26 +251,15 @@ export type ExploreSpot = SpotCardData & {
   routeBounds?: [number, number, number, number] | null;
 };
 
-// Bounding-Box eines LineString-GeoJSON – serverseitig, damit nur die Box (nicht die
-// ganze Geometrie) in die Startseiten-Payload wandert.
-function routeBBox(rg: unknown): [number, number, number, number] | null {
-  const g = rg as { type?: string; coordinates?: [number, number][] } | null;
-  if (!g || g.type !== "LineString" || !Array.isArray(g.coordinates) || g.coordinates.length < 2)
-    return null;
-  let minLng = Infinity,
-    minLat = Infinity,
-    maxLng = -Infinity,
-    maxLat = -Infinity;
-  for (const c of g.coordinates) {
-    const lng = Number(c?.[0]);
-    const lat = Number(c?.[1]);
-    if (!Number.isFinite(lng) || !Number.isFinite(lat)) continue;
-    if (lng < minLng) minLng = lng;
-    if (lat < minLat) minLat = lat;
-    if (lng > maxLng) maxLng = lng;
-    if (lat > maxLat) maxLat = lat;
-  }
-  return Number.isFinite(minLng) ? [minLng, minLat, maxLng, maxLat] : null;
+// spots.route_bbox kommt fertig aus der DB (generierte Spalte, Migration 0042) – hier
+// wird nur noch die Form geprüft, nicht mehr gerechnet. Die frühere JS-Fassung hat
+// nebenbei einen Bug verloren: Number(null) ist 0, ein null in den Koordinaten wurde
+// also zu Punkt (0,0) und hätte die Box bis Null Island aufgespannt. Die SQL prüft den
+// JSON-Typ und liefert in dem Fall NULL.
+function asBBox(v: unknown): [number, number, number, number] | null {
+  return Array.isArray(v) && v.length === 4 && v.every((n) => typeof n === "number")
+    ? (v as [number, number, number, number])
+    : null;
 }
 
 export type ExploreCategory = {
@@ -299,7 +288,11 @@ export async function getExploreData(locale: string): Promise<ExploreData> {
     supabase
       .from("spots")
       .select(
-        "slug, emoji, is_pro, type, lat, lng, seasons, route_geojson, spot_translations!inner(title, short_desc, lang), spot_categories(categories(key, season)), media(url, role, sort_order, blur_url)",
+        // route_bbox statt route_geojson: Wir brauchen hier nur vier Zahlen. Die ganze
+        // Geometrie zu holen, um daraus eine Box zu rechnen, kostete bei 8 Spots schon
+        // 20 KB und würde bei 100-200 Spots rund 1 MB PRO Seitenaufruf bedeuten.
+        // Postgres rechnet die Box beim Schreiben (Migration 0042).
+        "slug, emoji, is_pro, type, lat, lng, seasons, route_bbox, spot_translations!inner(title, short_desc, lang), spot_categories(categories(key, season)), media(url, role, sort_order, blur_url)",
       )
       .eq("status", "published")
       .in("spot_translations.lang", localeWithFallback(locale))
@@ -331,7 +324,7 @@ export async function getExploreData(locale: string): Promise<ExploreData> {
     // nicht an `is_pro`: sonst sähe ein zahlender Pro-Kunde bei Pro-Wanderungen nie die
     // Route, obwohl die Detailseite ihm die volle Geometrie zeigt.
     const routeBounds =
-      !locked && s.type === "activity" ? routeBBox(s.route_geojson) : null;
+      !locked && s.type === "activity" ? asBBox(s.route_bbox) : null;
 
     return {
       // Bei gesperrten Pro-Spots NICHTS Echtes ausliefern (kein Slug/Titel/Text)

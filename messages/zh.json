@@ -280,7 +280,7 @@
     "discover": "去发现"
   },
   "Auth": {
-    "relaunchNotice": "SalzGuide 全新重建。在旧网站买过？用同一个邮箱登录就行，你的 Pro 还在。不再需要密码。",
+    "relaunchNotice": "✨ 全新的 SalzGuide 来了。你在旧网站的 Pro 继续有效：用同一个邮箱就行，不用密码。",
     "joinTitle": "登录或创建账号",
     "joinSubtitle": "用你的邮箱——无需密码。收藏你喜欢的地点，规划你的旅程。",
     "emailPlaceholder": "you@email.com",

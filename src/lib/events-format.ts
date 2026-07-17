@@ -156,10 +156,15 @@ export function viennaWeekWindow(
 }
 
 // Events nach Wiener Kalendertag gruppieren (Reihenfolge = chronologisch).
-export function groupByDay(events: EventItem[]): EventDay[] {
+// Die Liste beginnt IMMER bei heute: Ein mehrtägiges Event, das früher begonnen
+// hat, läuft ja noch (der Server filtert Vorbeies weg) -> es kommt unter „heute"
+// statt unter seinen Start-Tag. Sonst stünde eine vergangene Tages-Überschrift
+// über der Liste.
+export function groupByDay(events: EventItem[], todayKey: string): EventDay[] {
   const map = new Map<string, EventItem[]>();
   for (const e of events) {
-    const key = viennaDayKey(e.startsAt);
+    const start = viennaDayKey(e.startsAt);
+    const key = start < todayKey ? todayKey : start;
     const arr = map.get(key);
     if (arr) arr.push(e);
     else map.set(key, [e]);

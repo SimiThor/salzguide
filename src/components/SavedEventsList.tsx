@@ -31,7 +31,7 @@ export default function SavedEventsList({
   const locale = useLocale();
   const t = useTranslations("Events");
   const [items, setItems] = useState(events);
-  const days = useMemo(() => groupByDay(items), [items]);
+  const days = useMemo(() => groupByDay(items, todayKey), [items, todayKey]);
 
   function handleSavedChange(id: string, saved: boolean) {
     if (!saved) setItems((cur) => cur.filter((e) => e.id !== id));

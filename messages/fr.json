@@ -280,7 +280,7 @@
     "discover": "Découvrir"
   },
   "Auth": {
-    "relaunchNotice": "SalzGuide a été refait. Tu as acheté sur l’ancien site ? Connecte-toi avec le même e-mail, ton Pro est là. Plus besoin de mot de passe.",
+    "relaunchNotice": "✨ Le nouveau SalzGuide est là. Ton Pro de l’ancien site continue : même e-mail, pas besoin de mot de passe.",
     "joinTitle": "Se connecter ou créer un compte",
     "joinSubtitle": "Avec ton e-mail – sans mot de passe. Enregistre tes spots préférés et planifie tes sorties.",
     "emailPlaceholder": "toi@email.com",
