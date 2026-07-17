@@ -3,6 +3,9 @@
 // dieselbe Funktion nutzen kann: Backfill und Upload müssen identische Vorschauen
 // erzeugen, sonst sehen nachgezogene Bilder anders aus als neu hochgeladene.
 import sharp from "sharp";
+// Nur der Typ (wird beim Kompilieren gelöscht) – kein Laufzeit-Import, das Backfill-Skript
+// lädt diese Datei mit Nodes ESM-Loader.
+import type { SupabaseClient } from "@supabase/supabase-js";
 // Endung PFLICHT: scripts/backfill-blur.ts lädt diese Datei mit Nodes ESM-Loader, und der
 // rät keine Endungen (siehe tsconfig, allowImportingTsExtensions). Ohne ".ts" baut Next
 // weiterhin fehlerfrei – nur `npm run backfill:blur` stirbt beim Start.
@@ -50,6 +53,13 @@ type StorageApi = {
     ): Promise<{ error: { message: string } | null }>;
     remove(paths: string[]): Promise<{ error: { message: string } | null }>;
     getPublicUrl(path: string): { data: { publicUrl: string } };
+    // Fürs Aufräumen (prunePreviews). Steht HIER und nicht in einem eigenen Typ: Zwei Typen
+    // mit je einem `from()` ergeben im Schnitt eine Überladung, und TypeScript nimmt dann
+    // die erste Signatur — `list` wäre unsichtbar. Hatte ich schon.
+    list(
+      path: string,
+      opts: { limit: number; offset: number },
+    ): Promise<{ data: { name: string }[] | null; error: { message: string } | null }>;
   };
 };
 
@@ -162,6 +172,122 @@ export async function createBlurPreview(
     return null;
   }
   return storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
+}
+
+// ── Aufräumen ────────────────────────────────────────────────────────────────
+//
+// WARUM ES DAS BRAUCHT:
+// Eine Vorschau klebt an ihrem Bild, auch wenn das Bild gerade in der Galerie steht (siehe
+// planImageBlur). Das macht Umsortieren gratis und unzerstörbar — kauft aber ein, dass nach
+// drei Hero-Wechseln drei Vorschauen liegen und nur eine ausgeliefert wird. Verwaist ist
+// nichts davon, aber gebraucht auch nicht.
+//
+// Hier wird weggeräumt, was NICHT die Vorschau des aktuellen Heros ist. Nicht beim
+// Speichern: Dort soll ein Tausch schnell bleiben und nichts kaputtmachen können. Das
+// Aufräumen kommt hinterher, wenn niemand wartet.
+
+/** Was der Aufräumlauf getan hat. */
+export type PruneResult = {
+  /** Galerie-Zeilen, deren blur_url geleert wurde. */
+  unlinked: number;
+  /** Gelöschte Dateien: nicht mehr gebrauchte + echte Waisen. */
+  deleted: number;
+  /** Davon Waisen (Datei ohne jeden DB-Verweis). */
+  orphans: number;
+};
+
+// Anders als bei StorageApi hier KEIN handgeschriebener Minimal-Typ: Supabases Query-
+// Builder ist zwar awaitbar, aber kein Promise, und jede Nachbildung davon ist entweder
+// falsch (dann lügt der Compiler) oder so tief verschachtelt, dass tsc aufgibt
+// ("Type instantiation is excessively deep"). Beides hatte ich schon.
+type PruneDb = SupabaseClient;
+
+type MediaRow = { id: string; role: string | null; blur_url: string | null };
+
+/**
+ * Räumt Vorschauen weg, die niemand mehr ausliefert.
+ *
+ * Entfernt wird zweierlei:
+ *   1. Vorschauen an Galerie-Zeilen — sie waren mal Hero, sind es nicht mehr. Ausgeliefert
+ *      wird nur die des ERSTEN Bildes (heroPreviewFromMedia in lib/spots.ts).
+ *   2. Echte Waisen: Dateien in previews/, auf die keine Zeile zeigt. Sollte es nicht geben,
+ *      aber ein abgebrochenes Speichern kann welche hinterlassen.
+ *
+ * Die Vorschau des aktuellen Heros wird NIE angefasst.
+ *
+ * REIHENFOLGE IST WICHTIG: erst die Spalte leeren, dann die Datei löschen. Andersherum
+ * zeigte die DB nach einem Fehler auf eine Datei, die es nicht mehr gibt — und ein toter
+ * Verweis ist schlimmer als eine übrig gebliebene 4-KB-Datei.
+ */
+export async function prunePreviews(
+  db: PruneDb,
+  storage: StorageApi,
+): Promise<PruneResult> {
+  const out: PruneResult = { unlinked: 0, deleted: 0, orphans: 0 };
+
+  const { data, error } = await db.from("media").select("id, role, blur_url").eq("type", "image");
+  if (error) {
+    console.error("prunePreviews: media lesen fehlgeschlagen", error.message);
+    return out;
+  }
+  const rows = (data ?? []) as MediaRow[];
+
+  // 1. Galerie-Zeilen mit Vorschau: die braucht niemand mehr.
+  const stale = rows.filter((r) => r.role !== "hero" && r.blur_url);
+  if (stale.length) {
+    const { error: upErr } = await db
+      .from("media")
+      .update({ blur_url: null })
+      .in(
+        "id",
+        stale.map((r) => r.id),
+      );
+    if (upErr) {
+      // Nicht weitermachen: Die Dateien zu löschen, deren Verweise noch stehen, hinterließe
+      // genau die toten Verweise, die wir vermeiden.
+      console.error("prunePreviews: blur_url leeren fehlgeschlagen", upErr.message);
+      return out;
+    }
+    out.unlinked = stale.length;
+  }
+
+  // 2. Alles, was nach dem Leeren noch gebraucht wird: die Hero-Vorschauen.
+  const keep = new Set(
+    rows
+      .filter((r) => r.role === "hero" && r.blur_url)
+      .map((r) => r.blur_url!.split("/").pop()!),
+  );
+
+  // 3. Dateien im Bucket durchgehen (seitenweise, sonst sieht man nur die ersten 100).
+  const files: string[] = [];
+  for (let page = 0; ; page++) {
+    const { data: batch, error: lsErr } = await storage
+      .from(BUCKET)
+      .list(PREVIEW_DIR, { limit: 100, offset: page * 100 });
+    if (lsErr) {
+      console.error("prunePreviews: list fehlgeschlagen", lsErr.message);
+      return out;
+    }
+    if (!batch?.length) break;
+    files.push(...batch.map((f) => f.name));
+    if (batch.length < 100) break;
+  }
+
+  const staleNames = new Set(stale.map((r) => r.blur_url!.split("/").pop()!));
+  const doomed = files.filter((n) => !keep.has(n));
+  out.orphans = doomed.filter((n) => !staleNames.has(n)).length;
+
+  if (doomed.length) {
+    const { error: rmErr } = await storage
+      .from(BUCKET)
+      .remove(doomed.map((n) => `${PREVIEW_DIR}/${n}`));
+    // Scheitert das Löschen, bleiben ein paar Kilobyte liegen. Die Verweise sind schon weg,
+    // es zeigt also nichts ins Leere — der nächste Lauf holt sie als Waisen nach.
+    if (rmErr) console.error("prunePreviews: remove fehlgeschlagen", rmErr.message);
+    else out.deleted = doomed.length;
+  }
+
+  return out;
 }
 
 // Vorschau-Dateien löschen, zu denen es kein Bild mehr gibt. Scheitert das Löschen,

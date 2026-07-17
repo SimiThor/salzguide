@@ -1,5 +1,6 @@
 import { runAutoWeeklyResearch } from "@/lib/event-research";
 import { createServiceClient } from "@/lib/supabase/service";
+import { prunePreviews } from "@/lib/blur-preview";
 
 // DSGVO-Datensparsamkeit (docs/34 §D/§H): KI-Zähler > 90 Tage + Burst > 1 Tag löschen;
 // Analytics-Salt > 2 Tage (danach sind die Visitor-Hashes endgültig anonym) + Analytics-
@@ -50,8 +51,24 @@ export async function GET(req: Request): Promise<Response> {
 
   const result = await runAutoWeeklyResearch();
   const purgedAiUsage = await cleanupOldData();
+
+  // Nicht mehr gebrauchte Bild-Vorschauen wegräumen. Gehört hierher, weil dieser Lauf
+  // längst die wöchentliche WARTUNG ist und nicht nur Recherche (cleanupOldData oben hat
+  // mit Events auch nichts zu tun) — und weil ein Aufräumen, das jemand von Hand starten
+  // muss, irgendwann nicht mehr passiert.
+  //
+  // Best effort wie der Rest: Scheitert es, ist das kein Grund, den Cron rot zu färben.
+  // Es liegen dann ein paar Kilobyte länger herum, mehr nicht.
+  let prunedPreviews = { unlinked: 0, deleted: 0, orphans: 0 };
+  try {
+    const service = createServiceClient();
+    prunedPreviews = await prunePreviews(service, service.storage);
+  } catch (e) {
+    console.error("[cron] prunePreviews:", e instanceof Error ? e.message : e);
+  }
+
   return Response.json(
-    { ...result, purgedAiUsage },
+    { ...result, purgedAiUsage, prunedPreviews },
     { status: result.ok ? 200 : 500 },
   );
 }
