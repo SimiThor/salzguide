@@ -488,6 +488,13 @@ body {
 
 /* POI-Popup beim Antippen: eine kleine iOS-2026-Karte (Glas, weiche Schatten, 16px),
    getöntes Symbol + Text. Einheitlich mit den Cards/Sheets der App. */
+
+/* Stapel-Ordnung auf der Karte (oben = vorne): Routen-Enden 2-4 < POIs 5 < Spot 6 <
+   POPUP 10. Die Nadeln tragen einen eigenen z-index; ohne diese Regel läge das offene
+   Popup HINTER einer benachbarten Nadel (genau der Fehler). Popup gehört immer nach vorn. */
+.sg-poi-popup {
+  z-index: 10;
+}
 .sg-poi-popup .mapboxgl-popup-content {
   padding: 0;
   border-radius: 16px;

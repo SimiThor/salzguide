@@ -652,7 +652,9 @@ export default function SpotMap({
         poiPopup.current = new mapboxgl.Popup({
           closeButton: false,
           offset: 16,
-          maxWidth: "260px",
+          // Responsiv statt fix: auf sehr schmalen Handys (~320px) nie über den
+          // Kartenrand, auf normalen (375px+) bis 240px breit.
+          maxWidth: "min(240px, 74vw)",
           className: "sg-poi-popup",
         })
           .setLngLat([p.lng, p.lat])
