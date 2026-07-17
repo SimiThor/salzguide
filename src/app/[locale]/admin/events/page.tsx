@@ -1,5 +1,6 @@
 import { Link } from "@/i18n/navigation";
 import { getAdminEvents, getResearchLog } from "@/lib/events";
+import { getAdminAnchors } from "@/lib/anchors";
 import { viennaWeekWindow } from "@/lib/events-format";
 import AdminNav from "@/components/admin/AdminNav";
 import AdminEventList from "@/components/admin/AdminEventList";
@@ -26,7 +27,12 @@ const doneFmt = new Intl.DateTimeFormat("de-AT", {
 });
 
 export default async function AdminEventsPage() {
-  const [events, log] = await Promise.all([getAdminEvents(), getResearchLog()]);
+  const [events, log, anchors] = await Promise.all([
+    getAdminEvents(),
+    getResearchLog(),
+    getAdminAnchors(),
+  ]);
+  const activeAnchors = anchors.filter((a) => a.active).length;
   // Noch nicht vollständig übersetzte, kommende Events (Sammel-Übersetzen). Vergangene braucht
   // niemand mehr zu übersetzen.
   const incompleteEvents = events
@@ -65,6 +71,37 @@ export default async function AdminEventsPage() {
       </div>
 
       <WeeklyResearchPanel weeks={weeks} />
+
+      {/* Direkt unter der Recherche, weil die Anker genau deren Zutat sind: Die KI wird bei
+          JEDER Wochenrecherche an sie erinnert. Als eigener Reiter standen sie oben und
+          kosteten bei jedem Blick Aufmerksamkeit, obwohl man sie zweimal im Jahr anfasst.
+
+          Die Zahlen stehen MIT auf der Kachel, nicht erst dahinter: „Wie viele sind aktiv?"
+          ist die einzige Frage, die man von aussen stellt — muss man dafür hineinklicken,
+          klickt man jedes Mal umsonst. Gleiches Muster wie Einstellungen -> Startseite. */}
+      <Link
+        href="/admin/events/anchors"
+        className="flex items-center gap-4 rounded-[18px] bg-white p-5 shadow-sm ring-1 ring-black/5 transition hover:ring-black/15 active:scale-[0.995]"
+      >
+        <span className="text-[22px]" aria-hidden>
+          📌
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="flex flex-wrap items-center gap-2">
+            <span className="text-[17px] font-bold text-ink">Jahres-Events (Anker)</span>
+            <span className="rounded-full bg-black/5 px-2 py-0.5 text-[11px] font-semibold text-muted">
+              {activeAnchors} aktiv
+            </span>
+          </span>
+          <span className="mt-1 block text-[13px] leading-relaxed text-muted">
+            Bekannte jährliche Highlights, an die die KI bei jeder Wochenrecherche erinnert
+            wird.
+          </span>
+        </span>
+        <span className="shrink-0 text-[18px] text-muted" aria-hidden>
+          ›
+        </span>
+      </Link>
 
       <AdminEventList events={events} />
     </div>
