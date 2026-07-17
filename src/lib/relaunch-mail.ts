@@ -1,6 +1,7 @@
 import "server-only";
 import { createServiceClient } from "./supabase/service";
 import { getSpotCount } from "./spots";
+import { LOCALES } from "@/i18n/locales";
 
 // Die Umzugs-Mail an die Alt-Käufer: Texte aus dem Admin, Gestaltung aus dem Code.
 //
@@ -42,6 +43,14 @@ export type RelaunchMailTexts = {
  */
 export const SPOTS_TOKEN = "{spots}";
 
+/**
+ * Platzhalter für die Zahl der Sprachen. Kommt aus LOCALES, und die Datei sagt über sich
+ * selbst: "EINZIGE Quelle der Wahrheit für alle Sprachen der App". Also nicht danebenlegen.
+ * Wer die zehnte Sprache einträgt, soll nicht daran denken müssen, dass eine alte Mail sie
+ * verschweigt.
+ */
+export const LANGUAGES_TOKEN = "{languages}";
+
 // Was drinsteht, wenn niemand etwas eingetragen hat. Nach BRAND_VOICE: Kumpel-Ton, du-Form,
 // kurze Sätze, show don't sell, keine Marketing-Floskeln, kein Gedankenstrich. Der Vergleich
 // mit "30 Tabs" ist ausdrücklich erlaubt (der mit einem Prospekt wäre es nicht: Prospekte
@@ -53,13 +62,27 @@ export const MAIL_DEFAULTS: RelaunchMailTexts = {
   // Aufzählung scanbar: Wer die Mail am Handy überfliegt, sieht in einer Sekunde, worum es
   // geht, ohne einen Satz zu lesen.
   body:
-    `🗺️ Eine Karte, ${SPOTS_TOKEN} Spots drauf, und du siehst auf einen Blick, was um dich herum geht.\n\n` +
-    "💬 Toni, unser KI-Guide, kennt jeden einzelnen davon. Sag ihm, worauf du Lust hast, und du hast die Antwort statt 30 offener Tabs.\n\n" +
-    // „Geheimtipp" ist hier der PRODUKTNAME für einen gesperrten Pro-Spot (so heisst er auf
-    // der Karte und in den AGB), nicht die Anpreisungs-Floskel, die BRAND_VOICE verbietet.
-    // Und die Aussage bleibt schmal: Pro öffnet sie. Nicht „deine sind noch da", das würde
-    // behaupten, ihre alten Inhalte wandern 1:1 mit.
-    "🤫 Alle Geheimtipps offen. Dein Pro läuft weiter, unbegrenzt, ohne dass du nochmal zahlst.\n\n" +
+    // KEINE Karte im ersten Absatz mehr, obwohl sie das Herz der App ist.
+    //
+    // Diese Mail geht an Menschen, die schon bezahlt haben. Die hatten eine Karte mit
+    // Spots. Wer sie damit begrüsst, erzählt ihnen im ersten Absatz etwas, das sie kennen,
+    // und verschenkt genau den Absatz, den sie sicher lesen. Hier steht deshalb nur, was
+    // es vorher NICHT gab: Toni, Events, neun Sprachen. Die Spot-Zahl fährt bei Toni mit.
+    //
+    // Nicht mehr "du hast die Antwort statt 30 offener Tabs": Der Vergleich sagt, was
+    // WEGFÄLLT, und lässt den Leser selbst herausfinden, was er dafür bekommt. Toni
+    // schlägt vor, also soll da stehen, dass er vorschlägt. Das Wetter ist gedeckt:
+    // ai-assistant.ts hat ein eigenes get_weather-Werkzeug.
+    `💬 Toni, unser KI-Guide, kennt alle ${SPOTS_TOKEN} Spots. Sag ihm, worauf du Lust hast, und er schlägt dir genau das vor, was zu dir passt. Aufs Wetter schaut er gleich mit.\n\n` +
+    // Gedeckt durch search_events (ai-assistant.ts) und toggleSavedEvent.
+    "📅 Frag ihn auch, was diese Woche läuft. Events kannst du jetzt speichern, genau wie Spots.\n\n" +
+    // Das grösste neue Ding: Vorher Deutsch und Englisch, jetzt neun. Der Witz macht es
+    // konkret, statt "mehrsprachig" zu behaupten: Eine Jausenstation erklärt sich einem
+    // Gast aus dem Ausland nämlich wirklich nicht von selbst.
+    `🌍 Und das alles in ${LANGUAGES_TOKEN} Sprachen statt in zwei. Deine Gäste müssen nicht mehr raten, was eine Jausenstation ist.\n\n` +
+    // Kein "Alle Geheimtipps offen" mehr. Das war eine Überschrift, kein Satz, und es
+    // beantwortete die Frage nicht, die dieser Mensch wirklich hat: Bleibt mein Pro?
+    "🎟️ Dein Pro läuft weiter. Unbegrenzt, ohne dass du nochmal zahlst.\n\n" +
     "⚡ Anmelden dauert 20 Sekunden: E-Mail rein, auf den Link tippen, drin. Passwort brauchst du keins.",
   cta: "Rein ins neue SalzGuide 🏔️",
 };
@@ -90,23 +113,27 @@ export async function getRelaunchMailTexts(): Promise<RelaunchMailTexts> {
 }
 
 /**
- * Den Platzhalter durch den echten Stand ersetzen. Muss VOR dem Rendern laufen.
+ * Die Platzhalter durch den echten Stand ersetzen. Muss VOR dem Rendern laufen.
  *
- * Der Admin sieht im Eingabefeld weiter `{spots}` und nicht die Zahl: Sonst würde die Zahl
- * beim ersten Speichern festgeschrieben und wäre ab dem nächsten Spot falsch.
+ * Der Admin sieht in den Eingabefeldern weiter `{spots}` und `{languages}` statt der
+ * Zahlen: Sonst würden sie beim ersten Speichern festgeschrieben und wären ab dem nächsten
+ * Spot bzw. der nächsten Sprache falsch.
  *
- * Ist die Zahl nicht zu holen, steht dort "alle". Der Satz bleibt wahr und liest sich
- * genauso: "Eine Karte, alle Spots drauf". Lieber eine Aussage ohne Zahl als eine geratene.
+ * Ist die Spot-Zahl nicht zu holen, steht dort "alle". Der Satz bleibt wahr und liest sich
+ * genauso: "kennt alle Spots". Lieber eine Aussage ohne Zahl als eine geratene.
  */
-export async function resolveSpots(texts: RelaunchMailTexts): Promise<RelaunchMailTexts> {
-  let value = "alle";
+export async function resolveTokens(texts: RelaunchMailTexts): Promise<RelaunchMailTexts> {
+  let spots = "alle";
   try {
     const count = await getSpotCount();
-    if (count) value = count.rounded ? `${count.value}+` : String(count.value);
+    if (count) spots = count.rounded ? `${count.value}+` : String(count.value);
   } catch (e) {
-    console.error("resolveSpots:", e);
+    console.error("resolveTokens:", e);
   }
-  const sub = (s: string) => s.split(SPOTS_TOKEN).join(value);
+  // Die Sprachen kommen aus einer Konstante, nicht aus der Datenbank. Kein try nötig, und
+  // wenn LOCALES leer wäre, hätte die App ganz andere Sorgen als diese Mail.
+  const languages = String(LOCALES.length);
+  const sub = (s: string) => s.split(SPOTS_TOKEN).join(spots).split(LANGUAGES_TOKEN).join(languages);
   return {
     subject: sub(texts.subject),
     headline: sub(texts.headline),

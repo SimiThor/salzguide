@@ -215,9 +215,10 @@ export default function ProMigrationManager({
         {/* Der Platzhalter muss dastehen, sonst kennt ihn niemand: Ein Feature, das man nur
             findet, wenn man den Standardtext nie überschrieben hat, gibt es nicht. */}
         <p className="text-xs leading-relaxed text-muted">
-          Schreib <code className="rounded bg-black/5 px-1 font-mono text-[11px] text-ink">{"{spots}"}</code> irgendwo
-          rein, dann steht dort beim Senden die echte Spot-Zahl. Tipp sie nicht selbst, sonst
-          stimmt sie ab dem nächsten Spot nicht mehr.
+          <code className="rounded bg-black/5 px-1 font-mono text-[11px] text-ink">{"{spots}"}</code> und{" "}
+          <code className="rounded bg-black/5 px-1 font-mono text-[11px] text-ink">{"{languages}"}</code> werden
+          beim Senden durch die echten Zahlen ersetzt. Tipp sie nicht selbst, sonst stimmen
+          sie ab dem nächsten Spot oder der nächsten Sprache nicht mehr.
         </p>
         <input
           type="text"
