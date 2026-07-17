@@ -72,7 +72,7 @@ export default function AnalyticsFilters({
       if (m[k]) p.set(k, m[k] as string);
     }
     const qs = p.toString();
-    router.push(qs ? `/admin/analytics?${qs}` : "/admin/analytics");
+    router.push(qs ? `/admin/settings/analytics?${qs}` : "/admin/settings/analytics");
   }
 
   const usingCustom = Boolean(current.from && current.to);
@@ -159,7 +159,7 @@ export default function AnalyticsFilters({
         </FilterSelect>
         <button
           type="button"
-          onClick={() => router.push("/admin/analytics")}
+          onClick={() => router.push("/admin/settings/analytics")}
           className="self-end rounded-lg px-3 py-1.5 text-[12px] font-medium text-accent transition hover:bg-accent/10"
         >
           Zurücksetzen

@@ -1,6 +1,5 @@
 import { Link } from "@/i18n/navigation";
 import { getAreasAdmin } from "@/lib/tour-pool";
-import AdminNav from "@/components/admin/AdminNav";
 import BackButton from "@/components/BackButton";
 
 export const dynamic = "force-dynamic";
@@ -9,7 +8,6 @@ export default async function AreasPage() {
   const areas = await getAreasAdmin();
   return (
     <div className="space-y-4 pb-12">
-      <AdminNav active="tours" />
       <BackButton fallbackHref="/admin/tours" label="Audio-Touren" />
       <div className="flex items-center justify-between gap-3">
         <div>

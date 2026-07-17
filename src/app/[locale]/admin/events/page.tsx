@@ -2,7 +2,6 @@ import { Link } from "@/i18n/navigation";
 import { getAdminEvents, getResearchLog } from "@/lib/events";
 import { getAdminAnchors } from "@/lib/anchors";
 import { viennaWeekWindow } from "@/lib/events-format";
-import AdminNav from "@/components/admin/AdminNav";
 import AdminEventList from "@/components/admin/AdminEventList";
 import BulkTranslateButton from "@/components/admin/BulkTranslateButton";
 import WeeklyResearchPanel, {
@@ -56,7 +55,6 @@ export default async function AdminEventsPage() {
 
   return (
     <div className="space-y-4 pb-12">
-      <AdminNav active="events" />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold text-ink">Admin · Events</h1>
         <div className="flex flex-wrap items-center gap-2">

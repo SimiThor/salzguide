@@ -1,6 +1,6 @@
 import { setRequestLocale } from "next-intl/server";
+import { Link } from "@/i18n/navigation";
 import { getSupportRequests } from "@/lib/admin";
-import AdminNav from "@/components/admin/AdminNav";
 import AdminSupportList from "@/components/admin/AdminSupportList";
 
 // Service-Anfragen. force-dynamic: Eine Arbeitsliste aus dem Cache wäre eine Lüge über
@@ -22,9 +22,16 @@ export default async function AdminSupportPage({
 
   return (
     <div className="space-y-4 pb-12">
-      <AdminNav active="support" />
+      <div>
+        <Link
+          href="/admin/users"
+          className="text-[13px] font-semibold text-muted transition hover:text-ink"
+        >
+          ← Nutzer
+        </Link>
+      </div>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-ink">Admin · Support</h1>
+        <h1 className="text-2xl font-bold text-ink">Support-Anfragen</h1>
         <div className="inline-flex rounded-full bg-black/5 p-1">
           {[
             { key: "open", label: "Offen" },

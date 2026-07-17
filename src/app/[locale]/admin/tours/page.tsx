@@ -1,6 +1,5 @@
 import { Link } from "@/i18n/navigation";
 import { getToursAdmin } from "@/lib/tours";
-import AdminNav from "@/components/admin/AdminNav";
 import ProBadge from "@/components/ProBadge";
 
 export const dynamic = "force-dynamic";
@@ -10,7 +9,6 @@ export default async function AdminToursPage() {
 
   return (
     <div className="space-y-4 pb-12">
-      <AdminNav active="tours" />
 
       {/* Neues Pool-Modell: Gebiete + dedizierte Audio-Punkte (Basis für kuratierte & KI-Touren). */}
       <Link

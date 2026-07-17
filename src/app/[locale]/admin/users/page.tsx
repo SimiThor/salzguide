@@ -1,6 +1,6 @@
 import { setRequestLocale } from "next-intl/server";
-import { getAdminUsers, getLatestProGrants } from "@/lib/admin";
-import AdminNav from "@/components/admin/AdminNav";
+import { Link } from "@/i18n/navigation";
+import { getAdminUsers, getLatestProGrants, getOpenSupportCount } from "@/lib/admin";
 import AdminUserList from "@/components/admin/AdminUserList";
 
 // Nutzer-Verwaltung: sehen, suchen, Pro schenken.
@@ -27,13 +27,13 @@ export default async function AdminUsersPage({
   // Erst danach: die Protokollzeilen brauchen die IDs der Nutzer, die wirklich angezeigt
   // werden. Eine Abfrage für die ganze Liste, nicht eine pro Zeile.
   const grants = await getLatestProGrants(users.map((u) => u.id));
+  const openSupport = await getOpenSupportCount();
 
   const proCount = users.filter((u) => u.isPro).length;
   const paidCount = users.filter((u) => u.paidPro).length;
 
   return (
     <div className="space-y-4 pb-12">
-      <AdminNav active="users" />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold text-ink">Admin · Nutzer</h1>
         <span className="text-sm text-muted">
@@ -56,6 +56,39 @@ export default async function AdminUsersPage({
           Suchen
         </button>
       </form>
+
+      {/* Support gehört hierher: Es sind die Nachrichten von genau diesen Menschen. Als
+          eigener Reiter stand es oben und kostete bei jedem Blick Aufmerksamkeit — jetzt
+          sagt der Zähler in der Navigation Bescheid, wenn jemand wartet, und man muss
+          nicht mehr nachsehen. Gleiches Muster wie Events -> Jahres-Events. */}
+      <Link
+        href="/admin/users/support"
+        className="flex items-center gap-4 rounded-[18px] bg-white p-5 shadow-sm ring-1 ring-black/5 transition hover:ring-black/15 active:scale-[0.995]"
+      >
+        <span className="text-[22px]" aria-hidden>
+          ✉️
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="flex flex-wrap items-center gap-2">
+            <span className="text-[17px] font-bold text-ink">Support-Anfragen</span>
+            {openSupport > 0 ? (
+              <span className="rounded-full bg-accent px-2 py-0.5 text-[11px] font-bold text-white">
+                {openSupport} offen
+              </span>
+            ) : (
+              <span className="rounded-full bg-black/5 px-2 py-0.5 text-[11px] font-semibold text-muted">
+                nichts offen
+              </span>
+            )}
+          </span>
+          <span className="mt-1 block text-[13px] leading-relaxed text-muted">
+            Nachrichten aus dem Formular auf /support.
+          </span>
+        </span>
+        <span className="shrink-0 text-[18px] text-muted" aria-hidden>
+          ›
+        </span>
+      </Link>
 
       {/* Map -> Array: Eine Map überlebt die Server/Client-Grenze nicht. */}
       <AdminUserList users={users} grants={Object.fromEntries(grants)} />

@@ -98,6 +98,29 @@ export type AdminSupportRequest = {
   createdAt: string;
 };
 
+/**
+ * Wie viele Support-Anfragen offen sind. Für den Zähler in der Admin-Navigation.
+ *
+ * `head: true` holt nur die Zahl, nicht die Zeilen — die Navigation braucht keine Texte.
+ *
+ * ACHTUNG bei count-Abfragen: Fehlt die Tabelle, liefert PostgREST `error: null` UND
+ * `count: null`, was aussieht wie „leere Tabelle". Deshalb `?? 0` und nicht auf einen
+ * Fehler warten. Das ist keine Theorie — genau darauf bin ich bei Migration 0039
+ * hereingefallen.
+ */
+export async function getOpenSupportCount(): Promise<number> {
+  const supabase = await createClient();
+  const { count, error } = await supabase
+    .from("support_requests")
+    .select("*", { head: true, count: "exact" })
+    .eq("status", "open");
+  if (error) {
+    console.error("getOpenSupportCount:", error.message);
+    return 0;
+  }
+  return count ?? 0;
+}
+
 /** Anfragen nach Status, älteste zuerst — wer am längsten wartet, steht oben. */
 export async function getSupportRequests(
   status: "open" | "done",
