@@ -5,6 +5,8 @@ import {
   addProMigrations,
   removeProMigration,
   parseEmails,
+  sendMigrationAnnouncement,
+  setRelaunchNotice,
 } from "@/lib/migration-actions";
 import type { ProMigrationList } from "@/lib/admin";
 
@@ -23,7 +25,16 @@ const dtFmt = new Intl.DateTimeFormat("de-AT", {
 });
 const fmt = (iso: string) => dtFmt.format(new Date(iso));
 
-export default function ProMigrationManager({ list }: { list: ProMigrationList }) {
+export default function ProMigrationManager({
+  list,
+  noticeOn,
+}: {
+  list: ProMigrationList;
+  noticeOn: boolean;
+}) {
+  const [notice, setNotice] = useState(noticeOn);
+  const [announce, setAnnounce] = useState("");
+  const [confirmSend, setConfirmSend] = useState(false);
   const [raw, setRaw] = useState("");
   const [note, setNote] = useState("");
   const [preview, setPreview] = useState<{ valid: string[]; invalid: string[] } | null>(null);
@@ -65,6 +76,36 @@ export default function ProMigrationManager({ list }: { list: ProMigrationList }
     });
   }
 
+  function toggleNotice() {
+    setErr("");
+    const next = !notice;
+    start(async () => {
+      const r = await setRelaunchNotice(next);
+      if (r.ok) setNotice(next);
+      else setErr(r.error ?? "Fehlgeschlagen");
+    });
+  }
+
+  function sendAll() {
+    setErr("");
+    setAnnounce("");
+    setConfirmSend(false);
+    start(async () => {
+      const r = await sendMigrationAnnouncement();
+      if (!r.ok) {
+        setErr(r.error ?? "Fehlgeschlagen");
+        return;
+      }
+      setAnnounce(
+        r.sent === 0 && r.failed === 0
+          ? "Alle haben die Ankündigung schon."
+          : `${r.sent} verschickt` +
+              (r.failed ? `, ${r.failed} fehlgeschlagen (beim nächsten Klick nochmal)` : "") +
+              ". Lade die Seite neu.",
+      );
+    });
+  }
+
   return (
     <div className="space-y-4">
       {/* Fortschritt: die eine Zahl, die man am Umzugstag wirklich braucht. */}
@@ -79,6 +120,77 @@ export default function ProMigrationManager({ list }: { list: ProMigrationList }
             <p className="mt-1 text-[12px] text-muted">{s.label}</p>
           </div>
         ))}
+      </div>
+
+      {/* Ankündigung. Steht ÜBER dem Einfügen, weil das die Reihenfolge am Umzugstag ist:
+          erst Adressen rein, dann Mail raus, dann Hinweis an. */}
+      <div className="space-y-3 rounded-[16px] bg-white p-5 shadow-sm">
+        <h2 className="text-[15px] font-semibold text-ink">Ankündigung verschicken</h2>
+        <p className="text-xs leading-relaxed text-muted">
+          Eine Mail an alle, die sie noch nicht haben: Was neu ist, dass ihr Pro unbegrenzt
+          bleibt, und wie sie sich anmelden (E-Mail eingeben, Link antippen, kein Passwort
+          mehr). Wer schon angeschrieben wurde, bekommt sie <strong>nicht nochmal</strong> —
+          jede Adresse wird einzeln vermerkt, sobald ihre Mail draußen ist. Bricht der Lauf
+          ab, schickt der nächste Klick genau den Rest.
+        </p>
+        {confirmSend ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[13px] font-semibold text-ink">
+              An {list.total - list.claimed} Menschen wirklich senden?
+            </span>
+            <button
+              type="button"
+              onClick={sendAll}
+              disabled={pending}
+              className="rounded-full bg-accent px-4 py-2 text-xs font-semibold text-white disabled:opacity-50"
+            >
+              {pending ? "sendet …" : "Ja, senden"}
+            </button>
+            <button type="button" onClick={() => setConfirmSend(false)} className="text-xs text-muted">
+              Abbrechen
+            </button>
+          </div>
+        ) : (
+          // Zweistufig: Eine Mail an 100 zahlende Kunden holt man nicht zurück.
+          <button
+            type="button"
+            onClick={() => setConfirmSend(true)}
+            disabled={pending || list.total === 0}
+            className="rounded-full bg-black/5 px-4 py-2 text-xs font-semibold text-ink disabled:opacity-50"
+          >
+            ✉️ Ankündigung senden
+          </button>
+        )}
+        {announce && <p className="text-[12px] text-ink">{announce}</p>}
+      </div>
+
+      {/* Der Hinweis am Login. */}
+      <div className="space-y-2 rounded-[16px] bg-white p-5 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-[15px] font-semibold text-ink">Hinweis auf der Anmeldeseite</h2>
+          <button
+            type="button"
+            onClick={toggleNotice}
+            disabled={pending}
+            className={`rounded-full px-4 py-1.5 text-xs font-semibold transition disabled:opacity-50 ${
+              notice ? "bg-accent text-white" : "bg-black/5 text-ink"
+            }`}
+          >
+            {notice ? "An" : "Aus"}
+          </button>
+        </div>
+        <p className="text-xs leading-relaxed text-muted">
+          Zeigt beim Anmelden für <strong>alle</strong> einen Satz: {"„"}SalzGuide ist neu
+          gebaut. Schon auf der alten Seite gekauft? Melde dich mit derselben E-Mail an, dein
+          Pro ist da.{"“"}
+        </p>
+        <p className="text-xs leading-relaxed text-muted">
+          Für alle, weil wir die eingegebene Adresse bewusst <strong>nicht</strong> prüfen:
+          Ein Hinweis, der nur bei Alt-Käufern erschiene, wäre ein Automat, der jedem verrät,
+          ob eine beliebige Adresse zahlender Kunde ist. Schalt ihn aus, wenn die alte Seite
+          vergessen ist — für Leute, die uns zum ersten Mal besuchen, ist der Satz dann nur
+          noch Ballast.
+        </p>
       </div>
 
       <div className="space-y-3 rounded-[16px] bg-white p-5 shadow-sm">

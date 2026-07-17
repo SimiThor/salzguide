@@ -280,6 +280,7 @@
     "discover": "Descobrir"
   },
   "Auth": {
+    "relaunchNotice": "O SalzGuide foi refeito. Já compraste no site antigo? Entra com o mesmo e-mail, o teu Pro está lá. Já não precisas de palavra-passe.",
     "joinTitle": "Inicia sessão ou cria conta",
     "joinSubtitle": "Com o teu email – sem palavra-passe. Guarda os teus spots favoritos e planeia as tuas viagens.",
     "emailPlaceholder": "tu@email.com",
@@ -330,6 +331,8 @@
     "exploreCta": "Começar a explorar"
   },
   "Account": {
+    "migrationWelcomeTitle": "O teu Pro está aqui",
+    "migrationWelcome": "Bem-vindo de volta! O teu Pro do site antigo foi transferido, sem limite. Não tens de fazer mais nada.",
     "title": "Os teus dados e privacidade",
     "linkLabel": "Os teus dados e privacidade",
     "intro": "Aqui geres as tuas autorizações e exerces os teus direitos ao abrigo do RGPD: cancela a newsletter, exporta todos os teus dados ou elimina a conta.",

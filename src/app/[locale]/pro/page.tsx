@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getProPrice, formatProPrice } from "@/lib/pro";
 import { alternatesFor } from "@/lib/metadata";
 import { googleLoginEnabled } from "@/lib/auth-providers";
+import { getRelaunchNotice } from "@/lib/settings";
 import ProLanding from "@/components/ProLanding";
 import { ProWordmark } from "@/components/ProBadge";
 
@@ -100,6 +101,7 @@ export default async function ProPage({
       autoCheckout={checkout === "1"}
       canceled={checkout === "cancel"}
       googleEnabled={await googleLoginEnabled()}
+      relaunchNotice={await getRelaunchNotice()}
     />
   );
 }

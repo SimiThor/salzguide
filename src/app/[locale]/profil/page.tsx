@@ -3,6 +3,7 @@ import { Link } from "@/i18n/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getProPrice, formatProPrice } from "@/lib/pro";
 import { googleLoginEnabled } from "@/lib/auth-providers";
+import { getRelaunchNotice } from "@/lib/settings";
 import LoginForm from "@/components/LoginForm";
 import ProUpgrade from "@/components/ProUpgrade";
 import ProBadge from "@/components/ProBadge";
@@ -17,10 +18,10 @@ export default async function ProfilPage({
   // damit der Nutzer nach der Anmeldung dort landet, wo er unterbrochen wurde – statt
   // im Profil zu stranden. Ungeprüft durchreichen ist sicher: safeNext() in actions.ts
   // lässt serverseitig nur eigene relative Pfade zu.
-  searchParams: Promise<{ checkout?: string; auth_error?: string; next?: string }>;
+  searchParams: Promise<{ checkout?: string; auth_error?: string; next?: string; welcome?: string }>;
 }) {
   const { locale } = await params;
-  const { checkout, auth_error, next } = await searchParams;
+  const { checkout, auth_error, next, welcome } = await searchParams;
   setRequestLocale(locale);
   const t = await getTranslations("Auth");
   const tA = await getTranslations("Account");
@@ -43,6 +44,7 @@ export default async function ProfilPage({
           next={next}
           authError={auth_error === "1"}
           googleEnabled={await googleLoginEnabled()}
+          relaunchNotice={await getRelaunchNotice()}
         />
       </div>
     );

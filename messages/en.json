@@ -280,6 +280,7 @@
     "discover": "Discover"
   },
   "Auth": {
+    "relaunchNotice": "SalzGuide has been rebuilt. Bought on the old site? Just sign in with the same email, your Pro is there. You no longer need a password.",
     "joinTitle": "Sign in or create an account",
     "joinSubtitle": "With your email – no password needed. Save your favourite spots and plan your trips.",
     "emailPlaceholder": "you@email.com",
@@ -330,6 +331,8 @@
     "exploreCta": "Start exploring"
   },
   "Account": {
+    "migrationWelcomeTitle": "Your Pro is here",
+    "migrationWelcome": "Welcome back! Your Pro from the old site has carried over, unlimited. Nothing else to do.",
     "title": "Your data & privacy",
     "linkLabel": "Your data & privacy",
     "intro": "Manage your consents and exercise your GDPR rights here: unsubscribe from the newsletter, export all your data, or delete your account.",

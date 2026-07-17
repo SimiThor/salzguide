@@ -280,6 +280,7 @@
     "discover": "둘러보기"
   },
   "Auth": {
+    "relaunchNotice": "SalzGuide를 새로 만들었어요. 이전 사이트에서 구매하셨나요? 같은 이메일로 로그인하면 Pro가 그대로 있습니다. 비밀번호는 더 이상 필요 없어요.",
     "joinTitle": "로그인 또는 계정 만들기",
     "joinSubtitle": "이메일만으로 – 비밀번호 없이. 좋아하는 스팟을 저장하고 여행을 계획하세요.",
     "emailPlaceholder": "you@email.com",
@@ -330,6 +331,8 @@
     "exploreCta": "둘러보기 시작"
   },
   "Account": {
+    "migrationWelcomeTitle": "Pro가 준비됐어요",
+    "migrationWelcome": "다시 오신 걸 환영해요! 이전 사이트의 Pro가 그대로 이어집니다. 무제한이고, 더 하실 일은 없어요.",
     "title": "내 데이터 & 개인정보",
     "linkLabel": "내 데이터 & 개인정보",
     "intro": "여기서 동의를 관리하고 DSGVO 권리를 행사하세요: 뉴스레터 구독 해지, 모든 데이터 내보내기, 또는 계정 삭제.",

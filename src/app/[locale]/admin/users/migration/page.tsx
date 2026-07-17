@@ -1,6 +1,7 @@
 import { setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { getProMigrations } from "@/lib/admin";
+import { getRelaunchNotice } from "@/lib/settings";
 import ProMigrationManager from "@/components/admin/ProMigrationManager";
 
 // Freischaltung der Käufer von der alten WordPress-Plattform.
@@ -17,7 +18,7 @@ export default async function ProMigrationPage({
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const list = await getProMigrations();
+  const [list, noticeOn] = await Promise.all([getProMigrations(), getRelaunchNotice()]);
 
   return (
     <div className="space-y-4 pb-12">
@@ -38,7 +39,7 @@ export default async function ProMigrationPage({
         </p>
       </div>
 
-      <ProMigrationManager list={list} />
+      <ProMigrationManager list={list} noticeOn={noticeOn} />
     </div>
   );
 }

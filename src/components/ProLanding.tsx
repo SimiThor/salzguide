@@ -19,6 +19,7 @@ export default function ProLanding({
   autoCheckout,
   canceled,
   googleEnabled,
+  relaunchNotice,
 }: {
   price: string;
   isLoggedIn: boolean;
@@ -30,6 +31,8 @@ export default function ProLanding({
    * pro/page.tsx.
    */
   googleEnabled: boolean;
+  /** Ebenfalls nur durchgereicht, siehe googleEnabled. */
+  relaunchNotice: boolean;
 }) {
   const t = useTranslations("Pro");
   const locale = useLocale();
@@ -179,7 +182,11 @@ export default function ProLanding({
               <p className="mb-3 text-center text-[13px] leading-relaxed text-muted">
                 {t("loginNudge")}
               </p>
-              <LoginForm next={`/${locale}/pro?checkout=1`} googleEnabled={googleEnabled} />
+              <LoginForm
+                next={`/${locale}/pro?checkout=1`}
+                googleEnabled={googleEnabled}
+                relaunchNotice={relaunchNotice}
+              />
             </div>
           )}
 

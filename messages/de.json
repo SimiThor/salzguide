@@ -328,6 +328,7 @@
     "discover": "Entdecken"
   },
   "Auth": {
+    "relaunchNotice": "SalzGuide ist neu gebaut. Schon auf der alten Seite gekauft? Melde dich einfach mit derselben E-Mail an, dein Pro ist da. Ein Passwort brauchst du nicht mehr.",
     "joinTitle": "Anmelden oder Konto erstellen",
     "joinSubtitle": "Mit deiner E-Mail – ganz ohne Passwort. Speichere deine Lieblings-Spots und plane deine Trips.",
     "emailPlaceholder": "deine@email.at",
@@ -378,6 +379,8 @@
     "exploreCta": "Jetzt entdecken"
   },
   "Account": {
+    "migrationWelcomeTitle": "Dein Pro ist da",
+    "migrationWelcome": "Willkommen zurück! Dein Pro von der alten Seite ist übernommen, unbegrenzt. Du musst nichts weiter tun.",
     "title": "Deine Daten & Datenschutz",
     "linkLabel": "Deine Daten & Datenschutz",
     "intro": "Hier verwaltest du deine Einwilligungen und übst deine DSGVO-Rechte aus: Newsletter widerrufen, alle deine Daten exportieren oder dein Konto löschen.",
