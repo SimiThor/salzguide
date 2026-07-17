@@ -18,11 +18,18 @@ export default function ProLanding({
   isLoggedIn,
   autoCheckout,
   canceled,
+  googleEnabled,
 }: {
   price: string;
   isLoggedIn: boolean;
   autoCheckout: boolean;
   canceled: boolean;
+  /**
+   * Nur durchgereicht ans LoginForm. Diese Komponente ist "use client" und kann
+   * googleLoginEnabled() (server-only) nicht selbst fragen — der Wert kommt aus
+   * pro/page.tsx.
+   */
+  googleEnabled: boolean;
 }) {
   const t = useTranslations("Pro");
   const locale = useLocale();
@@ -172,7 +179,7 @@ export default function ProLanding({
               <p className="mb-3 text-center text-[13px] leading-relaxed text-muted">
                 {t("loginNudge")}
               </p>
-              <LoginForm next={`/${locale}/pro?checkout=1`} />
+              <LoginForm next={`/${locale}/pro?checkout=1`} googleEnabled={googleEnabled} />
             </div>
           )}
 

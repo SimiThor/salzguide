@@ -3,6 +3,7 @@ import { Link } from "@/i18n/navigation";
 import { getSavedSpots } from "@/lib/saved";
 import { getSavedEvents } from "@/lib/events";
 import { viennaDayKey } from "@/lib/events-format";
+import { googleLoginEnabled } from "@/lib/auth-providers";
 import LoginForm from "@/components/LoginForm";
 import SavedSpots from "@/components/SavedSpots";
 import SavedEventsList from "@/components/SavedEventsList";
@@ -30,7 +31,7 @@ export default async function GespeichertPage({
         <p className="mt-1.5 mb-5 text-[15px] leading-relaxed text-muted">
           {t("loginNeeded")}
         </p>
-        <LoginForm />
+        <LoginForm googleEnabled={await googleLoginEnabled()} />
       </div>
     );
   }

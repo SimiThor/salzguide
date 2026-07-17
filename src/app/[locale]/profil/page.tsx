@@ -2,6 +2,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getProPrice, formatProPrice } from "@/lib/pro";
+import { googleLoginEnabled } from "@/lib/auth-providers";
 import LoginForm from "@/components/LoginForm";
 import ProUpgrade from "@/components/ProUpgrade";
 import ProBadge from "@/components/ProBadge";
@@ -38,7 +39,11 @@ export default async function ProfilPage({
         <p className="mt-1.5 mb-5 text-[15px] leading-relaxed text-muted">
           {t("joinSubtitle")}
         </p>
-        <LoginForm next={next} authError={auth_error === "1"} />
+        <LoginForm
+          next={next}
+          authError={auth_error === "1"}
+          googleEnabled={await googleLoginEnabled()}
+        />
       </div>
     );
   }

@@ -4,6 +4,7 @@ import { Link } from "@/i18n/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getProPrice, formatProPrice } from "@/lib/pro";
 import { alternatesFor } from "@/lib/metadata";
+import { googleLoginEnabled } from "@/lib/auth-providers";
 import ProLanding from "@/components/ProLanding";
 import { ProWordmark } from "@/components/ProBadge";
 
@@ -98,6 +99,7 @@ export default async function ProPage({
       isLoggedIn={!!user}
       autoCheckout={checkout === "1"}
       canceled={checkout === "cancel"}
+      googleEnabled={await googleLoginEnabled()}
     />
   );
 }
