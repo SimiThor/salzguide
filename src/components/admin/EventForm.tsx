@@ -466,7 +466,11 @@ export default function EventForm({
       {/* Bild */}
       <section className="space-y-3 rounded-[16px] bg-white p-5 shadow-sm">
         <h2 className="text-[15px] font-semibold text-ink">Bild (optional)</h2>
+        {/* ordered={false}: Ein Event hat genau ein Bild. Ohne zweites Foto gibt es keine
+            Reihenfolge zu wählen, und ein „Hero“-Abzeichen behauptete eine Wahl, die es
+            nicht gibt. */}
         <PhotoUploader
+          ordered={false}
           images={form.imageUrl ? [form.imageUrl] : []}
           onChange={(urls) => set({ imageUrl: urls[0] ?? "" })}
         />

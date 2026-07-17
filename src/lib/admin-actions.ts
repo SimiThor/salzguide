@@ -8,7 +8,7 @@ import { normalizeManual, type OpeningWeek } from "./opening-hours";
 import { routing } from "@/i18n/routing";
 import { localeMeta } from "@/i18n/locales";
 import { hashSpotTexts, translationsPublishable } from "./spot-hash";
-import { blurPreviewFor } from "./blur-preview";
+import { createBlurPreview, planImageBlur, removeBlurPreviews } from "./blur-preview";
 import { stripEmDashFields } from "./em-dash";
 import { HOME_KEYS } from "./home-fields";
 import { translateHomeTextsWith } from "./home-translate";
@@ -368,28 +368,32 @@ export async function saveSpot(input: SpotInput): Promise<SaveResult> {
   }
 
   // Fotos neu setzen (erstes = Hero); media-Tabelle ist die Quelle der Wahrheit.
-  // Bisheriges Hero VOR dem Löschen lesen, damit eine bereits erzeugte Blur-Vorschau
-  // ein Speichern überlebt, bei dem sich am Bild nichts geändert hat.
-  const { data: prevHero } = await supabase
+  //
+  // DIE VORSCHAU GEHÖRT ZUM BILD, NICHT ZUR HERO-ROLLE.
+  // Deshalb lesen wir ALLE bisherigen Bildzeilen, nicht nur das Hero. Wer im Admin ein
+  // Foto nach vorn zieht, das schon einmal Hero war, bekommt dessen Vorschau geschenkt,
+  // statt sie erneut aus dem Netz zu laden und durch sharp zu schicken. Und – wichtiger –
+  // ein Umsortieren kann keine funktionierende Vorschau mehr zerstören: Wir werfen nur
+  // weg, was zu einem entfernten FOTO gehört, nie was zu einer alten Rolle gehörte.
+  const { data: prevRows } = await supabase
     .from("media")
     .select("url, blur_url")
     .eq("spot_id", spotId)
-    .eq("type", "image")
-    .eq("role", "hero")
-    .limit(1)
-    .maybeSingle();
+    .eq("type", "image");
+
+  const plan = planImageBlur(prevRows ?? [], input.images);
+
+  // Fehlt dem Hero die Vorschau, jetzt EINE erzeugen. Ein reines Textspeichern rendert
+  // damit gar nichts, und Umsortieren auf ein Foto, das schon einmal Hero war, ebenso
+  // wenig. Schlägt es fehl, bleibt die Spalte null und die UI fällt auf das Emoji zurück –
+  // das Speichern darf daran nicht scheitern, `npm run backfill:blur` holt es nach.
+  if (plan.heroNeedingPreview) {
+    const made = await createBlurPreview(supabase.storage, plan.heroNeedingPreview);
+    if (made) plan.blurByUrl.set(plan.heroNeedingPreview, made);
+  }
 
   await supabase.from("media").delete().eq("spot_id", spotId).eq("type", "image");
   if (input.images.length) {
-    // Vorschau nur fürs Hero: Nur dieses Bild zeigen gesperrte Pro-Spots als Teaser.
-    // Schlägt die Erzeugung fehl, bleibt die Spalte null und die UI fällt auf das
-    // Emoji zurück – das Speichern des Spots darf daran nicht scheitern.
-    const heroBlur = await blurPreviewFor(
-      supabase.storage,
-      input.images[0],
-      prevHero?.url,
-      prevHero?.blur_url,
-    );
     await supabase.from("media").insert(
       input.images.map((url, i) => ({
         spot_id: spotId,
@@ -397,9 +401,17 @@ export async function saveSpot(input: SpotInput): Promise<SaveResult> {
         role: i === 0 ? "hero" : "gallery",
         url,
         sort_order: i,
-        blur_url: i === 0 ? heroBlur : null,
+        // Eine einmal erzeugte Vorschau bleibt an ihrem Bild kleben, auch wenn es gerade
+        // in der Galerie steht: Sonst kostet jedes Hin-und-Her-Sortieren ein neues Rendern.
+        blur_url: plan.blurByUrl.get(url) ?? null,
       })),
     );
+  }
+
+  // Vorschauen entfernter Fotos wegräumen. Erst NACH dem Insert, damit ein Fehler beim
+  // Aufräumen keine gerade gespeicherte Vorschau reißt.
+  if (plan.orphanPreviews.length) {
+    await removeBlurPreviews(supabase.storage, plan.orphanPreviews);
   }
 
   return { ok: true, id: spotId };

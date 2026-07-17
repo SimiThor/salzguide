@@ -3,7 +3,10 @@
 // dieselbe Funktion nutzen kann: Backfill und Upload müssen identische Vorschauen
 // erzeugen, sonst sehen nachgezogene Bilder anders aus als neu hochgeladene.
 import sharp from "sharp";
-import { IMMUTABLE_CACHE_SECONDS } from "./storage";
+// Endung PFLICHT: scripts/backfill-blur.ts lädt diese Datei mit Nodes ESM-Loader, und der
+// rät keine Endungen (siehe tsconfig, allowImportingTsExtensions). Ohne ".ts" baut Next
+// weiterhin fehlerfrei – nur `npm run backfill:blur` stirbt beim Start.
+import { IMMUTABLE_CACHE_SECONDS } from "./storage.ts";
 
 // Vorschaubild für gesperrte Pro-Spots ("Geheimtipps").
 //
@@ -91,17 +94,106 @@ async function renderPreview(imageUrl: string): Promise<Buffer | null> {
   }
 }
 
-// Die Vorschau-URL, die beim Speichern in die DB gehört. EINE Regel für alle
-// Schreibpfade, damit Upload und Backfill sich identisch verhalten.
+export type PrevImageRow = { url: string; blur_url?: string | null };
+
+export type ImageBlurPlan = {
+  /** Vorschau je Bild-URL, soweit schon eine existiert. */
+  blurByUrl: Map<string, string>;
+  /** Hero-URL, falls dafür noch KEINE Vorschau da ist – sonst null (dann ist nichts zu tun). */
+  heroNeedingPreview: string | null;
+  /** Vorschauen von Fotos, die nicht mehr zum Spot gehören. */
+  orphanPreviews: string[];
+};
+
+/**
+ * Entscheidet aus altem und neuem Bildstand, WAS beim Speichern zu tun ist:
+ * welche Vorschau schon da ist, welche fehlt, welche weg kann.
+ *
+ * Reine Rechnung, kein I/O – deshalb prüfbar, ohne etwas hochzuladen. Der Aufrufer führt
+ * aus, was hier herauskommt (siehe saveSpot in lib/admin-actions.ts).
+ *
+ * Die eine Regel: Eine Vorschau gehört zum BILD, nicht zur Hero-Rolle. Wer ein Foto nach
+ * vorn zieht, das schon einmal Hero war, bekommt dessen Vorschau geschenkt; und ein
+ * Umsortieren kann nie eine funktionierende Vorschau wegwerfen, weil nur Vorschauen
+ * entfernter FOTOS als verwaist gelten.
+ */
+export function planImageBlur(prevRows: PrevImageRow[], images: string[]): ImageBlurPlan {
+  const blurByUrl = new Map<string, string>();
+  for (const row of prevRows) {
+    if (typeof row.url === "string" && row.blur_url) blurByUrl.set(row.url, row.blur_url);
+  }
+
+  // Vorschau NUR fürs Hero: Nur dieses eine Bild zeigen gesperrte Pro-Spots als
+  // unscharfen Teaser (heroPreviewFromMedia in lib/spots.ts). Für Galeriebilder wäre es
+  // Arbeit und Speicher für etwas, das nie jemand unscharf sieht.
+  const heroUrl = images[0] ?? null;
+  const heroNeedingPreview = heroUrl && !blurByUrl.has(heroUrl) ? heroUrl : null;
+
+  const kept = new Set(images);
+  const orphanPreviews = [...blurByUrl]
+    .filter(([url]) => !kept.has(url))
+    .map(([, preview]) => preview);
+
+  return { blurByUrl, heroNeedingPreview, orphanPreviews };
+}
+
+// Vorschau zu EINEM Bild erzeugen und ablegen. null bei jedem Problem – ein fehlendes
+// Vorschaubild darf nie das Speichern eines Spots kippen (die UI fällt dann auf das Emoji
+// zurück, und `npm run backfill:blur` holt es später nach).
+//
+// Der Aufrufer entscheidet, WANN das nötig ist. Diese Funktion rendert immer: Sie ist
+// teuer (Download + sharp), also darf sie nur laufen, wenn zu dem Bild wirklich noch
+// keine Vorschau existiert.
+export async function createBlurPreview(
+  storage: StorageApi,
+  imageUrl: string,
+): Promise<string | null> {
+  const buf = await renderPreview(imageUrl);
+  if (!buf) return null;
+  const path = `${PREVIEW_DIR}/${crypto.randomUUID()}.webp`;
+  const { error } = await storage.from(BUCKET).upload(path, buf, {
+    contentType: "image/webp",
+    upsert: false,
+    // Der Dateiname ist einmalig – der Inhalt ändert sich nie (siehe lib/storage).
+    cacheControl: IMMUTABLE_CACHE_SECONDS,
+  });
+  if (error) {
+    console.error("createBlurPreview: upload failed", error.message);
+    return null;
+  }
+  return storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
+}
+
+// Vorschau-Dateien löschen, zu denen es kein Bild mehr gibt. Scheitert das Löschen,
+// bleibt nur eine verwaiste ~5-KB-Datei liegen; das ist harmlos und darf das Speichern
+// nicht kippen. Deshalb: nur loggen, nie werfen.
+export async function removeBlurPreviews(
+  storage: StorageApi,
+  previewUrls: string[],
+): Promise<void> {
+  const paths = previewUrls
+    .map((u) => pathFromPublicUrl(u))
+    .filter((p): p is string => p !== null);
+  if (!paths.length) return;
+  const { error } = await storage.from(BUCKET).remove(paths);
+  if (error) console.error("removeBlurPreviews: cleanup failed", error.message);
+}
+
+// Die Vorschau-URL für einen Schreibpfad, der pro Bild GENAU EINE Vorschau kennt und
+// die alte beim Wechsel wegräumt. Genutzt vom Backfill (scripts/backfill-blur.ts).
 //
 // Erzeugt NUR neu, wenn sich die Bild-URL wirklich geändert hat. Ohne diese Prüfung
-// würde jedes Speichern (auch reine Textänderungen) das Foto erneut laden und durch
-// sharp schicken – und schlimmer: Scheitert der Download dabei einmal, stünde plötzlich
-// null in der Spalte und eine funktionierende Vorschau wäre still verloren.
+// würde jeder Lauf das Foto erneut laden und durch sharp schicken – und schlimmer:
+// Scheitert der Download dabei einmal, stünde plötzlich null in der Spalte und eine
+// funktionierende Vorschau wäre still verloren.
 //
 // Bildwechsel erkennen wir an der URL. Uploads erzeugen einen neuen UUID-Dateinamen,
 // ein anderes Foto hat also immer eine andere URL. Wird eine Datei in der Storage unter
 // GLEICHEM Namen überschrieben, bleibt die alte Vorschau stehen -> dann `--force`.
+//
+// ACHTUNG: saveSpot nutzt das bewusst NICHT. Dort gehört die Vorschau zum Bild und nicht
+// zur Hero-Rolle, damit Umsortieren keine funktionierende Vorschau wegwirft – siehe den
+// Kommentar bei den Fotos in lib/admin-actions.ts.
 export async function blurPreviewFor(
   storage: StorageApi,
   newUrl: string | null | undefined,
@@ -111,31 +203,12 @@ export async function blurPreviewFor(
   const unchanged = !!newUrl && newUrl === prevUrl && !!prevPreviewUrl;
   if (unchanged) return prevPreviewUrl!; // nichts zu tun, alte Vorschau behalten
 
-  // Ab hier wird die alte Vorschau (falls es eine gab) nicht mehr gebraucht.
-  const stale = prevPreviewUrl ? pathFromPublicUrl(prevPreviewUrl) : null;
-
-  let next: string | null = null;
-  if (newUrl) {
-    const buf = await renderPreview(newUrl);
-    if (buf) {
-      const path = `${PREVIEW_DIR}/${crypto.randomUUID()}.webp`;
-      const { error } = await storage.from(BUCKET).upload(path, buf, {
-        contentType: "image/webp",
-        upsert: false,
-        // Der Dateiname ist einmalig – der Inhalt ändert sich nie (siehe lib/storage).
-        cacheControl: IMMUTABLE_CACHE_SECONDS,
-      });
-      if (error) console.error("blurPreviewFor: upload failed", error.message);
-      else next = storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
-    }
-  }
+  const next = newUrl ? await createBlurPreview(storage, newUrl) : null;
 
   // Alte Vorschau erst löschen, wenn die neue steht – sonst stünde bei einem Fehler
-  // gar kein Bild mehr da. Scheitert das Löschen, bleibt nur eine verwaiste Mini-Datei
-  // liegen; das ist harmlos und darf das Speichern nicht kippen.
-  if (stale && next !== prevPreviewUrl) {
-    const { error } = await storage.from(BUCKET).remove([stale]);
-    if (error) console.error("blurPreviewFor: cleanup failed", error.message);
+  // gar kein Bild mehr da.
+  if (prevPreviewUrl && next !== prevPreviewUrl) {
+    await removeBlurPreviews(storage, [prevPreviewUrl]);
   }
 
   return next;

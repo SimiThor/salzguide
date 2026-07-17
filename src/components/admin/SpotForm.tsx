@@ -826,8 +826,9 @@ export default function SpotForm({
       <section className="space-y-3 rounded-[16px] bg-white p-5 shadow-sm">
         <h2 className="text-[15px] font-semibold text-ink">Fotos</h2>
         <p className="text-xs text-muted">
-          Erstes Bild = Hero (auf Karten & Detailseite). Werden automatisch zu WebP
-          verkleinert.
+          Zum Sortieren ziehen. Das erste Bild ist das Hero (auf Karten & Detailseite),
+          mit ★ holst du eines direkt nach vorn. Fotos lassen sich auch hierher ziehen;
+          sie werden automatisch zu WebP verkleinert.
         </p>
         <PhotoUploader images={form.images} onChange={(urls) => set({ images: urls })} />
       </section>
