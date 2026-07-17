@@ -56,6 +56,10 @@ export default function Explore({
   const [headerH, setHeaderH] = useState(56);
   const [previewSlug, setPreviewSlug] = useState<string | null>(null);
   const [sheetClosing, setSheetClosing] = useState(false);
+  // Das Sheet fährt gerade raus. Karte und Sheet müssen zusammen gehen: Route und
+  // hervorgehobener Pin hängen an diesem Zustand, nicht am Ende der Sheet-Animation.
+  // Vorher blieben beide die vollen 0.5s stehen und schnappten dann weg.
+  const [dismissing, setDismissing] = useState(false);
   // Solange eine Spot-Vorschau offen ist, hält Toni seine Sprechblase zurück – beide
   // schweben unten rechts und lägen sonst übereinander.
   const { setOverlayOpen } = useAi();
@@ -150,9 +154,17 @@ export default function Explore({
     [seasonSpots],
   );
 
-  const onMarkerClick = useCallback((slug: string) => {
+  // Einziger Weg, einen Spot zu öffnen — auch aus einem laufenden Schließen heraus.
+  // Beide Riegel müssen fallen, sonst bliebe die Route des neuen Spots aus.
+  const openSpot = useCallback((slug: string) => {
     setSheetClosing(false);
+    setDismissing(false);
     setPreviewSlug(slug);
+  }, []);
+  const closeSpot = useCallback(() => {
+    setPreviewSlug(null);
+    setSheetClosing(false);
+    setDismissing(false);
   }, []);
   const handleSavedChange = useCallback((slug: string, saved: boolean) => {
     setSavedSet((prev) => {
@@ -209,7 +221,7 @@ export default function Explore({
         }
       : null;
 
-  const labels = { summer: t("summer"), winter: t("winter") };
+  const labels = useMemo(() => ({ summer: t("summer"), winter: t("winter") }), [t]);
 
   // Regale = Kategorien, die in dieser Saison wirklich Spots haben. Vorab gefiltert
   // statt beim Rendern übersprungen, damit das ERSTE tatsächlich gerenderte Regal
@@ -227,7 +239,12 @@ export default function Explore({
     [seasonCats, seasonSpots, season],
   );
 
-  const panelInner = (
+  // Gemerkt, weil an diesem Baum ALLE Regale, Karussells und Karten hängen. Ohne das
+  // baut ihn jedes Öffnen und Schließen neu auf — das blockiert den Hauptthread lange
+  // genug, dass die Karte erst ~180ms nach dem Tippen erfährt, dass sie loslassen soll.
+  // Genau die 180ms sieht man als Nachhinken von Route und Pin.
+  const panelInner = useMemo(
+    () => (
     <>
       <div className="px-4">
         <SeasonToggle value={season} onChange={changeSeason} labels={labels} />
@@ -259,7 +276,7 @@ export default function Explore({
                   <button
                     key={s.slug}
                     type="button"
-                    onClick={() => setPreviewSlug(s.slug)}
+                    onClick={() => openSpot(s.slug)}
                     className="block text-left transition-transform duration-200 ease-out active:scale-[0.96] md:hover:-translate-y-1"
                   >
                     <SpotCard
@@ -283,6 +300,8 @@ export default function Explore({
         </motion.div>
       </AnimatePresence>
     </>
+    ),
+    [season, changeSeason, labels, shelves, openSpot, t],
   );
 
   return (
@@ -297,17 +316,28 @@ export default function Explore({
       >
         <SpotMap
           markers={markers}
-          onMarkerClick={onMarkerClick}
+          onMarkerClick={openSpot}
           padding={mapPadding}
           focus={focus}
-          selectedSlug={previewSlug}
-          route={activeRoute}
+          // Beim Schließen sofort loslassen: Der Pin geht auf Normalgröße zurück und
+          // die Route blendet aus, während das Sheet fährt — nicht danach.
+          selectedSlug={dismissing ? null : previewSlug}
+          route={dismissing ? null : activeRoute}
           showRouteEnds={false}
           fitRoute={false}
           onMapClick={() => {
             // Mobile: Sheet sanft runtergleiten lassen; Desktop: Karte sofort schließen
-            if (isDesktop) setPreviewSlug(null);
-            else setSheetClosing(true);
+            if (isDesktop) {
+              closeSpot();
+              return;
+            }
+            // Beide Zustände in EINEM Rendergang. Ginge das Loslassen der Route erst
+            // über onDismissStart, bräuchte es einen zweiten Durchlauf: tippen ->
+            // rendern -> Effekt -> dismiss() -> setDismissing -> rendern -> Karte.
+            // Das Sheet fährt derweil schon (framer-motion läuft an React vorbei), und
+            // genau dieser Versatz ist das Nachhinken. So starten beide im selben Frame.
+            setSheetClosing(true);
+            setDismissing(true);
           }}
         />
       </div>
@@ -327,7 +357,7 @@ export default function Explore({
         (isDesktop ? (
           <SpotCardDesktop
             spot={previewSpot}
-            onClose={() => setPreviewSlug(null)}
+            onClose={closeSpot}
             loggedIn={loggedIn}
             saved={savedSet.has(previewSpot.slug)}
             onSavedChange={handleSavedChange}
@@ -336,10 +366,8 @@ export default function Explore({
           <SpotSheet
             spot={previewSpot}
             closing={sheetClosing}
-            onClose={() => {
-              setPreviewSlug(null);
-              setSheetClosing(false);
-            }}
+            onDismissStart={() => setDismissing(true)}
+            onClose={closeSpot}
             loggedIn={loggedIn}
             saved={savedSet.has(previewSpot.slug)}
             onSavedChange={handleSavedChange}

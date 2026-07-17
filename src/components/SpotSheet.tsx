@@ -42,6 +42,7 @@ function X() {
 export default function SpotSheet({
   spot,
   onClose,
+  onDismissStart,
   closing = false,
   loggedIn = false,
   saved = false,
@@ -49,6 +50,10 @@ export default function SpotSheet({
 }: {
   spot: ExploreSpot;
   onClose: () => void;
+  // Feuert, sobald das Sheet losfährt — nicht erst, wenn es unten ist. Daran hängt
+  // die Karte ihre Route und den hervorgehobenen Pin ab, damit beide MIT dem Sheet
+  // gehen und nicht 0.5s später wegschnappen.
+  onDismissStart?: () => void;
   closing?: boolean;
   loggedIn?: boolean;
   saved?: boolean; // controlled durch Explore (Quelle der Wahrheit)
@@ -62,6 +67,9 @@ export default function SpotSheet({
   const dragControls = useDragControls();
   const idxRef = useRef(0);
   const tapStart = useRef({ y: 0 });
+  // Schließen darf nur EINMAL anlaufen: ✕, Esc, Runterziehen und der Karten-Klick
+  // greifen alle in dismiss(), und zwei parallele Animationen auf dasselbe y kämpfen.
+  const dismissed = useRef(false);
   const [atFull, setAtFull] = useState(false);
   const bodyRef = useRef<HTMLDivElement>(null);
   const bodyDrag = useBodyDrag(dragControls, bodyRef, atFull);
@@ -111,6 +119,10 @@ export default function SpotSheet({
     if (!measured) return;
     idxRef.current = 0;
     setAtFull(false);
+    // Ein neuer Spot ist ein neues Sheet: Der Schließ-Riegel muss auf, sonst ließe
+    // sich ein Sheet, das man mitten im Rausfahren durch einen Marker-Tipp wieder
+    // hochgeholt hat, nie mehr schließen.
+    dismissed.current = false;
     animate(y, snapY(DETENTS[0]), TRANSITION);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [spot.slug, measured]);
@@ -128,6 +140,9 @@ export default function SpotSheet({
   }, [vh]);
 
   function dismiss() {
+    if (dismissed.current) return;
+    dismissed.current = true;
+    onDismissStart?.();
     animate(y, closedY, TRANSITION).then(() => onClose());
   }
 

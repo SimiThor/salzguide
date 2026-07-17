@@ -1,6 +1,7 @@
 "use client";
 
 import mapboxgl from "mapbox-gl";
+
 import "mapbox-gl/dist/mapbox-gl.css";
 import { useEffect, useRef } from "react";
 import { RecenterControl, FullscreenControl } from "./mapControls";
@@ -35,6 +36,75 @@ function routeFC(coords: [number, number][]) {
           ]
         : [],
   };
+}
+
+// ——— Route-Animation ———————————————————————————————————————————————
+// Die Linie erscheint nicht, sie zeichnet sich: vom Start zum Ziel, einmal, ohne
+// Schnörkel. Das ist auch die Antwort auf die Ladezeit — die Route kommt per
+// Server-Action nach, und ein Strich, der sich zieht, liest sich als Ankunft und
+// nicht als Ruckler.
+//
+// Technik: line-trim-offset. Die Eigenschaft macht einen Abschnitt der Linie
+// unsichtbar; wir verstecken alles hinter dem Kopf und schieben den Kopf von 0 nach 1.
+// Das sind pro Frame ZWEI ZAHLEN an die GPU, sonst nichts. Die naheliegende Variante
+// (line-gradient mit line-progress) kostet pro Frame einen frischen Ausdruck, den
+// Mapbox parst, prüft und als Farbtextur hochlädt — gemessen 228ms Skriptzeit für
+// EINE Linie, gegenüber 20ms hier. Bedingung für beides: lineMetrics an der Quelle.
+//
+// 600ms ist kein Geschmack, sondern genau die Dauer des Kamerafluges (focus/fitBounds
+// unten). Solange die Kamera fliegt, malt Mapbox die Karte ohnehin jeden Frame neu —
+// das Zeichnen reitet also auf Bildern mit, die es sowieso gibt, und kostet fast
+// nichts extra. Karte und Linie kommen dadurch im selben Moment zur Ruhe, statt
+// nacheinander. Länger heißt: eigene Frames, eigene Kosten, und die Linie zappelt
+// noch, wenn die Karte längst steht.
+const ROUTE_DRAW_MS = 600;
+// Ausblenden ist bewusst deutlich kürzer als die 0.5s des Sheets: Route und Auswahl
+// sollen das Schließen ANFÜHREN, nicht hinterherhinken.
+const ROUTE_FADE_MS = 260;
+// Weicher Kopf (Anteil der Streckenlänge): line-trim-fade-range lässt die Spitze
+// auslaufen, statt sie wie abgeschnitten aussehen zu lassen. Wird einmalig gesetzt
+// und kostet im Betrieb nichts.
+const ROUTE_HEAD = 0.05;
+
+const ROUTE_LINE = "#e04848";
+const ROUTE_OUT = "#ffffff";
+
+// Mapbox legt auf line-opacity von sich aus einen 300ms-Übergang. Jeder Frame unserer
+// Blende startete damit einen NEUEN 300ms-Übergang — die Linie blieb fast deckend
+// stehen und wurde am Ende hart abgeschnitten, also genau das, was wir wegmachen
+// wollen. Wir steuern die Deckkraft selbst, deshalb muss Mapbox hier die Finger
+// stillhalten. (line-gradient ist laut Style-Spec nicht übergangsfähig, das Zeichnen
+// war deshalb nie betroffen.)
+const NO_TRANSITION = { duration: 0, delay: 0 };
+
+// Abbremsend (iOS-Gefühl): schnell los, sanft ankommen. Bewusst NICHT die
+// Sheet-Kurve — die Linie ist kein Sheet und muss nicht mit ihm synchron laufen.
+const easeOut = (t: number) => 1 - Math.pow(1 - t, 3);
+
+// Fortschritt 0..1. Der Zeitstempel von requestAnimationFrame ist der Beginn des
+// Frames und liegt dadurch ein paar Millisekunden VOR dem performance.now(), mit dem
+// wir starten — ohne die untere Klemme wird der erste Schritt negativ und Mapbox
+// weist die Deckkraft als „greater than the maximum value 1" zurück.
+const progress = (now: number, t0: number, ms: number) =>
+  Math.min(Math.max((now - t0) / ms, 0), 1);
+
+const reducedMotion = () =>
+  typeof window !== "undefined" &&
+  window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true;
+
+// Linie bis `p` (0..1) zeigen. line-trim-offset [a,b] blendet den Abschnitt ZWISCHEN
+// a und b aus, wir verstecken also alles hinter dem Kopf. p=0 -> [0,1] = ganz weg,
+// p=1 -> [1,1] = nichts versteckt.
+function setTrim(map: mapboxgl.Map, p: number) {
+  const head = Math.min(Math.max(p, 0), 1);
+  const trim: [number, number] = [head, 1];
+  map.setPaintProperty("sg-route-out", "line-trim-offset", trim);
+  map.setPaintProperty("sg-route-line", "line-trim-offset", trim);
+}
+
+function setRouteOpacity(map: mapboxgl.Map, o: number) {
+  map.setPaintProperty("sg-route-out", "line-opacity", o);
+  map.setPaintProperty("sg-route-line", "line-opacity", o);
 }
 
 export default function SpotMap({
@@ -165,55 +235,110 @@ export default function SpotMap({
   fitRouteRef.current = fitRoute;
   const routeMarkers = useRef<mapboxgl.Marker[]>([]);
   const routeSig = (route ?? []).map((c) => c.join(",")).join("|");
-  const drawRouteRef = useRef<() => void>(() => {});
-  drawRouteRef.current = () => {
+  // Was gerade auf der Karte liegt ("" = nichts). Trennt „hat sich wirklich geändert"
+  // von „React hat neu gerendert" — sonst startete die Zeichen-Animation von vorn.
+  const shownSig = useRef("");
+  const rafRef = useRef<number | null>(null);
+  const stopRouteAnim = () => {
+    if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
+    rafRef.current = null;
+  };
+  const syncRouteRef = useRef<() => void>(() => {});
+  syncRouteRef.current = () => {
     const map = mapRef.current;
     if (!map) return;
     const src = map.getSource("sg-route") as mapboxgl.GeoJSONSource | undefined;
     if (!src) return;
     const r = routeRef.current ?? [];
+    const next = r.length >= 2 ? routeSig : "";
+    if (next === shownSig.current) return;
+    stopRouteAnim();
+    shownSig.current = next;
+
+    // Keine Route mehr -> ausblenden, DANN leeren. Vorher verschwand die Linie in
+    // dem Moment hart, in dem das Sheet schon unten war.
+    if (!next) {
+      const clear = () => {
+        src.setData(routeFC([]));
+        routeMarkers.current.forEach((m) => m.remove());
+        routeMarkers.current = [];
+        setRouteOpacity(map, 1); // für das nächste Zeichnen zurückstellen
+      };
+      if (reducedMotion()) {
+        clear();
+        return;
+      }
+      const t0 = performance.now();
+      const step = (now: number) => {
+        const t = progress(now, t0, ROUTE_FADE_MS);
+        setRouteOpacity(map, 1 - t); // linear: bei reiner Deckkraft am ruhigsten
+        if (t < 1) {
+          rafRef.current = requestAnimationFrame(step);
+          return;
+        }
+        rafRef.current = null;
+        clear();
+      };
+      rafRef.current = requestAnimationFrame(step);
+      return;
+    }
+
+    // Neue Route -> zeichnen. Kopf VOR setData setzen, sonst blitzt die fertige
+    // Linie ein Bild lang auf.
+    const animated = !reducedMotion();
+    setRouteOpacity(map, 1);
+    setTrim(map, animated ? 0 : 1);
     src.setData(routeFC(r));
     routeMarkers.current.forEach((m) => m.remove());
     routeMarkers.current = [];
-    if (r.length >= 2) {
-      // Start/Ziel-Marker (auf der Übersichtskarte aus -> nur die Linie)
-      if (showRouteEndsRef.current) {
-        // Ziel zuerst (darunter), Start zuletzt + höherer z-index -> Start liegt
-        // immer ÜBER dem Ziel (wichtig bei Rundwegen, wo Start ≈ Ziel).
-        const ends: [[number, number], string, number][] = [
-          [r[r.length - 1], "🏁", 2],
-          [r[0], "🥾", 4],
-        ];
-        for (const [c, emoji, z] of ends) {
-          const wrap = document.createElement("div");
-          wrap.className = "sg-pin";
-          wrap.style.zIndex = String(z);
-          const inner = document.createElement("div");
-          inner.className = "sg-marker";
-          inner.textContent = emoji;
-          wrap.appendChild(inner);
-          routeMarkers.current.push(
-            new mapboxgl.Marker({ element: wrap }).setLngLat(c).addTo(map),
-          );
-        }
-      }
-      // Auf die Route einpassen (auf der Übersichtskarte aus -> focus übernimmt das)
-      if (fitRouteRef.current) {
-        const b = new mapboxgl.LngLatBounds();
-        r.forEach((c) => b.extend(c));
-        const p = paddingRef.current;
-        map.fitBounds(b, {
-          padding: {
-            top: p?.top ?? 60,
-            right: p?.right ?? 60,
-            bottom: p?.bottom ?? 60,
-            left: p?.left ?? 60,
-          },
-          maxZoom: 15,
-          duration: 0,
-        });
+    // Start/Ziel-Marker (auf der Übersichtskarte aus -> nur die Linie)
+    if (showRouteEndsRef.current) {
+      // Ziel zuerst (darunter), Start zuletzt + höherer z-index -> Start liegt
+      // immer ÜBER dem Ziel (wichtig bei Rundwegen, wo Start ≈ Ziel).
+      // Das Ziel wartet, bis die Linie dort angekommen ist (sg-pin-in füllt
+      // „backwards", hält es also bis dahin unsichtbar).
+      const ends: [[number, number], string, number, number][] = [
+        [r[r.length - 1], "🏁", 2, animated ? ROUTE_DRAW_MS : 0],
+        [r[0], "🥾", 4, 0],
+      ];
+      for (const [c, emoji, z, delay] of ends) {
+        const wrap = document.createElement("div");
+        wrap.className = "sg-pin";
+        wrap.style.zIndex = String(z);
+        const inner = document.createElement("div");
+        inner.className = "sg-marker";
+        inner.textContent = emoji;
+        inner.style.animationDelay = `${delay}ms`;
+        wrap.appendChild(inner);
+        routeMarkers.current.push(
+          new mapboxgl.Marker({ element: wrap }).setLngLat(c).addTo(map),
+        );
       }
     }
+    // Auf die Route einpassen (auf der Übersichtskarte aus -> focus übernimmt das)
+    if (fitRouteRef.current) {
+      const b = new mapboxgl.LngLatBounds();
+      r.forEach((c) => b.extend(c));
+      const p = paddingRef.current;
+      map.fitBounds(b, {
+        padding: {
+          top: p?.top ?? 60,
+          right: p?.right ?? 60,
+          bottom: p?.bottom ?? 60,
+          left: p?.left ?? 60,
+        },
+        maxZoom: 15,
+        duration: 0,
+      });
+    }
+    if (!animated) return;
+    const t0 = performance.now();
+    const step = (now: number) => {
+      const t = progress(now, t0, ROUTE_DRAW_MS);
+      setTrim(map, easeOut(t));
+      rafRef.current = t < 1 ? requestAnimationFrame(step) : null;
+    };
+    rafRef.current = requestAnimationFrame(step);
   };
 
   // Karte einmalig initialisieren
@@ -255,28 +380,41 @@ export default function SpotMap({
         map.addSource("sg-route", {
           type: "geojson",
           data: routeFC(routeRef.current ?? []),
+          // Pflicht für line-progress -> ohne das kann sich die Linie nicht zeichnen.
+          lineMetrics: true,
         });
         map.addLayer({
           id: "sg-route-out",
           type: "line",
           source: "sg-route",
-          paint: { "line-color": "#ffffff", "line-width": 6.5 },
+          paint: {
+            "line-color": ROUTE_OUT,
+            "line-width": 6.5,
+            "line-opacity-transition": NO_TRANSITION,
+            "line-trim-fade-range": [ROUTE_HEAD, 0],
+          },
           layout: { "line-join": "round", "line-cap": "round" },
         });
         map.addLayer({
           id: "sg-route-line",
           type: "line",
           source: "sg-route",
-          paint: { "line-color": "#e04848", "line-width": 3.5 },
+          paint: {
+            "line-color": ROUTE_LINE,
+            "line-width": 3.5,
+            "line-opacity-transition": NO_TRANSITION,
+            "line-trim-fade-range": [ROUTE_HEAD, 0],
+          },
           layout: { "line-join": "round", "line-cap": "round" },
         });
       }
-      drawRouteRef.current();
+      syncRouteRef.current();
     });
     // Klick auf die leere Karte schließt die Vorschau (Marker stoppen das Event)
     map.on("click", () => onMapClickRef.current?.());
     mapRef.current = map;
     return () => {
+      stopRouteAnim();
       map.remove();
       mapRef.current = null;
     };
@@ -389,7 +527,7 @@ export default function SpotMap({
 
   // Route neu zeichnen, wenn sie sich ändert
   useEffect(() => {
-    drawRouteRef.current();
+    syncRouteRef.current();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [routeSig]);
 
