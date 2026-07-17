@@ -4,6 +4,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { getPublishedTours } from "@/lib/tours";
 import { listUserTours } from "@/lib/user-tours";
+import { alternatesFor } from "@/lib/metadata";
 import SavedRoutesList from "@/components/tours/SavedRoutesList";
 
 const CARD =
@@ -17,7 +18,11 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "Tours" });
-  return { title: t("title"), description: t("subtitle") };
+  return {
+    title: t("title"),
+    description: t("subtitle"),
+    alternates: alternatesFor(locale, "/touren"),
+  };
 }
 
 export default async function ToursPage({

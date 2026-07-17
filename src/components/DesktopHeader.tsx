@@ -13,10 +13,10 @@ export default function DesktopHeader() {
 
   const items: {
     key: string;
-    href?: "/" | "/events" | "/touren" | "/gespeichert" | "/profil";
+    href?: "/explore" | "/events" | "/touren" | "/gespeichert" | "/profil";
     action?: boolean;
   }[] = [
-    { key: "explore", href: "/" },
+    { key: "explore", href: "/explore" },
     { key: "tours", href: "/touren" },
     { key: "events", href: "/events" },
     { key: "ai", action: true },
@@ -25,8 +25,11 @@ export default function DesktopHeader() {
   ];
 
   return (
-    <header className="fixed inset-x-0 top-0 z-50 hidden h-14 items-center justify-between border-b border-black/5 bg-cream/80 px-6 backdrop-blur-xl md:flex">
-      <Link href="/" className="text-xl font-bold text-accent">
+    <header className="fixed inset-x-0 top-0 z-50 hidden h-[var(--sg-header-h)] items-center justify-between border-b border-black/5 bg-cream/80 px-6 backdrop-blur-xl md:flex">
+      {/* Logo -> /explore, NICHT „/": „/" ist seit 07/2026 die Verkaufs-Startseite.
+          Wer schon in der App ist, will beim Tippen aufs Logo zur Karte, nicht zurück
+          in den Pitch. Muss mit MobileHeader identisch bleiben. */}
+      <Link href="/explore" className="text-[26px] font-bold tracking-tight text-accent">
         SalzGuide
       </Link>
 

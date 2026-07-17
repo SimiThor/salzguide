@@ -23,6 +23,24 @@ const AGES_URL = "https://www.ages.at/typo3temp/badegewaesser_db.json";
 // Detailseiten (getLakeReadingByName) UND Übersicht (lookupLake).
 const MAX_AGE_DAYS = 7;
 
+// Plausibilitätsgrenzen. Das Alter allein reicht NICHT: Die Rohdaten sind laut Quelle
+// „ungeprüft", und ein einzelner Sensor kann driften, ohne dass das Alter etwas verrät.
+// Am 16.07.2026 meldete der Grabensee-Sensor 84 von 94 Messungen über 35 °C, Spitze
+// 95,5 °C, während alle anderen Seen brav zwischen 22 und 28 °C lagen. Ohne diese Prüfung
+// stand das ungefiltert auf /wasser: „amtlich gemessen: 95 °C". Genau die eine Zahl, nach
+// der einem niemand mehr irgendetwas glaubt.
+//
+// 35 °C als Obergrenze: der wärmste österreichische Badesee kommt in einer Hitzewelle auf
+// knapp 30. 0 °C als Untergrenze: darunter ist es kein flüssiger See mehr, sondern ein
+// kaputter Sensor. Beides mit Absicht grosszügig — wir wollen defekte Fühler aussortieren,
+// nicht einen echten Rekordsommer.
+const MIN_PLAUSIBLE_C = 0;
+const MAX_PLAUSIBLE_C = 35;
+
+function plausible(tempC: number): boolean {
+  return Number.isFinite(tempC) && tempC >= MIN_PLAUSIBLE_C && tempC <= MAX_PLAUSIBLE_C;
+}
+
 // "2026.07.04T06:00:00+0100 MEZ" -> "2026-07-04T06:00:00+0100"
 function szgTime(s: string): string {
   const m = s
@@ -102,13 +120,16 @@ export function lookupLake(
   lake: Lake,
   now: number,
 ): LakeReading | null {
+  // Ein Wert muss BEIDES sein: aktuell genug UND plausibel. Ist er unplausibel, wird er
+  // wie ein zu alter Wert behandelt, also verworfen. Lieber keine Zahl als eine falsche:
+  // der See fällt dann aus der Übersicht, statt „95 °C" zu behaupten.
   if (lake.szg) {
     const r = maps.szg[lake.szg];
-    if (r && ageDays(r.at, now) <= MAX_AGE_DAYS)
+    if (r && ageDays(r.at, now) <= MAX_AGE_DAYS && plausible(r.tempC))
       return { tempC: r.tempC, at: r.at, source: "salzburg" };
   }
   const a = maps.ages[lake.ages];
-  if (a && ageDays(a.at, now) <= MAX_AGE_DAYS)
+  if (a && ageDays(a.at, now) <= MAX_AGE_DAYS && plausible(a.tempC))
     return { tempC: a.tempC, at: a.at, source: "ages" };
   return null;
 }

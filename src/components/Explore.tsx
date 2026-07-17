@@ -12,7 +12,21 @@ import SpotSheet, { SPOT_SHEET_PEEK } from "./SpotSheet";
 import SeasonToggle, { type Season } from "./SeasonToggle";
 import SpotCard from "./SpotCard";
 import SpotMap, { type MapMarker } from "./SpotMap";
-import MobileSheet from "./MobileSheet";
+import MobileSheet, { type Detent } from "./MobileSheet";
+import { SHEET_PEEK_VAR, useSheetPeek } from "@/lib/sheet-metrics";
+
+// Stufen des Explore-Sheets über dem Peek.
+//
+// Die mittlere ist bewusst KEIN Anteil, sondern am Inhalt gemessen: Sie ist genau so
+// hoch, dass das erste Regal ganz drübersteht – Überschrift, Karussell und darin Titel
+// UND Untertitel der Karten. Damit ist die Stufe das, was man dort erwartet: eine Reihe
+// zum Durchwischen und Lesen. Als fester Anteil ginge das nicht, weil eine Karte 76vw
+// breit ist und ein 4:3-Bild trägt – sie ist auf jedem iPhone unterschiedlich hoch.
+// Der Fallback greift nur, solange kein Regal da ist (leere Saison).
+const EXPLORE_DETENTS: Detent[] = [
+  { fits: '[data-sg="first-shelf"]', fallback: 0.5 },
+  0.9,
+];
 
 function defaultSeason(): Season {
   const m = new Date().getMonth(); // 0 = Jan
@@ -87,16 +101,21 @@ export default function Explore({
     };
   }, []);
 
+  // Höhe des eingefahrenen Sheets in px – aus derselben CSS-Variable, aus der sich das
+  // Sheet selbst positioniert. Mapbox nimmt für fitBounds nur Zahlen, keine CSS-Werte.
+  const sheetPeek = useSheetPeek();
+
   // fitBounds-Padding (damit Marker nicht verdeckt werden):
   // - Desktop: Sidebar ist per md:left-[380px] ausgespart; unten extra Platz für die
   //   Glas-Navleiste (~76px) + Puffer.
-  // - Mobile: unten viel Platz fürs Peek-Sheet (~18% vh, deckt auch die Navleiste ab).
+  // - Mobile: unten der Platz, den das Peek-Sheet abdeckt (inkl. Tab-Leiste, die in
+  //   --sg-sheet-peek schon drinsteckt) + derselbe sichtbare Rand wie oben.
   const mapPadding = useMemo(
     () =>
       isDesktop
         ? { top: 70, right: 70, left: 70, bottom: 70 }
-        : { top: 120, right: 40, left: 40, bottom: Math.round((vh || 800) * 0.18) + 48 },
-    [isDesktop, vh],
+        : { top: 120, right: 40, left: 40, bottom: sheetPeek + FIT_GAP },
+    [isDesktop, sheetPeek],
   );
 
   const changeSeason = useCallback((s: Season) => {
@@ -192,10 +211,20 @@ export default function Explore({
 
   const labels = { summer: t("summer"), winter: t("winter") };
 
-  const hasAny = seasonCats.some((cat) =>
-    seasonSpots.some((s) =>
-      s.categoryKeys.some((ck) => ck.key === cat.key && ck.season === season),
-    ),
+  // Regale = Kategorien, die in dieser Saison wirklich Spots haben. Vorab gefiltert
+  // statt beim Rendern übersprungen, damit das ERSTE tatsächlich gerenderte Regal
+  // markiert werden kann: An ihm misst das Sheet seine mittlere Stufe.
+  const shelves = useMemo(
+    () =>
+      seasonCats
+        .map((cat) => ({
+          cat,
+          spots: seasonSpots.filter((s) =>
+            s.categoryKeys.some((ck) => ck.key === cat.key && ck.season === season),
+          ),
+        }))
+        .filter((shelf) => shelf.spots.length > 0),
+    [seasonCats, seasonSpots, season],
   );
 
   const panelInner = (
@@ -214,13 +243,14 @@ export default function Explore({
           transition={{ duration: 0.32, ease: [0.34, 1.1, 0.64, 1] }}
           className="mt-5 space-y-6"
         >
-        {seasonCats.map((cat) => {
-          const catSpots = seasonSpots.filter((s) =>
-            s.categoryKeys.some((ck) => ck.key === cat.key && ck.season === season),
-          );
-          if (catSpots.length === 0) return null;
+        {shelves.map(({ cat, spots: catSpots }, i) => {
           return (
-            <section key={`${cat.key}-${cat.season}`}>
+            // Das erste Regal ist der Anker für die mittlere Stufe des Sheets
+            // (EXPLORE_DETENTS). Nur Markierung, keine Optik.
+            <section
+              key={`${cat.key}-${cat.season}`}
+              data-sg={i === 0 ? "first-shelf" : undefined}
+            >
               <h2 className="mb-3 px-4 text-xl font-bold tracking-tight text-ink">
                 {cat.title}
               </h2>
@@ -249,16 +279,22 @@ export default function Explore({
             </section>
           );
         })}
-        {!hasAny && <p className="px-4 text-sm text-muted">{t("empty")}</p>}
+        {shelves.length === 0 && <p className="px-4 text-sm text-muted">{t("empty")}</p>}
         </motion.div>
       </AnimatePresence>
     </>
   );
 
   return (
-    <div className="fixed inset-0 z-0 md:top-14">
+    <div className="fixed inset-0 z-0 md:top-[var(--sg-header-h)]">
       {/* Karte: mobil vollflächig, Desktop um die Sidebar versetzt */}
-      <div className="absolute inset-0 md:left-[var(--sg-panel)]">
+      {/* --sg-map-bottom: hebt Mapbox-Logo und -Attribution über das Peek-Sheet und
+          die Navigationsleiste. Beide sind Lizenzpflicht und müssen sichtbar bleiben
+          (siehe globals.css). Der Wert erbt in die Karte hinein. */}
+      <div
+        className="absolute inset-0 md:left-[var(--sg-panel)]"
+        style={{ "--sg-map-bottom": `calc(var(${SHEET_PEEK_VAR}) + 10px)` } as React.CSSProperties}
+      >
         <SpotMap
           markers={markers}
           onMarkerClick={onMarkerClick}
@@ -281,7 +317,9 @@ export default function Explore({
           <div className="flex-1 overflow-y-auto py-5">{panelInner}</div>
         </aside>
       ) : (
-        <MobileSheet hide={previewSpot != null}>{panelInner}</MobileSheet>
+        <MobileSheet hide={previewSpot != null} detents={EXPLORE_DETENTS}>
+          {panelInner}
+        </MobileSheet>
       )}
 
       {/* Spot-Vorschau: Mobile = ziehbares Bottom-Sheet, Desktop = schwebende Karte */}

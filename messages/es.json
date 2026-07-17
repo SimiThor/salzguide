@@ -82,7 +82,6 @@
     "save": "Guardar ruta",
     "saving": "Guardando…",
     "saveError": "No se guardó",
-    "saveLogin": "Inicia sesión para guardar",
     "yourRoutes": "Tus rutas",
     "curatedRoutes": "Seleccionadas por locales",
     "savedHint": "Guardada: la encuentras aquí siempre que quieras.",
@@ -364,5 +363,27 @@
     "tagline": "Tu guía digital de la región de Salzburgo.",
     "rights": "Todos los derechos reservados.",
     "deOnly": "Estos textos legales solo están disponibles en alemán; la versión alemana es la jurídicamente vinculante."
+  },
+  "LoginGate": {
+    "cta": "Regístrate gratis",
+    "hint": "Con tu correo, sin contraseña.",
+    "reason": {
+      "default": {
+        "title": "Para esto necesitas una cuenta",
+        "body": "Inicia sesión rápido y sigues justo aquí."
+      },
+      "saveSpot": {
+        "title": "Guardar el spot",
+        "body": "Va directo a tu lista – para encontrarlo cuando de verdad quieras ir."
+      },
+      "saveEvent": {
+        "title": "Guardar el evento",
+        "body": "Va directo a tu lista – para que no se te pase la fecha."
+      },
+      "buildTour": {
+        "title": "Crea tu propia ruta",
+        "body": "Para que tu ruta siga ahí al cerrar la pestaña. Las rutas ya hechas funcionan sin cuenta."
+      }
+    }
   }
 }

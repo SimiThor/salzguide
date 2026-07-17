@@ -3,12 +3,12 @@
 import { useState, useTransition } from "react";
 import { bcp47 } from "@/i18n/locales";
 import { useLocale, useTranslations } from "next-intl";
-import { useRouter } from "@/i18n/navigation";
 import { eventTimeLabel, type EventItem } from "@/lib/events-format";
 import { toggleSavedEvent } from "@/lib/saved-event-actions";
 import { isOperatorClient } from "@/lib/analytics-operator";
 import { safeHttpUrl } from "@/lib/url";
 import { Bookmark, BookmarkFilled } from "./icons";
+import { useLoginGate } from "@/components/auth/LoginGate";
 
 function StarBadge({ label }: { label: string }) {
   return (
@@ -63,7 +63,7 @@ export default function EventCard({
 }) {
   const t = useTranslations("Events");
   const locale = useLocale();
-  const router = useRouter();
+  const gate = useLoginGate();
   const [saved, setSaved] = useState(initialSaved);
   const [prevInitial, setPrevInitial] = useState(initialSaved);
   const [, start] = useTransition();
@@ -129,17 +129,16 @@ export default function EventCard({
   }
 
   function onSave() {
-    if (!loggedIn) {
-      router.push("/profil");
-      return;
-    }
     const next = !saved;
-    setSaved(next); // optimistisch
-    onSavedChange?.(next);
+    if (loggedIn) {
+      setSaved(next); // optimistisch
+      onSavedChange?.(next);
+    }
     start(async () => {
-      const r = await toggleSavedEvent(e.id);
-      if (r.needLogin) {
-        router.push("/profil");
+      const r = await gate.run({ loggedIn, reason: "saveEvent" }, () => toggleSavedEvent(e.id));
+      if (!r || r.needLogin) {
+        setSaved(!next); // optimistischen Flip zurücknehmen
+        onSavedChange?.(!next);
         return;
       }
       if (typeof r.saved === "boolean" && r.saved !== next) {

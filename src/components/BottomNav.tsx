@@ -50,21 +50,31 @@ export default function BottomNav() {
 
   const tabs: {
     key: keyof typeof ICONS;
-    href?: "/" | "/gespeichert" | "/profil";
+    href?: "/explore" | "/gespeichert" | "/profil";
     action?: boolean;
   }[] = [
-    { key: "explore", href: "/" },
+    { key: "explore", href: "/explore" },
     { key: "ai", action: true },
     { key: "saved", href: "/gespeichert" },
     { key: "profile", href: "/profil" },
   ];
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-black/5 bg-cream/80 pb-safe backdrop-blur-xl md:hidden">
-      <ul className="mx-auto flex max-w-md items-stretch justify-around px-2 py-2">
+    // Die Höhe kommt aus --sg-nav-h und wird hier gesetzt, nicht nur beschrieben: Das
+    // Peek-Sheet rechnet mit genau diesem Wert, weil die Leiste ÜBER ihm liegt und
+    // sonst seinen Inhalt anschneidet. Wäre die Zahl nur ein Kommentar, liefe sie beim
+    // nächsten Umbau der Leiste garantiert auseinander (siehe globals.css).
+    <nav
+      data-sg="bottom-nav"
+      className="sg-native-tap fixed inset-x-0 bottom-0 z-50 h-[var(--sg-nav-h)] border-t border-black/5 bg-cream/80 pb-safe backdrop-blur-xl md:hidden"
+    >
+      <ul className="mx-auto flex h-full max-w-md items-stretch justify-around px-2 py-2">
         {tabs.map((tab) => {
           const active = !tab.action && tab.href === pathname;
-          const cls = `flex w-full flex-col items-center gap-1 px-3 py-1 transition-colors ${
+          // active:opacity-60 ersetzt den grauen Tap-Blitz, den sg-native-tap abschaltet.
+          // Ohne eigenes Feedback fühlen sich Taps tot an – der Blitz ist zwar der
+          // Verräter "Webseite", aber er ist auch die einzige Rückmeldung.
+          const cls = `flex w-full flex-col items-center justify-center gap-1 px-3 py-1 transition-[color,opacity] duration-150 active:opacity-60 ${
             active ? "text-accent" : "text-muted"
           }`;
           const inner = (

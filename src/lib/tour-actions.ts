@@ -2,6 +2,7 @@
 
 import { createClient } from "./supabase/server";
 import { fetchWithRetry } from "./ai-fetch";
+import { stripEmDashFields } from "./em-dash";
 
 // Server-Actions für Audio-Touren. Muster wie admin-actions.ts:
 // - jede Action beginnt mit assertAdmin() (Defense-in-depth zusätzlich zur RLS)
@@ -229,7 +230,7 @@ export async function setTourStatus(
 }
 
 // ── 1-Klick-Übersetzung der Tour-Texte ins Englische ─────────────────────────
-const EN_VOICE = `You translate SalzGuide content from German to English. Keep it natural, casual and local — like a young Salzburg local talking to a friend, not a tourist brochure. Avoid clichés (breathtaking, hidden gem, paradise, must-see). Keep proper nouns and place names. Translate faithfully; invent nothing. Return every field via the tool; keep empty fields empty.`;
+const EN_VOICE = `You translate SalzGuide content from German to English. Keep it natural, casual and local — like a young Salzburg local talking to a friend, not a tourist brochure. Avoid clichés (breathtaking, hidden gem, paradise, must-see). NEVER use em dashes (—). They are the clearest tell of AI-written text and cost us the trust this brand is built on. Write like a human types: full stop, comma, colon, or a plain hyphen. The ONLY exception is Chinese, where the doubled "——" is standard punctuation. Keep proper nouns and place names. Translate faithfully; invent nothing. Return every field via the tool; keep empty fields empty.`;
 
 export type TourTexts = { title: string; subtitle: string; description: string };
 export type TourTranslateResult = { ok: boolean; texts?: TourTexts; error?: string };
@@ -299,13 +300,17 @@ export async function translateTourText(input: TourTexts): Promise<TourTranslate
     const tt = block?.input;
     if (!tt) return { ok: false, error: "Keine Übersetzung erhalten" };
     const keep = (deVal: string, enVal?: string) => (deVal.trim() ? (enVal ?? "").trim() : "");
+    // Der Prompt verbietet den Gedankenstrich, aber ein Prompt ist eine Bitte (em-dash.ts).
     return {
       ok: true,
-      texts: {
-        title: tt.title?.trim() || input.title.trim(),
-        subtitle: keep(input.subtitle, tt.subtitle),
-        description: keep(input.description, tt.description),
-      },
+      texts: stripEmDashFields(
+        {
+          title: tt.title?.trim() || input.title.trim(),
+          subtitle: keep(input.subtitle, tt.subtitle),
+          description: keep(input.description, tt.description),
+        },
+        "en",
+      ),
     };
   } catch {
     return { ok: false, error: "KI-Dienst gerade nicht erreichbar – bitte nochmal versuchen." };

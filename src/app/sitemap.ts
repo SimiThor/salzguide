@@ -8,7 +8,20 @@ import { createServiceClient } from "@/lib/supabase/service";
 const BASE = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://salzguide.com").replace(/\/$/, "");
 
 // Statische, öffentlich indexierbare Pfade (relativ, ohne Sprach-Präfix).
-const STATIC_PATHS = ["", "/touren", "/wasser", "/events", "/pro"];
+// "" = Startseite (erklärt das Produkt), "/explore" = die Karte.
+const STATIC_PATHS = ["", "/explore", "/touren", "/wasser", "/events", "/pro"];
+
+// Seiten, deren Inhalt sich laufend ändert (neue Spots/Events) — im Gegensatz zur
+// Startseite, die als Verkaufsseite selten angefasst wird. Bis 07/2026 war „" selbst
+// die Karte; die Annahme „Wurzel = ändert sich oft" stimmt seit dem Umzug nicht mehr.
+const WEEKLY_PATHS = new Set(["/explore", "/events"]);
+
+// Priorität: Startseite 1 (Einstieg), Karte 0.9 (das Produkt), Rest 0.7.
+function priorityFor(path: string): number {
+  if (path === "") return 1;
+  if (path === "/explore") return 0.9;
+  return 0.7;
+}
 
 function languagesFor(path: string): Record<string, string> {
   return Object.fromEntries(routing.locales.map((l) => [l, `${BASE}/${l}${path}`]));
@@ -19,14 +32,14 @@ function entriesForPath(path: string, priority: number): MetadataRoute.Sitemap {
   return routing.locales.map((locale) => ({
     url: `${BASE}/${locale}${path}`,
     alternates: { languages },
-    changeFrequency: path === "" ? "weekly" : "monthly",
+    changeFrequency: WEEKLY_PATHS.has(path) ? "weekly" : "monthly",
     priority,
   }));
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const entries: MetadataRoute.Sitemap = STATIC_PATHS.flatMap((p) =>
-    entriesForPath(p, p === "" ? 1 : 0.7),
+    entriesForPath(p, priorityFor(p)),
   );
 
   // Dynamische Inhalte (veröffentlichte Spots + Touren) × alle Sprachen.

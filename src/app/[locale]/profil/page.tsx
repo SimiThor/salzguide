@@ -12,10 +12,14 @@ export default async function ProfilPage({
   searchParams,
 }: {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{ checkout?: string; auth_error?: string }>;
+  // next: Rücksprungziel nach dem Login. Kommt vom Login-Gate (siehe LoginGate.tsx),
+  // damit der Nutzer nach der Anmeldung dort landet, wo er unterbrochen wurde – statt
+  // im Profil zu stranden. Ungeprüft durchreichen ist sicher: safeNext() in actions.ts
+  // lässt serverseitig nur eigene relative Pfade zu.
+  searchParams: Promise<{ checkout?: string; auth_error?: string; next?: string }>;
 }) {
   const { locale } = await params;
-  const { checkout, auth_error } = await searchParams;
+  const { checkout, auth_error, next } = await searchParams;
   setRequestLocale(locale);
   const t = await getTranslations("Auth");
   const tA = await getTranslations("Account");
@@ -34,7 +38,7 @@ export default async function ProfilPage({
         <p className="mt-1.5 mb-5 text-[15px] leading-relaxed text-muted">
           {t("joinSubtitle")}
         </p>
-        <LoginForm authError={auth_error === "1"} />
+        <LoginForm next={next} authError={auth_error === "1"} />
       </div>
     );
   }

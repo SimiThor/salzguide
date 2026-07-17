@@ -15,9 +15,15 @@ import TranscriptView from "./TranscriptView";
 import type { TourDetail } from "@/lib/tour-types";
 
 // Peek-Anteil des Sheets (Anteil der Viewport-Höhe). Muss zum Karten-Padding passen,
-// damit Pins nie hinter dem Sheet verschwinden.
+// damit Pins nie hinter dem Sheet verschwinden -> EINE Zahl, zwei Schreibweisen.
+//
+// Das Sheet will eine CSS-Länge, weil es seine Ruheposition in CSS rechnet und damit
+// schon im Server-HTML richtig sitzt (siehe MobileSheet). svh statt vh: das ist der
+// Viewport MIT ausgefahrener Safari-Toolbar und damit pro Gerät konstant.
 const PEEK = 0.34;
-const SHEET_DETENTS = [PEEK, 0.62, 0.94];
+const SHEET_PEEK = `${PEEK * 100}svh`;
+// Ohne Peek – die ist beim Sheet eine eigene Angabe.
+const SHEET_DETENTS = [0.62, 0.94];
 
 export default function TourView({
   tour,
@@ -294,7 +300,7 @@ export default function TourView({
   );
 
   return (
-    <div className="fixed inset-0 z-0 md:top-14">
+    <div className="fixed inset-0 z-0 md:top-[var(--sg-header-h)]">
       {/* Fullscreen-Karte: mobil vollflächig, Desktop um das Panel versetzt */}
       <div className="absolute inset-0 md:left-[var(--sg-panel)]">
         {markers.length > 0 ? (
@@ -335,7 +341,7 @@ export default function TourView({
           <div className="flex-1 overflow-y-auto pb-16 pt-6">{panel}</div>
         </aside>
       ) : (
-        <MobileSheet hide={false} detents={SHEET_DETENTS}>
+        <MobileSheet hide={false} peek={SHEET_PEEK} detents={SHEET_DETENTS}>
           {panel}
         </MobileSheet>
       )}

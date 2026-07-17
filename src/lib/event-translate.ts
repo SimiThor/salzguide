@@ -3,6 +3,7 @@
 // KI-Wochenrecherche (event-research.ts, Service-Role/Cron) genutzt -> EINE Quelle,
 // keine doppelten Prompts. Deutsch = Quelle; übersetzt in alle Ziel-Locales parallel.
 import { fetchWithRetry } from "./ai-fetch";
+import { stripEmDash } from "./em-dash";
 import { localeMeta } from "@/i18n/locales";
 import { routing } from "@/i18n/routing";
 import { hashTexts } from "./spot-hash";
@@ -23,9 +24,17 @@ const AI_HEADERS = (key: string) => ({
   "content-type": "application/json",
 });
 
+// Der Gedankenstrich-Satz steht hier im Klartext und nicht nur in BRAND_VOICE: Diese
+// Prompts sind englisch und knapp, BRAND_VOICE ist ein langer deutscher Stil-Text fürs
+// Texten. Die Regel selbst ist dieselbe (siehe brand-voice.ts) — verlassen tun wir uns
+// aber nicht darauf, sondern auf stripEmDash() weiter unten: Ein Prompt ist eine Bitte.
+const NO_EM_DASH =
+  'NEVER use the em dash ("—"). It is the clearest giveaway of machine-written text and we cannot ship it. Use a comma, a period or a colon instead: not "30 tabs — and the hut is closed." but "30 tabs, and the hut is closed." Only Chinese is exempt: there "——" is normal punctuation.';
+
 function eventVoice(langName: string): string {
   return `You translate SalzGuide event texts from German into natural ${langName} (Salzburg region, Austria).
 STYLE: casual, direct, short sentences. Translate meaning, not word-for-word. Keep proper nouns, place names, dates and numbers exactly. Avoid travel-brochure clichés.
+${NO_EM_DASH}
 RULES: translate ONLY what is given, invent nothing. Empty source -> empty string.`;
 }
 
@@ -79,9 +88,13 @@ export async function translateEventTo(
     ) as { input?: Record<string, string> } | undefined;
     const t = block?.input;
     if (!t) return null;
+    // Gedankenstrich raus, BEVOR das gespeichert wird. Der Prompt oben bittet darum,
+    // hier wird es erzwungen. targetLocale mitgeben: Chinesisch behält sein „——".
     return {
-      title: t.title?.trim() || src.title.trim(),
-      description: src.description.trim() ? (t.description ?? "").trim() : "",
+      title: stripEmDash(t.title?.trim() || src.title.trim(), targetLocale),
+      description: src.description.trim()
+        ? stripEmDash((t.description ?? "").trim(), targetLocale)
+        : "",
     };
   } catch {
     return null;
@@ -117,6 +130,7 @@ export async function translateEventAllLangsOneShot(
           max_tokens: 2500,
           system: `You translate a SalzGuide event (Salzburg region, Austria) from German into MULTIPLE languages at once.
 STYLE: casual, direct, short sentences. Translate meaning, not word-for-word. Keep proper nouns, place names, dates and numbers exactly. Avoid travel-brochure clichés.
+${NO_EM_DASH}
 RULES: translate ONLY the given fields, invent nothing. If a field is empty, return an empty string. Return EVERY requested language via the tool "event_texts_all".
 Language keys: ${langList}.`,
           messages: [
@@ -154,11 +168,14 @@ Language keys: ${langList}.`,
     const failed: string[] = [];
     for (const l of targets) {
       const tx = out[l];
-      const title = (tx?.title ?? "").trim();
+      // Wie oben: erzwingen statt hoffen. `l` ist die Ziel-Locale, Chinesisch bleibt heil.
+      const title = stripEmDash((tx?.title ?? "").trim(), l);
       if (tx && title) {
         translations[l] = {
           title,
-          description: input.description.trim() ? (tx.description ?? "").trim() : "",
+          description: input.description.trim()
+            ? stripEmDash((tx.description ?? "").trim(), l)
+            : "",
         };
       } else {
         failed.push(l);

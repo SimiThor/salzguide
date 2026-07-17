@@ -97,7 +97,7 @@ export default async function SpotPage({
 
   const back = (
     <BackButton
-      fallbackHref="/"
+      fallbackHref="/explore"
       label={t("back")}
       className="absolute left-4 top-4"
     />

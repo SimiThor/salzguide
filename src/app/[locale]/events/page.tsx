@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { getSavedEventIds, getUpcomingEvents } from "@/lib/events";
 import { viennaDayKey } from "@/lib/events-format";
+import { alternatesFor } from "@/lib/metadata";
 import EventsWeek from "@/components/EventsWeek";
 
 export async function generateMetadata({
@@ -11,7 +12,11 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "Events" });
-  return { title: t("title"), description: t("subtitle") };
+  return {
+    title: t("title"),
+    description: t("subtitle"),
+    alternates: alternatesFor(locale, "/events"),
+  };
 }
 
 export default async function EventsPage({
