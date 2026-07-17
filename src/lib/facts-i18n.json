@@ -54,5 +54,24 @@
     "oeffis": {"en":"Transit","it":"Trasporti pubblici","nl":"OV","ko":"대중교통","fr":"Transports","zh":"公共交通","es":"Transporte público","pt":"Transportes públicos"},
     "auto": {"en":"Car","it":"Auto","nl":"Auto","ko":"자동차","fr":"Voiture","zh":"自驾","es":"Coche","pt":"Carro"},
     "beides": {"en":"Transit & Car","it":"Trasporti e auto","nl":"OV & auto","ko":"대중교통·자동차","fr":"Transports et voiture","zh":"公共交通与自驾","es":"Transporte y coche","pt":"Transportes e carro"}
+  },
+  "AREA": {
+    "Stadt Salzburg": {"en":"City of Salzburg","it":"Città di Salisburgo","nl":"Stad Salzburg","ko":"잘츠부르크 시","fr":"Ville de Salzbourg","zh":"萨尔茨堡市","es":"Ciudad de Salzburgo","pt":"Cidade de Salzburgo"},
+    "Altstadt": {"en":"Old Town","it":"Centro storico","nl":"Oude stad","ko":"구시가지","fr":"Vieille ville","zh":"老城区","es":"Casco antiguo","pt":"Centro histórico"},
+    "Aigen": {"en":"Aigen","it":"Aigen","nl":"Aigen","ko":"아이겐","fr":"Aigen","zh":"艾根","es":"Aigen","pt":"Aigen"},
+    "Maxglan": {"en":"Maxglan","it":"Maxglan","nl":"Maxglan","ko":"막스글란","fr":"Maxglan","zh":"马克斯格兰","es":"Maxglan","pt":"Maxglan"},
+    "Gnigl": {"en":"Gnigl","it":"Gnigl","nl":"Gnigl","ko":"그니글","fr":"Gnigl","zh":"格尼格尔","es":"Gnigl","pt":"Gnigl"},
+    "Lehen": {"en":"Lehen","it":"Lehen","nl":"Lehen","ko":"레엔","fr":"Lehen","zh":"莱恩","es":"Lehen","pt":"Lehen"},
+    "Itzling": {"en":"Itzling","it":"Itzling","nl":"Itzling","ko":"이츨링","fr":"Itzling","zh":"伊茨林","es":"Itzling","pt":"Itzling"},
+    "Parsch": {"en":"Parsch","it":"Parsch","nl":"Parsch","ko":"파르쉬","fr":"Parsch","zh":"帕尔施","es":"Parsch","pt":"Parsch"},
+    "Hallein": {"en":"Hallein","it":"Hallein","nl":"Hallein","ko":"할라인","fr":"Hallein","zh":"哈莱因","es":"Hallein","pt":"Hallein"},
+    "Anif": {"en":"Anif","it":"Anif","nl":"Anif","ko":"아니프","fr":"Anif","zh":"阿尼夫","es":"Anif","pt":"Anif"},
+    "Grödig": {"en":"Grödig","it":"Grödig","nl":"Grödig","ko":"그뢰디히","fr":"Grödig","zh":"格勒迪希","es":"Grödig","pt":"Grödig"},
+    "Wals": {"en":"Wals","it":"Wals","nl":"Wals","ko":"발스","fr":"Wals","zh":"瓦尔斯","es":"Wals","pt":"Wals"},
+    "Bergheim": {"en":"Bergheim","it":"Bergheim","nl":"Bergheim","ko":"베르크하임","fr":"Bergheim","zh":"贝格海姆","es":"Bergheim","pt":"Bergheim"},
+    "Hallwang": {"en":"Hallwang","it":"Hallwang","nl":"Hallwang","ko":"할방","fr":"Hallwang","zh":"哈尔旺","es":"Hallwang","pt":"Hallwang"},
+    "Fuschl am See": {"en":"Fuschl am See","it":"Fuschl am See","nl":"Fuschl am See","ko":"푸슐 암 제","fr":"Fuschl am See","zh":"富施尔湖畔","es":"Fuschl am See","pt":"Fuschl am See"},
+    "St. Gilgen": {"en":"St. Gilgen","it":"St. Gilgen","nl":"St. Gilgen","ko":"장크트 길겐","fr":"St. Gilgen","zh":"圣吉尔根","es":"St. Gilgen","pt":"St. Gilgen"},
+    "Bad Gastein": {"en":"Bad Gastein","it":"Bad Gastein","nl":"Bad Gastein","ko":"바트가슈타인","fr":"Bad Gastein","zh":"巴德加施泰因","es":"Bad Gastein","pt":"Bad Gastein"}
   }
 }

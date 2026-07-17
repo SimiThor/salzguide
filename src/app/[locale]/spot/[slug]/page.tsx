@@ -29,6 +29,7 @@ import CardSkeleton from "@/components/CardSkeleton";
 import BackButton from "@/components/BackButton";
 import {
   factAccess,
+  factArea,
   factDifficulty,
   factDuration,
   factFame,
@@ -187,7 +188,8 @@ export default async function SpotPage({
     const st = factSubtype(spot.subtype, locale);
     if (st) facts.push({ icon: "🍽️", label: t("facts.type"), value: st });
     if (spot.priceLevel) facts.push({ icon: "💸", label: t("facts.price"), value: spot.priceLevel });
-    if (spot.area) facts.push({ icon: "📍", label: t("facts.area"), value: spot.area });
+    const ar = factArea(spot.area, locale);
+    if (ar) facts.push({ icon: "📍", label: t("facts.area"), value: ar });
     const fm = factFame(spot.fame, locale);
     if (fm) facts.push({ icon: "⭐", label: t("facts.fame"), value: fm });
   } else {
