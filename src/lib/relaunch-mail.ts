@@ -1,7 +1,7 @@
 import "server-only";
 import { createServiceClient } from "./supabase/service";
-import { LEGAL } from "./legal";
 import { siteUrl } from "./site-url";
+import { getSpotCount } from "./spots";
 
 // Die Umzugs-Mail an die Alt-Käufer: Texte aus dem Admin, Gestaltung aus dem Code.
 //
@@ -33,16 +33,36 @@ export type RelaunchMailTexts = {
   cta: string;
 };
 
+/**
+ * Platzhalter für die Spot-Zahl. Wird beim Rendern durch den echten Stand ersetzt.
+ *
+ * Warum überhaupt ein Platzhalter, statt die Zahl hinzuschreiben: Eine getippte Zahl ist ab
+ * dem nächsten Spot falsch, und eine Mail an 100 zahlende Kunden ist der schlechteste Ort,
+ * um sich beim Zählen erwischen zu lassen. getSpotCount() rundet dazu nach UNTEN ("70+" bei
+ * 76), damit die Aussage immer wahr bleibt.
+ */
+export const SPOTS_TOKEN = "{spots}";
+
 // Was drinsteht, wenn niemand etwas eingetragen hat. Nach BRAND_VOICE: Kumpel-Ton, du-Form,
-// kurze Sätze, keine Marketing-Floskeln, kein Gedankenstrich.
+// kurze Sätze, show don't sell, keine Marketing-Floskeln, kein Gedankenstrich. Der Vergleich
+// mit "30 Tabs" ist ausdrücklich erlaubt (der mit einem Prospekt wäre es nicht: Prospekte
+// sind für 18- bis 45-Jährige kein Referenzpunkt mehr, der Vergleich datiert uns).
 export const MAIL_DEFAULTS: RelaunchMailTexts = {
   subject: "Das neue SalzGuide ist da 🏔️",
   headline: "Das neue SalzGuide ist da",
+  // Ein Emoji pro Absatz, als Section-Icon (so steht es in CLAUDE.md). Es macht die
+  // Aufzählung scanbar: Wer die Mail am Handy überfliegt, sieht in einer Sekunde, worum es
+  // geht, ohne einen Satz zu lesen.
   body:
-    "Wir haben SalzGuide von Grund auf neu gebaut. Eine echte Karte, alle Spots drauf, und Toni, unser KI-Guide, der jeden einzelnen davon kennt.\n\n" +
-    "Dein Pro nehmen wir mit. Unbegrenzt, ohne dass du nochmal zahlst.\n\n" +
-    "Ein Passwort brauchst du nicht mehr. Du gibst deine E-Mail ein, tippst auf den Link, den wir dir schicken, und bist drin. Dauert 20 Sekunden.",
-  cta: "Rein ins neue SalzGuide",
+    `🗺️ Eine Karte, ${SPOTS_TOKEN} Spots drauf, und du siehst auf einen Blick, was um dich herum geht.\n\n` +
+    "💬 Toni, unser KI-Guide, kennt jeden einzelnen davon. Sag ihm, worauf du Lust hast, und du hast die Antwort statt 30 offener Tabs.\n\n" +
+    // „Geheimtipp" ist hier der PRODUKTNAME für einen gesperrten Pro-Spot (so heisst er auf
+    // der Karte und in den AGB), nicht die Anpreisungs-Floskel, die BRAND_VOICE verbietet.
+    // Und die Aussage bleibt schmal: Pro öffnet sie. Nicht „deine sind noch da", das würde
+    // behaupten, ihre alten Inhalte wandern 1:1 mit.
+    "🤫 Alle Geheimtipps offen. Dein Pro läuft weiter, unbegrenzt, ohne dass du nochmal zahlst.\n\n" +
+    "⚡ Anmelden dauert 20 Sekunden: E-Mail rein, auf den Link tippen, drin. Passwort brauchst du keins.",
+  cta: "Rein ins neue SalzGuide 🏔️",
 };
 
 /** Nur die Werte lesen, die jemand gesetzt hat; der Rest kommt aus MAIL_DEFAULTS. */
@@ -70,6 +90,32 @@ export async function getRelaunchMailTexts(): Promise<RelaunchMailTexts> {
   }
 }
 
+/**
+ * Den Platzhalter durch den echten Stand ersetzen. Muss VOR dem Rendern laufen.
+ *
+ * Der Admin sieht im Eingabefeld weiter `{spots}` und nicht die Zahl: Sonst würde die Zahl
+ * beim ersten Speichern festgeschrieben und wäre ab dem nächsten Spot falsch.
+ *
+ * Ist die Zahl nicht zu holen, steht dort "alle". Der Satz bleibt wahr und liest sich
+ * genauso: "Eine Karte, alle Spots drauf". Lieber eine Aussage ohne Zahl als eine geratene.
+ */
+export async function resolveSpots(texts: RelaunchMailTexts): Promise<RelaunchMailTexts> {
+  let value = "alle";
+  try {
+    const count = await getSpotCount();
+    if (count) value = count.rounded ? `${count.value}+` : String(count.value);
+  } catch (e) {
+    console.error("resolveSpots:", e);
+  }
+  const sub = (s: string) => s.split(SPOTS_TOKEN).join(value);
+  return {
+    subject: sub(texts.subject),
+    headline: sub(texts.headline),
+    body: sub(texts.body),
+    cta: sub(texts.cta),
+  };
+}
+
 /** Alles, was aus einem Text-Feld kommt, muss hier durch. Sonst wäre jedes < eine Lücke. */
 function esc(s: string): string {
   return s
@@ -79,15 +125,69 @@ function esc(s: string): string {
     .replace(/"/g, "&quot;");
 }
 
+/**
+ * „SalzGuide" in der Überschrift IST das Logo, also wird es auch so gesetzt: Akzentrot,
+ * fett, eng. Genau so zeichnet es der Header der App (MobileHeader.tsx: text-accent,
+ * font-bold, tracking-tight). Es gibt keine Logo-Datei, das Wort selbst ist die Marke.
+ *
+ * WARUM NICHT ALS ZEILE DARÜBER: Da stand es, in Versalien und gesperrt. Das war doppelt
+ * gemoppelt (die Überschrift sagt „Das neue SalzGuide ist da", darüber nochmal
+ * „SALZGUIDE") und dazu in einer Anmutung, die unser Logo gerade NICHT hat: Versalien und
+ * Sperrung sind das Gegenteil von eng gesetzter Gemischtschreibung. Jetzt trägt die
+ * Überschrift die Marke selbst, und niemand liest den Namen zweimal.
+ *
+ * Läuft NACH esc(): Der Ersatz bringt eigenes HTML herein, das nicht escaped werden darf.
+ * „SalzGuide" überlebt esc() unverändert, deshalb greift der Ersatz danach zuverlässig.
+ */
+function brandify(headline: string): string {
+  return esc(headline)
+    .split("SalzGuide")
+    .join(`<span style="color:${ACCENT};">SalzGuide</span>`);
+}
+
 const ACCENT = "#cc2924";
 const INK = "#111111";
 const MUTED = "#6C5B57";
 const CREAM = "#faf6ec";
 
+// Der Akzent auf Weiss heruntergemischt: 6% für die Fläche, 20% für den Rand.
+//
+// WARUM DIE ADRESS-KACHEL NICHT CREME IST: Sie war es, und Anton sah sofort das Problem.
+// Der Seitengrund ist Creme, der Block darauf ist weiss. Eine cremefarbene Kachel IM
+// weissen Block hat damit exakt die Farbe des Grundes und liest sich wie ein Loch, das
+// jemand hineingestanzt hat, statt wie die eine Angabe, an der die Anmeldung hängt.
+// Der Blush-Ton gehört zur Marke (es ist unser Rot), ist von Weiss UND von Creme klar zu
+// unterscheiden, und ohne Ausrufezeichen oder Warnsymbol liest ihn niemand als Fehler.
+// Feste Hex-Werte statt rgba(): Outlook rechnet keine Transparenz.
+const WASH = "#fcf2f2";
+const WASH_LINE = "#f5d4d3";
+
+/**
+ * Die Verabschiedung. Ein Mensch, kein Absender-Block.
+ *
+ * Hier stand LEGAL.company ("Anton Steiner"). Das ist die Zeile aus dem Impressum, und
+ * genau so las sie sich auch: als Rechtstext am Ende einer Mail, die vorher wie ein Kumpel
+ * klingt. Bei einer Marke, die auf "zwei echte Locals" gebaut ist, unterschreibt ein
+ * Mensch, keine Firma.
+ *
+ * Der Absender bleibt erkennbar: Die Mail kommt von EMAIL_FROM, geht mit replyTo an
+ * LEGAL.email zurück, und "SalzGuide" verlinkt auf die Seite mit dem Impressum. Nur eben
+ * ohne dass die Firmenzeile die Verabschiedung spielt.
+ */
+const SIGNOFF = "Anton von";
+
 /**
  * Die HTML-Fassung. `email` ist die Adresse des Empfängers und steht in der Mail, damit
  * er sieht, WELCHE er eingeben muss. Genau da scheitert es sonst: Wer drei Adressen hat,
  * probiert die falsche und denkt, sein Pro sei weg.
+ *
+ * Aufbau: 🏔️ als Section-Icon, Überschrift mit dem Logo darin, Absätze mit je einem Emoji,
+ * Knopf, Adress-Kachel, Fusszeile mit dem Logo. Der Name steht damit genau zweimal, und
+ * beide Male mit Aufgabe: oben als Aussage, unten als Absender.
+ *
+ * ACHTUNG beim Bearbeiten: Das hier ist ein Template-Literal, kein JSX. `{/* … *\/}` ist
+ * hier KEIN Kommentar, sondern Text, der in der Mail landet. Kommentare gehören hier
+ * herauf oder in ein <!-- -->.
  */
 export function renderRelaunchMail(texts: RelaunchMailTexts, email: string, loginUrl: string): string {
   const paragraphs = texts.body
@@ -107,9 +207,9 @@ export function renderRelaunchMail(texts: RelaunchMailTexts, email: string, logi
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${CREAM};padding:24px 12px;">
 <tr><td align="center">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border-radius:22px;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,Helvetica,Arial,sans-serif;">
-    <tr><td style="padding:36px 32px 8px;">
-      <p style="margin:0 0 6px;font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:${ACCENT};">SalzGuide</p>
-      <h1 style="margin:0 0 20px;font-size:28px;line-height:1.25;font-weight:800;color:${INK};">${esc(texts.headline)}</h1>
+    <tr><td style="padding:32px 32px 8px;">
+      <p style="margin:0 0 10px;font-size:36px;line-height:1;">🏔️</p>
+      <h1 style="margin:0 0 20px;font-size:28px;line-height:1.25;font-weight:800;letter-spacing:-0.02em;color:${INK};">${brandify(texts.headline)}</h1>
       ${paragraphs}
     </td></tr>
 
@@ -121,17 +221,17 @@ export function renderRelaunchMail(texts: RelaunchMailTexts, email: string, logi
     </td></tr>
 
     <tr><td style="padding:16px 32px 32px;">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${CREAM};border-radius:14px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${WASH};border:1px solid ${WASH_LINE};border-radius:14px;">
         <tr><td style="padding:14px 16px;">
           <p style="margin:0;font-size:13px;line-height:1.5;color:${MUTED};">Melde dich mit dieser Adresse an:</p>
-          <p style="margin:4px 0 0;font-size:15px;font-weight:700;color:${INK};word-break:break-all;">${esc(email)}</p>
+          <p style="margin:5px 0 0;font-size:17px;font-weight:700;color:${INK};word-break:break-all;">${esc(email)}</p>
         </td></tr>
       </table>
       <p style="margin:18px 0 0;font-size:13px;line-height:1.6;color:${MUTED};">
-        Klappt was nicht? Antworte einfach auf diese Mail, wir lesen mit.
+        Klappt was nicht? Antworte einfach auf diese Mail, wir lesen mit. ✌️
       </p>
-      <p style="margin:14px 0 0;font-size:12px;line-height:1.5;color:${MUTED};">
-        ${esc(LEGAL.company)} · <a href="${esc(siteUrlSafe())}" style="color:${MUTED};">salzguide.com</a>
+      <p style="margin:22px 0 0;font-size:15px;line-height:1.5;color:${INK};">
+        ${SIGNOFF} <a href="${esc(siteUrlSafe())}" style="font-weight:700;letter-spacing:-0.02em;color:${ACCENT};text-decoration:none;">SalzGuide</a>
       </p>
     </td></tr>
   </table>
@@ -157,6 +257,6 @@ export function renderRelaunchText(texts: RelaunchMailTexts, email: string, logi
     `${texts.cta}: ${loginUrl}\n\n` +
     `Melde dich mit dieser Adresse an: ${email}\n\n` +
     `Klappt was nicht? Antworte einfach auf diese Mail.\n\n` +
-    `${LEGAL.company}`
+    `${SIGNOFF} SalzGuide`
   );
 }

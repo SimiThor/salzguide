@@ -11,6 +11,7 @@ import {
   getRelaunchMailTexts,
   renderRelaunchMail,
   renderRelaunchText,
+  resolveSpots,
   type RelaunchMailTexts,
 } from "./relaunch-mail";
 
@@ -124,7 +125,9 @@ export async function sendMigrationAnnouncement(): Promise<AnnounceResult> {
   if (rows.length === 0) return { ok: true, sent: 0, failed: 0 };
 
   const login = `${siteUrl()}/de/profil`;
-  const texts = await getRelaunchMailTexts();
+  // EINMAL vor der Schleife auflösen, nicht pro Mail: Die Spot-Zahl ist für alle dieselbe,
+  // und 100 Zählabfragen wären 100 Gelegenheiten, dass eine davon scheitert.
+  const texts = await resolveSpots(await getRelaunchMailTexts());
   // Service-Client fürs Markieren: Der Lauf darf nicht daran scheitern, dass die
   // Admin-Session unterwegs abläuft — sonst wären Mails raus und nicht vermerkt.
   const svc = createServiceClient();
@@ -225,11 +228,14 @@ export async function previewRelaunchMail(
     body: String(t.body ?? "").slice(0, 4000),
     cta: String(t.cta ?? "").slice(0, 80).trim(),
   };
+  // Auch die Vorschau löst {spots} auf: Sie soll zeigen, was rausgeht, und nicht den
+  // Platzhalter. Im Eingabefeld daneben steht er weiterhin, dort gehört er hin.
+  const shown = await resolveSpots(clean);
   return {
     ok: true,
-    subject: clean.subject,
+    subject: shown.subject,
     // Die eigene Adresse als Beispiel: So sieht man, wo sie in der Mail steht.
-    html: renderRelaunchMail(clean, "du@example.at", `${siteUrl()}/de/profil`),
+    html: renderRelaunchMail(shown, "du@example.at", `${siteUrl()}/de/profil`),
   };
 }
 
@@ -270,7 +276,7 @@ export async function sendTestAnnouncement(): Promise<AnnounceResult> {
   const to = me?.email;
   if (!to) return { ok: false, error: "no_email" };
 
-  const texts = await getRelaunchMailTexts();
+  const texts = await resolveSpots(await getRelaunchMailTexts());
   const login = `${siteUrl()}/de/profil`;
   const ok = await sendEmail({
     to,

@@ -77,10 +77,28 @@ export default function ProMigrationManager({
 
   // Eine Stelle fürs Aufräumen: Jede Aktion löscht erst die Meldung der vorigen. Sonst
   // steht nach einem Fehler noch das „Gespeichert" von davor daneben.
+  //
+  // UND EINE STELLE FÜRS SCHEITERN: Bis hierher fing niemand den Fall ab, dass der Aufruf
+  // selbst nicht ankommt (Netz weg, Server antwortet 500, Sitzung abgelaufen). Die Aktion
+  // gibt dann kein `{ok:false}` zurück, sie wirft. Ohne catch heisst das: Der Knopf federt,
+  // nichts passiert, keine Meldung. Man klickt nochmal und glaubt irgendwann, es sei
+  // gespeichert. Bei einem Knopf, der Mails an 100 zahlende Kunden schickt, ist stilles
+  // Scheitern die schlechteste Antwort von allen.
   const run = (fn: () => Promise<void>) => {
     setErr("");
     setMsg("");
-    start(fn);
+    start(async () => {
+      try {
+        await fn();
+      } catch (e) {
+        console.error("ProMigrationManager:", e);
+        // Bewusst NICHT „nichts wurde geändert": Wenn die Antwort verloren geht, kann die
+        // Aktion trotzdem gelaufen sein. Beim Sende-Knopf wäre so eine Beruhigung
+        // gefährlich, man klickt nochmal und schreibt alle zweimal an. Also: nachsehen,
+        // nicht vertrauen.
+        setErr("Der Server hat nicht geantwortet. Lade die Seite neu und schau nach, ob es trotzdem durchgegangen ist, bevor du es nochmal versuchst.");
+      }
+    });
   };
 
   const edit = (patch: Partial<RelaunchMailTexts>) => {
@@ -194,6 +212,13 @@ export default function ProMigrationManager({
           title="Mail schreiben und ansehen"
           hint="Du schreibst die Worte, das Aussehen kommt aus dem Code. Ein leeres Feld nimmt den Standardtext."
         />
+        {/* Der Platzhalter muss dastehen, sonst kennt ihn niemand: Ein Feature, das man nur
+            findet, wenn man den Standardtext nie überschrieben hat, gibt es nicht. */}
+        <p className="text-xs leading-relaxed text-muted">
+          Schreib <code className="rounded bg-black/5 px-1 font-mono text-[11px] text-ink">{"{spots}"}</code> irgendwo
+          rein, dann steht dort beim Senden die echte Spot-Zahl. Tipp sie nicht selbst, sonst
+          stimmt sie ab dem nächsten Spot nicht mehr.
+        </p>
         <input
           type="text"
           value={texts.subject}
