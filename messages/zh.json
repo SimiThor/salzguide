@@ -1,6 +1,12 @@
 {
   "Meta": {
-    "description": "萨尔茨堡，轻松游——由本地人精选的最棒去处。"
+    "description": "萨尔茨堡，轻松游——由本地人精选的最棒去处。",
+    "homeTitle": "SalzGuide：谷歌知道萨尔茨堡，我们去过。",
+    "homeDescription": "两个本地人，一张地图：我们在萨尔茨堡州最喜欢的去处，每一处都配一条贴士。每一处我们都亲自去过。还有 Toni——只认识这些去处的 AI。",
+    "exploreTitle": "探索",
+    "exploreDescription": "萨尔茨堡，轻松游——由本地人精选的最棒去处。",
+    "proTitle": "Pro",
+    "proDescription": "解锁所有秘密地点、所有语音路线，还有无限次的 Toni。一次性付费，非订阅。"
   },
   "Common": {
     "back": "返回",
@@ -15,9 +21,6 @@
     "water": "水温",
     "about": "关于我们",
     "legal": "法律声明 · 隐私 · 条款"
-  },
-  "Home": {
-    "tagline": "萨尔茨堡，轻松游——由本地人精选的最棒去处。"
   },
   "Nav": {
     "explore": "探索",

@@ -1,6 +1,12 @@
 {
   "Meta": {
-    "description": "스트레스 없는 잘츠부르크 – 로컬이 직접 고른 최고의 스팟."
+    "description": "스트레스 없는 잘츠부르크 – 로컬이 직접 고른 최고의 스팟.",
+    "homeTitle": "SalzGuide: 구글은 잘츠부르크를 압니다. 우리는 직접 가봤습니다.",
+    "homeDescription": "로컬 두 명, 지도 하나. 잘츠부르크 지역에서 우리가 가장 좋아하는 스팟, 그리고 스팟마다 팁 하나. 모두 직접 다녀왔습니다. 여기에 이 스팟들만 아는 AI, Toni까지.",
+    "exploreTitle": "둘러보기",
+    "exploreDescription": "스트레스 없는 잘츠부르크 – 로컬이 직접 고른 최고의 스팟.",
+    "proTitle": "Pro",
+    "proDescription": "모든 비밀 스팟, 모든 오디오 코스, 무제한 Toni. 1회 결제, 구독 없음."
   },
   "Common": {
     "back": "뒤로",
@@ -15,9 +21,6 @@
     "water": "수온",
     "about": "소개",
     "legal": "임프린트 · 개인정보 · 약관"
-  },
-  "Home": {
-    "tagline": "스트레스 없는 잘츠부르크 – 로컬이 직접 고른 최고의 스팟."
   },
   "Nav": {
     "explore": "둘러보기",

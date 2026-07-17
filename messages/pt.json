@@ -1,6 +1,12 @@
 {
   "Meta": {
-    "description": "Salzburg sem stress – os melhores spots, escolhidos por locais."
+    "description": "Salzburg sem stress – os melhores spots, escolhidos por locais.",
+    "homeTitle": "SalzGuide: o Google conhece Salzburg. Nós estivemos lá.",
+    "homeDescription": "Dois locais, um mapa: os nossos spots preferidos na região de Salzburg, cada um com uma dica. Estivemos em todos. E o Toni, a IA que só conhece estes spots.",
+    "exploreTitle": "Explorar",
+    "exploreDescription": "Salzburg sem stress – os melhores spots, escolhidos por locais.",
+    "proTitle": "Pro",
+    "proDescription": "Todos os spots secretos, todos os áudio-tours e o Toni sem limites. Pagamento único, sem subscrição."
   },
   "Common": {
     "back": "Voltar",
@@ -15,9 +21,6 @@
     "water": "Temperaturas da água",
     "about": "Sobre nós",
     "legal": "Ficha técnica · Privacidade · Termos"
-  },
-  "Home": {
-    "tagline": "Salzburg sem stress – os melhores spots, escolhidos por locais."
   },
   "Nav": {
     "explore": "Explorar",

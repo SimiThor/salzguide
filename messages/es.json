@@ -1,6 +1,12 @@
 {
   "Meta": {
-    "description": "Salzburgo sin estrés: los mejores lugares, seleccionados por locales."
+    "description": "Salzburgo sin estrés: los mejores lugares, seleccionados por locales.",
+    "homeTitle": "SalzGuide: Google conoce Salzburgo. Nosotros estuvimos allí.",
+    "homeDescription": "Dos locales, un mapa: nuestros lugares favoritos de la región de Salzburgo, cada uno con un consejo. Estuvimos en todos. Y Toni, la IA que solo conoce estos lugares.",
+    "exploreTitle": "Explorar",
+    "exploreDescription": "Salzburgo sin estrés: los mejores lugares, seleccionados por locales.",
+    "proTitle": "Pro",
+    "proDescription": "Todos los lugares secretos, todas las audioguías y Toni sin límites. Pago único, sin suscripción."
   },
   "Common": {
     "back": "Atrás",
@@ -15,9 +21,6 @@
     "water": "Temperaturas del agua",
     "about": "Quiénes somos",
     "legal": "Aviso legal · Privacidad · Términos"
-  },
-  "Home": {
-    "tagline": "Salzburgo sin estrés: los mejores lugares, seleccionados por locales."
   },
   "Nav": {
     "explore": "Explorar",

@@ -1,6 +1,12 @@
 {
   "Meta": {
-    "description": "Salzburg zonder stress – de beste spots, samengesteld door locals."
+    "description": "Salzburg zonder stress – de beste spots, samengesteld door locals.",
+    "homeTitle": "SalzGuide: Google kent Salzburg. Wij zijn er geweest.",
+    "homeDescription": "Twee locals, één kaart: onze favoriete spots in het Salzburger Land, elk met een tip. We zijn er overal zelf geweest. En Toni, de AI die alleen deze spots kent.",
+    "exploreTitle": "Ontdekken",
+    "exploreDescription": "Salzburg zonder stress – de beste spots, samengesteld door locals.",
+    "proTitle": "Pro",
+    "proDescription": "Alle geheime-tip-spots, alle audiotours en Toni onbeperkt. Eenmalig betalen, geen abonnement."
   },
   "Common": {
     "back": "Terug",
@@ -15,9 +21,6 @@
     "water": "Watertemperaturen",
     "about": "Over ons",
     "legal": "Colofon · Privacy · Voorwaarden"
-  },
-  "Home": {
-    "tagline": "Salzburg zonder stress – de beste spots, samengesteld door locals."
   },
   "Nav": {
     "explore": "Ontdekken",
