@@ -76,10 +76,21 @@ export const MAIL_DEFAULTS: RelaunchMailTexts = {
     `💬 Toni, unser KI-Guide, kennt alle ${SPOTS_TOKEN} Spots. Sag ihm, worauf du Lust hast, und er schlägt dir genau das vor, was zu dir passt. Aufs Wetter schaut er gleich mit.\n\n` +
     // Gedeckt durch search_events (ai-assistant.ts) und toggleSavedEvent.
     "📅 Frag ihn auch, was diese Woche läuft. Events kannst du jetzt speichern, genau wie Spots.\n\n" +
-    // Das grösste neue Ding: Vorher Deutsch und Englisch, jetzt neun. Der Witz macht es
-    // konkret, statt "mehrsprachig" zu behaupten: Eine Jausenstation erklärt sich einem
-    // Gast aus dem Ausland nämlich wirklich nicht von selbst.
-    `🌍 Und das alles in ${LANGUAGES_TOKEN} Sprachen statt in zwei. Deine Gäste müssen nicht mehr raten, was eine Jausenstation ist.\n\n` +
+    // Das grösste neue Ding: Vorher Deutsch und Englisch, jetzt neun.
+    //
+    // Hier stand "Deine Gäste müssen nicht mehr raten, was eine Jausenstation ist". Der
+    // Satz machte den Leser zum Gastgeber, aber der Leser IST der Nutzer. Er hat sich ein
+    // Publikum erfunden, das es nicht gibt.
+    //
+    // Und damit die ehrliche Frage: Was bringen neun Sprachen jemandem, der Deutsch liest?
+    // Direkt nichts. Also wird ihm auch kein Nutzen versprochen. Der trockene Witz sagt,
+    // wie weit wir gegangen sind, ohne so zu tun, als sei das sein Gewinn. Nach BRAND_VOICE
+    // ist das genau richtig: show, don't sell.
+    //
+    // ACHTUNG: "Koreanisch" ist an LOCALES gekoppelt (🇰🇷 ko). Fliegt die Sprache raus,
+    // lügt dieser Satz. Bei einer Mail, die einmal zum Umzug rausgeht, ist das tragbar;
+    // der Text lässt sich ausserdem im Admin ändern.
+    `🌍 Und das alles in ${LANGUAGES_TOKEN} Sprachen statt in zwei. Sogar auf Koreanisch, falls du das brauchst.\n\n` +
     // Kein "Alle Geheimtipps offen" mehr. Das war eine Überschrift, kein Satz, und es
     // beantwortete die Frage nicht, die dieser Mensch wirklich hat: Bleibt mein Pro?
     "🎟️ Dein Pro läuft weiter. Unbegrenzt, ohne dass du nochmal zahlst.\n\n" +
