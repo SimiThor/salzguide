@@ -1,6 +1,5 @@
 import { setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
-import AdminNav from "@/components/admin/AdminNav";
 import HomeContentManager from "@/components/admin/HomeContentManager";
 import HomeMediaManager from "@/components/admin/HomeMediaManager";
 import HomeFeaturedManager from "@/components/admin/HomeFeaturedManager";
@@ -31,7 +30,6 @@ export default async function AdminHomePage({
 
   return (
     <div className="space-y-4 pb-12">
-      <AdminNav active="settings" />
       <div>
         <Link
           href="/admin/settings"

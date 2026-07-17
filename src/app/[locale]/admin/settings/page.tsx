@@ -1,6 +1,5 @@
 import { setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
-import AdminNav from "@/components/admin/AdminNav";
 import ToniAvatarSettings from "@/components/admin/ToniAvatarSettings";
 import CategoryManager from "@/components/admin/CategoryManager";
 import LocalManager from "@/components/admin/LocalManager";
@@ -27,7 +26,6 @@ export default async function AdminSettingsPage({
 
   return (
     <div className="space-y-4 pb-12">
-      <AdminNav active="settings" />
       <div>
         <h1 className="text-2xl font-bold text-ink">Einstellungen</h1>
         <p className="mt-1 text-[13px] text-muted">Allgemeine Einstellungen der Plattform.</p>
@@ -52,6 +50,29 @@ export default async function AdminSettingsPage({
           </span>
           <span className="mt-1 block text-[13px] leading-relaxed text-muted">
             Texte, Bilder und die Spots auf salzguide.com.
+          </span>
+        </span>
+        <span className="shrink-0 text-[18px] text-muted" aria-hidden>
+          ›
+        </span>
+      </Link>
+
+      {/* Analytics ist keine Einstellung, und das weiss ich. Es steht trotzdem hier, weil
+          „Einstellungen" faktisch der Ort für alles ist, was man selten anfasst — und ein
+          eigener Reiter kostet bei jedem Blick Aufmerksamkeit für etwas, das man ein paar
+          Mal im Jahr anschaut. Wer es sucht, findet es hier; wer es nicht sucht, wird nicht
+          davon abgelenkt. Anton hat das so entschieden, den Einwand kannte er. */}
+      <Link
+        href="/admin/settings/analytics"
+        className="flex items-center gap-4 rounded-[18px] bg-white p-5 shadow-sm ring-1 ring-black/5 transition hover:ring-black/15 active:scale-[0.995]"
+      >
+        <span className="text-[22px]" aria-hidden>
+          📈
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="text-[17px] font-bold text-ink">Analytics</span>
+          <span className="mt-1 block text-[13px] leading-relaxed text-muted">
+            Besucher, Spots, Kampagnen und die KI-Auswertung.
           </span>
         </span>
         <span className="shrink-0 text-[18px] text-muted" aria-hidden>

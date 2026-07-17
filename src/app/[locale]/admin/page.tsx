@@ -1,6 +1,5 @@
 import { Link } from "@/i18n/navigation";
 import { getAdminSpots } from "@/lib/admin";
-import AdminNav from "@/components/admin/AdminNav";
 import BulkTranslateButton from "@/components/admin/BulkTranslateButton";
 import ProBadge from "@/components/ProBadge";
 
@@ -13,7 +12,6 @@ export default async function AdminPage() {
 
   return (
     <div className="space-y-4 pb-12">
-      <AdminNav active="spots" />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold text-ink">Admin · Spots</h1>
         <div className="flex flex-wrap items-center gap-2">

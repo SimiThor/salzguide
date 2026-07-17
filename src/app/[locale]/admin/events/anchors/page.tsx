@@ -1,6 +1,5 @@
 import { Link } from "@/i18n/navigation";
 import { getAdminAnchors, defaultAnchorCount } from "@/lib/anchors";
-import AdminNav from "@/components/admin/AdminNav";
 import AnchorManager from "@/components/admin/AnchorManager";
 
 // Admin · Jahres-Events (Anker): pflegbare Erinnerungsliste für die KI-Wochenrecherche.
@@ -13,8 +12,6 @@ export default async function AdminAnchorsPage() {
   const anchors = await getAdminAnchors();
   return (
     <div className="space-y-4 pb-12">
-      {/* „events" bleibt aktiv: Man ist hier IN den Events, nur eine Ebene tiefer. */}
-      <AdminNav active="events" />
       <div>
         <Link
           href="/admin/events"
