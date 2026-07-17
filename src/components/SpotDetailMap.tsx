@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslations } from "next-intl";
-import SpotMap from "./SpotMap";
+import SpotMap, { type SpotPoi } from "./SpotMap";
 import ElevationProfile from "./ElevationProfile";
 import type { ElevationProfile as Profile } from "@/lib/admin-actions";
 import { coordAtFraction } from "@/lib/geo";
@@ -23,12 +23,14 @@ export default function SpotDetailMap({
   route,
   elevation,
   marker,
+  poi,
   center,
   title,
 }: {
   route: [number, number][] | null;
   elevation: Profile | null;
   marker: Marker | null;
+  poi?: SpotPoi[];
   center?: [number, number];
   title: string;
 }) {
@@ -69,6 +71,7 @@ export default function SpotDetailMap({
         <SpotMap
           markers={markers}
           route={route}
+          poi={poi}
           highlight={hoverCoord}
           center={center}
           zoom={13}
@@ -90,6 +93,7 @@ export default function SpotDetailMap({
             <SpotMap
               markers={markers}
               route={route}
+              poi={poi}
               highlight={null}
               center={center}
               zoom={13}

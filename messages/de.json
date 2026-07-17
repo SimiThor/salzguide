@@ -246,6 +246,17 @@
     "empty": "Für diese Saison gibt es noch keine Spots."
   },
   "Detail": {
+    "poi": {
+      "parking": "Parkplatz",
+      "water": "Wasserstelle",
+      "waterFountain": "Trinkbrunnen",
+      "waterSpring": "Quelle",
+      "waterStream": "Bach",
+      "hut": "Hütte",
+      "hutStaffed": "Bewirtschaftete Hütte",
+      "hutSelf": "Selbstversorgerhütte",
+      "hutShelter": "Schutzhütte"
+    },
     "save": "Speichern",
     "back": "Zurück zur Karte",
     "view": "Ansehen",

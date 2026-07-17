@@ -4,9 +4,22 @@ import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { useEffect, useRef, useState } from "react";
 import { RecenterControl } from "../mapControls";
+import type { MapPoi } from "@/lib/geo";
+import { poiEmoji, poiDeLabel } from "@/lib/poi";
 
 const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 type Pt = { lat: number; lng: number } | null;
+
+// Welcher Punkt wird gerade auf der Karte gesetzt? null = normaler Modus (Spot/Route).
+// Parkplatz ist einmalig (ein Klick, dann fertig), Wasser/Hütte sammeln (Modus bleibt).
+export type PlacingKind = "parking" | "water" | "hut" | null;
+
+// Darstellung der Zusatzpunkt-Typen an EINER Stelle -> Admin und (analog) User-Karte
+// bleiben einheitlich, Farbe/Symbol nie doppelt gepflegt.
+export const POI_STYLE: Record<"water" | "hut", { emoji: string; color: string; label: string }> = {
+  water: { emoji: "💧", color: "#0ea5e9", label: "Wasserstelle" },
+  hut: { emoji: "🛖", color: "#b45309", label: "Hütte" },
+};
 
 function fc(coords: [number, number][]) {
   return {
@@ -35,20 +48,27 @@ export default function LocationPicker({
   parking,
   route,
   line,
-  placingParking,
+  placing,
+  waterStops,
+  huts,
   onSet,
   onRouteChange,
-  onParkingPlaced,
+  onPoiChange,
+  onExitPlacing,
 }: {
   mode: "point" | "route";
   spot: Pt;
   parking: Pt;
   route: [number, number][];
   line: [number, number][];
-  placingParking: boolean;
+  placing: PlacingKind;
+  waterStops: MapPoi[];
+  huts: MapPoi[];
   onSet: (which: "spot" | "parking", lat: number | null, lng: number | null) => void;
   onRouteChange: (coords: [number, number][]) => void;
-  onParkingPlaced: () => void;
+  onPoiChange: (kind: "water" | "hut", pois: MapPoi[]) => void;
+  // Beendet den (einmaligen) Setz-Schritt, z.B. nach dem Parkplatz-Klick.
+  onExitPlacing: () => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
@@ -57,17 +77,24 @@ export default function LocationPicker({
     parking: null,
   });
   const routeMarkers = useRef<mapboxgl.Marker[]>([]);
+  const poiMarkers = useRef<mapboxgl.Marker[]>([]);
 
   const onSetRef = useRef(onSet);
   onSetRef.current = onSet;
   const onRouteRef = useRef(onRouteChange);
   onRouteRef.current = onRouteChange;
-  const onParkingPlacedRef = useRef(onParkingPlaced);
-  onParkingPlacedRef.current = onParkingPlaced;
+  const onPoiRef = useRef(onPoiChange);
+  onPoiRef.current = onPoiChange;
+  const onExitPlacingRef = useRef(onExitPlacing);
+  onExitPlacingRef.current = onExitPlacing;
   const modeRef = useRef(mode);
   modeRef.current = mode;
-  const placingRef = useRef(placingParking);
-  placingRef.current = placingParking;
+  const placingRef = useRef(placing);
+  placingRef.current = placing;
+  const waterRef = useRef(waterStops);
+  waterRef.current = waterStops;
+  const hutRef = useRef(huts);
+  hutRef.current = huts;
   const routeRef = useRef(route);
   routeRef.current = route;
   const lineRef = useRef(line);
@@ -87,6 +114,8 @@ export default function LocationPicker({
     else if (routeRef.current.length) coords.push(...routeRef.current);
     if (spotRef.current) coords.push([spotRef.current.lng, spotRef.current.lat]);
     if (parkingRef.current) coords.push([parkingRef.current.lng, parkingRef.current.lat]);
+    for (const p of waterRef.current) coords.push([p.lng, p.lat]);
+    for (const p of hutRef.current) coords.push([p.lng, p.lat]);
     if (coords.length === 0) return;
     if (coords.length === 1) {
       map.flyTo({ center: coords[0], zoom: Math.max(map.getZoom(), 14), duration: 500 });
@@ -181,14 +210,21 @@ export default function LocationPicker({
       recenterRef.current();
     });
     map.on("click", (ev) => {
-      if (placingRef.current) {
-        // Eigener Parkplatz-Schritt: ein Klick setzt den Parkplatz, dann fertig
-        onSetRef.current("parking", ev.lngLat.lat, ev.lngLat.lng);
-        onParkingPlacedRef.current();
+      const { lng, lat } = ev.lngLat;
+      const p = placingRef.current;
+      if (p === "parking") {
+        // Einmaliger Schritt: ein Klick setzt den Parkplatz, dann fertig.
+        onSetRef.current("parking", lat, lng);
+        onExitPlacingRef.current();
+      } else if (p === "water") {
+        // Sammeln: jeder Klick hängt eine Wasserstelle an, Modus bleibt aktiv.
+        onPoiRef.current("water", [...waterRef.current, { lng, lat }]);
+      } else if (p === "hut") {
+        onPoiRef.current("hut", [...hutRef.current, { lng, lat }]);
       } else if (modeRef.current === "route") {
-        onRouteRef.current([...routeRef.current, [ev.lngLat.lng, ev.lngLat.lat]]);
+        onRouteRef.current([...routeRef.current, [lng, lat]]);
       } else {
-        onSetRef.current("spot", ev.lngLat.lat, ev.lngLat.lng);
+        onSetRef.current("spot", lat, lng);
       }
     });
     mapRef.current = map;
@@ -201,6 +237,8 @@ export default function LocationPicker({
       pointMarkers.current = { spot: null, parking: null };
       routeMarkers.current.forEach((m) => m.remove());
       routeMarkers.current = [];
+      poiMarkers.current.forEach((m) => m.remove());
+      poiMarkers.current = [];
       map.remove();
       mapRef.current = null;
     };
@@ -275,6 +313,46 @@ export default function LocationPicker({
     });
   }, [route, line]);
 
+  // Zusatzpunkte (Wasserstellen, Hütten): ziehbare Emoji-Marker, beide Typen in einem
+  // Effekt neu aufgebaut. Ziehen aktualisiert nur den einen Punkt (Name bleibt erhalten).
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    poiMarkers.current.forEach((m) => m.remove());
+    poiMarkers.current = [];
+    const kinds: ["water" | "hut", MapPoi[]][] = [
+      ["water", waterStops],
+      ["hut", huts],
+    ];
+    for (const [kind, pois] of kinds) {
+      const style = POI_STYLE[kind];
+      pois.forEach((p, i) => {
+        const el = document.createElement("div");
+        el.style.cssText =
+          "display:flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:9999px;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4);font-size:12px;cursor:grab;background:" +
+          style.color;
+        // Symbol richtet sich nach dem Untertyp (z.B. 🚰 Trinkbrunnen), wie auf der
+        // User-Karte -> Admin und User sehen dasselbe.
+        el.textContent = poiEmoji(kind, p.subtype);
+        const label = poiDeLabel(kind, p.subtype);
+        el.title = p.name ? `${label}: ${p.name}` : label;
+        el.style.zIndex = "3";
+        const m = new mapboxgl.Marker({ element: el, draggable: true })
+          .setLngLat([p.lng, p.lat])
+          .addTo(map);
+        m.on("dragend", () => {
+          const ll = m.getLngLat();
+          const arr = kind === "water" ? waterRef.current : hutRef.current;
+          const next = arr.map((c, idx) =>
+            idx === i ? { ...c, lng: ll.lng, lat: ll.lat } : c,
+          );
+          onPoiRef.current(kind, next);
+        });
+        poiMarkers.current.push(m);
+      });
+    }
+  }, [waterStops, huts]);
+
   if (!TOKEN) {
     return (
       <div className="flex h-72 items-center justify-center rounded-[14px] bg-black/5 text-sm text-muted">
@@ -283,8 +361,18 @@ export default function LocationPicker({
     );
   }
 
-  const hint = placingParking
-    ? "📍 Tippe jetzt den Parkplatz auf der Karte."
+  // Farbe/Text des aktiven Setz-Schritts an einer Stelle.
+  const placingInfo =
+    placing === "parking"
+      ? { color: "#2563eb", banner: "📍 Parkplatz: Ort auf der Karte antippen", hint: "📍 Tippe jetzt den Parkplatz auf der Karte." }
+      : placing === "water"
+        ? { color: POI_STYLE.water.color, banner: `${POI_STYLE.water.emoji} Wasserstellen antippen (mehrere möglich)`, hint: `${POI_STYLE.water.emoji} Tippe Wasserstellen auf die Karte. Fertig-Knopf beendet.` }
+        : placing === "hut"
+          ? { color: POI_STYLE.hut.color, banner: `${POI_STYLE.hut.emoji} Hütten antippen (mehrere möglich)`, hint: `${POI_STYLE.hut.emoji} Tippe Hütten auf die Karte. Fertig-Knopf beendet.` }
+          : null;
+
+  const hint = placingInfo
+    ? placingInfo.hint
     : mode === "route"
       ? "Auf die Karte tippen setzt Start → Wegpunkte → Ziel. Marker ziehen verschiebt sie."
       : "Auf die Karte tippen setzt den Spot-Punkt (Marker ziehen verschiebt ihn).";
@@ -331,20 +419,24 @@ export default function LocationPicker({
           )}
         </div>
 
-        {/* Deutliches Banner im Parkplatz-Setz-Schritt */}
-        {placingParking && (
+        {/* Deutliches Banner im aktiven Setz-Schritt (Parkplatz/Wasser/Hütte) */}
+        {placingInfo && (
           <div className="pointer-events-none absolute inset-x-0 top-2 flex justify-center">
-            <span className="rounded-full bg-[#2563eb] px-3.5 py-1.5 text-sm font-semibold text-white shadow-md">
-              📍 Parkplatz: Ort auf der Karte antippen
+            <span
+              className="rounded-full px-3.5 py-1.5 text-sm font-semibold text-white shadow-md"
+              style={{ background: placingInfo.color }}
+            >
+              {placingInfo.banner}
             </span>
           </div>
         )}
       </div>
 
       <p
-        className={`mt-1.5 text-xs ${placingParking ? "font-medium text-[#2563eb]" : "text-muted"}`}
+        className="mt-1.5 text-xs"
+        style={placingInfo ? { color: placingInfo.color, fontWeight: 500 } : undefined}
       >
-        {hint}
+        <span className={placingInfo ? "" : "text-muted"}>{hint}</span>
       </p>
     </div>
   );

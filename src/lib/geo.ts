@@ -1,5 +1,40 @@
 // Geo-Helfer (client-safe). Koordinaten sind [lng, lat].
 
+// Ein gesetzter Karten-Punkt (Wasserstelle / Hütte): Koordinaten + optionaler Name +
+// optionaler Untertyp-Code. name ist absichtlich frei und einsprachig (DE-Basis, wie
+// route_waypoints) — es sind Eigennamen ("Stögeralm") oder kurze Orte, keine UI-Texte.
+// subtype ist ein sprachneutraler Code (z.B. "fountain") aus src/lib/poi.ts; das
+// dargestellte Label wird daraus lokalisiert.
+export type MapPoi = { lng: number; lat: number; name?: string; subtype?: string };
+
+// Robust aus jsonb ODER aus dem Formular-Array lesen. Wird bewusst auf BEIDEN Seiten
+// benutzt (DB-Lesen und Speichern-Säubern), damit nie Halbgares in die DB oder auf die
+// Karte kommt: nur echte Zahlen, Name/Untertyp getrimmt, leere fallen weg, kaputte
+// Punkte werden verworfen. Akzeptiert auch die Tupel-Form [lng,lat] (defensiv).
+export function parsePois(v: unknown): MapPoi[] {
+  if (!Array.isArray(v)) return [];
+  const out: MapPoi[] = [];
+  for (const item of v) {
+    let lng: unknown, lat: unknown, name: unknown, subtype: unknown;
+    if (Array.isArray(item)) {
+      [lng, lat] = item;
+    } else if (item && typeof item === "object") {
+      ({ lng, lat, name, subtype } = item as Record<string, unknown>);
+    } else {
+      continue;
+    }
+    if (typeof lng !== "number" || typeof lat !== "number") continue;
+    if (!Number.isFinite(lng) || !Number.isFinite(lat)) continue;
+    const cleanName = typeof name === "string" ? name.trim() : "";
+    const cleanSub = typeof subtype === "string" ? subtype.trim() : "";
+    const poi: MapPoi = { lng, lat };
+    if (cleanName) poi.name = cleanName;
+    if (cleanSub) poi.subtype = cleanSub;
+    out.push(poi);
+  }
+  return out;
+}
+
 export function haversineMeters(a: [number, number], b: [number, number]): number {
   const R = 6371000;
   const toRad = (x: number) => (x * Math.PI) / 180;

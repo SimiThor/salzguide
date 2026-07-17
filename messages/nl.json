@@ -205,6 +205,17 @@
     "empty": "Voor dit seizoen zijn er nog geen spots."
   },
   "Detail": {
+    "poi": {
+      "parking": "Parkeerplaats",
+      "water": "Waterpunt",
+      "waterFountain": "Drinkfontein",
+      "waterSpring": "Bron",
+      "waterStream": "Beek",
+      "hut": "Berghut",
+      "hutStaffed": "Bemande hut",
+      "hutSelf": "Zelfvoorzienende hut",
+      "hutShelter": "Schuilhut"
+    },
     "save": "Bewaren",
     "back": "Terug naar de kaart",
     "view": "Bekijken",

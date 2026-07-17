@@ -18,7 +18,9 @@ import { localeMeta } from "@/i18n/locales";
 import { hashSpotTexts } from "@/lib/spot-hash";
 import type { AdminCategory, AdminLocal } from "@/lib/admin";
 import { emptyManualWeek, type DayHours } from "@/lib/opening-hours";
-import LocationPicker from "./LocationPicker";
+import type { MapPoi } from "@/lib/geo";
+import { POI_SUBTYPES } from "@/lib/poi";
+import LocationPicker, { POI_STYLE, type PlacingKind } from "./LocationPicker";
 import ElevationProfile from "../ElevationProfile";
 import PhotoUploader from "./PhotoUploader";
 import VideoUploader from "./VideoUploader";
@@ -37,6 +39,8 @@ const EMPTY: SpotInput = {
   lng: null,
   parkingLat: null,
   parkingLng: null,
+  waterStops: [],
+  huts: [],
   routePoints: [],
   routeSnapped: [],
   elevationProfile: null,
@@ -161,7 +165,8 @@ export default function SpotForm({
   const [pending, start] = useTransition();
   const [err, setErr] = useState("");
   const [snapMsg, setSnapMsg] = useState("");
-  const [placingParking, setPlacingParking] = useState(false);
+  // Welcher Zusatzpunkt wird gerade auf der Karte gesetzt (null = normaler Modus).
+  const [placing, setPlacing] = useState<PlacingKind>(null);
   const [aiNotes, setAiNotes] = useState("");
   const [aiMsg, setAiMsg] = useState("");
   const [aiWeb, setAiWeb] = useState(true);
@@ -256,6 +261,27 @@ export default function SpotForm({
   function onPoint(which: "spot" | "parking", lat: number | null, lng: number | null) {
     if (which === "spot") set({ lat, lng });
     else set({ parkingLat: lat, parkingLng: lng });
+  }
+
+  // Zusatzpunkte (Wasserstellen/Hütten): ein gemeinsamer Satz Helfer für beide Typen.
+  const poiList = (kind: "water" | "hut") => (kind === "water" ? form.waterStops : form.huts);
+  function setPois(kind: "water" | "hut", pois: MapPoi[]) {
+    if (kind === "water") set({ waterStops: pois });
+    else set({ huts: pois });
+  }
+  function addPoi(kind: "water" | "hut") {
+    // Neuer Punkt startet in der Kartenmitte-Region; per Ziehen/Setzen platzierbar.
+    setPois(kind, [...poiList(kind), { lng: 13.05, lat: 47.8 }]);
+  }
+  function updatePoi(kind: "water" | "hut", i: number, patch: Partial<MapPoi>) {
+    setPois(kind, poiList(kind).map((p, idx) => (idx === i ? { ...p, ...patch } : p)));
+  }
+  function removePoi(kind: "water" | "hut", i: number) {
+    setPois(kind, poiList(kind).filter((_, idx) => idx !== i));
+  }
+  // Setz-Modus umschalten: Klick auf denselben Knopf beendet ihn (Toggle).
+  function togglePlacing(kind: PlacingKind) {
+    setPlacing((cur) => (cur === kind ? null : kind));
   }
 
   // Kontrollpunkte ändern -> Snapping + Höhenprofil verwerfen (muss neu berechnet werden)
@@ -895,10 +921,13 @@ export default function SpotForm({
                 : form.routePoints
               : []
           }
-          placingParking={placingParking}
+          placing={placing}
+          waterStops={form.waterStops}
+          huts={form.huts}
           onSet={onPoint}
           onRouteChange={setRoute}
-          onParkingPlaced={() => setPlacingParking(false)}
+          onPoiChange={setPois}
+          onExitPlacing={() => setPlacing(null)}
         />
 
         {/* Wegpunkt-Editor (nur Wanderung): Koordinaten + Reihenfolge + Snapping */}
@@ -1028,12 +1057,12 @@ export default function SpotForm({
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
-              onClick={() => setPlacingParking((p) => !p)}
+              onClick={() => togglePlacing("parking")}
               className={`rounded-full px-3.5 py-1.5 text-xs font-semibold ${
-                placingParking ? "bg-black/10 text-ink" : "bg-[#2563eb] text-white"
+                placing === "parking" ? "bg-black/10 text-ink" : "bg-[#2563eb] text-white"
               }`}
             >
-              {placingParking
+              {placing === "parking"
                 ? "Abbrechen"
                 : form.parkingLat != null
                   ? "Auf Karte ändern"
@@ -1044,7 +1073,7 @@ export default function SpotForm({
                 type="button"
                 onClick={() => {
                   set({ parkingLat: null, parkingLng: null });
-                  setPlacingParking(false);
+                  setPlacing((p) => (p === "parking" ? null : p));
                 }}
                 className="rounded-full bg-black/5 px-3 py-1.5 text-xs font-medium text-accent"
               >
@@ -1072,6 +1101,106 @@ export default function SpotForm({
             />
           </div>
         </div>
+
+        {/* Zusatzpunkte: Wasserstellen und Hütten. Gleiche UI für beide Typen (einmal
+            geschrieben), jeder Typ mit „auf der Karte sammeln" + optionalem Namen je Punkt. */}
+        {(["water", "hut"] as const).map((kind) => {
+          const style = POI_STYLE[kind];
+          const list = kind === "water" ? form.waterStops : form.huts;
+          const active = placing === kind;
+          const plural = kind === "water" ? "Wasserstellen" : "Hütten";
+          return (
+            <div key={kind} className="space-y-2 rounded-[12px] bg-black/[0.03] p-3">
+              <div className="flex items-center justify-between">
+                <p className="text-[13px] font-semibold text-ink">
+                  {style.emoji} {plural} <span className="font-normal text-muted">(optional)</span>
+                </p>
+                <span className="rounded-full bg-black/5 px-2 py-0.5 text-[11px] font-medium text-muted">
+                  {list.length === 0 ? "keine" : `${list.length} gesetzt`}
+                </span>
+              </div>
+              <p className="text-xs text-muted">
+                Knopf drücken, dann auf der Karte antippen (mehrere möglich). Marker lassen sich ziehen.
+              </p>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => togglePlacing(kind)}
+                  className="rounded-full px-3.5 py-1.5 text-xs font-semibold text-white"
+                  style={{ background: active ? "#374151" : style.color }}
+                >
+                  {active ? "Fertig" : `${style.emoji} Auf der Karte setzen`}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => addPoi(kind)}
+                  className="rounded-full bg-black/5 px-3 py-1.5 text-xs font-medium text-ink"
+                >
+                  + manuell
+                </button>
+              </div>
+              {list.length > 0 && (
+                <div className="space-y-2">
+                  {list.map((p, i) => (
+                    <div key={i} className="space-y-1.5 rounded-[10px] bg-white/70 p-2">
+                      <div className="grid grid-cols-[140px_1fr] gap-1.5">
+                        <select
+                          className={input}
+                          value={p.subtype ?? ""}
+                          onChange={(ev) => updatePoi(kind, i, { subtype: ev.target.value })}
+                        >
+                          <option value="">Typ (optional)</option>
+                          {POI_SUBTYPES[kind].map((s) => (
+                            <option key={s.code} value={s.code}>
+                              {s.emoji} {s.de}
+                            </option>
+                          ))}
+                        </select>
+                        <input
+                          className={input}
+                          type="text"
+                          placeholder="Name (optional)"
+                          value={p.name ?? ""}
+                          onChange={(ev) => updatePoi(kind, i, { name: ev.target.value })}
+                        />
+                      </div>
+                      <div className="grid grid-cols-[1fr_1fr_auto] items-center gap-1.5">
+                        <input
+                          className={input}
+                          type="number"
+                          step="any"
+                          placeholder="lat"
+                          value={p.lat}
+                          onChange={(ev) =>
+                            updatePoi(kind, i, { lat: ev.target.value === "" ? 0 : parseFloat(ev.target.value) })
+                          }
+                        />
+                        <input
+                          className={input}
+                          type="number"
+                          step="any"
+                          placeholder="lng"
+                          value={p.lng}
+                          onChange={(ev) =>
+                            updatePoi(kind, i, { lng: ev.target.value === "" ? 0 : parseFloat(ev.target.value) })
+                          }
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removePoi(kind, i)}
+                          aria-label={`${plural}-Punkt entfernen`}
+                          className="flex h-8 w-8 items-center justify-center rounded-full bg-black/5 text-accent"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </section>
 
       {/* Quick-Facts */}

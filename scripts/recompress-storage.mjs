@@ -26,7 +26,6 @@ const H = { apikey: K, Authorization: `Bearer ${K}` };
 const JH = { ...H, "Content-Type": "application/json" };
 const PUB = `${U}/storage/v1/object/public/spot-media/`;
 
-const OVERSIZE = 400 * 1024;
 const QUALITY = 82;
 const CAP = { hero: 2048, photo: 1600, avatar: 512 };
 const IMMUTABLE = "31536000";
@@ -61,7 +60,9 @@ const jobs = []; // { loc, kind, apply(newUrl,w,h), path, size }
 function add(loc, kind, url, apply) {
   const p = pathOf(url); if (!p) return;
   const o = byPath.get(p);
-  if (!o || o.mime === "image/webp" || o.size <= OVERSIZE) return; // schon klein/webp -> nichts zu tun
+  // Jedes Nicht-WebP wird umgerechnet, egal wie gross: Ein 361-KB-PNG-Avatar ist so gut
+  // wie ein 7-MB-Foto ein Fall fürs Komprimieren. WebP ist schon fertig -> überspringen.
+  if (!o || o.mime === "image/webp") return;
   jobs.push({ loc, kind, path: p, size: o.size, apply });
 }
 

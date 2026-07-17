@@ -10,6 +10,7 @@ import { localeMeta } from "@/i18n/locales";
 import { hashSpotTexts, translationsPublishable } from "./spot-hash";
 import { createBlurPreview, planImageBlur, removeBlurPreviews } from "./blur-preview";
 import { stripEmDashFields } from "./em-dash";
+import { parsePois, type MapPoi } from "./geo";
 import { HOME_KEYS } from "./home-fields";
 import { translateHomeTextsWith } from "./home-translate";
 import { parseLandingImage, parseLandingVideo } from "./landing-media";
@@ -31,6 +32,10 @@ export type SpotInput = {
   lng: number | null;
   parkingLat: number | null;
   parkingLng: number | null;
+  // Zusätzliche Karten-Punkte (mehrere je Spot): Wasserstellen und Hütten mit
+  // optionalem Namen. Auf der User-Karte als eigene Symbole, Name beim Antippen.
+  waterStops: MapPoi[];
+  huts: MapPoi[];
   routePoints: [number, number][]; // Kontrollpunkte [lng, lat] (Start … Ziel)
   routeSnapped: [number, number][]; // an Wanderwege gesnappte Linie [lng, lat] (leer = Luftlinie)
   elevationProfile: ElevationProfile | null; // Höhenprofil (beim Snapping befüllt)
@@ -198,6 +203,9 @@ export async function saveSpot(input: SpotInput): Promise<SaveResult> {
     : null;
   const routeWaypoints = isRoute ? input.routePoints : null;
   const elevationProfile = isRoute ? input.elevationProfile : null;
+  // Zusatzpunkte säubern (echte Zahlen, Name getrimmt, leere raus); leer -> null.
+  const waterStops = parsePois(input.waterStops);
+  const huts = parsePois(input.huts);
 
   const row = {
     slug: input.slug.trim(),
@@ -212,6 +220,8 @@ export async function saveSpot(input: SpotInput): Promise<SaveResult> {
     lng,
     parking_lat: input.parkingLat,
     parking_lng: input.parkingLng,
+    water_stops: waterStops.length ? waterStops : null,
+    huts: huts.length ? huts : null,
     // Öffis-Anreise zielt immer auf den Spot/Startpunkt -> kein eigener Transit-Punkt
     transit_lat: null,
     transit_lng: null,

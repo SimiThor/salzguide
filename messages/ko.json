@@ -205,6 +205,17 @@
     "empty": "이 시즌에는 아직 스팟이 없어요."
   },
   "Detail": {
+    "poi": {
+      "parking": "주차장",
+      "water": "식수 지점",
+      "waterFountain": "식수대",
+      "waterSpring": "약수터",
+      "waterStream": "계곡물",
+      "hut": "산장",
+      "hutStaffed": "운영 산장",
+      "hutSelf": "무인 산장",
+      "hutShelter": "대피소"
+    },
     "save": "저장",
     "back": "지도로 돌아가기",
     "view": "보기",

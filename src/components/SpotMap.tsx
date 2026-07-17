@@ -5,6 +5,7 @@ import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { useEffect, useRef, useState } from "react";
 import { RecenterControl, FullscreenControl } from "./mapControls";
+import { poiEmoji, type PoiKind } from "@/lib/poi";
 
 export type MapMarker = {
   slug: string;
@@ -14,6 +15,20 @@ export type MapMarker = {
   locked?: boolean;
   title?: string;
   imageUrl?: string | null; // nur für die Vorschau-Karte (MapCard), Pin nutzt Emoji
+};
+
+// Zusatzpunkt auf der Karte (Wasserstelle / Hütte / Parkplatz): Koordinaten, Art,
+// optionaler Untertyp-Code, optionaler (einsprachiger) Name und das bereits in der
+// Sprache des Nutzers berechnete Gattungs-Label (z.B. "Trinkbrunnen"). Das Label wird
+// vom Aufrufer (Spot-Seite, per next-intl) angehängt, damit SpotMap reine Darstellung
+// bleibt.
+export type SpotPoi = {
+  lng: number;
+  lat: number;
+  kind: PoiKind;
+  subtype?: string;
+  name?: string;
+  label?: string;
 };
 
 const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
@@ -121,6 +136,7 @@ export default function SpotMap({
   showRouteEnds = true,
   fitRoute = true,
   highlight,
+  poi,
   onFullscreen,
   mapClass,
 }: {
@@ -156,6 +172,8 @@ export default function SpotMap({
   } | null;
   // Dezenter Punkt entlang der Route (Sync mit dem Höhenprofil)
   highlight?: [number, number] | null;
+  // Zusatzpunkte (Wasserstellen, Hütten, Parkplatz): Symbole wie 🥾/🏁, Name beim Antippen.
+  poi?: SpotPoi[];
   // Wenn gesetzt: Vollbild-Button anzeigen, Klick ruft den Callback
   onFullscreen?: () => void;
   // Zusätzliche CSS-Klasse am Karten-Container (steuert u.a. Control-Position mobil)
@@ -167,6 +185,8 @@ export default function SpotMap({
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markerObjs = useRef<mapboxgl.Marker[]>([]);
   const hlMarker = useRef<mapboxgl.Marker | null>(null);
+  const poiMarkers = useRef<mapboxgl.Marker[]>([]);
+  const poiPopup = useRef<mapboxgl.Popup | null>(null);
   const onFullscreenRef = useRef(onFullscreen);
   onFullscreenRef.current = onFullscreen;
 
@@ -426,6 +446,10 @@ export default function SpotMap({
     return () => {
       clearTimeout(showAnyway);
       stopRouteAnim();
+      poiMarkers.current.forEach((m) => m.remove());
+      poiMarkers.current = [];
+      poiPopup.current?.remove();
+      poiPopup.current = null;
       map.remove();
       mapRef.current = null;
     };
@@ -561,6 +585,65 @@ export default function SpotMap({
       hlMarker.current = null;
     }
   }, [highlight?.[0], highlight?.[1]]);
+
+  // Zusatzpunkte (Wasserstellen, Hütten, Parkplatz) als Emoji-Pins wie 🥾/🏁.
+  // Antippen zeigt Name (falls gesetzt) + lokalisiertes Gattungs-Label im Glas-Popup.
+  const poiSig = (poi ?? [])
+    .map((p) => `${p.kind}:${p.subtype ?? ""}:${p.lng},${p.lat}:${p.name ?? ""}:${p.label ?? ""}`)
+    .join("|");
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    poiMarkers.current.forEach((m) => m.remove());
+    poiMarkers.current = [];
+    poiPopup.current?.remove();
+    poiPopup.current = null;
+    for (const p of poi ?? []) {
+      const emoji = poiEmoji(p.kind, p.subtype);
+      const wrap = document.createElement("button");
+      wrap.type = "button";
+      wrap.className = "sg-pin sg-pin--poi";
+      wrap.setAttribute("aria-label", p.name ? `${p.name} (${p.label ?? ""})`.trim() : p.label ?? emoji);
+      const inner = document.createElement("span");
+      inner.className = "sg-marker";
+      inner.textContent = emoji;
+      wrap.appendChild(inner);
+      const marker = new mapboxgl.Marker({ element: wrap }).setLngLat([p.lng, p.lat]).addTo(map);
+      wrap.addEventListener("click", (ev) => {
+        // Nicht bis zur Karte durchreichen (sonst schlösse ein Klick z.B. Sheets).
+        ev.stopPropagation();
+        // Nichts anzuzeigen -> kein leeres Popup.
+        if (!p.name && !p.label) return;
+        poiPopup.current?.remove();
+        // Inhalt über DOM, NICHT setHTML: der Name ist frei eingegebener Text und darf
+        // nicht als HTML interpretiert werden (XSS). textContent ist sicher.
+        const box = document.createElement("div");
+        box.className = "sg-poi-pop";
+        if (p.name) {
+          const t = document.createElement("span");
+          t.className = "sg-poi-pop__name";
+          t.textContent = p.name;
+          box.appendChild(t);
+        }
+        if (p.label) {
+          const s = document.createElement("span");
+          s.className = "sg-poi-pop__sub";
+          s.textContent = p.label;
+          box.appendChild(s);
+        }
+        poiPopup.current = new mapboxgl.Popup({
+          closeButton: false,
+          offset: 18,
+          className: "sg-poi-popup",
+        })
+          .setLngLat([p.lng, p.lat])
+          .setDOMContent(box)
+          .addTo(map);
+      });
+      poiMarkers.current.push(marker);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [poiSig]);
 
   if (!TOKEN) {
     return (

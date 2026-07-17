@@ -63,6 +63,10 @@ const nextConfig: NextConfig = {
   // lädt ~44px statt 1600px). Quelle = öffentlicher Supabase-Storage.
   images: {
     formats: ["image/avif", "image/webp"],
+    // Erlaubte Qualitätsstufen (Next 16 lässt nur genau diese zu). 75 = Standard für grosse
+    // Bilder; 62 für Galerie/Hero; 50 für winzige Thumbnails/Icons, wo man den Unterschied
+    // ohnehin nicht sieht. Kleinere Zahl = kleinere Datei.
+    qualities: [50, 62, 75],
     // Jede Quell-URL zeigt für immer auf dasselbe Bild (fester UUID-Pfad, upsert:false,
     // siehe lib/image-upload.ts). Also darf next/image die einmal gerechnete Fassung ein
     // Jahr behalten, statt sie nach wenigen Stunden neu aus dem Storage zu holen.
