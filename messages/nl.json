@@ -280,6 +280,7 @@
     "discover": "Ontdekken"
   },
   "Auth": {
+    "relaunchNotice": "SalzGuide is opnieuw gebouwd. Al gekocht op de oude site? Log gewoon in met hetzelfde e-mailadres, je Pro staat er. Een wachtwoord heb je niet meer nodig.",
     "joinTitle": "Aanmelden of account aanmaken",
     "joinSubtitle": "Met je e-mail – helemaal zonder wachtwoord. Bewaar je favoriete spots en plan je trips.",
     "emailPlaceholder": "jouw@email.nl",
@@ -330,6 +331,8 @@
     "exploreCta": "Nu ontdekken"
   },
   "Account": {
+    "migrationWelcomeTitle": "Je Pro staat klaar",
+    "migrationWelcome": "Welkom terug! Je Pro van de oude site is overgenomen, onbeperkt. Je hoeft verder niets te doen.",
     "title": "Jouw gegevens & privacy",
     "linkLabel": "Jouw gegevens & privacy",
     "intro": "Hier beheer je je toestemmingen en oefen je je AVG-rechten uit: nieuwsbrief opzeggen, al je gegevens exporteren of je account verwijderen.",

@@ -280,6 +280,7 @@
     "discover": "Explorar"
   },
   "Auth": {
+    "relaunchNotice": "SalzGuide es nuevo. ¿Compraste en la web anterior? Entra con el mismo correo, tu Pro está ahí. Ya no necesitas contraseña.",
     "joinTitle": "Inicia sesión o crea una cuenta",
     "joinSubtitle": "Con tu correo, sin contraseña. Guarda tus lugares favoritos y planifica tus viajes.",
     "emailPlaceholder": "tu@email.com",
@@ -330,6 +331,8 @@
     "exploreCta": "Explorar ahora"
   },
   "Account": {
+    "migrationWelcomeTitle": "Tu Pro está aquí",
+    "migrationWelcome": "¡Bienvenido de nuevo! Tu Pro de la web anterior sigue activo, sin límite. No tienes que hacer nada más.",
     "title": "Tus datos y privacidad",
     "linkLabel": "Tus datos y privacidad",
     "intro": "Aquí gestionas tus consentimientos y ejerces tus derechos del RGPD: darte de baja del boletín, exportar todos tus datos o eliminar tu cuenta.",

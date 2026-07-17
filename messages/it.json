@@ -280,6 +280,7 @@
     "discover": "Scopri"
   },
   "Auth": {
+    "relaunchNotice": "SalzGuide è stato ricostruito. Hai comprato sul vecchio sito? Accedi con la stessa e-mail, il tuo Pro c’è. Non serve più una password.",
     "joinTitle": "Accedi o crea un account",
     "joinSubtitle": "Con la tua email – senza password. Salva i tuoi spot preferiti e pianifica i tuoi viaggi.",
     "emailPlaceholder": "tua@email.it",
@@ -330,6 +331,8 @@
     "exploreCta": "Inizia a esplorare"
   },
   "Account": {
+    "migrationWelcomeTitle": "Il tuo Pro è qui",
+    "migrationWelcome": "Bentornato! Il tuo Pro dal vecchio sito è stato trasferito, senza limiti. Non devi fare altro.",
     "title": "I tuoi dati e la privacy",
     "linkLabel": "I tuoi dati e la privacy",
     "intro": "Qui gestisci i tuoi consensi ed eserciti i tuoi diritti DSGVO: disiscriverti dalla newsletter, esportare tutti i tuoi dati o eliminare il tuo account.",

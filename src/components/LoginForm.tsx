@@ -62,9 +62,23 @@ export default function LoginForm({
   next,
   authError = false,
   googleEnabled = false,
+  relaunchNotice = false,
 }: {
   next?: string;
   authError?: boolean;
+  /**
+   * Den Umzugs-Hinweis zeigen (Admin-Einstellung `relaunch_notice`).
+   *
+   * Für ALLE gleich, bewusst OHNE Prüfung der eingegebenen E-Mail: Ein Hinweis, der nur bei
+   * Alt-Käufern erschiene, wäre ein Orakel — jeder könnte beliebige Adressen eintippen und
+   * erführe „ist diese Person zahlender SalzGuide-Kunde?". Das wäre eine abfragbare
+   * Kundenliste und eine perfekte Phishing-Vorlage. Der Login verrät heute nichts, und das
+   * bleibt so.
+   *
+   * Default false: Wer es vergisst durchzureichen, zeigt einen Hinweis zu wenig statt einen
+   * zu viel.
+   */
+  relaunchNotice?: boolean;
   /**
    * Ist Google in Supabase wirklich eingeschaltet? Kommt aus googleLoginEnabled()
    * (lib/auth-providers.ts) und MUSS von der Server-Komponente durchgereicht werden.
@@ -135,6 +149,15 @@ export default function LoginForm({
       {authError && (
         <p className="rounded-[14px] bg-accent/10 px-4 py-3 text-[13px] leading-snug text-accent">
           {t("error")}
+        </p>
+      )}
+
+      {/* Ganz oben, weil er nur denen hilft, die ihn LESEN, bevor sie stutzen. Bewusst
+          zurückhaltend gestaltet (kein Rot, kein Ausrufezeichen): Für die Mehrheit, die die
+          alte Seite nie gesehen hat, ist das eine Randnotiz und keine Warnung. */}
+      {relaunchNotice && (
+        <p className="rounded-[14px] bg-black/[0.04] px-4 py-3 text-[13px] leading-relaxed text-muted">
+          {t("relaunchNotice")}
         </p>
       )}
 
