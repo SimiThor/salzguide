@@ -355,6 +355,28 @@
     "sheetBody": "Arrástrame hacia arriba por el tirador (completo) o hacia abajo (cerrar). Este mismo sheet mostrará luego detalles de lugares, filtros y el asistente de IA, sobre el mapa.",
     "lockedLabel": "🤫 Secreto"
   },
+  "Support": {
+    "linkLabel": "Ayuda",
+    "title": "Te ayudamos",
+    "subtitle": "¿Algo no funciona, un lugar está mal o tienes una pregunta? Escríbenos. Somos dos y leemos cada mensaje personalmente.",
+    "name": "Nombre",
+    "email": "Correo",
+    "message": "Tu mensaje",
+    "messagePlaceholder": "¿Qué pasa? Cuanto más preciso, más rápido podemos ayudar.",
+    "submit": "Enviar mensaje",
+    "sending": "Enviando …",
+    "preparing": "Comprobación antirrobots … 🤖",
+    "sentTitle": "¡Recibido!",
+    "sentBody": "Tenemos tu mensaje y te responderemos por correo. Normalmente en uno o dos días.",
+    "captchaUnavailable": "La verificación de seguridad no funciona ahora mismo. Recarga la página.",
+    "privacyHint": "Solo usamos tus datos para responderte.",
+    "error": {
+      "email": "Introduce un correo válido.",
+      "message": "Escríbenos unas palabras más.",
+      "captcha": "Confirma que no eres un robot e inténtalo de nuevo.",
+      "generic": "No ha funcionado. Inténtalo de nuevo."
+    }
+  },
   "Legal": {
     "sectionTitle": "Legal",
     "imprint": "Aviso legal",

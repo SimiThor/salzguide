@@ -7,11 +7,15 @@ import { Link, usePathname } from "@/i18n/navigation";
 // (§ 13a FAGG / EU-RL 2023/2673, ab 01.10.2026 in Österreich): login-frei, global, leicht
 // zugänglich. Darstellung bewusst gleicher Stil wie die übrigen Rechtslinks (Entscheidung
 // des Betreibers). Reihenfolge: Widerruf zuerst.
+// „Hilfe" steht bewusst VORNE, vor den Rechtslinks: Wer hier unten landet, sucht meist
+// jemanden zum Reden, nicht das Impressum. Der Text kommt aus dem Support-Namensraum, die
+// übrigen aus Legal — deshalb steht die Sprache je Eintrag dabei.
 const LINKS = [
-  { href: "/rechtliches/widerruf", key: "cancelContract" },
-  { href: "/rechtliches/datenschutz", key: "privacy" },
-  { href: "/rechtliches/impressum", key: "imprint" },
-  { href: "/rechtliches/agb", key: "terms" },
+  { href: "/support", key: "linkLabel", ns: "Support" },
+  { href: "/rechtliches/widerruf", key: "cancelContract", ns: "Legal" },
+  { href: "/rechtliches/datenschutz", key: "privacy", ns: "Legal" },
+  { href: "/rechtliches/impressum", key: "imprint", ns: "Legal" },
+  { href: "/rechtliches/agb", key: "terms", ns: "Legal" },
 ] as const;
 
 // Vollflächige Karten-Ansichten: die Karte liegt als `fixed inset-0 z-0` über dem
@@ -24,6 +28,7 @@ const FULLSCREEN_MAP_ROUTES: readonly string[] = ["/explore", "/wasser"];
 
 export default function LegalFooter() {
   const t = useTranslations("Legal");
+  const tSupport = useTranslations("Support");
   const pathname = usePathname();
   const year = new Date().getFullYear();
 
@@ -40,7 +45,7 @@ export default function LegalFooter() {
         {LINKS.map((l, i) => (
           <span key={l.key} className="flex items-center gap-1.5">
             <Link href={l.href} className="text-muted transition-colors hover:text-ink">
-              {t(l.key)}
+              {l.ns === "Support" ? tSupport(l.key) : t(l.key)}
             </Link>
             {i < LINKS.length - 1 && (
               <span className="text-muted/40" aria-hidden>

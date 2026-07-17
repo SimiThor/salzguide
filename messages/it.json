@@ -355,6 +355,28 @@
     "sheetBody": "Trascinami in alto dalla maniglia (intero) o in basso (chiudi). Questo stesso sheet mostrerà più avanti i dettagli degli spot, i filtri e l'assistente IA – sopra la mappa.",
     "lockedLabel": "🤫 Spot segreto"
   },
+  "Support": {
+    "linkLabel": "Aiuto",
+    "title": "Ti aiutiamo",
+    "subtitle": "Qualcosa non funziona, uno spot è sbagliato, o hai una domanda? Scrivici. Siamo in due e leggiamo ogni messaggio di persona.",
+    "name": "Nome",
+    "email": "E-mail",
+    "message": "Il tuo messaggio",
+    "messagePlaceholder": "Cosa succede? Più sei preciso, più in fretta possiamo aiutarti.",
+    "submit": "Invia messaggio",
+    "sending": "Invio …",
+    "preparing": "Controllo anti-robot … 🤖",
+    "sentTitle": "Ricevuto!",
+    "sentBody": "Abbiamo il tuo messaggio e ti rispondiamo via e-mail. Di solito entro un giorno o due.",
+    "captchaUnavailable": "Il controllo di sicurezza ora non funziona. Ricarica la pagina.",
+    "privacyHint": "Usiamo i tuoi dati solo per risponderti.",
+    "error": {
+      "email": "Inserisci un indirizzo e-mail valido.",
+      "message": "Scrivici qualche parola in più.",
+      "captcha": "Conferma di non essere un robot e riprova.",
+      "generic": "Non ha funzionato. Riprova."
+    }
+  },
   "Legal": {
     "sectionTitle": "Legale",
     "imprint": "Note legali",
