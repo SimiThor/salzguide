@@ -1,6 +1,11 @@
 import { setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
-import { getAdminUsers, getLatestProGrants, getOpenSupportCount } from "@/lib/admin";
+import {
+  getAdminUsers,
+  getLatestProGrants,
+  getOpenSupportCount,
+  USER_PAGE_SIZE,
+} from "@/lib/admin";
 import AdminUserList from "@/components/admin/AdminUserList";
 
 // Nutzer-Verwaltung: sehen, suchen, Pro schenken.
@@ -18,12 +23,14 @@ export default async function AdminUsersPage({
   searchParams,
 }: {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; page?: string }>;
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const { q } = await searchParams;
-  const users = await getAdminUsers(q);
+  const { q, page } = await searchParams;
+  // Number("abc") ist NaN, Number("") ist 0 — beides fängt getAdminUsers ab und macht 1
+  // daraus. Eine erfundene Seitenzahl in der URL soll keine leere Liste erzeugen.
+  const { users, total, page: current, pages } = await getAdminUsers(q, Number(page) || 1);
   // Erst danach: die Protokollzeilen brauchen die IDs der Nutzer, die wirklich angezeigt
   // werden. Eine Abfrage für die ganze Liste, nicht eine pro Zeile.
   const grants = await getLatestProGrants(users.map((u) => u.id));
@@ -32,12 +39,18 @@ export default async function AdminUsersPage({
   const proCount = users.filter((u) => u.isPro).length;
   const paidCount = users.filter((u) => u.paidPro).length;
 
+  // Die Suche MUSS beim Blättern mitwandern, sonst springt man auf Seite 2 und die Liste
+  // zeigt plötzlich alle — man hat dann gefiltert und merkt nicht, dass es weg ist.
+  const pageHref = (p: number) =>
+    `/${locale}/admin/users?${new URLSearchParams({ ...(q ? { q } : {}), page: String(p) })}`;
+
   return (
     <div className="space-y-4 pb-12">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold text-ink">Admin · Nutzer</h1>
         <span className="text-sm text-muted">
-          {users.length} angezeigt · {proCount} mit Pro ({paidCount} bezahlt)
+          {total} {q ? "Treffer" : "Nutzer"} · {proCount} mit Pro auf dieser Seite ({paidCount}{" "}
+          bezahlt)
         </span>
       </div>
 
@@ -93,11 +106,40 @@ export default async function AdminUsersPage({
       {/* Map -> Array: Eine Map überlebt die Server/Client-Grenze nicht. */}
       <AdminUserList users={users} grants={Object.fromEntries(grants)} />
 
+      {pages > 1 && (
+        <nav className="flex items-center justify-between gap-2">
+          {/* Kein Link statt eines toten Links: Ein ausgegrauter Knopf am Rand lädt zum
+              Klicken ein und tut dann nichts. */}
+          {current > 1 ? (
+            <a
+              href={pageHref(current - 1)}
+              className="rounded-full bg-black/5 px-4 py-2 text-sm font-semibold text-ink active:scale-[0.98]"
+            >
+              ← Zurück
+            </a>
+          ) : (
+            <span />
+          )}
+          <span className="text-[13px] text-muted">
+            Seite {current} von {pages}
+          </span>
+          {current < pages ? (
+            <a
+              href={pageHref(current + 1)}
+              className="rounded-full bg-black/5 px-4 py-2 text-sm font-semibold text-ink active:scale-[0.98]"
+            >
+              Weiter →
+            </a>
+          ) : (
+            <span />
+          )}
+        </nav>
+      )}
+
       <p className="px-1 text-xs leading-relaxed text-muted">
-        Es werden höchstens 50 Nutzer gezeigt, neueste zuerst — such nach der E-Mail, wenn
-        jemand fehlt. Bezahltes Pro lässt sich hier bewusst nicht ändern: Eine Rückerstattung
-        gehört in Stripe, dann entzieht der Webhook das Pro von selbst. Die Rolle (Admin)
-        ändert man weiterhin nur direkt in der Datenbank.
+        {USER_PAGE_SIZE} pro Seite, neueste zuerst. Bezahltes Pro lässt sich hier bewusst
+        nicht ändern: Eine Rückerstattung gehört in Stripe, dann entzieht der Webhook das Pro
+        von selbst. Die Rolle (Admin) ändert man weiterhin nur direkt in der Datenbank.
       </p>
     </div>
   );
