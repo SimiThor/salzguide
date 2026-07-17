@@ -84,6 +84,61 @@ export async function getAdminUsers(q?: string): Promise<AdminUser[]> {
   return (data ?? []).map((r) => toAdminUser(r as Record<string, unknown>));
 }
 
+// ── Alt-Käufer freischalten ──────────────────────────────────────────────────
+export type ProMigrationRow = {
+  email: string;
+  note: string | null;
+  createdAt: string;
+  claimedAt: string | null;
+  claimedByEmail: string | null;
+};
+
+export type ProMigrationList = {
+  rows: ProMigrationRow[];
+  total: number;
+  claimed: number;
+  open: number;
+};
+
+/**
+ * Die Freischalt-Liste der Alt-Käufer, offene zuerst.
+ *
+ * Offene zuerst, weil das die sind, auf die man wartet — die eingelösten sind erledigt.
+ *
+ * Fehlt die Tabelle noch (Migration 0040 nicht eingespielt), gibt es eine leere Liste statt
+ * einer kaputten Seite. Die Nutzerverwaltung soll auch dann funktionieren.
+ */
+export async function getProMigrations(): Promise<ProMigrationList> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("pro_migrations")
+    .select(
+      "email, note, created_at, claimed_at, claimer:profiles!pro_migrations_claimed_by_fkey(email)",
+    )
+    // nullsFirst: die offenen (claimed_at = null) nach oben.
+    .order("claimed_at", { ascending: true, nullsFirst: true })
+    .order("email", { ascending: true })
+    .limit(500);
+  if (error) {
+    console.warn("getProMigrations übersprungen – Migration 0040 nötig?", error.message);
+    return { rows: [], total: 0, claimed: 0, open: 0 };
+  }
+
+  const rows: ProMigrationRow[] = (data ?? []).map((r) => {
+    const row = r as Record<string, unknown>;
+    const claimer = row.claimer as { email?: string } | null;
+    return {
+      email: String(row.email),
+      note: (row.note as string | null) ?? null,
+      createdAt: String(row.created_at),
+      claimedAt: (row.claimed_at as string | null) ?? null,
+      claimedByEmail: claimer?.email ?? null,
+    };
+  });
+  const claimed = rows.filter((r) => r.claimedAt).length;
+  return { rows, total: rows.length, claimed, open: rows.length - claimed };
+}
+
 // ── Support ──────────────────────────────────────────────────────────────────
 export type AdminSupportRequest = {
   id: string;
