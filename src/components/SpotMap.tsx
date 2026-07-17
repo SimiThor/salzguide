@@ -3,7 +3,7 @@
 import mapboxgl from "mapbox-gl";
 
 import "mapbox-gl/dist/mapbox-gl.css";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { RecenterControl, FullscreenControl } from "./mapControls";
 
 export type MapMarker = {
@@ -162,6 +162,8 @@ export default function SpotMap({
   mapClass?: string;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
+  // Steht das erste fertige Kartenbild? Steuert nur das Einblenden (siehe unten).
+  const [mapReady, setMapReady] = useState(false);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markerObjs = useRef<mapboxgl.Marker[]>([]);
   const hlMarker = useRef<mapboxgl.Marker | null>(null);
@@ -410,10 +412,19 @@ export default function SpotMap({
       }
       syncRouteRef.current();
     });
+    // Erst zeigen, wenn wirklich etwas zu sehen ist. Die Karte braucht JS und Kacheln,
+    // erschien also als harter Schnitt in eine Fläche, die vorher leer war. `idle`
+    // statt `load`: load feuert, sobald der Style steht, die erste Kachel aber noch
+    // fehlen kann -> man blendet Grau ein. idle heißt, das erste Bild ist fertig.
+    map.once("idle", () => setMapReady(true));
+    // Sicherheitsnetz: Bliebe `idle` je aus (tote Kacheln, kein Netz, WebGL-Zicken),
+    // wäre die Karte für immer unsichtbar. Lieber hart einblenden als gar nicht.
+    const showAnyway = setTimeout(() => setMapReady(true), 3000);
     // Klick auf die leere Karte schließt die Vorschau (Marker stoppen das Event)
     map.on("click", () => onMapClickRef.current?.());
     mapRef.current = map;
     return () => {
+      clearTimeout(showAnyway);
       stopRouteAnim();
       map.remove();
       mapRef.current = null;
@@ -560,5 +571,21 @@ export default function SpotMap({
     );
   }
 
-  return <div ref={containerRef} className={`h-full w-full ${mapClass ?? ""}`} />;
+  // Weich aufblenden statt aufpoppen. Reine CSS-Deckkraft: läuft im Compositor, kostet
+  // keinen Frame Rechenzeit und keine Mapbox-Neuzeichnung.
+  //
+  // Die Blende MUSS auf einem eigenen Wrapper sitzen. Mapbox hängt seine Klasse
+  // `mapboxgl-map` per classList.add an den Container; React fasst className nur an,
+  // wenn sich der String ändert — genau das tut ein wechselndes opacity-0/100 aber, und
+  // React schreibt dann das ganze Attribut neu und wirft Mapbox' Klasse raus. Die Karte
+  // verlor damit ihr eigenes CSS. Der Container unten bleibt deshalb unveränderlich.
+  return (
+    <div
+      className={`h-full w-full motion-safe:transition-opacity motion-safe:duration-600 motion-safe:ease-out ${
+        mapReady ? "opacity-100" : "opacity-0"
+      }`}
+    >
+      <div ref={containerRef} className={`h-full w-full ${mapClass ?? ""}`} />
+    </div>
+  );
 }

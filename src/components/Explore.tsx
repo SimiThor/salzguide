@@ -342,15 +342,31 @@ export default function Explore({
         />
       </div>
 
-      {isDesktop ? (
-        <aside className="absolute inset-y-0 left-0 z-10 flex w-[var(--sg-panel)] flex-col border-r border-black/5 bg-cream/95 backdrop-blur-xl">
-          <div className="flex-1 overflow-y-auto py-5">{panelInner}</div>
-        </aside>
-      ) : (
+      {/* Welches Panel sichtbar ist, entscheidet CSS — NICHT JavaScript.
+          Der Server kennt die Fensterbreite nicht. Hing das an einem isDesktop-State
+          (der zwangsläufig false startet), lieferte er immer das Handy-Sheet aus, der
+          Browser malte es, und erst die Hydration tauschte es gegen die Sidebar: am
+          Desktop blitzte ein 655px hohes Bottom-Sheet auf. Mit Media-Queries steht
+          schon im ERSTEN Bild das Richtige da, auf beiden Geräten, ohne Umbau.
+          Der Preis ist der Inhalt zweimal im DOM: gemessen 508 statt 335 Knoten
+          (1.52x, +173). Bezahlt wird nur DOM — die Bilder im versteckten Baum laden
+          NICHT (nachgemessen: 19 <img> im DOM, 10 geladen), weil lazy-Bilder ohne
+          Layout-Box nicht angefordert werden. Das ist es wert: sonst wäre am Desktop
+          bis zur Hydration überhaupt nichts zu sehen. MobileSheet misst seine Stufen
+          über bodyRef, also im eigenen Teilbaum, und lässt sich vom zweiten Regal im
+          DOM nicht durcheinanderbringen.
+          ACHTUNG bei vielen Spots: Das Panel rendert JEDEN Spot: bei den geplanten
+          100-200 verdoppelt sich hier eine Liste, die dann ohnehin nicht mehr am
+          Stück gehören sollte. Wer das angeht, löst beides zusammen. */}
+      <aside className="absolute inset-y-0 left-0 z-10 hidden w-[var(--sg-panel)] flex-col border-r border-black/5 bg-cream/95 backdrop-blur-xl md:flex">
+        <div className="flex-1 overflow-y-auto py-5">{panelInner}</div>
+      </aside>
+      {/* `contents`: am Handy darf der Wrapper das Layout nicht anfassen. */}
+      <div className="contents md:hidden">
         <MobileSheet hide={previewSpot != null} detents={EXPLORE_DETENTS}>
           {panelInner}
         </MobileSheet>
-      )}
+      </div>
 
       {/* Spot-Vorschau: Mobile = ziehbares Bottom-Sheet, Desktop = schwebende Karte */}
       {previewSpot &&
