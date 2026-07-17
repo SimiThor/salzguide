@@ -2,7 +2,6 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "@/i18n/navigation";
-import { createClient } from "@/lib/supabase/client";
 import {
   saveArea,
   deleteArea,
@@ -16,7 +15,7 @@ import { localeMeta } from "@/i18n/locales";
 import { hashTexts } from "@/lib/spot-hash";
 import LocationPicker from "./LocationPicker";
 import AiButton from "./AiButton";
-import { IMMUTABLE_CACHE_SECONDS } from "@/lib/storage";
+import { compressImage, uploadImage } from "@/lib/image-upload";
 
 const AREA_TARGETS = routing.locales.filter((l) => l !== "de");
 const emptyAreaTexts = (): AreaTexts => ({ name: "", subtitle: "" });
@@ -26,23 +25,6 @@ const inputCls =
 const labelCls = "mb-1 block text-[13px] font-medium text-muted";
 const sectionCls = "space-y-3 rounded-[16px] bg-white p-5 shadow-sm";
 const h2Cls = "text-[15px] font-semibold text-ink";
-
-async function fileToWebp(file: File, maxDim = 1600, quality = 0.82): Promise<Blob> {
-  const bitmap = await createImageBitmap(file);
-  const scale = Math.min(1, maxDim / Math.max(bitmap.width, bitmap.height));
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.round(bitmap.width * scale);
-  canvas.height = Math.round(bitmap.height * scale);
-  const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("canvas");
-  ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-  bitmap.close?.();
-  const blob: Blob | null = await new Promise((res) =>
-    canvas.toBlob((b) => res(b), "image/webp", quality),
-  );
-  if (!blob) throw new Error("webp");
-  return blob;
-}
 
 type FormState = {
   emoji: string;
@@ -143,14 +125,8 @@ export default function AreaForm({ initial }: { initial?: AreaEditData }) {
     setUploadingCover(true);
     setErr("");
     try {
-      const supabase = createClient();
-      const blob = await fileToWebp(file);
-      const path = `tours/area-${crypto.randomUUID()}.webp`;
-      const { error } = await supabase.storage
-        .from("spot-media")
-        .upload(path, blob, { contentType: "image/webp", upsert: false, cacheControl: IMMUTABLE_CACHE_SECONDS });
-      if (error) throw new Error(error.message);
-      set({ coverUrl: supabase.storage.from("spot-media").getPublicUrl(path).data.publicUrl });
+      const { blob } = await compressImage(file);
+      set({ coverUrl: await uploadImage(blob, "tours") });
     } catch {
       setErr("Cover-Upload hat nicht geklappt.");
     } finally {
@@ -338,12 +314,15 @@ export default function AreaForm({ initial }: { initial?: AreaEditData }) {
           parking={null}
           route={[]}
           line={[]}
-          placingParking={false}
+          placing={null}
+          waterStops={[]}
+          huts={[]}
           onSet={(which, la, ln) => {
             if (which === "spot") set({ startLat: la, startLng: ln });
           }}
           onRouteChange={() => {}}
-          onParkingPlaced={() => {}}
+          onPoiChange={() => {}}
+          onExitPlacing={() => {}}
         />
         <p className="text-[12px] text-muted">
           {form.startLat != null && form.startLng != null

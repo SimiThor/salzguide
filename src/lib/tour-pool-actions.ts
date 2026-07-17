@@ -9,6 +9,7 @@ import { localeMeta } from "@/i18n/locales";
 import { hashTexts } from "./spot-hash";
 import { stripEmDashFields } from "./em-dash";
 import { requireAdmin } from "./admin-guard";
+import { IMMUTABLE_CACHE_SECONDS } from "./storage";
 
 const POINT_TARGET_LOCALES = routing.locales.filter((l) => l !== "de");
 
@@ -568,7 +569,11 @@ export async function synthesizePointVoice(input: {
     const path = `point-${lang}-${crypto.randomUUID()}.mp3`;
     const { error } = await service.storage
       .from("tour-audio")
-      .upload(path, bytes, { contentType: "audio/mpeg", upsert: false });
+      .upload(path, bytes, {
+        contentType: "audio/mpeg",
+        upsert: false,
+        cacheControl: IMMUTABLE_CACHE_SECONDS,
+      });
     if (error) return { ok: false, error: "Upload der Stimme fehlgeschlagen." };
     // Kurzlebige Signed-URL zum sofortigen Probehören im Admin (privater Bucket).
     const { data: signed } = await service.storage

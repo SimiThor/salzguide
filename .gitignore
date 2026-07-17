@@ -45,3 +45,7 @@ yarn-error.log*
 # supabase
 /supabase/.temp
 /supabase/.branches
+
+# Rollback-Protokolle einmaliger Storage-Migrationen (enthalten konkrete Objektpfade,
+# gehören nicht ins Repo; bleiben lokal als Sicherung liegen).
+/rollback-*.json

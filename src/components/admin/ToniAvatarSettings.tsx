@@ -1,29 +1,8 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { setToniAvatarUrl } from "@/lib/admin-actions";
-import { IMMUTABLE_CACHE_SECONDS } from "@/lib/storage";
-
-// Bild client-seitig quadratisch (Center-Crop) zu WebP -> klein & rund passend.
-async function fileToSquareWebp(file: File, dim = 512, quality = 0.85): Promise<Blob> {
-  const bitmap = await createImageBitmap(file);
-  const side = Math.min(bitmap.width, bitmap.height);
-  const sx = (bitmap.width - side) / 2;
-  const sy = (bitmap.height - side) / 2;
-  const canvas = document.createElement("canvas");
-  canvas.width = dim;
-  canvas.height = dim;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("Canvas nicht verfügbar");
-  ctx.drawImage(bitmap, sx, sy, side, side, 0, 0, dim, dim);
-  bitmap.close?.();
-  const blob: Blob | null = await new Promise((res) =>
-    canvas.toBlob((b) => res(b), "image/webp", quality),
-  );
-  if (!blob) throw new Error("WebP-Konvertierung fehlgeschlagen");
-  return blob;
-}
+import { compressSquareImage, uploadImage } from "@/lib/image-upload";
 
 export default function ToniAvatarSettings({ current }: { current: string | null }) {
   const fileRef = useRef<HTMLInputElement>(null);
@@ -39,14 +18,8 @@ export default function ToniAvatarSettings({ current }: { current: string | null
     setErr(null);
     setMsg(null);
     try {
-      const blob = await fileToSquareWebp(file);
-      const supabase = createClient();
-      const path = `site/toni-${crypto.randomUUID()}.webp`;
-      const { error } = await supabase.storage
-        .from("spot-media")
-        .upload(path, blob, { contentType: "image/webp", upsert: false, cacheControl: IMMUTABLE_CACHE_SECONDS });
-      if (error) throw new Error(error.message);
-      const publicUrl = supabase.storage.from("spot-media").getPublicUrl(path).data.publicUrl;
+      const { blob } = await compressSquareImage(file);
+      const publicUrl = await uploadImage(blob, "site");
       const r = await setToniAvatarUrl(publicUrl);
       if (!r.ok) throw new Error(r.error ?? "save");
       setUrl(publicUrl);

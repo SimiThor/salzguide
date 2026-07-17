@@ -2,37 +2,18 @@
 
 import { useState } from "react";
 import { useRouter } from "@/i18n/navigation";
-import { createClient } from "@/lib/supabase/client";
 import { routing } from "@/i18n/routing";
 import { localeMeta } from "@/i18n/locales";
 import { saveLocal, deleteLocal, translateLocalRole } from "@/lib/admin-actions";
 import type { AdminLocalFull } from "@/lib/admin";
 import AiButton from "./AiButton";
-import { IMMUTABLE_CACHE_SECONDS } from "@/lib/storage";
+import { compressSquareImage, uploadImage } from "@/lib/image-upload";
 
 const LOCALES = routing.locales;
 const TARGET_LOCALES = LOCALES.filter((l) => l !== "de");
 
 const inputCls =
   "w-full rounded-[10px] bg-white px-3 py-2 text-[14px] text-ink ring-1 ring-black/[0.08] outline-none focus:ring-2 focus:ring-accent/40";
-
-// Foto clientseitig auf WebP + max. Kantenlänge verkleinern (wie AreaForm-Cover).
-async function fileToWebp(file: File, maxDim = 512, quality = 0.85): Promise<Blob> {
-  const bitmap = await createImageBitmap(file);
-  const scale = Math.min(1, maxDim / Math.max(bitmap.width, bitmap.height));
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.round(bitmap.width * scale);
-  canvas.height = Math.round(bitmap.height * scale);
-  const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("canvas");
-  ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-  bitmap.close?.();
-  const blob: Blob | null = await new Promise((res) =>
-    canvas.toBlob((b) => res(b), "image/webp", quality),
-  );
-  if (!blob) throw new Error("webp");
-  return blob;
-}
 
 function LocalForm({
   initial,
@@ -61,14 +42,9 @@ function LocalForm({
     setErr(null);
     setUploading(true);
     try {
-      const supabase = createClient();
-      const blob = await fileToWebp(file);
-      const path = `locals/local-${crypto.randomUUID()}.webp`;
-      const { error } = await supabase.storage
-        .from("spot-media")
-        .upload(path, blob, { contentType: "image/webp", upsert: false, cacheControl: IMMUTABLE_CACHE_SECONDS });
-      if (error) throw new Error(error.message);
-      setAvatarUrl(supabase.storage.from("spot-media").getPublicUrl(path).data.publicUrl);
+      // Quadratisch wie bei Gründern und Toni: Das Foto steht überall rund und klein.
+      const { blob } = await compressSquareImage(file);
+      setAvatarUrl(await uploadImage(blob, "locals"));
     } catch {
       setErr("Foto-Upload hat nicht geklappt.");
     } finally {

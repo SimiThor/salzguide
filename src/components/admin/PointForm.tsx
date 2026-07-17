@@ -23,6 +23,7 @@ const emptyPointTexts = (): PointTexts => ({ title: "", audioText: "", audioUrl:
 import LocationPicker from "./LocationPicker";
 import AiButton from "./AiButton";
 import { IMMUTABLE_CACHE_SECONDS } from "@/lib/storage";
+import { compressImage, uploadImage } from "@/lib/image-upload";
 
 // ~140 Wörter/Minute gesprochen -> grobe Sekunden-Schätzung fürs Feedback.
 const wordCount = (s: string) => (s.trim() ? s.trim().split(/\s+/).length : 0);
@@ -35,23 +36,6 @@ const labelCls = "mb-1 block text-[13px] font-medium text-muted";
 const sectionCls = "space-y-3 rounded-[16px] bg-white p-5 shadow-sm";
 const h2Cls = "text-[15px] font-semibold text-ink";
 
-// Bild clientseitig auf WebP + max. Kantenlänge verkleinern (wie AreaForm-Cover).
-async function fileToWebp(file: File, maxDim = 1600, quality = 0.82): Promise<Blob> {
-  const bitmap = await createImageBitmap(file);
-  const scale = Math.min(1, maxDim / Math.max(bitmap.width, bitmap.height));
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.round(bitmap.width * scale);
-  canvas.height = Math.round(bitmap.height * scale);
-  const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("canvas");
-  ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-  bitmap.close?.();
-  const blob: Blob | null = await new Promise((res) =>
-    canvas.toBlob((b) => res(b), "image/webp", quality),
-  );
-  if (!blob) throw new Error("webp");
-  return blob;
-}
 
 type FormState = {
   lat: number | null;
@@ -260,7 +244,11 @@ export default function PointForm({
       const path = `point-${lang}-${crypto.randomUUID()}.mp3`;
       const { error } = await supabase.storage
         .from("tour-audio")
-        .upload(path, file, { contentType: file.type || "audio/mpeg", upsert: false });
+        .upload(path, file, {
+          contentType: file.type || "audio/mpeg",
+          upsert: false,
+          cacheControl: IMMUTABLE_CACHE_SECONDS,
+        });
       if (error) throw new Error(error.message);
       setTexts(lang, { audioUrl: path });
     } catch {
@@ -270,18 +258,12 @@ export default function PointForm({
     }
   }
 
-  async function uploadImage(file: File) {
+  async function uploadPointImage(file: File) {
     setUploadingImage(true);
     setErr("");
     try {
-      const supabase = createClient();
-      const blob = await fileToWebp(file);
-      const path = `tours/point-${crypto.randomUUID()}.webp`;
-      const { error } = await supabase.storage
-        .from("spot-media")
-        .upload(path, blob, { contentType: "image/webp", upsert: false, cacheControl: IMMUTABLE_CACHE_SECONDS });
-      if (error) throw new Error(error.message);
-      set({ imageUrl: supabase.storage.from("spot-media").getPublicUrl(path).data.publicUrl });
+      const { blob } = await compressImage(file);
+      set({ imageUrl: await uploadImage(blob, "tours") });
     } catch {
       setErr("Bild-Upload hat nicht geklappt.");
     } finally {
@@ -535,7 +517,7 @@ export default function PointForm({
               disabled={uploadingImage}
               onChange={(e) => {
                 const f = e.target.files?.[0];
-                if (f) void uploadImage(f);
+                if (f) void uploadPointImage(f);
                 e.target.value = "";
               }}
             />
@@ -561,12 +543,15 @@ export default function PointForm({
           parking={null}
           route={[]}
           line={[]}
-          placingParking={false}
+          placing={null}
+          waterStops={[]}
+          huts={[]}
           onSet={(which, la, ln) => {
             if (which === "spot") set({ lat: la, lng: ln });
           }}
           onRouteChange={() => {}}
-          onParkingPlaced={() => {}}
+          onPoiChange={() => {}}
+          onExitPlacing={() => {}}
         />
         <p className="text-[12px] text-muted">
           {form.lat != null && form.lng != null

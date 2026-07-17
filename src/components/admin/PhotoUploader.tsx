@@ -21,7 +21,7 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { fileToWebp, uploadWebp } from "@/lib/image-upload";
+import { compressImage, uploadImage } from "@/lib/image-upload";
 
 // Fotos hochladen und ihre Reihenfolge per Ziehen bestimmen.
 //
@@ -144,8 +144,8 @@ export default function PhotoUploader({
     const added: string[] = [];
     try {
       for (const file of files) {
-        const { blob } = await fileToWebp(file);
-        added.push(await uploadWebp(blob));
+        const { blob } = await compressImage(file);
+        added.push(await uploadImage(blob));
       }
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Upload fehlgeschlagen");
