@@ -262,7 +262,9 @@ export default function LocationPicker({
             el.style.cssText =
               "width:20px;height:20px;border-radius:9999px;border:3px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,.45);background:#cc2924;cursor:grab";
           }
-          el.style.zIndex = "5";
+          // Einheitliche Höhen-Ordnung (oben = wichtiger): Wegpunkte 2 < Ziel 3 <
+          // Start 4 < POIs 5 < Parkplatz 6 < Spot 7. So verdeckt nichts das Wichtigere.
+          el.style.zIndex = w === "parking" ? "6" : "7";
           const m = new mapboxgl.Marker({ element: el, draggable: true })
             .setLngLat([p.lng, p.lat])
             .addTo(map);
@@ -298,7 +300,8 @@ export default function LocationPicker({
         "display:flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:9999px;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4);font-size:11px;color:#fff;cursor:grab;background:" +
         (isStart ? "#16a34a" : isEnd ? "#cc2924" : "#6b7280");
       el.textContent = isStart ? "🥾" : isEnd ? "🏁" : String(i + 1);
-      el.style.zIndex = isStart ? "4" : isEnd ? "2" : "3";
+      // Start 4 über Ziel 3 über den nummerierten Wegpunkten 2 (siehe Ordnung oben).
+      el.style.zIndex = isStart ? "4" : isEnd ? "3" : "2";
       const m = new mapboxgl.Marker({ element: el, draggable: true })
         .setLngLat([lng, lat])
         .addTo(map);
@@ -336,7 +339,8 @@ export default function LocationPicker({
         el.textContent = poiEmoji(kind, p.subtype);
         const label = poiDeLabel(kind, p.subtype);
         el.title = p.name ? `${label}: ${p.name}` : label;
-        el.style.zIndex = "3";
+        // POIs über den Routen-Markern, unter Parkplatz/Spot (siehe Ordnung oben).
+        el.style.zIndex = "5";
         const m = new mapboxgl.Marker({ element: el, draggable: true })
           .setLngLat([p.lng, p.lat])
           .addTo(map);

@@ -603,6 +603,8 @@ export default function SpotMap({
       const wrap = document.createElement("button");
       wrap.type = "button";
       wrap.className = "sg-pin sg-pin--poi";
+      // Über den Routen-Enden (🥾 z4 / 🏁 z2), unter der aktiven Auswahl (z6).
+      wrap.style.zIndex = "5";
       wrap.setAttribute("aria-label", p.name ? `${p.name} (${p.label ?? ""})`.trim() : p.label ?? emoji);
       const inner = document.createElement("span");
       inner.className = "sg-marker";
@@ -615,29 +617,46 @@ export default function SpotMap({
         // Nichts anzuzeigen -> kein leeres Popup.
         if (!p.name && !p.label) return;
         poiPopup.current?.remove();
-        // Inhalt über DOM, NICHT setHTML: der Name ist frei eingegebener Text und darf
-        // nicht als HTML interpretiert werden (XSS). textContent ist sicher.
-        const box = document.createElement("div");
-        box.className = "sg-poi-pop";
+        // iOS-Karten-Popup: getöntes Symbol + Text. Über DOM gebaut, NICHT setHTML —
+        // der Name ist frei eingegebener Text und darf nie als HTML interpretiert werden
+        // (XSS). textContent ist sicher. Die Typ-Klasse (--water/--hut/--parking) tönt
+        // den Symbolkreis, damit es mit den Admin-Farben einheitlich ist.
+        const card = document.createElement("div");
+        card.className = `sg-poi-card sg-poi-card--${p.kind}`;
+        const ic = document.createElement("span");
+        ic.className = "sg-poi-card__icon";
+        ic.textContent = emoji;
+        ic.setAttribute("aria-hidden", "true");
+        card.appendChild(ic);
+        const txt = document.createElement("span");
+        txt.className = "sg-poi-card__text";
+        // Mit Name: Name führt (fett), Gattung darunter dezent. Ohne Name: Gattung führt.
         if (p.name) {
-          const t = document.createElement("span");
-          t.className = "sg-poi-pop__name";
-          t.textContent = p.name;
-          box.appendChild(t);
+          const n = document.createElement("span");
+          n.className = "sg-poi-card__name";
+          n.textContent = p.name;
+          txt.appendChild(n);
+          if (p.label) {
+            const s = document.createElement("span");
+            s.className = "sg-poi-card__type";
+            s.textContent = p.label;
+            txt.appendChild(s);
+          }
+        } else if (p.label) {
+          const n = document.createElement("span");
+          n.className = "sg-poi-card__name";
+          n.textContent = p.label;
+          txt.appendChild(n);
         }
-        if (p.label) {
-          const s = document.createElement("span");
-          s.className = "sg-poi-pop__sub";
-          s.textContent = p.label;
-          box.appendChild(s);
-        }
+        card.appendChild(txt);
         poiPopup.current = new mapboxgl.Popup({
           closeButton: false,
-          offset: 18,
+          offset: 16,
+          maxWidth: "260px",
           className: "sg-poi-popup",
         })
           .setLngLat([p.lng, p.lat])
-          .setDOMContent(box)
+          .setDOMContent(card)
           .addTo(map);
       });
       poiMarkers.current.push(marker);
