@@ -486,41 +486,73 @@ body {
   animation: none;
 }
 
-/* Name-Popup beim Antippen: kleines iOS-Glas-Etikett, kein Kasten-Look.
-   Zwei Zeilen möglich: Eigenname (fett) + Gattung (dezent, lokalisiert). */
+/* POI-Popup beim Antippen: eine kleine iOS-2026-Karte (Glas, weiche Schatten, 16px),
+   getöntes Symbol + Text. Einheitlich mit den Cards/Sheets der App. */
 .sg-poi-popup .mapboxgl-popup-content {
-  padding: 0.4rem 0.7rem;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: saturate(1.4) blur(8px);
-  -webkit-backdrop-filter: saturate(1.4) blur(8px);
-  box-shadow: 0 6px 20px -8px rgba(0, 0, 0, 0.4);
-  color: #111;
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  padding: 0;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.86);
+  backdrop-filter: saturate(1.8) blur(20px);
+  -webkit-backdrop-filter: saturate(1.8) blur(20px);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.06),
+    0 12px 32px -12px rgba(0, 0, 0, 0.32);
+  border: 0.5px solid rgba(0, 0, 0, 0.05);
+  overflow: hidden;
 }
+/* Mapbox-Standard-Tail passend zum Glas einfärben (dezent). */
 .sg-poi-popup .mapboxgl-popup-tip {
-  border-top-color: rgba(255, 255, 255, 0.92);
-  border-bottom-color: rgba(255, 255, 255, 0.92);
+  border-top-color: rgba(255, 255, 255, 0.86) !important;
+  border-bottom-color: rgba(255, 255, 255, 0.86) !important;
 }
-.sg-poi-pop {
+.sg-poi-card {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.7rem 0.5rem 0.5rem;
+  min-height: 2.75rem; /* bequemes Antippen (Mobile) */
+}
+/* Symbolkreis, je Typ dezent getönt (gleiche Farben wie im Admin -> einheitlich). */
+.sg-poi-card__icon {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 9999px;
+  font-size: 1.05rem;
+  line-height: 1;
+  background: rgba(0, 0, 0, 0.05);
+}
+.sg-poi-card--water .sg-poi-card__icon {
+  background: rgba(14, 165, 233, 0.14);
+}
+.sg-poi-card--hut .sg-poi-card__icon {
+  background: rgba(180, 83, 9, 0.14);
+}
+.sg-poi-card--parking .sg-poi-card__icon {
+  background: rgba(37, 99, 235, 0.14);
+}
+.sg-poi-card__text {
   display: flex;
   flex-direction: column;
+  min-width: 0; /* erlaubt Umbruch/Ellipse statt Überlauf */
   line-height: 1.25;
+  padding-right: 0.15rem;
 }
-.sg-poi-pop__name {
-  font-size: 0.85rem;
-  font-weight: 700;
+.sg-poi-card__name {
+  font-size: 0.95rem;
+  font-weight: 650;
+  color: #111;
+  letter-spacing: -0.01em;
 }
-/* Steht ein Name darüber, ist die Gattung nur Beiwerk (kleiner, gedämpft). */
-.sg-poi-pop__sub {
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: var(--color-muted, #6c5b57);
-}
-.sg-poi-pop__name + .sg-poi-pop__sub {
-  font-size: 0.72rem;
+/* Gattung nur als Beiwerk, wenn ein Name darüber steht. */
+.sg-poi-card__type {
+  margin-top: 0.05rem;
+  font-size: 0.8rem;
   font-weight: 500;
-  opacity: 0.85;
+  color: var(--color-muted, #6c5b57);
 }
 
 @media (prefers-reduced-motion: reduce) {
