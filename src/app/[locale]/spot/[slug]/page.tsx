@@ -16,6 +16,8 @@ import QuickFacts, { type Fact } from "@/components/QuickFacts";
 import SaveButton from "@/components/SaveButton";
 import SpotCard from "@/components/SpotCard";
 import SpotDetailMap from "@/components/SpotDetailMap";
+import type { SpotPoi } from "@/components/SpotMap";
+import { poiLabelKey } from "@/lib/poi";
 import SpotWeather from "@/components/SpotWeather";
 import SpotOpeningHours from "@/components/SpotOpeningHours";
 import SpotWaterTemp from "@/components/SpotWaterTemp";
@@ -214,6 +216,20 @@ export default async function SpotPage({
       : mainPoint;
   const transitDest = mainPoint;
 
+  // Zusatzpunkte für die Karte: Wasserstellen, Hütten und (als Pin) der Parkplatz.
+  // Bei gesperrten Pro-Spots sind waterStops/huts serverseitig leer -> kein Leak.
+  // Das Gattungs-Label ("Trinkbrunnen" …) wird HIER in der Sprache des Nutzers berechnet
+  // (t("poi.<key>")), der freie Name bleibt sprachneutral.
+  const poiLabel = (kind: "water" | "hut" | "parking", subtype?: string) =>
+    t(`poi.${poiLabelKey(kind, subtype)}`);
+  const mapPois: SpotPoi[] = [
+    ...spot.waterStops.map((p) => ({ ...p, kind: "water" as const, label: poiLabel("water", p.subtype) })),
+    ...spot.huts.map((p) => ({ ...p, kind: "hut" as const, label: poiLabel("hut", p.subtype) })),
+    ...(spot.parkingLat != null && spot.parkingLng != null
+      ? [{ lng: spot.parkingLng, lat: spot.parkingLat, kind: "parking" as const, label: poiLabel("parking") }]
+      : []),
+  ];
+
   // Anfahrts-Modi anhand des Zugangs-Felds: „auto" -> kein Öffi-Button, „oeffis" ->
   // kein Auto-Button; „beides"/leer -> beide. Damit keine irreführende/leere Anzeige.
   const showCar = spot.access !== "oeffis" && carDest != null;
@@ -337,6 +353,7 @@ export default async function SpotPage({
                     slug: spot.slug,
                   }
             }
+            poi={mapPois}
             center={mainPoint ? [mainPoint[1], mainPoint[0]] : undefined}
             title={spot.title}
           />

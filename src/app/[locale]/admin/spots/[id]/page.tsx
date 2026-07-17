@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getCategoriesAll, getLocalsAll, getSpotForEdit } from "@/lib/admin";
 import type { SpotInput } from "@/lib/admin-actions";
 import { normalizeManual, emptyManualWeek } from "@/lib/opening-hours";
+import { parsePois } from "@/lib/geo";
 import SpotForm from "@/components/admin/SpotForm";
 import BackButton from "@/components/BackButton";
 
@@ -61,6 +62,8 @@ export default async function EditSpotPage({
     lng: numOrNull(s.lng),
     parkingLat: numOrNull(s.parking_lat),
     parkingLng: numOrNull(s.parking_lng),
+    waterStops: parsePois(s.water_stops),
+    huts: parsePois(s.huts),
     routePoints: waypoints,
     routeSnapped: snappedCoords,
     elevationProfile: (s.elevation_profile as SpotInput["elevationProfile"]) ?? null,

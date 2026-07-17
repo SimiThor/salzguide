@@ -205,6 +205,17 @@
     "empty": "Ainda não há spots para esta estação."
   },
   "Detail": {
+    "poi": {
+      "parking": "Estacionamento",
+      "water": "Ponto de água",
+      "waterFountain": "Bebedouro",
+      "waterSpring": "Nascente",
+      "waterStream": "Ribeiro",
+      "hut": "Refúgio de montanha",
+      "hutStaffed": "Refúgio com serviço",
+      "hutSelf": "Refúgio de autosserviço",
+      "hutShelter": "Abrigo"
+    },
     "save": "Guardar",
     "back": "Voltar ao mapa",
     "view": "Ver",

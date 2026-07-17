@@ -205,6 +205,17 @@
     "empty": "Todavía no hay lugares para esta temporada."
   },
   "Detail": {
+    "poi": {
+      "parking": "Aparcamiento",
+      "water": "Punto de agua",
+      "waterFountain": "Fuente de agua potable",
+      "waterSpring": "Manantial",
+      "waterStream": "Arroyo",
+      "hut": "Refugio de montaña",
+      "hutStaffed": "Refugio con servicio",
+      "hutSelf": "Refugio de autoservicio",
+      "hutShelter": "Refugio"
+    },
     "save": "Guardar",
     "back": "Volver al mapa",
     "view": "Ver",

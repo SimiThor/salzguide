@@ -205,6 +205,17 @@
     "empty": "No spots for this season yet."
   },
   "Detail": {
+    "poi": {
+      "parking": "Parking",
+      "water": "Water source",
+      "waterFountain": "Drinking fountain",
+      "waterSpring": "Spring",
+      "waterStream": "Stream",
+      "hut": "Mountain hut",
+      "hutStaffed": "Staffed hut",
+      "hutSelf": "Self-catering hut",
+      "hutShelter": "Shelter"
+    },
     "save": "Save",
     "back": "Back to map",
     "view": "View",

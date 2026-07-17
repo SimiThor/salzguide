@@ -477,6 +477,52 @@ body {
     0 0 0 4px rgba(204, 41, 36, 0.16);
 }
 
+/* Zusatzpunkte (Wasser/Hütte/Parkplatz): etwas kleiner als der Haupt-Pin, damit sie den
+   Spot begleiten statt mit ihm zu konkurrieren. Kein „Drop-in" — sie sind Beiwerk. */
+.sg-pin--poi .sg-marker {
+  width: 1.9rem;
+  height: 1.9rem;
+  font-size: 1rem;
+  animation: none;
+}
+
+/* Name-Popup beim Antippen: kleines iOS-Glas-Etikett, kein Kasten-Look.
+   Zwei Zeilen möglich: Eigenname (fett) + Gattung (dezent, lokalisiert). */
+.sg-poi-popup .mapboxgl-popup-content {
+  padding: 0.4rem 0.7rem;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: saturate(1.4) blur(8px);
+  -webkit-backdrop-filter: saturate(1.4) blur(8px);
+  box-shadow: 0 6px 20px -8px rgba(0, 0, 0, 0.4);
+  color: #111;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+.sg-poi-popup .mapboxgl-popup-tip {
+  border-top-color: rgba(255, 255, 255, 0.92);
+  border-bottom-color: rgba(255, 255, 255, 0.92);
+}
+.sg-poi-pop {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+.sg-poi-pop__name {
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+/* Steht ein Name darüber, ist die Gattung nur Beiwerk (kleiner, gedämpft). */
+.sg-poi-pop__sub {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-muted, #6c5b57);
+}
+.sg-poi-pop__name + .sg-poi-pop__sub {
+  font-size: 0.72rem;
+  font-weight: 500;
+  opacity: 0.85;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .sg-marker {
     animation: none;

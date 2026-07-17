@@ -205,6 +205,17 @@
     "empty": "Pas encore de spots pour cette saison."
   },
   "Detail": {
+    "poi": {
+      "parking": "Parking",
+      "water": "Point d'eau",
+      "waterFountain": "Fontaine à boire",
+      "waterSpring": "Source",
+      "waterStream": "Ruisseau",
+      "hut": "Refuge",
+      "hutStaffed": "Refuge gardé",
+      "hutSelf": "Refuge non gardé",
+      "hutShelter": "Abri"
+    },
     "save": "Enregistrer",
     "back": "Retour à la carte",
     "view": "Voir",

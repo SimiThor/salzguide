@@ -2,6 +2,7 @@ import { cache } from "react";
 import { createClient } from "./supabase/server";
 import { createServiceClient } from "./supabase/service";
 import type { ElevationProfile } from "./admin-actions";
+import { parsePois, type MapPoi } from "./geo";
 
 // Darf der aktuelle Betrachter Pro-Inhalte sehen? (eingeloggter Pro-User ODER Admin)
 // Wird server-seitig ermittelt und ist die AUTORITATIVE Gate-Entscheidung für das
@@ -382,6 +383,9 @@ export type SpotDetail = {
   parkingLng: number | null;
   transitLat: number | null;
   transitLng: number | null;
+  // Zusätzliche Karten-Punkte (Wasserstellen, Hütten) mit optionalem Namen.
+  waterStops: MapPoi[];
+  huts: MapPoi[];
   difficulty: string | null;
   bestSeason: string | null;
   access: "oeffis" | "auto" | "beides" | null;
@@ -421,7 +425,7 @@ export const getSpotDetail = cache(async function getSpotDetail(
   // sensiblen Felder werden unten bei `locked` autoritativ genullt (kein Leak).
   const supabase = createServiceClient();
   const select =
-    "slug, type, subtype, emoji, is_pro, duration, lat, lng, parking_lat, parking_lng, transit_lat, transit_lng, route_geojson, elevation_profile, difficulty, best_season, access, price_level, area, fame, has_opening_hours, phone, website_url, ticket_url, ticket_partner, lake_name, google_place_id, video_url, video_poster_url, media(url, role, sort_order, blur_url), local:locals(id, name, role, avatar_url), spot_translations!inner(title, short_desc, general, insider_tip, section_a, section_b, location_text, insider_author, lang)";
+    "slug, type, subtype, emoji, is_pro, duration, lat, lng, parking_lat, parking_lng, transit_lat, transit_lng, water_stops, huts, route_geojson, elevation_profile, difficulty, best_season, access, price_level, area, fame, has_opening_hours, phone, website_url, ticket_url, ticket_partner, lake_name, google_place_id, video_url, video_poster_url, media(url, role, sort_order, blur_url), local:locals(id, name, role, avatar_url), spot_translations!inner(title, short_desc, general, insider_tip, section_a, section_b, location_text, insider_author, lang)";
 
   const run = (lang: string) =>
     supabase
@@ -499,6 +503,9 @@ export const getSpotDetail = cache(async function getSpotDetail(
       parkingLng: null,
       transitLat: null,
       transitLng: null,
+      // Standorte eines gesperrten Pro-Spots bleiben geheim -> keine Punkte ausliefern.
+      waterStops: [],
+      huts: [],
       difficulty: null,
       bestSeason: null,
       access: null,
@@ -546,6 +553,8 @@ export const getSpotDetail = cache(async function getSpotDetail(
     parkingLng: data.parking_lng,
     transitLat: data.transit_lat,
     transitLng: data.transit_lng,
+    waterStops: parsePois(data.water_stops),
+    huts: parsePois(data.huts),
     difficulty: data.difficulty,
     bestSeason: data.best_season,
     access: data.access,

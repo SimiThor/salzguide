@@ -205,6 +205,17 @@
     "empty": "Ancora nessuno spot per questa stagione."
   },
   "Detail": {
+    "poi": {
+      "parking": "Parcheggio",
+      "water": "Punto acqua",
+      "waterFountain": "Fontanella",
+      "waterSpring": "Sorgente",
+      "waterStream": "Ruscello",
+      "hut": "Rifugio",
+      "hutStaffed": "Rifugio gestito",
+      "hutSelf": "Rifugio self-service",
+      "hutShelter": "Riparo"
+    },
     "save": "Salva",
     "back": "Torna alla mappa",
     "view": "Vedi",

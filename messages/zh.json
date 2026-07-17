@@ -205,6 +205,17 @@
     "empty": "本季还没有地点。"
   },
   "Detail": {
+    "poi": {
+      "parking": "停车场",
+      "water": "取水点",
+      "waterFountain": "饮水器",
+      "waterSpring": "山泉",
+      "waterStream": "溪流",
+      "hut": "山间小屋",
+      "hutStaffed": "有人值守小屋",
+      "hutSelf": "自助小屋",
+      "hutShelter": "避难小屋"
+    },
     "save": "收藏",
     "back": "返回地图",
     "view": "查看",
