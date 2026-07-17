@@ -105,32 +105,47 @@ export default async function AdminUsersPage({
         </span>
       </Link>
 
-      {/* Nur zeigen, solange es die Liste gibt: Nach dem Umzug ist das erledigt, und eine
-          Kachel mit „0 von 0" wäre dann für immer Ballast. */}
-      {migration.total > 0 && (
-        <Link
-          href="/admin/users/migration"
-          className="flex items-center gap-4 rounded-[18px] bg-white p-5 shadow-sm ring-1 ring-black/5 transition hover:ring-black/15 active:scale-[0.995]"
-        >
-          <span className="text-[22px]" aria-hidden>
-            📦
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="flex flex-wrap items-center gap-2">
-              <span className="text-[17px] font-bold text-ink">Alt-Käufer freischalten</span>
+      {/* IMMER zeigen, auch bei leerer Liste.
+          Vorher stand hier `migration.total > 0 &&` — mit der Absicht, dass die Kachel nach
+          dem Umzug nicht für immer als „0 von 0" herumsteht. Das war eine Sackgasse: Um
+          Adressen einzutragen, braucht man die Seite; um die Seite zu finden, die Kachel; um
+          die Kachel zu sehen, Adressen. Anton stand davor und fand den Einstieg nicht.
+          Ein Einstieg, der von den Daten abhängt, die man nur über ihn anlegen kann, ist
+          immer eine Falle. Statt der Kachel geht jetzt der TEXT mit. */}
+      <Link
+        href="/admin/users/migration"
+        className="flex items-center gap-4 rounded-[18px] bg-white p-5 shadow-sm ring-1 ring-black/5 transition hover:ring-black/15 active:scale-[0.995]"
+      >
+        <span className="text-[22px]" aria-hidden>
+          📦
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="flex flex-wrap items-center gap-2">
+            <span className="text-[17px] font-bold text-ink">Alt-Käufer freischalten</span>
+            {migration.total === 0 ? (
               <span className="rounded-full bg-black/5 px-2 py-0.5 text-[11px] font-semibold text-muted">
+                noch nichts eingetragen
+              </span>
+            ) : migration.open > 0 ? (
+              <span className="rounded-full bg-accent/10 px-2 py-0.5 text-[11px] font-bold text-accent">
                 {migration.claimed} von {migration.total} angemeldet
               </span>
-            </span>
-            <span className="mt-1 block text-[13px] leading-relaxed text-muted">
-              Käufer von der alten WordPress-Seite. Pro kommt automatisch bei ihrer Anmeldung.
-            </span>
+            ) : (
+              <span className="rounded-full bg-black/5 px-2 py-0.5 text-[11px] font-semibold text-muted">
+                alle {migration.total} angemeldet
+              </span>
+            )}
           </span>
-          <span className="shrink-0 text-[18px] text-muted" aria-hidden>
-            ›
+          <span className="mt-1 block text-[13px] leading-relaxed text-muted">
+            {migration.total === 0
+              ? "E-Mail-Adressen der Käufer von der alten WordPress-Seite hier eintragen."
+              : "Käufer von der alten WordPress-Seite. Pro kommt automatisch bei ihrer Anmeldung."}
           </span>
-        </Link>
-      )}
+        </span>
+        <span className="shrink-0 text-[18px] text-muted" aria-hidden>
+          ›
+        </span>
+      </Link>
 
       {/* Map -> Array: Eine Map überlebt die Server/Client-Grenze nicht. */}
       <AdminUserList users={users} grants={Object.fromEntries(grants)} />
