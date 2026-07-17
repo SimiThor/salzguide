@@ -55,7 +55,14 @@ function renderInline(
         nodes.push(label);
       }
     } else if (m[3] !== undefined) {
-      nodes.push(<strong key={`${keyPrefix}-b${i}`}>{m[3]}</strong>);
+      // Fett kann selbst einen Link enthalten (das Modell hebt die Top-Empfehlung gern
+      // als **[Titel](/spot/slug)** hervor). Ohne diese Rekursion schluckt der Fett-Zweig
+      // den Link und [Titel](/spot/slug) stünde roh im Chat-Text.
+      nodes.push(
+        <strong key={`${keyPrefix}-b${i}`}>
+          {renderInline(m[3], `${keyPrefix}-b${i}`, onNavigate)}
+        </strong>,
+      );
     }
     last = regex.lastIndex;
     i++;
