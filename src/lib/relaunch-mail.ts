@@ -1,6 +1,5 @@
 import "server-only";
 import { createServiceClient } from "./supabase/service";
-import { siteUrl } from "./site-url";
 import { getSpotCount } from "./spots";
 
 // Die Umzugs-Mail an die Alt-Käufer: Texte aus dem Admin, Gestaltung aus dem Code.
@@ -165,25 +164,30 @@ const WASH_LINE = "#f5d4d3";
 /**
  * Die Verabschiedung. Ein Mensch, kein Absender-Block.
  *
- * Hier stand LEGAL.company ("Anton Steiner"). Das ist die Zeile aus dem Impressum, und
+ * Hier stand zuerst LEGAL.company ("Anton Steiner"), also die Zeile aus dem Impressum, und
  * genau so las sie sich auch: als Rechtstext am Ende einer Mail, die vorher wie ein Kumpel
  * klingt. Bei einer Marke, die auf "zwei echte Locals" gebaut ist, unterschreibt ein
  * Mensch, keine Firma.
  *
- * Der Absender bleibt erkennbar: Die Mail kommt von EMAIL_FROM, geht mit replyTo an
- * LEGAL.email zurück, und "SalzGuide" verlinkt auf die Seite mit dem Impressum. Nur eben
- * ohne dass die Firmenzeile die Verabschiedung spielt.
+ * Danach stand hier "Anton von SalzGuide", aber mit dem Wort SalzGuide wieder als Logo
+ * gesetzt: rot, fett, verlinkt. Damit war es keine Verabschiedung mehr, sondern eine
+ * Absenderzeile mit einem Vornamen davor. Eine Unterschrift wird nicht gebrandet. Also:
+ * schlichter Text, ein Zug mit der Feder, fertig.
+ *
+ * Der Absender bleibt trotzdem erkennbar: Die Mail kommt von EMAIL_FROM, geht mit replyTo
+ * an LEGAL.email zurück, und der Knopf darüber verlinkt auf die Seite.
  */
-const SIGNOFF = "Anton von";
+const SIGNOFF = "Anton von SalzGuide";
 
 /**
  * Die HTML-Fassung. `email` ist die Adresse des Empfängers und steht in der Mail, damit
  * er sieht, WELCHE er eingeben muss. Genau da scheitert es sonst: Wer drei Adressen hat,
  * probiert die falsche und denkt, sein Pro sei weg.
  *
- * Aufbau: 🏔️ als Section-Icon, Überschrift mit dem Logo darin, Absätze mit je einem Emoji,
- * Knopf, Adress-Kachel, Fusszeile mit dem Logo. Der Name steht damit genau zweimal, und
- * beide Male mit Aufgabe: oben als Aussage, unten als Absender.
+ * Aufbau: Überschrift mit dem Logo darin, Absätze mit je einem Emoji, Knopf, Adress-Kachel,
+ * Verabschiedung. Die Mail öffnet direkt mit der Aussage, ohne Emoji davor: Über der
+ * Überschrift stand ein 🏔️, und es nahm ihr die Bühne, statt sie anzukündigen. Die Emojis
+ * sitzen dort, wo sie etwas markieren, nämlich an den Absätzen.
  *
  * ACHTUNG beim Bearbeiten: Das hier ist ein Template-Literal, kein JSX. `{/* … *\/}` ist
  * hier KEIN Kommentar, sondern Text, der in der Mail landet. Kommentare gehören hier
@@ -207,8 +211,7 @@ export function renderRelaunchMail(texts: RelaunchMailTexts, email: string, logi
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${CREAM};padding:24px 12px;">
 <tr><td align="center">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border-radius:22px;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,Helvetica,Arial,sans-serif;">
-    <tr><td style="padding:32px 32px 8px;">
-      <p style="margin:0 0 10px;font-size:36px;line-height:1;">🏔️</p>
+    <tr><td style="padding:36px 32px 8px;">
       <h1 style="margin:0 0 20px;font-size:28px;line-height:1.25;font-weight:800;letter-spacing:-0.02em;color:${INK};">${brandify(texts.headline)}</h1>
       ${paragraphs}
     </td></tr>
@@ -230,23 +233,11 @@ export function renderRelaunchMail(texts: RelaunchMailTexts, email: string, logi
       <p style="margin:18px 0 0;font-size:13px;line-height:1.6;color:${MUTED};">
         Klappt was nicht? Antworte einfach auf diese Mail, wir lesen mit. ✌️
       </p>
-      <p style="margin:22px 0 0;font-size:15px;line-height:1.5;color:${INK};">
-        ${SIGNOFF} <a href="${esc(siteUrlSafe())}" style="font-weight:700;letter-spacing:-0.02em;color:${ACCENT};text-decoration:none;">SalzGuide</a>
-      </p>
+      <p style="margin:22px 0 0;font-size:15px;line-height:1.5;color:${INK};">${SIGNOFF}</p>
     </td></tr>
   </table>
 </td></tr></table>
 </body></html>`;
-}
-
-// siteUrl() ist server-only und wirft im Zweifel nicht — aber die Vorschau soll auch dann
-// rendern, wenn etwas fehlt.
-function siteUrlSafe(): string {
-  try {
-    return siteUrl();
-  } catch {
-    return "https://salzguide.com";
-  }
 }
 
 /** Die Reintext-Fassung. Kein Abklatsch: Sie muss für sich allein funktionieren. */
@@ -257,6 +248,6 @@ export function renderRelaunchText(texts: RelaunchMailTexts, email: string, logi
     `${texts.cta}: ${loginUrl}\n\n` +
     `Melde dich mit dieser Adresse an: ${email}\n\n` +
     `Klappt was nicht? Antworte einfach auf diese Mail.\n\n` +
-    `${SIGNOFF} SalzGuide`
+    `${SIGNOFF}`
   );
 }
