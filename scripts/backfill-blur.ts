@@ -11,7 +11,7 @@
 //                                    bleiben bestehende Vorschauen auf dem alten Stand.
 import { createClient } from "@supabase/supabase-js";
 import { readFileSync } from "node:fs";
-import { blurPreviewFor } from "../src/lib/blur-preview.ts";
+import { blurPreviewFor, prunePreviews } from "../src/lib/blur-preview.ts";
 
 // .env.local einlesen (gleiches Muster wie scripts/seed.mjs)
 const env = Object.fromEntries(
@@ -80,3 +80,12 @@ for (const row of rows) {
 console.log(`\nFertig: ${done} erzeugt, ${failed} fehlgeschlagen.`);
 // Fehlgeschlagene bleiben null -> UI fällt auf den Emoji-Platzhalter zurück und ein
 // erneuter Lauf holt sie nach. Kein harter Exit-Code, damit Teil-Erfolge zählen.
+
+// Zum Schluss aufräumen: Vorschauen, die niemand mehr ausliefert. Dasselbe läuft
+// wöchentlich im Cron (api/cron/events) — hier steht es für den Fall, dass man nicht
+// warten will, und weil man dann SIEHT, was passiert ist.
+const pruned = await prunePreviews(supabase, supabase.storage);
+console.log(
+  `Aufgeräumt: ${pruned.unlinked} Galerie-Verweis(e) geleert, ${pruned.deleted} Datei(en) gelöscht` +
+    (pruned.orphans ? ` (davon ${pruned.orphans} verwaist)` : ""),
+);
