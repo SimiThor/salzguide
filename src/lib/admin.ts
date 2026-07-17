@@ -2,6 +2,10 @@ import { createClient } from "./supabase/server";
 import { imagesFromMedia } from "./spots";
 import { routing } from "@/i18n/routing";
 import { translationStatus, type TranslationState } from "./spot-hash";
+import { HOME_KEYS, type HomeTexts } from "./home-fields";
+import { homeSourceHash, type HomeMedia } from "./home-content";
+import { parseLandingImage, parseLandingVideo } from "./landing-media";
+import deMessages from "../../messages/de.json";
 
 // Aktuellen User zurückgeben, falls Admin – sonst null.
 export async function getAdminUserId(): Promise<string | null> {
@@ -176,4 +180,166 @@ export async function getSpotForEdit(id: string) {
   );
   const images = imagesFromMedia(data.media);
   return { spot: data, de, translations, translationsSourceHash, categoryIds, images };
+}
+
+// Alle Spots, die für die Startseite ausgewählt WERDEN KÖNNEN — plus, ob sie es sind.
+//
+// 🔒 Nur freie Spots: Bei Pro-Spots verlässt das Foto den Server nie und der Titel wird
+// geschwärzt; auf der Startseite wäre so eine Karte leer. Sie gar nicht erst anzubieten
+// ist ehrlicher, als sie später kommentarlos wegzufiltern (das tut die Startseiten-
+// Abfrage zusätzlich, und ein Trigger räumt home_rank weg, wenn ein Spot auf Pro kippt).
+export type AdminHomeSpot = {
+  slug: string;
+  title: string;
+  emoji: string | null;
+  imageUrl: string | null;
+  /** Position auf der Startseite (1 = erste). null = nicht ausgewählt. */
+  homeRank: number | null;
+};
+
+// `spots` = auswählbare Spots. `migrationMissing` = die Spalte home_rank fehlt noch
+// (Migration 0035 nicht eingespielt). Das ist BEWUSST unterschieden: Beides führte sonst
+// zu einer leeren Liste, und die Oberfläche behauptete „keine Spots vorhanden" — obwohl es
+// welche gibt und in Wahrheit nur die Migration fehlt. Ein Fehler, der wie ein Datenstand
+// aussieht, kostet eine Stunde Suchen.
+export type AdminHomeFeatured = { spots: AdminHomeSpot[]; migrationMissing: boolean };
+
+export async function getHomeFeaturedAdmin(): Promise<AdminHomeFeatured> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("spots")
+    .select(
+      "slug, emoji, home_rank, spot_translations(title, lang), media(url, role, sort_order)",
+    )
+    .eq("status", "published")
+    .eq("is_pro", false)
+    .order("sort_weight", { ascending: false });
+
+  if (error) {
+    console.error("getHomeFeaturedAdmin:", error.message);
+    // PostgREST meldet eine unbekannte Spalte mit 42703.
+    const missing = error.code === "42703" || /home_rank/.test(error.message);
+    return { spots: [], migrationMissing: missing };
+  }
+
+  const spots = (data ?? []).map((s) => {
+    const trs = (s.spot_translations ?? []) as { title: string; lang: string }[];
+    return {
+      slug: s.slug as string,
+      // Admin-Oberfläche ist deutsch — Titel entsprechend, mit Slug als Notnagel.
+      title: trs.find((t) => t.lang === "de")?.title ?? trs[0]?.title ?? (s.slug as string),
+      emoji: (s.emoji as string | null) ?? null,
+      imageUrl: imagesFromMedia(s.media)[0] ?? null,
+      homeRank: (s.home_rank as number | null) ?? null,
+    };
+  });
+  return { spots, migrationMissing: false };
+}
+
+// Die Startseiten-Texte fürs Admin-Formular, plus ihr Übersetzungs-Status.
+//
+// VORBEFÜLLEN: Ist die DB-Zeile leer (Normalfall beim ersten Öffnen), kommen die Texte aus
+// messages/de.json. Anton muss also nichts abtippen: Er sieht, was live steht, ändert was
+// er will, drückt einmal Speichern, und ab dann gehört die Seite ihm. Ohne das wäre der
+// erste Kontakt mit dem Formular 40 leere Felder.
+export type AdminHomeContent = {
+  /** Deutsche Texte, aus der DB oder (falls leer) aus messages/de.json. */
+  texts: HomeTexts;
+  /** Steht schon etwas in der DB, oder ist das noch der Datei-Stand? */
+  fromDb: boolean;
+  /** Welche Sprachen übersetzt sind. */
+  translated: string[];
+  /** Übersetzungen vorhanden, aber der deutsche Text hat sich seither geändert. */
+  stale: boolean;
+  state: TranslationState;
+  /** Bilder und Video. Steht in derselben Zeile, also in derselben Abfrage. */
+  media: HomeMedia;
+  /** Die Spalte fehlt noch (Migration 0036 nicht eingespielt). */
+  migrationMissing: boolean;
+};
+
+const EMPTY_MEDIA: HomeMedia = {
+  heroPortrait: null,
+  heroLandscape: null,
+  explainerVideo: null,
+  antonPhoto: null,
+  simonPhoto: null,
+};
+
+export async function getHomeContentAdmin(): Promise<AdminHomeContent> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("home_content")
+    .select("texts, translations, source_hash, media")
+    .eq("id", 1)
+    .maybeSingle();
+
+  const fileTexts: HomeTexts = Object.fromEntries(
+    HOME_KEYS.map((k) => [k, (deMessages as { Home?: Record<string, string> }).Home?.[k] ?? ""]),
+  );
+
+  if (error) {
+    console.error("getHomeContentAdmin:", error.message);
+    // PostgREST meldet eine unbekannte Tabelle/Spalte mit 42P01 bzw. 42703.
+    const missing =
+      error.code === "42P01" || error.code === "42703" || /home_content/.test(error.message);
+    return {
+      texts: fileTexts,
+      fromDb: false,
+      translated: [],
+      stale: false,
+      state: "none",
+      media: EMPTY_MEDIA,
+      migrationMissing: missing,
+    };
+  }
+
+  const dbTexts = (data?.texts ?? {}) as HomeTexts;
+  const fromDb = Object.values(dbTexts).some((v) => typeof v === "string" && v.trim());
+  const texts = fromDb ? { ...fileTexts, ...dbTexts } : fileTexts;
+
+  const translations = (data?.translations ?? {}) as Record<string, HomeTexts>;
+  const targets = routing.locales.filter((l) => l !== "de");
+  const translated = targets.filter((l) => Object.values(translations[l] ?? {}).some((v) => v?.trim()));
+
+  // Veraltet: Es gibt Übersetzungen, aber sie wurden zu einem ANDEREN deutschen Stand
+  // gemacht. Gleiche Mechanik wie bei Spots und Events (spot-hash.ts).
+  const stale =
+    translated.length > 0 && !!data?.source_hash && data.source_hash !== homeSourceHash(texts);
+
+  const state: TranslationState =
+    translated.length === 0
+      ? "none"
+      : translated.length < targets.length
+        ? "partial"
+        : stale
+          ? "stale"
+          : "complete";
+
+  // Geprüft wie im Lesepfad: Das Formular soll denselben Stand zeigen wie die Startseite,
+  // nicht den rohen DB-Inhalt. Sonst sähe im Admin ein Bild gültig aus, das auf der Seite
+  // gar nicht erscheint.
+  const m = (data?.media ?? {}) as Record<string, unknown>;
+  const media: HomeMedia = {
+    heroPortrait: parseLandingImage(m.heroPortrait),
+    heroLandscape: parseLandingImage(m.heroLandscape),
+    explainerVideo: parseLandingVideo(m.explainerVideo),
+    antonPhoto: parseLandingImage(m.antonPhoto),
+    simonPhoto: parseLandingImage(m.simonPhoto),
+  };
+
+  return { texts, fromDb, translated, stale, state, media, migrationMissing: false };
+}
+
+/**
+ * Nur der Übersetzungs-Status der Startseite, für den Verweis in den Einstellungen.
+ *
+ * Baut bewusst auf getHomeContentAdmin auf, statt die Veraltet-Rechnung ein zweites Mal
+ * hinzuschreiben: Zwei Kopien driften auseinander, und dann sagt die Kachel „aktuell",
+ * während das Formular „veraltet" zeigt. Die eine Abfrage mehr kostet auf einer
+ * Admin-Seite nichts.
+ */
+export async function getHomeStatus(): Promise<{ state: TranslationState }> {
+  const { state } = await getHomeContentAdmin();
+  return { state };
 }

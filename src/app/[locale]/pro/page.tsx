@@ -1,9 +1,27 @@
+import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getProPrice, formatProPrice } from "@/lib/pro";
+import { alternatesFor } from "@/lib/metadata";
 import ProLanding from "@/components/ProLanding";
 import { ProWordmark } from "@/components/ProBadge";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  // Nicht Pro.title nehmen: das ist „SalzGuide" und würde mit dem Titel-Template aus dem
+  // Layout zu „SalzGuide · SalzGuide". Seiten-Titel leben im Meta-Namespace.
+  const t = await getTranslations({ locale, namespace: "Meta" });
+  return {
+    title: t("proTitle"),
+    description: t("proDescription"),
+    alternates: alternatesFor(locale, "/pro"),
+  };
+}
 
 // Dedizierte, conversion-starke Pro-Kaufseite. Ziel aller „Freischalten"-CTAs (Pro-Spots,
 // Touren, Chat) -> hier landet der User, NICHT auf der Login-/Profilseite. Das Angebot ist
@@ -43,7 +61,7 @@ export default async function ProPage({
             {t("successBody")}
           </p>
           <Link
-            href="/"
+            href="/explore"
             className="mt-6 inline-block rounded-full bg-accent px-6 py-3 text-[15px] font-semibold text-white active:scale-[0.98]"
           >
             {t("exploreCta")}
@@ -61,7 +79,7 @@ export default async function ProPage({
           <ProWordmark name={t("title")} className="text-[15px]" />
           <p className="mt-4 text-[17px] font-semibold text-ink">{t("alreadyPro")}</p>
           <Link
-            href="/"
+            href="/explore"
             className="mt-6 inline-block rounded-full bg-accent px-6 py-3 text-[15px] font-semibold text-white active:scale-[0.98]"
           >
             {t("exploreCta")}

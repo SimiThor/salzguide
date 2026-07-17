@@ -9,7 +9,7 @@ import { ChevronLeft } from "@/components/icons";
 // verlässt nie versehentlich die App. Positionierung via className (z.B. absolut
 // über einem Hero, sonst in-flow oben links).
 export default function BackButton({
-  fallbackHref = "/",
+  fallbackHref = "/explore",
   label = "Zurück",
   className = "",
 }: {

@@ -114,14 +114,24 @@ export function classifySource(
   return host.replace(/^www\./, "");
 }
 
+// Sprach-Präfix aus der ZENTRALEN Config, nicht handgepflegt: hier stand bis 07/2026
+// /^\/(de|en)/ — die sieben anderen Sprachen aus locales.ts fehlten, ihre Aufrufe
+// landeten also allesamt unerkannt in kind:"other".
+const LOCALE_PREFIX = new RegExp(`^/(${LOCALE_CODES.join("|")})(?=/|$)`);
+
 // Pfad (mit optionalem /{locale}-Präfix) -> { kind, target }. /admin wird NICHT
 // getrackt (Betreiber-eigene Nutzung).
 export function classifyPath(
   rawPath: string,
 ): { kind: string; target: string | null } | null {
   let p = (rawPath || "/").split("?")[0].split("#")[0];
-  p = p.replace(/^\/(de|en)(?=\/|$)/, ""); // Locale-Präfix entfernen
-  if (p === "" || p === "/") return { kind: "home", target: null };
+  p = p.replace(LOCALE_PREFIX, ""); // Locale-Präfix entfernen
+  // „landing" und „explore" statt des früheren „home": bis 07/2026 war die Wurzel die
+  // Karte, kind:"home" heisst in Altdaten also KARTEN-Aufruf. Würde die neue Startseite
+  // dieses kind erben, spleisste jede Auswertung zwei verschiedene Seiten in eine Linie.
+  // Zwei neue kinds -> die alte Serie endet sauber am Umzugstag, statt still zu kippen.
+  if (p === "" || p === "/") return { kind: "landing", target: null };
+  if (p.startsWith("/explore")) return { kind: "explore", target: null };
   if (p.startsWith("/admin")) return null; // Admin nicht tracken
   const spot = p.match(/^\/spot\/([a-z0-9-]+)\/?$/i);
   if (spot) return { kind: "spot", target: spot[1] };

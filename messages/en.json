@@ -82,7 +82,6 @@
     "save": "Save walk",
     "saving": "Saving…",
     "saveError": "Not saved",
-    "saveLogin": "Sign in to save",
     "yourRoutes": "Your walks",
     "curatedRoutes": "Curated by locals",
     "savedHint": "Saved – you'll find it here anytime.",
@@ -364,5 +363,27 @@
     "tagline": "Your digital guide to the Salzburg region.",
     "rights": "All rights reserved.",
     "deOnly": "These legal texts are only available in German; the German version is legally binding."
+  },
+  "LoginGate": {
+    "cta": "Sign up for free",
+    "hint": "With your email, no password.",
+    "reason": {
+      "default": {
+        "title": "You need an account for this",
+        "body": "Sign in quickly, then pick up right here."
+      },
+      "saveSpot": {
+        "title": "Save this spot",
+        "body": "Goes straight to your list – so you find it again when you actually want to go."
+      },
+      "saveEvent": {
+        "title": "Save this event",
+        "body": "Goes straight to your list – so the date doesn't slip past you."
+      },
+      "buildTour": {
+        "title": "Build your own route",
+        "body": "So your route is still there after you close the tab. Ready-made routes work without an account."
+      }
+    }
   }
 }

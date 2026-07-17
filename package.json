@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "i18n:check": "node scripts/i18n-check.mjs",
     "backfill:blur": "node --experimental-strip-types scripts/backfill-blur.ts"
   },
   "dependencies": {

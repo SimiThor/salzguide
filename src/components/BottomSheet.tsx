@@ -40,6 +40,13 @@ type BottomSheetProps = {
   //   die Karte bleibt scharf & bedienbar; Desktop schwebt als Karte im Kartenbereich.
   // "modal" (Default) = klassisches zentriertes Modal mit Backdrop (z. B. Demo).
   variant?: "modal" | "floating";
+  // Dieses Sheet liegt ÜBER einem anderen BottomSheet (z.B. das Login-Gate über dem
+  // offenen KI-Chat). Ohne das teilen sich beide z-[70] und der Backdrop (z-[60])
+  // bleibt UNTER dem Sheet darunter: Der dimmt dann nur die Seite, nicht das Sheet –
+  // zwei cremefarbene Flächen liegen ununterscheidbar aufeinander.
+  // Hebt Backdrop und Fläche auf 75/78 – über das normale Sheet (70), aber unter
+  // Sprachwähler (80/90) und Lightbox (100).
+  elevated?: boolean;
 };
 
 function CloseButton({ onClose }: { onClose: () => void }) {
@@ -68,8 +75,13 @@ export default function BottomSheet({
   footer,
   children,
   variant = "modal",
+  elevated = false,
 }: BottomSheetProps) {
   const floating = variant === "floating";
+  // Ebenen als ein Paar: Der Backdrop muss IMMER direkt unter der eigenen Fläche
+  // liegen, sonst dimmt er das falsche. Siehe Kommentar bei `elevated`.
+  const zBackdrop = elevated ? "z-[75]" : "z-[60]";
+  const zSheet = elevated ? "z-[78]" : "z-[70]";
   const [vh, setVh] = useState(0);
   const [isDesktop, setIsDesktop] = useState(false);
   const y = useMotionValue(2000); // Mobile-Sheet: startet off-screen
@@ -168,7 +180,7 @@ export default function BottomSheet({
         <div
           onClick={onClose}
           aria-hidden={!open}
-          className={`fixed inset-0 z-[60] bg-black/30 backdrop-blur-sm transition-opacity duration-300 ${
+          className={`fixed inset-0 ${zBackdrop} bg-black/30 backdrop-blur-sm transition-opacity duration-300 ${
             open ? "opacity-100" : "pointer-events-none opacity-0"
           }`}
         />
@@ -197,7 +209,7 @@ export default function BottomSheet({
         // ---- Desktop: zentriertes Modal ----
         <AnimatePresence>
           {open && (
-            <div className="pointer-events-none fixed inset-0 z-[70] flex items-center justify-center p-4">
+            <div className={`pointer-events-none fixed inset-0 ${zSheet} flex items-center justify-center p-4`}>
               <motion.div
                 role="dialog"
                 aria-modal="true"
@@ -222,7 +234,7 @@ export default function BottomSheet({
           dragConstraints={{ top: 0, bottom: closedY }}
           dragElastic={0.1}
           onDragEnd={handleDragEnd}
-          className={`fixed inset-x-0 bottom-0 z-[70] mx-auto flex w-full max-w-lg flex-col overflow-hidden rounded-t-[22px] bg-cream shadow-2xl ${
+          className={`fixed inset-x-0 bottom-0 ${zSheet} mx-auto flex w-full max-w-lg flex-col overflow-hidden rounded-t-[22px] bg-cream shadow-2xl ${
             open ? "" : "pointer-events-none"
           }`}
         >

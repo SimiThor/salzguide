@@ -82,7 +82,6 @@
     "save": "Ronde bewaren",
     "saving": "Bewaren…",
     "saveError": "Niet bewaard",
-    "saveLogin": "Meld je aan om te bewaren",
     "yourRoutes": "Jouw rondes",
     "curatedRoutes": "Samengesteld door locals",
     "savedHint": "Bewaard – je vindt ze hier altijd terug.",
@@ -364,5 +363,27 @@
     "tagline": "Jouw digitale gids voor het Salzburger Land.",
     "rights": "Alle rechten voorbehouden.",
     "deOnly": "Deze juridische teksten zijn alleen in het Duits beschikbaar; juridisch bindend is de Duitse versie."
+  },
+  "LoginGate": {
+    "cta": "Gratis aanmelden",
+    "hint": "Met je e-mail, zonder wachtwoord.",
+    "reason": {
+      "default": {
+        "title": "Hiervoor heb je een account nodig",
+        "body": "Even aanmelden, daarna ga je hier verder."
+      },
+      "saveSpot": {
+        "title": "Spot bewaren",
+        "body": "Belandt in je lijst – zodat je hem terugvindt als je er echt heen wilt."
+      },
+      "saveEvent": {
+        "title": "Event bewaren",
+        "body": "Belandt in je lijst – zodat de datum je niet ontglipt."
+      },
+      "buildTour": {
+        "title": "Eigen route bouwen",
+        "body": "Zodat je route er nog is als je het tabblad sluit. Kant-en-klare routes werken ook zonder."
+      }
+    }
   }
 }

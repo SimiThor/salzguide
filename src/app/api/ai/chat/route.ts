@@ -327,7 +327,9 @@ export async function POST(req: Request) {
         }
       } else {
         const LABELS: Record<string, string> = {
-          home: "der Startseite / Entdecken-Karte",
+          landing: "der Startseite (erklärt SalzGuide, noch nicht in der App)",
+          explore: "der Entdecken-Karte",
+          home: "der Entdecken-Karte", // Altbestand: vor dem Umzug 07/2026 war „/" die Karte
           events: "dem Event-Kalender",
           water: "der Wassertemperaturen-Übersicht",
           saved: "seiner Merkliste",

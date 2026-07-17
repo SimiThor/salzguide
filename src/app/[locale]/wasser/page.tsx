@@ -1,7 +1,23 @@
+import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { LAKES } from "@/lib/lakes";
 import { getWaterMaps, lookupLake, getLakeSpots } from "@/lib/water-temp";
+import { alternatesFor } from "@/lib/metadata";
 import WaterExplore, { type LakeTemp } from "@/components/WaterExplore";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "Water" });
+  return {
+    title: t("title"),
+    description: t("subtitle"),
+    alternates: alternatesFor(locale, "/wasser"),
+  };
+}
 
 export default async function WaterPage({
   params,

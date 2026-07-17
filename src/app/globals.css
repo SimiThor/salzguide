@@ -40,9 +40,22 @@ body {
    sichtbar sind (Panel = 16px px-4 + Karte + 12px gap + Karte + 12px gap + halbe Karte
    => Karte = (Panel - 40px) / 2.5) -> ein sauberer, robuster Halb-Anschnitt als klares
    "seitlich scrollbar"-Signal, bei jeder Breite. */
+/* Höhe des Top-Headers: EINE Quelle der Wahrheit.
+   Hängt an mehr Stellen als man denkt – Inhalts-Abstand (main md:pt), Offset der
+   vollflächigen Karten-Seiten (md:top), beide Header selbst und der Abstand der
+   Mapbox-Controls auf dem Handy. Als Zahl verstreut lief das beim nächsten Ändern
+   garantiert auseinander (Controls rutschen unter den Header, Inhalt darunter).
+   Mobil knapper als am Desktop: Am Handy zählt jeder Pixel Inhalt, am Desktop wirkt
+   ein zu flacher Balken gedrängt. */
 :root {
+  --sg-header-h: 60px;
   --sg-panel: 27rem; /* md (>=768): ~432px */
   --sg-card: calc((var(--sg-panel) - 40px) / 2.5);
+}
+@media (min-width: 768px) {
+  :root {
+    --sg-header-h: 72px;
+  }
 }
 @media (min-width: 1024px) {
   :root {
@@ -72,13 +85,95 @@ body {
   } /* ~384px */
 }
 
+/* ---------------------------------------------------------------------------
+   iOS-Sheet-System: EINE Quelle für Tab-Leiste, Peek-Höhe und Sheet-Bewegung.
+
+   WARUM DAS IN CSS STEHT UND NICHT IN JS:
+   Der Ruhezustand des Sheets muss schon im Server-HTML stimmen. calc() mit svh
+   und env() löst der Browser beim Parsen auf – ohne JavaScript, vor dem ersten
+   Paint. Vorher hat das Sheet seine Position aus window.innerHeight in einem
+   useEffect gerechnet, also erst NACH dem ersten Paint, und ist beim Laden
+   sichtbar hochgesprungen. Sobald eine Zahl hier nach JS abwandert, ist der
+   Sprung zurück.
+
+   svh statt vh/dvh: svh ist der Viewport MIT ausgefahrener Safari-Toolbar und
+   damit für ein Gerät konstant. vh ist der Viewport OHNE Toolbar (zu hoch, läuft
+   unten raus). dvh wandert mit der Toolbar mit, wird dabei aber gedrosselt und
+   entprellt aktualisiert (web.dev/blog/viewport-units) – ein daran hängendes
+   Sheet ruckelt der Toolbar hinterher. Die Karte ist ohnehin vollflächig, der
+   ungenutzte Streifen unter der Toolbar fällt also nicht auf.
+
+   env(safe-area-inset-*) läuft über --sg-sab/--sg-sat: eine Stelle statt
+   verstreuter env()-Aufrufe – und Tests können den Home-Indicator simulieren
+   (Chrome kennt keine echte Safe-Area, iPhone-Werte: 34px hoch/21px quer).
+
+   @property mit syntax "<length>": registrierte Custom-Properties rechnet der
+   Browser zu echten Pixeln aus. Nur deshalb kann JS die Peek-Höhe fürs
+   Karten-Padding auslesen – unregistriert liefert getComputedStyle bloß den
+   Text "calc(...)" zurück, den niemand parsen will.
+   --------------------------------------------------------------------------- */
+@property --sg-nav-h {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 0px;
+}
+@property --sg-sheet-peek {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 0px;
+}
+
+:root {
+  --sg-sab: env(safe-area-inset-bottom, 0px);
+  --sg-sat: env(safe-area-inset-top, 0px);
+
+  /* Höhe der Tab-Leiste inkl. Home-Indicator. Die Leiste RICHTET SICH nach
+     diesem Wert (BottomNav setzt height darauf) – er beschreibt sie nicht nur,
+     er bestimmt sie. Damit kann er nicht von der echten Höhe abdriften. */
+  --sg-nav-h: calc(72px + var(--sg-sab));
+
+  /* Peek = was im Ruhezustand sichtbar sein MUSS.
+     Apples Regel für eigene Detents: der zurückgegebene Wert ist eine Höhe
+     INNERHALB der Safe Area, der Home-Indicator kommt oben drauf
+     (developer.apple.com -> Detent.custom(identifier:resolver:)). Genau das
+     macht das calc(): erst der Inhalt, dann --sg-nav-h (das --sg-sab enthält).
+
+     Die 86px sind der Inhalt, der über der Tab-Leiste stehen muss:
+       Griff 26 (pt-3 12 + Griff 6 + pb-2 8) + pt-1 4 + Umschalter 40 + Luft 16.
+     Die Tab-Leiste liegt ÜBER dem Sheet (z-50 gegen z-45) und schneidet alles
+     ab, was darunter gerät – daran ist der Sommer/Winter-Umschalter am iPhone
+     hängengeblieben: 18vh Peek minus 106px Leiste ließen nur 28px übrig, der
+     Griff allein braucht schon 26. */
+  --sg-sheet-peek: calc(86px + var(--sg-nav-h));
+
+  /* Apples Sheet-Bewegung. 0.5s ist SwiftUIs eigene Standard-Dauer
+     (.smooth/.snappy = "perceptual duration"), die Kurve stammt aus Ionics
+     iOS-Modal-Animation. Sie schwingt bewusst NICHT über: ein iOS-Sheet wippt
+     nicht nach. Genau das Überschwingen einer zu weich gedämpften Feder war
+     der sichtbare Sprung beim Laden. */
+  --sg-ease-sheet: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
 /* iOS Safe-Area-Helfer (Notch / Home-Indicator) */
 @layer utilities {
   .pt-safe {
-    padding-top: env(safe-area-inset-top);
+    padding-top: var(--sg-sat);
   }
   .pb-safe {
-    padding-bottom: env(safe-area-inset-bottom);
+    padding-bottom: var(--sg-sab);
+  }
+}
+
+/* Browser-Verräter abschalten – NUR auf Bedien-Elementen (Sheet-Chrome, Leiste,
+   Umschalter), nie auf Inhalten: Spot-Beschreibungen will man markieren können.
+   Der graue Tap-Blitz und das Lupen-/Kopieren-Menü beim Langdrücken sind das,
+   woran man eine Webseite sofort erkennt.
+   Achtung: -webkit-tap-highlight-color darf nur weg, wo es eigenes
+   :active-Feedback gibt – sonst fühlen sich Taps tot an. */
+@layer utilities {
+  .sg-native-tap {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
   }
 }
 
@@ -431,6 +526,19 @@ body {
 .mapboxgl-ctrl-bottom-right {
   z-index: 10 !important;
 }
+/* Scroll-Schutzfläche ("Use ⌘ + scroll to zoom") ganz oben – der Abschluss der
+   Ebenen-Leiter: Marker (bis 6) < Standort (8) < Buttons (10) < Schutzfläche (20).
+   Mapbox gibt ihr KEINEN eigenen z-index, sie stapelte sich also nur nach
+   DOM-Reihenfolge und lag unter allem, was einen z-index hat: Die Karte war
+   abgedunkelt, Pins und Buttons leuchteten unberührt darüber.
+   Rein optisch – Mapbox setzt auf der Fläche pointer-events:none, es wird also
+   nichts unklickbar.
+   Hängt an Mapbox' eigener Klasse -> gilt automatisch für JEDE Karte, auch für
+   künftige, ohne dass jemand daran denken muss. */
+.mapboxgl-scroll-zoom-blocker,
+.mapboxgl-touch-pan-blocker {
+  z-index: 20;
+}
 /* etwas mehr Luft zum Rand */
 .mapboxgl-ctrl-top-right {
   padding: 4px 6px 0 0;
@@ -438,10 +546,12 @@ body {
 .mapboxgl-ctrl-top-left {
   padding: 4px 0 0 6px;
 }
-/* Auf dem Handy unter den App-Header rücken (Explore/Gespeichert haben mobil einen Header) */
+/* Auf dem Handy unter den App-Header rücken (Explore/Gespeichert haben mobil einen Header).
+   Aus --sg-header-h abgeleitet statt fest 64px: Die 64 waren die Header-Höhe plus 8px
+   Luft – wächst der Header, rutschten die Controls sonst darunter. */
 @media (max-width: 767px) {
   .mapboxgl-ctrl-top-right {
-    padding-top: calc(env(safe-area-inset-top) + 64px);
+    padding-top: calc(env(safe-area-inset-top) + var(--sg-header-h) + 8px);
   }
   /* Detail-Karte hat KEINEN Mobile-Header -> Controls bleiben oben-rechts */
   .sg-ctrl-top .mapboxgl-ctrl-top-right {
@@ -455,6 +565,19 @@ body {
      (Runden-Builder-Ergebnis) statt sie zu überlappen. */
   .sg-ctrl-tour .mapboxgl-ctrl-top-right {
     padding-top: calc(env(safe-area-inset-top) + 60px);
+  }
+  /* Mapbox-Logo (unten links) und Attribution (unten rechts) sind LIZENZPFLICHT und
+     müssen sichtbar bleiben: "attribution must be legible"
+     (docs.mapbox.com/help/getting-started/attribution). Auf den vollflächigen Karten
+     (Start, Wasser) liegt die App-Navigation permanent darüber, auf der Startseite
+     zusätzlich das Peek-Sheet -> beide Pflichtelemente waren komplett verdeckt
+     (gemessen: iPhone 15, Attribution y=810, Sheet ab y=692, Leiste ab y=773).
+     Wie viel Platz nötig ist, weiß nur die jeweilige Seite -> sie setzt
+     --sg-map-bottom. Ohne Angabe bleibt es bei 0: Eingebettete Karten (Detailseite)
+     werden von nichts überlagert und sollen keinen Platz verschenken. */
+  .mapboxgl-ctrl-bottom-left,
+  .mapboxgl-ctrl-bottom-right {
+    padding-bottom: var(--sg-map-bottom, 0px);
   }
 }
 

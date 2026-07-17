@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { createClient } from "./supabase/server";
 import { createServiceClient } from "./supabase/service";
 import { BRAND_VOICE } from "./brand-voice";
@@ -8,6 +9,12 @@ import { routing } from "@/i18n/routing";
 import { localeMeta } from "@/i18n/locales";
 import { hashSpotTexts, translationsPublishable } from "./spot-hash";
 import { blurPreviewFor } from "./blur-preview";
+import { stripEmDashFields } from "./em-dash";
+import { HOME_KEYS } from "./home-fields";
+import { translateHomeTextsWith } from "./home-translate";
+import { parseLandingImage, parseLandingVideo } from "./landing-media";
+import type { HomeMedia } from "./home-content";
+import { MAX_HOME_FEATURED } from "./home-featured";
 
 export type SpotInput = {
   id?: string;
@@ -783,14 +790,19 @@ ${input.notes.trim() || "- (keine)"}${
     if (!t) return { ok: false, error: "Keine Textausgabe erhalten" };
     return {
       ok: true,
-      texts: {
-        general: t.general ?? "",
-        insiderTip: t.insider_tip ?? "",
-        sectionA: t.section_a ?? "",
-        sectionB: t.section_b ?? "",
-        locationText: t.location_text ?? "",
-        shortDesc: t.short_desc ?? "",
-      },
+      // Der Prompt verbietet den Gedankenstrich, aber ein Prompt ist eine Bitte. Hier wird
+      // er zum Zwang, bevor der Text ins Formular und damit in die DB geht (em-dash.ts).
+      texts: stripEmDashFields(
+        {
+          general: t.general ?? "",
+          insiderTip: t.insider_tip ?? "",
+          sectionA: t.section_a ?? "",
+          sectionB: t.section_b ?? "",
+          locationText: t.location_text ?? "",
+          shortDesc: t.short_desc ?? "",
+        },
+        "de",
+      ),
       sources,
       searchCount,
     };
@@ -831,6 +843,7 @@ STYLE:
 - Translate the MEANING into natural English, never word-for-word.
 - Keep ALL proper nouns and place names exactly (Hochkeil, Arthurhaus, Mandlwand, Salzburg, hut/dish names …). Keep numbers and units.
 
+NEVER use em dashes (—). They are the clearest tell of AI-written text and cost us the trust this brand is built on. Write like a human types: full stop, comma, colon, or a plain hyphen. The ONLY exception is Chinese, where the doubled "——" is standard punctuation.
 STRICTLY AVOID travel-brochure clichés: "breathtaking", "hidden gem", "paradise", "a must", "magical", "stunning vista", "nestled", "picturesque", "jewel".
 
 RULES:
@@ -933,15 +946,18 @@ export async function translateSpotTexts(input: SpotTexts): Promise<TranslateRes
     const keep = (deVal: string, enVal?: string) => (deVal.trim() ? (enVal ?? "").trim() : "");
     return {
       ok: true,
-      texts: {
-        title: t.title?.trim() || input.title.trim(),
-        shortDesc: keep(input.shortDesc, t.short_desc),
-        general: keep(input.general, t.general),
-        insiderTip: keep(input.insiderTip, t.insider_tip),
-        sectionA: keep(input.sectionA, t.section_a),
-        sectionB: keep(input.sectionB, t.section_b),
-        locationText: keep(input.locationText, t.location_text),
-      },
+      texts: stripEmDashFields(
+        {
+          title: t.title?.trim() || input.title.trim(),
+          shortDesc: keep(input.shortDesc, t.short_desc),
+          general: keep(input.general, t.general),
+          insiderTip: keep(input.insiderTip, t.insider_tip),
+          sectionA: keep(input.sectionA, t.section_a),
+          sectionB: keep(input.sectionB, t.section_b),
+          locationText: keep(input.locationText, t.location_text),
+        },
+        "en",
+      ),
     };
   } catch {
     return { ok: false, error: "KI-Dienst gerade nicht erreichbar – bitte nochmal versuchen." };
@@ -961,6 +977,7 @@ STYLE:
 - Translate the MEANING into natural ${langName}, never word-for-word.
 - Keep ALL proper nouns and place names exactly (Hochkeil, Arthurhaus, Salzburg, hut/dish names …). Keep numbers and units.
 
+NEVER use em dashes (—). They are the clearest tell of AI-written text and cost us the trust this brand is built on. Write like a human types: full stop, comma, colon, or a plain hyphen. The ONLY exception is Chinese, where the doubled "——" is standard punctuation.
 STRICTLY AVOID travel-brochure clichés (the ${langName} equivalents of "breathtaking", "hidden gem", "paradise", "a must", "magical", "stunning", "nestled", "picturesque", "jewel").
 
 RULES:
@@ -1044,15 +1061,20 @@ async function translateSpotTextsTo(
     const t = block?.input;
     if (!t) return null;
     const keep = (deVal: string, val?: string) => (deVal.trim() ? (val ?? "").trim() : "");
-    return {
-      title: t.title?.trim() || input.title.trim(),
-      shortDesc: keep(input.shortDesc, t.short_desc),
-      general: keep(input.general, t.general),
-      insiderTip: keep(input.insiderTip, t.insider_tip),
-      sectionA: keep(input.sectionA, t.section_a),
-      sectionB: keep(input.sectionB, t.section_b),
-      locationText: keep(input.locationText, t.location_text),
-    };
+    // targetLocale mitgeben: Chinesisch braucht seinen Strich (破折号), er wird dort
+    // nicht gesäubert.
+    return stripEmDashFields(
+      {
+        title: t.title?.trim() || input.title.trim(),
+        shortDesc: keep(input.shortDesc, t.short_desc),
+        general: keep(input.general, t.general),
+        insiderTip: keep(input.insiderTip, t.insider_tip),
+        sectionA: keep(input.sectionA, t.section_a),
+        sectionB: keep(input.sectionB, t.section_b),
+        locationText: keep(input.locationText, t.location_text),
+      },
+      targetLocale,
+    );
   } catch {
     return null;
   }
@@ -1666,4 +1688,193 @@ export async function translateLocalRole(
   } catch {
     return { ok: false, error: "ai" };
   }
+}
+
+// Welche Spots auf der Startseite gezeigt werden, in welcher Reihenfolge.
+// `slugs` ist die gewünschte Reihenfolge; Position 1 = erste Karte.
+//
+// 🔒 Drei Dinge, die hier bewusst passieren:
+//  1. Die Rangfolge wird SERVERSEITIG aus der Array-Position vergeben (1..n), nicht vom
+//     Client übernommen. So kann kein doppelter oder krummer Rang entstehen.
+//  2. Es werden nur freie, veröffentlichte Spots akzeptiert — was der Client sonst noch
+//     schickt, fliegt raus. Bei Pro-Spots verlässt das Foto den Server nie; eine
+//     gefeaturedte Pro-Karte wäre leer oder ein Leak.
+//  3. Erst wird ALLES zurückgesetzt, dann neu gesetzt. Ohne den Reset bliebe ein
+//     abgewählter Spot mit seinem alten Rang stehen und stünde weiter auf der Startseite.
+export async function saveHomeFeatured(
+  slugs: string[],
+): Promise<{ ok: boolean; error?: string; saved?: number }> {
+  const gate = await assertAdmin();
+  if (!gate.ok) return { ok: false, error: gate.error };
+
+  if (!Array.isArray(slugs)) return { ok: false, error: "Ungültige Auswahl." };
+  if (slugs.length > MAX_HOME_FEATURED)
+    return { ok: false, error: `Höchstens ${MAX_HOME_FEATURED} Spots auf der Startseite.` };
+
+  const svc = createServiceClient();
+
+  // Nur das durchlassen, was wirklich frei und veröffentlicht ist. Der Client könnte
+  // veraltete oder manipulierte Slugs schicken.
+  const wanted = [...new Set(slugs)];
+  const { data: valid, error: checkErr } = await svc
+    .from("spots")
+    .select("slug")
+    .in("slug", wanted.length ? wanted : ["__none__"])
+    .eq("status", "published")
+    .eq("is_pro", false);
+  if (checkErr) return { ok: false, error: checkErr.message };
+
+  const allowed = new Set((valid ?? []).map((s) => s.slug as string));
+  const ordered = wanted.filter((s) => allowed.has(s));
+
+  // Alles abräumen — auch die, die gerade nicht in `wanted` stehen.
+  const { error: clearErr } = await svc
+    .from("spots")
+    .update({ home_rank: null })
+    .not("home_rank", "is", null);
+  if (clearErr) return { ok: false, error: clearErr.message };
+
+  // Neu vergeben, Position = Rang.
+  for (const [i, slug] of ordered.entries()) {
+    const { error } = await svc
+      .from("spots")
+      .update({ home_rank: i + 1 })
+      .eq("slug", slug);
+    if (error) return { ok: false, error: error.message };
+  }
+
+  // Die Startseite ist statisch gerendert -> ohne revalidate bliebe die alte Auswahl
+  // stehen, und im Admin sähe alles richtig aus. Genau die Sorte Fehler, die man erst
+  // Wochen später bemerkt.
+  for (const l of routing.locales) revalidatePath(`/${l}`);
+
+  return { ok: true, saved: ordered.length };
+}
+
+// ---------------------------------------------------------------------------
+// Startseite: Texte pflegen und übersetzen (home_content, Migration 0036)
+// ---------------------------------------------------------------------------
+
+// Deutsche Texte der Startseite speichern.
+//
+// Der source_hash wird bewusst NICHT mitgeschrieben: Er markiert den Stand, zu dem zuletzt
+// übersetzt wurde. Bleibt er stehen, während sich Deutsch ändert, weicht er ab und der
+// Admin zeigt „veraltet" — genau das ist der Sinn. Würde man ihn hier mit-aktualisieren,
+// wären die Übersetzungen für immer scheinbar aktuell.
+export async function saveHomeTexts(
+  texts: Record<string, string>,
+): Promise<{ ok: boolean; error?: string }> {
+  const gate = await assertAdmin();
+  if (!gate.ok) return { ok: false, error: gate.error };
+  if (!texts || typeof texts !== "object") return { ok: false, error: "Ungültige Texte." };
+
+  // Nur bekannte Keys durchlassen: Was der Client sonst schickt, hätte auf der Seite
+  // ohnehin keinen Platz und würde nur die Zeile aufblähen.
+  const clean: Record<string, string> = {};
+  for (const k of HOME_KEYS) {
+    const v = texts[k];
+    if (typeof v === "string") clean[k] = v.trim();
+  }
+
+  // Gedankenstrich raus, auch wenn ein Mensch getippt hat: Die Regel gilt für die Seite,
+  // nicht für ihre Herkunft (brand-voice.ts). Beim Einfügen aus einem KI-Chat käme er
+  // sonst durch die Hintertür wieder rein.
+  const cleaned = stripEmDashFields(clean, "de");
+
+  const svc = createServiceClient();
+  const { error } = await svc
+    .from("home_content")
+    .update({ texts: cleaned, updated_at: new Date().toISOString() })
+    .eq("id", 1);
+  if (error) return { ok: false, error: error.message };
+
+  // Die Startseite ist statisch gerendert -> ohne revalidate bliebe der alte Text stehen,
+  // und im Admin sähe alles richtig aus. Alle Sprachen, weil jede die deutschen Texte als
+  // Auffangnetz nutzt (siehe home-content.ts).
+  for (const l of routing.locales) revalidatePath(`/${l}`);
+  return { ok: true };
+}
+
+// „In alle Sprachen übersetzen": Deutsch -> alle Ziel-Locales, in einem Rutsch.
+// Schreibt die Übersetzungen UND den source_hash des Standes, der übersetzt wurde.
+export async function fillHomeTranslations(): Promise<{
+  ok: boolean;
+  error?: string;
+  failed?: string[];
+  rejected?: string[];
+}> {
+  const gate = await assertAdmin();
+  if (!gate.ok) return { ok: false, error: gate.error };
+
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) return { ok: false, error: "ANTHROPIC_API_KEY fehlt." };
+
+  const svc = createServiceClient();
+  const { data, error } = await svc
+    .from("home_content")
+    .select("texts")
+    .eq("id", 1)
+    .maybeSingle();
+  if (error) return { ok: false, error: error.message };
+
+  const de = (data?.texts ?? {}) as Record<string, string>;
+  if (!Object.values(de).some((v) => (v ?? "").trim()))
+    return { ok: false, error: "Erst die deutschen Texte speichern." };
+
+  const res = await translateHomeTextsWith(de, apiKey);
+  if (!res.ok || !res.translations)
+    return { ok: false, error: res.error === "empty" ? "Keine Texte." : "Übersetzung fehlgeschlagen." };
+
+  const { error: upErr } = await svc
+    .from("home_content")
+    .update({
+      translations: res.translations,
+      // Marke des Standes, der übersetzt wurde. Ändert Anton danach ein Wort, weicht sie ab.
+      source_hash: res.sourceHash,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", 1);
+  if (upErr) return { ok: false, error: upErr.message };
+
+  for (const l of routing.locales) revalidatePath(`/${l}`);
+  return { ok: true, failed: res.failed, rejected: res.rejected };
+}
+
+// Bilder und Video der Startseite speichern.
+//
+// Dieselbe Prüfung wie beim Lesen (landing-media.ts): Was hier nicht durchkommt, wird zu
+// null statt zu einer halben Zeile in der DB. Der Alt-Text läuft NICHT durch die
+// Übersetzung — er gehört zum Bild, nicht zu den Texten.
+export async function saveHomeMedia(media: HomeMedia): Promise<{ ok: boolean; error?: string }> {
+  const gate = await assertAdmin();
+  if (!gate.ok) return { ok: false, error: gate.error };
+  if (!media || typeof media !== "object") return { ok: false, error: "Ungültige Medien." };
+
+  const clean = {
+    heroPortrait: parseLandingImage(media.heroPortrait),
+    heroLandscape: parseLandingImage(media.heroLandscape),
+    explainerVideo: parseLandingVideo(media.explainerVideo),
+    antonPhoto: parseLandingImage(media.antonPhoto),
+    simonPhoto: parseLandingImage(media.simonPhoto),
+  };
+
+  // Ein Bild, das der Client geschickt hat und das die Prüfung NICHT überlebt, wäre sonst
+  // still weg: Anton lädt hoch, sieht die Vorschau, drückt Speichern, und die Seite bleibt
+  // leer. Also sagen, welcher Slot es war.
+  const lost = (Object.keys(clean) as (keyof HomeMedia)[]).filter((k) => media[k] && !clean[k]);
+  if (lost.length)
+    return {
+      ok: false,
+      error: `Nicht gespeichert: ${lost.join(", ")} hat keine gültige Datei aus unserem Speicher. Bitte neu hochladen.`,
+    };
+
+  const svc = createServiceClient();
+  const { error } = await svc
+    .from("home_content")
+    .update({ media: clean, updated_at: new Date().toISOString() })
+    .eq("id", 1);
+  if (error) return { ok: false, error: error.message };
+
+  for (const l of routing.locales) revalidatePath(`/${l}`);
+  return { ok: true };
 }

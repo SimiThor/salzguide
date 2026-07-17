@@ -8,6 +8,7 @@ import { TAG_KEYS } from "./tour-tags";
 import { routing } from "@/i18n/routing";
 import { localeMeta } from "@/i18n/locales";
 import { hashTexts } from "./spot-hash";
+import { stripEmDashFields } from "./em-dash";
 
 const POINT_TARGET_LOCALES = routing.locales.filter((l) => l !== "de");
 
@@ -600,7 +601,7 @@ export async function translatePointAudioText(input: {
   if (!gate.ok) return { ok: false, error: gate.error };
   if (!input.textDe.trim()) return { ok: false, error: "Kein deutscher Text zum Übersetzen." };
 
-  const system = `You translate a spoken audio-tour narration from German to English for SalzGuide. Keep the SAME casual young-local vibe (like a friend telling you something cool on the spot), the same length (~90–120 seconds spoken), short spoken sentences, "you" form. Avoid museum/brochure tone and clichés (breathtaking, hidden gem, must-see). Keep proper nouns/place names. Translate faithfully; invent nothing. Return only the narration text via the tool "audio_text_en".`;
+  const system = `You translate a spoken audio-tour narration from German to English for SalzGuide. Keep the SAME casual young-local vibe (like a friend telling you something cool on the spot), the same length (~90–120 seconds spoken), short spoken sentences, "you" form. Avoid museum/brochure tone and clichés (breathtaking, hidden gem, must-see). NEVER use em dashes (—). They are the clearest tell of AI-written text and cost us the trust this brand is built on. Write like a human types: full stop, comma, colon, or a plain hyphen. The ONLY exception is Chinese, where the doubled "——" is standard punctuation. Keep proper nouns/place names. Translate faithfully; invent nothing. Return only the narration text via the tool "audio_text_en".`;
   const userMsg = `Translate this German audio-tour narration to English and return it via the tool "audio_text_en":\n\n${input.textDe.trim()}`;
   return callAudioTool(system, userMsg, "audio_text_en");
 }
@@ -620,7 +621,7 @@ async function translatePointTo(
   key: string,
 ): Promise<{ title: string; audioText: string } | null> {
   const langName = localeMeta(locale).english;
-  const system = `You translate a SalzGuide audio-tour point from German into natural ${langName}. Keep the SAME casual young-local vibe (like a friend telling you something cool on the spot), the same narration length (~90–120s spoken), short spoken sentences, informal "you" address. Avoid museum/brochure tone and clichés. Keep proper nouns/place names exactly. Translate faithfully; invent nothing. Return a short "title" and the spoken "audio_text" via the tool "point_texts".`;
+  const system = `You translate a SalzGuide audio-tour point from German into natural ${langName}. Keep the SAME casual young-local vibe (like a friend telling you something cool on the spot), the same narration length (~90–120s spoken), short spoken sentences, informal "you" address. Avoid museum/brochure tone and clichés. NEVER use em dashes (—). They are the clearest tell of AI-written text and cost us the trust this brand is built on. Write like a human types: full stop, comma, colon, or a plain hyphen. The ONLY exception is Chinese, where the doubled "——" is standard punctuation. Keep proper nouns/place names exactly. Translate faithfully; invent nothing. Return a short "title" and the spoken "audio_text" via the tool "point_texts".`;
   const userMsg = `Translate this German audio-tour point into ${langName} and return it via the tool "point_texts".\n\nTitle: ${src.title.trim()}\n\nNarration:\n${src.audioText.trim()}`;
   try {
     const res = await fetchWithRetry(
@@ -661,10 +662,14 @@ async function translatePointTo(
     ) as { input?: Record<string, string> } | undefined;
     const t = block?.input;
     if (!t) return null;
-    return {
-      title: (t.title ?? "").trim() || src.title.trim(),
-      audioText: src.audioText.trim() ? (t.audio_text ?? "").trim() : "",
-    };
+    // locale mitgeben: Chinesisch braucht seinen Strich (破折号).
+    return stripEmDashFields(
+      {
+        title: (t.title ?? "").trim() || src.title.trim(),
+        audioText: src.audioText.trim() ? (t.audio_text ?? "").trim() : "",
+      },
+      locale,
+    );
   } catch {
     return null;
   }

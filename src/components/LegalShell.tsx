@@ -18,8 +18,9 @@ export default async function LegalShell({
 
   return (
     <div className="mx-auto w-full max-w-[640px] px-4 pt-[calc(env(safe-area-inset-top)+4.5rem)] md:pt-8">
+      {/* „Zurück zur App" heisst die Karte, nicht die Verkaufs-Startseite. */}
       <Link
-        href="/"
+        href="/explore"
         className="inline-flex items-center gap-1 text-[13px] font-medium text-muted transition-colors hover:text-ink"
       >
         <span aria-hidden>‹</span> {t("backToApp")}

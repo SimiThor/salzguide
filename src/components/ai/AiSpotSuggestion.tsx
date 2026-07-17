@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useTranslations } from "next-intl";
-import { Link, useRouter } from "@/i18n/navigation";
+import { useLocale, useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import SpotCard from "@/components/SpotCard";
 import { toggleSaved } from "@/lib/saved-actions";
 import { Bookmark, BookmarkFilled } from "@/components/icons";
 import type { AiSpotCard } from "@/lib/ai-types";
+import { useLoginGate } from "@/components/auth/LoginGate";
 
 // Ein von Toni vorgeschlagener Spot: Karte (verlinkt zur Detailseite) + Speichern-
 // Button oben rechts (iOS-Stil, wie bei Events). Der Button fängt den Klick ab,
@@ -26,7 +27,8 @@ export default function AiSpotSuggestion({
   onSavedChange?: (saved: boolean) => void;
 }) {
   const t = useTranslations("Explore");
-  const router = useRouter();
+  const locale = useLocale();
+  const gate = useLoginGate();
   const [saved, setSaved] = useState(initialSaved);
   const [prevInitial, setPrevInitial] = useState(initialSaved);
   const [busy, start] = useTransition();
@@ -41,19 +43,22 @@ export default function AiSpotSuggestion({
   function onSave(e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
-    if (!loggedIn) {
-      onNavigate?.();
-      router.push("/profil");
-      return;
-    }
     const next = !saved;
-    setSaved(next); // optimistisch
-    onSavedChange?.(next);
+    if (loggedIn) {
+      setSaved(next); // optimistisch
+      onSavedChange?.(next);
+    }
     start(async () => {
-      const r = await toggleSaved(spot.slug);
-      if (r.needLogin) {
-        onNavigate?.();
-        router.push("/profil");
+      // Kein onNavigate() mehr: Der Chat bleibt offen, das Gate legt sich darüber.
+      // Vorher schloss sich Toni und der Nutzer verlor den Gesprächsfaden.
+      // next: nach dem Login auf die Spot-Seite – der Chat-Verlauf lebt im Client.
+      const r = await gate.run(
+        { loggedIn, reason: "saveSpot", next: `/${locale}/spot/${spot.slug}` },
+        () => toggleSaved(spot.slug),
+      );
+      if (!r || r.needLogin) {
+        setSaved(!next); // optimistischen Flip zurücknehmen
+        onSavedChange?.(!next);
         return;
       }
       if (typeof r.saved === "boolean" && r.saved !== next) {
