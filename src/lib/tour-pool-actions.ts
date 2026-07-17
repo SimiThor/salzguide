@@ -1,6 +1,5 @@
 "use server";
 
-import { createClient } from "./supabase/server";
 import { createServiceClient } from "./supabase/service";
 import { fetchWithRetry } from "./ai-fetch";
 import { BRAND_VOICE } from "./brand-voice";
@@ -9,6 +8,7 @@ import { routing } from "@/i18n/routing";
 import { localeMeta } from "@/i18n/locales";
 import { hashTexts } from "./spot-hash";
 import { stripEmDashFields } from "./em-dash";
+import { requireAdmin } from "./admin-guard";
 
 const POINT_TARGET_LOCALES = routing.locales.filter((l) => l !== "de");
 
@@ -30,20 +30,6 @@ function slugifyKey(s: string): string {
     .slice(0, 40);
 }
 
-async function assertAdmin() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { supabase, ok: false as const, error: "auth" };
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
-  if (profile?.role !== "admin") return { supabase, ok: false as const, error: "forbidden" };
-  return { supabase, ok: true as const };
-}
 
 // Cover: nur eigene öffentliche spot-media-URL.
 function guardStorageUrl(
@@ -86,7 +72,7 @@ export type AreaInput = {
 };
 
 export async function saveArea(input: AreaInput): Promise<SaveResult> {
-  const gate = await assertAdmin();
+  const gate = await requireAdmin();
   if (!gate.ok) return { ok: false, error: gate.error };
   const { supabase } = gate;
 
@@ -173,7 +159,7 @@ export async function saveArea(input: AreaInput): Promise<SaveResult> {
 }
 
 export async function deleteArea(id: string): Promise<SaveResult> {
-  const gate = await assertAdmin();
+  const gate = await requireAdmin();
   if (!gate.ok) return { ok: false, error: gate.error };
   const { error } = await gate.supabase.from("tour_areas").delete().eq("id", id);
   if (error) return { ok: false, error: "db" };
@@ -184,7 +170,7 @@ export async function setAreaStatus(
   id: string,
   status: "draft" | "published",
 ): Promise<SaveResult> {
-  const gate = await assertAdmin();
+  const gate = await requireAdmin();
   if (!gate.ok) return { ok: false, error: gate.error };
   const s = status === "published" ? "published" : "draft";
   const { error } = await gate.supabase.from("tour_areas").update({ status: s }).eq("id", id);
@@ -222,7 +208,7 @@ function cleanTags(tags: string[]): string[] {
 }
 
 export async function savePoint(input: PointInput): Promise<SaveResult> {
-  const gate = await assertAdmin();
+  const gate = await requireAdmin();
   if (!gate.ok) return { ok: false, error: gate.error };
   const { supabase } = gate;
 
@@ -362,7 +348,7 @@ export async function savePoint(input: PointInput): Promise<SaveResult> {
 }
 
 export async function deletePoint(id: string): Promise<SaveResult> {
-  const gate = await assertAdmin();
+  const gate = await requireAdmin();
   if (!gate.ok) return { ok: false, error: gate.error };
   const { error } = await gate.supabase.from("tour_points").delete().eq("id", id);
   if (error) return { ok: false, error: "db" };
@@ -373,7 +359,7 @@ export async function setPointStatus(
   id: string,
   status: "draft" | "published",
 ): Promise<SaveResult> {
-  const gate = await assertAdmin();
+  const gate = await requireAdmin();
   if (!gate.ok) return { ok: false, error: gate.error };
   const s = status === "published" ? "published" : "draft";
   const { error } = await gate.supabase.from("tour_points").update({ status: s }).eq("id", id);
@@ -387,7 +373,7 @@ export type PickerPoint = { id: string; title: string; status: string; hasAudio:
 export async function listAreaPoints(
   areaId: string,
 ): Promise<{ ok: boolean; points?: PickerPoint[]; error?: string }> {
-  const gate = await assertAdmin();
+  const gate = await requireAdmin();
   if (!gate.ok) return { ok: false, error: gate.error };
   if (!areaId) return { ok: true, points: [] };
   const { data, error } = await gate.supabase
@@ -487,7 +473,7 @@ export async function generatePointAudioText(input: {
   areaName: string;
   notes: string;
 }): Promise<PointAudioGenResult> {
-  const gate = await assertAdmin();
+  const gate = await requireAdmin();
   if (!gate.ok) return { ok: false, error: gate.error };
   if (!input.title.trim()) return { ok: false, error: "Bitte zuerst einen Titel eingeben." };
 
@@ -543,7 +529,7 @@ export async function synthesizePointVoice(input: {
   text: string;
   lang: string;
 }): Promise<TtsResult> {
-  const gate = await assertAdmin();
+  const gate = await requireAdmin();
   if (!gate.ok) return { ok: false, error: gate.error };
   const text = input.text.trim();
   if (!text) return { ok: false, error: "Kein Text zum Vertonen." };
@@ -597,7 +583,7 @@ export async function synthesizePointVoice(input: {
 export async function translatePointAudioText(input: {
   textDe: string;
 }): Promise<PointAudioGenResult> {
-  const gate = await assertAdmin();
+  const gate = await requireAdmin();
   if (!gate.ok) return { ok: false, error: gate.error };
   if (!input.textDe.trim()) return { ok: false, error: "Kein deutscher Text zum Übersetzen." };
 
@@ -679,7 +665,7 @@ export async function translatePointTextsAll(input: {
   title: string;
   audioText: string;
 }): Promise<PointTranslateAllResult> {
-  const gate = await assertAdmin();
+  const gate = await requireAdmin();
   if (!gate.ok) return { ok: false, error: gate.error };
   if (!input.title.trim())
     return { ok: false, error: "Bitte zuerst deutschen Titel/Text erstellen." };
@@ -720,7 +706,7 @@ export async function generatePointAll(input: {
   notes: string;
   areaName: string;
 }): Promise<{ ok: boolean; data?: PointFillData; error?: string }> {
-  const gate = await assertAdmin();
+  const gate = await requireAdmin();
   if (!gate.ok) return { ok: false, error: gate.error };
   if (!input.title.trim()) return { ok: false, error: "Bitte zuerst einen Titel eingeben." };
   const key = process.env.ANTHROPIC_API_KEY;
@@ -815,7 +801,7 @@ export async function translateAreaText(input: {
   name: string;
   subtitle: string;
 }): Promise<{ ok: boolean; texts?: { name: string; subtitle: string }; error?: string }> {
-  const gate = await assertAdmin();
+  const gate = await requireAdmin();
   if (!gate.ok) return { ok: false, error: gate.error };
   if (!input.name.trim()) return { ok: false, error: "Bitte zuerst den deutschen Namen ausfüllen." };
   const key = process.env.ANTHROPIC_API_KEY;
@@ -942,7 +928,7 @@ async function translateAreaTo(
 }
 
 export async function translateAreaTextAll(input: AreaTexts): Promise<AreaTranslateAllResult> {
-  const gate = await assertAdmin();
+  const gate = await requireAdmin();
   if (!gate.ok) return { ok: false, error: gate.error };
   if (!input.name.trim()) return { ok: false, error: "Bitte zuerst den deutschen Namen ausfüllen." };
   const key = process.env.ANTHROPIC_API_KEY;

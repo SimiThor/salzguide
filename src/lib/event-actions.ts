@@ -1,6 +1,5 @@
 "use server";
 
-import { createClient } from "./supabase/server";
 import { fetchWithRetry, safeJsonParse } from "./ai-fetch";
 import { BRAND_VOICE } from "./brand-voice";
 import { stripEmDashFields } from "./em-dash";
@@ -18,6 +17,7 @@ import {
   type EventTexts,
   type EventTranslateAllResult,
 } from "./event-translate";
+import { requireAdmin } from "./admin-guard";
 
 export type { EventTexts, EventTranslateAllResult } from "./event-translate";
 export type EventInput = {
@@ -44,23 +44,6 @@ export type EventSaveResult = { ok: boolean; id?: string; error?: string };
 
 const e = (v: string) => (v.trim() === "" ? null : v.trim());
 
-// Admin-Gate (wie in admin-actions): eingeloggt + Rolle admin. Sonst null.
-async function requireAdmin(): Promise<
-  { supabase: Awaited<ReturnType<typeof createClient>> } | { error: string }
-> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "auth" };
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
-  if (profile?.role !== "admin") return { error: "forbidden" };
-  return { supabase };
-}
 
 const isoOrNull = (v: string | null): string | null => {
   if (!v) return null;
@@ -70,7 +53,7 @@ const isoOrNull = (v: string | null): string | null => {
 
 export async function saveEvent(input: EventInput): Promise<EventSaveResult> {
   const gate = await requireAdmin();
-  if ("error" in gate) return { ok: false, error: gate.error };
+  if (!gate.ok) return { ok: false, error: gate.error };
   const { supabase } = gate;
 
   if (!input.title.trim()) return { ok: false, error: "required" };
@@ -163,7 +146,7 @@ export async function saveEvent(input: EventInput): Promise<EventSaveResult> {
 
 export async function deleteEvent(id: string): Promise<EventSaveResult> {
   const gate = await requireAdmin();
-  if ("error" in gate) return { ok: false, error: gate.error };
+  if (!gate.ok) return { ok: false, error: gate.error };
   const { error } = await gate.supabase.from("events").delete().eq("id", id);
   if (error) return { ok: false, error: error.message };
   return { ok: true };
@@ -175,7 +158,7 @@ export async function setEventStatus(
   status: "draft" | "published",
 ): Promise<EventSaveResult> {
   const gate = await requireAdmin();
-  if ("error" in gate) return { ok: false, error: gate.error };
+  if (!gate.ok) return { ok: false, error: gate.error };
 
   // Veröffentlichen-Gate AUCH hier (dieser Weg umgeht sonst saveEvent!): live NUR mit
   // vollständigen, aktuellen Übersetzungen. Wir lesen dafür das Event neu. Fail-closed:
@@ -223,7 +206,7 @@ export async function runWeekResearchNow(
   weekOffset: number,
 ): Promise<WeekResult> {
   const gate = await requireAdmin();
-  if ("error" in gate)
+  if (!gate.ok)
     return { ok: false, inserted: 0, skipped: 0, weekStart: "", error: gate.error };
   return runWeekResearch(weekOffset);
 }
@@ -354,7 +337,7 @@ export async function generateEventDraft(
   query: string,
 ): Promise<EventDraftResult> {
   const gate = await requireAdmin();
-  if ("error" in gate) return { ok: false, error: gate.error };
+  if (!gate.ok) return { ok: false, error: gate.error };
 
   if (!query.trim())
     return { ok: false, error: "Bitte einen Link oder ein Stichwort eingeben." };
@@ -505,7 +488,7 @@ export async function translateEventTexts(input: {
   description: string;
 }): Promise<EventTranslateResult> {
   const gate = await requireAdmin();
-  if ("error" in gate) return { ok: false, error: gate.error };
+  if (!gate.ok) return { ok: false, error: gate.error };
 
   if (!input.title.trim())
     return { ok: false, error: "Bitte zuerst einen deutschen Titel eingeben." };
@@ -593,7 +576,7 @@ export async function translateEventTexts(input: {
 // Admin-Action: Gate + Key-Check, dann geteilter Übersetzungs-Kern (event-translate.ts).
 export async function translateEventTextsAll(input: EventTexts): Promise<EventTranslateAllResult> {
   const gate = await requireAdmin();
-  if ("error" in gate) return { ok: false, error: gate.error };
+  if (!gate.ok) return { ok: false, error: gate.error };
   if (!input.title.trim())
     return { ok: false, error: "Bitte zuerst einen deutschen Titel eingeben." };
   const key = process.env.ANTHROPIC_API_KEY;
@@ -617,7 +600,7 @@ export async function fillEventTranslations(
   eventId: string,
 ): Promise<{ ok: boolean; filled?: number; failed?: string[]; error?: string }> {
   const gate = await requireAdmin();
-  if ("error" in gate) return { ok: false, error: gate.error };
+  if (!gate.ok) return { ok: false, error: gate.error };
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) return { ok: false, error: "ANTHROPIC_API_KEY fehlt" };
 

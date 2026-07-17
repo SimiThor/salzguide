@@ -1,6 +1,6 @@
 // Admin-Auswertung der Analytics v3 (docs/34 §H). Rein aggregiert, admin-geprüft,
 // mit Zeitraum (Presets + Custom von–bis) und Filtern (Sprache/Land/Gerät/Quelle/Kampagne).
-import { getAdminUserId } from "./admin";
+import { getAdminUserId } from "./admin-guard";
 import { createServiceClient } from "./supabase/service";
 import { routing } from "@/i18n/routing";
 

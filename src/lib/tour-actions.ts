@@ -1,8 +1,8 @@
 "use server";
 
-import { createClient } from "./supabase/server";
 import { fetchWithRetry } from "./ai-fetch";
 import { stripEmDashFields } from "./em-dash";
+import { requireAdmin } from "./admin-guard";
 
 // Server-Actions für Audio-Touren. Muster wie admin-actions.ts:
 // - jede Action beginnt mit assertAdmin() (Defense-in-depth zusätzlich zur RLS)
@@ -24,20 +24,6 @@ function slugifyKey(s: string): string {
     .slice(0, 40);
 }
 
-async function assertAdmin() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { supabase, ok: false as const, error: "auth" };
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
-  if (profile?.role !== "admin") return { supabase, ok: false as const, error: "forbidden" };
-  return { supabase, ok: true as const };
-}
 
 // Nur eigene Storage-URLs (spot-media-Bucket) zulassen -> kein Fremd-/Tracking-Medium.
 function guardStorageUrl(
@@ -73,7 +59,7 @@ export type TourInput = {
 export type TourSaveResult = { ok: boolean; id?: string; error?: string };
 
 export async function saveTour(input: TourInput): Promise<TourSaveResult> {
-  const gate = await assertAdmin();
+  const gate = await requireAdmin();
   if (!gate.ok) return { ok: false, error: gate.error };
   const { supabase } = gate;
 
@@ -210,7 +196,7 @@ export async function saveTour(input: TourInput): Promise<TourSaveResult> {
 }
 
 export async function deleteTour(id: string): Promise<TourSaveResult> {
-  const gate = await assertAdmin();
+  const gate = await requireAdmin();
   if (!gate.ok) return { ok: false, error: gate.error };
   const { error } = await gate.supabase.from("tours").delete().eq("id", id);
   if (error) return { ok: false, error: "db" };
@@ -221,7 +207,7 @@ export async function setTourStatus(
   id: string,
   status: "draft" | "published",
 ): Promise<TourSaveResult> {
-  const gate = await assertAdmin();
+  const gate = await requireAdmin();
   if (!gate.ok) return { ok: false, error: gate.error };
   const s = status === "published" ? "published" : "draft";
   const { error } = await gate.supabase.from("tours").update({ status: s }).eq("id", id);
@@ -236,7 +222,7 @@ export type TourTexts = { title: string; subtitle: string; description: string }
 export type TourTranslateResult = { ok: boolean; texts?: TourTexts; error?: string };
 
 export async function translateTourText(input: TourTexts): Promise<TourTranslateResult> {
-  const gate = await assertAdmin();
+  const gate = await requireAdmin();
   if (!gate.ok) return { ok: false, error: gate.error };
   if (!input.title.trim()) return { ok: false, error: "Bitte zuerst den deutschen Titel ausfüllen." };
   const key = process.env.ANTHROPIC_API_KEY;

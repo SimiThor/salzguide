@@ -1,9 +1,9 @@
 "use server";
 
-import { createClient } from "./supabase/server";
 import { ANCHOR_EVENTS } from "./event-anchors";
 import { EVENT_CATEGORIES, type EventCategory } from "./events-format";
 import { fetchWithRetry, safeJsonParse } from "./ai-fetch";
+import { requireAdmin } from "./admin-guard";
 
 const ANCHOR_REGIONS = [
   "Stadt Salzburg",
@@ -32,23 +32,6 @@ export type AnchorInput = {
 
 export type AnchorResult = { ok: boolean; id?: string; error?: string };
 
-// Admin-Gate (wie in event-actions): eingeloggt + Rolle admin.
-async function requireAdmin(): Promise<
-  { supabase: Awaited<ReturnType<typeof createClient>> } | { error: string }
-> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "auth" };
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
-  if (profile?.role !== "admin") return { error: "forbidden" };
-  return { supabase };
-}
 
 function slugify(s: string): string {
   return s
@@ -69,7 +52,7 @@ const cleanMonths = (m: number[]): number[] =>
 
 export async function saveAnchor(input: AnchorInput): Promise<AnchorResult> {
   const gate = await requireAdmin();
-  if ("error" in gate) return { ok: false, error: gate.error };
+  if (!gate.ok) return { ok: false, error: gate.error };
   const { supabase } = gate;
 
   const name = input.name.trim();
@@ -113,7 +96,7 @@ export async function saveAnchor(input: AnchorInput): Promise<AnchorResult> {
 
 export async function deleteAnchor(id: string): Promise<AnchorResult> {
   const gate = await requireAdmin();
-  if ("error" in gate) return { ok: false, error: gate.error };
+  if (!gate.ok) return { ok: false, error: gate.error };
   const { error } = await gate.supabase.from("event_anchors").delete().eq("id", id);
   if (error) return { ok: false, error: error.message };
   return { ok: true };
@@ -124,7 +107,7 @@ export async function toggleAnchorActive(
   active: boolean,
 ): Promise<AnchorResult> {
   const gate = await requireAdmin();
-  if ("error" in gate) return { ok: false, error: gate.error };
+  if (!gate.ok) return { ok: false, error: gate.error };
   const { error } = await gate.supabase
     .from("event_anchors")
     .update({ active })
@@ -139,7 +122,7 @@ export async function seedDefaultAnchors(): Promise<
   AnchorResult & { inserted?: number }
 > {
   const gate = await requireAdmin();
-  if ("error" in gate) return { ok: false, error: gate.error };
+  if (!gate.ok) return { ok: false, error: gate.error };
   const rows = ANCHOR_EVENTS.map((a, i) => ({
     key: a.key,
     name: a.name,
@@ -261,7 +244,7 @@ Nur Belegtes; wenn etwas unklar ist, sag es offen. Antworte in knappen deutschen
 
 export async function generateAnchorDraft(name: string): Promise<AnchorDraftResult> {
   const gate = await requireAdmin();
-  if ("error" in gate) return { ok: false, error: gate.error };
+  if (!gate.ok) return { ok: false, error: gate.error };
   const q = name.trim();
   if (!q) return { ok: false, error: "Bitte zuerst einen Namen eingeben." };
   const key = process.env.ANTHROPIC_API_KEY;
