@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { IMMUTABLE_CACHE_SECONDS } from "@/lib/storage";
 
 // Bild client-seitig zu WebP konvertieren (max. Kantenlänge, Qualität) -> klein & schnell
 async function fileToWebp(file: File, maxDim = 1600, quality = 0.82): Promise<Blob> {
@@ -51,7 +52,7 @@ export default function PhotoUploader({
         const path = `${crypto.randomUUID()}.webp`;
         const { error } = await supabase.storage
           .from("spot-media")
-          .upload(path, blob, { contentType: "image/webp", upsert: false });
+          .upload(path, blob, { contentType: "image/webp", upsert: false, cacheControl: IMMUTABLE_CACHE_SECONDS });
         if (error) {
           setErr(error.message);
           break;

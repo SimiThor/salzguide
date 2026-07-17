@@ -137,6 +137,8 @@ export default function TourView({
       {/* Now Playing – Trennung nur über Weißraum (keine Hairline, die am Peek-Rand
           durchblitzt), iOS-2026-minimalistisch. */}
       <div className="pb-2">
+        {/* Foto bleibt auch bei gesperrten Stopps sichtbar: Titel/Bild/Position sind
+            bei Touren öffentliche Teaser, nur das Audio ist Pro (Migration 0029). */}
         {activeStop?.imageUrl && (
           <div className="relative mb-3 aspect-[16/10] overflow-hidden rounded-[16px] bg-black/5 shadow-sm">
             <Image

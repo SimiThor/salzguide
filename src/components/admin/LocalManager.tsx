@@ -8,6 +8,7 @@ import { localeMeta } from "@/i18n/locales";
 import { saveLocal, deleteLocal, translateLocalRole } from "@/lib/admin-actions";
 import type { AdminLocalFull } from "@/lib/admin";
 import AiButton from "./AiButton";
+import { IMMUTABLE_CACHE_SECONDS } from "@/lib/storage";
 
 const LOCALES = routing.locales;
 const TARGET_LOCALES = LOCALES.filter((l) => l !== "de");
@@ -65,7 +66,7 @@ function LocalForm({
       const path = `locals/local-${crypto.randomUUID()}.webp`;
       const { error } = await supabase.storage
         .from("spot-media")
-        .upload(path, blob, { contentType: "image/webp", upsert: false });
+        .upload(path, blob, { contentType: "image/webp", upsert: false, cacheControl: IMMUTABLE_CACHE_SECONDS });
       if (error) throw new Error(error.message);
       setAvatarUrl(supabase.storage.from("spot-media").getPublicUrl(path).data.publicUrl);
     } catch {

@@ -7,6 +7,7 @@ import { normalizeManual, type OpeningWeek } from "./opening-hours";
 import { routing } from "@/i18n/routing";
 import { localeMeta } from "@/i18n/locales";
 import { hashSpotTexts, translationsPublishable } from "./spot-hash";
+import { blurPreviewFor } from "./blur-preview";
 
 export type SpotInput = {
   id?: string;
@@ -359,9 +360,29 @@ export async function saveSpot(input: SpotInput): Promise<SaveResult> {
       .insert(input.categoryIds.map((cid) => ({ spot_id: spotId, category_id: cid })));
   }
 
-  // Fotos neu setzen (erstes = Hero); media-Tabelle ist die Quelle der Wahrheit
+  // Fotos neu setzen (erstes = Hero); media-Tabelle ist die Quelle der Wahrheit.
+  // Bisheriges Hero VOR dem Löschen lesen, damit eine bereits erzeugte Blur-Vorschau
+  // ein Speichern überlebt, bei dem sich am Bild nichts geändert hat.
+  const { data: prevHero } = await supabase
+    .from("media")
+    .select("url, blur_url")
+    .eq("spot_id", spotId)
+    .eq("type", "image")
+    .eq("role", "hero")
+    .limit(1)
+    .maybeSingle();
+
   await supabase.from("media").delete().eq("spot_id", spotId).eq("type", "image");
   if (input.images.length) {
+    // Vorschau nur fürs Hero: Nur dieses Bild zeigen gesperrte Pro-Spots als Teaser.
+    // Schlägt die Erzeugung fehl, bleibt die Spalte null und die UI fällt auf das
+    // Emoji zurück – das Speichern des Spots darf daran nicht scheitern.
+    const heroBlur = await blurPreviewFor(
+      supabase.storage,
+      input.images[0],
+      prevHero?.url,
+      prevHero?.blur_url,
+    );
     await supabase.from("media").insert(
       input.images.map((url, i) => ({
         spot_id: spotId,
@@ -369,6 +390,7 @@ export async function saveSpot(input: SpotInput): Promise<SaveResult> {
         role: i === 0 ? "hero" : "gallery",
         url,
         sort_order: i,
+        blur_url: i === 0 ? heroBlur : null,
       })),
     );
   }

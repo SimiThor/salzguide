@@ -43,7 +43,7 @@ export default function SavedSpots({
           lng: s.lng as number,
           emoji: s.emoji,
           title: s.title,
-          imageUrl: s.isPro ? null : s.imageUrl,
+          imageUrl: s.locked ? null : s.imageUrl,
         })),
     [items],
   );
@@ -79,7 +79,7 @@ export default function SavedSpots({
                   href={`/spot/${s.slug}`}
                   className="flex min-w-0 flex-1 items-center gap-3 transition-transform active:scale-[0.99]"
                 >
-                  {!s.isPro && s.imageUrl ? (
+                  {!s.locked && s.imageUrl ? (
                     <Image
                       src={s.imageUrl}
                       alt={s.title}

@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "backfill:blur": "node --experimental-strip-types scripts/backfill-blur.ts"
   },
   "dependencies": {
     "@ffmpeg/core": "^0.12.10",

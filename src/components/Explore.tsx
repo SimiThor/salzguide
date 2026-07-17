@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ExploreCategory, ExploreSpot } from "@/lib/spots";
 import { getSpotRoute } from "@/lib/spot-actions";
+import { useAi } from "./ai/AiProvider";
 import Carousel from "./Carousel";
 import SpotCardDesktop from "./SpotCardDesktop";
 import SpotSheet, { SPOT_SHEET_PEEK } from "./SpotSheet";
@@ -41,6 +42,13 @@ export default function Explore({
   const [headerH, setHeaderH] = useState(56);
   const [previewSlug, setPreviewSlug] = useState<string | null>(null);
   const [sheetClosing, setSheetClosing] = useState(false);
+  // Solange eine Spot-Vorschau offen ist, hält Toni seine Sprechblase zurück – beide
+  // schweben unten rechts und lägen sonst übereinander.
+  const { setOverlayOpen } = useAi();
+  useEffect(() => {
+    setOverlayOpen(!!previewSlug);
+    return () => setOverlayOpen(false); // beim Verlassen der Seite nicht blockiert lassen
+  }, [previewSlug, setOverlayOpen]);
   // On-demand geladene Wanderrouten (pro Spot), clientseitig gecacht -> die
   // Startseite lädt keine Routen vorab (Performance). null = keine Route.
   const [routeCache, setRouteCache] = useState<Record<string, [number, number][] | null>>({});
@@ -117,7 +125,7 @@ export default function Explore({
           lat: s.lat as number,
           lng: s.lng as number,
           emoji: s.emoji,
-          locked: s.isPro,
+          locked: s.locked,
           title: s.title,
         })),
     [seasonSpots],
@@ -142,7 +150,9 @@ export default function Explore({
     const slug = previewSlug;
     if (!slug) return;
     const spot = seasonSpots.find((s) => s.slug === slug);
-    if (!spot || spot.type !== "activity" || spot.isPro) return;
+    // An `locked` hängen, nicht an `isPro` – sonst bleibt die Route für zahlende
+    // Pro-Kunden aus (getSpotRoute gibt sie ihnen sehr wohl heraus).
+    if (!spot || spot.type !== "activity" || spot.locked) return;
     if (slug in routeCache) return; // schon geladen (auch null gecacht)
     let alive = true;
     getSpotRoute(slug).then((coords) => {
@@ -155,7 +165,7 @@ export default function Explore({
 
   // Route des aktuell gewählten Spots (falls Wanderung + schon geladen)
   const activeRoute =
-    previewSpot && previewSpot.type === "activity" && !previewSpot.isPro
+    previewSpot && previewSpot.type === "activity" && !previewSpot.locked
       ? (routeCache[previewSpot.slug] ?? null)
       : null;
 
@@ -227,8 +237,9 @@ export default function Explore({
                       shortDesc={s.shortDesc}
                       emoji={s.emoji}
                       imageUrl={s.imageUrl}
+                      previewUrl={s.previewUrl}
                       isPro={s.isPro}
-                      locked={s.isPro}
+                      locked={s.locked}
                       lockedLabel={t("lockedLabel")}
                       sizeClassName="w-[76vw] max-w-[300px] md:w-[var(--sg-card)] md:max-w-none"
                     />

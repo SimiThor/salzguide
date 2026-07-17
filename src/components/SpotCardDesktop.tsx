@@ -7,6 +7,7 @@ import { Link, useRouter } from "@/i18n/navigation";
 import type { ExploreSpot } from "@/lib/spots";
 import { toggleSaved } from "@/lib/saved-actions";
 import { Bookmark, BookmarkFilled } from "./icons";
+import LockedMedia from "./LockedMedia";
 
 function X() {
   return (
@@ -58,7 +59,15 @@ export default function SpotCardDesktop({
     <div className="pointer-events-none fixed inset-x-0 bottom-6 z-[55] px-4 md:left-[var(--sg-panel)] md:right-0">
       <div className="pointer-events-auto mx-auto w-full max-w-sm overflow-hidden rounded-[20px] bg-white shadow-[0_18px_50px_-12px_rgba(0,0,0,0.4)]">
         <div className="relative">
-          {!spot.isPro && spot.imageUrl ? (
+          {spot.locked ? (
+            // Kein Abzeichen: Die Überschrift darunter sagt bereits "🤫 Geheimtipp".
+            <LockedMedia
+              previewUrl={spot.previewUrl}
+              emoji={spot.emoji}
+              eager
+              className="aspect-[16/10] w-full"
+            />
+          ) : spot.imageUrl ? (
             <div className="relative aspect-[16/10] w-full overflow-hidden">
               <Image
                 src={spot.imageUrl}
@@ -71,12 +80,12 @@ export default function SpotCardDesktop({
           ) : (
             <div className="flex aspect-[16/10] w-full items-center justify-center bg-gradient-to-br from-accent/20 to-muted/20">
               <span className="text-5xl" aria-hidden>
-                {spot.isPro ? "🤫" : (spot.emoji ?? "📍")}
+                {spot.emoji ?? "📍"}
               </span>
             </div>
           )}
           <div className="absolute right-3 top-3 flex gap-2">
-            {!spot.isPro && (
+            {!spot.locked && (
               <button
                 type="button"
                 onClick={onSave}
@@ -97,9 +106,9 @@ export default function SpotCardDesktop({
           </div>
         </div>
         <div className="p-4">
-          {spot.isPro ? (
+          {spot.locked ? (
             <>
-              <h3 className="text-[15px] font-semibold text-ink">{t("lockedTitle")}</h3>
+              <h3 className="text-[15px] font-semibold text-ink">{t("lockedLabel")}</h3>
               <p className="mt-1 text-[13px] leading-snug text-muted">{t("proTeaser")}</p>
               <Link
                 href="/pro"

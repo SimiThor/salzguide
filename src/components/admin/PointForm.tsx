@@ -22,6 +22,7 @@ const POINT_TARGETS = routing.locales.filter((l) => l !== "de");
 const emptyPointTexts = (): PointTexts => ({ title: "", audioText: "", audioUrl: null });
 import LocationPicker from "./LocationPicker";
 import AiButton from "./AiButton";
+import { IMMUTABLE_CACHE_SECONDS } from "@/lib/storage";
 
 // ~140 Wörter/Minute gesprochen -> grobe Sekunden-Schätzung fürs Feedback.
 const wordCount = (s: string) => (s.trim() ? s.trim().split(/\s+/).length : 0);
@@ -278,7 +279,7 @@ export default function PointForm({
       const path = `tours/point-${crypto.randomUUID()}.webp`;
       const { error } = await supabase.storage
         .from("spot-media")
-        .upload(path, blob, { contentType: "image/webp", upsert: false });
+        .upload(path, blob, { contentType: "image/webp", upsert: false, cacheControl: IMMUTABLE_CACHE_SECONDS });
       if (error) throw new Error(error.message);
       set({ imageUrl: supabase.storage.from("spot-media").getPublicUrl(path).data.publicUrl });
     } catch {

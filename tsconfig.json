@@ -11,6 +11,9 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
+    // scripts/*.ts laufen über `node --experimental-strip-types` und müssen Importe
+    // mit expliziter .ts-Endung schreiben (ESM-Regel). Erlaubt durch noEmit.
+    "allowImportingTsExtensions": true,
     "jsx": "react-jsx",
     "incremental": true,
     "plugins": [

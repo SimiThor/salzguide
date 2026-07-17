@@ -14,6 +14,7 @@ import { Link, useRouter } from "@/i18n/navigation";
 import type { ExploreSpot } from "@/lib/spots";
 import { toggleSaved } from "@/lib/saved-actions";
 import { Bookmark, BookmarkFilled } from "./icons";
+import LockedMedia from "./LockedMedia";
 import { useBodyDrag } from "./useBodyDrag";
 
 const SPRING = { type: "spring" as const, damping: 36, stiffness: 380 };
@@ -183,11 +184,13 @@ export default function SpotSheet({
         }`}
       >
         <div className="flex items-start justify-between gap-3">
+          {/* Gesperrt: "🤫 Geheimtipp" ist der EINZIGE Sperr-Hinweis. Das Bild trägt
+              deshalb kein Abzeichen mehr – sonst stünde dasselbe Wort doppelt da. */}
           <h2 className="text-2xl font-bold leading-tight text-ink">
-            {spot.isPro ? t("lockedTitle") : spot.title}
+            {spot.locked ? t("lockedLabel") : spot.title}
           </h2>
           <div className="flex shrink-0 gap-2">
-            {!spot.isPro && (
+            {!spot.locked && (
               <button
                 type="button"
                 onClick={onSave}
@@ -208,17 +211,47 @@ export default function SpotSheet({
           </div>
         </div>
 
-        {spot.isPro ? (
+        {spot.locked ? (
+          // Conversion-Reihenfolge: Motiv (macht Lust) -> ein Satz warum -> Button.
+          // ALLES muss in den Peek passen, sonst sieht man am iPhone das Foto, aber
+          // nicht den Button – und weiß nicht, wie man freischaltet.
+          //
+          // Das Sheet ist 92vh hoch, zeigt am Peek aber nur SPOT_SHEET_PEEK (55vh);
+          // sein unteres Ende liegt außerhalb des Bildschirms. Ein am Sheet-Boden
+          // klebender Button (sticky) wäre also unsichtbar – die Höhe muss stimmen.
+          //
+          // Deshalb vh-relativ statt fester Pixel: Auf kleinen Geräten (iPhone SE)
+          // schrumpft das Foto mit, statt den Button hinauszuschieben. Rechnung für
+          // den engsten Fall (667px hoch): 55vh Peek ≈ 367px, minus Griff ≈ 337px
+          // nutzbar; Inhalt ≈ 32 (Titel) + 160 (Foto) + 40 (Teaser) + 46 (Button)
+          // + 36 (Abstände) ≈ 314px. Passt mit Reserve.
+          // Apple-Reihenfolge (App Store / TV+): Motiv, dann die Aktion, dann Details.
+          // Der Button steht klar unter dem Bild – nichts liegt übereinander.
+          //
+          // Er MUSS im Peek sichtbar sein, sonst sieht man am iPhone nur das Foto und
+          // weiß nicht, wie man kauft. Das Sheet ist 92vh hoch, sichtbar sind aber nur
+          // SPOT_SHEET_PEEK (55vh) minus Tab-Leiste. Deshalb ist die Bildhöhe vh-relativ:
+          // Auf kleinen Geräten schrumpft das Foto, statt den Button hinauszudrücken.
+          // Gemessen (Chrome DevTools Protocol, echtes Viewport): iPhone SE 375x667 und
+          // iPhone 15 390x844 -> Button in beiden Fällen über der Tab-Leiste.
           <>
-            <p className="mt-2 text-[15px] leading-relaxed text-muted">
-              {t("proTeaser")}
-            </p>
+            <LockedMedia
+              previewUrl={spot.previewUrl}
+              emoji={spot.emoji}
+              eager
+              className="mt-3 h-[20vh] max-h-[220px] min-h-[120px] w-full rounded-[16px]"
+            />
             <Link
               href="/pro"
-              className="mt-4 inline-block rounded-full bg-accent px-5 py-3 text-sm font-semibold text-white active:scale-[0.98]"
+              className="mt-3 block rounded-full bg-accent px-5 py-3 text-center text-[15px] font-semibold text-white active:scale-[0.98]"
             >
               {t("unlock")}
             </Link>
+            {/* Erklärender Nachsatz. Steht bewusst NACH dem Button: Er darf am Peek
+                angeschnitten sein, die Kernbotschaft (Motiv + Aktion) steht schon oben. */}
+            <p className="mt-3 line-clamp-2 text-[14px] leading-snug text-muted">
+              {t("proTeaser")}
+            </p>
           </>
         ) : (
           <>
@@ -233,29 +266,29 @@ export default function SpotSheet({
             >
               {t("more")}
             </Link>
+
+            {/* Bild (sichtbar beim Hochziehen) */}
+            <div className="mt-5">
+              {spot.imageUrl ? (
+                <div className="relative aspect-[16/10] w-full overflow-hidden rounded-[16px]">
+                  <Image
+                    src={spot.imageUrl}
+                    alt={spot.title}
+                    fill
+                    sizes="(min-width: 768px) 27rem, 100vw"
+                    className="object-cover"
+                  />
+                </div>
+              ) : (
+                <div className="flex aspect-[16/10] items-center justify-center overflow-hidden rounded-[16px] bg-gradient-to-br from-accent/20 to-muted/20">
+                  <span className="text-6xl" aria-hidden>
+                    {spot.emoji ?? "📍"}
+                  </span>
+                </div>
+              )}
+            </div>
           </>
         )}
-
-        {/* Bild / Emoji-Platzhalter (sichtbar beim Hochziehen) */}
-        <div className="mt-5 overflow-hidden rounded-[16px]">
-          {!spot.isPro && spot.imageUrl ? (
-            <div className="relative aspect-[16/10] w-full overflow-hidden">
-              <Image
-                src={spot.imageUrl}
-                alt={spot.title}
-                fill
-                sizes="(min-width: 768px) 27rem, 100vw"
-                className="object-cover"
-              />
-            </div>
-          ) : (
-            <div className="flex aspect-[16/10] items-center justify-center bg-gradient-to-br from-accent/20 to-muted/20">
-              <span className="text-6xl" aria-hidden>
-                {spot.isPro ? "🤫" : (spot.emoji ?? "📍")}
-              </span>
-            </div>
-          )}
-        </div>
       </div>
     </motion.div>
   );

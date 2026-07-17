@@ -12,6 +12,7 @@ import {
 import { listAreaPoints, type PickerPoint } from "@/lib/tour-pool-actions";
 import type { TourEditData } from "@/lib/tours";
 import AiButton from "./AiButton";
+import { IMMUTABLE_CACHE_SECONDS } from "@/lib/storage";
 
 const inputCls =
   "w-full rounded-[12px] border border-black/10 bg-white px-3 py-2 text-[15px] text-ink outline-none focus:border-accent";
@@ -161,7 +162,7 @@ export default function TourForm({
       const path = `tours/cover-${crypto.randomUUID()}.webp`;
       const { error } = await supabase.storage
         .from("spot-media")
-        .upload(path, blob, { contentType: "image/webp", upsert: false });
+        .upload(path, blob, { contentType: "image/webp", upsert: false, cacheControl: IMMUTABLE_CACHE_SECONDS });
       if (error) throw new Error(error.message);
       set({ coverUrl: supabase.storage.from("spot-media").getPublicUrl(path).data.publicUrl });
     } catch {

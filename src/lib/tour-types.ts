@@ -7,6 +7,9 @@ export type TourStopView = {
   title: string;
   shortDesc: string | null;
   emoji: string | null;
+  // Titel, Bild und Position sind bei Touren ÖFFENTLICHE Teaser und werden auch bei
+  // locked ausgeliefert (Migration 0029). Nur Audio ist die Pro-Ware. Bewusst ANDERS
+  // als bei Geheimtipp-Spots, wo genau diese Felder geschwärzt werden.
   imageUrl: string | null;
   lat: number | null;
   lng: number | null;

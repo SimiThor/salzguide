@@ -17,9 +17,14 @@ const SEEN_KEY = "sg_toni_launcher_seen"; // sessionStorage: 1x pro Session
 export default function ToniLauncher({
   open,
   isOpen,
+  bubbleBlocked = false,
 }: {
   open: () => void;
   isOpen: boolean;
+  // Ein fokussiertes Overlay (Spot-Karte) ist offen -> Blase zurückhalten. Der
+  // Launcher selbst bleibt: Er ist klein, und die Spot-Karte lässt ihm per pr-Spalte
+  // Platz. Die Blase ist bis 230px breit und läge sonst quer über der Karte.
+  bubbleBlocked?: boolean;
 }) {
   const t = useTranslations("Ai");
   const pathname = usePathname();
@@ -79,7 +84,7 @@ export default function ToniLauncher({
   return (
     <div className="fixed bottom-6 right-6 z-[55] hidden flex-col items-end gap-2.5 md:flex">
       <AnimatePresence>
-        {showBubble && (
+        {showBubble && !bubbleBlocked && (
           <motion.div
             key="bubble"
             initial={reduce ? { opacity: 0, y: 6 } : { opacity: 0, scale: 0.3, y: 18, rotate: -12 }}

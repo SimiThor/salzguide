@@ -16,6 +16,7 @@ import { localeMeta } from "@/i18n/locales";
 import { hashTexts } from "@/lib/spot-hash";
 import LocationPicker from "./LocationPicker";
 import AiButton from "./AiButton";
+import { IMMUTABLE_CACHE_SECONDS } from "@/lib/storage";
 
 const AREA_TARGETS = routing.locales.filter((l) => l !== "de");
 const emptyAreaTexts = (): AreaTexts => ({ name: "", subtitle: "" });
@@ -147,7 +148,7 @@ export default function AreaForm({ initial }: { initial?: AreaEditData }) {
       const path = `tours/area-${crypto.randomUUID()}.webp`;
       const { error } = await supabase.storage
         .from("spot-media")
-        .upload(path, blob, { contentType: "image/webp", upsert: false });
+        .upload(path, blob, { contentType: "image/webp", upsert: false, cacheControl: IMMUTABLE_CACHE_SECONDS });
       if (error) throw new Error(error.message);
       set({ coverUrl: supabase.storage.from("spot-media").getPublicUrl(path).data.publicUrl });
     } catch {

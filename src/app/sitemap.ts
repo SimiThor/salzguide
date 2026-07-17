@@ -33,7 +33,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   try {
     const svc = createServiceClient();
     const [{ data: spots }, { data: tours }] = await Promise.all([
-      svc.from("spots").select("slug").eq("status", "published"),
+      // Pro-Spots NICHT indexieren: Slugs sind sprechend ("liechtensteinklamm"), die
+      // Sitemap würde also den Namen jedes Geheimtipps ausplaudern – während wir
+      // daneben Koordinaten runden und Titel schwärzen. Ihre Seiten zeigen ohnehin nur
+      // die Paywall, haben für Google also keinen Inhalt.
+      svc.from("spots").select("slug").eq("status", "published").eq("is_pro", false),
       svc.from("tours").select("slug").eq("status", "published"),
     ]);
     for (const s of spots ?? []) entries.push(...entriesForPath(`/spot/${s.slug}`, 0.6));
