@@ -477,14 +477,8 @@ body {
     0 0 0 4px rgba(204, 41, 36, 0.16);
 }
 
-/* Zusatzpunkte (Wasser/Hütte/Parkplatz): etwas kleiner als der Haupt-Pin, damit sie den
-   Spot begleiten statt mit ihm zu konkurrieren. Kein „Drop-in" — sie sind Beiwerk. */
-.sg-pin--poi .sg-marker {
-  width: 1.9rem;
-  height: 1.9rem;
-  font-size: 1rem;
-  animation: none;
-}
+/* Alle Kartenpunkte (Start/Ziel, Wasser, Hütte, Parkplatz) nutzen denselben .sg-marker
+   -> gleiche Größe, gleiches Verhalten. Keine Sonderregel für POIs mehr (einheitlich). */
 
 /* Punkt-Kärtchen (getöntes Symbol + Text). Erscheint unten, wenn man einen Kartenpunkt
    antippt (Start/Ziel, Wasser, Hütte, Parkplatz). Die Glas-/Schatten-Hülle liefert der
