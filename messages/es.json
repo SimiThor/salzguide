@@ -206,6 +206,8 @@
   },
   "Detail": {
     "poi": {
+      "start": "Inicio",
+      "finish": "Meta",
       "parking": "Aparcamiento",
       "water": "Punto de agua",
       "waterFountain": "Fuente de agua potable",

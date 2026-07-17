@@ -206,6 +206,8 @@
   },
   "Detail": {
     "poi": {
+      "start": "Start",
+      "finish": "Finish",
       "parking": "Parking",
       "water": "Water source",
       "waterFountain": "Drinking fountain",
