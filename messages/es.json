@@ -280,7 +280,7 @@
     "discover": "Explorar"
   },
   "Auth": {
-    "relaunchNotice": "SalzGuide es nuevo. ¿Compraste en la web anterior? Entra con el mismo correo, tu Pro está ahí. Ya no necesitas contraseña.",
+    "relaunchNotice": "✨ El nuevo SalzGuide ya está aquí. Tu Pro de la web anterior sigue activo: mismo correo, sin contraseña.",
     "joinTitle": "Inicia sesión o crea una cuenta",
     "joinSubtitle": "Con tu correo, sin contraseña. Guarda tus lugares favoritos y planifica tus viajes.",
     "emailPlaceholder": "tu@email.com",

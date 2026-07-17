@@ -6,6 +6,13 @@ import { RELAUNCH_NOTICE_KEY } from "./settings";
 import { sendEmail } from "./email";
 import { LEGAL } from "./legal";
 import { siteUrl } from "./site-url";
+import {
+  MAIL_KEYS,
+  getRelaunchMailTexts,
+  renderRelaunchMail,
+  renderRelaunchText,
+  type RelaunchMailTexts,
+} from "./relaunch-mail";
 
 // Die Freischalt-Liste für die Käufer der alten WordPress-Plattform pflegen.
 //
@@ -117,6 +124,7 @@ export async function sendMigrationAnnouncement(): Promise<AnnounceResult> {
   if (rows.length === 0) return { ok: true, sent: 0, failed: 0 };
 
   const login = `${siteUrl()}/de/profil`;
+  const texts = await getRelaunchMailTexts();
   // Service-Client fürs Markieren: Der Lauf darf nicht daran scheitern, dass die
   // Admin-Session unterwegs abläuft — sonst wären Mails raus und nicht vermerkt.
   const svc = createServiceClient();
@@ -126,23 +134,10 @@ export async function sendMigrationAnnouncement(): Promise<AnnounceResult> {
   for (const row of rows) {
     const ok = await sendEmail({
       to: row.email,
-      subject: "SalzGuide ist neu – dein Pro bleibt",
+      subject: texts.subject,
       replyTo: LEGAL.email,
-      text:
-        `Hallo,\n\n` +
-        `wir haben SalzGuide komplett neu gebaut: schneller, mit einer richtigen Karte und ` +
-        `Toni, unserem KI-Guide, der jeden Spot kennt.\n\n` +
-        `Dein Pro nehmen wir mit. Unbegrenzt, ohne dass du nochmal zahlst.\n\n` +
-        `So kommst du rein – es dauert 20 Sekunden:\n` +
-        `1. ${login} öffnen\n` +
-        `2. Diese E-Mail-Adresse eingeben (${row.email})\n` +
-        `3. Auf den Link tippen, den wir dir schicken\n\n` +
-        `Ein Passwort brauchst du nicht mehr. Es gibt keins, und du musst dir keins merken: ` +
-        `Du bekommst jedes Mal einen Link per Mail. Wer lieber mit Google reingeht, kann das ` +
-        `auch – Hauptsache dieselbe Adresse, daran erkennen wir dich.\n\n` +
-        `Sobald du drin bist, ist dein Pro da. Falls nicht, schreib uns einfach auf diese ` +
-        `Mail zurück, wir kümmern uns.\n\n` +
-        `Anton & Simon\n${LEGAL.company}`,
+      text: renderRelaunchText(texts, row.email, login),
+      html: renderRelaunchMail(texts, row.email, login),
     });
 
     if (!ok) {
@@ -204,4 +199,85 @@ export async function removeProMigration(email: string): Promise<MigrationResult
     .is("claimed_at", null);
   if (error) return { ok: false, error: "db" };
   return { ok: true };
+}
+
+// ── Mailtext bearbeiten, ansehen, testen ─────────────────────────────────────
+
+/**
+ * Die Vorschau: exakt das HTML, das rausgeht.
+ *
+ * Nicht „ungefähr so": Dieselbe Funktion, dieselben Texte. Eine Vorschau, die etwas anderes
+ * zeigt als die Mail, ist schlimmer als keine — man verlässt sich darauf und verschickt
+ * etwas anderes an 100 zahlende Kunden.
+ */
+export async function previewRelaunchMail(
+  texts?: RelaunchMailTexts,
+): Promise<{ ok: boolean; error?: string; html?: string; subject?: string }> {
+  const gate = await requireAdmin();
+  if (!gate.ok) return { ok: false, error: gate.error };
+
+  // Ungespeicherte Eingaben mitschicken können: Man will sehen, was man gerade tippt,
+  // nicht was gestern gespeichert wurde.
+  const t = texts ?? (await getRelaunchMailTexts());
+  const clean: RelaunchMailTexts = {
+    subject: String(t.subject ?? "").slice(0, 200).trim() || (await getRelaunchMailTexts()).subject,
+    headline: String(t.headline ?? "").slice(0, 200).trim(),
+    body: String(t.body ?? "").slice(0, 4000),
+    cta: String(t.cta ?? "").slice(0, 80).trim(),
+  };
+  return {
+    ok: true,
+    subject: clean.subject,
+    // Die eigene Adresse als Beispiel: So sieht man, wo sie in der Mail steht.
+    html: renderRelaunchMail(clean, "du@example.at", `${siteUrl()}/de/profil`),
+  };
+}
+
+/** Die Texte speichern. Leere Felder fallen später auf die Standardtexte zurück. */
+export async function saveRelaunchMailTexts(texts: RelaunchMailTexts): Promise<MigrationResult> {
+  const gate = await requireAdmin();
+  if (!gate.ok) return { ok: false, error: gate.error };
+
+  const rows = [
+    { key: MAIL_KEYS.subject, value: String(texts.subject ?? "").slice(0, 200).trim() },
+    { key: MAIL_KEYS.headline, value: String(texts.headline ?? "").slice(0, 200).trim() },
+    { key: MAIL_KEYS.body, value: String(texts.body ?? "").slice(0, 4000) },
+    { key: MAIL_KEYS.cta, value: String(texts.cta ?? "").slice(0, 80).trim() },
+  ].map((r) => ({ ...r, updated_at: new Date().toISOString() }));
+
+  const { error } = await createServiceClient().from("app_settings").upsert(rows, { onConflict: "key" });
+  if (error) return { ok: false, error: "db" };
+  return { ok: true };
+}
+
+/**
+ * Die Mail an den Admin selbst schicken, zum Probelesen.
+ *
+ * Der Grund, warum das ein eigener Knopf ist: Die Alternative wäre „trag dich in die Liste
+ * ein, sende, nimm dich wieder raus" — und dabei vergisst man das Rausnehmen, oder man
+ * erwischt beim Senden gleich alle 100. Diese Mail geht NUR an die eigene Adresse und
+ * markiert nichts.
+ */
+export async function sendTestAnnouncement(): Promise<AnnounceResult> {
+  const gate = await requireAdmin();
+  if (!gate.ok) return { ok: false, error: gate.error };
+
+  const { data: me } = await gate.supabase
+    .from("profiles")
+    .select("email")
+    .eq("id", gate.userId)
+    .maybeSingle();
+  const to = me?.email;
+  if (!to) return { ok: false, error: "no_email" };
+
+  const texts = await getRelaunchMailTexts();
+  const login = `${siteUrl()}/de/profil`;
+  const ok = await sendEmail({
+    to,
+    subject: `[Test] ${texts.subject}`,
+    replyTo: LEGAL.email,
+    text: renderRelaunchText(texts, to, login),
+    html: renderRelaunchMail(texts, to, login),
+  });
+  return ok ? { ok: true, sent: 1, failed: 0 } : { ok: false, error: "send_failed" };
 }

@@ -280,7 +280,7 @@
     "discover": "Discover"
   },
   "Auth": {
-    "relaunchNotice": "SalzGuide has been rebuilt. Bought on the old site? Just sign in with the same email, your Pro is there. You no longer need a password.",
+    "relaunchNotice": "✨ The new SalzGuide is here. Your Pro from the old site keeps running: same email, no password needed.",
     "joinTitle": "Sign in or create an account",
     "joinSubtitle": "With your email – no password needed. Save your favourite spots and plan your trips.",
     "emailPlaceholder": "you@email.com",

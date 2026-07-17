@@ -2,6 +2,7 @@ import { setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { getProMigrations } from "@/lib/admin";
 import { getRelaunchNotice } from "@/lib/settings";
+import { getRelaunchMailTexts } from "@/lib/relaunch-mail";
 import ProMigrationManager from "@/components/admin/ProMigrationManager";
 
 // Freischaltung der Käufer von der alten WordPress-Plattform.
@@ -18,7 +19,11 @@ export default async function ProMigrationPage({
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const [list, noticeOn] = await Promise.all([getProMigrations(), getRelaunchNotice()]);
+  const [list, noticeOn, mailTexts] = await Promise.all([
+    getProMigrations(),
+    getRelaunchNotice(),
+    getRelaunchMailTexts(),
+  ]);
 
   return (
     <div className="space-y-4 pb-12">
@@ -30,16 +35,16 @@ export default async function ProMigrationPage({
           ← Nutzer
         </Link>
         <h1 className="mt-1 text-2xl font-bold text-ink">Alt-Käufer freischalten</h1>
+        {/* Kurz halten. Die Begründungen (warum keine Konten vorab, warum der Hinweis für
+            alle gilt) stehen bei den Funktionen, die sie umsetzen — hier kosten sie nur den
+            Blick auf die Knöpfe. */}
         <p className="mt-1 text-[13px] leading-relaxed text-muted">
-          E-Mail-Adressen der Käufer von salzguide.com (WordPress). Wer sich mit einer davon
-          anmeldet, bekommt Pro automatisch im selben Moment — per Magic-Link genauso wie per
-          Google. Es werden bewusst <strong>keine Konten vorab angelegt</strong>: Deine Käufer
-          haben den AGB der alten Seite zugestimmt, nicht der neuen, und das holen sie mit
-          ihrer Anmeldung selbst nach.
+          Wer sich mit einer Adresse von dieser Liste anmeldet, bekommt Pro im selben Moment.
+          Per Magic-Link wie per Google, ohne Konten vorab anzulegen.
         </p>
       </div>
 
-      <ProMigrationManager list={list} noticeOn={noticeOn} />
+      <ProMigrationManager list={list} noticeOn={noticeOn} mailTexts={mailTexts} />
     </div>
   );
 }

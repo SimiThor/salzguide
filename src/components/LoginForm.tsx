@@ -152,11 +152,13 @@ export default function LoginForm({
         </p>
       )}
 
-      {/* Ganz oben, weil er nur denen hilft, die ihn LESEN, bevor sie stutzen. Bewusst
-          zurückhaltend gestaltet (kein Rot, kein Ausrufezeichen): Für die Mehrheit, die die
-          alte Seite nie gesehen hat, ist das eine Randnotiz und keine Warnung. */}
+      {/* Ganz oben, weil er nur denen hilft, die ihn LESEN, bevor sie stutzen.
+          Warm statt grau: Das ist eine gute Nachricht („dein Pro läuft weiter"), keine
+          Warnung. Ein grauer Kasten liest sich wie Kleingedrucktes und wird überblättert.
+          Trotzdem kein Rot und kein Ausrufezeichen — für die Mehrheit, die die alte Seite
+          nie gesehen hat, ist es eine Randnotiz. */}
       {relaunchNotice && (
-        <p className="rounded-[14px] bg-black/[0.04] px-4 py-3 text-[13px] leading-relaxed text-muted">
+        <p className="rounded-[14px] bg-accent/[0.07] px-4 py-3 text-[13px] leading-relaxed text-ink ring-1 ring-accent/10">
           {t("relaunchNotice")}
         </p>
       )}
