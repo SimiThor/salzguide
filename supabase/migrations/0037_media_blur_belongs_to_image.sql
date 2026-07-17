@@ -1,0 +1,23 @@
+-- Nur eine Klarstellung: blur_url gehört zum BILD, nicht zur Hero-Rolle.
+-- Keine Datenänderung, kein Backfill nötig – bestehende Zeilen bleiben gültig.
+--
+-- Vorher stand die Vorschau ausschließlich in der Hero-Zeile, weil nur das Hero eine
+-- braucht. Seit die Fotos im Admin per Ziehen sortiert werden, wechselt das Hero aber
+-- ständig, und "Vorschau = die des Heros" hatte zwei unangenehme Folgen:
+--
+--   1. Jedes Umsortieren warf die alte Vorschau weg und ließ sharp neu rendern – Arbeit
+--      für ein Bild, das oft schon eine hatte.
+--   2. Scheiterte dieses Rendern (Netz, Timeout), war die funktionierende alte Vorschau
+--      trotzdem schon gelöscht. Ein reines Sortieren konnte also den Pro-Teaser
+--      zerstören.
+--
+-- Jetzt bleibt eine einmal erzeugte Vorschau an ihrem Foto kleben, egal ob das Foto
+-- gerade auf Position 0 steht oder in der Galerie. Umsortieren ist damit reine
+-- Zeilenarbeit: kein Download, kein sharp, nichts, das schiefgehen kann.
+--
+-- Was sich NICHT ändert: Ausgeliefert wird weiterhin nur die Vorschau des ersten Bildes
+-- (heroPreviewFromMedia in lib/spots.ts). Galerie-Vorschauen sind Beiwerk, kein Teaser.
+-- Erzeugt werden sie ohnehin nur fürs Hero (saveSpot); an einer Galerie-Zeile steht eine
+-- nur dann, wenn das Foto früher einmal Hero war.
+comment on column public.media.blur_url is
+  'Öffentliche URL der ~160px-Vorschau dieses Bildes (previews/<uuid>.webp), oder null. Gehört zum Bild, nicht zur Rolle: bleibt beim Umsortieren erhalten. Ausgeliefert wird nur die des ersten Bildes – die einzigen Bilddaten, die gesperrte Pro-Spots an den Client geben.';
