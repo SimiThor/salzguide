@@ -403,6 +403,28 @@
     "sheetBody": "Zieh mich am Griff nach oben (Voll) oder nach unten (zu). Genau dieses Sheet zeigt später Spot-Details, Filter und den KI-Assistenten – über der Karte.",
     "lockedLabel": "🤫 Geheimtipp"
   },
+  "Support": {
+    "linkLabel": "Hilfe",
+    "title": "Wir helfen dir",
+    "subtitle": "Etwas klappt nicht, ein Spot stimmt nicht, oder du hast eine Frage? Schreib uns. Wir sind zu zweit und lesen jede Nachricht selbst.",
+    "name": "Name",
+    "email": "E-Mail",
+    "message": "Deine Nachricht",
+    "messagePlaceholder": "Was ist los? Je genauer, desto schneller können wir helfen.",
+    "submit": "Nachricht senden",
+    "sending": "Wird gesendet …",
+    "preparing": "Roboter-Check … 🤖",
+    "sentTitle": "Angekommen!",
+    "sentBody": "Wir haben deine Nachricht und melden uns per E-Mail. Meist innerhalb von ein bis zwei Tagen.",
+    "captchaUnavailable": "Der Sicherheitscheck klappt gerade nicht. Bitte lade die Seite neu.",
+    "privacyHint": "Wir nutzen deine Angaben nur, um dir zu antworten.",
+    "error": {
+      "email": "Bitte gib eine gültige E-Mail-Adresse an.",
+      "message": "Bitte schreib uns ein paar Worte mehr.",
+      "captcha": "Bitte bestätige kurz, dass du kein Roboter bist, und versuch's nochmal.",
+      "generic": "Hat nicht geklappt. Bitte versuch es nochmal."
+    }
+  },
   "Legal": {
     "sectionTitle": "Rechtliches",
     "imprint": "Impressum",

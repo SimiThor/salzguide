@@ -4,7 +4,15 @@ import { Link } from "@/i18n/navigation";
 export default function AdminNav({
   active,
 }: {
-  active: "spots" | "events" | "anchors" | "tours" | "users" | "analytics" | "settings";
+  active:
+    | "spots"
+    | "events"
+    | "anchors"
+    | "tours"
+    | "users"
+    | "support"
+    | "analytics"
+    | "settings";
 }) {
   const tabs = [
     { key: "spots", href: "/admin" as const, label: "Spots" },
@@ -12,6 +20,7 @@ export default function AdminNav({
     { key: "anchors", href: "/admin/anchors" as const, label: "Jahres-Events" },
     { key: "tours", href: "/admin/tours" as const, label: "Audio-Touren" },
     { key: "users", href: "/admin/users" as const, label: "Nutzer" },
+    { key: "support", href: "/admin/support" as const, label: "Support" },
     { key: "analytics", href: "/admin/analytics" as const, label: "Analytics" },
     { key: "settings", href: "/admin/settings" as const, label: "Einstellungen" },
   ];

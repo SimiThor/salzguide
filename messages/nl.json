@@ -355,6 +355,28 @@
     "sheetBody": "Sleep me aan de greep omhoog (vol) of omlaag (dicht). Precies dit sheet toont later spotdetails, filters en de AI-assistent – boven op de kaart.",
     "lockedLabel": "🤫 Geheime tip"
   },
+  "Support": {
+    "linkLabel": "Hulp",
+    "title": "We helpen je",
+    "subtitle": "Werkt iets niet, klopt een spot niet, of heb je een vraag? Schrijf ons. We zijn met z'n tweeën en lezen elk bericht zelf.",
+    "name": "Naam",
+    "email": "E-mail",
+    "message": "Je bericht",
+    "messagePlaceholder": "Wat is er aan de hand? Hoe preciezer, hoe sneller we kunnen helpen.",
+    "submit": "Bericht sturen",
+    "sending": "Wordt verstuurd …",
+    "preparing": "Robotcheck … 🤖",
+    "sentTitle": "Binnengekomen!",
+    "sentBody": "We hebben je bericht en reageren per e-mail. Meestal binnen een dag of twee.",
+    "captchaUnavailable": "De beveiligingscheck werkt nu even niet. Laad de pagina opnieuw.",
+    "privacyHint": "We gebruiken je gegevens alleen om je te antwoorden.",
+    "error": {
+      "email": "Vul een geldig e-mailadres in.",
+      "message": "Schrijf ons nog een paar woorden meer.",
+      "captcha": "Bevestig even dat je geen robot bent en probeer opnieuw.",
+      "generic": "Dat lukte niet. Probeer het opnieuw."
+    }
+  },
   "Legal": {
     "sectionTitle": "Juridisch",
     "imprint": "Colofon",

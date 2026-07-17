@@ -355,6 +355,28 @@
     "sheetBody": "用把手把我往上拖（全屏）或往下拖（关闭）。之后正是这个面板会在地图上方显示地点详情、筛选和 AI 助手。",
     "lockedLabel": "🤫 秘密地点"
   },
+  "Support": {
+    "linkLabel": "帮助",
+    "title": "我们来帮你",
+    "subtitle": "有什么用不了，某个去处的信息不对，或者想问点什么？给我们写信吧。我们就两个人，每条消息都亲自看。",
+    "name": "姓名",
+    "email": "邮箱",
+    "message": "你的留言",
+    "messagePlaceholder": "遇到什么问题？写得越具体，我们帮起来越快。",
+    "submit": "发送留言",
+    "sending": "发送中 …",
+    "preparing": "机器人检测 … 🤖",
+    "sentTitle": "收到了！",
+    "sentBody": "我们已收到你的留言，会通过邮件回复你，一般一到两天。",
+    "captchaUnavailable": "安全检测暂时无法使用。请刷新页面。",
+    "privacyHint": "你填写的信息只用于回复你。",
+    "error": {
+      "email": "请填写有效的邮箱地址。",
+      "message": "请再多写几句。",
+      "captcha": "请确认你不是机器人，然后再试一次。",
+      "generic": "没成功，请再试一次。"
+    }
+  },
   "Legal": {
     "sectionTitle": "法律信息",
     "imprint": "法律声明",

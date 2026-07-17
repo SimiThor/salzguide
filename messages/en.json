@@ -355,6 +355,28 @@
     "sheetBody": "Drag me up by the handle (full) or down (close). This same sheet will later show spot details, filters and the AI assistant – on top of the map.",
     "lockedLabel": "🤫 Secret Spot"
   },
+  "Support": {
+    "linkLabel": "Help",
+    "title": "We're here to help",
+    "subtitle": "Something not working, a spot that's wrong, or a question? Write to us. There are two of us and we read every message ourselves.",
+    "name": "Name",
+    "email": "Email",
+    "message": "Your message",
+    "messagePlaceholder": "What's up? The more precise, the faster we can help.",
+    "submit": "Send message",
+    "sending": "Sending …",
+    "preparing": "Robot check … 🤖",
+    "sentTitle": "Got it!",
+    "sentBody": "We have your message and will reply by email. Usually within a day or two.",
+    "captchaUnavailable": "The security check isn't working right now. Please reload the page.",
+    "privacyHint": "We only use your details to reply to you.",
+    "error": {
+      "email": "Please enter a valid email address.",
+      "message": "Please write us a few more words.",
+      "captcha": "Please confirm you're not a robot and try again.",
+      "generic": "That didn't work. Please try again."
+    }
+  },
   "Legal": {
     "sectionTitle": "Legal",
     "imprint": "Imprint",

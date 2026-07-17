@@ -84,6 +84,56 @@ export async function getAdminUsers(q?: string): Promise<AdminUser[]> {
   return (data ?? []).map((r) => toAdminUser(r as Record<string, unknown>));
 }
 
+// ── Support ──────────────────────────────────────────────────────────────────
+export type AdminSupportRequest = {
+  id: string;
+  email: string;
+  name: string | null;
+  message: string;
+  locale: string | null;
+  status: "open" | "done";
+  hasAccount: boolean;
+  handledByEmail: string | null;
+  handledAt: string | null;
+  createdAt: string;
+};
+
+/** Anfragen nach Status, älteste zuerst — wer am längsten wartet, steht oben. */
+export async function getSupportRequests(
+  status: "open" | "done",
+): Promise<AdminSupportRequest[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("support_requests")
+    .select(
+      "id, email, name, message, locale, status, user_id, handled_at, created_at, handler:profiles!support_requests_handled_by_fkey(email)",
+    )
+    .eq("status", status)
+    // Offene: die ältesten zuerst (die warten am längsten). Erledigte: die neuesten zuerst.
+    .order("created_at", { ascending: status === "open" })
+    .limit(100);
+  if (error) {
+    console.error("getSupportRequests:", error.message);
+    return [];
+  }
+  return (data ?? []).map((r) => {
+    const row = r as Record<string, unknown>;
+    const handler = row.handler as { email?: string } | null;
+    return {
+      id: String(row.id),
+      email: String(row.email),
+      name: (row.name as string | null) ?? null,
+      message: String(row.message),
+      locale: (row.locale as string | null) ?? null,
+      status: row.status === "done" ? "done" : "open",
+      hasAccount: row.user_id != null,
+      handledByEmail: handler?.email ?? null,
+      handledAt: (row.handled_at as string | null) ?? null,
+      createdAt: String(row.created_at),
+    };
+  });
+}
+
 /**
  * Zu jedem übergebenen Nutzer die JÜNGSTE Protokollzeile, als Map.
  *
