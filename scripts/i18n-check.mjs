@@ -1,10 +1,13 @@
 // Prüft messages/*.json gegen die Basissprache. Aufruf: npm run i18n:check
 //
 // WARUM ES DAS BRAUCHT: `next build` validiert die Sprachdateien NICHT. Ein fehlender Key
-// kompiliert sauber durch — next-intl 4 fällt NICHT auf Deutsch zurück, sondern rendert den
-// rohen Key-Pfad ("Home.heroTitle") in die Seite. HTTP 200, nur eine Konsolenzeile im Log.
-// Ohne diesen Check merkt das niemand, bis ein koreanischer Besucher „Home.heroCta" im
-// Button stehen sieht.
+// kompiliert sauber durch, und seit i18n/request.ts jede Sprache tief mit Deutsch mergt,
+// sieht man ihn der Seite auch nicht mehr an: Sie zeigt dann still den deutschen Text.
+// Das ist gewollt (eine halb übersetzte Seite schlägt eine kaputte), macht die Lücke aber
+// unsichtbar. Dieser Check ist die einzige Stelle, die sie noch findet.
+//
+// Er ist damit nur so viel wert wie sein Rauschen: Wer hier 300 Meldungen sieht, liest
+// keine davon. Fehlalarme sind deshalb kein Schönheitsfehler, sondern der Tod des Checks.
 //
 // Geprüft wird dreierlei, weil Key-Gleichheit allein nicht reicht:
 //   1. Key-Pfade — fehlende und überzählige.
@@ -36,6 +39,22 @@ const DASH_OK_LOCALES = new Set(["zh"]);
 // Ein Wert, der NUR aus einem Strich besteht, ist ein Platzhalter für „keine Angabe"
 // (z. B. Detail.opening.noInfo) und kein Fliesstext. Der darf bleiben.
 const isDashPlaceholder = (s) => /^[\s—–-]+$/.test(s);
+
+// Namensräume, die NUR in der Basissprache stehen dürfen.
+//
+// „Home" sind die Texte der Startseite. Die kommen nicht aus diesen Dateien, sondern aus
+// der DB (home_content, Migration 0036) und werden im Admin gepflegt und übersetzt.
+// lib/home-content.ts importiert dafür ausschliesslich de.json, als unterste Stufe seiner
+// Drei-Stufen-Regel: DB-Übersetzung, sonst DB-Deutsch, sonst diese Datei.
+//
+// Ein „Home.heroTitle" in en.json läse deshalb NIEMAND. Ohne diese Ausnahme meldete der
+// Check 39 Keys × 8 Sprachen = 312 Fehlalarme und begrübe die echten Lücken darunter —
+// genau so ist die fehlende Meta-Übersetzung monatelang niemandem aufgefallen.
+//
+// Umgekehrt gilt: In einer Zielsprache ist so ein Key ein FEHLER, kein Extra. Er sieht aus
+// wie eine gepflegte Übersetzung, wird aber nie ausgeliefert.
+const BASE_ONLY_NAMESPACES = new Set(["Home"]);
+const isBaseOnly = (key) => BASE_ONLY_NAMESPACES.has(key.split(".")[0]);
 
 // {name} — greift NICHT bei {count, plural, ...}: dort ist der erste Teil der Name.
 const placeholders = (s) =>
@@ -74,6 +93,7 @@ for (const locale of locales) {
   checkDashes(locale, [...target.entries()]);
 
   for (const key of base.keys()) {
+    if (isBaseOnly(key)) continue; // gehört bewusst nur in die Basissprache
     if (!target.has(key)) {
       report(locale, `FEHLENDER Key  ${key}`);
       continue;
@@ -96,6 +116,10 @@ for (const locale of locales) {
   }
 
   for (const key of target.keys()) {
+    if (isBaseOnly(key)) {
+      report(locale, `NUR-${BASE.toUpperCase()}-Key  ${key} (wird nie ausgeliefert, siehe lib/home-content.ts)`);
+      continue;
+    }
     if (!base.has(key)) report(locale, `ÜBERZÄHLIGER Key  ${key} (nicht in ${BASE}.json)`);
   }
 }

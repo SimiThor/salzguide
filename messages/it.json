@@ -1,6 +1,12 @@
 {
   "Meta": {
-    "description": "Salisburgo senza stress – i posti migliori, scelti dai local."
+    "description": "Salisburgo senza stress – i posti migliori, scelti dai local.",
+    "homeTitle": "SalzGuide: Google conosce Salisburgo. Noi ci siamo stati.",
+    "homeDescription": "Due local, una mappa: i nostri posti preferiti nella regione di Salisburgo, ognuno con un consiglio. Ci siamo stati di persona. E Toni, l'IA che conosce solo questi posti.",
+    "exploreTitle": "Esplora",
+    "exploreDescription": "Salisburgo senza stress – i posti migliori, scelti dai local.",
+    "proTitle": "Pro",
+    "proDescription": "Tutti gli spot segreti, tutti gli audio-tour e Toni senza limiti. Pagamento unico, nessun abbonamento."
   },
   "Common": {
     "back": "Indietro",
@@ -15,9 +21,6 @@
     "water": "Temperature dell'acqua",
     "about": "Chi siamo",
     "legal": "Note legali · Privacy · Termini"
-  },
-  "Home": {
-    "tagline": "Salisburgo senza stress – i posti migliori, scelti dai local."
   },
   "Nav": {
     "explore": "Esplora",
