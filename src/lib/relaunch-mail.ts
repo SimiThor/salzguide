@@ -180,6 +180,16 @@ const WASH_LINE = "#f5d4d3";
 const SIGNOFF = "Anton von SalzGuide";
 
 /**
+ * Der Gruß darüber. Ohne ihn endete die Mail mit einer Hilfe-Zeile und dann dem Namen:
+ * ein Brief ohne Verabschiedung.
+ *
+ * "aus Salzburg" statt nur "Liebe Grüße": Der Ort ist der ganze Punkt der Marke, und es
+ * kostet drei Wörter. "Servus" wäre österreichischer, liest sich aber für die Deutschen
+ * unter den Empfängern eher als Begrüßung denn als Abschied.
+ */
+const GREETING = "Liebe Grüße aus Salzburg";
+
+/**
  * Die HTML-Fassung. `email` ist die Adresse des Empfängers und steht in der Mail, damit
  * er sieht, WELCHE er eingeben muss. Genau da scheitert es sonst: Wer drei Adressen hat,
  * probiert die falsche und denkt, sein Pro sei weg.
@@ -231,9 +241,11 @@ export function renderRelaunchMail(texts: RelaunchMailTexts, email: string, logi
         </td></tr>
       </table>
       <p style="margin:18px 0 0;font-size:13px;line-height:1.6;color:${MUTED};">
-        Klappt was nicht? Antworte einfach auf diese Mail, wir lesen mit. ✌️
+        Klappt was nicht? Antworte einfach auf diese Mail, wir lesen mit.
       </p>
-      <p style="margin:22px 0 0;font-size:15px;line-height:1.5;color:${INK};">${SIGNOFF}</p>
+      <p style="margin:22px 0 0;font-size:15px;line-height:1.7;color:${INK};">
+        ${GREETING}<br>${SIGNOFF}
+      </p>
     </td></tr>
   </table>
 </td></tr></table>
@@ -248,6 +260,6 @@ export function renderRelaunchText(texts: RelaunchMailTexts, email: string, logi
     `${texts.cta}: ${loginUrl}\n\n` +
     `Melde dich mit dieser Adresse an: ${email}\n\n` +
     `Klappt was nicht? Antworte einfach auf diese Mail.\n\n` +
-    `${SIGNOFF}`
+    `${GREETING}\n${SIGNOFF}`
   );
 }
