@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion, type PanInfo } from "framer-motion";
 import { useTranslations } from "next-intl";
@@ -201,12 +202,11 @@ export default function Lightbox({
               type="button"
               onClick={() => goTo(i)}
               aria-label={`${i + 1}`}
-              className={`h-14 w-14 shrink-0 overflow-hidden rounded-[8px] ring-2 transition ${
+              className={`relative h-14 w-14 shrink-0 overflow-hidden rounded-[8px] ring-2 transition ${
                 i === index ? "ring-white" : "opacity-50 ring-transparent"
               }`}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={url} alt="" className="h-full w-full object-cover" />
+              <Image src={url} alt="" fill sizes="56px" className="object-cover" />
             </button>
           ))}
         </div>

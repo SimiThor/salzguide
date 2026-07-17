@@ -115,8 +115,10 @@ export default async function SpotPage({
           index={0}
           src={spot.images[0]}
           alt={spot.title}
-          className="block w-full cursor-zoom-in"
-          imgClassName={`${HERO_BOX} object-cover`}
+          sizes="100vw"
+          priority
+          className={`block cursor-zoom-in ${HERO_BOX}`}
+          imgClassName="object-cover"
         />
       ) : (
         <div className={`flex ${HERO_BOX} items-center justify-center bg-gradient-to-br from-accent/20 to-muted/20`}>

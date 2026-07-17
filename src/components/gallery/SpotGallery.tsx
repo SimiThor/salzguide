@@ -95,8 +95,9 @@ export default function SpotGallery({ images }: { images: string[] }) {
             index={i + 1}
             src={src}
             alt=""
+            sizes={g === 2 ? "(min-width: 768px) 360px, 50vw" : "(min-width: 768px) 720px, 100vw"}
             className="h-72 cursor-zoom-in overflow-hidden rounded-[14px]"
-            imgClassName="h-full w-full object-cover"
+            imgClassName="object-cover"
           />
         ))}
       </div>
@@ -118,7 +119,11 @@ export default function SpotGallery({ images }: { images: string[] }) {
   const bigTile =
     "h-full grow shrink-0 basis-[50%] cursor-zoom-in overflow-hidden rounded-[14px]";
   const stackTile = "min-h-0 flex-1 cursor-zoom-in overflow-hidden rounded-[12px]";
-  const img = "h-full w-full object-cover";
+  const img = "object-cover";
+  // Die Kacheln sind ~288px hoch; die grosse belegt gut die halbe Breite, die gestapelten
+  // etwas mehr als ein Drittel. Grob passend gewählt -> der Optimizer nimmt die nächste Stufe.
+  const bigSizes = "(min-width: 768px) 380px, 60vw";
+  const stackSizes = "(min-width: 768px) 300px, 45vw";
 
   // Glas-Pfeile exakt wie bei den Startseiten-Karussells, vertikal in der Galerie zentriert.
   const arrowBase =
@@ -142,6 +147,7 @@ export default function SpotGallery({ images }: { images: string[] }) {
               index={col[0] + 1}
               src={gallery[col[0]]}
               alt=""
+              sizes={bigSizes}
               className={bigTile}
               imgClassName={img}
             />
@@ -156,6 +162,7 @@ export default function SpotGallery({ images }: { images: string[] }) {
                   index={gi + 1}
                   src={gallery[gi]}
                   alt=""
+                  sizes={stackSizes}
                   className={stackTile}
                   imgClassName={img}
                 />

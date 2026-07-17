@@ -4,6 +4,7 @@ import mapboxgl from "mapbox-gl";
 import { bcp47 } from "@/i18n/locales";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import BottomSheet from "./BottomSheet";
@@ -331,10 +332,11 @@ export default function WaterExplore({
                     >
                       {sp.image ? (
                         <span
-                          className="h-12 w-12 shrink-0 rounded-[12px] bg-cover bg-center"
-                          style={{ backgroundImage: `url(${sp.image})` }}
+                          className="relative h-12 w-12 shrink-0 overflow-hidden rounded-[12px]"
                           aria-hidden
-                        />
+                        >
+                          <Image src={sp.image} alt="" fill sizes="48px" className="object-cover" />
+                        </span>
                       ) : (
                         <span
                           className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[12px] bg-black/5 text-xl"
