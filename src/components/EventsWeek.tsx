@@ -47,7 +47,7 @@ export default function EventsWeek({
     return events.filter((e) => e.category === filter);
   }, [events, filter]);
 
-  const days = useMemo(() => groupByDay(filtered), [filtered]);
+  const days = useMemo(() => groupByDay(filtered, todayKey), [filtered, todayKey]);
 
   // Datums-Pill: Spanne der aktuell gezeigten Tage.
   const span = useMemo(() => {
