@@ -32,7 +32,15 @@ export type ProGrantEntry = {
   createdAt: string;
 };
 
-const USER_PAGE_SIZE = 50;
+export const USER_PAGE_SIZE = 50;
+
+export type AdminUserPage = {
+  users: AdminUser[];
+  /** Alle Treffer, nicht nur die dieser Seite. */
+  total: number;
+  page: number;
+  pages: number;
+};
 
 function toAdminUser(r: Record<string, unknown>): AdminUser {
   const proSource = (r.pro_source ?? null) as AdminUser["proSource"];
@@ -54,34 +62,55 @@ function toAdminUser(r: Record<string, unknown>): AdminUser {
 }
 
 /**
- * Nutzerliste für den Admin. `q` sucht in der E-Mail.
+ * Eine Seite der Nutzerliste. `q` sucht in der E-Mail, `page` ist 1-basiert.
  *
  * Liest mit dem Session-Client: RLS lässt Admins alle Zeilen sehen
  * (`profiles_select_own`: `id = auth.uid() or public.is_admin()`). Der Service-Client
  * wäre hier falsch – er umginge genau die Prüfung, die uns absichert.
+ *
+ * WARUM OFFSET UND NICHT KEYSET:
+ * Gemessen (EU-Region): Eine count-Abfrage braucht ~600 ms, eine Seite ~160 ms — davon ist
+ * fast alles die Reise nach Frankfurt, nicht die Arbeit in Postgres. Bei 100 migrierten
+ * Käufern oder auch 25.000 Nutzern ist ein Offset für die Datenbank nichts. Keyset-Blättern
+ * skaliert zwar weiter, kann aber nicht auf Seite 7 springen und macht den Code deutlich
+ * komplizierter — beides wäre hier bezahlt, ohne dass es jemand merkt.
+ *
+ * `count: "exact"` ist Absicht: Eine geschätzte Nutzerzahl im Admin wäre eine Auskunft, der
+ * man nicht trauen kann.
  */
-export async function getAdminUsers(q?: string): Promise<AdminUser[]> {
+export async function getAdminUsers(q?: string, page = 1): Promise<AdminUserPage> {
   const supabase = await createClient();
+  const safePage = Number.isFinite(page) && page >= 1 ? Math.floor(page) : 1;
+  const from = (safePage - 1) * USER_PAGE_SIZE;
+
   let query = supabase
     .from("profiles")
-    .select("id, email, is_pro, pro_source, pro_since, role, newsletter_opt_in, created_at")
+    .select("id, email, is_pro, pro_source, pro_since, role, newsletter_opt_in, created_at", {
+      count: "exact",
+    })
     .order("created_at", { ascending: false })
-    .limit(USER_PAGE_SIZE);
+    .range(from, from + USER_PAGE_SIZE - 1);
 
   const term = (q ?? "").trim();
   if (term) {
-    // %-und_-Platzhalter des Suchenden entschärfen, sonst listet „%" alles und der
+    // %-und _-Platzhalter des Suchenden entschärfen, sonst listet „%" alles und der
     // Suchende glaubt, er hätte gefiltert.
     const safe = term.replace(/[\\%_]/g, (c) => `\\${c}`);
     query = query.ilike("email", `%${safe}%`);
   }
 
-  const { data, error } = await query;
+  const { data, error, count } = await query;
   if (error) {
     console.error("getAdminUsers:", error.message);
-    return [];
+    return { users: [], total: 0, page: 1, pages: 1 };
   }
-  return (data ?? []).map((r) => toAdminUser(r as Record<string, unknown>));
+  const total = count ?? 0;
+  return {
+    users: (data ?? []).map((r) => toAdminUser(r as Record<string, unknown>)),
+    total,
+    page: safePage,
+    pages: Math.max(1, Math.ceil(total / USER_PAGE_SIZE)),
+  };
 }
 
 // ── Alt-Käufer freischalten ──────────────────────────────────────────────────
