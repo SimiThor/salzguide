@@ -22,7 +22,6 @@ if (!U || !K) throw new Error("Supabase-Env fehlt.");
 const H = { apikey: K, Authorization: `Bearer ${K}` };
 const JH = { ...H, "Content-Type": "application/json" };
 const PUB = `${U}/storage/v1/object/public/spot-media/`;
-const OVERSIZE = 400 * 1024;
 
 async function walk(prefix = "", depth = 0) {
   if (depth > 4) return [];
@@ -59,11 +58,12 @@ for (const hc of await sel("home_content", "media")) {
 }
 
 const objects = await walk();
-// Verwaist = kein WebP, gross, nirgends referenziert. previews/ sind echte kleine WebP -> nie betroffen.
-const victims = objects.filter((o) => String(o.mime).startsWith("image/") && o.mime !== "image/webp" && o.size > OVERSIZE && !referenced.has(o.path));
+// Verwaist = kein WebP, nirgends referenziert. previews/ sind echte WebP -> nie betroffen.
+// Keine Grössenschwelle: eine übrig gebliebene PNG-Kopie ist tote Last, egal wie klein.
+const victims = objects.filter((o) => String(o.mime).startsWith("image/") && o.mime !== "image/webp" && !referenced.has(o.path));
 
 console.log(`${APPLY ? "LÖSCHLAUF" : "TROCKENLAUF"} — ${referenced.size} referenzierte Bilder geschützt.`);
-console.log(`Verwaiste grosse Nicht-WebP-Bilder: ${victims.length}\n`);
+console.log(`Verwaiste Nicht-WebP-Bilder: ${victims.length}\n`);
 let freed = 0;
 for (const v of victims) { freed += v.size; console.log(`  ${String(Math.round(v.size / 1024)).padStart(5)}KB  ${v.mime.padEnd(10)} ${v.path}`); }
 console.log(`\nFreigabe: ${(freed / 1048576).toFixed(1)} MB`);

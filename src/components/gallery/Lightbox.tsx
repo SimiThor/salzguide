@@ -206,7 +206,7 @@ export default function Lightbox({
                 i === index ? "ring-white" : "opacity-50 ring-transparent"
               }`}
             >
-              <Image src={url} alt="" fill sizes="56px" className="object-cover" />
+              <Image src={url} alt="" fill sizes="56px" quality={50} className="object-cover" />
             </button>
           ))}
         </div>

@@ -21,6 +21,7 @@ export default function GalleryImage({
   className,
   imgClassName,
   priority = false,
+  quality = 62,
 }: {
   index: number;
   src: string;
@@ -30,6 +31,8 @@ export default function GalleryImage({
   className?: string;
   imgClassName?: string;
   priority?: boolean;
+  /** Galerie/Hero werden klein gezeigt; 62 spart die Hälfte, ohne sichtbar zu leiden. */
+  quality?: number;
 }) {
   const open = useGalleryOpen();
   const imgRef = useRef<HTMLImageElement>(null);
@@ -64,6 +67,7 @@ export default function GalleryImage({
         alt={alt}
         fill
         sizes={sizes}
+        quality={quality}
         priority={priority}
         draggable={false}
         onLoad={() => setImgLoaded(true)}
