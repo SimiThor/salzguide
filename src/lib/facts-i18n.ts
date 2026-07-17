@@ -1,8 +1,10 @@
 // Übersetzung der Quick-Fact-Werte (feste Admin-Auswahllisten) in ALLE Sprachen.
 // Die Übersetzungstabelle liegt in facts-i18n.json (deutscher Wert = Schlüssel -> {locale: Wert}).
 // Robust: Deutsch = der Schlüssel selbst; unbekannte/eigene Werte bleiben unverändert (kein
-// Verschlucken). Neue Sprache = Spalte in facts-i18n.json ergänzen. Preisniveau (€/€€/€€€) und
-// Ortsnamen (area) sind sprachneutral und werden nicht übersetzt.
+// Verschlucken). Neue Sprache = Spalte in facts-i18n.json ergänzen. Preisniveau (€/€€/€€€) ist
+// sprachneutral und bleibt unübersetzt. Ortsnamen (area) werden aus der festen Gebietsliste (AREA)
+// übersetzt: Gattungswörter wie „Altstadt“ lokalisiert, echte Ortsnamen 1:1, in nichtlateinischen
+// Schriften (zh/ko) lautschriftlich. Frei getippte Gegenden ohne Eintrag bleiben Deutsch.
 import facts from "./facts-i18n.json";
 
 type LangMap = Record<string, string>;
@@ -36,6 +38,9 @@ export const factFame = (v: string | null | undefined, locale: string) =>
   pick("FAME", v, locale);
 export const factSubtype = (v: string | null | undefined, locale: string) =>
   pick("SUBTYPE", v, locale);
+// Gegend/Ortsname (feste Gebietsliste, siehe SpotForm AREAS). Unbekannte Werte -> Deutsch.
+export const factArea = (v: string | null | undefined, locale: string) =>
+  pick("AREA", v, locale);
 
 // Dauer: "3 Std" -> "3 h", "30 Min" -> "30 min", "1,5 Std" -> "1.5 h". Für alle Nicht-DE-
 // Sprachen (h/min sind international gebräuchlich; Deutsch behält "Std"/"Min").
