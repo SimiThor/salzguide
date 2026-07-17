@@ -111,7 +111,16 @@ export const HOME_GROUPS: readonly HomeGroup[] = [
   {
     title: "Kleinkram",
     fields: [
-      { key: "tagline", label: "Fusszeile", hint: "Steht im Footer JEDER Seite, nicht nur auf der Startseite." },
+      // Hier stand ein Feld „Fusszeile" mit dem Hinweis, es stehe im Footer jeder Seite.
+      // Das stimmte nie: Der Footer liest Legal.tagline aus den Sprachdateien und hat das
+      // seit dem ersten Commit getan. Home.tagline las NIEMAND, in keinem Commit.
+      //
+      // Entstanden ist es beim Bau dieser Liste: Sie wurde aus dem Home-Namensraum von
+      // de.json abgeleitet, dort lag ein Key namens „tagline" (ein Doppelgänger von
+      // Meta.description aus der allerersten Fassung), und der bekam ein Etikett samt
+      // Erklärung, die jemand für wahr hielt. Ein Feld, das nichts tut, ist schlimmer als
+      // ein fehlendes: Man pflegt es, kontrolliert die Seite, sieht nichts, und sucht den
+      // Fehler dann überall ausser dort, wo er ist.
       { key: "videoPlay", label: "Video-Knopf (für Screenreader)" },
     ],
   },
