@@ -10,6 +10,123 @@ import deMessages from "../../messages/de.json";
 export type AdminCategory = { id: string; key: string; season: string; title: string };
 export type AdminLocal = { id: string; name: string };
 
+// ── Nutzer ───────────────────────────────────────────────────────────────────
+export type AdminUser = {
+  id: string;
+  email: string | null;
+  isPro: boolean;
+  proSource: "stripe" | "migration" | "comp" | null;
+  proSince: string | null;
+  role: "user" | "admin";
+  newsletter: boolean;
+  createdAt: string;
+  /** Bezahltes Pro. Der Admin darf es NICHT anfassen – siehe lib/user-actions.ts. */
+  paidPro: boolean;
+};
+
+/** Die letzte Protokollzeile zu einem Nutzer: beantwortet „warum hat der Pro?". */
+export type ProGrantEntry = {
+  granted: boolean;
+  note: string | null;
+  adminEmail: string | null;
+  createdAt: string;
+};
+
+const USER_PAGE_SIZE = 50;
+
+function toAdminUser(r: Record<string, unknown>): AdminUser {
+  const proSource = (r.pro_source ?? null) as AdminUser["proSource"];
+  const isPro = r.is_pro === true;
+  return {
+    id: String(r.id),
+    email: (r.email as string | null) ?? null,
+    isPro,
+    proSource,
+    proSince: (r.pro_since as string | null) ?? null,
+    role: r.role === "admin" ? "admin" : "user",
+    newsletter: r.newsletter_opt_in === true,
+    createdAt: String(r.created_at),
+    // Bezahlt ist nur AKTIVES Stripe-Pro. Nach einer Rückerstattung steht pro_source
+    // weiterhin auf 'stripe' (der Webhook setzt nur is_pro=false und lässt die Herkunft
+    // stehen) – so jemandem darf man sehr wohl Pro schenken.
+    paidPro: isPro && proSource === "stripe",
+  };
+}
+
+/**
+ * Nutzerliste für den Admin. `q` sucht in der E-Mail.
+ *
+ * Liest mit dem Session-Client: RLS lässt Admins alle Zeilen sehen
+ * (`profiles_select_own`: `id = auth.uid() or public.is_admin()`). Der Service-Client
+ * wäre hier falsch – er umginge genau die Prüfung, die uns absichert.
+ */
+export async function getAdminUsers(q?: string): Promise<AdminUser[]> {
+  const supabase = await createClient();
+  let query = supabase
+    .from("profiles")
+    .select("id, email, is_pro, pro_source, pro_since, role, newsletter_opt_in, created_at")
+    .order("created_at", { ascending: false })
+    .limit(USER_PAGE_SIZE);
+
+  const term = (q ?? "").trim();
+  if (term) {
+    // %-und_-Platzhalter des Suchenden entschärfen, sonst listet „%" alles und der
+    // Suchende glaubt, er hätte gefiltert.
+    const safe = term.replace(/[\\%_]/g, (c) => `\\${c}`);
+    query = query.ilike("email", `%${safe}%`);
+  }
+
+  const { data, error } = await query;
+  if (error) {
+    console.error("getAdminUsers:", error.message);
+    return [];
+  }
+  return (data ?? []).map((r) => toAdminUser(r as Record<string, unknown>));
+}
+
+/**
+ * Zu jedem übergebenen Nutzer die JÜNGSTE Protokollzeile, als Map.
+ *
+ * Eine Abfrage für die ganze Liste statt einer pro Zeile. Die volle Historie steht in
+ * pro_grants und ist dort abfragbar — in der Liste zählt nur die eine Frage, die man
+ * wirklich stellt: „Warum hat der Pro, obwohl er nie bezahlt hat?"
+ *
+ * Fehlt die Tabelle noch (Migration 0038 nicht eingespielt), gibt es eine leere Map statt
+ * einer kaputten Seite: Die Nutzerliste ist auch ohne Protokoll brauchbar.
+ */
+export async function getLatestProGrants(
+  userIds: string[],
+): Promise<Map<string, ProGrantEntry>> {
+  const out = new Map<string, ProGrantEntry>();
+  if (userIds.length === 0) return out;
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("pro_grants")
+    .select("user_id, granted, note, created_at, admin:profiles!pro_grants_admin_id_fkey(email)")
+    .in("user_id", userIds)
+    .order("created_at", { ascending: false });
+  if (error) {
+    console.warn("getLatestProGrants übersprungen – Migration 0038 nötig?", error.message);
+    return out;
+  }
+
+  // Absteigend sortiert: Der erste Treffer je Nutzer ist der jüngste.
+  for (const r of data ?? []) {
+    const row = r as Record<string, unknown>;
+    const id = String(row.user_id);
+    if (out.has(id)) continue;
+    const admin = row.admin as { email?: string } | null;
+    out.set(id, {
+      granted: row.granted === true,
+      note: (row.note as string | null) ?? null,
+      adminEmail: admin?.email ?? null,
+      createdAt: String(row.created_at),
+    });
+  }
+  return out;
+}
+
 export async function getCategoriesAll(): Promise<AdminCategory[]> {
   const supabase = await createClient();
   const { data } = await supabase
