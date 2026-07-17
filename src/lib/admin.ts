@@ -7,21 +7,6 @@ import { homeSourceHash, type HomeMedia } from "./home-content";
 import { parseLandingImage, parseLandingVideo } from "./landing-media";
 import deMessages from "../../messages/de.json";
 
-// Aktuellen User zurückgeben, falls Admin – sonst null.
-export async function getAdminUserId(): Promise<string | null> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
-  return profile?.role === "admin" ? user.id : null;
-}
-
 export type AdminCategory = { id: string; key: string; season: string; title: string };
 export type AdminLocal = { id: string; name: string };
 

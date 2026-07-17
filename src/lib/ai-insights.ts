@@ -6,7 +6,7 @@
 // Die Klassifikation nutzt Claude (billiges Haiku-Modell); die Nachricht geht dabei
 // an denselben Auftragsverarbeiter, der ohnehin die Antwort erzeugt — es entsteht
 // KEIN neuer Datenfluss und nichts Personenbezogenes wird persistiert.
-import { getAdminUserId } from "./admin";
+import { getAdminUserId } from "./admin-guard";
 import { LOCALE_CODES, localeMeta } from "@/i18n/locales";
 import { routing } from "@/i18n/routing";
 import { createServiceClient } from "./supabase/service";

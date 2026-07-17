@@ -15,6 +15,7 @@ import { translateHomeTextsWith } from "./home-translate";
 import { parseLandingImage, parseLandingVideo } from "./landing-media";
 import type { HomeMedia } from "./home-content";
 import { MAX_HOME_FEATURED } from "./home-featured";
+import { requireAdmin } from "./admin-guard";
 
 export type SpotInput = {
   id?: string;
@@ -1152,7 +1153,7 @@ export async function translateSpotTextsAll(input: SpotTexts): Promise<Translate
 export async function fillSpotTranslations(
   spotId: string,
 ): Promise<{ ok: boolean; filled?: number; failed?: string[]; error?: string }> {
-  const gate = await assertAdmin();
+  const gate = await requireAdmin();
   if (!gate.ok) return { ok: false, error: gate.error };
   const { supabase } = gate;
   const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -1339,25 +1340,11 @@ export type CategoryInput = {
   sortOrder: number;
 };
 
-async function assertAdmin() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { supabase, ok: false as const, error: "auth" };
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
-  if (profile?.role !== "admin") return { supabase, ok: false as const, error: "forbidden" };
-  return { supabase, ok: true as const };
-}
 
 export async function saveCategory(
   input: CategoryInput,
 ): Promise<{ ok: boolean; error?: string; id?: string }> {
-  const gate = await assertAdmin();
+  const gate = await requireAdmin();
   if (!gate.ok) return { ok: false, error: gate.error };
   const { supabase } = gate;
 
@@ -1409,7 +1396,7 @@ export async function saveCategory(
 }
 
 export async function deleteCategory(id: string): Promise<{ ok: boolean; error?: string }> {
-  const gate = await assertAdmin();
+  const gate = await requireAdmin();
   if (!gate.ok) return { ok: false, error: gate.error };
   if (!id) return { ok: false, error: "bad_id" };
   // spot_categories hängt per ON DELETE CASCADE -> Zuordnungen werden mit entfernt.
@@ -1425,7 +1412,7 @@ export async function reorderCategories(
   season: "summer" | "winter",
   ids: string[],
 ): Promise<{ ok: boolean; error?: string }> {
-  const gate = await assertAdmin();
+  const gate = await requireAdmin();
   if (!gate.ok) return { ok: false, error: gate.error };
   if (season !== "summer" && season !== "winter")
     return { ok: false, error: "Ungültige Saison." };
@@ -1446,7 +1433,7 @@ export async function reorderCategories(
 export async function translateCategoryTitle(
   de: string,
 ): Promise<{ ok: boolean; error?: string; translations?: Record<string, string> }> {
-  const gate = await assertAdmin();
+  const gate = await requireAdmin();
   if (!gate.ok) return { ok: false, error: gate.error };
 
   const text = (de ?? "").trim();
@@ -1519,7 +1506,7 @@ export async function translateCategoryTitle(
 export async function fillCategoryTranslations(
   categoryId: string,
 ): Promise<{ ok: boolean; filled?: number; failed?: string[]; error?: string }> {
-  const gate = await assertAdmin();
+  const gate = await requireAdmin();
   if (!gate.ok) return { ok: false, error: gate.error };
   const { supabase } = gate;
 
@@ -1573,7 +1560,7 @@ export type LocalInput = {
 export async function saveLocal(
   input: LocalInput,
 ): Promise<{ ok: boolean; error?: string; id?: string }> {
-  const gate = await assertAdmin();
+  const gate = await requireAdmin();
   if (!gate.ok) return { ok: false, error: gate.error };
   const { supabase } = gate;
 
@@ -1617,7 +1604,7 @@ export async function saveLocal(
 }
 
 export async function deleteLocal(id: string): Promise<{ ok: boolean; error?: string }> {
-  const gate = await assertAdmin();
+  const gate = await requireAdmin();
   if (!gate.ok) return { ok: false, error: gate.error };
   if (!id) return { ok: false, error: "bad_id" };
   // Wird der Local noch bei Spots verwendet? Dann NICHT löschen (kein stiller Datenverlust).
@@ -1635,7 +1622,7 @@ export async function deleteLocal(id: string): Promise<{ ok: boolean; error?: st
 export async function translateLocalRole(
   de: string,
 ): Promise<{ ok: boolean; error?: string; translations?: Record<string, string> }> {
-  const gate = await assertAdmin();
+  const gate = await requireAdmin();
   if (!gate.ok) return { ok: false, error: gate.error };
 
   const text = (de ?? "").trim();
@@ -1716,7 +1703,7 @@ export async function translateLocalRole(
 export async function saveHomeFeatured(
   slugs: string[],
 ): Promise<{ ok: boolean; error?: string; saved?: number }> {
-  const gate = await assertAdmin();
+  const gate = await requireAdmin();
   if (!gate.ok) return { ok: false, error: gate.error };
 
   if (!Array.isArray(slugs)) return { ok: false, error: "Ungültige Auswahl." };
@@ -1776,7 +1763,7 @@ export async function saveHomeFeatured(
 export async function saveHomeTexts(
   texts: Record<string, string>,
 ): Promise<{ ok: boolean; error?: string }> {
-  const gate = await assertAdmin();
+  const gate = await requireAdmin();
   if (!gate.ok) return { ok: false, error: gate.error };
   if (!texts || typeof texts !== "object") return { ok: false, error: "Ungültige Texte." };
 
@@ -1815,7 +1802,7 @@ export async function fillHomeTranslations(): Promise<{
   failed?: string[];
   rejected?: string[];
 }> {
-  const gate = await assertAdmin();
+  const gate = await requireAdmin();
   if (!gate.ok) return { ok: false, error: gate.error };
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -1858,7 +1845,7 @@ export async function fillHomeTranslations(): Promise<{
 // null statt zu einer halben Zeile in der DB. Der Alt-Text läuft NICHT durch die
 // Übersetzung — er gehört zum Bild, nicht zu den Texten.
 export async function saveHomeMedia(media: HomeMedia): Promise<{ ok: boolean; error?: string }> {
-  const gate = await assertAdmin();
+  const gate = await requireAdmin();
   if (!gate.ok) return { ok: false, error: gate.error };
   if (!media || typeof media !== "object") return { ok: false, error: "Ungültige Medien." };
 

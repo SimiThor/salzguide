@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getAdminUserId } from "@/lib/admin";
+import { getAdminUserId } from "@/lib/admin-guard";
 
 export default async function AdminLayout({
   children,
