@@ -5,7 +5,7 @@ import { stripEmDashFields } from "./em-dash";
 import { requireAdmin } from "./admin-guard";
 
 // Server-Actions für Audio-Touren. Muster wie admin-actions.ts:
-// - jede Action beginnt mit assertAdmin() (Defense-in-depth zusätzlich zur RLS)
+// - jede Action beginnt mit requireAdmin() aus lib/admin-guard (Defense-in-depth zur RLS)
 // - Writes über den SESSION-Client (läuft als eingeloggter Admin; RLS tours_admin_all /
 //   spot_audio_admin_all erlauben es)
 // - kein revalidatePath (gibt es repo-weit nicht) -> Client ruft router.refresh()

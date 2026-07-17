@@ -14,7 +14,8 @@ const POINT_TARGET_LOCALES = routing.locales.filter((l) => l !== "de");
 
 // Server-Actions für das Audio-Tour-POOL-Modell: Gebiete (tour_areas) + dedizierte
 // Audio-Punkte (tour_points) statt Explore-Spots. Muster wie tour-actions.ts:
-// assertAdmin-Gate + Session-Client-Writes (RLS greift zusätzlich), kein revalidatePath.
+// requireAdmin-Gate (lib/admin-guard) + Session-Client-Writes (RLS greift zusätzlich),
+// kein revalidatePath.
 
 const e = (v: string) => (v.trim() === "" ? null : v.trim());
 
