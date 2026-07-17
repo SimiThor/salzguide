@@ -61,7 +61,19 @@ function GoogleIcon({ className = "" }: { className?: string }) {
 export default function LoginForm({
   next,
   authError = false,
-}: { next?: string; authError?: boolean } = {}) {
+  googleEnabled = false,
+}: {
+  next?: string;
+  authError?: boolean;
+  /**
+   * Ist Google in Supabase wirklich eingeschaltet? Kommt aus googleLoginEnabled()
+   * (lib/auth-providers.ts) und MUSS von der Server-Komponente durchgereicht werden.
+   *
+   * Default false, weil das die sichere Richtung ist: Wer es vergisst, zeigt einen Knopf
+   * zu wenig. Andersherum zeigte er einen, der auf Supabases JSON-Fehlerseite endet.
+   */
+  googleEnabled?: boolean;
+} = {}) {
   const t = useTranslations("Auth");
   const locale = useLocale();
   const [state, formAction, pending] = useActionState<MagicLinkState, FormData>(
@@ -126,25 +138,32 @@ export default function LoginForm({
         </p>
       )}
 
-      {/* Google zuerst: 1 Klick, kein E-Mail-Warten -> conversion-stärker. */}
-      <form action={signInWithGoogle}>
-        <input type="hidden" name="locale" value={locale} />
-        {next && <input type="hidden" name="next" value={next} />}
-        <button
-          type="submit"
-          className="flex w-full items-center justify-center gap-2.5 rounded-full border border-black/10 bg-white px-5 py-3 text-sm font-semibold text-ink shadow-sm transition active:scale-[0.98]"
-        >
-          <GoogleIcon className="h-[18px] w-[18px]" />
-          {t("googleCta")}
-        </button>
-      </form>
+      {/* Google zuerst: 1 Klick, kein E-Mail-Warten -> conversion-stärker.
+          Aber NUR, wenn der Anbieter in Supabase auch läuft: Sonst führt der bequemste
+          Weg auf eine JSON-Fehlerseite (siehe lib/auth-providers.ts). Mit dem Knopf
+          verschwindet auch der Trenner — „oder" ohne ein Davor ist keine Wahl. */}
+      {googleEnabled && (
+        <>
+          <form action={signInWithGoogle}>
+            <input type="hidden" name="locale" value={locale} />
+            {next && <input type="hidden" name="next" value={next} />}
+            <button
+              type="submit"
+              className="flex w-full items-center justify-center gap-2.5 rounded-full border border-black/10 bg-white px-5 py-3 text-sm font-semibold text-ink shadow-sm transition active:scale-[0.98]"
+            >
+              <GoogleIcon className="h-[18px] w-[18px]" />
+              {t("googleCta")}
+            </button>
+          </form>
 
-      {/* Trenner ohne Hintergrund-Trick -> passt auf Creme UND Weiß */}
-      <div className="flex items-center gap-3 py-0.5 text-[12px] text-muted">
-        <span className="h-px flex-1 bg-black/10" />
-        {t("or")}
-        <span className="h-px flex-1 bg-black/10" />
-      </div>
+          {/* Trenner ohne Hintergrund-Trick -> passt auf Creme UND Weiß */}
+          <div className="flex items-center gap-3 py-0.5 text-[12px] text-muted">
+            <span className="h-px flex-1 bg-black/10" />
+            {t("or")}
+            <span className="h-px flex-1 bg-black/10" />
+          </div>
+        </>
+      )}
 
       <form
         ref={formRef}
@@ -215,8 +234,13 @@ export default function LoginForm({
           {busy && <Spinner />}
           {pending ? t("sending") : checking ? t("preparing") : t("submit")}
         </button>
+        {/* Ohne Google-Knopf darf hier NICHT „nutze den Google-Login oben" stehen: Das
+            schickte die Leute auf einen Knopf, den es nicht gibt — der Notausgang wäre
+            dann die zweite Sackgasse hinter der ersten. */}
         {captchaFailed && (
-          <p className="px-1 text-[12px] leading-snug text-muted">{t("captchaUnavailable")}</p>
+          <p className="px-1 text-[12px] leading-snug text-muted">
+            {t(googleEnabled ? "captchaUnavailableGoogle" : "captchaUnavailable")}
+          </p>
         )}
         <p className="px-1 text-[11px] leading-snug text-muted">
           {t.rich("legalHint", {
