@@ -8,6 +8,7 @@ import { localeDir } from "@/i18n/locales";
 import AppChrome from "@/components/AppChrome";
 import AiProvider from "@/components/ai/AiProvider";
 import LoginGateProvider from "@/components/auth/LoginGate";
+import { siteUrl } from "@/lib/site-url";
 import "../globals.css";
 
 const inter = Inter({
@@ -24,9 +25,7 @@ export async function generateMetadata({
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "Meta" });
   return {
-    metadataBase: new URL(
-      process.env.NEXT_PUBLIC_SITE_URL ?? "https://salzguide.com",
-    ),
+    metadataBase: new URL(siteUrl()),
     title: { default: "SalzGuide", template: "%s · SalzGuide" },
     description: t("description"),
     // BEWUSST KEIN `alternates` hier: Next vererbt Metadata nach unten, ein Canonical im
