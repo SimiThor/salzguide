@@ -14,6 +14,7 @@ import {
   type TimePoint,
 } from "@/lib/analytics-queries";
 import { getAiInsights, type AiInsightsData } from "@/lib/ai-insights";
+import { siteUrl } from "@/lib/site-url";
 import { routing } from "@/i18n/routing";
 import { localeMeta } from "@/i18n/locales";
 
@@ -306,7 +307,7 @@ export default async function AnalyticsPage({
       : { "30d": 30, "3mo": 90, "6mo": 180, "12mo": 365 }[range];
   const data = isDemo ? demoDashboard(spanDays) : real;
   const o = data.overview;
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://salzguide.com";
+  const baseUrl = siteUrl();
 
   // KI-Insights (anonyme Chatbot-Nachfrage). Gleicher Demo-Modus wie oben.
   const insightsQuery = { range, from: query.from, to: query.to };

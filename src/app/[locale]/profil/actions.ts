@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { verifyTurnstile } from "@/lib/turnstile";
+import { siteUrl } from "@/lib/site-url";
 import { routing } from "@/i18n/routing";
 
 // locale aus dem (manipulierbaren) Formularfeld auf eine bekannte Sprache festnageln
@@ -25,12 +26,17 @@ function safeNext(v: FormDataEntryValue | null, locale: string): string {
 // In Produktion die FESTE Site-URL nutzen (nicht den angreifer-steuerbaren Origin-Header)
 // -> keine Host-Header-Injection in Login-/OAuth-Redirects. Lokal bleibt der Origin-Header
 // für Dev-Bequemlichkeit. Zusätzlich MUSS die Supabase-Redirect-Allowlist eng sein (docs/34).
+//
+// Die feste Site-URL kommt aus lib/site-url.ts und NICHT mehr direkt aus der Umgebung:
+// Stand die Variable dort auf localhost, verschickte diese Funktion klaglos Anmeldelinks
+// auf localhost, und niemand kam mehr auf die echte Seite. Supabase fing das nicht ab,
+// weil localhost für die lokale Entwicklung auf der Redirect-Allowlist steht.
 async function authOrigin(): Promise<string> {
-  const configured = process.env.NEXT_PUBLIC_SITE_URL;
-  const headerOrigin = (await headers()).get("origin");
-  return process.env.NODE_ENV === "production"
-    ? (configured ?? headerOrigin ?? "")
-    : (headerOrigin ?? configured ?? "http://localhost:3000");
+  // Dev: der Origin-Header, damit ein Login auch über 192.168.x.x klappt (Handy im WLAN).
+  if (process.env.NODE_ENV !== "production") {
+    return (await headers()).get("origin") ?? siteUrl();
+  }
+  return siteUrl();
 }
 
 // Strikte E-Mail-Validierung (Defense-in-Depth). Die Eingabe geht ohnehin nur an die

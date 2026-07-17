@@ -1,11 +1,11 @@
 import type { MetadataRoute } from "next";
 import { routing } from "@/i18n/routing";
 import { createServiceClient } from "@/lib/supabase/service";
+import { siteUrl } from "@/lib/site-url";
 
 // Mehrsprachige Sitemap: jede indexierbare Route × alle Sprachen, jeweils mit hreflang-
 // Alternates. Neue Sprache in locales.ts => automatisch in der Sitemap. Rechts-Seiten
 // (noindex) + Admin sind bewusst NICHT enthalten.
-const BASE = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://salzguide.com").replace(/\/$/, "");
 
 // Statische, öffentlich indexierbare Pfade (relativ, ohne Sprach-Präfix).
 // "" = Startseite (erklärt das Produkt), "/explore" = die Karte.
@@ -24,13 +24,15 @@ function priorityFor(path: string): number {
 }
 
 function languagesFor(path: string): Record<string, string> {
-  return Object.fromEntries(routing.locales.map((l) => [l, `${BASE}/${l}${path}`]));
+  const base = siteUrl();
+  return Object.fromEntries(routing.locales.map((l) => [l, `${base}/${l}${path}`]));
 }
 
 function entriesForPath(path: string, priority: number): MetadataRoute.Sitemap {
   const languages = languagesFor(path);
+  const base = siteUrl();
   return routing.locales.map((locale) => ({
-    url: `${BASE}/${locale}${path}`,
+    url: `${base}/${locale}${path}`,
     alternates: { languages },
     changeFrequency: WEEKLY_PATHS.has(path) ? "weekly" : "monthly",
     priority,

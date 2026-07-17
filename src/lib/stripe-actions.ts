@@ -1,10 +1,10 @@
 "use server";
 
 import type Stripe from "stripe";
-import { headers } from "next/headers";
 import { createClient } from "./supabase/server";
 import { createServiceClient } from "./supabase/service";
 import { stripe, proPriceId, stripeTaxEnabled } from "./stripe";
+import { siteUrl } from "./site-url";
 
 // Stripe-Checkout-Session für die einmalige Pro-Freischaltung anlegen.
 // Sicherheit: nur eingeloggt; der Betrag kommt AUSSCHLIESSLICH aus der Stripe-Price-ID
@@ -54,10 +54,11 @@ export async function createCheckoutSession(
     // Alle Sprachen sind mit Präfix erreichbar (/de, /en, /it …) -> Rücksprung immer
     // in der Sprache des Käufers (nicht mehr nur en, sonst landen it/nl/… auf /de).
     const lp = `/${locale}`;
-    const origin =
-      (await headers()).get("origin") ??
-      process.env.NEXT_PUBLIC_SITE_URL ??
-      "https://salzguide.com";
+    // NICHT der Origin-Header: Der kommt vom Client und bestimmt hier, wohin Stripe den
+    // Käufer nach der Zahlung zurückschickt. Auf Vercel liefert siteUrl() denselben Wert,
+    // nur eben aus einer Quelle, die niemand von aussen setzen kann. Der alte Notnagel
+    // zeigte ausserdem auf salzguide.com, also die alte WordPress-Seite.
+    const origin = siteUrl();
 
     const params: Stripe.Checkout.SessionCreateParams = {
       mode: "payment",
