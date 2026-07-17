@@ -206,6 +206,8 @@
   },
   "Detail": {
     "poi": {
+      "start": "起点",
+      "finish": "终点",
       "parking": "停车场",
       "water": "取水点",
       "waterFountain": "饮水器",

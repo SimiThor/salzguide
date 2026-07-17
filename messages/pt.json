@@ -206,6 +206,8 @@
   },
   "Detail": {
     "poi": {
+      "start": "Início",
+      "finish": "Chegada",
       "parking": "Estacionamento",
       "water": "Ponto de água",
       "waterFountain": "Bebedouro",

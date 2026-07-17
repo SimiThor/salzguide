@@ -247,6 +247,8 @@
   },
   "Detail": {
     "poi": {
+      "start": "Startpunkt",
+      "finish": "Ziel",
       "parking": "Parkplatz",
       "water": "Wasserstelle",
       "waterFountain": "Trinkbrunnen",

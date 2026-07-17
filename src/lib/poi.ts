@@ -2,7 +2,10 @@
 // Symbol, deutsches Admin-Label und der i18n-Key für die User-Karte. So bleiben Admin
 // und User-Karte einheitlich und nichts wird doppelt gepflegt. Client-safe (keine DB).
 
-export type PoiKind = "water" | "hut" | "parking";
+// Alle antippbaren Kartenpunkte einer Wanderung/eines Spaziergangs. start/finish sind
+// die Routen-Enden (🥾/🏁) — hier mitgeführt, damit sie genau wie die übrigen Punkte
+// antippbar sind und einheitlich lokalisiert werden.
+export type PoiKind = "water" | "hut" | "parking" | "start" | "finish";
 
 // Untertypen je Art. `code` steht in der DB (sprachneutral), `emoji` ist das Kartensymbol,
 // `de` das Label im (deutschen) Admin, `key` der Schlüssel unter Detail.poi.* im Katalog.
@@ -26,10 +29,13 @@ const POI_GENERIC: Record<PoiKind, { emoji: string; de: string; key: string }> =
   water: { emoji: "💧", de: "Wasserstelle", key: "water" },
   hut: { emoji: "🛖", de: "Hütte", key: "hut" },
   parking: { emoji: "🅿️", de: "Parkplatz", key: "parking" },
+  start: { emoji: "🥾", de: "Startpunkt", key: "start" },
+  finish: { emoji: "🏁", de: "Ziel", key: "finish" },
 };
 
 function subtypeOf(kind: PoiKind, subtype?: string): PoiSubtype | null {
-  if (!subtype || kind === "parking") return null;
+  // Nur Wasser/Hütten haben Untertypen; parking/start/finish nie.
+  if (!subtype || (kind !== "water" && kind !== "hut")) return null;
   return POI_SUBTYPES[kind].find((s) => s.code === subtype) ?? null;
 }
 

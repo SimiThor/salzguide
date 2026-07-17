@@ -137,6 +137,10 @@ export default function SpotMap({
   fitRoute = true,
   highlight,
   poi,
+  onPoiSelect,
+  selectedPoiKey,
+  startLabel,
+  finishLabel,
   onFullscreen,
   mapClass,
 }: {
@@ -172,8 +176,17 @@ export default function SpotMap({
   } | null;
   // Dezenter Punkt entlang der Route (Sync mit dem Höhenprofil)
   highlight?: [number, number] | null;
-  // Zusatzpunkte (Wasserstellen, Hütten, Parkplatz): Symbole wie 🥾/🏁, Name beim Antippen.
+  // Zusatzpunkte (Wasserstellen, Hütten, Parkplatz) als Pins. Ohne onPoiSelect nur Anzeige.
   poi?: SpotPoi[];
+  // Antippen eines Punkts (POI ODER Routen-Start/-Ziel): der Punkt zentriert sich und
+  // der Aufrufer zeigt unten das iOS-Kärtchen. null = geschlossen. Bekommt onPoiSelect
+  // KEINEN Wert, bleibt alles wie gehabt (kein Kärtchen).
+  onPoiSelect?: (poi: SpotPoi | null) => void;
+  // Schlüssel des gewählten Punkts ("kind:lng,lat") -> hebt den Pin hervor.
+  selectedPoiKey?: string | null;
+  // Lokalisierte Beschriftungen der Routen-Enden (nur wenn onPoiSelect gesetzt ist).
+  startLabel?: string;
+  finishLabel?: string;
   // Wenn gesetzt: Vollbild-Button anzeigen, Klick ruft den Callback
   onFullscreen?: () => void;
   // Zusätzliche CSS-Klasse am Karten-Container (steuert u.a. Control-Position mobil)
@@ -186,9 +199,22 @@ export default function SpotMap({
   const markerObjs = useRef<mapboxgl.Marker[]>([]);
   const hlMarker = useRef<mapboxgl.Marker | null>(null);
   const poiMarkers = useRef<mapboxgl.Marker[]>([]);
-  const poiPopup = useRef<mapboxgl.Popup | null>(null);
+  // DOM-Elemente der Routen-Enden (🥾/🏁) pro Schlüssel -> Hervorhebung + Antippen.
+  const routeEndEls = useRef<Map<string, HTMLElement>>(new Map());
   const onFullscreenRef = useRef(onFullscreen);
   onFullscreenRef.current = onFullscreen;
+  // Callbacks/Labels für die antippbaren Punkte (Handler lesen immer den neuesten Stand).
+  const onPoiSelectRef = useRef(onPoiSelect);
+  onPoiSelectRef.current = onPoiSelect;
+  const startLabelRef = useRef(startLabel);
+  startLabelRef.current = startLabel;
+  const finishLabelRef = useRef(finishLabel);
+  finishLabelRef.current = finishLabel;
+  // Einen Punkt zentrieren (sanft), wenn er angetippt wird.
+  const selectPoi = (p: SpotPoi) => {
+    onPoiSelectRef.current?.(p);
+    mapRef.current?.easeTo({ center: [p.lng, p.lat], duration: 420, essential: true });
+  };
 
   // Aktuelle Marker/Padding für den Zentrieren-Button (liest immer den neuesten Stand)
   const markersRef = useRef(markers);
@@ -313,25 +339,39 @@ export default function SpotMap({
     src.setData(routeFC(r));
     routeMarkers.current.forEach((m) => m.remove());
     routeMarkers.current = [];
+    routeEndEls.current.clear();
     // Start/Ziel-Marker (auf der Übersichtskarte aus -> nur die Linie)
     if (showRouteEndsRef.current) {
       // Ziel zuerst (darunter), Start zuletzt + höherer z-index -> Start liegt
       // immer ÜBER dem Ziel (wichtig bei Rundwegen, wo Start ≈ Ziel).
       // Das Ziel wartet, bis die Linie dort angekommen ist (sg-pin-in füllt
       // „backwards", hält es also bis dahin unsichtbar).
-      const ends: [[number, number], string, number, number][] = [
-        [r[r.length - 1], "🏁", 2, animated ? ROUTE_DRAW_MS : 0],
-        [r[0], "🥾", 4, 0],
+      const ends: [[number, number], "start" | "finish", string, number, number][] = [
+        [r[r.length - 1], "finish", "🏁", 2, animated ? ROUTE_DRAW_MS : 0],
+        [r[0], "start", "🥾", 4, 0],
       ];
-      for (const [c, emoji, z, delay] of ends) {
-        const wrap = document.createElement("div");
+      for (const [c, kind, emoji, z, delay] of ends) {
+        // Antippbar, wenn der Aufrufer onPoiSelect setzt (Detailkarte). Sonst reiner
+        // Anzeige-Marker wie bisher (Tour-Übersicht etc.).
+        const clickable = !!onPoiSelectRef.current;
+        const wrap = document.createElement(clickable ? "button" : "div");
+        if (clickable) (wrap as HTMLButtonElement).type = "button";
         wrap.className = "sg-pin";
         wrap.style.zIndex = String(z);
-        const inner = document.createElement("div");
+        const inner = document.createElement("span");
         inner.className = "sg-marker";
         inner.textContent = emoji;
         inner.style.animationDelay = `${delay}ms`;
         wrap.appendChild(inner);
+        if (clickable) {
+          const label = kind === "start" ? startLabelRef.current : finishLabelRef.current;
+          wrap.setAttribute("aria-label", label ?? emoji);
+          wrap.addEventListener("click", (ev) => {
+            ev.stopPropagation();
+            selectPoi({ lng: c[0], lat: c[1], kind, label });
+          });
+          routeEndEls.current.set(`${kind}:${c[0]},${c[1]}`, wrap);
+        }
         routeMarkers.current.push(
           new mapboxgl.Marker({ element: wrap }).setLngLat(c).addTo(map),
         );
@@ -448,8 +488,6 @@ export default function SpotMap({
       stopRouteAnim();
       poiMarkers.current.forEach((m) => m.remove());
       poiMarkers.current = [];
-      poiPopup.current?.remove();
-      poiPopup.current = null;
       map.remove();
       mapRef.current = null;
     };
@@ -587,23 +625,26 @@ export default function SpotMap({
   }, [highlight?.[0], highlight?.[1]]);
 
   // Zusatzpunkte (Wasserstellen, Hütten, Parkplatz) als Emoji-Pins wie 🥾/🏁.
-  // Antippen zeigt Name (falls gesetzt) + lokalisiertes Gattungs-Label im Glas-Popup.
+  // Antippen zentriert den Punkt und meldet ihn nach oben (onPoiSelect) -> das
+  // Kärtchen erscheint unten. Kein Mapbox-Popup mehr.
   const poiSig = (poi ?? [])
     .map((p) => `${p.kind}:${p.subtype ?? ""}:${p.lng},${p.lat}:${p.name ?? ""}:${p.label ?? ""}`)
     .join("|");
+  // DOM-Elemente der POI-Pins pro Schlüssel -> Hervorhebung des gewählten Punkts.
+  const poiEls = useRef<Map<string, HTMLElement>>(new Map());
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
     poiMarkers.current.forEach((m) => m.remove());
     poiMarkers.current = [];
-    poiPopup.current?.remove();
-    poiPopup.current = null;
+    poiEls.current.clear();
     for (const p of poi ?? []) {
       const emoji = poiEmoji(p.kind, p.subtype);
+      const key = `${p.kind}:${p.lng},${p.lat}`;
       const wrap = document.createElement("button");
       wrap.type = "button";
       wrap.className = "sg-pin sg-pin--poi";
-      // Über den Routen-Enden (🥾 z4 / 🏁 z2), unter der aktiven Auswahl (z6).
+      // Über den Routen-Enden, unter der aktiven Auswahl.
       wrap.style.zIndex = "5";
       wrap.setAttribute("aria-label", p.name ? `${p.name} (${p.label ?? ""})`.trim() : p.label ?? emoji);
       const inner = document.createElement("span");
@@ -614,57 +655,24 @@ export default function SpotMap({
       wrap.addEventListener("click", (ev) => {
         // Nicht bis zur Karte durchreichen (sonst schlösse ein Klick z.B. Sheets).
         ev.stopPropagation();
-        // Nichts anzuzeigen -> kein leeres Popup.
-        if (!p.name && !p.label) return;
-        poiPopup.current?.remove();
-        // iOS-Karten-Popup: getöntes Symbol + Text. Über DOM gebaut, NICHT setHTML —
-        // der Name ist frei eingegebener Text und darf nie als HTML interpretiert werden
-        // (XSS). textContent ist sicher. Die Typ-Klasse (--water/--hut/--parking) tönt
-        // den Symbolkreis, damit es mit den Admin-Farben einheitlich ist.
-        const card = document.createElement("div");
-        card.className = `sg-poi-card sg-poi-card--${p.kind}`;
-        const ic = document.createElement("span");
-        ic.className = "sg-poi-card__icon";
-        ic.textContent = emoji;
-        ic.setAttribute("aria-hidden", "true");
-        card.appendChild(ic);
-        const txt = document.createElement("span");
-        txt.className = "sg-poi-card__text";
-        // Mit Name: Name führt (fett), Gattung darunter dezent. Ohne Name: Gattung führt.
-        if (p.name) {
-          const n = document.createElement("span");
-          n.className = "sg-poi-card__name";
-          n.textContent = p.name;
-          txt.appendChild(n);
-          if (p.label) {
-            const s = document.createElement("span");
-            s.className = "sg-poi-card__type";
-            s.textContent = p.label;
-            txt.appendChild(s);
-          }
-        } else if (p.label) {
-          const n = document.createElement("span");
-          n.className = "sg-poi-card__name";
-          n.textContent = p.label;
-          txt.appendChild(n);
-        }
-        card.appendChild(txt);
-        poiPopup.current = new mapboxgl.Popup({
-          closeButton: false,
-          offset: 16,
-          // Responsiv statt fix: auf sehr schmalen Handys (~320px) nie über den
-          // Kartenrand, auf normalen (375px+) bis 240px breit.
-          maxWidth: "min(240px, 74vw)",
-          className: "sg-poi-popup",
-        })
-          .setLngLat([p.lng, p.lat])
-          .setDOMContent(card)
-          .addTo(map);
+        if (!onPoiSelectRef.current) return;
+        selectPoi(p);
       });
+      poiEls.current.set(key, wrap);
       poiMarkers.current.push(marker);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [poiSig]);
+
+  // Gewählten Punkt hervorheben (Pin wächst leicht) — POI-Pins und Routen-Enden.
+  useEffect(() => {
+    poiEls.current.forEach((el, key) => {
+      el.classList.toggle("sg-pin--active", key === selectedPoiKey);
+    });
+    routeEndEls.current.forEach((el, key) => {
+      el.classList.toggle("sg-pin--active", key === selectedPoiKey);
+    });
+  }, [selectedPoiKey, poiSig]);
 
   if (!TOKEN) {
     return (

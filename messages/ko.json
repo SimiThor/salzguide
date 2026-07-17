@@ -206,6 +206,8 @@
   },
   "Detail": {
     "poi": {
+      "start": "출발점",
+      "finish": "도착점",
       "parking": "주차장",
       "water": "식수 지점",
       "waterFountain": "식수대",
