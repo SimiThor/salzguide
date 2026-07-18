@@ -57,8 +57,11 @@ export const LANGUAGES_TOKEN = "{languages}";
 // mit "30 Tabs" ist ausdrücklich erlaubt (der mit einem Prospekt wäre es nicht: Prospekte
 // sind für 18- bis 45-Jährige kein Referenzpunkt mehr, der Vergleich datiert uns).
 export const MAIL_DEFAULTS: RelaunchMailTexts = {
-  subject: "Das neue SalzGuide ist da 🏔️",
-  headline: "Das neue SalzGuide ist da",
+  // „der", nicht „das": SalzGuide endet auf Guide, und das Genus eines Kompositums kommt
+  // vom Grundwort. Duden führt „der Guide" (des Guides, die Guides), für die Person UND für
+  // das Handbuch. Der Guide Michelin heisst im Deutschen aus demselben Grund „der".
+  subject: "Der neue SalzGuide ist da 🏔️",
+  headline: "Der neue SalzGuide ist da",
   // Ein Emoji pro Absatz, als Section-Icon (so steht es in CLAUDE.md). Es macht die
   // Aufzählung scanbar: Wer die Mail am Handy überfliegt, sieht in einer Sekunde, worum es
   // geht, ohne einen Satz zu lesen.
@@ -96,7 +99,8 @@ export const MAIL_DEFAULTS: RelaunchMailTexts = {
     // beantwortete die Frage nicht, die dieser Mensch wirklich hat: Bleibt mein Pro?
     "🎟️ Dein Pro läuft weiter. Unbegrenzt, ohne dass du nochmal zahlst.\n\n" +
     "⚡ Anmelden dauert 20 Sekunden: E-Mail rein, auf den Link tippen, drin. Passwort brauchst du keins.",
-  cta: "Rein ins neue SalzGuide 🏔️",
+  // „ins" wäre „in das" und damit derselbe Fehler wie oben, nur versteckt.
+  cta: "Rein in den neuen SalzGuide 🏔️",
 };
 
 /** Nur die Werte lesen, die jemand gesetzt hat; der Rest kommt aus MAIL_DEFAULTS. */

@@ -45,7 +45,7 @@ const WASH_LINE = "#f5d4d3";
  * font-bold, tracking-tight). Es gibt keine Logo-Datei, das Wort selbst ist die Marke.
  *
  * WARUM NICHT ALS ZEILE DARÜBER: Da stand es, in Versalien und gesperrt. Das war doppelt
- * gemoppelt (die Überschrift sagt „Das neue SalzGuide ist da", darüber nochmal
+ * gemoppelt (die Überschrift sagt „Der neue SalzGuide ist da", darüber nochmal
  * „SALZGUIDE") und dazu in einer Anmutung, die unser Logo gerade NICHT hat: Versalien und
  * Sperrung sind das Gegenteil von eng gesetzter Gemischtschreibung. Jetzt trägt die
  * Überschrift die Marke selbst, und niemand liest den Namen zweimal.
