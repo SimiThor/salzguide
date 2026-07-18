@@ -167,18 +167,13 @@ export default function SpotDetailMap({
           cooperative
           mapClass="sg-ctrl-top"
           onFullscreen={() => setFullscreen(true)}
+          openMapLabel={t("openMap")}
           {...poiProps}
         />
-        <AnimatePresence>
-          {selected && (
-            <PoiCard
-              key={selKey}
-              poi={selected}
-              onClose={() => setSelected(null)}
-              closeLabel={t("elevation.close")}
-            />
-          )}
-        </AnimatePresence>
+        {/* Hier stand das POI-Kärtchen auch für die Vorschau. Es kann nicht mehr
+            auftauchen: Die Vorschau ist eine einzige Schaltfläche, einzelne Punkte
+            lassen sich dort nicht mehr antippen. Die Kärtchen leben im Vollbild
+            weiter, wo sie nicht die halbe Karte verdecken. */}
       </div>
 
       {/* Interaktives Höhenprofil */}

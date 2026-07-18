@@ -258,12 +258,12 @@
     "proTeaser": "这个地点属于 SalzGuide Pro。解锁所有隐藏亮点。",
     "unlock": "解锁 SalzGuide Pro",
     "lockedLabel": "🤫 秘密地点",
+    "openMap": "打开地图",
     "elevation": {
       "profile": "海拔剖面",
       "ascent": "爬升",
       "descent": "下降",
       "highest": "最高点",
-      "openMap": "打开地图",
       "close": "关闭",
       "unitElevation": "米"
     },

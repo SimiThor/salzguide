@@ -51,6 +51,10 @@ export default function SavedSpots({
     [items],
   );
 
+  // Auf dieser Seite ist per Definition alles gemerkt — das Sheet zeigt sein Herz
+  // also gefüllt, ohne dass jemand den Status extra nachschlagen muss.
+  const savedSlugs = useMemo(() => new Set(items.map((s) => s.slug)), [items]);
+
   function unsave(slug: string) {
     setItems((cur) => cur.filter((s) => s.slug !== slug)); // optimistisch entfernen
     start(async () => {
@@ -68,8 +72,15 @@ export default function SavedSpots({
         <MapCard
           markers={markers}
           title={title}
-          enablePreview
           className="mx-4 h-56 overflow-hidden rounded-[18px] shadow-sm"
+          // Mit den vollen Spot-Daten öffnet ein Marker im Vollbild dasselbe Sheet
+          // wie auf Explore. Wer hier ist, ist angemeldet und hat alles Gezeigte
+          // gemerkt — deshalb loggedIn und der Merk-Status aus derselben Liste.
+          spots={items}
+          loggedIn
+          savedSlugs={savedSlugs}
+          // Entmerken im Sheet zieht in Karte UND Liste mit, wie das Herz in der Zeile.
+          onSavedChange={(slug, saved) => !saved && unsave(slug)}
         />
       )}
 

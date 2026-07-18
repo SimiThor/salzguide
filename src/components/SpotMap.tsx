@@ -5,7 +5,7 @@ import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { useEffect, useRef } from "react";
 import { MapLoadingScreen, useMapLoading } from "./MapLoading";
-import { RecenterControl, FullscreenControl } from "./mapControls";
+import { RecenterControl } from "./mapControls";
 import { useLatestRef } from "@/lib/use-latest-ref";
 import { poiEmoji, type PoiKind } from "@/lib/poi";
 
@@ -149,6 +149,7 @@ export default function SpotMap({
   startLabel,
   finishLabel,
   onFullscreen,
+  openMapLabel,
   mapClass,
 }: {
   markers: MapMarker[];
@@ -194,8 +195,12 @@ export default function SpotMap({
   // Lokalisierte Beschriftungen der Routen-Enden (nur wenn onPoiSelect gesetzt ist).
   startLabel?: string;
   finishLabel?: string;
-  // Wenn gesetzt: Vollbild-Button anzeigen, Klick ruft den Callback
+  // Wenn gesetzt, ist diese Karte eine VORSCHAU: keine Gesten, keine Knöpfe, die ganze
+  // Fläche ruft beim Antippen diesen Callback (siehe `preview` weiter unten).
   onFullscreen?: () => void;
+  // Beschriftung dieser Fläche für Screenreader ("Karte öffnen"). Kommt wie start-/
+  // finishLabel vom Aufrufer per next-intl, damit SpotMap reine Darstellung bleibt.
+  openMapLabel?: string;
   // Zusätzliche CSS-Klasse am Karten-Container (steuert u.a. Control-Position mobil)
   mapClass?: string;
 }) {
@@ -212,7 +217,6 @@ export default function SpotMap({
   // immer den neuesten Stand statt der Props vom ersten Render. Siehe use-latest-ref.ts.
   // BEWUSST alle zusammen ganz oben: die Callback-Refs weiter unten (recenterRef,
   // syncRouteRef) greifen darauf zu und dürfen nicht auf später Deklariertes zeigen.
-  const onFullscreenRef = useLatestRef(onFullscreen);
   const onPoiSelectRef = useLatestRef(onPoiSelect);
   const startLabelRef = useLatestRef(startLabel);
   const finishLabelRef = useLatestRef(finishLabel);
@@ -401,6 +405,27 @@ export default function SpotMap({
     rafRef.current = requestAnimationFrame(step);
   });
 
+  // ZWEI ARTEN VON KARTE, EINE UNTERSCHEIDUNG.
+  //
+  // `onFullscreen` ist genau dann gesetzt, wenn diese Karte eine grosse Fassung hat —
+  // also auf den EINGEBETTETEN Karten (Spot-Seite, Gespeichert). Das ist keine Karte,
+  // auf der man arbeitet, sondern eine Vorschau: Sie beantwortet „wo ungefähr ist das",
+  // und wer mehr will, macht sie gross.
+  //
+  // Eine Vorschau ist deshalb ein BILD MIT EINEM TAP, nicht eine kleine Karte:
+  //   - Sie lässt sich nicht verschieben und nicht zoomen. Damit kann sie nie verrutscht
+  //     zurückbleiben und sieht bei jedem Besuch aus wie gedacht.
+  //   - Sie trägt keinen einzigen Knopf. Zoom konnten die Finger ohnehin, „Standort"
+  //     zeigt bei einem Spot 40km entfernt entweder nichts oder springt vom Thema weg,
+  //     und „Zentrieren" nützt erst, wenn man verschoben hat.
+  //   - Die ganze Fläche ist die Schaltfläche. Grösser als „alles" wird ein Tap-Ziel
+  //     nicht, und es gibt nur noch eine Sache, die man tun kann.
+  //
+  // Alles, was man vorher hier tun konnte, tut man eine Ebene weiter im Vollbild — dort
+  // ist Platz dafür. Arbeits-Karten (Explore, Wasser, Touren, alle Vollbild-Fassungen)
+  // bleiben unverändert.
+  const preview = Boolean(onFullscreen);
+
   // Karte einmalig initialisieren
   useEffect(() => {
     if (!TOKEN || !containerRef.current || mapRef.current) return;
@@ -410,40 +435,21 @@ export default function SpotMap({
       style: "mapbox://styles/mapbox/outdoors-v12",
       center,
       zoom,
-      cooperativeGestures: cooperative,
+      // Vorschau-Karten reagieren auf GAR keine Geste (siehe Kommentar unten): kein
+      // Ziehen, kein Zoomen, kein Drehen. Damit erübrigt sich auch cooperativeGestures
+      // — der Hinweis „Use two fingers to move the map" war einer der deutlichsten
+      // Verräter „Webseite" in einer App, die sich wie iOS anfühlen soll.
+      interactive: !preview,
+      cooperativeGestures: cooperative && !preview,
       // Immer flache 2D-Ansicht — keine 3D-Neigung (Pitch)
       pitch: 0,
       maxPitch: 0,
       pitchWithRotate: false,
       touchPitch: false,
     });
-    // ZWEI ARTEN VON KARTE, ZWEI AUSSTATTUNGEN.
-    //
-    // `onFullscreen` ist genau dann gesetzt, wenn diese Karte eine grosse Fassung hat —
-    // also auf den beiden EINGEBETTETEN Karten (Spot-Seite, MapCard). Das ist keine
-    // Karte, auf der man arbeitet, sondern eine Vorschau: Sie beantwortet "wo ungefähr
-    // ist das", und wer mehr will, macht sie gross.
-    //
-    // Auf so einer Vorschau trugen vier Werkzeuge nichts bei und nahmen viel:
-    //   Zoom      — die Karte läuft mit cooperativeGestures, zwei Finger zoomen ohnehin,
-    //               und wer ernsthaft zoomen will, ist im Vollbild besser aufgehoben.
-    //   Standort  — zeigt auf einer 240px-Vorschau eines Spots 40km entfernt entweder
-    //               nichts Sichtbares oder springt vom Spot weg. Aktiv schädlich.
-    //   Zentrieren— nützt erst, wenn man verschoben hat; in einer Vorschau tut das kaum
-    //               jemand.
-    // Übrig bleibt der eine Knopf, den man wirklich will. Er steht oben LINKS, in
-    // derselben Ecke wie das Schliessen im Vollbild: dieselbe Stelle macht gross und
-    // wieder klein.
-    //
-    // Auf den Arbeits-Karten (Explore, Wasser, Touren, und die Vollbild-Fassungen)
-    // bleibt alles, denn dort tut man genau diese Dinge.
-    const preview = Boolean(onFullscreenRef.current);
-    if (preview) {
-      map.addControl(
-        new FullscreenControl(() => onFullscreenRef.current?.()),
-        "top-left",
-      );
-    } else {
+    // Bedienung gibt es nur auf Arbeits-Karten. Vorschauen tragen keinen einzigen
+    // Knopf — dort ist die ganze Fläche der Knopf (siehe `preview` weiter oben).
+    if (!preview) {
       map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "top-right");
       map.addControl(new RecenterControl(() => recenterRef.current()), "top-right");
       map.addControl(
@@ -721,6 +727,44 @@ export default function SpotMap({
   return (
     <div className="relative isolate h-full w-full">
       <div ref={containerRef} className={`h-full w-full ${mapClass ?? ""}`} />
+
+      {/* Die Vorschau als EIN Bedienelement. Ein echter <button>, kein div mit onClick:
+          So kommt man auch mit Tastatur und Screenreader hin, und die Beschriftung sagt,
+          was passiert. Er liegt nach der Karte im DOM und damit über den Markern — die
+          sollen hier bewusst nicht einzeln antippbar sein, dafür ist das Vollbild da. */}
+      {preview && (
+        <button
+          type="button"
+          onClick={onFullscreen}
+          aria-label={openMapLabel}
+          className="sg-native-tap absolute inset-0 z-10 cursor-pointer"
+        >
+          {/* Der Hinweis, dass hier etwas passiert. Rein dekorativ (der Knopf ist die
+              ganze Fläche), deshalb pointer-events-none und aria-hidden. Ohne ihn sieht
+              die Karte aus wie ein Bild, und niemand käme auf die Idee zu tippen. */}
+          <span
+            aria-hidden
+            className="pointer-events-none absolute left-3 top-3 flex h-9 w-9 items-center justify-center rounded-[11px] border border-black/5 bg-white/80 text-ink shadow-[0_3px_14px_-4px_rgba(0,0,0,0.22)] backdrop-blur-md"
+          >
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.4"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polyline points="15 3 21 3 21 9" />
+              <polyline points="9 21 3 21 3 15" />
+              <line x1="21" y1="3" x2="14" y2="10" />
+              <line x1="3" y1="21" x2="10" y2="14" />
+            </svg>
+          </span>
+        </button>
+      )}
+
       <MapLoadingScreen {...loading} />
     </div>
   );

@@ -306,12 +306,12 @@
     "proTeaser": "Dieser Spot gehört zu SalzGuide Pro. Schalte alle versteckten Highlights frei.",
     "unlock": "SalzGuide Pro freischalten",
     "lockedLabel": "🤫 Geheimtipp",
+    "openMap": "Karte öffnen",
     "elevation": {
       "profile": "Höhenprofil",
       "ascent": "Aufstieg",
       "descent": "Abstieg",
       "highest": "höchster Punkt",
-      "openMap": "Karte öffnen",
       "close": "Schließen",
       "unitElevation": "hm"
     },

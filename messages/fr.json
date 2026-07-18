@@ -258,12 +258,12 @@
     "proTeaser": "Ce spot fait partie de SalzGuide Pro. Débloque tous les trésors cachés.",
     "unlock": "Débloquer SalzGuide Pro",
     "lockedLabel": "🤫 Spot secret",
+    "openMap": "Ouvrir la carte",
     "elevation": {
       "profile": "Profil altimétrique",
       "ascent": "Montée",
       "descent": "Descente",
       "highest": "point culminant",
-      "openMap": "Ouvrir la carte",
       "close": "Fermer",
       "unitElevation": "m"
     },
