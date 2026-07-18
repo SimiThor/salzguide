@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useTranslations } from "next-intl";
+import { usePathname } from "@/i18n/navigation";
 import {
   dismissProNotice,
   getPendingProNotice,
@@ -30,24 +31,44 @@ export default function ProNotice() {
   const reduce = useReducedMotion();
   const [source, setSource] = useState<ProSource | null>(null);
   const [, startTransition] = useTransition();
+  const pathname = usePathname();
+  // "Für diesen Besuch erledigt": entweder weggeklickt oder es ist ein Gast.
+  const settled = useRef(false);
 
-  // Einmal je echtem Seitenaufruf fragen. Bei Client-Navigation bleibt AppChrome stehen,
-  // der Effekt läuft also nicht bei jedem Tab-Wechsel neu. Gäste sind sofort wieder
-  // draussen (die Action steigt ohne Session in Zeile eins aus).
+  // Bei JEDEM Seitenwechsel nachfragen, nicht nur beim ersten Laden.
+  //
+  // Vorher stand hier [] mit der Begründung, AppChrome bleibe bei Client-Navigation
+  // ohnehin stehen, das spare Anfragen. Genau das war das Loch: Wer im Admin Pro geschenkt
+  // bekommt und dann auf "Entdecken" tippt, wechselt die Seite ohne echten Seitenaufruf.
+  // Der Effekt lief nie wieder, der Gruss kam erst beim nächsten harten Neuladen. Dasselbe
+  // trifft den Stripe-Käufer: Beim Rücksprung ist der Webhook oft noch nicht durch, danach
+  // klickt er weiter und erfährt tagelang nichts.
+  //
+  // Der Zustand kann sich also jederzeit hinter dem Rücken des Browsers ändern, und ein
+  // Seitenwechsel ist der natürliche Moment, in dem man nachschaut.
   useEffect(() => {
+    // Weggeklickt heisst weg. Der Riegel ist nicht nur Sparsamkeit: Ohne ihn könnte eine
+    // Nachfrage direkt nach dem Wegklicken den Gruss zurückholen, weil dismissProNotice
+    // den Vermerk erst noch schreibt.
+    if (settled.current) return;
     let alive = true;
-    getPendingProNotice().then((s) => {
-      if (alive) setSource(s);
+    getPendingProNotice().then((r) => {
+      if (!alive || settled.current) return;
+      // Gast: kann ohne Anmeldung kein Pro bekommen, und Anmelden ist ein echter
+      // Seitenaufruf. Ab hier schweigen wir, statt bei jedem Tippen zu fragen.
+      if (r.guest) settled.current = true;
+      setSource(r.source);
     });
     return () => {
       alive = false;
     };
-  }, []);
+  }, [pathname]);
 
   function close() {
     // Erst ausblenden, dann speichern: Das Kärtchen soll auf den Tipp hin sofort weg sein.
     // Hakt das Speichern, kommt der Gruss beim nächsten Laden nochmal — besser als ein
     // Kärtchen, das beim Wegklicken hängt.
+    settled.current = true;
     setSource(null);
     startTransition(() => {
       void dismissProNotice();

@@ -20,6 +20,14 @@ import { createClient } from "./supabase/server";
 import { isProSource, type ProSource } from "./pro-source";
 
 /**
+ * Antwort der Nachfrage. `guest` ist bewusst getrennt von "eingeloggt, aber nichts offen":
+ * Nur beim Gast darf der Client aufhören zu fragen. Wer eingeloggt ist, kann jederzeit Pro
+ * geschenkt bekommen oder seinen Kauf bestätigt sehen, ohne dass der Browser etwas davon
+ * mitbekommt — dort muss weiter nachgefragt werden.
+ */
+export type ProNoticeCheck = { source: ProSource | null; guest: boolean };
+
+/**
  * Steht für den eingeloggten Nutzer noch der Gruss aus? Herkunft (bestimmt den Text)
  * oder null, wenn es nichts zu sagen gibt.
  *
@@ -31,13 +39,16 @@ import { isProSource, type ProSource } from "./pro-source";
  * hakt die Datenbank, gibt es eben keinen Gruss. Ein Hinweis, der ausfällt, darf nichts
  * mitreissen.
  */
-export async function getPendingProNotice(): Promise<ProSource | null> {
+export async function getPendingProNotice(): Promise<ProNoticeCheck> {
   try {
     const supabase = await createClient();
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    if (!user) return null;
+    // Gast: Ohne Anmeldung kann niemand Pro bekommen, und Anmelden ist immer ein echter
+    // Seitenaufruf (auth/callback leitet um). Der Client darf deshalb aufhören zu fragen —
+    // das spart den Grossteil aller Anfragen, denn Gäste sind der Grossteil des Verkehrs.
+    if (!user) return { source: null, guest: true };
 
     const { data } = await supabase
       .from("profiles")
@@ -45,15 +56,17 @@ export async function getPendingProNotice(): Promise<ProSource | null> {
       .eq("id", user.id)
       .maybeSingle();
 
-    if (!data?.is_pro) return null;
-    if (data.pro_notice_seen_at != null) return null;
+    if (!data?.is_pro) return { source: null, guest: false };
+    if (data.pro_notice_seen_at != null) return { source: null, guest: false };
 
     // Pro ohne Herkunft ist ein Datenfehler und sollte nicht vorkommen. Dann lieber
     // schweigen als raten: "wir haben dir Pro geschenkt" an jemanden, der bezahlt hat,
     // wäre schlimmer als gar kein Gruss.
-    return isProSource(data.pro_source) ? data.pro_source : null;
+    return { source: isProSource(data.pro_source) ? data.pro_source : null, guest: false };
   } catch {
-    return null;
+    // Fehler ist nicht "Gast": Sonst hörte der Client nach einem einzigen Aussetzer für
+    // immer auf zu fragen.
+    return { source: null, guest: false };
   }
 }
 
