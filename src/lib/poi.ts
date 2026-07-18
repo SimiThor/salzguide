@@ -4,8 +4,10 @@
 
 // Alle antippbaren Kartenpunkte einer Wanderung/eines Spaziergangs. start/finish sind
 // die Routen-Enden (🥾/🏁) — hier mitgeführt, damit sie genau wie die übrigen Punkte
-// antippbar sind und einheitlich lokalisiert werden.
-export type PoiKind = "water" | "hut" | "parking" | "start" | "finish";
+// antippbar sind und einheitlich lokalisiert werden. "spot" ist der Spot selbst (ein
+// einzelner Punkt ohne Route, z.B. ein Kaffeehaus): Er bringt sein eigenes Emoji und
+// seinen eigenen Text mit, deshalb steht bei ihm kein Gattungs-Label im Katalog.
+export type PoiKind = "water" | "hut" | "parking" | "start" | "finish" | "spot";
 
 // Untertypen je Art. `code` steht in der DB (sprachneutral), `emoji` ist das Kartensymbol,
 // `de` das Label im (deutschen) Admin, `key` der Schlüssel unter Detail.poi.* im Katalog.
@@ -31,6 +33,8 @@ const POI_GENERIC: Record<PoiKind, { emoji: string; de: string; key: string }> =
   parking: { emoji: "🅿️", de: "Parkplatz", key: "parking" },
   start: { emoji: "🥾", de: "Startpunkt", key: "start" },
   finish: { emoji: "🏁", de: "Ziel", key: "finish" },
+  // Nur Rückfalloption: Der Spot liefert Emoji und Beschriftung selbst (siehe oben).
+  spot: { emoji: "📍", de: "Spot", key: "spot" },
 };
 
 function subtypeOf(kind: PoiKind, subtype?: string): PoiSubtype | null {

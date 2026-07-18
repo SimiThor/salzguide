@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
 import { useTranslations } from "next-intl";
 import SpotMap, { type SpotPoi } from "./SpotMap";
+import MapPopover, { MapPopoverClose } from "./MapPopover";
 import ElevationProfile from "./ElevationProfile";
 import type { ElevationProfile as Profile } from "@/lib/admin-actions";
 import { coordAtFraction } from "@/lib/geo";
@@ -25,8 +26,9 @@ type Marker = {
 const poiKey = (p: SpotPoi) => `${p.kind}:${p.lng},${p.lat}`;
 
 // Kleines iOS-Kärtchen unten, wenn ein Kartenpunkt angetippt ist (Start/Ziel, Wasser,
-// Hütte, Parkplatz). Slide-up wie die Vorschau auf der Gespeichert-Karte. Kein Link —
-// reine Info: getöntes Symbol + Name (falls vorhanden) + lokalisierte Gattung.
+// Hütte, Parkplatz — oder der Spot selbst). Hülle und Position kommen von MapPopover,
+// also dieselben wie auf der Gespeichert-Karte. Kein Link — reine Info: getöntes Symbol
+// + Name (falls vorhanden) + lokalisierte Gattung.
 function PoiCard({
   poi,
   onClose,
@@ -38,46 +40,26 @@ function PoiCard({
   closeLabel: string;
   safeBottom?: boolean;
 }) {
-  const emoji = poiEmoji(poi.kind, poi.subtype);
+  const emoji = poi.emoji ?? poiEmoji(poi.kind, poi.subtype);
   return (
-    <div
-      className="pointer-events-none absolute inset-x-3 z-[5]"
-      style={safeBottom ? { bottom: "calc(env(safe-area-inset-bottom) + 14px)" } : { bottom: 12 }}
-    >
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: 16 }}
-        transition={{ type: "spring", stiffness: 440, damping: 34 }}
-        className="pointer-events-auto mx-auto flex max-w-sm items-center rounded-[16px] bg-white/95 pr-2 shadow-[0_14px_44px_-12px_rgba(0,0,0,0.45)] ring-1 ring-black/5 backdrop-blur-xl"
-      >
-        <div className={`sg-poi-card sg-poi-card--${poi.kind} min-w-0 flex-1`}>
-          <span className="sg-poi-card__icon" aria-hidden>
-            {emoji}
-          </span>
-          <span className="sg-poi-card__text">
-            {poi.name ? (
-              <>
-                <span className="sg-poi-card__name truncate">{poi.name}</span>
-                {poi.label && <span className="sg-poi-card__type truncate">{poi.label}</span>}
-              </>
-            ) : (
-              <span className="sg-poi-card__name truncate">{poi.label}</span>
-            )}
-          </span>
-        </div>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label={closeLabel}
-          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-black/5 text-ink active:scale-90"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden>
-            <path d="M6 6l12 12M18 6L6 18" />
-          </svg>
-        </button>
-      </motion.div>
-    </div>
+    <MapPopover fullscreen={safeBottom}>
+      <div className={`sg-poi-card sg-poi-card--${poi.kind} min-w-0 flex-1`}>
+        <span className="sg-poi-card__icon" aria-hidden>
+          {emoji}
+        </span>
+        <span className="sg-poi-card__text">
+          {poi.name ? (
+            <>
+              <span className="sg-poi-card__name truncate">{poi.name}</span>
+              {poi.label && <span className="sg-poi-card__type truncate">{poi.label}</span>}
+            </>
+          ) : (
+            <span className="sg-poi-card__name truncate">{poi.label}</span>
+          )}
+        </span>
+      </div>
+      <MapPopoverClose onClick={onClose} label={closeLabel} />
+    </MapPopover>
   );
 }
 
@@ -88,6 +70,7 @@ export default function SpotDetailMap({
   poi,
   center,
   title,
+  subtitle,
 }: {
   route: [number, number][] | null;
   elevation: Profile | null;
@@ -95,6 +78,9 @@ export default function SpotDetailMap({
   poi?: SpotPoi[];
   center?: [number, number];
   title: string;
+  // Art des Spots ("Café", "Aussichtspunkt" …), genau der Untertitel über dem Titel.
+  // Beschriftet den Spot-Punkt auf der Karte mit, ohne dass jemand ihn extra pflegt.
+  subtitle?: string | null;
 }) {
   const t = useTranslations("Detail");
   const [hoverF, setHoverF] = useState<number | null>(null);
@@ -126,6 +112,21 @@ export default function SpotDetailMap({
   const finishLabel = t("poi.finish");
   const selKey = selected ? poiKey(selected) : null;
 
+  // Der Spot selbst als antippbarer Punkt. Ohne Route steht genau EIN Pin auf der Karte
+  // — und der zeigte bisher nichts, während jeder Parkplatz daneben sein Kärtchen hatte.
+  // Beschriftet wird er aus dem, was oben ohnehin schon steht: Titel und der Untertitel
+  // darüber. Niemand muss dafür etwas zusätzlich eintippen.
+  const spotPoi: SpotPoi | null = marker
+    ? {
+        lng: marker.lng,
+        lat: marker.lat,
+        kind: "spot",
+        name: marker.title ?? title,
+        label: subtitle ?? undefined,
+        emoji: marker.emoji,
+      }
+    : null;
+
   // Gemeinsame Props, damit Inline- und Vollbild-Karte identisch tickt.
   const poiProps = {
     poi,
@@ -135,6 +136,8 @@ export default function SpotDetailMap({
     finishLabel,
     // Tippen auf die leere Karte schließt das Kärtchen.
     onMapClick: () => setSelected(null),
+    onMarkerClick: () => spotPoi && setSelected(spotPoi),
+    selectedSlug: selected?.kind === "spot" ? (marker?.slug ?? null) : null,
   } as const;
 
   // fitBounds-Padding reserviert die Ecken mit den Karten-Buttons (Zoom/Zentrieren/

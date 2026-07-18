@@ -358,6 +358,7 @@ export default async function SpotPage({
             poi={mapPois}
             center={mainPoint ? [mainPoint[1], mainPoint[0]] : undefined}
             title={spot.title}
+            subtitle={factSubtype(spot.subtype, locale)}
           />
         )}
 

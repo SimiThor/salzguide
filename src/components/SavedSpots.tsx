@@ -43,6 +43,9 @@ export default function SavedSpots({
           lng: s.lng as number,
           emoji: s.emoji,
           title: s.title,
+          // Zweite Zeile im Kartenkärtchen — dieselbe Kurzbeschreibung wie in der
+          // Liste darunter, damit beide dasselbe erzählen.
+          subtitle: s.locked ? null : s.shortDesc,
           imageUrl: s.locked ? null : s.imageUrl,
         })),
     [items],

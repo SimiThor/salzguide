@@ -529,9 +529,39 @@ body {
 /* Alle Kartenpunkte (Start/Ziel, Wasser, Hütte, Parkplatz) nutzen denselben .sg-marker
    -> gleiche Größe, gleiches Verhalten. Keine Sonderregel für POIs mehr (einheitlich). */
 
+/* Position des Kärtchens, das beim Antippen eines Kartenpunkts erscheint (MapPopover:
+   Gespeichert-Karte und Spot-Detailkarte). Die Ruheposition gehört ins CSS, nicht in
+   JS — sonst rechnet sie sich bei jedem Rendern neu aus und das Kärtchen springt.
+
+   Ebene 15: über den Mapbox-Buttons (10), unter der Scroll-Schutzfläche (20) — siehe
+   die Leiter weiter unten. Das Punkt-Kärtchen lag vorher auf 5 und damit UNTER dem
+   Attribution-Button: Der fing Tipper ab, die dem ✕ galten. */
+.sg-map-popover {
+  position: absolute;
+  right: 0.75rem;
+  bottom: 12px;
+  left: 0.75rem;
+  z-index: 15;
+  pointer-events: none;
+}
+/* Vollbild: Hier ist Platz, also deckt das Kärtchen Mapbox-Logo und Attribution nicht
+   mehr ab (die beiden sind Lizenzpflicht, siehe unten) und bekommt Luft nach unten —
+   tief genug, um das Bild frei zu lassen, hoch genug, um nicht am Rand zu kleben.
+   34px = Logo/Attribution samt Mapbox' eigenem Abstand, dazu die Safe-Area, unter der
+   auf dem iPhone der Home-Indicator liegt. */
+.sg-map-popover--full {
+  bottom: calc(env(safe-area-inset-bottom) + 34px + 16px);
+}
+/* Am Desktop ist der Bildschirm hoch — dort darf das Kärtchen etwas weiter herauf. */
+@media (min-width: 768px) {
+  .sg-map-popover--full {
+    bottom: 64px;
+  }
+}
+
 /* Punkt-Kärtchen (getöntes Symbol + Text). Erscheint unten, wenn man einen Kartenpunkt
-   antippt (Start/Ziel, Wasser, Hütte, Parkplatz). Die Glas-/Schatten-Hülle liefert der
-   Container in SpotDetailMap; hier nur die Innen-Optik. Einheitlich mit den App-Cards. */
+   antippt (Start/Ziel, Wasser, Hütte, Parkplatz, der Spot selbst). Die Glas-/Schatten-
+   Hülle liefert MapPopover; hier nur die Innen-Optik. Einheitlich mit den App-Cards. */
 .sg-poi-card {
   display: flex;
   align-items: center;
@@ -566,6 +596,10 @@ body {
 }
 .sg-poi-card--finish .sg-poi-card__icon {
   background: rgba(204, 41, 36, 0.12);
+}
+/* Der Spot selbst — neutral getönt, sein Emoji trägt die Farbe schon. */
+.sg-poi-card--spot .sg-poi-card__icon {
+  background: rgba(0, 0, 0, 0.05);
 }
 .sg-poi-card__text {
   display: flex;
@@ -655,6 +689,15 @@ body {
 .mapboxgl-touch-pan-blocker {
   z-index: 20;
 }
+/* Vollbild-Karte: Unten liegt auf modernen iPhones der Home-Indicator. Mapbox-Logo und
+   Attribution rücken darüber, sonst stehen sie halb darunter — und lesbar bleiben müssen
+   sie (Lizenzpflicht, siehe unten). Gilt bewusst auch am Desktop: Dort ist die Safe-Area
+   0, die Regel kostet also nichts und es gibt keine zweite Stelle zum Pflegen. */
+.sg-ctrl-safe .mapboxgl-ctrl-bottom-left,
+.sg-ctrl-safe .mapboxgl-ctrl-bottom-right {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
 /* etwas mehr Luft zum Rand */
 .mapboxgl-ctrl-top-right {
   padding: 4px 6px 0 0;

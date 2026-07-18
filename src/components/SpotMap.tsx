@@ -15,6 +15,8 @@ export type MapMarker = {
   emoji?: string | null;
   locked?: boolean;
   title?: string;
+  // Zweite Zeile der Vorschau-Karte (z.B. der Kurztext des Spots). Nur Anzeige.
+  subtitle?: string | null;
   imageUrl?: string | null; // nur für die Vorschau-Karte (MapCard), Pin nutzt Emoji
 };
 
@@ -30,6 +32,9 @@ export type SpotPoi = {
   subtype?: string;
   name?: string;
   label?: string;
+  // Eigenes Symbol statt des Gattungs-Emojis. Der Spot selbst (kind "spot") bringt
+  // damit sein Emoji mit, statt auf 📍 zurückzufallen.
+  emoji?: string | null;
 };
 
 const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
@@ -625,7 +630,10 @@ export default function SpotMap({
   // Antippen zentriert den Punkt und meldet ihn nach oben (onPoiSelect) -> das
   // Kärtchen erscheint unten. Kein Mapbox-Popup mehr.
   const poiSig = (poi ?? [])
-    .map((p) => `${p.kind}:${p.subtype ?? ""}:${p.lng},${p.lat}:${p.name ?? ""}:${p.label ?? ""}`)
+    .map(
+      (p) =>
+        `${p.kind}:${p.subtype ?? ""}:${p.lng},${p.lat}:${p.name ?? ""}:${p.label ?? ""}:${p.emoji ?? ""}`,
+    )
     .join("|");
   // DOM-Elemente der POI-Pins pro Schlüssel -> Hervorhebung des gewählten Punkts.
   const poiEls = useRef<Map<string, HTMLElement>>(new Map());
@@ -636,7 +644,7 @@ export default function SpotMap({
     poiMarkers.current = [];
     poiEls.current.clear();
     for (const p of poi ?? []) {
-      const emoji = poiEmoji(p.kind, p.subtype);
+      const emoji = p.emoji ?? poiEmoji(p.kind, p.subtype);
       const key = `${p.kind}:${p.lng},${p.lat}`;
       const wrap = document.createElement("button");
       wrap.type = "button";
