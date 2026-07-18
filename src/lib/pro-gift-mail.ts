@@ -26,9 +26,11 @@ function content(): MailContent {
     subject: PRO_GIFT_SUBJECT,
     // "SalzGuide" wird vom Rahmen automatisch rot gesetzt, deshalb steht es in der
     // Überschrift und nicht nochmal darüber.
-    headline: "Dein SalzGuide Pro ist offen",
+    headline: "SalzGuide Pro freigeschaltet",
+    // Kein "wir haben dir Pro freigeschaltet" mehr: Das steht schon in der Überschrift,
+    // und zweimal dasselbe Wort in zwei Zeilen liest sich wie ein Serienbrief.
     body:
-      "Wir haben dir Pro freigeschaltet. Geht aufs Haus, du musst nichts bezahlen und nichts einlösen.\n\n" +
+      "Geht aufs Haus, du musst nichts bezahlen und nichts einlösen.\n\n" +
       "🔓 Alle Pro-Spots sind ab sofort für dich sichtbar, auch die, die sonst gesperrt sind.\n\n" +
       "🗺️ Aufmachen, Karte anschauen, hinfahren. Mehr ist nicht zu tun.",
     // Auf die Karte, nicht ins Profil: Dort ist das, was er jetzt neu sehen kann. Im Profil
