@@ -11,6 +11,7 @@ import BottomSheet from "./BottomSheet";
 import { MapLoadingScreen, useMapLoading } from "./MapLoading";
 import MobileSheet from "./MobileSheet";
 import { SHEET_PEEK_VAR, readCssLength } from "@/lib/sheet-metrics";
+import { useViewportHeight } from "@/lib/viewport";
 import { RecenterControl } from "./mapControls";
 
 const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
@@ -84,6 +85,8 @@ export default function WaterExplore({
   const markersRef = useRef<Record<string, mapboxgl.Marker>>({});
   const { bindMap, loading } = useMapLoading();
   const [isDesktop, setIsDesktop] = useState(false);
+  // Stabile Viewport-Höhe fürs Karten-Padding (siehe lib/viewport.ts).
+  const vh = useViewportHeight();
   const [selected, setSelected] = useState<string | null>(null);
   const selectedRef = useRef<string | null>(null);
   selectedRef.current = selected;
@@ -211,9 +214,9 @@ export default function WaterExplore({
       duration: 650,
       padding: isDesktop
         ? { top: 30, bottom: 30, left: 30, right: 30 }
-        : { top: 40, bottom: Math.round(window.innerHeight * 0.45), left: 20, right: 20 },
+        : { top: 40, bottom: Math.round((vh || 800) * 0.45), left: 20, right: 20 },
     });
-  }, [selected, lakes, isDesktop]);
+  }, [selected, lakes, isDesktop, vh]);
 
   useEffect(() => {
     mapRef.current?.resize();

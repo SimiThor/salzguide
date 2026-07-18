@@ -13,7 +13,13 @@ import { LANDING_CONTAINER } from "./layout";
 // beschnitten — beides kostet genau die Wirkung, für die das Bild da ist.
 export default function Hero({ texts, media }: { texts: HomeTexts; media: HomeMedia }) {
   return (
-    <section className="relative flex min-h-dvh flex-col justify-end overflow-hidden">
+    // min-h-viewport (= var(--sg-vh) = 100svh), NICHT min-h-dvh: Der Hero ist das erste
+    // Element im Dokumentfluss, alles andere hängt an seiner Unterkante. Mit dvh wächst
+    // er genau dann, wenn Safari beim Scrollen seine Leisten einfährt – der Inhalt
+    // darunter rutscht einem mitten in der Bewegung weg, und durch justify-end wandert
+    // sogar der Hero-Text selbst mit. svh ist der Bildschirm mit ausgefahrenen Leisten
+    // und damit konstant. Siehe globals.css, Abschnitt "VIEWPORT-HÖHE".
+    <section className="relative flex min-h-viewport flex-col justify-end overflow-hidden">
       {/* Bild-Ebene. Das Umschalten Hoch-/Querformat sitzt auf WRAPPERN, nicht auf dem
           MediaSlot selbst: eine durchgereichte `md:block`-Klasse würde sonst das `grid`
           des Platzhalters überschreiben und sein `place-items-center` wirkungslos machen.

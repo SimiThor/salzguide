@@ -107,7 +107,7 @@ export default async function SpotPage({
     />
   );
 
-  const HERO_BOX = "h-[42vh] max-h-[460px] min-h-[300px] w-full";
+  const HERO_BOX = "h-[42svh] max-h-[460px] min-h-[300px] w-full";
   const Hero = ({ children }: { children?: React.ReactNode }) => (
     <div className="relative">
       {spot.locked ? (

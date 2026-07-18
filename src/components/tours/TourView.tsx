@@ -13,6 +13,7 @@ import { useTourAudio, type PlayerStop } from "./useTourAudio";
 import AudioTransport from "./AudioTransport";
 import TranscriptView from "./TranscriptView";
 import type { TourDetail } from "@/lib/tour-types";
+import { useViewportHeight } from "@/lib/viewport";
 
 // Peek-Anteil des Sheets (Anteil der Viewport-Höhe). Muss zum Karten-Padding passen,
 // damit Pins nie hinter dem Sheet verschwinden -> EINE Zahl, zwei Schreibweisen.
@@ -38,14 +39,17 @@ export default function TourView({
   const [active, setActive] = useState(0);
   const [focused, setFocused] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
-  const [vh, setVh] = useState(0);
+  // Dieselbe Größe, mit der SHEET_PEEK oben in CSS rechnet (svh). Vorher stand hier
+  // window.innerHeight: CSS rechnete mit der kleinen, JS mit der aktuellen Höhe – bei
+  // eingefahrener Toolbar war das Karten-Padding größer als der real verdeckte Streifen.
+  const vh = useViewportHeight();
 
-  // Desktop/Mobile + Viewport-Höhe (fürs Karten-Padding) messen.
+  // Desktop/Mobile messen. Die Viewport-Höhe hängt bewusst NICHT an diesem resize:
+  // iOS feuert resize bei jedem Leisten-Zug (siehe lib/viewport.ts).
   useEffect(() => {
     const mq = window.matchMedia("(min-width: 768px)");
     const u = () => {
       setIsDesktop(mq.matches);
-      setVh(window.innerHeight);
     };
     u();
     mq.addEventListener("change", u);

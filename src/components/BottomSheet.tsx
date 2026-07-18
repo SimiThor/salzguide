@@ -13,6 +13,7 @@ import { useTranslations } from "next-intl";
 import SheetGrabber, { SHEET_HANDLE_CLASS } from "./SheetGrabber";
 import { useBodyDrag } from "./useBodyDrag";
 import { useSheetHandle } from "./useSheetHandle";
+import { useViewportHeight } from "@/lib/viewport";
 
 // iOS-2026 Overlay (docs/02 §8), responsiv:
 // - Mobile: ziehbares Bottom-Sheet mit Detents (Halb/Voll), Grabber, Spring.
@@ -80,7 +81,7 @@ export default function BottomSheet({
   // liegen, sonst dimmt er das falsche. Siehe Kommentar bei `elevated`.
   const zBackdrop = elevated ? "z-[75]" : "z-[60]";
   const zSheet = elevated ? "z-[78]" : "z-[70]";
-  const [vh, setVh] = useState(0);
+  const vh = useViewportHeight();
   const [isDesktop, setIsDesktop] = useState(false);
   const y = useMotionValue(2000); // Mobile-Sheet: startet off-screen
   const dragControls = useDragControls();
@@ -108,11 +109,13 @@ export default function BottomSheet({
   const snapY = (d: number) => (full - d) * base;
   const closedY = sheetH;
 
-  // Viewport messen + Desktop/Mobile erkennen
+  // Desktop/Mobile erkennen. Die Viewport-Höhe kommt aus useViewportHeight() und darf
+  // NICHT an diesem resize hängen: iOS feuert resize bei jedem Leisten-Zug, `vh` steht
+  // aber unten in den Deps des Öffnen-Effekts – ein offenes Sheet wäre dadurch mitten
+  // im Lesen auf seine Ausgangsstufe zurückgefahren, sobald man scrollt.
   useEffect(() => {
     const mq = window.matchMedia("(min-width: 768px)");
     const update = () => {
-      setVh(window.innerHeight);
       setIsDesktop(mq.matches);
     };
     update();
@@ -223,7 +226,7 @@ export default function BottomSheet({
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.97, y: 8 }}
                 transition={{ duration: 0.2, ease: "easeOut" }}
-                className="pointer-events-auto mx-auto flex max-h-[70vh] w-full max-w-sm flex-col overflow-hidden rounded-[22px] bg-cream shadow-[0_18px_50px_-12px_rgba(0,0,0,0.4)]"
+                className="pointer-events-auto mx-auto flex max-h-[70svh] w-full max-w-sm flex-col overflow-hidden rounded-[22px] bg-cream shadow-[0_18px_50px_-12px_rgba(0,0,0,0.4)]"
               >
                 {desktopInner}
               </motion.div>
@@ -242,7 +245,7 @@ export default function BottomSheet({
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.97, y: 6 }}
                 transition={{ duration: 0.2, ease: "easeOut" }}
-                className="pointer-events-auto flex max-h-[85vh] w-full max-w-lg flex-col overflow-hidden rounded-[22px] bg-cream shadow-2xl"
+                className="pointer-events-auto flex max-h-[85svh] w-full max-w-lg flex-col overflow-hidden rounded-[22px] bg-cream shadow-2xl"
               >
                 {desktopInner}
               </motion.div>
