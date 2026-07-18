@@ -153,7 +153,7 @@ export default function Lightbox({
             onDragEnd={onDragEnd}
             onClick={(e) => e.stopPropagation()}
             draggable={false}
-            className="absolute inset-0 m-auto max-h-[82vh] max-w-[94vw] cursor-grab touch-none select-none rounded-[12px] object-contain active:cursor-grabbing"
+            className="absolute inset-0 m-auto max-h-[82svh] max-w-[94vw] cursor-grab touch-none select-none rounded-[12px] object-contain active:cursor-grabbing"
           />
         </AnimatePresence>
 

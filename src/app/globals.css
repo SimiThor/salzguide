@@ -86,6 +86,70 @@ body {
 }
 
 /* ---------------------------------------------------------------------------
+   VIEWPORT-HÖHE: EINE Regel für die ganze Plattform.
+
+   DAS PROBLEM:
+   Mobile Browser fahren ihre Leisten beim Scrollen ein und aus – Safari die
+   Adressleiste oben und die Werkzeugleiste unten, Chrome/Android die Adressleiste.
+   Die sichtbare Höhe springt dabei um 60–150px, mitten in der Geste. Alles, was an
+   dieser Höhe hängt, wird in dem Moment neu ausgemessen und rutscht unter dem
+   Finger weg: der Hero wächst, der Inhalt darunter wandert, man scrollt ins Leere.
+   Die BREITE ändert sich dabei nie – nur daran darf man sich festhalten.
+
+   DIE REGEL (drei Fälle, mehr gibt es nicht):
+
+   1. Im Dokumentfluss, scrollt mit  ->  svh  (min-h-svh, h-svh, max-h-svh)
+      svh ist die KLEINE Viewport-Höhe: der Bildschirm mit AUSGEFAHRENEN Leisten.
+      Pro Gerät und Ausrichtung eine feste Zahl, die sich beim Scrollen nicht
+      bewegt. Nichts wird je abgeschnitten, weil svh der kleinstmögliche Fall ist.
+      NIE dvh hier: dvh wandert mit der Leiste mit und ist damit genau die Ursache.
+      NIE vh/lvh hier: das ist der Bildschirm OHNE Leisten, also zu hoch – der
+      untere Rand liegt beim Laden unter der Werkzeugleiste.
+
+   2. position: fixed, vollflächig (Karte, Overlay, Backdrop)  ->  inset-0, keine Einheit
+      Ein fixed-Element hängt am Viewport statt am Dokument: Es füllt den sichtbaren
+      Bereich von allein und verschiebt beim Nachwachsen NICHTS, weil im Dokument
+      darunter nichts liegt. Eine Höhenangabe ist hier nicht nur überflüssig,
+      sondern schädlich – sie zwingt einen Wert auf, den der Browser besser kennt.
+
+   3. Höhe muss als ZAHL nach JS (Mapbox-Padding, Sheet-Stufen)  ->  useViewportHeight()
+      src/lib/viewport.ts liest --sg-vh aus und misst NUR bei Breitenänderung neu.
+      Nie window.innerHeight direkt: das ist die dvh-Zahl und ändert sich beim
+      Scrollen. Nie an `resize` hängen: iOS feuert resize bei jedem Leisten-Zug.
+
+   --sg-vh ist die Brücke für Fall 3: registrierte @property "<length>", deshalb
+   rechnet der Browser sie zu echten Pixeln aus und getComputedStyle liefert eine
+   Zahl statt des Textes "100svh". So rechnen CSS und JS mit derselben Größe –
+   sonst teilen sich zwei Systeme denselben Bildschirm in zwei verschiedene Höhen.
+   --------------------------------------------------------------------------- */
+@property --sg-vh {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 0px;
+}
+
+:root {
+  --sg-vh: 100svh;
+}
+
+/* Volle Viewport-Höhe im Dokumentfluss – Fall 1 der Regel oben. Bewusst über
+   var(--sg-vh) statt direkt über svh: Das Layout RICHTET SICH nach der Variable,
+   die JS ausliest, und kann deshalb nicht von ihr abdriften (dasselbe Muster wie
+   --sg-nav-h und die Tab-Leiste).
+
+   Und es ist Pflicht, nicht Geschmack: Tailwind wirft Custom-Properties aus dem
+   gebauten CSS, die in KEINER Regel vorkommen. Eine Variable, die nur JS liest,
+   überlebt den Build nicht – --sg-vh war weg, getComputedStyle gab "" zurück und
+   useViewportHeight() ist still auf seinen 800px-Fallback zurückgefallen. Am
+   Schreibtisch sieht man das nicht: Es sah nur nach einem etwas zu kurzen Sheet
+   aus. Solange diese Regel hier steht, ist die Variable benutzt und bleibt drin. */
+@layer utilities {
+  .min-h-viewport {
+    min-height: var(--sg-vh);
+  }
+}
+
+/* ---------------------------------------------------------------------------
    iOS-Sheet-System: EINE Quelle für Tab-Leiste, Peek-Höhe und Sheet-Bewegung.
 
    WARUM DAS IN CSS STEHT UND NICHT IN JS:

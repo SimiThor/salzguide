@@ -14,6 +14,7 @@ import SpotCard from "./SpotCard";
 import SpotMap, { type MapMarker } from "./SpotMap";
 import MobileSheet, { type Detent } from "./MobileSheet";
 import { SHEET_PEEK_VAR, useSheetPeek } from "@/lib/sheet-metrics";
+import { useViewportHeight } from "@/lib/viewport";
 
 // Stufen des Explore-Sheets über dem Peek.
 //
@@ -50,7 +51,10 @@ export default function Explore({
   const t = useTranslations("Explore");
   const [season, setSeason] = useState<Season>(defaultSeason);
   const [isDesktop, setIsDesktop] = useState(false);
-  const [vh, setVh] = useState(0);
+  // Stabile Viewport-Höhe statt window.innerHeight: Das Karten-Padding hängt daran,
+  // und innerHeight springt, sobald Safari beim Scrollen seine Leisten einfährt –
+  // die Karte hätte dabei mitten in der Geste neu eingepasst (siehe lib/viewport.ts).
+  const vh = useViewportHeight();
   // Höhe des überlagernden Mobile-Headers (inkl. Safe-Area/Notch) – gemessen, damit
   // der eingepasste Spot nicht unter den Header rutscht (auf iPhones mit Notch höher).
   const [headerH, setHeaderH] = useState(56);
@@ -84,12 +88,13 @@ export default function Explore({
     });
   }, []);
 
-  // Desktop/Mobile erkennen + Viewport-Höhe messen
+  // Desktop/Mobile erkennen + Header messen. Die Viewport-Höhe kommt aus
+  // useViewportHeight() und hat hier absichtlich nichts mehr verloren: Sie darf
+  // NICHT an diesem resize hängen, weil iOS bei jedem Leisten-Zug resize feuert.
   useEffect(() => {
     const mq = window.matchMedia("(min-width: 768px)");
     const u = () => {
       setIsDesktop(mq.matches);
-      setVh(window.innerHeight);
       // sichtbaren (nicht display:none) Header messen -> reale überlagerte Höhe
       const hdr = Array.from(document.querySelectorAll("header")).find(
         (h) => h.getBoundingClientRect().height > 0,

@@ -18,6 +18,7 @@ import LockedMedia from "./LockedMedia";
 import { useLoginGate } from "./auth/LoginGate";
 import SheetGrabber from "./SheetGrabber";
 import { useBodyDrag } from "./useBodyDrag";
+import { useViewportHeight } from "@/lib/viewport";
 
 // Dieselbe Bewegung wie beim Explore-Sheet (siehe MobileSheet / --sg-ease-sheet in
 // globals.css): Apples Sheet-Kurve, 0.5s, ohne Überschwingen. Beide Sheets liegen
@@ -63,7 +64,9 @@ export default function SpotSheet({
   const t = useTranslations("Explore");
   const locale = useLocale();
   const gate = useLoginGate();
-  const [vh, setVh] = useState(0);
+  // Stabile Viewport-Höhe: Vorher window.innerHeight an einem resize-Listener – und
+  // iOS feuert resize bei jedem Leisten-Zug. Siehe lib/viewport.ts.
+  const vh = useViewportHeight();
   const y = useMotionValue(2000);
   const dragControls = useDragControls();
   const idxRef = useRef(0);
@@ -102,18 +105,12 @@ export default function SpotSheet({
   const snapY = (d: number) => (full - d) * base;
   const closedY = sheetH;
 
-  useEffect(() => {
-    const u = () => setVh(window.innerHeight);
-    u();
-    window.addEventListener("resize", u);
-    return () => window.removeEventListener("resize", u);
-  }, []);
-
   // Beim Öffnen / Spot-Wechsel auf Peek einfahren. Das ist die EINE gewollte Animation
   // dieses Sheets: Es kommt auf Tippen hin von unten herein.
-  // Absichtlich an `measured` statt an `vh`: sonst liefe sie bei jedem resize erneut –
-  // und iOS löst resize beim Ein-/Ausfahren der Safari-Toolbar aus. Ein aufgezogenes
-  // Sheet klappte dann mitten im Lesen auf Peek zurück.
+  // Absichtlich an `measured` statt an `vh`: sonst liefe sie bei jeder Höhenänderung
+  // erneut und das aufgezogene Sheet klappte mitten im Lesen auf Peek zurück. Seit die
+  // Höhe aus useViewportHeight() kommt, ändert sie sich nur noch bei Drehung – der
+  // Riegel bleibt trotzdem, denn auch eine Drehung darf das Sheet nicht zuklappen.
   const measured = vh > 0;
   useEffect(() => {
     if (!measured) return;
@@ -268,7 +265,7 @@ export default function SpotSheet({
               previewUrl={spot.previewUrl}
               emoji={spot.emoji}
               eager
-              className="mt-3 h-[20vh] max-h-[220px] min-h-[120px] w-full rounded-[16px]"
+              className="mt-3 h-[20svh] max-h-[220px] min-h-[120px] w-full rounded-[16px]"
             />
             <Link
               href="/pro"

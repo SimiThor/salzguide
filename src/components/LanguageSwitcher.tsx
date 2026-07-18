@@ -109,7 +109,7 @@ export default function LanguageSwitcher() {
             />
             <motion.div
               role="listbox"
-              className="fixed inset-x-0 bottom-0 z-[90] max-h-[75vh] overflow-y-auto rounded-t-[22px] bg-cream px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-2 shadow-2xl md:hidden"
+              className="fixed inset-x-0 bottom-0 z-[90] max-h-[75svh] overflow-y-auto rounded-t-[22px] bg-cream px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-2 shadow-2xl md:hidden"
               initial={{ y: "100%" }}
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
@@ -125,7 +125,7 @@ export default function LanguageSwitcher() {
             {/* ---- Desktop: Dropdown ---- */}
             <motion.div
               role="listbox"
-              className="absolute right-0 top-full z-[90] mt-2 hidden max-h-[70vh] w-56 overflow-y-auto rounded-[18px] border border-black/[0.06] bg-white p-1.5 shadow-xl md:block"
+              className="absolute right-0 top-full z-[90] mt-2 hidden max-h-[70svh] w-56 overflow-y-auto rounded-[18px] border border-black/[0.06] bg-white p-1.5 shadow-xl md:block"
               initial={{ opacity: 0, y: -6, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -6, scale: 0.98 }}

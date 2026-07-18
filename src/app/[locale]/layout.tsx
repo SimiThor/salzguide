@@ -60,9 +60,13 @@ export default async function LocaleLayout({
 
   const messages = await getMessages();
 
+  // min-h-viewport (= var(--sg-vh) = 100svh) am body, NICHT min-h-dvh: Auf kurzen Seiten
+  // bestimmt diese Zahl, wo die Fusszeile sitzt. Mit dvh wandert sie beim Scrollen mit
+  // Safaris Leisten mit. svh ist der Bildschirm mit ausgefahrenen Leisten und steht
+  // still – die Regel dazu steht in globals.css unter "VIEWPORT-HÖHE".
   return (
     <html lang={locale} dir={localeDir(locale)} className={`${inter.variable} h-full`}>
-      <body className="flex min-h-dvh flex-col bg-cream text-ink antialiased">
+      <body className="flex min-h-viewport flex-col bg-cream text-ink antialiased">
         <NextIntlClientProvider messages={messages}>
           {/* LoginGateProvider MUSS aussen liegen: AiProvider rendert das Chat-Sheet
               als Geschwister von {children}. Laege das Gate innen, haetten die
