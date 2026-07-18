@@ -34,18 +34,8 @@ export default async function SpotWaterTemp({
       <h2 className="mb-3 text-[17px] font-semibold text-ink">{t("title")}</h2>
       <div className="flex items-center gap-3">
         <span className="text-[#3b82c4]" aria-hidden>
-          <svg
-            width="30"
-            height="30"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={1.6}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M12 3.5c3.2 4.3 5.8 7 5.8 10.2a5.8 5.8 0 0 1-11.6 0C6.2 10.5 8.8 7.8 12 3.5Z" />
-            <path d="M9 14.2c.8.9 2 1 3 .4" />
+          <svg width="28" height="28" viewBox="0 0 256 256" fill="currentColor">
+            <path d="M174,47.75a254.19,254.19,0,0,0-41.45-38.3,8,8,0,0,0-9.18,0A254.19,254.19,0,0,0,82,47.75C54.51,79.32,40,112.6,40,144a88,88,0,0,0,176,0C216,112.6,201.49,79.32,174,47.75ZM128,216a72.08,72.08,0,0,1-72-72c0-57.23,55.47-105,72-118,16.53,13,72,60.77,72,118A72.08,72.08,0,0,1,128,216Z" />
           </svg>
         </span>
         <div className="leading-tight">
