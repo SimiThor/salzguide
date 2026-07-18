@@ -175,6 +175,10 @@ export default function ElevationProfile({
     }
     // Am Finger warten wir ab, wohin die Geste geht. Nichts anzeigen, sonst blitzt die
     // Pille bei jedem Vorbeiscrollen kurz auf.
+    //
+    // Ein kurzes Antippen zeigt deshalb bewusst NICHTS: Es dauert selten die 250 ms, und
+    // seit die Anzeige beim Loslassen verschwindet, wäre sie ohnehin nur ein Aufblitzen.
+    // Wer ablesen will, hält oder wischt quer — dieselbe Geste wie in Apples Health-App.
     const el = e.currentTarget;
     const id = e.pointerId;
     const x = e.clientX;
@@ -209,28 +213,33 @@ export default function ElevationProfile({
     }
   }
 
-  function up(e: React.PointerEvent<HTMLDivElement>) {
-    const s = touch.current;
-    stopTimer();
-    if (e.pointerType === "mouse") {
-      s.reading = false;
-      s.decided = false;
-      leave();
-      return;
-    }
-    // Kurzes Tippen (keine Richtung, kein Halten): einmal ablesen.
-    if (!s.decided) move(e.clientX);
-    // Nach dem Ablesen stehen lassen: der Finger verdeckt das Profil, der Punkt auf der
-    // Karte ist ja das Interessante. Weg ist es beim nächsten Scrollen über das Profil.
-    s.reading = false;
-    s.decided = false;
-  }
-
-  function cancel() {
+  // DIE EINE STELLE, an der eine Geste endet — für Finger und Maus dieselbe.
+  //
+  // Vorher blieb die Anzeige am Finger absichtlich stehen ("der Finger verdeckt das
+  // Profil, der Punkt auf der Karte ist ja das Interessante"). Das war ein Denkfehler:
+  // Nach dem Loslassen zeigte die Karte einen Punkt und das Profil eine Haarlinie, ohne
+  // dass irgendetwas sie noch erklärt hätte. Sie standen dort, bis man zufällig wieder
+  // über das Profil scrollte — auf einer Wanderungs-Seite also praktisch für immer, und
+  // beim nächsten Blick sah es aus, als sei dieser Punkt ausgewählt.
+  //
+  // Jetzt gilt eine Regel, an der es nichts zu deuten gibt: Die Anzeige lebt genau so
+  // lange wie die Berührung. Loslassen räumt auf, Maus-Verlassen räumt auf, ein
+  // abgebrochener Zeiger räumt auf. So macht es auch Apple in Health und Aktien.
+  // `keepReadout` gibt es nur für die Maus: Nach dem Loslassen steht der Zeiger ja immer
+  // noch auf dem Profil, und was man anzeigt, worauf man zeigt, soll ein Klick nicht
+  // wegräumen. Aufgeräumt wird dort erst beim Verlassen der Fläche.
+  function reset(keepReadout = false) {
     stopTimer();
     touch.current.reading = false;
     touch.current.decided = false;
-    leave();
+    if (!keepReadout) leave();
+  }
+
+  // Beim Finger fasst der Browser die ganze Geste am Startelement zusammen, `pointerleave`
+  // kommt also erst NACH dem Loslassen. Beim Zeigegerät kann es mitten im Ablesen kommen,
+  // deshalb die Wache: Wer gerade abliest, wird nicht vom Verlassen unterbrochen.
+  function leaveArea() {
+    if (!touch.current.reading) reset();
   }
 
   const tipLeft = hover ? Math.max(12, Math.min(88, hover.leftPct)) : 0;
@@ -282,9 +291,13 @@ export default function ElevationProfile({
             style={{ touchAction: "pan-y" }}
             onPointerDown={down}
             onPointerMove={drag}
-            onPointerLeave={(e) => e.pointerType === "mouse" && leave()}
-            onPointerUp={up}
-            onPointerCancel={cancel}
+            onPointerUp={(e) => reset(e.pointerType === "mouse")}
+            onPointerLeave={leaveArea}
+            onPointerCancel={() => reset()}
+            // Wenn iOS die Geste an sich reisst (Scrollen, Zurück-Wischen, Anruf), kommt
+            // weder pointerup noch pointercancel zuverlässig — aber die Zeiger-Erfassung
+            // geht immer verloren. Ohne diese Zeile bliebe genau dann eine Haarlinie übrig.
+            onLostPointerCapture={() => reset()}
           >
             <svg
               viewBox={`0 0 ${W} ${H}`}
