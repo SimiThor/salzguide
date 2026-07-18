@@ -37,7 +37,7 @@ const ERRORS: Record<string, string> = {
 const MAIL_STATE: Record<ProMailState, string> = {
   sent: "✉️ Mail ist raus.",
   failed: "Pro gilt, aber die Mail ging nicht raus. Nochmal schenken schickt sie erneut.",
-  already: "Keine Mail: Dieser Person wurde schon einmal geschrieben.",
+  already: "Keine Mail: Dieser Person wurde für dieses Pro schon geschrieben.",
   no_address: "Keine Mail: Zu diesem Konto ist keine Adresse hinterlegt.",
   disabled: "Keine Mail: Es ist kein RESEND_KEY gesetzt (lokal normal).",
 };

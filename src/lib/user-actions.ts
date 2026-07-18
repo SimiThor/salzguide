@@ -38,7 +38,7 @@ export type ProMailState =
   | "sent"
   /** Resend hat nicht angenommen. Pro gilt trotzdem, die Mail kann man erneut anstossen. */
   | "failed"
-  /** Wurde schon einmal geschrieben (Pro entzogen und neu geschenkt). */
+  /** In DIESEM Pro-Zeitraum schon geschrieben. Nach einem Entzug fängt das neu an (0046). */
   | "already"
   /** Konto ohne E-Mail-Adresse. */
   | "no_address"
