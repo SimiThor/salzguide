@@ -36,6 +36,7 @@ import ElevationProfile from "../ElevationProfile";
 import PhotoUploader from "./PhotoUploader";
 import VideoUploader from "./VideoUploader";
 import AiButton from "./AiButton";
+import { STATUS_NEUTRAL } from "@/lib/ui";
 
 const EMPTY: SpotInput = {
   slug: "",
@@ -1062,7 +1063,7 @@ export default function SpotForm({
                 ✓ gesetzt
               </span>
             ) : (
-              <span className="rounded-full bg-black/5 px-2 py-0.5 text-[11px] font-medium text-muted">
+              <span className={STATUS_NEUTRAL}>
                 nicht gesetzt
               </span>
             )}
@@ -1131,7 +1132,7 @@ export default function SpotForm({
                 <p className="text-[13px] font-semibold text-ink">
                   {style.emoji} {plural} <span className="font-normal text-muted">(optional)</span>
                 </p>
-                <span className="rounded-full bg-black/5 px-2 py-0.5 text-[11px] font-medium text-muted">
+                <span className={STATUS_NEUTRAL}>
                   {list.length === 0 ? "keine" : `${list.length} gesetzt`}
                 </span>
               </div>

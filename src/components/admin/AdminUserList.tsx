@@ -3,6 +3,8 @@
 import { useState, useTransition } from "react";
 import { setUserPro, type ProMailState } from "@/lib/user-actions";
 import { proSourceLabel } from "@/lib/pro-source";
+import { BTN_DANGER_SM, BTN_PRIMARY_SM, BTN_SECONDARY_SM, STATUS_ACCENT, STATUS_NEUTRAL } from "@/lib/ui";
+import ProBadge from "@/components/ProBadge";
 import type { AdminUser, ProGrantEntry } from "@/lib/admin";
 
 // Nutzerliste mit Pro-Schalter.
@@ -40,18 +42,26 @@ const MAIL_STATE: Record<ProMailState, string> = {
   disabled: "Keine Mail: Es ist kein RESEND_KEY gesetzt (lokal normal).",
 };
 
-function ProBadge({ user }: { user: AdminUser }) {
+// Der Pro-Zustand einer Zeile: das echte Pro-Zeichen der Plattform plus die Herkunft
+// als Status daneben.
+//
+// Hier stand eine EIGENE Funktion, die auch ProBadge hiess, den geteilten Baustein nicht
+// importierte und anders aussah (flach statt Verlauf). components/ProBadge.tsx sagt in
+// seinem Kopf "PLATTFORMWEIT die EINZIGE Quelle für den Pro-Look" — das stimmte nicht.
+// Jetzt stimmt es.
+//
+// Die Herkunft ist bewusst umrandet statt gefüllt: Direkt daneben sitzt der Knopf
+// "Pro schenken". Vorher trugen beide dieselbe graue Kapsel und man musste raten, welches
+// davon man drücken kann (siehe lib/ui.ts).
+function ProState({ user }: { user: AdminUser }) {
   if (!user.isPro) return <span className="text-muted">–</span>;
-  // Rot hervorgehoben ist nur bezahltes Pro: Das ist das einzige, das der Admin nicht
-  // anfassen darf, und genau das soll man auf einen Blick sehen.
-  const label = `Pro · ${proSourceLabel(user.proSource)}`;
   return (
-    <span
-      className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-        user.paidPro ? "bg-accent/10 text-accent" : "bg-black/5 text-ink"
-      }`}
-    >
-      {label}
+    <span className="flex items-center gap-1.5">
+      <ProBadge />
+      {/* Bezahltes Pro rot: Das ist das einzige, das der Admin nicht anfassen darf. */}
+      <span className={user.paidPro ? STATUS_ACCENT : STATUS_NEUTRAL}>
+        {proSourceLabel(user.proSource)}
+      </span>
     </span>
   );
 }
@@ -111,7 +121,7 @@ function UserRow({ user, grant }: { user: AdminUser; grant?: ProGrantEntry }) {
           )}
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <ProBadge user={{ ...user, isPro }} />
+          <ProState user={{ ...user, isPro }} />
           {user.paidPro ? (
             // Kein Knopf, sondern der Grund. Ein ausgegrauter Knopf sagt „geht nicht",
             // dieser Text sagt „geht woanders" — das ist die Auskunft, die man braucht.
@@ -121,7 +131,7 @@ function UserRow({ user, grant }: { user: AdminUser; grant?: ProGrantEntry }) {
               type="button"
               onClick={() => setOpen((o) => !o)}
               disabled={pending}
-              className="rounded-full bg-black/5 px-3 py-1.5 text-xs font-semibold text-ink disabled:opacity-50"
+              className={BTN_SECONDARY_SM}
             >
               {isPro ? "Pro entziehen" : "Pro schenken"}
             </button>
@@ -156,7 +166,9 @@ function UserRow({ user, grant }: { user: AdminUser; grant?: ProGrantEntry }) {
             type="button"
             onClick={() => submit(!isPro)}
             disabled={pending}
-            className="rounded-full bg-accent px-3.5 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+            // Entziehen ist die Handlung, die man bereuen kann. Rot umrandet statt rot
+            // gefüllt: erkennbar, ohne wie die Haupt-Aktion zu rufen.
+            className={isPro ? BTN_DANGER_SM : BTN_PRIMARY_SM}
           >
             {pending ? "…" : isPro ? "Entziehen" : "Schenken"}
           </button>

@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useLocale, useTranslations } from "next-intl";
 import { dayLabel, groupByDay, type EventItem } from "@/lib/events-format";
 import EventCard from "./EventCard";
+import { STATUS_ACCENT } from "@/lib/ui";
 
 // iOS-artige Entfern-Animation (fade + leicht schrumpfen, Lücke federt zu).
 const EXIT = {
@@ -52,7 +53,7 @@ export default function SavedEventsList({
                   <span className="text-ink">{weekday}</span>
                   <span>{date}</span>
                   {d.key === todayKey && (
-                    <span className="rounded-full bg-accent/10 px-2 py-0.5 text-[11px] font-semibold normal-case text-accent">
+                    <span className={`normal-case ${STATUS_ACCENT}`}>
                       {t("today")}
                     </span>
                   )}

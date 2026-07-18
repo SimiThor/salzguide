@@ -8,6 +8,7 @@ import LoginForm from "@/components/LoginForm";
 import ProUpgrade from "@/components/ProUpgrade";
 import ProBadge from "@/components/ProBadge";
 import { signOut } from "./actions";
+import { STATUS_NEUTRAL } from "@/lib/ui";
 
 export default async function ProfilPage({
   params,
@@ -99,7 +100,7 @@ export default async function ProfilPage({
           {isPro ? (
             <ProBadge size="md" />
           ) : (
-            <span className="rounded-full bg-black/5 px-3 py-1 text-xs font-medium text-muted">
+            <span className={STATUS_NEUTRAL}>
               {t("free")}
             </span>
           )}

@@ -226,7 +226,7 @@ export default function SpotDetailMap({
             </button>
 
             <div
-              className="absolute left-1/2 z-10 max-w-[60%] -translate-x-1/2 truncate rounded-full bg-white/90 px-3.5 py-1.5 text-sm font-semibold text-ink shadow-md ring-1 ring-black/5 backdrop-blur"
+              className="absolute left-1/2 z-10 max-w-[60%] -translate-x-1/2 truncate rounded-full bg-white/90 px-3.5 py-1.5 text-sm font-medium text-ink ring-1 ring-black/5 backdrop-blur"
               style={{ top: "calc(env(safe-area-inset-top) + 14px)" }}
             >
               {title}

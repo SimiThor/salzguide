@@ -6,10 +6,12 @@ import { getPublishedTours } from "@/lib/tours";
 import { listUserTours } from "@/lib/user-tours";
 import { alternatesFor } from "@/lib/metadata";
 import SavedRoutesList from "@/components/tours/SavedRoutesList";
+import { STATUS_ACCENT, STATUS_GOOD, STATUS_NEUTRAL } from "@/lib/ui";
 
 const CARD =
   "rounded-[18px] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04),0_12px_32px_-20px_rgba(0,0,0,0.28)]";
-const PILL = "rounded-full bg-black/[0.06] px-2.5 py-1 font-medium";
+// Status, kein Knopf: umrandet statt gefüllt (siehe lib/ui.ts).
+const PILL = STATUS_NEUTRAL;
 
 export async function generateMetadata({
   params,
@@ -118,11 +120,11 @@ export default async function ToursPage({
                     🎧 · 📖
                   </span>
                   {tour.isPro ? (
-                    <span className="rounded-full bg-accent/10 px-2.5 py-1 font-semibold text-accent">
+                    <span className={STATUS_ACCENT}>
                       {t("proTag")}
                     </span>
                   ) : (
-                    <span className="rounded-full bg-green-600/10 px-2.5 py-1 font-semibold text-green-700">
+                    <span className={STATUS_GOOD}>
                       {t("freeTag")}
                     </span>
                   )}

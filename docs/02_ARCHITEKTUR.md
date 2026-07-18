@@ -213,6 +213,27 @@ Alle externen Calls **serverseitig**, Keys in ENV, Ergebnisse in `api_cache` (od
 **Map-First-Explore:** Karte **vollflächig** im Hintergrund; darüber ein **Bottom-Sheet** mit Saison-Toggle + Karussells (Peek = Karussells, hochziehen = Liste/Filter). Marker-Tap → Spot-Sheet.
 **`<BottomSheet>`** (iOS-2026): wiederverwendbare Komponente mit **Detents** (z.B. 12% Peek / 55% Halb / 92% Voll), Drag-Grabber, Spring-Physics, Backdrop-Blur, Scroll-Lock, Safe-Area-Insets. Genutzt für: Spot-Detail (über der Karte), KI-Assistent, Filter, Saved. Desktop-Fallback: zentriertes Sheet/Sidebar.
 
+## 8a. Knöpfe & Status — `src/lib/ui.ts` (verbindlich)
+
+**Die Regel: gefüllt heisst anfassbar, umrandet heisst Zustand.**
+
+Vorher trugen beide dieselbe graue Kapsel. In der Admin-Nutzerliste standen „Pro · geschenkt" (nur Text) und „Pro schenken" (ein Knopf) nebeneinander in derselben Zeile, unterschieden durch 4px Innenabstand und 1px Schriftgrösse. Die Oberfläche darf die Frage „welches davon kann ich drücken?" gar nicht erst stellen lassen.
+
+| | Knopf | Status |
+|---|---|---|
+| Fläche | **gefüllt** (`bg-accent`, `bg-black/5`, `bg-accent/10`) | **keine**, nur `ring-1` in der Textfarbe |
+| Schrift | `font-semibold`, ab `text-[13px]` | `font-medium`, `text-[11px]` |
+| Berührung | **immer** `active:scale-[0.98]` (Icon-Knöpfe 0.95/0.90) | nie |
+
+Konstanten: `BTN_PRIMARY`, `BTN_SECONDARY`, `BTN_DANGER` (je mit `_SM`-Variante), `STATUS_NEUTRAL`, `STATUS_ACCENT`, `STATUS_GOOD`. Keine neuen Kapseln von Hand stylen.
+
+`active:scale-*` war schon vorher zu 100% richtig gerichtet (98 Vorkommen, kein einziges auf einem Badge), aber es erscheint erst beim Berühren. Die Füllung ist das Merkmal, das man **im Ruhezustand** sieht.
+
+**Drei dokumentierte Ausnahmen**, alle mit unverwechselbarem eigenen Aussehen:
+1. **`<ProBadge>`** ist gefüllt und nicht anfassbar. Es ist kein Status, sondern die Wortmarke, und trägt als einziges Element der App einen Verlauf.
+2. **Zähler-Punkte** (kleiner roter Kreis mit einer *Zahl*, z.B. offene Anfragen in der Admin-Navigation) bleiben gefüllt: das ist das iOS-Mitteilungsabzeichen. Sobald ein *Wort* darin steht, ist es ein Status und gehört umrandet.
+3. **Über Foto und Karte** darf Status gefüllt sein, sonst ist er nicht lesbar. Dort trennt der **Schatten**: Knöpfe schweben (`shadow-md`), Beschriftungen liegen flach auf (siehe `MapCard`/`SpotDetailMap`).
+
 ## 9. Action-Tiles — eine `<ActionTile>`-Komponente
 Varianten je Spot-Feld: **Anfahrt** (Auto `parking_*` / Öffis `transit_*` → Google-Maps-Deeplink), **Anrufen** (`phone`/Places `tel:`), **Tickets** (Affiliate + Werbekennzeichnung), **Website**, **Öffnungszeiten** (Places). Optionale Mikro-Animationen (Auto/Bus/Telefon). Helper `buildMapsLink(coords, mode)`.
 

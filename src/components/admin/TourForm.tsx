@@ -386,7 +386,7 @@ export default function TourForm({
             <button
               type="button"
               onClick={() => set({ coverUrl: null })}
-              className="rounded-full bg-black/5 px-4 py-2 text-[13px] font-semibold text-muted"
+              className="rounded-full bg-black/5 px-4 py-2 text-[13px] font-semibold text-muted transition active:scale-[0.98]"
             >
               Entfernen
             </button>
@@ -441,7 +441,7 @@ export default function TourForm({
                   type="button"
                   onClick={() => removeStop(i)}
                   aria-label="Entfernen"
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-black/5 text-muted"
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-black/5 text-muted transition active:scale-90"
                 >
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
                 </button>

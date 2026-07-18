@@ -8,6 +8,7 @@ import {
   USER_PAGE_SIZE,
 } from "@/lib/admin";
 import AdminUserList from "@/components/admin/AdminUserList";
+import { STATUS_ACCENT, STATUS_NEUTRAL } from "@/lib/ui";
 
 // Nutzer-Verwaltung: sehen, suchen, Pro schenken.
 //
@@ -87,11 +88,11 @@ export default async function AdminUsersPage({
           <span className="flex flex-wrap items-center gap-2">
             <span className="text-[17px] font-bold text-ink">Support-Anfragen</span>
             {openSupport > 0 ? (
-              <span className="rounded-full bg-accent px-2 py-0.5 text-[11px] font-bold text-white">
+              <span className={STATUS_ACCENT}>
                 {openSupport} offen
               </span>
             ) : (
-              <span className="rounded-full bg-black/5 px-2 py-0.5 text-[11px] font-semibold text-muted">
+              <span className={STATUS_NEUTRAL}>
                 nichts offen
               </span>
             )}
@@ -123,15 +124,15 @@ export default async function AdminUsersPage({
           <span className="flex flex-wrap items-center gap-2">
             <span className="text-[17px] font-bold text-ink">Alt-Käufer freischalten</span>
             {migration.total === 0 ? (
-              <span className="rounded-full bg-black/5 px-2 py-0.5 text-[11px] font-semibold text-muted">
+              <span className={STATUS_NEUTRAL}>
                 noch nichts eingetragen
               </span>
             ) : migration.open > 0 ? (
-              <span className="rounded-full bg-accent/10 px-2 py-0.5 text-[11px] font-bold text-accent">
+              <span className={STATUS_ACCENT}>
                 {migration.claimed} von {migration.total} angemeldet
               </span>
             ) : (
-              <span className="rounded-full bg-black/5 px-2 py-0.5 text-[11px] font-semibold text-muted">
+              <span className={STATUS_NEUTRAL}>
                 alle {migration.total} angemeldet
               </span>
             )}

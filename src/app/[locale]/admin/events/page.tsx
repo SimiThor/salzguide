@@ -4,6 +4,7 @@ import { getAdminAnchors } from "@/lib/anchors";
 import { viennaWeekWindow } from "@/lib/events-format";
 import AdminEventList from "@/components/admin/AdminEventList";
 import BulkTranslateButton from "@/components/admin/BulkTranslateButton";
+import { STATUS_NEUTRAL } from "@/lib/ui";
 import WeeklyResearchPanel, {
   type WeekInfo,
 } from "@/components/admin/WeeklyResearchPanel";
@@ -87,7 +88,7 @@ export default async function AdminEventsPage() {
         <span className="min-w-0 flex-1">
           <span className="flex flex-wrap items-center gap-2">
             <span className="text-[17px] font-bold text-ink">Jahres-Events (Anker)</span>
-            <span className="rounded-full bg-black/5 px-2 py-0.5 text-[11px] font-semibold text-muted">
+            <span className={STATUS_NEUTRAL}>
               {activeAnchors} aktiv
             </span>
           </span>
