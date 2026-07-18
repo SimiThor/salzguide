@@ -3,14 +3,14 @@ import mapboxgl from "mapbox-gl";
 /**
  * Kantenlänge eines Karten-Bedienknopfs, plus dem Rand, den Mapbox um die Gruppe legt.
  *
- * GEZEICHNET wird die Grösse in globals.css über `--sg-map-ctrl` (44px, Apples
- * Mindestmass für Finger-Ziele). Diese Zahl hier ist die JS-Seite derselben Sache: Sie
- * sagt den Karten, wie viel Rand sie beim Einpassen freihalten müssen, damit Marker
- * NEBEN den Knöpfen landen und nicht darunter. CSS kann kein TypeScript lesen, deshalb
- * stehen sie an zwei Orten — wer die eine ändert, muss die andere mitnehmen, und beide
- * Kommentare sagen es.
+ * GEZEICHNET wird die Grösse in globals.css über `--sg-map-ctrl` (40px, wie bei Google
+ * Maps; die 4px bis zu Apples 44 kommen dort unsichtbar dazu). Diese Zahl hier ist die
+ * JS-Seite derselben Sache: Sie sagt den Karten, wie viel Rand sie beim Einpassen
+ * freihalten müssen, damit Marker NEBEN den Knöpfen landen und nicht darunter. CSS kann
+ * kein TypeScript lesen, deshalb stehen sie an zwei Orten — wer die eine ändert, muss
+ * die andere mitnehmen, und beide Kommentare sagen es.
  */
-export const MAP_CTRL_SIZE = 44;
+export const MAP_CTRL_SIZE = 40;
 /** Knopf + Aussenabstand der Gruppe (10px) + etwas Luft, damit nichts anklebt. */
 export const MAP_CTRL_PAD = MAP_CTRL_SIZE + 22;
 

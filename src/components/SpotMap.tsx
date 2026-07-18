@@ -417,21 +417,42 @@ export default function SpotMap({
       pitchWithRotate: false,
       touchPitch: false,
     });
-    map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "top-right");
-    map.addControl(new RecenterControl(() => recenterRef.current()), "top-right");
-    map.addControl(
-      new mapboxgl.GeolocateControl({
-        positionOptions: { enableHighAccuracy: true },
-        trackUserLocation: true,
-        showUserHeading: true,
-      }),
-      "top-right",
-    );
-    if (onFullscreenRef.current) {
-      // Vollbild separat oben-links -> klar getrennt von den Karten-Tools rechts
+    // ZWEI ARTEN VON KARTE, ZWEI AUSSTATTUNGEN.
+    //
+    // `onFullscreen` ist genau dann gesetzt, wenn diese Karte eine grosse Fassung hat —
+    // also auf den beiden EINGEBETTETEN Karten (Spot-Seite, MapCard). Das ist keine
+    // Karte, auf der man arbeitet, sondern eine Vorschau: Sie beantwortet "wo ungefähr
+    // ist das", und wer mehr will, macht sie gross.
+    //
+    // Auf so einer Vorschau trugen vier Werkzeuge nichts bei und nahmen viel:
+    //   Zoom      — die Karte läuft mit cooperativeGestures, zwei Finger zoomen ohnehin,
+    //               und wer ernsthaft zoomen will, ist im Vollbild besser aufgehoben.
+    //   Standort  — zeigt auf einer 240px-Vorschau eines Spots 40km entfernt entweder
+    //               nichts Sichtbares oder springt vom Spot weg. Aktiv schädlich.
+    //   Zentrieren— nützt erst, wenn man verschoben hat; in einer Vorschau tut das kaum
+    //               jemand.
+    // Übrig bleibt der eine Knopf, den man wirklich will. Er steht oben LINKS, in
+    // derselben Ecke wie das Schliessen im Vollbild: dieselbe Stelle macht gross und
+    // wieder klein.
+    //
+    // Auf den Arbeits-Karten (Explore, Wasser, Touren, und die Vollbild-Fassungen)
+    // bleibt alles, denn dort tut man genau diese Dinge.
+    const preview = Boolean(onFullscreenRef.current);
+    if (preview) {
       map.addControl(
         new FullscreenControl(() => onFullscreenRef.current?.()),
         "top-left",
+      );
+    } else {
+      map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "top-right");
+      map.addControl(new RecenterControl(() => recenterRef.current()), "top-right");
+      map.addControl(
+        new mapboxgl.GeolocateControl({
+          positionOptions: { enableHighAccuracy: true },
+          trackUserLocation: true,
+          showUserHeading: true,
+        }),
+        "top-right",
       );
     }
     // Route-Layer anlegen, sobald der Style geladen ist

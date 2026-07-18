@@ -51,11 +51,15 @@ body {
   --sg-header-h: 60px;
   --sg-panel: 27rem; /* md (>=768): ~432px */
   --sg-card: calc((var(--sg-panel) - 40px) / 2.5);
-  /* Kantenlänge der Karten-Bedienknöpfe. Apples Mindestmass für Finger-Ziele (44pt).
+  /* Kantenlänge der Karten-Bedienknöpfe: GEZEICHNET 40, ANGEFASST 44.
+     Apple und Google meinen mit ihren 44pt bzw. 48dp die antippbare Fläche, nicht
+     das Gezeichnete — Material sagt ausdrücklich, das Sichtbare dürfe kleiner sein
+     und der Rest transparente Polsterung. Google Maps zeichnet seine Zoom-Knöpfe
+     mit 40px. 44 gezeichnet sah auf der kleinen Spot-Karte nach Knöpfen mit ein
+     bisschen Karte drumherum aus; 40 mit unsichtbaren 44 erfüllt beide Regeln.
      EINE Quelle: das CSS zeichnet damit, und die Karten reservieren damit ihren
-     fitBounds-Rand (SpotMap: CTRL_PAD). Als Zahl an beiden Stellen liefe es beim
-     nächsten Anfassen auseinander, und dann sitzen Marker unter den Knöpfen. */
-  --sg-map-ctrl: 44px;
+     fitBounds-Rand (mapControls.ts: MAP_CTRL_SIZE). */
+  --sg-map-ctrl: 40px;
 }
 @media (min-width: 768px) {
   :root {
@@ -786,9 +790,12 @@ body {
 /* Mapbox-Controls im SalzGuide-Stil (Glas, rund, weicher Schatten) */
 .mapboxgl-ctrl-group {
   border-radius: 11px !important;
-  /* Bleibt: Die Knöpfe sind jetzt selbst gross genug, es muss keine unsichtbare
-     Fläche mehr über den Rand der Gruppe hinausragen. */
-  overflow: hidden;
+  /* KEIN overflow:hidden: Es würde die unsichtbare 44er-Trefferfläche der Knöpfe
+     wieder auf die gezeichneten 40 zurückschneiden. Dass die Optik gleich bleibt,
+     ist geprüft, nicht vermutet: Screenshots mit und ohne diese Zeile waren
+     byte-identisch. Gezeichnet wird der Hintergrund der Gruppe, und der ist selbst
+     gerundet; nur der Hover-Schimmer am Desktop braucht eigene Ecken (siehe unten). */
+  overflow: visible;
   background: rgba(255, 255, 255, 0.82) !important;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -816,6 +823,33 @@ body {
   .mapboxgl-ctrl-group button:hover {
     background-color: rgba(0, 0, 0, 0.05) !important;
   }
+}
+/* Die letzten 4px zu Apples 44: unsichtbar, damit die Knöpfe schlank bleiben.
+   `overflow` muss dafür auf BEIDEN Ebenen offen sein — Mapbox setzt es auch auf dem
+   Knopf selbst, und ihr Stylesheet wird nach unserem geladen, daher !important. */
+.mapboxgl-ctrl-group button {
+  position: relative;
+  overflow: visible !important;
+}
+.mapboxgl-ctrl-group button::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 44px;
+  height: 44px;
+  transform: translate(-50%, -50%);
+}
+/* Übernimmt, was das weggefallene overflow:hidden am Desktop noch tat: den
+   Hover-Schimmer an den Ecken der Gruppe abschneiden. */
+.mapboxgl-ctrl-group button:first-child {
+  border-radius: 11px 11px 0 0;
+}
+.mapboxgl-ctrl-group button:last-child {
+  border-radius: 0 0 11px 11px;
+}
+.mapboxgl-ctrl-group button:only-child {
+  border-radius: 11px;
 }
 .mapboxgl-ctrl-group button:focus:focus-visible {
   outline: 2px solid var(--color-accent);
