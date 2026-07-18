@@ -106,7 +106,7 @@
     "title": "Watertemperaturen",
     "subtitle": "Actuele watertemperaturen van de zwemmeren in de regio Salzburg.",
     "noData": "Geen actuele gegevens",
-    "asOf": "Stand",
+    "asOf": "Bijgewerkt op",
     "spotsHere": "{count, plural, one {# spot aan het meer} other {# spots aan het meer}}",
     "attribution": "Bronnen: Land Salzburg – Hydrografische Dienst (CC BY 4.0) & AGES zwemwater. Ongecontroleerde ruwe data, zonder garantie."
   },
@@ -224,7 +224,7 @@
     "weatherSoon": "Weer volgt binnenkort",
     "openingSoon": "Openingstijden volgen binnenkort",
     "weather": { "title": "Weer", "today": "Vandaag" },
-    "water": { "title": "Watertemperatuur", "asOf": "Stand {date}", "source": "Bron" },
+    "water": { "title": "Watertemperatuur", "asOf": "Bijgewerkt op {date}", "source": "Bron" },
     "opening": {
       "title": "Openingstijden",
       "open": "Geopend",
@@ -413,7 +413,7 @@
     "withdrawal": "Herroeping",
     "backToApp": "Terug naar de app",
     "cancelContract": "Overeenkomst herroepen",
-    "updated": "Stand",
+    "updated": "Bijgewerkt",
     "tagline": "Jouw digitale gids voor het Salzburger Land.",
     "rights": "Alle rechten voorbehouden.",
     "deOnly": "Deze juridische teksten zijn alleen in het Duits beschikbaar; juridisch bindend is de Duitse versie."

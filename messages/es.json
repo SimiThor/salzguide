@@ -179,7 +179,7 @@
     "pillMsg": {
       "coffee": "¿Dónde hay un café realmente bueno en el casco antiguo de Salzburgo?",
       "swim": "Un lago tranquilo para refrescarse, sin mucha gente",
-      "sunset": "Un buen sitio para ver el atardecer, fácil de llegar",
+      "sunset": "Un buen sitio para ver el atardecer, de fácil acceso",
       "hike": "Una ruta chula para medio día",
       "weekend": "¿Qué hay este fin de semana en Salzburgo?",
       "rain": "¿Qué se puede hacer en Salzburgo en un día de lluvia?"
@@ -372,7 +372,7 @@
     "deleting": "Eliminando …",
     "deleteError": "La eliminación falló. Inténtalo más tarde.",
     "newsletterLabel": "Boletín y consejos por correo",
-    "newsletterHint": "De vez en cuando, lugares nuevos y consejos. Baja cuando quieras."
+    "newsletterHint": "De vez en cuando, lugares nuevos y consejos. Date de baja cuando quieras."
   },
   "Demo": {
     "title": "Demo de componentes",

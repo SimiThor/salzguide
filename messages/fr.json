@@ -1,8 +1,8 @@
 {
   "Meta": {
     "description": "Salzburg sans stress – les meilleurs spots, sélectionnés par des locaux.",
-    "homeTitle": "SalzGuide : Google connaît Salzburg. Nous, on y est allés.",
-    "homeDescription": "Deux locaux, une carte : nos spots préférés dans la région de Salzburg, chacun avec un conseil. On y est allés nous-mêmes. Et Toni, l'IA qui ne connaît que ces spots.",
+    "homeTitle": "SalzGuide : Google connaît Salzburg. Nous, on y est allés.",
+    "homeDescription": "Deux locaux, une carte : nos spots préférés dans la région de Salzburg, chacun avec un conseil. On y est allés nous-mêmes. Et Toni, l'IA qui ne connaît que ces spots.",
     "exploreTitle": "Explorer",
     "exploreDescription": "Salzburg sans stress – les meilleurs spots, sélectionnés par des locaux.",
     "proTitle": "Pro",
@@ -75,8 +75,8 @@
     "buildNeedLoginBody": "Crée et enregistre tes propres parcours audio une fois connecté. Tu peux écouter les parcours sélectionnés sans compte.",
     "login": "Se connecter",
     "area": "Zone",
-    "interests": "Qu'est-ce qui te branche ?",
-    "freeText": "Quelque chose de précis ? (facultatif)",
+    "interests": "Qu'est-ce qui te branche ?",
+    "freeText": "Quelque chose de précis ? (facultatif)",
     "freeTextPlaceholder": "ex. des coins moins connus, un truc avec de la musique …",
     "generate": "Créer la visite",
     "generating": "Création de ton parcours",
@@ -89,7 +89,7 @@
     "curatedRoutes": "Sélectionnés par des locaux",
     "savedHint": "Enregistré – tu le retrouves ici à tout moment.",
     "deleteRoute": "Supprimer",
-    "deleteConfirm": "Supprimer le parcours ?",
+    "deleteConfirm": "Supprimer le parcours ?",
     "cancel": "Annuler",
     "chip": {
       "history": "Histoire",
@@ -108,11 +108,11 @@
     "noData": "Pas de données actuelles",
     "asOf": "Mise à jour",
     "spotsHere": "{count, plural, one {# spot sur le lac} other {# spots sur le lac}}",
-    "attribution": "Sources : Land Salzburg – Service hydrographique (CC BY 4.0) & AGES eaux de baignade. Données brutes non vérifiées, sans garantie."
+    "attribution": "Sources : Land Salzburg – Service hydrographique (CC BY 4.0) & AGES eaux de baignade. Données brutes non vérifiées, sans garantie."
   },
   "Events": {
     "title": "Événements",
-    "subtitle": "Que se passe-t-il à Salzburg ?",
+    "subtitle": "Que se passe-t-il à Salzburg ?",
     "empty": "Aucun événement pour le moment. Reviens bientôt.",
     "noneFiltered": "Aucun événement dans cette catégorie.",
     "all": "Tous",
@@ -135,7 +135,7 @@
   "Ai": {
     "title": "Toni",
     "subtitle": "ton local IA",
-    "greeting": "Salut ! Je suis Toni, ton local à Salzburg. T'as envie de quoi là ? 🏔️",
+    "greeting": "Salut ! Je suis Toni, ton local à Salzburg. T'as envie de quoi là ? 🏔️",
     "placeholder": "Demande à Toni …",
     "send": "Envoyer",
     "thinking": "Toni réfléchit …",
@@ -157,15 +157,15 @@
     "openNow": "Ouvert",
     "closedNow": "Fermé",
     "launcherBubbles": [
-      "Salut ! Je connais les bons spots 😎",
-      "Alors, on va où aujourd'hui ? 🤙",
-      "Envie d'un vrai tuyau de local ? 😏",
+      "Salut ! Je connais les bons spots 😎",
+      "Alors, on va où aujourd'hui ? 🤙",
+      "Envie d'un vrai tuyau de local ? 😏",
       "Demande-moi – je suis d'ici 🏔️",
-      "Pas de plan ? Moi si 😎"
+      "Pas de plan ? Moi si 😎"
     ],
     "launcherAria": "Ouvrir Toni, ton local IA",
     "launcherDismiss": "Masquer",
-    "attrWeather": "Météo : Open-Meteo",
+    "attrWeather": "Météo : Open-Meteo",
     "attrWater": "Land Salzburg · AGES",
     "attrGoogle": "Powered by Google",
     "pill": {
@@ -173,16 +173,16 @@
       "swim": "Baignade",
       "sunset": "Coucher de soleil",
       "hike": "Randonnée",
-      "weekend": "Ça bouge ?",
+      "weekend": "Ça bouge ?",
       "rain": "Jour de pluie"
     },
     "pillMsg": {
-      "coffee": "Où trouver un vraiment bon café dans la vieille ville de Salzburg ?",
+      "coffee": "Où trouver un vraiment bon café dans la vieille ville de Salzburg ?",
       "swim": "Un lac tranquille pour se rafraîchir, pas trop bondé",
       "sunset": "Un joli spot pour le coucher de soleil, facile d'accès",
       "hike": "Une chouette rando d'une demi-journée",
-      "weekend": "Qu'est-ce qui se passe à Salzburg ce week-end ?",
-      "rain": "Que faire à Salzburg un jour de pluie ?"
+      "weekend": "Qu'est-ce qui se passe à Salzburg ce week-end ?",
+      "rain": "Que faire à Salzburg un jour de pluie ?"
     },
     "paywallGuestTitle": "Tu as atteint ta limite gratuite du jour",
     "paywallGuestBody": "Inscris-toi gratuitement pour poser plus de questions à Toni.",
@@ -293,7 +293,7 @@
     "discover": "Découvrir"
   },
   "Auth": {
-    "relaunchNotice": "✨ Le nouveau SalzGuide est là. Ton Pro de l’ancien site continue : même e-mail, pas besoin de mot de passe.",
+    "relaunchNotice": "✨ Le nouveau SalzGuide est là. Ton Pro de l’ancien site continue : même e-mail, pas besoin de mot de passe.",
     "joinTitle": "Se connecter ou créer un compte",
     "joinSubtitle": "Avec ton e-mail – sans mot de passe. Enregistre tes spots préférés et planifie tes sorties.",
     "emailPlaceholder": "toi@email.com",
@@ -307,7 +307,7 @@
     "captchaUnavailableGoogle": "Le contrôle de sécurité ne fonctionne pas pour le moment. Utilise Google ci-dessus ou recharge la page.",
     "error": "Une erreur s'est produite – vérifie ton e-mail et réessaie.",
     "captchaError": "Confirme que tu n'es pas un robot et réessaie.",
-    "sentTitle": "Regarde ta boîte mail !",
+    "sentTitle": "Regarde ta boîte mail !",
     "sentBody": "On t'a envoyé un lien de connexion. Touche-le pour te connecter.",
     "legalHint": "En te connectant, tu acceptes les <terms>CGU</terms> et la <privacy>politique de confidentialité</privacy>.",
     "profileTitle": "Profil",
@@ -333,7 +333,7 @@
     "error": "Ça n'a pas marché. Réessaie.",
     "unavailable": "Le paiement n'est pas disponible pour le moment.",
     "alreadyPro": "Tu es déjà Pro. 🎉",
-    "successTitle": "Merci – bienvenue chez Pro ! 🎉",
+    "successTitle": "Merci – bienvenue chez Pro ! 🎉",
     "successBody": "Ton accès est en cours d'activation. Ça peut prendre un court instant – recharge la page si besoin.",
     "canceledTitle": "Paiement annulé",
     "canceledBody": "Pas de souci – tu peux passer à Pro quand tu veux.",
@@ -344,7 +344,7 @@
       },
       "migration": {
         "title": "Ton Pro est là 🎉",
-        "body": "Bon retour ! Ton Pro de l’ancien site est repris, sans limite. Tu n’as rien d’autre à faire."
+        "body": "Bon retour ! Ton Pro de l’ancien site est repris, sans limite. Tu n’as rien d’autre à faire."
       },
       "comp": {
         "title": "On t'a débloqué Pro. 🎉",
@@ -353,22 +353,22 @@
     },
     "heroTitle": "Tout Salzburg débloqué",
     "heroSubtitle": "Toutes les pépites cachées, tous les parcours audio et Toni sans limite. Fait par des locaux – zéro kitsch touristique.",
-    "loginNudge": "Juste ton e-mail : on t'envoie un lien de connexion, puis direction le paiement.",
+    "loginNudge": "Juste ton e-mail : on t'envoie un lien de connexion, puis direction le paiement.",
     "trustLocal": "Fait par des locaux de Salzburg – de vrais bons plans.",
     "exploreCta": "Commencer à explorer"
   },
   "Account": {
     "title": "Tes données & confidentialité",
     "linkLabel": "Tes données & confidentialité",
-    "intro": "Gère ici tes consentements et exerce tes droits DSGVO : désinscris-toi de la newsletter, exporte toutes tes données ou supprime ton compte.",
+    "intro": "Gère ici tes consentements et exerce tes droits RGPD : désinscris-toi de la newsletter, exporte toutes tes données ou supprime ton compte.",
     "back": "Retour au profil",
     "exportBtn": "Exporter mes données",
-    "exportHint": "Télécharge toutes les données enregistrées pour ton compte au format JSON (demande d'accès DSGVO).",
+    "exportHint": "Télécharge toutes les données enregistrées pour ton compte au format JSON (demande d'accès RGPD).",
     "exporting": "Création …",
     "exportError": "L'export a échoué. Réessaie plus tard.",
     "deleteBtn": "Supprimer le compte",
     "deleteHint": "Supprime définitivement ton compte et toutes tes données.",
-    "deleteConfirm": "Vraiment supprimer ton compte et TOUTES tes données de façon définitive ?",
+    "deleteConfirm": "Vraiment supprimer ton compte et TOUTES tes données de façon définitive ?",
     "deleting": "Suppression …",
     "deleteError": "La suppression a échoué. Réessaie plus tard.",
     "newsletterLabel": "Newsletter & conseils par e-mail",
@@ -386,15 +386,15 @@
   "Support": {
     "linkLabel": "Aide",
     "title": "On est là pour t'aider",
-    "subtitle": "Quelque chose ne marche pas, un spot est faux, ou tu as une question ? Écris-nous. On est deux et on lit chaque message nous-mêmes.",
+    "subtitle": "Quelque chose ne marche pas, un spot est faux, ou tu as une question ? Écris-nous. On est deux et on lit chaque message nous-mêmes.",
     "name": "Nom",
     "email": "E-mail",
     "message": "Ton message",
-    "messagePlaceholder": "Qu'est-ce qui se passe ? Plus c'est précis, plus vite on peut aider.",
+    "messagePlaceholder": "Qu'est-ce qui se passe ? Plus c'est précis, plus vite on peut aider.",
     "submit": "Envoyer le message",
     "sending": "Envoi …",
     "preparing": "Contrôle anti-robot … 🤖",
-    "sentTitle": "Bien reçu !",
+    "sentTitle": "Bien reçu !",
     "sentBody": "On a ton message et on te répond par e-mail. En général sous un ou deux jours.",
     "captchaUnavailable": "Le contrôle de sécurité ne fonctionne pas pour le moment. Recharge la page.",
     "privacyHint": "On utilise tes données uniquement pour te répondre.",
@@ -416,7 +416,7 @@
     "updated": "Mise à jour",
     "tagline": "Ton guide numérique de la région de Salzburg.",
     "rights": "Tous droits réservés.",
-    "deOnly": "Ces textes juridiques ne sont disponibles qu'en allemand ; la version allemande fait foi."
+    "deOnly": "Ces textes juridiques ne sont disponibles qu'en allemand ; la version allemande fait foi."
   },
   "LoginGate": {
     "cta": "S'inscrire gratuitement",
