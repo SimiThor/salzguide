@@ -1241,22 +1241,6 @@ export default function SpotForm({
               </select>
             </div>
             <div>
-              {/* Bewusst KEIN hartes Dropdown: Das Salzburger Land hat mehr Orte, als eine
-                  Liste je führen kann, und ein Riegel hiesse, den passenden Ort gar nicht
-                  einzutragen. Stattdessen viele Vorschläge plus sichtbare Warnung. */}
-              <label className={labelCls}>Standort / Gegend</label>
-              <input className={input} list="sg-areas" value={form.area} onChange={(e) => set({ area: e.target.value })} placeholder="z. B. Aigen" />
-              <datalist id="sg-areas">
-                {Object.values(AREA_GROUPS).flat().map((a) => <option key={a} value={a} />)}
-              </datalist>
-              {!factIsKnown("area", form.area) && (
-                <p className="mt-1 text-[12px] leading-snug text-accent">
-                  „{form.area}&ldquo; steht in keiner Gegend-Liste und bleibt in allen 9 Sprachen deutsch.
-                  Wähle einen Vorschlag oder trag den Ort in facts-i18n.json nach.
-                </p>
-              )}
-            </div>
-            <div>
               <label className={labelCls}>Bekanntheit</label>
               <select className={input} value={form.fame} onChange={(e) => set({ fame: e.target.value })}>
                 <option value="">—</option>
@@ -1328,6 +1312,35 @@ export default function SpotForm({
             </div>
           </div>
         )}
+
+        {/* Gegend: EIN Feld für beide Spot-Typen, bewusst ausserhalb der beiden Raster.
+            Bei Lokalen ist sie einer der vier Quick-Facts auf der Spot-Seite. Bei Aktivitäten
+            sind die vier Plätze mit Dauer/Schwierigkeit/Zeit/Anreise belegt, dort erscheint
+            sie NICHT — sie füttert nur Toni, der damit Spots einer Region findet
+            (ai-assistant.ts: Suchbegriff und Spot-Details). Kein zweites Feld dafür: dieselbe
+            Spalte, dieselbe Auswahlliste, nur ein anderer Hinweistext.
+
+            Bewusst KEIN hartes Dropdown: Das Salzburger Land hat mehr Orte, als eine Liste je
+            führen kann, und ein Riegel hiesse, den passenden Ort gar nicht einzutragen.
+            Stattdessen viele Vorschläge plus sichtbare Warnung. */}
+        <div>
+          <label className={labelCls}>Standort / Gegend</label>
+          <input className={input} list="sg-areas" value={form.area} onChange={(e) => set({ area: e.target.value })} placeholder="z. B. Aigen" />
+          <datalist id="sg-areas">
+            {Object.values(AREA_GROUPS).flat().map((a) => <option key={a} value={a} />)}
+          </datalist>
+          <p className="mt-1 text-[12px] leading-snug text-ink/50">
+            {isFood
+              ? "Steht als Quick-Fact auf der Spot-Seite."
+              : "Steht nicht auf der Spot-Seite (dort sind die vier Plätze belegt), hilft aber Toni beim Finden."}
+          </p>
+          {!factIsKnown("area", form.area) && (
+            <p className="mt-1 text-[12px] leading-snug text-accent">
+              „{form.area}&ldquo; steht in keiner Gegend-Liste und bleibt in allen 9 Sprachen deutsch.
+              Wähle einen Vorschlag oder trag den Ort in facts-i18n.json nach.
+            </p>
+          )}
+        </div>
       </section>
 
       {/* Texte – Deutsch als Quelle, KI-Übersetzung in alle Sprachen */}
