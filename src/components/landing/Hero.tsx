@@ -1,7 +1,7 @@
 import { Link } from "@/i18n/navigation";
 import type { HomeTexts } from "@/lib/home-fields";
 import type { HomeMedia } from "@/lib/home-content";
-import MediaSlot from "./MediaSlot";
+import HeroImage from "./HeroImage";
 import { CTA_PRIMARY } from "./cta";
 import { LANDING_CONTAINER } from "./layout";
 
@@ -25,24 +25,14 @@ export default function Hero({ texts, media }: { texts: HomeTexts; media: HomeMe
           des Platzhalters überschreiben und sein `place-items-center` wirkungslos machen.
           (Genau das war der Fall — nur fällt es auf, solange der Platzhalter sichtbar ist.) */}
       <div className="absolute inset-0 -z-10">
-        <div className="h-full w-full md:hidden">
-          <MediaSlot
-            image={media.heroPortrait}
-            hint="Hero Hochformat 9:16, Anton & Simon vor der Festung"
-            sizes="100vw"
-            priority
-            className="h-full w-full object-cover"
-          />
-        </div>
-        <div className="hidden h-full w-full md:block">
-          <MediaSlot
-            image={media.heroLandscape}
-            hint="Hero Querformat 16:9, Anton & Simon vor der Festung"
-            sizes="100vw"
-            priority
-            className="h-full w-full object-cover"
-          />
-        </div>
+        {/* EIN Bild, zwei Zuschnitte: Die Auswahl fällt in <picture>, also VOR dem Laden.
+            Vorher standen hier zwei versteckte/sichtbare <Image> mit je `priority` — CSS
+            versteckte eines, geladen wurden beide (nachgemessen 128 KB + 55 KB). */}
+        <HeroImage
+          portrait={media.heroPortrait}
+          landscape={media.heroLandscape}
+          className="h-full w-full object-cover"
+        />
         {/* Verlauf, damit die Schrift auf JEDEM Bild lesbar bleibt — auch auf einem hellen
             Himmel. Ohne den hängt die Lesbarkeit am Motiv, und das nächste Bild kippt sie. */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/25 to-black/30" />
