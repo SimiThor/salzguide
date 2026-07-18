@@ -10,11 +10,13 @@ import {
 } from "framer-motion";
 import {
   useEffect,
+  useRef,
   useState,
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
 } from "react";
 import { useTranslations } from "next-intl";
+import { useBodyDrag } from "./useBodyDrag";
 
 // iOS-2026 Overlay (docs/02 §8), responsiv:
 // - Mobile: ziehbares Bottom-Sheet mit Detents (Halb/Voll), Grabber, Spring.
@@ -86,6 +88,19 @@ export default function BottomSheet({
   const [isDesktop, setIsDesktop] = useState(false);
   const y = useMotionValue(2000); // Mobile-Sheet: startet off-screen
   const dragControls = useDragControls();
+  // Voll ausgefahren = oberster Detent. Steuert, ob der Body scrollt UND ob Runterziehen
+  // am oberen Rand das Sheet mitnimmt, statt zurückzufedern (siehe useBodyDrag).
+  const [atFull, setAtFull] = useState(initialDetent >= detents.length - 1);
+  // Beim Öffnen fährt das Sheet auf initialDetent -> Stufe zurücksetzen. Als abgeleiteter
+  // State beim Prop-Wechsel (nicht im Effect), wie React es für "State an geänderte Prop
+  // anpassen" empfiehlt – vermeidet eine zweite Render-Runde.
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) setAtFull(initialDetent >= detents.length - 1);
+  }
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const bodyDrag = useBodyDrag(dragControls, bodyRef, atFull);
 
   const full = detents[detents.length - 1];
   const base = vh || 800;
@@ -142,11 +157,12 @@ export default function BottomSheet({
       onClose();
       return;
     }
-    let best = points[0];
-    for (const p of points) {
-      if (Math.abs(p - current) < Math.abs(best - current)) best = p;
+    let best = 0;
+    for (let i = 1; i < points.length; i++) {
+      if (Math.abs(points[i] - current) < Math.abs(points[best] - current)) best = i;
     }
-    animate(y, best, SPRING);
+    setAtFull(best === points.length - 1);
+    animate(y, points[best], SPRING);
   };
 
   // Gemeinsame Desktop-Innenstruktur (Header-Zeile, Scroll-Body, fixer Footer).
@@ -255,7 +271,14 @@ export default function BottomSheet({
               )
             )}
           </div>
-          <div className={`flex-1 overflow-y-auto px-5 pt-4 ${footer ? "pb-2" : "pb-[calc(env(safe-area-inset-bottom)+1.5rem)]"}`}>
+          <div
+            ref={bodyRef}
+            {...bodyDrag}
+            style={{ touchAction: atFull ? "auto" : "pan-x" }}
+            className={`flex-1 overscroll-contain px-5 pt-4 ${
+              atFull ? "overflow-y-auto" : "overflow-y-hidden"
+            } ${footer ? "pb-2" : "pb-[calc(env(safe-area-inset-bottom)+1.5rem)]"}`}
+          >
             {children}
           </div>
           {footer && (
