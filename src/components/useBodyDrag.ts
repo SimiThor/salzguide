@@ -28,7 +28,9 @@ const SCROLL_LOCK_MS = 100;
 
 // Weg (px), bis die Richtung einer Geste feststeht. Darunter könnte es noch ein Tap sein.
 // Dieselbe Schwelle für Pointer und Touch, damit beide immer dieselbe Entscheidung treffen.
-const DIR_THRESHOLD = 8;
+// Exportiert, damit jede Stelle der App, die eine Geste einordnet (z. B. das Höhenprofil),
+// bei genau demselben Weg entscheidet – das fühlt sich überall gleich an.
+export const DIR_THRESHOLD = 8;
 
 type GestureStart = {
   x: number;

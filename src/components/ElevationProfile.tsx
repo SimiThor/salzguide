@@ -1,8 +1,12 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import type { ElevationProfile as Profile } from "@/lib/admin-actions";
+import { DIR_THRESHOLD } from "./useBodyDrag";
+
+// Touch-und-Halten liest ab, ohne dass der Finger wandern muss (wie in Apples Health/Aktien).
+const PRESS_MS = 250;
 
 // Glatte Linie via monotoner kubischer Interpolation (wie D3 curveMonotoneX):
 // geht durch JEDEN Datenpunkt und schwingt NICHT über -> rundet die Ecken,
@@ -66,6 +70,34 @@ export default function ElevationProfile({
     { leftPct: number; topPct: number; e: number; d: number } | null
   >(null);
 
+  // Zustand EINER Berührung. `decided` heisst: die Richtung steht fest und bleibt bis zum
+  // Loslassen — entweder wir lesen ab (`reading`) oder die Seite scrollt (dann rühren wir
+  // uns bis zum Ende der Geste nicht mehr).
+  const touch = useRef<{
+    reading: boolean;
+    decided: boolean;
+    x: number;
+    y: number;
+    timer: ReturnType<typeof setTimeout> | null;
+  }>({ reading: false, decided: false, x: 0, y: 0, timer: null });
+
+  // Nicht-passiver touchmove: die EINZIGE Stelle, die iOS' Scrollen noch stoppen kann,
+  // sobald das Ablesen läuft (sonst fährt die Seite unter dem Finger weg, wenn man beim
+  // Ablesen schräg wischt). React hängt touchmove passiv ein, dort wird preventDefault
+  // ignoriert — deshalb von Hand ans DOM, genau wie in useBodyDrag.
+  useEffect(() => {
+    const el = areaRef.current;
+    if (!el) return;
+    const onTouchMove = (e: TouchEvent) => {
+      if (touch.current.reading && e.cancelable) e.preventDefault();
+    };
+    el.addEventListener("touchmove", onTouchMove, { passive: false });
+    return () => {
+      el.removeEventListener("touchmove", onTouchMove);
+      if (touch.current.timer) clearTimeout(touch.current.timer);
+    };
+  }, []);
+
   const pts = profile.points;
   if (!pts || pts.length < 2) return null;
 
@@ -119,6 +151,88 @@ export default function ElevationProfile({
     onHover?.(null);
   }
 
+  function stopTimer() {
+    const s = touch.current;
+    if (s.timer) clearTimeout(s.timer);
+    s.timer = null;
+  }
+
+  // Ab hier folgt die Anzeige dem Finger — und die Seite steht still (siehe touchmove oben).
+  function startReading(el: HTMLElement, pointerId: number, clientX: number) {
+    const s = touch.current;
+    s.decided = true;
+    s.reading = true;
+    try {
+      el.setPointerCapture(pointerId);
+    } catch {}
+    move(clientX);
+  }
+
+  function down(e: React.PointerEvent<HTMLDivElement>) {
+    if (e.pointerType === "mouse") {
+      move(e.clientX);
+      return;
+    }
+    // Am Finger warten wir ab, wohin die Geste geht. Nichts anzeigen, sonst blitzt die
+    // Pille bei jedem Vorbeiscrollen kurz auf.
+    const el = e.currentTarget;
+    const id = e.pointerId;
+    const x = e.clientX;
+    stopTimer();
+    touch.current = { reading: false, decided: false, x, y: e.clientY, timer: null };
+    touch.current.timer = setTimeout(() => {
+      touch.current.timer = null;
+      if (!touch.current.decided) startReading(el, id, x); // gehalten -> ablesen
+    }, PRESS_MS);
+  }
+
+  function drag(e: React.PointerEvent<HTMLDivElement>) {
+    const s = touch.current;
+    if (e.pointerType === "mouse") {
+      move(e.clientX);
+      return;
+    }
+    if (s.reading) {
+      move(e.clientX);
+      return;
+    }
+    if (s.decided) return; // als Scrollen eingeordnet -> diese Geste gehört der Seite
+    const dx = e.clientX - s.x;
+    const dy = e.clientY - s.y;
+    if (Math.abs(dx) < DIR_THRESHOLD && Math.abs(dy) < DIR_THRESHOLD) return;
+    stopTimer();
+    if (Math.abs(dx) > Math.abs(dy)) {
+      startReading(e.currentTarget, e.pointerId, e.clientX); // quer -> ablesen
+    } else {
+      s.decided = true; // hoch/runter -> Seite scrollt, alte Anzeige weg
+      leave();
+    }
+  }
+
+  function up(e: React.PointerEvent<HTMLDivElement>) {
+    const s = touch.current;
+    stopTimer();
+    if (e.pointerType === "mouse") {
+      s.reading = false;
+      s.decided = false;
+      leave();
+      return;
+    }
+    // Kurzes Tippen (keine Richtung, kein Halten): einmal ablesen.
+    if (!s.decided) move(e.clientX);
+    // Nach dem Ablesen stehen lassen: der Finger verdeckt das Profil, der Punkt auf der
+    // Karte ist ja das Interessante. Weg ist es beim nächsten Scrollen über das Profil.
+    s.reading = false;
+    s.decided = false;
+  }
+
+  function cancel() {
+    stopTimer();
+    touch.current.reading = false;
+    touch.current.decided = false;
+    leave();
+  }
+
   const tipLeft = hover ? Math.max(12, Math.min(88, hover.leftPct)) : 0;
 
   return (
@@ -163,17 +277,14 @@ export default function ElevationProfile({
           <div
             ref={areaRef}
             className="relative h-24 cursor-crosshair select-none"
-            style={{ touchAction: "none" }}
-            onPointerMove={(e) => move(e.clientX)}
-            onPointerDown={(e) => {
-              try {
-                e.currentTarget.setPointerCapture(e.pointerId);
-              } catch {}
-              move(e.clientX);
-            }}
-            onPointerLeave={leave}
-            onPointerUp={leave}
-            onPointerCancel={leave}
+            // pan-y: Hoch- und Runterwischen gehört IMMER der Seite. Nur quer (oder
+            // gehalten) lesen wir ab – wer nur am Profil vorbeiscrollt, bleibt nie hängen.
+            style={{ touchAction: "pan-y" }}
+            onPointerDown={down}
+            onPointerMove={drag}
+            onPointerLeave={(e) => e.pointerType === "mouse" && leave()}
+            onPointerUp={up}
+            onPointerCancel={cancel}
           >
             <svg
               viewBox={`0 0 ${W} ${H}`}
