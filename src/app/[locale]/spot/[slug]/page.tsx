@@ -79,36 +79,30 @@ export async function generateMetadata({
   };
 }
 
-export default async function SpotPage({
-  params,
+const HERO_BOX = "h-[42svh] max-h-[460px] min-h-[300px] w-full";
+
+// Kopfbild der Spot-Seite: Foto (oder Blur-Vorschau bei Pro), Verlauf, Titel, Zurück
+// und Speichern. Bewusst auf Modulebene statt in SpotPage: eine Komponente, die im
+// Render einer anderen entsteht, gilt bei jedem Durchlauf als neuer Typ
+// (react-hooks/static-components). Alles, was sie braucht, kommt über Props.
+function Hero({
+  spot,
+  t,
+  locale,
+  back,
+  isSaved,
+  loggedIn,
+  children,
 }: {
-  params: Promise<{ locale: string; slug: string }>;
+  spot: NonNullable<Awaited<ReturnType<typeof getSpotDetail>>>;
+  t: Awaited<ReturnType<typeof getTranslations<"Detail">>>;
+  locale: string;
+  back: React.ReactNode;
+  isSaved: boolean;
+  loggedIn: boolean;
+  children?: React.ReactNode;
 }) {
-  const { locale, slug } = await params;
-  setRequestLocale(locale);
-  const t = await getTranslations("Detail");
-  const spot = await getSpotDetail(slug, locale);
-
-  if (!spot) notFound();
-
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const loggedIn = !!user;
-  const savedSlugs = loggedIn ? await getSavedSlugs() : new Set<string>();
-  const isSaved = savedSlugs.has(spot.slug);
-
-  const back = (
-    <BackButton
-      fallbackHref="/explore"
-      label={t("back")}
-      className="absolute left-4 top-4"
-    />
-  );
-
-  const HERO_BOX = "h-[42svh] max-h-[460px] min-h-[300px] w-full";
-  const Hero = ({ children }: { children?: React.ReactNode }) => (
+  return (
     <div className="relative">
       {spot.locked ? (
         // Gesperrt: nur die Blur-Vorschau – gleiche Darstellung wie Karte, Sheet und
@@ -162,13 +156,45 @@ export default async function SpotPage({
       </div>
     </div>
   );
+}
+
+export default async function SpotPage({
+  params,
+}: {
+  params: Promise<{ locale: string; slug: string }>;
+}) {
+  const { locale, slug } = await params;
+  setRequestLocale(locale);
+  const t = await getTranslations("Detail");
+  const spot = await getSpotDetail(slug, locale);
+
+  if (!spot) notFound();
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const loggedIn = !!user;
+  const savedSlugs = loggedIn ? await getSavedSlugs() : new Set<string>();
+  const isSaved = savedSlugs.has(spot.slug);
+
+  const back = (
+    <BackButton
+      fallbackHref="/explore"
+      label={t("back")}
+      className="absolute left-4 top-4"
+    />
+  );
+
+  // Immer gleich befüllt -> einmal vorbereiten statt an beiden Aufrufstellen wiederholen.
+  const heroProps = { spot, t, locale, back, isSaved, loggedIn };
 
   // Pro-Spot ohne Zugriff -> Paywall (serverseitig gegated)
   if (spot.locked) {
     return (
       <div className="pb-16">
         {/* Hero zeigt bei locked selbst die Blur-Vorschau – kein 🤫 mehr nötig. */}
-        <Hero />
+        <Hero {...heroProps} />
         <div className="mx-auto w-full max-w-[760px] px-4">
           <div className={`${CARD} relative z-10 -mt-9 flex flex-col items-start gap-4 p-6`}>
             <p className="text-[15px] leading-relaxed text-muted">{t("proTeaser")}</p>
@@ -276,7 +302,7 @@ export default async function SpotPage({
   return (
     <SpotGalleryProvider images={spot.images} title={spot.title}>
     <div className="pb-16">
-      <Hero />
+      <Hero {...heroProps} />
 
       <div className="mx-auto w-full max-w-[760px]">
         {/* Inhalt – Quick-Facts überlappen den Hero (schwebende Pille, iOS-2026) */}

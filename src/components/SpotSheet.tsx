@@ -115,6 +115,12 @@ export default function SpotSheet({
   useEffect(() => {
     if (!measured) return;
     idxRef.current = 0;
+    // Bewusste Ausnahme von set-state-in-effect: Das hier IST der imperative Ablauf
+    // "neues Sheet fährt herein" — Stufe, Scroll-Zustand und Schließ-Riegel zurücksetzen
+    // und dann animieren. atFull ist echter Zustand (der Drag setzt ihn weiter unten),
+    // also nicht ableitbar. Die zweite Render-Runde kostet hier nichts, ein Umbau würde
+    // dagegen die fein abgestimmte Öffnen-Animation gefährden.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setAtFull(false);
     // Ein neuer Spot ist ein neues Sheet: Der Schließ-Riegel muss auf, sonst ließe
     // sich ein Sheet, das man mitten im Rausfahren durch einen Marker-Tipp wieder

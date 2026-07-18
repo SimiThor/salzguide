@@ -8,6 +8,7 @@ import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import SpotMap, { type MapMarker } from "./SpotMap";
 import MapPopover, { MapPopoverClose } from "./MapPopover";
+import { useIsMounted } from "@/lib/use-is-mounted";
 
 // Vorschau-Karte, die beim Antippen eines Markers erscheint: Foto/Emoji + Titel +
 // Kurzbeschreibung. Funktioniert eingebettet UND im Vollbild (MapPopover).
@@ -99,10 +100,8 @@ export default function MapCard({
 }) {
   const t = useTranslations("Detail");
   const [fullscreen, setFullscreen] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const mounted = useIsMounted();
   const [sel, setSel] = useState<string | null>(null);
-
-  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     if (!fullscreen) return;

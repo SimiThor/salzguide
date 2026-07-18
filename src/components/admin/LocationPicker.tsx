@@ -5,6 +5,7 @@ import "mapbox-gl/dist/mapbox-gl.css";
 import { useEffect, useRef, useState } from "react";
 import { MapLoadingScreen, useMapLoading } from "../MapLoading";
 import { RecenterControl } from "../mapControls";
+import { useLatestRef } from "@/lib/use-latest-ref";
 import type { MapPoi } from "@/lib/geo";
 import { poiEmoji, poiDeLabel } from "@/lib/poi";
 
@@ -81,34 +82,24 @@ export default function LocationPicker({
   const routeMarkers = useRef<mapboxgl.Marker[]>([]);
   const poiMarkers = useRef<mapboxgl.Marker[]>([]);
 
-  const onSetRef = useRef(onSet);
-  onSetRef.current = onSet;
-  const onRouteRef = useRef(onRouteChange);
-  onRouteRef.current = onRouteChange;
-  const onPoiRef = useRef(onPoiChange);
-  onPoiRef.current = onPoiChange;
-  const onExitPlacingRef = useRef(onExitPlacing);
-  onExitPlacingRef.current = onExitPlacing;
-  const modeRef = useRef(mode);
-  modeRef.current = mode;
-  const placingRef = useRef(placing);
-  placingRef.current = placing;
-  const waterRef = useRef(waterStops);
-  waterRef.current = waterStops;
-  const hutRef = useRef(huts);
-  hutRef.current = huts;
-  const routeRef = useRef(route);
-  routeRef.current = route;
-  const lineRef = useRef(line);
-  lineRef.current = line;
-  const spotRef = useRef(spot);
-  spotRef.current = spot;
-  const parkingRef = useRef(parking);
-  parkingRef.current = parking;
+  // Die Karte wird einmal aufgebaut, ihre Handler leben danach weiter. Alles, was sie
+  // brauchen, liegt in Refs -> sie lesen immer den neuesten Stand statt der Props vom
+  // ersten Render. Siehe use-latest-ref.ts.
+  const onSetRef = useLatestRef(onSet);
+  const onRouteRef = useLatestRef(onRouteChange);
+  const onPoiRef = useLatestRef(onPoiChange);
+  const onExitPlacingRef = useLatestRef(onExitPlacing);
+  const modeRef = useLatestRef(mode);
+  const placingRef = useLatestRef(placing);
+  const waterRef = useLatestRef(waterStops);
+  const hutRef = useLatestRef(huts);
+  const routeRef = useLatestRef(route);
+  const lineRef = useLatestRef(line);
+  const spotRef = useLatestRef(spot);
+  const parkingRef = useLatestRef(parking);
 
   // "Zentrieren": auf alle relevanten Punkte/die Route zoomen
-  const recenterRef = useRef<() => void>(() => {});
-  recenterRef.current = () => {
+  const recenterRef = useLatestRef(() => {
     const map = mapRef.current;
     if (!map) return;
     const coords: [number, number][] = [];
@@ -126,19 +117,20 @@ export default function LocationPicker({
     const b = new mapboxgl.LngLatBounds();
     coords.forEach((c) => b.extend(c));
     map.fitBounds(b, { padding: 60, maxZoom: 15, duration: 500 });
-  };
+  });
 
   // Orts-/POI-Suche (Mapbox Search Box API), auf Österreich/Salzburg gebiast
   type Hit = { name: string; detail: string; center: [number, number]; poi: boolean };
   const [q, setQ] = useState("");
-  const [results, setResults] = useState<Hit[]>([]);
+  const [fetched, setFetched] = useState<Hit[]>([]);
+  // Bei zu kurzer Eingabe zeigen wir nichts. Das ist aus q ableitbar und braucht keinen
+  // eigenen State — sonst müsste der Effekt unten synchron setState aufrufen und würde
+  // eine zweite Render-Runde auslösen (react-hooks/set-state-in-effect).
+  const results = q.trim().length < 2 ? [] : fetched;
   const reqRef = useRef(0);
   useEffect(() => {
     const query = q.trim();
-    if (query.length < 2) {
-      setResults([]);
-      return;
-    }
+    if (query.length < 2) return;
     const id = ++reqRef.current;
     const timer = setTimeout(async () => {
       try {
@@ -152,7 +144,7 @@ export default function LocationPicker({
           properties?: { name?: string; place_formatted?: string; feature_type?: string };
           geometry?: { coordinates?: [number, number] };
         }[];
-        setResults(
+        setFetched(
           feats
             .filter((f) => f.geometry?.coordinates)
             .map((f) => ({
@@ -163,7 +155,7 @@ export default function LocationPicker({
             })),
         );
       } catch {
-        if (id === reqRef.current) setResults([]);
+        if (id === reqRef.current) setFetched([]);
       }
     }, 300);
     return () => clearTimeout(timer);
@@ -171,7 +163,7 @@ export default function LocationPicker({
 
   function goTo(center: [number, number]) {
     mapRef.current?.flyTo({ center, zoom: 14, duration: 800 });
-    setResults([]);
+    setFetched([]);
     setQ("");
   }
 
@@ -247,7 +239,23 @@ export default function LocationPicker({
       map.remove();
       mapRef.current = null;
     };
-  }, []);
+    // Die Karte soll GENAU EINMAL aufgebaut werden. Alles hier Gelistete ist
+    // identitätsstabil (Refs bzw. bindMap aus useCallback([])) -> der Effekt läuft
+    // trotz der langen Liste weiterhin nur beim Einhängen.
+  }, [
+    bindMap,
+    hutRef,
+    lineRef,
+    modeRef,
+    onExitPlacingRef,
+    onPoiRef,
+    onRouteRef,
+    onSetRef,
+    placingRef,
+    recenterRef,
+    routeRef,
+    waterRef,
+  ]);
 
   // Einzelpunkte (Spot/Parkplatz) — immer über den Routen-Markern (z-index)
   useEffect(() => {
@@ -286,7 +294,7 @@ export default function LocationPicker({
         pointMarkers.current[w] = null;
       }
     });
-  }, [spot, parking]);
+  }, [spot, parking, onSetRef]);
 
   // Route: Linie + ziehbare Kontrollpunkt-Marker (Start immer über Ziel)
   useEffect(() => {
@@ -319,7 +327,7 @@ export default function LocationPicker({
       });
       routeMarkers.current.push(m);
     });
-  }, [route, line]);
+  }, [route, line, onRouteRef, routeRef]);
 
   // Zusatzpunkte (Wasserstellen, Hütten): ziehbare Emoji-Marker, beide Typen in einem
   // Effekt neu aufgebaut. Ziehen aktualisiert nur den einen Punkt (Name bleibt erhalten).
@@ -360,7 +368,7 @@ export default function LocationPicker({
         poiMarkers.current.push(m);
       });
     }
-  }, [waterStops, huts]);
+  }, [waterStops, huts, hutRef, onPoiRef, waterRef]);
 
   if (!TOKEN) {
     return (

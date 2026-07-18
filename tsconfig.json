@@ -33,5 +33,8 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules"]
+  // ".claude" enthält temporäre Arbeitskopien von Subagenten mit eigener tsconfig.json.
+  // Ohne diesen Ausschluss zieht "**/*.ts" sie mit ein und der Editor meldet Fehler in
+  // Ordnern, die es längst nicht mehr gibt.
+  "exclude": ["node_modules", ".claude"]
 }
