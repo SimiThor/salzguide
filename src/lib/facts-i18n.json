@@ -1,77 +1,2293 @@
 {
   "DIFFICULTY": {
-    "leicht": {"en":"easy","it":"facile","nl":"makkelijk","ko":"쉬움","fr":"facile","zh":"简单","es":"fácil","pt":"fácil"},
-    "mittel": {"en":"moderate","it":"medio","nl":"gemiddeld","ko":"보통","fr":"modéré","zh":"中等","es":"moderado","pt":"moderado"},
-    "schwer": {"en":"hard","it":"difficile","nl":"zwaar","ko":"어려움","fr":"difficile","zh":"困难","es":"difícil","pt":"difícil"}
+    "leicht": {
+      "en": "easy",
+      "es": "fácil",
+      "fr": "facile",
+      "it": "facile",
+      "ko": "쉬움",
+      "nl": "makkelijk",
+      "pt": "fácil",
+      "zh": "轻松"
+    },
+    "mittel": {
+      "en": "moderate",
+      "es": "media",
+      "fr": "moyen",
+      "it": "media",
+      "ko": "보통",
+      "nl": "gemiddeld",
+      "pt": "média",
+      "zh": "中等"
+    },
+    "schwer": {
+      "en": "hard",
+      "es": "difícil",
+      "fr": "difficile",
+      "it": "difficile",
+      "ko": "어려움",
+      "nl": "zwaar",
+      "pt": "difícil",
+      "zh": "困难"
+    }
   },
   "SEASON": {
-    "Ganzjährig": {"en":"Year-round","it":"Tutto l'anno","nl":"Hele jaar","ko":"연중","fr":"Toute l'année","zh":"全年","es":"Todo el año","pt":"Todo o ano"},
-    "Frühling bis Herbst": {"en":"Spring to autumn","it":"Da primavera a autunno","nl":"Lente tot herfst","ko":"봄~가을","fr":"Printemps à automne","zh":"春季至秋季","es":"De primavera a otoño","pt":"Primavera a outono"},
-    "Mai bis Oktober": {"en":"May to October","it":"Da maggio a ottobre","nl":"Mei tot oktober","ko":"5월~10월","fr":"Mai à octobre","zh":"5月至10月","es":"De mayo a octubre","pt":"Maio a outubro"},
-    "Juni bis September": {"en":"June to September","it":"Da giugno a settembre","nl":"Juni tot september","ko":"6월~9월","fr":"Juin à septembre","zh":"6月至9月","es":"De junio a septiembre","pt":"Junho a setembro"},
-    "Sommer": {"en":"Summer","it":"Estate","nl":"Zomer","ko":"여름","fr":"Été","zh":"夏季","es":"Verano","pt":"Verão"},
-    "Frühling": {"en":"Spring","it":"Primavera","nl":"Lente","ko":"봄","fr":"Printemps","zh":"春季","es":"Primavera","pt":"Primavera"},
-    "Herbst": {"en":"Autumn","it":"Autunno","nl":"Herfst","ko":"가을","fr":"Automne","zh":"秋季","es":"Otoño","pt":"Outono"},
-    "Winter": {"en":"Winter","it":"Inverno","nl":"Winter","ko":"겨울","fr":"Hiver","zh":"冬季","es":"Invierno","pt":"Inverno"}
+    "Ganzjährig": {
+      "en": "Year-round",
+      "es": "Todo el año",
+      "fr": "Toute l'année",
+      "it": "Tutto l'anno",
+      "ko": "연중",
+      "nl": "Hele jaar",
+      "pt": "Todo o ano",
+      "zh": "全年"
+    },
+    "Frühling bis Herbst": {
+      "en": "Spring to autumn",
+      "es": "De primavera a otoño",
+      "fr": "Du printemps à l'automne",
+      "it": "Da primavera ad autunno",
+      "ko": "봄~가을",
+      "nl": "Voorjaar tot najaar",
+      "pt": "Da primavera ao outono",
+      "zh": "春至秋"
+    },
+    "Mai bis Oktober": {
+      "en": "May to October",
+      "es": "De mayo a octubre",
+      "fr": "De mai à octobre",
+      "it": "Da maggio a ottobre",
+      "ko": "5월~10월",
+      "nl": "Mei tot oktober",
+      "pt": "De maio a outubro",
+      "zh": "5月至10月"
+    },
+    "Juni bis September": {
+      "en": "June to September",
+      "es": "De junio a septiembre",
+      "fr": "De juin à septembre",
+      "it": "Da giugno a settembre",
+      "ko": "6월~9월",
+      "nl": "Juni tot september",
+      "pt": "De junho a setembro",
+      "zh": "6月至9月"
+    },
+    "April bis Oktober": {
+      "en": "April to October",
+      "es": "De abril a octubre",
+      "fr": "D'avril à octobre",
+      "it": "Da aprile a ottobre",
+      "ko": "4월~10월",
+      "nl": "April tot oktober",
+      "pt": "De abril a outubro",
+      "zh": "4月至10月"
+    },
+    "Dezember bis März": {
+      "en": "December to March",
+      "es": "De diciembre a marzo",
+      "fr": "De décembre à mars",
+      "it": "Da dicembre a marzo",
+      "ko": "12월~3월",
+      "nl": "December tot maart",
+      "pt": "De dezembro a março",
+      "zh": "12月至3月"
+    },
+    "Sommer": {
+      "en": "Summer",
+      "es": "Verano",
+      "fr": "Été",
+      "it": "Estate",
+      "ko": "여름",
+      "nl": "Zomer",
+      "pt": "Verão",
+      "zh": "夏季"
+    },
+    "Frühling": {
+      "en": "Spring",
+      "es": "Primavera",
+      "fr": "Printemps",
+      "it": "Primavera",
+      "ko": "봄",
+      "nl": "Lente",
+      "pt": "Primavera",
+      "zh": "春季"
+    },
+    "Herbst": {
+      "en": "Autumn",
+      "es": "Otoño",
+      "fr": "Automne",
+      "it": "Autunno",
+      "ko": "가을",
+      "nl": "Herfst",
+      "pt": "Outono",
+      "zh": "秋季"
+    },
+    "Winter": {
+      "en": "Winter",
+      "es": "Invierno",
+      "fr": "Hiver",
+      "it": "Inverno",
+      "ko": "겨울",
+      "nl": "Winter",
+      "pt": "Inverno",
+      "zh": "冬季"
+    }
+  },
+  "DURATION": {
+    "Halbtag": {
+      "en": "Half day",
+      "es": "Medio día",
+      "fr": "Demi-journée",
+      "it": "Mezza giornata",
+      "ko": "반나절",
+      "nl": "Halve dag",
+      "pt": "Meio dia",
+      "zh": "半天"
+    },
+    "Ganztag": {
+      "en": "Full day",
+      "es": "Día completo",
+      "fr": "Journée entière",
+      "it": "Giornata intera",
+      "ko": "하루 종일",
+      "nl": "Hele dag",
+      "pt": "Dia inteiro",
+      "zh": "全天"
+    },
+    "Tagestour": {
+      "en": "Day trip",
+      "es": "Excursión de un día",
+      "fr": "Sortie à la journée",
+      "it": "Gita giornaliera",
+      "ko": "당일 코스",
+      "nl": "Dagtocht",
+      "pt": "Excursão de um dia",
+      "zh": "一日行程"
+    },
+    "Mehrtagestour": {
+      "en": "Multi-day trip",
+      "es": "Excursión de varios días",
+      "fr": "Sortie sur plusieurs jours",
+      "it": "Tour di più giorni",
+      "ko": "다일정 코스",
+      "nl": "Meerdaagse tocht",
+      "pt": "Excursão de vários dias",
+      "zh": "多日行程"
+    }
   },
   "FAME": {
-    "Hidden Gem": {"en":"Hidden gem","it":"Gemma nascosta","nl":"Verborgen parel","ko":"숨은 명소","fr":"Trésor caché","zh":"小众宝藏","es":"Joya oculta","pt":"Joia escondida"},
-    "Lokal beliebt": {"en":"Local favourite","it":"Amato dai locali","nl":"Lokale favoriet","ko":"현지인 인기","fr":"Prisé des locaux","zh":"本地人最爱","es":"Favorito local","pt":"Favorito local"},
-    "Bekannt": {"en":"Well-known","it":"Conosciuto","nl":"Bekend","ko":"유명","fr":"Connu","zh":"知名","es":"Conocido","pt":"Conhecido"},
-    "Institution": {"en":"Institution","it":"Istituzione","nl":"Instituut","ko":"지역 명물","fr":"Institution","zh":"老字号","es":"Institución","pt":"Instituição"},
-    "Touristen-Hotspot": {"en":"Tourist hotspot","it":"Meta turistica","nl":"Toeristische hotspot","ko":"관광 명소","fr":"Site touristique","zh":"热门景点","es":"Punto turístico","pt":"Ponto turístico"}
-  },
-  "SUBTYPE": {
-    "Wanderung": {"en":"Hike","it":"Escursione","nl":"Wandeling","ko":"하이킹","fr":"Randonnée","zh":"徒步","es":"Senderismo","pt":"Caminhada"},
-    "Rundwanderung": {"en":"Loop hike","it":"Anello escursionistico","nl":"Rondwandeling","ko":"순환 하이킹","fr":"Boucle de randonnée","zh":"环形徒步","es":"Ruta circular","pt":"Percurso circular"},
-    "Aussichtspunkt": {"en":"Viewpoint","it":"Punto panoramico","nl":"Uitzichtpunt","ko":"전망대","fr":"Point de vue","zh":"观景点","es":"Mirador","pt":"Miradouro"},
-    "See & Baden": {"en":"Lake & swimming","it":"Lago e nuoto","nl":"Meer & zwemmen","ko":"호수 수영","fr":"Lac et baignade","zh":"湖泊游泳","es":"Lago y baño","pt":"Lago e banho"},
-    "Klamm": {"en":"Gorge","it":"Gola","nl":"Kloof","ko":"협곡","fr":"Gorge","zh":"峡谷","es":"Garganta","pt":"Desfiladeiro"},
-    "Wasserfall": {"en":"Waterfall","it":"Cascata","nl":"Waterval","ko":"폭포","fr":"Cascade","zh":"瀑布","es":"Cascada","pt":"Cascata"},
-    "Radtour": {"en":"Bike tour","it":"Giro in bici","nl":"Fietstocht","ko":"자전거 투어","fr":"Sortie à vélo","zh":"骑行","es":"Ruta en bici","pt":"Passeio de bicicleta"},
-    "Therme": {"en":"Thermal spa","it":"Terme","nl":"Thermen","ko":"온천 스파","fr":"Thermes","zh":"温泉水疗","es":"Termas","pt":"Termas"},
-    "Gipfel": {"en":"Summit","it":"Cima","nl":"Top","ko":"정상","fr":"Sommet","zh":"山顶","es":"Cumbre","pt":"Cume"},
-    "Spazierweg": {"en":"Easy walk","it":"Passeggiata","nl":"Wandelpad","ko":"산책로","fr":"Promenade","zh":"步行道","es":"Paseo","pt":"Passeio"},
-    "Spaziergang": {"en":"Stroll","it":"Camminata","nl":"Wandeling","ko":"산책","fr":"Balade","zh":"散步","es":"Caminata","pt":"Passeio a pé"},
-    "Stadtspaziergang": {"en":"City stroll","it":"Passeggiata in città","nl":"Stadswandeling","ko":"도시 산책","fr":"Balade en ville","zh":"城市漫步","es":"Paseo urbano","pt":"Passeio pela cidade"},
-    "Bergtour": {"en":"Mountain tour","it":"Tour in montagna","nl":"Bergtocht","ko":"산행","fr":"Sortie en montagne","zh":"登山","es":"Ruta de montaña","pt":"Rota de montanha"},
-    "Bergwanderung": {"en":"Mountain hike","it":"Escursione in montagna","nl":"Bergwandeling","ko":"산악 하이킹","fr":"Randonnée en montagne","zh":"山地徒步","es":"Senderismo de montaña","pt":"Caminhada na montanha"},
-    "Klettersteig": {"en":"Via ferrata","it":"Via ferrata","nl":"Via ferrata","ko":"비아 페라타","fr":"Via ferrata","zh":"铁索攀岩","es":"Vía ferrata","pt":"Via ferrata"},
-    "Rodelbahn": {"en":"Toboggan run","it":"Pista da slittino","nl":"Rodelbaan","ko":"썰매장","fr":"Piste de luge","zh":"雪橇道","es":"Pista de trineo","pt":"Pista de trenó"},
-    "Café": {"en":"Café","it":"Caffè","nl":"Café","ko":"카페","fr":"Café","zh":"咖啡馆","es":"Café","pt":"Café"},
-    "Restaurant": {"en":"Restaurant","it":"Ristorante","nl":"Restaurant","ko":"레스토랑","fr":"Restaurant","zh":"餐厅","es":"Restaurante","pt":"Restaurante"},
-    "Gasthof": {"en":"Inn","it":"Locanda","nl":"Herberg","ko":"전통 식당","fr":"Auberge","zh":"客栈","es":"Posada","pt":"Estalagem"},
-    "Bar": {"en":"Bar","it":"Bar","nl":"Bar","ko":"바","fr":"Bar","zh":"酒吧","es":"Bar","pt":"Bar"},
-    "Bäckerei": {"en":"Bakery","it":"Panetteria","nl":"Bakkerij","ko":"베이커리","fr":"Boulangerie","zh":"面包店","es":"Panadería","pt":"Padaria"},
-    "Eisdiele": {"en":"Ice cream parlour","it":"Gelateria","nl":"IJssalon","ko":"아이스크림 가게","fr":"Glacier","zh":"冰淇淋店","es":"Heladería","pt":"Gelataria"},
-    "Pizzeria": {"en":"Pizzeria","it":"Pizzeria","nl":"Pizzeria","ko":"피자집","fr":"Pizzeria","zh":"披萨店","es":"Pizzería","pt":"Pizzaria"},
-    "Hütte": {"en":"Mountain hut","it":"Rifugio","nl":"Berghut","ko":"산장","fr":"Refuge","zh":"山间小屋","es":"Refugio","pt":"Refúgio"},
-    "Beisl": {"en":"Pub","it":"Osteria","nl":"Kroeg","ko":"선술집","fr":"Troquet","zh":"小酒馆","es":"Taberna","pt":"Taberna"},
-    "Bistro": {"en":"Bistro","it":"Bistrot","nl":"Bistro","ko":"비스트로","fr":"Bistro","zh":"小餐馆","es":"Bistró","pt":"Bistrô"},
-    "Heuriger": {"en":"Wine tavern","it":"Taverna del vino","nl":"Wijncafé","ko":"와인 주점","fr":"Taverne à vin","zh":"葡萄酒馆","es":"Taberna de vino","pt":"Taberna de vinho"}
+    "Hidden Gem": {
+      "en": "Hidden gem",
+      "es": "Joya escondida",
+      "fr": "Pépite cachée",
+      "it": "Gemma nascosta",
+      "ko": "숨은 명소",
+      "nl": "Verborgen parel",
+      "pt": "Joia escondida",
+      "zh": "小众宝藏"
+    },
+    "Lokal beliebt": {
+      "en": "Local favourite",
+      "es": "Favorito local",
+      "fr": "Prisé des locaux",
+      "it": "Amato dai locali",
+      "ko": "현지인 인기",
+      "nl": "Lokale favoriet",
+      "pt": "Preferido dos locais",
+      "zh": "本地人喜爱"
+    },
+    "Bekannt": {
+      "en": "Well known",
+      "es": "Conocido",
+      "fr": "Connu",
+      "it": "Conosciuto",
+      "ko": "잘 알려진 곳",
+      "nl": "Bekend",
+      "pt": "Conhecido",
+      "zh": "知名"
+    },
+    "Institution": {
+      "en": "Institution",
+      "es": "Institución",
+      "fr": "Institution",
+      "it": "Istituzione",
+      "ko": "터줏대감",
+      "nl": "Instituut",
+      "pt": "Instituição",
+      "zh": "老字号"
+    },
+    "Touristen-Hotspot": {
+      "en": "Tourist hotspot",
+      "es": "Punto turístico",
+      "fr": "Haut lieu touristique",
+      "it": "Meta turistica",
+      "ko": "관광 명소",
+      "nl": "Toeristische hotspot",
+      "pt": "Ponto turístico",
+      "zh": "热门景点"
+    }
   },
   "ACCESS": {
-    "oeffis": {"en":"Transit","it":"Trasporti pubblici","nl":"OV","ko":"대중교통","fr":"Transports","zh":"公共交通","es":"Transporte público","pt":"Transportes públicos"},
-    "auto": {"en":"Car","it":"Auto","nl":"Auto","ko":"자동차","fr":"Voiture","zh":"自驾","es":"Coche","pt":"Carro"},
-    "beides": {"en":"Transit & Car","it":"Trasporti e auto","nl":"OV & auto","ko":"대중교통·자동차","fr":"Transports et voiture","zh":"公共交通与自驾","es":"Transporte y coche","pt":"Transportes e carro"}
+    "oeffis": {
+      "en": "Transit",
+      "it": "Trasporti pubblici",
+      "nl": "OV",
+      "ko": "대중교통",
+      "fr": "Transports",
+      "zh": "公共交通",
+      "es": "Transporte público",
+      "pt": "Transportes públicos"
+    },
+    "auto": {
+      "en": "Car",
+      "it": "Auto",
+      "nl": "Auto",
+      "ko": "자동차",
+      "fr": "Voiture",
+      "zh": "自驾",
+      "es": "Coche",
+      "pt": "Carro"
+    },
+    "beides": {
+      "en": "Transit & Car",
+      "it": "Trasporti e auto",
+      "nl": "OV & auto",
+      "ko": "대중교통·자동차",
+      "fr": "Transports et voiture",
+      "zh": "公共交通与自驾",
+      "es": "Transporte y coche",
+      "pt": "Transportes e carro"
+    }
+  },
+  "SUBTYPE": {
+    "Wanderung": {
+      "en": "Hike",
+      "es": "Senderismo",
+      "fr": "Randonnée",
+      "it": "Escursione",
+      "ko": "하이킹",
+      "nl": "Wandeltocht",
+      "pt": "Caminhada",
+      "zh": "徒步"
+    },
+    "Rundwanderung": {
+      "en": "Loop hike",
+      "es": "Ruta circular",
+      "fr": "Randonnée en boucle",
+      "it": "Anello escursionistico",
+      "ko": "순환 코스",
+      "nl": "Rondwandeling",
+      "pt": "Percurso circular",
+      "zh": "环形徒步"
+    },
+    "Bergwanderung": {
+      "en": "Mountain hike",
+      "es": "Ruta de montaña",
+      "fr": "Randonnée en montagne",
+      "it": "Escursione in montagna",
+      "ko": "산악 하이킹",
+      "nl": "Bergwandeling",
+      "pt": "Caminhada na montanha",
+      "zh": "山地徒步"
+    },
+    "Bergtour": {
+      "en": "Alpine tour",
+      "es": "Travesía alpina",
+      "fr": "Course en montagne",
+      "it": "Traversata alpina",
+      "ko": "등반 투어",
+      "nl": "Bergtocht",
+      "pt": "Travessia alpina",
+      "zh": "登山线路"
+    },
+    "Gipfel": {
+      "en": "Summit",
+      "es": "Cumbre",
+      "fr": "Sommet",
+      "it": "Vetta",
+      "ko": "정상",
+      "nl": "Bergtop",
+      "pt": "Cume",
+      "zh": "山顶"
+    },
+    "Höhenweg": {
+      "en": "High-level trail",
+      "es": "Sendero de altura",
+      "fr": "Sentier d'altitude",
+      "it": "Alta via",
+      "ko": "능선길",
+      "nl": "Hoogtepad",
+      "pt": "Trilho de altitude",
+      "zh": "高山步道"
+    },
+    "Klettersteig": {
+      "en": "Via ferrata",
+      "es": "Vía ferrata",
+      "fr": "Via ferrata",
+      "it": "Via ferrata",
+      "ko": "비아 페라타",
+      "nl": "Klettersteig",
+      "pt": "Via ferrata",
+      "zh": "铁索攀登道"
+    },
+    "Themenweg": {
+      "en": "Themed trail",
+      "es": "Sendero temático",
+      "fr": "Sentier thématique",
+      "it": "Sentiero tematico",
+      "ko": "테마 산책로",
+      "nl": "Themapad",
+      "pt": "Trilho temático",
+      "zh": "主题步道"
+    },
+    "Spazierweg": {
+      "en": "Walking path",
+      "es": "Camino de paseo",
+      "fr": "Chemin de promenade",
+      "it": "Percorso pedonale",
+      "ko": "산책로",
+      "nl": "Wandelpad",
+      "pt": "Caminho de passeio",
+      "zh": "散步小径"
+    },
+    "Spaziergang": {
+      "en": "Stroll",
+      "es": "Paseo",
+      "fr": "Promenade",
+      "it": "Passeggiata",
+      "ko": "산책",
+      "nl": "Wandeling",
+      "pt": "Passeio",
+      "zh": "散步"
+    },
+    "Stadtspaziergang": {
+      "en": "City walk",
+      "es": "Paseo por la ciudad",
+      "fr": "Balade en ville",
+      "it": "Passeggiata in città",
+      "ko": "도심 산책",
+      "nl": "Stadswandeling",
+      "pt": "Passeio pela cidade",
+      "zh": "城市漫步"
+    },
+    "See & Baden": {
+      "en": "Lake & swimming",
+      "es": "Lago y baño",
+      "fr": "Lac & baignade",
+      "it": "Lago e balneazione",
+      "ko": "호수 & 물놀이",
+      "nl": "Meer & zwemmen",
+      "pt": "Lago e banhos",
+      "zh": "湖泊与戏水"
+    },
+    "Bergsee": {
+      "en": "Mountain lake",
+      "es": "Lago de montaña",
+      "fr": "Lac de montagne",
+      "it": "Lago alpino",
+      "ko": "산정 호수",
+      "nl": "Bergmeer",
+      "pt": "Lago de montanha",
+      "zh": "高山湖"
+    },
+    "Badeplatz": {
+      "en": "Swimming spot",
+      "es": "Zona de baño",
+      "fr": "Aire de baignade",
+      "it": "Punto balneabile",
+      "ko": "물놀이 장소",
+      "nl": "Zwemplek",
+      "pt": "Zona balnear",
+      "zh": "戏水点"
+    },
+    "Wasserfall": {
+      "en": "Waterfall",
+      "es": "Cascada",
+      "fr": "Cascade",
+      "it": "Cascata",
+      "ko": "폭포",
+      "nl": "Waterval",
+      "pt": "Cascata",
+      "zh": "瀑布"
+    },
+    "Klamm": {
+      "en": "Gorge",
+      "es": "Desfiladero",
+      "fr": "Gorges",
+      "it": "Gola",
+      "ko": "협곡",
+      "nl": "Kloof",
+      "pt": "Desfiladeiro",
+      "zh": "峡谷"
+    },
+    "Freibad": {
+      "en": "Outdoor pool",
+      "es": "Piscina al aire libre",
+      "fr": "Piscine en plein air",
+      "it": "Piscina all'aperto",
+      "ko": "야외 수영장",
+      "nl": "Buitenbad",
+      "pt": "Piscina ao ar livre",
+      "zh": "露天泳池"
+    },
+    "Therme": {
+      "en": "Thermal spa",
+      "es": "Balneario termal",
+      "fr": "Thermes",
+      "it": "Terme",
+      "ko": "온천 스파",
+      "nl": "Thermen",
+      "pt": "Termas",
+      "zh": "温泉浴场"
+    },
+    "Schifffahrt": {
+      "en": "Boat trip",
+      "es": "Paseo en barco",
+      "fr": "Croisière",
+      "it": "Gita in battello",
+      "ko": "유람선",
+      "nl": "Boottocht",
+      "pt": "Passeio de barco",
+      "zh": "游船"
+    },
+    "Aussichtspunkt": {
+      "en": "Viewpoint",
+      "es": "Mirador",
+      "fr": "Point de vue",
+      "it": "Punto panoramico",
+      "ko": "전망대",
+      "nl": "Uitzichtpunt",
+      "pt": "Miradouro",
+      "zh": "观景点"
+    },
+    "Fotospot": {
+      "en": "Photo spot",
+      "es": "Punto fotográfico",
+      "fr": "Spot photo",
+      "it": "Spot fotografico",
+      "ko": "포토 스팟",
+      "nl": "Fotoplek",
+      "pt": "Ponto fotográfico",
+      "zh": "拍照点"
+    },
+    "Aussichtsturm": {
+      "en": "Observation tower",
+      "es": "Torre mirador",
+      "fr": "Tour panoramique",
+      "it": "Torre panoramica",
+      "ko": "전망탑",
+      "nl": "Uitkijktoren",
+      "pt": "Torre panorâmica",
+      "zh": "瞭望塔"
+    },
+    "Panoramastraße": {
+      "en": "Scenic road",
+      "es": "Carretera panorámica",
+      "fr": "Route panoramique",
+      "it": "Strada panoramica",
+      "ko": "파노라마 도로",
+      "nl": "Panoramaweg",
+      "pt": "Estrada panorâmica",
+      "zh": "观景公路"
+    },
+    "Burg & Schloss": {
+      "en": "Castle & palace",
+      "es": "Castillo y palacio",
+      "fr": "Château & forteresse",
+      "it": "Castello e residenza",
+      "ko": "성 & 궁전",
+      "nl": "Burcht & kasteel",
+      "pt": "Castelo e palácio",
+      "zh": "城堡与宫殿"
+    },
+    "Kirche & Dom": {
+      "en": "Church & cathedral",
+      "es": "Iglesia y catedral",
+      "fr": "Église & cathédrale",
+      "it": "Chiesa e duomo",
+      "ko": "교회 & 대성당",
+      "nl": "Kerk & dom",
+      "pt": "Igreja e catedral",
+      "zh": "教堂与主教座堂"
+    },
+    "Museum": {
+      "en": "Museum",
+      "es": "Museo",
+      "fr": "Musée",
+      "it": "Museo",
+      "ko": "박물관",
+      "nl": "Museum",
+      "pt": "Museu",
+      "zh": "博物馆"
+    },
+    "Altstadt & Gasse": {
+      "en": "Old town & alleys",
+      "es": "Casco antiguo y callejuelas",
+      "fr": "Vieille ville & ruelles",
+      "it": "Centro storico e vicoli",
+      "ko": "구시가 & 골목",
+      "nl": "Oude stad & steegjes",
+      "pt": "Centro histórico e vielas",
+      "zh": "老城与小巷"
+    },
+    "Park & Garten": {
+      "en": "Park & garden",
+      "es": "Parque y jardín",
+      "fr": "Parc & jardin",
+      "it": "Parco e giardino",
+      "ko": "공원 & 정원",
+      "nl": "Park & tuin",
+      "pt": "Parque e jardim",
+      "zh": "公园与花园"
+    },
+    "Höhle": {
+      "en": "Cave",
+      "es": "Cueva",
+      "fr": "Grotte",
+      "it": "Grotta",
+      "ko": "동굴",
+      "nl": "Grot",
+      "pt": "Gruta",
+      "zh": "洞穴"
+    },
+    "Schaubetrieb": {
+      "en": "Showcase workshop",
+      "es": "Taller visitable",
+      "fr": "Atelier visitable",
+      "it": "Azienda visitabile",
+      "ko": "체험 공방",
+      "nl": "Kijkbedrijf",
+      "pt": "Oficina visitável",
+      "zh": "参观工坊"
+    },
+    "Radtour": {
+      "en": "Bike tour",
+      "es": "Ruta en bici",
+      "fr": "Sortie à vélo",
+      "it": "Giro in bici",
+      "ko": "자전거 코스",
+      "nl": "Fietstocht",
+      "pt": "Passeio de bicicleta",
+      "zh": "骑行路线"
+    },
+    "Mountainbike": {
+      "en": "Mountain biking",
+      "es": "Mountain bike",
+      "fr": "VTT",
+      "it": "Mountain bike",
+      "ko": "산악자전거",
+      "nl": "Mountainbike",
+      "pt": "Bicicleta de montanha",
+      "zh": "山地车"
+    },
+    "Klettern": {
+      "en": "Climbing",
+      "es": "Escalada",
+      "fr": "Escalade",
+      "it": "Arrampicata",
+      "ko": "클라이밍",
+      "nl": "Klimmen",
+      "pt": "Escalada",
+      "zh": "攀岩"
+    },
+    "Bergbahn": {
+      "en": "Cable car",
+      "es": "Teleférico",
+      "fr": "Remontée mécanique",
+      "it": "Impianto di risalita",
+      "ko": "산악 케이블카",
+      "nl": "Bergbaan",
+      "pt": "Teleférico",
+      "zh": "登山缆车"
+    },
+    "Golfplatz": {
+      "en": "Golf course",
+      "es": "Campo de golf",
+      "fr": "Parcours de golf",
+      "it": "Campo da golf",
+      "ko": "골프장",
+      "nl": "Golfbaan",
+      "pt": "Campo de golfe",
+      "zh": "高尔夫球场"
+    },
+    "Action & Fun": {
+      "en": "Action & fun",
+      "es": "Acción y diversión",
+      "fr": "Action & fun",
+      "it": "Azione e divertimento",
+      "ko": "액티비티 & 재미",
+      "nl": "Actie & plezier",
+      "pt": "Ação e diversão",
+      "zh": "动感娱乐"
+    },
+    "Winterwanderung": {
+      "en": "Winter hike",
+      "es": "Ruta invernal",
+      "fr": "Randonnée hivernale",
+      "it": "Escursione invernale",
+      "ko": "겨울 하이킹",
+      "nl": "Winterwandeling",
+      "pt": "Caminhada de inverno",
+      "zh": "冬季徒步"
+    },
+    "Schneeschuhwanderung": {
+      "en": "Snowshoe hike",
+      "es": "Ruta con raquetas",
+      "fr": "Randonnée en raquettes",
+      "it": "Ciaspolata",
+      "ko": "설피 하이킹",
+      "nl": "Sneeuwschoenwandeling",
+      "pt": "Caminhada com raquetes",
+      "zh": "雪鞋徒步"
+    },
+    "Rodelbahn": {
+      "en": "Toboggan run",
+      "es": "Pista de trineo",
+      "fr": "Piste de luge",
+      "it": "Pista da slittino",
+      "ko": "썰매 코스",
+      "nl": "Rodelbaan",
+      "pt": "Pista de trenó",
+      "zh": "雪橇道"
+    },
+    "Skigebiet": {
+      "en": "Ski resort",
+      "es": "Estación de esquí",
+      "fr": "Domaine skiable",
+      "it": "Comprensorio sciistico",
+      "ko": "스키장",
+      "nl": "Skigebied",
+      "pt": "Estância de esqui",
+      "zh": "滑雪场"
+    },
+    "Langlaufloipe": {
+      "en": "Cross-country trail",
+      "es": "Pista de esquí de fondo",
+      "fr": "Piste de ski de fond",
+      "it": "Pista di fondo",
+      "ko": "크로스컨트리 코스",
+      "nl": "Langlaufloipe",
+      "pt": "Pista de esqui de fundo",
+      "zh": "越野滑雪道"
+    },
+    "Eislaufplatz": {
+      "en": "Ice rink",
+      "es": "Pista de hielo",
+      "fr": "Patinoire",
+      "it": "Pista di pattinaggio",
+      "ko": "아이스링크",
+      "nl": "IJsbaan",
+      "pt": "Pista de gelo",
+      "zh": "溜冰场"
+    },
+    "Spielplatz": {
+      "en": "Playground",
+      "es": "Parque infantil",
+      "fr": "Aire de jeux",
+      "it": "Parco giochi",
+      "ko": "놀이터",
+      "nl": "Speeltuin",
+      "pt": "Parque infantil",
+      "zh": "游乐场"
+    },
+    "Tierpark & Zoo": {
+      "en": "Zoo & wildlife park",
+      "es": "Zoo y parque de animales",
+      "fr": "Zoo & parc animalier",
+      "it": "Zoo e parco faunistico",
+      "ko": "동물원 & 야생공원",
+      "nl": "Dierenpark & zoo",
+      "pt": "Zoo e parque de animais",
+      "zh": "动物园与野生动物园"
+    },
+    "Erlebnisweg": {
+      "en": "Adventure trail",
+      "es": "Sendero de aventura",
+      "fr": "Sentier ludique",
+      "it": "Percorso avventura",
+      "ko": "체험 산책로",
+      "nl": "Belevingspad",
+      "pt": "Trilho de aventura",
+      "zh": "探险步道"
+    },
+    "Café": {
+      "en": "Café",
+      "es": "Cafetería",
+      "fr": "Café",
+      "it": "Caffetteria",
+      "ko": "카페",
+      "nl": "Koffiehuis",
+      "pt": "Café",
+      "zh": "咖啡馆"
+    },
+    "Specialty Coffee": {
+      "en": "Specialty Coffee",
+      "es": "Specialty Coffee",
+      "fr": "Specialty Coffee",
+      "it": "Specialty Coffee",
+      "ko": "스페셜티 커피",
+      "nl": "Specialty Coffee",
+      "pt": "Specialty Coffee",
+      "zh": "精品咖啡"
+    },
+    "Konditorei": {
+      "en": "Patisserie",
+      "es": "Pastelería",
+      "fr": "Pâtisserie",
+      "it": "Pasticceria",
+      "ko": "제과점",
+      "nl": "Banketbakkerij",
+      "pt": "Pastelaria",
+      "zh": "西点店"
+    },
+    "Bäckerei": {
+      "en": "Bakery",
+      "es": "Panadería",
+      "fr": "Boulangerie",
+      "it": "Panificio",
+      "ko": "베이커리",
+      "nl": "Bakkerij",
+      "pt": "Padaria",
+      "zh": "面包店"
+    },
+    "Eisdiele": {
+      "en": "Ice cream parlour",
+      "es": "Heladería",
+      "fr": "Glacier",
+      "it": "Gelateria",
+      "ko": "아이스크림 가게",
+      "nl": "IJssalon",
+      "pt": "Gelataria",
+      "zh": "冰淇淋店"
+    },
+    "Restaurant": {
+      "en": "Restaurant",
+      "es": "Restaurante",
+      "fr": "Restaurant",
+      "it": "Ristorante",
+      "ko": "레스토랑",
+      "nl": "Restaurant",
+      "pt": "Restaurante",
+      "zh": "餐厅"
+    },
+    "Gasthof": {
+      "en": "Country inn",
+      "es": "Posada",
+      "fr": "Auberge",
+      "it": "Locanda",
+      "ko": "가스트호프",
+      "nl": "Herberg",
+      "pt": "Estalagem",
+      "zh": "乡村客栈餐馆"
+    },
+    "Wirtshaus": {
+      "en": "Tavern",
+      "es": "Taberna",
+      "fr": "Taverne",
+      "it": "Trattoria",
+      "ko": "전통 선술집",
+      "nl": "Eetcafé",
+      "pt": "Taberna tradicional",
+      "zh": "传统酒馆"
+    },
+    "Beisl": {
+      "en": "Pub",
+      "es": "Bar de barrio",
+      "fr": "Bistrot de quartier",
+      "it": "Osteria",
+      "ko": "동네 선술집",
+      "nl": "Bruin café",
+      "pt": "Tasca",
+      "zh": "街坊小馆"
+    },
+    "Bistro": {
+      "en": "Bistro",
+      "es": "Bistró",
+      "fr": "Bistrot",
+      "it": "Bistrot",
+      "ko": "비스트로",
+      "nl": "Bistro",
+      "pt": "Bistrô",
+      "zh": "小餐馆"
+    },
+    "Pizzeria": {
+      "en": "Pizzeria",
+      "es": "Pizzería",
+      "fr": "Pizzeria",
+      "it": "Pizzeria",
+      "ko": "피자 가게",
+      "nl": "Pizzeria",
+      "pt": "Pizzaria",
+      "zh": "披萨店"
+    },
+    "Streetfood": {
+      "en": "Street food",
+      "es": "Comida callejera",
+      "fr": "Street food",
+      "it": "Street food",
+      "ko": "스트리트 푸드",
+      "nl": "Streetfood",
+      "pt": "Comida de rua",
+      "zh": "街头小吃"
+    },
+    "Imbiss": {
+      "en": "Snack bar",
+      "es": "Puesto de comida",
+      "fr": "Snack",
+      "it": "Chiosco",
+      "ko": "간이 식당",
+      "nl": "Snackbar",
+      "pt": "Snack-bar",
+      "zh": "快餐摊"
+    },
+    "Foodtruck": {
+      "en": "Food truck",
+      "es": "Food truck",
+      "fr": "Food truck",
+      "it": "Food truck",
+      "ko": "푸드트럭",
+      "nl": "Foodtruck",
+      "pt": "Food truck",
+      "zh": "餐车"
+    },
+    "Vegan & Vegetarisch": {
+      "en": "Vegan & vegetarian",
+      "es": "Vegano y vegetariano",
+      "fr": "Végane & végétarien",
+      "it": "Vegano e vegetariano",
+      "ko": "비건 & 채식",
+      "nl": "Veganistisch & vegetarisch",
+      "pt": "Vegano e vegetariano",
+      "zh": "素食与纯素"
+    },
+    "Feinkost": {
+      "en": "Deli",
+      "es": "Delicatessen",
+      "fr": "Épicerie fine",
+      "it": "Gastronomia",
+      "ko": "델리",
+      "nl": "Delicatessen",
+      "pt": "Mercearia gourmet",
+      "zh": "精品食材店"
+    },
+    "Bar": {
+      "en": "Bar",
+      "es": "Bar",
+      "fr": "Bar",
+      "it": "Bar",
+      "ko": "바",
+      "nl": "Bar",
+      "pt": "Bar",
+      "zh": "酒吧"
+    },
+    "Cocktailbar": {
+      "en": "Cocktail bar",
+      "es": "Coctelería",
+      "fr": "Bar à cocktails",
+      "it": "Cocktail bar",
+      "ko": "칵테일 바",
+      "nl": "Cocktailbar",
+      "pt": "Bar de cocktails",
+      "zh": "鸡尾酒吧"
+    },
+    "Weinbar": {
+      "en": "Wine bar",
+      "es": "Bar de vinos",
+      "fr": "Bar à vin",
+      "it": "Enoteca",
+      "ko": "와인 바",
+      "nl": "Wijnbar",
+      "pt": "Bar de vinhos",
+      "zh": "葡萄酒吧"
+    },
+    "Heuriger": {
+      "en": "Wine tavern",
+      "es": "Taberna de vino",
+      "fr": "Taverne à vin",
+      "it": "Osteria del vino",
+      "ko": "전통 와인 주점",
+      "nl": "Wijntaverne",
+      "pt": "Taberna de vinho",
+      "zh": "新酒酒馆"
+    },
+    "Biergarten": {
+      "en": "Beer garden",
+      "es": "Cervecería al aire libre",
+      "fr": "Biergarten",
+      "it": "Birreria all'aperto",
+      "ko": "비어 가든",
+      "nl": "Biertuin",
+      "pt": "Cervejaria ao ar livre",
+      "zh": "啤酒花园"
+    },
+    "Brauerei": {
+      "en": "Brewery",
+      "es": "Fábrica de cerveza",
+      "fr": "Brasserie",
+      "it": "Birrificio",
+      "ko": "양조장",
+      "nl": "Brouwerij",
+      "pt": "Fábrica de cerveja",
+      "zh": "啤酒厂"
+    },
+    "Berghütte": {
+      "en": "Mountain hut",
+      "es": "Refugio de montaña",
+      "fr": "Refuge de montagne",
+      "it": "Rifugio",
+      "ko": "산장",
+      "nl": "Berghut",
+      "pt": "Refúgio de montanha",
+      "zh": "山间小屋"
+    },
+    "Almhütte": {
+      "en": "Alpine hut",
+      "es": "Cabaña alpina",
+      "fr": "Chalet d'alpage",
+      "it": "Malga",
+      "ko": "알프스 오두막",
+      "nl": "Alpenhut",
+      "pt": "Cabana alpina",
+      "zh": "高山牧屋"
+    },
+    "Gipfelrestaurant": {
+      "en": "Summit restaurant",
+      "es": "Restaurante de cumbre",
+      "fr": "Restaurant d'altitude",
+      "it": "Ristorante in quota",
+      "ko": "정상 레스토랑",
+      "nl": "Toprestaurant",
+      "pt": "Restaurante no cume",
+      "zh": "山顶餐厅"
+    },
+    "Jausenstation": {
+      "en": "Snack stop",
+      "es": "Parada de merienda",
+      "fr": "Halte gourmande",
+      "it": "Punto ristoro",
+      "ko": "간이 휴게소",
+      "nl": "Pleisterplaats",
+      "pt": "Paragem para lanche",
+      "zh": "简餐驿站"
+    }
+  },
+  "SUBTYPE_GROUPS": {
+    "Wandern & Berg": [
+      "Wanderung",
+      "Rundwanderung",
+      "Bergwanderung",
+      "Bergtour",
+      "Gipfel",
+      "Höhenweg",
+      "Klettersteig",
+      "Themenweg",
+      "Spazierweg",
+      "Spaziergang",
+      "Stadtspaziergang"
+    ],
+    "Wasser": [
+      "See & Baden",
+      "Bergsee",
+      "Badeplatz",
+      "Wasserfall",
+      "Klamm",
+      "Freibad",
+      "Therme",
+      "Schifffahrt"
+    ],
+    "Aussicht & Foto": [
+      "Aussichtspunkt",
+      "Fotospot",
+      "Aussichtsturm",
+      "Panoramastraße"
+    ],
+    "Kultur & Sehenswürdigkeit": [
+      "Burg & Schloss",
+      "Kirche & Dom",
+      "Museum",
+      "Altstadt & Gasse",
+      "Park & Garten",
+      "Höhle",
+      "Schaubetrieb"
+    ],
+    "Sport & Aktiv": [
+      "Radtour",
+      "Mountainbike",
+      "Klettern",
+      "Bergbahn",
+      "Golfplatz",
+      "Action & Fun"
+    ],
+    "Winter": [
+      "Winterwanderung",
+      "Schneeschuhwanderung",
+      "Rodelbahn",
+      "Skigebiet",
+      "Langlaufloipe",
+      "Eislaufplatz"
+    ],
+    "Familie": [
+      "Spielplatz",
+      "Tierpark & Zoo",
+      "Erlebnisweg"
+    ],
+    "Food: Kaffee & Süßes": [
+      "Café",
+      "Specialty Coffee",
+      "Konditorei",
+      "Bäckerei",
+      "Eisdiele"
+    ],
+    "Food: Essen": [
+      "Restaurant",
+      "Gasthof",
+      "Wirtshaus",
+      "Beisl",
+      "Bistro",
+      "Pizzeria",
+      "Streetfood",
+      "Imbiss",
+      "Foodtruck",
+      "Vegan & Vegetarisch",
+      "Feinkost"
+    ],
+    "Food: Trinken": [
+      "Bar",
+      "Cocktailbar",
+      "Weinbar",
+      "Heuriger",
+      "Biergarten",
+      "Brauerei"
+    ],
+    "Food: Berg & Alm": [
+      "Berghütte",
+      "Almhütte",
+      "Gipfelrestaurant",
+      "Jausenstation"
+    ]
   },
   "AREA": {
-    "Stadt Salzburg": {"en":"City of Salzburg","it":"Città di Salisburgo","nl":"Stad Salzburg","ko":"잘츠부르크 시","fr":"Ville de Salzbourg","zh":"萨尔茨堡市","es":"Ciudad de Salzburgo","pt":"Cidade de Salzburgo"},
-    "Altstadt": {"en":"Old Town","it":"Centro storico","nl":"Oude stad","ko":"구시가지","fr":"Vieille ville","zh":"老城区","es":"Casco antiguo","pt":"Centro histórico"},
-    "Aigen": {"en":"Aigen","it":"Aigen","nl":"Aigen","ko":"아이겐","fr":"Aigen","zh":"艾根","es":"Aigen","pt":"Aigen"},
-    "Maxglan": {"en":"Maxglan","it":"Maxglan","nl":"Maxglan","ko":"막스글란","fr":"Maxglan","zh":"马克斯格兰","es":"Maxglan","pt":"Maxglan"},
-    "Gnigl": {"en":"Gnigl","it":"Gnigl","nl":"Gnigl","ko":"그니글","fr":"Gnigl","zh":"格尼格尔","es":"Gnigl","pt":"Gnigl"},
-    "Lehen": {"en":"Lehen","it":"Lehen","nl":"Lehen","ko":"레엔","fr":"Lehen","zh":"莱恩","es":"Lehen","pt":"Lehen"},
-    "Itzling": {"en":"Itzling","it":"Itzling","nl":"Itzling","ko":"이츨링","fr":"Itzling","zh":"伊茨林","es":"Itzling","pt":"Itzling"},
-    "Parsch": {"en":"Parsch","it":"Parsch","nl":"Parsch","ko":"파르쉬","fr":"Parsch","zh":"帕尔施","es":"Parsch","pt":"Parsch"},
-    "Hallein": {"en":"Hallein","it":"Hallein","nl":"Hallein","ko":"할라인","fr":"Hallein","zh":"哈莱因","es":"Hallein","pt":"Hallein"},
-    "Anif": {"en":"Anif","it":"Anif","nl":"Anif","ko":"아니프","fr":"Anif","zh":"阿尼夫","es":"Anif","pt":"Anif"},
-    "Grödig": {"en":"Grödig","it":"Grödig","nl":"Grödig","ko":"그뢰디히","fr":"Grödig","zh":"格勒迪希","es":"Grödig","pt":"Grödig"},
-    "Wals": {"en":"Wals","it":"Wals","nl":"Wals","ko":"발스","fr":"Wals","zh":"瓦尔斯","es":"Wals","pt":"Wals"},
-    "Bergheim": {"en":"Bergheim","it":"Bergheim","nl":"Bergheim","ko":"베르크하임","fr":"Bergheim","zh":"贝格海姆","es":"Bergheim","pt":"Bergheim"},
-    "Hallwang": {"en":"Hallwang","it":"Hallwang","nl":"Hallwang","ko":"할방","fr":"Hallwang","zh":"哈尔旺","es":"Hallwang","pt":"Hallwang"},
-    "Fuschl am See": {"en":"Fuschl am See","it":"Fuschl am See","nl":"Fuschl am See","ko":"푸슐 암 제","fr":"Fuschl am See","zh":"富施尔湖畔","es":"Fuschl am See","pt":"Fuschl am See"},
-    "St. Gilgen": {"en":"St. Gilgen","it":"St. Gilgen","nl":"St. Gilgen","ko":"장크트 길겐","fr":"St. Gilgen","zh":"圣吉尔根","es":"St. Gilgen","pt":"St. Gilgen"},
-    "Bad Gastein": {"en":"Bad Gastein","it":"Bad Gastein","nl":"Bad Gastein","ko":"바트가슈타인","fr":"Bad Gastein","zh":"巴德加施泰因","es":"Bad Gastein","pt":"Bad Gastein"}
+    "Stadt Salzburg": {
+      "en": "City of Salzburg",
+      "es": "Ciudad de Salzburgo",
+      "fr": "Ville de Salzbourg",
+      "it": "Città di Salisburgo",
+      "ko": "잘츠부르크 시",
+      "nl": "Stad Salzburg",
+      "pt": "Cidade de Salzburgo",
+      "zh": "萨尔茨堡市"
+    },
+    "Altstadt": {
+      "en": "Old Town",
+      "es": "Casco Antiguo",
+      "fr": "Vieille Ville",
+      "it": "Centro Storico",
+      "ko": "구시가지",
+      "nl": "Oude Stad",
+      "pt": "Cidade Velha",
+      "zh": "老城区"
+    },
+    "Neustadt": {
+      "en": "New Town",
+      "es": "Ciudad Nueva",
+      "fr": "Ville Nouvelle",
+      "it": "Città Nuova",
+      "ko": "신시가지",
+      "nl": "Nieuwe Stad",
+      "pt": "Cidade Nova",
+      "zh": "新城区"
+    },
+    "Elisabeth-Vorstadt": {
+      "en": "Elisabeth Suburb",
+      "es": "Suburbio de Elisabeth",
+      "fr": "Faubourg Elisabeth",
+      "it": "Sobborgo Elisabeth",
+      "ko": "엘리자베트 교외",
+      "nl": "Elisabeth-voorstad",
+      "pt": "Subúrbio de Elisabeth",
+      "zh": "伊丽莎白郊区"
+    },
+    "Salzburg-Süd": {
+      "en": "Salzburg South",
+      "es": "Salzburgo Sur",
+      "fr": "Salzbourg Sud",
+      "it": "Salisburgo Sud",
+      "ko": "잘츠부르크 남부",
+      "nl": "Salzburg-Zuid",
+      "pt": "Salzburgo Sul",
+      "zh": "萨尔茨堡南区"
+    },
+    "Salzburger Seenland": {
+      "en": "Salzburg Lake District",
+      "es": "Región de los Lagos de Salzburgo",
+      "fr": "Pays des Lacs de Salzbourg",
+      "it": "Regione dei Laghi di Salisburgo",
+      "ko": "잘츠부르크 호수 지역",
+      "nl": "Salzburger Merengebied",
+      "pt": "Região dos Lagos de Salzburgo",
+      "zh": "萨尔茨堡湖区"
+    },
+    "Fuschlseeregion": {
+      "en": "Lake Fuschl Region",
+      "es": "Región del Lago Fuschl",
+      "fr": "Région du Lac de Fuschl",
+      "it": "Regione del Lago di Fuschl",
+      "ko": "푸슐 호수 지역",
+      "nl": "Regio Fuschlsee",
+      "pt": "Região do Lago Fuschl",
+      "zh": "富施尔湖地区"
+    },
+    "Wolfgangsee-Region": {
+      "en": "Lake Wolfgang Region",
+      "es": "Región del Lago Wolfgang",
+      "fr": "Région du Lac Wolfgang",
+      "it": "Regione del Lago Wolfgang",
+      "ko": "볼프강 호수 지역",
+      "nl": "Regio Wolfgangsee",
+      "pt": "Região do Lago Wolfgang",
+      "zh": "沃尔夫冈湖地区"
+    },
+    "Mondseeland": {
+      "en": "Lake Mondsee Region",
+      "es": "Región del Lago Mondsee",
+      "fr": "Région du Lac de Mondsee",
+      "it": "Regione del Lago Mondsee",
+      "ko": "몬트제 호수 지역",
+      "nl": "Regio Mondsee",
+      "pt": "Região do Lago Mondsee",
+      "zh": "蒙德湖地区"
+    },
+    "Lammertal": {
+      "en": "Lammer Valley",
+      "es": "Valle del Lammer",
+      "fr": "Vallée de la Lammer",
+      "it": "Valle del Lammer",
+      "ko": "람머 계곡",
+      "nl": "Lammerdal",
+      "pt": "Vale do Lammer",
+      "zh": "拉默尔山谷"
+    },
+    "Tennengebirge": {
+      "en": "Tennen Mountains",
+      "es": "Montañas Tennen",
+      "fr": "Massif du Tennen",
+      "it": "Monti Tennen",
+      "ko": "테넨 산맥",
+      "nl": "Tennengebergte",
+      "pt": "Montanhas Tennen",
+      "zh": "特能山脉"
+    },
+    "Gasteinertal": {
+      "en": "Gastein Valley",
+      "es": "Valle de Gastein",
+      "fr": "Vallée de Gastein",
+      "it": "Valle di Gastein",
+      "ko": "가슈타인 계곡",
+      "nl": "Gasteinerdal",
+      "pt": "Vale de Gastein",
+      "zh": "加施泰因山谷"
+    },
+    "Großarltal": {
+      "en": "Großarl Valley",
+      "es": "Valle de Großarl",
+      "fr": "Vallée de Großarl",
+      "it": "Valle di Großarl",
+      "ko": "그로사를 계곡",
+      "nl": "Großarldal",
+      "pt": "Vale de Großarl",
+      "zh": "格罗萨尔山谷"
+    },
+    "Raurisertal": {
+      "en": "Rauris Valley",
+      "es": "Valle de Rauris",
+      "fr": "Vallée de Rauris",
+      "it": "Valle di Rauris",
+      "ko": "라우리스 계곡",
+      "nl": "Raurisdal",
+      "pt": "Vale de Rauris",
+      "zh": "劳里斯山谷"
+    },
+    "Region Obertauern": {
+      "en": "Obertauern Region",
+      "es": "Región de Obertauern",
+      "fr": "Région d'Obertauern",
+      "it": "Regione di Obertauern",
+      "ko": "오버타우에른 지역",
+      "nl": "Regio Obertauern",
+      "pt": "Região de Obertauern",
+      "zh": "上陶恩地区"
+    },
+    "Salzburger Sonnenterrasse": {
+      "en": "Salzburg Sun Terrace",
+      "es": "Terraza Soleada de Salzburgo",
+      "fr": "Terrasse Ensoleillée de Salzbourg",
+      "it": "Terrazza del Sole di Salisburgo",
+      "ko": "잘츠부르크 선 테라스",
+      "nl": "Salzburger Zonneterras",
+      "pt": "Terraço Solar de Salzburgo",
+      "zh": "萨尔茨堡阳光台地"
+    },
+    "Salzburger Saalachtal": {
+      "en": "Salzburg Saalach Valley",
+      "es": "Valle del Saalach de Salzburgo",
+      "fr": "Vallée de la Saalach de Salzbourg",
+      "it": "Valle del Saalach di Salisburgo",
+      "ko": "잘츠부르크 잘라흐 계곡",
+      "nl": "Salzburger Saalachdal",
+      "pt": "Vale do Saalach de Salzburgo",
+      "zh": "萨尔茨堡萨拉赫山谷"
+    },
+    "Wildkogel-Arena": {
+      "en": "Wildkogel Arena",
+      "es": "Arena Wildkogel",
+      "fr": "Arène Wildkogel",
+      "it": "Arena Wildkogel",
+      "ko": "빌트코겔 아레나",
+      "nl": "Wildkogel Arena",
+      "pt": "Arena Wildkogel",
+      "zh": "维尔德科格尔阿雷纳"
+    },
+    "Ferienregion Nationalpark Hohe Tauern": {
+      "en": "Hohe Tauern National Park Holiday Region",
+      "es": "Región Vacacional Parque Nacional Hohe Tauern",
+      "fr": "Région de Vacances Parc National Hohe Tauern",
+      "it": "Regione Turistica Parco Nazionale Hohe Tauern",
+      "ko": "호에 타우에른 국립공원 휴양 지역",
+      "nl": "Vakantieregio Nationaal Park Hohe Tauern",
+      "pt": "Região de Férias Parque Nacional Hohe Tauern",
+      "zh": "高陶恩国家公园度假区"
+    },
+    "Großglockner Hochalpenstraße": {
+      "en": "Großglockner High Alpine Road",
+      "es": "Carretera Alpina del Großglockner",
+      "fr": "Route Alpine du Großglockner",
+      "it": "Strada Alpina del Großglockner",
+      "ko": "그로스글로크너 고산도로",
+      "nl": "Großglockner Hoogalpenweg",
+      "pt": "Estrada Alpina do Großglockner",
+      "zh": "大格洛克纳高山公路"
+    },
+    "Biosphärenpark Lungau": {
+      "en": "Lungau Biosphere Reserve",
+      "es": "Reserva de la Biosfera de Lungau",
+      "fr": "Réserve de Biosphère du Lungau",
+      "it": "Riserva della Biosfera del Lungau",
+      "ko": "룽가우 생물권 보전지역",
+      "nl": "Biosfeerpark Lungau",
+      "pt": "Reserva da Biosfera do Lungau",
+      "zh": "隆高生物圈保护区"
+    },
+    "Stille-Nacht-Region": {
+      "en": "Silent Night Region",
+      "es": "Región de Noche de Paz",
+      "fr": "Région de Douce Nuit",
+      "it": "Regione di Astro del Ciel",
+      "ko": "고요한 밤 지역",
+      "nl": "Stille Nacht Regio",
+      "pt": "Região da Noite Feliz",
+      "zh": "平安夜之乡"
+    },
+    "Wolfgangsee": {
+      "en": "Lake Wolfgang",
+      "es": "Lago Wolfgang",
+      "fr": "Lac Wolfgang",
+      "it": "Lago Wolfgang",
+      "ko": "볼프강 호수",
+      "nl": "Meer van Wolfgang",
+      "pt": "Lago Wolfgang",
+      "zh": "沃尔夫冈湖"
+    },
+    "Fuschlsee": {
+      "en": "Lake Fuschl",
+      "es": "Lago Fuschl",
+      "fr": "Lac de Fuschl",
+      "it": "Lago di Fuschl",
+      "ko": "푸슐 호수",
+      "nl": "Meer van Fuschl",
+      "pt": "Lago Fuschl",
+      "zh": "富施尔湖"
+    },
+    "Obertrumer See": {
+      "en": "Lake Obertrum",
+      "es": "Lago de Obertrum",
+      "fr": "Lac d'Obertrum",
+      "it": "Lago di Obertrum",
+      "ko": "오버트룸 호수",
+      "nl": "Meer van Obertrum",
+      "pt": "Lago de Obertrum",
+      "zh": "上特鲁姆湖"
+    },
+    "Grabensee": {
+      "en": "Lake Graben",
+      "es": "Lago Graben",
+      "fr": "Lac de Graben",
+      "it": "Lago di Graben",
+      "ko": "그라벤 호수",
+      "nl": "Meer van Graben",
+      "pt": "Lago Graben",
+      "zh": "格拉本湖"
+    },
+    "Wallersee": {
+      "en": "Lake Waller",
+      "es": "Lago Waller",
+      "fr": "Lac de Waller",
+      "it": "Lago di Waller",
+      "ko": "발러 호수",
+      "nl": "Meer van Waller",
+      "pt": "Lago Waller",
+      "zh": "瓦勒湖"
+    },
+    "Zeller See": {
+      "en": "Lake Zell",
+      "es": "Lago de Zell",
+      "fr": "Lac de Zell",
+      "it": "Lago di Zell",
+      "ko": "첼러 호수",
+      "nl": "Meer van Zell",
+      "pt": "Lago de Zell",
+      "zh": "泽尔湖"
+    },
+    "Ritzensee": {
+      "en": "Lake Ritzen",
+      "es": "Lago Ritzen",
+      "fr": "Lac de Ritzen",
+      "it": "Lago di Ritzen",
+      "ko": "리첸 호수",
+      "nl": "Meer van Ritzen",
+      "pt": "Lago Ritzen",
+      "zh": "里岑湖"
+    },
+    "Bluntausee": {
+      "en": "Lake Bluntau",
+      "es": "Lago Bluntau",
+      "fr": "Lac de Bluntau",
+      "it": "Lago di Bluntau",
+      "ko": "블룬타우 호수",
+      "nl": "Meer van Bluntau",
+      "pt": "Lago Bluntau",
+      "zh": "布伦陶湖"
+    },
+    "Seewaldsee": {
+      "en": "Lake Seewald",
+      "es": "Lago Seewald",
+      "fr": "Lac de Seewald",
+      "it": "Lago di Seewald",
+      "ko": "제발트 호수",
+      "nl": "Meer van Seewald",
+      "pt": "Lago Seewald",
+      "zh": "泽瓦尔德湖"
+    },
+    "Prebersee": {
+      "en": "Lake Preber",
+      "es": "Lago Preber",
+      "fr": "Lac de Preber",
+      "it": "Lago di Preber",
+      "ko": "프레버 호수",
+      "nl": "Meer van Preber",
+      "pt": "Lago Preber",
+      "zh": "普雷贝尔湖"
+    },
+    "Goldegger See": {
+      "en": "Lake Goldegg",
+      "es": "Lago de Goldegg",
+      "fr": "Lac de Goldegg",
+      "it": "Lago di Goldegg",
+      "ko": "골데크 호수",
+      "nl": "Meer van Goldegg",
+      "pt": "Lago de Goldegg",
+      "zh": "戈尔德埃格湖"
+    },
+    "Jägersee": {
+      "en": "Lake Jäger",
+      "es": "Lago Jäger",
+      "fr": "Lac de Jäger",
+      "it": "Lago di Jäger",
+      "ko": "예거 호수",
+      "nl": "Meer van Jäger",
+      "pt": "Lago Jäger",
+      "zh": "耶格湖"
+    },
+    "Königssee": {
+      "en": "Lake Königssee",
+      "es": "Lago Königssee",
+      "fr": "Lac de Königssee",
+      "it": "Lago di Königssee",
+      "ko": "쾨니히스 호수",
+      "nl": "Meer van Königssee",
+      "pt": "Lago Königssee",
+      "zh": "国王湖"
+    }
+  },
+  "AREA_NAMES": {
+    "Nonntal": {
+      "zh": "诺恩塔尔",
+      "ko": "논탈"
+    },
+    "Mülln": {
+      "zh": "米伦",
+      "ko": "뮐른"
+    },
+    "Riedenburg": {
+      "zh": "里登堡",
+      "ko": "리덴부르크"
+    },
+    "Lehen": {
+      "zh": "莱恩",
+      "ko": "레엔"
+    },
+    "Schallmoos": {
+      "zh": "沙尔莫斯",
+      "ko": "샬모스"
+    },
+    "Itzling": {
+      "zh": "伊茨林",
+      "ko": "이츨링"
+    },
+    "Gnigl": {
+      "zh": "格尼格尔",
+      "ko": "그니글"
+    },
+    "Parsch": {
+      "zh": "帕尔施",
+      "ko": "파르슈"
+    },
+    "Aigen": {
+      "zh": "艾根",
+      "ko": "아이겐"
+    },
+    "Maxglan": {
+      "zh": "马克斯格兰",
+      "ko": "막스글란"
+    },
+    "Taxham": {
+      "zh": "塔克斯哈姆",
+      "ko": "탁스함"
+    },
+    "Liefering": {
+      "zh": "利弗灵",
+      "ko": "리페링"
+    },
+    "Leopoldskron": {
+      "zh": "莱奥波德斯克龙",
+      "ko": "레오폴츠크론"
+    },
+    "Morzg": {
+      "zh": "莫尔茨格",
+      "ko": "모르츠크"
+    },
+    "Gneis": {
+      "zh": "格奈斯",
+      "ko": "그나이스"
+    },
+    "Kasern": {
+      "zh": "卡塞恩",
+      "ko": "카저른"
+    },
+    "Langwied": {
+      "zh": "朗维德",
+      "ko": "랑비트"
+    },
+    "Hellbrunn": {
+      "zh": "海尔布伦",
+      "ko": "헬브룬"
+    },
+    "Gaisberg": {
+      "zh": "盖斯贝格",
+      "ko": "가이스베르크"
+    },
+    "Heuberg": {
+      "zh": "霍伊贝格",
+      "ko": "호이베르크"
+    },
+    "Mönchsberg": {
+      "zh": "门希斯贝格",
+      "ko": "묀히스베르크"
+    },
+    "Kapuzinerberg": {
+      "zh": "卡普齐纳贝格",
+      "ko": "카푸치너베르크"
+    },
+    "Flachgau": {
+      "zh": "弗拉赫高",
+      "ko": "플라흐가우"
+    },
+    "Wals-Siezenheim": {
+      "zh": "瓦尔斯-西岑海姆",
+      "ko": "발스지첸하임"
+    },
+    "Grödig": {
+      "zh": "格勒迪希",
+      "ko": "그뢰디히"
+    },
+    "Anif": {
+      "zh": "阿尼夫",
+      "ko": "아니프"
+    },
+    "Elsbethen": {
+      "zh": "埃尔斯贝滕",
+      "ko": "엘스베텐"
+    },
+    "Bergheim": {
+      "zh": "贝格海姆",
+      "ko": "베르크하임"
+    },
+    "Großgmain": {
+      "zh": "格罗斯格迈因",
+      "ko": "그로스그마인"
+    },
+    "Eugendorf": {
+      "zh": "欧根多夫",
+      "ko": "오이겐도르프"
+    },
+    "Thalgau": {
+      "zh": "塔尔高",
+      "ko": "탈가우"
+    },
+    "Koppl": {
+      "zh": "科普尔",
+      "ko": "코플"
+    },
+    "Ebenau": {
+      "zh": "埃贝瑙",
+      "ko": "에베나우"
+    },
+    "Faistenau": {
+      "zh": "法斯特瑙",
+      "ko": "파이스테나우"
+    },
+    "Hintersee": {
+      "zh": "欣特塞",
+      "ko": "힌터제"
+    },
+    "Hof bei Salzburg": {
+      "zh": "萨尔茨堡附近的霍夫",
+      "ko": "호프 바이 잘츠부르크"
+    },
+    "Fuschl am See": {
+      "zh": "滨湖富施尔",
+      "ko": "푸슐 암 제"
+    },
+    "St. Gilgen": {
+      "zh": "圣吉尔根",
+      "ko": "장크트 길겐"
+    },
+    "Strobl": {
+      "zh": "施特罗布尔",
+      "ko": "슈트로블"
+    },
+    "Henndorf am Wallersee": {
+      "zh": "滨瓦勒湖亨多夫",
+      "ko": "헨도르프 암 발러제"
+    },
+    "Seekirchen am Wallersee": {
+      "zh": "滨瓦勒湖泽基兴",
+      "ko": "제키르헨 암 발러제"
+    },
+    "Neumarkt am Wallersee": {
+      "zh": "滨瓦勒湖诺伊马克特",
+      "ko": "노이마르크트 암 발러제"
+    },
+    "Straßwalchen": {
+      "zh": "施特拉斯瓦尔兴",
+      "ko": "슈트라스발헨"
+    },
+    "Mattsee": {
+      "zh": "马特塞",
+      "ko": "마트제"
+    },
+    "Obertrum am See": {
+      "zh": "滨湖上特鲁姆",
+      "ko": "오버트룸 암 제"
+    },
+    "Seeham": {
+      "zh": "塞哈姆",
+      "ko": "제함"
+    },
+    "Oberndorf bei Salzburg": {
+      "zh": "萨尔茨堡附近的上恩多夫",
+      "ko": "오베른도르프 바이 잘츠부르크"
+    },
+    "Anthering": {
+      "zh": "安特灵",
+      "ko": "안터링"
+    },
+    "Lamprechtshausen": {
+      "zh": "兰普雷希茨豪森",
+      "ko": "람프레히츠하우젠"
+    },
+    "Bürmoos": {
+      "zh": "比尔莫斯",
+      "ko": "뷔르모스"
+    },
+    "Nußdorf am Haunsberg": {
+      "zh": "豪恩斯贝格山麓努斯多夫",
+      "ko": "누스도르프 암 하운스베르크"
+    },
+    "St. Georgen bei Salzburg": {
+      "zh": "萨尔茨堡附近的圣格奥尔根",
+      "ko": "장크트 게오르겐 바이 잘츠부르크"
+    },
+    "Tennengau": {
+      "zh": "特能高",
+      "ko": "테넨가우"
+    },
+    "Hallein": {
+      "zh": "哈莱因",
+      "ko": "할라인"
+    },
+    "Golling an der Salzach": {
+      "zh": "萨尔察赫河畔戈林",
+      "ko": "골링 안 데어 잘차흐"
+    },
+    "Kuchl": {
+      "zh": "库赫尔",
+      "ko": "쿠흘"
+    },
+    "Abtenau": {
+      "zh": "阿布特瑙",
+      "ko": "압테나우"
+    },
+    "Annaberg-Lungötz": {
+      "zh": "安纳贝格-伦格茨",
+      "ko": "안나베르크룽괴츠"
+    },
+    "Rußbach am Paß Gschütt": {
+      "zh": "格许特山口鲁斯巴赫",
+      "ko": "루스바흐 암 파스 그쉬트"
+    },
+    "Scheffau am Tennengebirge": {
+      "zh": "特能山麓舍夫瑙",
+      "ko": "셰파우 암 테넨게비르게"
+    },
+    "Adnet": {
+      "zh": "阿德内特",
+      "ko": "아드네트"
+    },
+    "Puch bei Hallein": {
+      "zh": "哈莱因附近的普赫",
+      "ko": "푸흐 바이 할라인"
+    },
+    "Bad Vigaun": {
+      "zh": "巴德维高恩",
+      "ko": "바트 비가운"
+    },
+    "St. Koloman": {
+      "zh": "圣科洛曼",
+      "ko": "장크트 콜로만"
+    },
+    "Krispl": {
+      "zh": "克里斯普尔",
+      "ko": "크리스플"
+    },
+    "Oberalm": {
+      "zh": "上阿尔姆",
+      "ko": "오버알름"
+    },
+    "Pongau": {
+      "zh": "蓬高",
+      "ko": "퐁가우"
+    },
+    "St. Johann im Pongau": {
+      "zh": "蓬高地区圣约翰",
+      "ko": "장크트 요한 임 퐁가우"
+    },
+    "Bischofshofen": {
+      "zh": "比朔夫斯霍芬",
+      "ko": "비쇼프스호펜"
+    },
+    "Werfen": {
+      "zh": "韦尔芬",
+      "ko": "베르펜"
+    },
+    "Werfenweng": {
+      "zh": "韦尔芬文",
+      "ko": "베르펜벵"
+    },
+    "Pfarrwerfen": {
+      "zh": "法尔韦尔芬",
+      "ko": "파르베르펜"
+    },
+    "Mühlbach am Hochkönig": {
+      "zh": "霍赫柯尼希山麓米尔巴赫",
+      "ko": "뮐바흐 암 호흐쾨니히"
+    },
+    "Radstadt": {
+      "zh": "拉德施塔特",
+      "ko": "라트슈타트"
+    },
+    "Altenmarkt im Pongau": {
+      "zh": "蓬高地区阿尔滕马克特",
+      "ko": "알텐마르크트 임 퐁가우"
+    },
+    "Flachau": {
+      "zh": "弗拉豪",
+      "ko": "플라하우"
+    },
+    "Wagrain": {
+      "zh": "瓦格赖恩",
+      "ko": "바그라인"
+    },
+    "Kleinarl": {
+      "zh": "克莱因阿尔",
+      "ko": "클라인아를"
+    },
+    "Filzmoos": {
+      "zh": "菲尔茨莫斯",
+      "ko": "필츠모스"
+    },
+    "Eben im Pongau": {
+      "zh": "蓬高地区埃本",
+      "ko": "에벤 임 퐁가우"
+    },
+    "Großarl": {
+      "zh": "格罗萨尔",
+      "ko": "그로사를"
+    },
+    "Hüttschlag": {
+      "zh": "许特施拉格",
+      "ko": "휘트슐라크"
+    },
+    "Bad Gastein": {
+      "zh": "巴德加施泰因",
+      "ko": "바트 가슈타인"
+    },
+    "Bad Hofgastein": {
+      "zh": "巴德霍夫加施泰因",
+      "ko": "바트 호프가슈타인"
+    },
+    "Dorfgastein": {
+      "zh": "多夫加施泰因",
+      "ko": "도르프가슈타인"
+    },
+    "Goldegg im Pongau": {
+      "zh": "蓬高地区戈尔德埃格",
+      "ko": "골데크 임 퐁가우"
+    },
+    "St. Veit im Pongau": {
+      "zh": "蓬高地区圣法伊特",
+      "ko": "장크트 파이트 임 퐁가우"
+    },
+    "Schwarzach im Pongau": {
+      "zh": "蓬高地区施瓦察赫",
+      "ko": "슈바르차흐 임 퐁가우"
+    },
+    "St. Martin am Tennengebirge": {
+      "zh": "特能山麓圣马丁",
+      "ko": "장크트 마르틴 암 테넨게비르게"
+    },
+    "Untertauern": {
+      "zh": "下陶恩",
+      "ko": "운터타우에른"
+    },
+    "Forstau": {
+      "zh": "福斯特瑙",
+      "ko": "포르스타우"
+    },
+    "Pinzgau": {
+      "zh": "平茨高",
+      "ko": "핀츠가우"
+    },
+    "Oberpinzgau": {
+      "zh": "上平茨高",
+      "ko": "오버핀츠가우"
+    },
+    "Zell am See": {
+      "zh": "滨湖采尔",
+      "ko": "첼 암 제"
+    },
+    "Kaprun": {
+      "zh": "卡普伦",
+      "ko": "카프룬"
+    },
+    "Saalbach-Hinterglemm": {
+      "zh": "萨尔巴赫-欣特格莱姆",
+      "ko": "잘바흐힌터글렘"
+    },
+    "Saalfelden am Steinernen Meer": {
+      "zh": "石海畔萨尔费尔登",
+      "ko": "잘펠덴 암 슈타이네르넨 메어"
+    },
+    "Leogang": {
+      "zh": "莱奥冈",
+      "ko": "레오강"
+    },
+    "Maria Alm am Steinernen Meer": {
+      "zh": "石海畔玛丽亚阿尔姆",
+      "ko": "마리아 알름 암 슈타이네르넨 메어"
+    },
+    "Dienten am Hochkönig": {
+      "zh": "霍赫柯尼希山麓迪恩滕",
+      "ko": "디엔텐 암 호흐쾨니히"
+    },
+    "Maishofen": {
+      "zh": "迈斯霍芬",
+      "ko": "마이스호펜"
+    },
+    "Viehhofen": {
+      "zh": "菲霍芬",
+      "ko": "피호펜"
+    },
+    "Piesendorf": {
+      "zh": "皮森多夫",
+      "ko": "피젠도르프"
+    },
+    "Uttendorf": {
+      "zh": "乌滕多夫",
+      "ko": "우텐도르프"
+    },
+    "Mittersill": {
+      "zh": "米特西尔",
+      "ko": "미터질"
+    },
+    "Hollersbach im Pinzgau": {
+      "zh": "平茨高地区霍勒斯巴赫",
+      "ko": "홀러스바흐 임 핀츠가우"
+    },
+    "Bramberg am Wildkogel": {
+      "zh": "维尔德科格尔山麓布兰贝格",
+      "ko": "브람베르크 암 빌트코겔"
+    },
+    "Neukirchen am Großvenediger": {
+      "zh": "大威尼迪格山麓新基兴",
+      "ko": "노이키르헨 암 그로스베네디거"
+    },
+    "Wald im Pinzgau": {
+      "zh": "平茨高地区瓦尔德",
+      "ko": "발트 임 핀츠가우"
+    },
+    "Krimml": {
+      "zh": "克里姆尔",
+      "ko": "크림믈"
+    },
+    "Bruck an der Großglocknerstraße": {
+      "zh": "大格洛克纳公路旁布鲁克",
+      "ko": "브루크 안 데어 그로스글로크너슈트라세"
+    },
+    "Fusch an der Großglocknerstraße": {
+      "zh": "大格洛克纳公路旁富施",
+      "ko": "푸슈 안 데어 그로스글로크너슈트라세"
+    },
+    "Rauris": {
+      "zh": "劳里斯",
+      "ko": "라우리스"
+    },
+    "Taxenbach": {
+      "zh": "塔克森巴赫",
+      "ko": "탁센바흐"
+    },
+    "Lofer": {
+      "zh": "洛弗尔",
+      "ko": "로퍼"
+    },
+    "St. Martin bei Lofer": {
+      "zh": "洛弗尔附近的圣马丁",
+      "ko": "장크트 마르틴 바이 로퍼"
+    },
+    "Unken": {
+      "zh": "温肯",
+      "ko": "운켄"
+    },
+    "Weißbach bei Lofer": {
+      "zh": "洛弗尔附近的魏斯巴赫",
+      "ko": "바이스바흐 바이 로퍼"
+    },
+    "Niedernsill": {
+      "zh": "尼德恩西尔",
+      "ko": "니데른질"
+    },
+    "Lend": {
+      "zh": "伦德",
+      "ko": "렌트"
+    },
+    "Lungau": {
+      "zh": "隆高",
+      "ko": "룽가우"
+    },
+    "Tamsweg": {
+      "zh": "塔姆斯韦格",
+      "ko": "탐스베크"
+    },
+    "Mauterndorf": {
+      "zh": "毛特恩多夫",
+      "ko": "마우테른도르프"
+    },
+    "St. Michael im Lungau": {
+      "zh": "隆高地区圣米夏埃尔",
+      "ko": "장크트 미하엘 임 룽가우"
+    },
+    "Mariapfarr": {
+      "zh": "玛丽亚普法尔",
+      "ko": "마리아파르"
+    },
+    "Zederhaus": {
+      "zh": "采德豪斯",
+      "ko": "체더하우스"
+    },
+    "Muhr": {
+      "zh": "穆尔",
+      "ko": "무어"
+    },
+    "Tweng": {
+      "zh": "特文格",
+      "ko": "트벵"
+    },
+    "Unternberg": {
+      "zh": "温特恩贝格",
+      "ko": "운테른베르크"
+    },
+    "Ramingstein": {
+      "zh": "拉明施泰因",
+      "ko": "라밍슈타인"
+    },
+    "St. Margarethen im Lungau": {
+      "zh": "隆高地区圣玛格丽滕",
+      "ko": "장크트 마르가레텐 임 룽가우"
+    },
+    "Salzkammergut": {
+      "zh": "萨尔茨卡默古特",
+      "ko": "잘츠카머구트"
+    },
+    "Dachstein West": {
+      "zh": "达赫施泰因西区",
+      "ko": "다흐슈타인 베스트"
+    },
+    "Salzburger Sportwelt": {
+      "zh": "萨尔茨堡运动世界",
+      "ko": "잘츠부르크 슈포르트벨트"
+    },
+    "Hochkönig": {
+      "zh": "霍赫柯尼希",
+      "ko": "호흐쾨니히"
+    },
+    "Zell am See-Kaprun": {
+      "zh": "滨湖采尔-卡普伦",
+      "ko": "첼 암 제-카프룬"
+    },
+    "Saalfelden Leogang": {
+      "zh": "萨尔费尔登-莱奥冈",
+      "ko": "잘펠덴 레오강"
+    },
+    "Katschberg": {
+      "zh": "卡奇贝格",
+      "ko": "카치베르크"
+    },
+    "Untersberg": {
+      "zh": "温特斯贝格",
+      "ko": "운터스베르크"
+    },
+    "Hallwang": {
+      "ko": "할방",
+      "zh": "哈尔旺"
+    }
+  },
+  "AREA_GROUPS": {
+    "Stadt Salzburg": [
+      "Stadt Salzburg",
+      "Altstadt",
+      "Neustadt",
+      "Nonntal",
+      "Mülln",
+      "Riedenburg",
+      "Lehen",
+      "Elisabeth-Vorstadt",
+      "Schallmoos",
+      "Itzling",
+      "Gnigl",
+      "Parsch",
+      "Aigen",
+      "Maxglan",
+      "Taxham",
+      "Liefering",
+      "Leopoldskron",
+      "Morzg",
+      "Gneis",
+      "Salzburg-Süd",
+      "Kasern",
+      "Langwied",
+      "Hellbrunn",
+      "Gaisberg",
+      "Heuberg",
+      "Mönchsberg",
+      "Kapuzinerberg"
+    ],
+    "Flachgau": [
+      "Flachgau",
+      "Wals-Siezenheim",
+      "Grödig",
+      "Anif",
+      "Elsbethen",
+      "Bergheim",
+      "Großgmain",
+      "Eugendorf",
+      "Thalgau",
+      "Koppl",
+      "Ebenau",
+      "Faistenau",
+      "Hintersee",
+      "Hof bei Salzburg",
+      "Fuschl am See",
+      "St. Gilgen",
+      "Strobl",
+      "Henndorf am Wallersee",
+      "Seekirchen am Wallersee",
+      "Neumarkt am Wallersee",
+      "Straßwalchen",
+      "Mattsee",
+      "Obertrum am See",
+      "Seeham",
+      "Oberndorf bei Salzburg",
+      "Anthering",
+      "Lamprechtshausen",
+      "Bürmoos",
+      "Nußdorf am Haunsberg",
+      "St. Georgen bei Salzburg",
+      "Hallwang"
+    ],
+    "Tennengau": [
+      "Tennengau",
+      "Hallein",
+      "Golling an der Salzach",
+      "Kuchl",
+      "Abtenau",
+      "Annaberg-Lungötz",
+      "Rußbach am Paß Gschütt",
+      "Scheffau am Tennengebirge",
+      "Adnet",
+      "Puch bei Hallein",
+      "Bad Vigaun",
+      "St. Koloman",
+      "Krispl",
+      "Oberalm"
+    ],
+    "Pongau": [
+      "Pongau",
+      "St. Johann im Pongau",
+      "Bischofshofen",
+      "Werfen",
+      "Werfenweng",
+      "Pfarrwerfen",
+      "Mühlbach am Hochkönig",
+      "Radstadt",
+      "Altenmarkt im Pongau",
+      "Flachau",
+      "Wagrain",
+      "Kleinarl",
+      "Filzmoos",
+      "Eben im Pongau",
+      "Großarl",
+      "Hüttschlag",
+      "Bad Gastein",
+      "Bad Hofgastein",
+      "Dorfgastein",
+      "Goldegg im Pongau",
+      "St. Veit im Pongau",
+      "Schwarzach im Pongau",
+      "St. Martin am Tennengebirge",
+      "Untertauern",
+      "Forstau"
+    ],
+    "Pinzgau": [
+      "Pinzgau",
+      "Oberpinzgau",
+      "Zell am See",
+      "Kaprun",
+      "Saalbach-Hinterglemm",
+      "Saalfelden am Steinernen Meer",
+      "Leogang",
+      "Maria Alm am Steinernen Meer",
+      "Dienten am Hochkönig",
+      "Maishofen",
+      "Viehhofen",
+      "Piesendorf",
+      "Uttendorf",
+      "Mittersill",
+      "Hollersbach im Pinzgau",
+      "Bramberg am Wildkogel",
+      "Neukirchen am Großvenediger",
+      "Wald im Pinzgau",
+      "Krimml",
+      "Bruck an der Großglocknerstraße",
+      "Fusch an der Großglocknerstraße",
+      "Rauris",
+      "Taxenbach",
+      "Lofer",
+      "St. Martin bei Lofer",
+      "Unken",
+      "Weißbach bei Lofer",
+      "Niedernsill",
+      "Lend"
+    ],
+    "Lungau": [
+      "Lungau",
+      "Tamsweg",
+      "Mauterndorf",
+      "St. Michael im Lungau",
+      "Mariapfarr",
+      "Zederhaus",
+      "Muhr",
+      "Tweng",
+      "Unternberg",
+      "Ramingstein",
+      "St. Margarethen im Lungau"
+    ],
+    "Regionen": [
+      "Salzkammergut",
+      "Salzburger Seenland",
+      "Fuschlseeregion",
+      "Wolfgangsee-Region",
+      "Mondseeland",
+      "Lammertal",
+      "Dachstein West",
+      "Tennengebirge",
+      "Salzburger Sportwelt",
+      "Hochkönig",
+      "Gasteinertal",
+      "Großarltal",
+      "Raurisertal",
+      "Region Obertauern",
+      "Salzburger Sonnenterrasse",
+      "Zell am See-Kaprun",
+      "Saalfelden Leogang",
+      "Salzburger Saalachtal",
+      "Wildkogel-Arena",
+      "Ferienregion Nationalpark Hohe Tauern",
+      "Großglockner Hochalpenstraße",
+      "Katschberg",
+      "Biosphärenpark Lungau",
+      "Untersberg",
+      "Stille-Nacht-Region"
+    ],
+    "Seen": [
+      "Wolfgangsee",
+      "Fuschlsee",
+      "Obertrumer See",
+      "Grabensee",
+      "Wallersee",
+      "Zeller See",
+      "Ritzensee",
+      "Bluntausee",
+      "Seewaldsee",
+      "Prebersee",
+      "Goldegger See",
+      "Jägersee",
+      "Königssee"
+    ]
+  },
+  "ALIAS": {
+    "SUBTYPE": {
+      "See": "See & Baden",
+      "Badesee": "See & Baden",
+      "Baden": "See & Baden",
+      "Hütte": "Berghütte",
+      "Alm": "Almhütte",
+      "Aussicht": "Aussichtspunkt",
+      "Viewpoint": "Aussichtspunkt",
+      "Schlucht": "Klamm",
+      "Burg": "Burg & Schloss",
+      "Schloss": "Burg & Schloss",
+      "Kirche": "Kirche & Dom",
+      "Dom": "Kirche & Dom",
+      "Park": "Park & Garten",
+      "Garten": "Park & Garten",
+      "Panoramastrasse": "Panoramastraße",
+      "Altstadt": "Altstadt & Gasse",
+      "Rodeln": "Rodelbahn",
+      "Ski": "Skigebiet",
+      "Langlaufen": "Langlaufloipe",
+      "Wirt": "Wirtshaus",
+      "Kaffeehaus": "Café",
+      "Konditorei & Café": "Konditorei",
+      "Zoo": "Tierpark & Zoo",
+      "Tierpark": "Tierpark & Zoo",
+      "Vegetarisch": "Vegan & Vegetarisch",
+      "Vegan": "Vegan & Vegetarisch",
+      "Action": "Action & Fun"
+    },
+    "SEASON": {
+      "Mai–Oktober": "Mai bis Oktober",
+      "Frühling–Herbst": "Frühling bis Herbst",
+      "Juni–September": "Juni bis September",
+      "April–Oktober": "April bis Oktober",
+      "Dezember–März": "Dezember bis März",
+      "Ganzjahr": "Ganzjährig",
+      "Das ganze Jahr": "Ganzjährig",
+      "Sommer & Herbst": "Frühling bis Herbst"
+    },
+    "AREA": {
+      "Salzburg": "Stadt Salzburg",
+      "Gastein": "Gasteinertal",
+      "Wals": "Wals-Siezenheim",
+      "Siezenheim": "Wals-Siezenheim",
+      "Saalbach": "Saalbach-Hinterglemm",
+      "Hinterglemm": "Saalbach-Hinterglemm",
+      "Saalfelden": "Saalfelden am Steinernen Meer",
+      "Maria Alm": "Maria Alm am Steinernen Meer",
+      "Obertauern": "Region Obertauern",
+      "Zell": "Zell am See",
+      "Golling": "Golling an der Salzach",
+      "St. Johann": "St. Johann im Pongau",
+      "Annaberg": "Annaberg-Lungötz",
+      "Lungötz": "Annaberg-Lungötz",
+      "Rußbach": "Rußbach am Paß Gschütt",
+      "Mühlbach": "Mühlbach am Hochkönig",
+      "Dienten": "Dienten am Hochkönig",
+      "Bramberg": "Bramberg am Wildkogel",
+      "Neukirchen": "Neukirchen am Großvenediger",
+      "Weißbach": "Weißbach bei Lofer",
+      "Hof": "Hof bei Salzburg",
+      "Puch": "Puch bei Hallein",
+      "Oberndorf": "Oberndorf bei Salzburg",
+      "Henndorf": "Henndorf am Wallersee",
+      "Seekirchen": "Seekirchen am Wallersee",
+      "Neumarkt": "Neumarkt am Wallersee",
+      "Obertrum": "Obertrum am See",
+      "Nußdorf": "Nußdorf am Haunsberg",
+      "St. Georgen": "St. Georgen bei Salzburg",
+      "Altenmarkt": "Altenmarkt im Pongau",
+      "Goldegg": "Goldegg im Pongau",
+      "Eben": "Eben im Pongau",
+      "St. Veit": "St. Veit im Pongau",
+      "Schwarzach": "Schwarzach im Pongau",
+      "Hollersbach": "Hollersbach im Pinzgau",
+      "Wald": "Wald im Pinzgau",
+      "Scheffau": "Scheffau am Tennengebirge",
+      "St. Michael": "St. Michael im Lungau",
+      "St. Margarethen": "St. Margarethen im Lungau",
+      "Bruck": "Bruck an der Großglocknerstraße",
+      "Fusch": "Fusch an der Großglocknerstraße",
+      "Krispl-Gaißau": "Krispl",
+      "Gaißau": "Krispl",
+      "Bad Dürrnberg": "Hallein",
+      "Dürrnberg": "Hallein",
+      "Sportgastein": "Bad Gastein",
+      "Böckstein": "Bad Gastein",
+      "Hofgastein": "Bad Hofgastein",
+      "Thumersbach": "Zell am See",
+      "Schmittenhöhe": "Zell am See",
+      "Andräviertel": "Neustadt",
+      "Froschheim": "Elisabeth-Vorstadt",
+      "Bahnhofsviertel": "Elisabeth-Vorstadt",
+      "Sam": "Langwied",
+      "Leopoldskron-Moos": "Leopoldskron",
+      "Leopoldskroner Moos": "Leopoldskron",
+      "Zentrum": "Altstadt",
+      "Innenstadt": "Altstadt",
+      "Nationalpark Hohe Tauern": "Ferienregion Nationalpark Hohe Tauern",
+      "Hohe Tauern": "Ferienregion Nationalpark Hohe Tauern",
+      "Großglockner": "Großglockner Hochalpenstraße",
+      "Glocknerstraße": "Großglockner Hochalpenstraße",
+      "Seenland": "Salzburger Seenland",
+      "Saalachtal": "Salzburger Saalachtal",
+      "Wolfgangsee-Region ": "Wolfgangsee-Region",
+      "Postalm": "Strobl"
+    },
+    "PRICE": {
+      "günstig": "€",
+      "billig": "€",
+      "mittel": "€€",
+      "normal": "€€",
+      "gehoben": "€€€",
+      "teuer": "€€€"
+    }
   }
 }

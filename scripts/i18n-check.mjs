@@ -124,8 +124,137 @@ for (const locale of locales) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Quick-Fact-WERTE (src/lib/facts-i18n.json)
+//
+// messages/*.json übersetzt die BESCHRIFTUNGEN ("Beste Zeit"), facts-i18n.json die vom
+// Admin gespeicherten WERTE ("Frühling bis Herbst"). Zwei Mechanismen, dieselbe Falle:
+// Fehlt ein Wert, zeigt die Seite still Deutsch. Genau so standen in der koreanischen
+// Ansicht "Cafe", "Mai–Oktober" und "Halbtag".
+//
+// Die Dropdowns im Admin werden aus dieser Datei erzeugt (src/lib/spot-options.ts). Damit
+// KANN ein auswählbarer Wert ohne Übersetzung nicht mehr entstehen — dieser Check hält die
+// Kette dicht: jede Kategorie vollständig, jede Gruppe zeigt auf existierende Schlüssel,
+// jeder Alias auf ein echtes Ziel.
+const FACTS_FILE = "src/lib/facts-i18n.json";
+const facts = JSON.parse(readFileSync(FACTS_FILE, "utf8"));
+
+// Meta-Abschnitte sind keine Übersetzungstabellen und werden getrennt geprüft.
+const META = new Set(["ALIAS", "SUBTYPE_GROUPS", "AREA_GROUPS"]);
+
+// AREA_NAMES sind reine Eigennamen („Hallein"). Die brauchen KEINE Übersetzung — nur eine
+// Umschrift für die nichtlateinischen Schriften. Würde der Check hier alle 8 Sprachen
+// verlangen, stünde derselbe Ortsname achtmal in der Datei und die Meldung „en fehlt" wäre
+// ein Fehlalarm. Fehlalarme sind der Tod dieses Checks (siehe oben), also: exakt zh + ko.
+const TRANSLITERATE_ONLY = { AREA_NAMES: ["ko", "zh"] };
+
+const categories = Object.keys(facts).filter((c) => !META.has(c));
+
+const factReport = (msg) => {
+  problems++;
+  console.error(`  ${FACTS_FILE}: ${msg}`);
+};
+
+// Dieselbe Normalisierung wie in facts-i18n.ts. Bewusst dupliziert: das Skript läuft in
+// nacktem Node ohne TS-Loader. Weicht sie ab, meldet der Kollisions-Check unten Unsinn —
+// beide Stellen also gemeinsam ändern.
+const normalizeFact = (s) =>
+  s
+    .normalize("NFC")
+    .toLowerCase()
+    .replace(/ä/g, "ae")
+    .replace(/ö/g, "oe")
+    .replace(/ü/g, "ue")
+    .replace(/ß/g, "ss")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\bsankt\b/g, "st")
+    .replace(/[\u2010-\u2015]/g, "-")
+    .replace(/\s*&\s*/g, " und ")
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .trim()
+    .replace(/\s+/g, " ");
+
+let factValues = 0;
+for (const cat of categories) {
+  const seen = new Map(); // normalisiert -> erster Schlüssel
+  for (const [key, langs] of Object.entries(facts[cat])) {
+    factValues++;
+
+    // Zwei Schlüssel, die sich nur in Akzent/Strich/Gross-Klein unterscheiden, lösen sich
+    // gegenseitig auf: welcher gewinnt, hinge an der Reihenfolge im JSON.
+    const n = normalizeFact(key);
+    if (seen.has(n)) factReport(`${cat}: „${key}" kollidiert mit „${seen.get(n)}" (nach Normalisierung gleich)`);
+    else seen.set(n, key);
+
+    const required = TRANSLITERATE_ONLY[cat] ?? locales;
+    for (const locale of required) {
+      const v = langs[locale];
+      if (v == null) factReport(`${cat} · „${key}": ${locale} fehlt`);
+      else if (typeof v !== "string" || v.trim() === "") factReport(`${cat} · „${key}": ${locale} ist leer`);
+    }
+    for (const locale of Object.keys(langs)) {
+      if (locale === BASE) factReport(`${cat} · „${key}": ${BASE} ist der Schlüssel selbst und gehört nicht in die Spalten`);
+      else if (!locales.includes(locale)) factReport(`${cat} · „${key}": unbekannte Sprache ${locale}`);
+      else if (!required.includes(locale))
+        factReport(`${cat} · „${key}": ${locale} gehört hier nicht hin (Eigenname, nur ${required.join("/")})`);
+    }
+  }
+}
+
+// Alias -> Ziel muss existieren, und ein Alias darf kein kanonischer Wert sein (sonst
+// überschreibt er sich selbst und die Auflösung wird unvorhersehbar).
+// Ein Feld kann von mehreren Tabellen bedient werden (area: AREA + AREA_NAMES), deshalb
+// zählt für Alias-Ziele die Vereinigung — nicht die gleichnamige Tabelle allein.
+const ALIAS_TABLES = { AREA: ["AREA", "AREA_NAMES"] };
+
+for (const [cat, map] of Object.entries(facts.ALIAS ?? {})) {
+  if (cat === "PRICE") continue; // Preisniveau hat keine Übersetzungstabelle, nur €-Ziele
+  const tables = ALIAS_TABLES[cat] ?? [cat];
+  if (tables.some((t) => !facts[t])) { factReport(`ALIAS: Kategorie ${cat} gibt es nicht`); continue; }
+  const has = (key) => tables.some((t) => facts[t][key]);
+  for (const [from, to] of Object.entries(map)) {
+    if (!has(to)) factReport(`ALIAS ${cat}: „${from}" zeigt auf „${to}", das es nicht gibt`);
+    if (has(from)) factReport(`ALIAS ${cat}: „${from}" ist selbst ein gültiger Wert und darf kein Alias sein`);
+  }
+}
+for (const to of Object.values(facts.ALIAS?.PRICE ?? {})) {
+  if (!/^€{1,3}$/.test(to)) factReport(`ALIAS PRICE: Ziel „${to}" ist kein €/€€/€€€`);
+}
+
+// Gruppen füttern die Admin-Dropdowns. Ein Tippfehler hier heisst: Wert im Dropdown, aber
+// ohne Übersetzung — also genau der Fehler, den diese Datei verhindern soll.
+const checkGroups = (name, cats) => {
+  const has = (key) => cats.some((c) => facts[c]?.[key]);
+  for (const [group, list] of Object.entries(facts[name] ?? {})) {
+    for (const key of list) {
+      if (!has(key)) factReport(`${name}.${group}: „${key}" fehlt in ${cats.join("/")}`);
+    }
+  }
+  const grouped = new Set(Object.values(facts[name] ?? {}).flat());
+  for (const cat of cats) {
+    for (const key of Object.keys(facts[cat] ?? {})) {
+      if (!grouped.has(key)) factReport(`${cat}: „${key}" steht in keiner Gruppe von ${name} (taucht im Admin nie auf)`);
+    }
+  }
+  // Derselbe Ort in beiden Tabellen: resolve() nähme stumm die erste und die zweite Zeile
+  // wäre tote, scheinbar gepflegte Übersetzung.
+  if (cats.length > 1) {
+    for (const key of Object.keys(facts[cats[0]] ?? {})) {
+      for (const other of cats.slice(1)) {
+        if (facts[other]?.[key]) factReport(`„${key}" steht in ${cats[0]} UND ${other} — nur eine Tabelle darf ihn führen`);
+      }
+    }
+  }
+};
+checkGroups("SUBTYPE_GROUPS", ["SUBTYPE"]);
+checkGroups("AREA_GROUPS", ["AREA", "AREA_NAMES"]);
+
 if (problems > 0) {
   console.error(`\n✗ ${problems} Problem(e) in ${locales.length} Sprachen.`);
   process.exit(1);
 }
-console.log(`✓ ${locales.length} Sprachen stimmen mit ${BASE}.json überein (${base.size} Keys).`);
+console.log(
+  `✓ ${locales.length} Sprachen stimmen mit ${BASE}.json überein (${base.size} Keys) ` +
+    `und ${FACTS_FILE} ist vollständig (${categories.length} Kategorien, ${factValues} Werte).`,
+);

@@ -11,6 +11,7 @@ import { getUpcomingEvents } from "./events";
 import type { EventItem } from "./events-format";
 import { eventTimeLabel } from "./events-format";
 import { fetchWithRetry } from "./ai-fetch";
+import { factArea, factDifficulty, factDuration, factPrice, factSubtype } from "./facts-i18n";
 import {
   getWaterMaps,
   lookupLake,
@@ -305,15 +306,17 @@ Sag nie, dass du „in einer Datenbank suchst" oder dass Daten fehlen – red ei
 }
 
 // Kompakte, token-sparsame Sicht für die KI (Tool-Ergebnis).
-function compactSpot(s: SpotCandidate) {
+// kind/area werden übersetzt übergeben: Toni zitiert diese Felder gern wörtlich, und ein
+// deutsches „Klamm" mitten in einer spanischen Antwort liest sich wie ein Fehler.
+function compactSpot(s: SpotCandidate, locale: string) {
   return {
     slug: s.slug,
     title: s.title,
     desc: s.shortDesc?.slice(0, 140) ?? "",
     type: s.type,
-    kind: s.subtype ?? undefined, // z.B. „See"/„Café"/„Klamm" -> Art des Spots
+    kind: factSubtype(s.subtype, locale) ?? undefined, // Art des Spots
     cats: s.cats.length ? s.cats : undefined, // z.B. „lakes"/„hike-ez"/„food"
-    area: s.area ?? undefined,
+    area: factArea(s.area, locale) ?? undefined,
     loc: s.loc ?? undefined,
     kids: s.kids || undefined,
     bus: s.bus || undefined,
@@ -501,7 +504,7 @@ export async function runAssistant(
             tool_use_id: tu.id,
             content: JSON.stringify({
               count: pool.length,
-              spots: pool.map(compactSpot),
+              spots: pool.map((s) => compactSpot(s, ctx.locale)),
             }),
           });
         } else if (tu.name === "search_events") {
@@ -735,7 +738,7 @@ export async function runAssistant(
                 found: true,
                 name: title,
                 type: sp.type,
-                area: sp.area ?? null,
+                area: factArea(sp.area, ctx.locale),
                 // Beschreibende Texte (gekürzt) -> Toni antwortet bei „erzähl mir mehr"
                 // aus UNSEREM Text statt zu erfinden. On-demand, daher token-sparsam.
                 about: tr?.general ? tr.general.slice(0, 400) : null,
@@ -752,9 +755,12 @@ export async function runAssistant(
                 opening,
                 weather: weatherDays,
                 lake,
-                priceLevel: sp.price_level ?? null,
-                difficulty: sp.difficulty ?? null,
-                duration: sp.duration ?? null,
+                // Übersetzt übergeben, nicht roh: Sonst reicht Toni „mittel" oder „Halbtag"
+                // wörtlich in eine koreanische Antwort durch. Dieselbe Tabelle wie die
+                // Detailseite, damit Chat und Seite nie unterschiedlich beschriften.
+                priceLevel: factPrice(sp.price_level),
+                difficulty: factDifficulty(sp.difficulty, ctx.locale),
+                duration: factDuration(sp.duration, ctx.locale),
               };
             }
           }

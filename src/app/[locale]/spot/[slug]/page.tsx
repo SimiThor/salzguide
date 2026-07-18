@@ -33,6 +33,7 @@ import {
   factDifficulty,
   factDuration,
   factFame,
+  factPrice,
   factSeason,
   factSubtype,
 } from "@/lib/facts-i18n";
@@ -187,7 +188,8 @@ export default async function SpotPage({
   if (spot.type === "food") {
     const st = factSubtype(spot.subtype, locale);
     if (st) facts.push({ icon: "🍽️", label: t("facts.type"), value: st });
-    if (spot.priceLevel) facts.push({ icon: "💸", label: t("facts.price"), value: spot.priceLevel });
+    const pr = factPrice(spot.priceLevel);
+    if (pr) facts.push({ icon: "💸", label: t("facts.price"), value: pr });
     const ar = factArea(spot.area, locale);
     if (ar) facts.push({ icon: "📍", label: t("facts.area"), value: ar });
     const fm = factFame(spot.fame, locale);

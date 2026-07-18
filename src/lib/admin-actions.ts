@@ -17,6 +17,7 @@ import { parseLandingImage, parseLandingVideo } from "./landing-media";
 import type { HomeMedia } from "./home-content";
 import { MAX_HOME_FEATURED } from "./home-featured";
 import { requireAdmin } from "./admin-guard";
+import { factCanonical, factPrice, type FactField } from "./facts-i18n";
 
 export type SpotInput = {
   id?: string;
@@ -87,6 +88,16 @@ export type SpotTexts = {
 export type SaveResult = { ok: boolean; id?: string; error?: string };
 
 const e = (v: string) => (v.trim() === "" ? null : v.trim());
+
+// Quick-Fact-Werte in der kanonischen Schreibweise speichern, nicht wie getippt.
+// „Cafe" -> „Café", „Mai–Oktober" -> „Mai bis Oktober", „Salzburg Stadt" -> „Stadt Salzburg".
+// Damit heilt sich der Bestand mit jedem Speichern selbst, statt dass Varianten liegen
+// bleiben, die keine Übersetzung treffen. Unbekanntes bleibt unangetastet — lieber ein
+// deutscher Wert als ein stillschweigend verworfener.
+const canon = (field: FactField, v: string) => {
+  const t = e(v);
+  return t === null ? null : factCanonical(field, t) ?? t;
+};
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -210,7 +221,7 @@ export async function saveSpot(input: SpotInput): Promise<SaveResult> {
   const row = {
     slug: input.slug.trim(),
     type: input.type,
-    subtype: e(input.subtype),
+    subtype: canon("subtype", input.subtype),
     emoji: e(input.emoji),
     seasons: input.seasons.length ? input.seasons : ["summer"],
     is_pro: input.isPro,
@@ -228,13 +239,13 @@ export async function saveSpot(input: SpotInput): Promise<SaveResult> {
     route_geojson: routeGeojson,
     route_waypoints: routeWaypoints,
     elevation_profile: elevationProfile,
-    difficulty: e(input.difficulty),
-    best_season: e(input.bestSeason),
+    difficulty: canon("difficulty", input.difficulty),
+    best_season: canon("season", input.bestSeason),
     access: e(input.access),
     duration: e(input.duration),
-    price_level: e(input.priceLevel),
-    area: e(input.area),
-    fame: e(input.fame),
+    price_level: factPrice(input.priceLevel),
+    area: canon("area", input.area),
+    fame: canon("fame", input.fame),
     has_opening_hours: input.hasOpeningHours,
     google_place_id: e(input.googlePlaceId),
     phone: e(input.phone),
