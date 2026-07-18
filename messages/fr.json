@@ -220,7 +220,6 @@
     },
     "save": "Enregistrer",
     "back": "Retour à la carte",
-    "view": "Voir",
     "weatherSoon": "Météo bientôt disponible",
     "openingSoon": "Horaires bientôt disponibles",
     "weather": { "title": "Météo", "today": "Aujourd'hui" },

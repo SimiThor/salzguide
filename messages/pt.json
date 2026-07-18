@@ -220,7 +220,6 @@
     },
     "save": "Guardar",
     "back": "Voltar ao mapa",
-    "view": "Ver",
     "weatherSoon": "Tempo em breve",
     "openingSoon": "Horário em breve",
     "weather": { "title": "Tempo", "today": "Hoje" },

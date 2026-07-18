@@ -220,7 +220,6 @@
     },
     "save": "Save",
     "back": "Back to map",
-    "view": "View",
     "weatherSoon": "Weather coming soon",
     "openingSoon": "Opening hours coming soon",
     "weather": { "title": "Weather", "today": "Today" },

@@ -116,7 +116,6 @@ export default function MapCard({
           markers={markers}
           center={center}
           zoom={zoom}
-          cooperative
           mapClass="sg-ctrl-top"
           onFullscreen={() => setFullscreen(true)}
           openMapLabel={t("openMap")}

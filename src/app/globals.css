@@ -51,12 +51,14 @@ body {
   --sg-header-h: 60px;
   --sg-panel: 27rem; /* md (>=768): ~432px */
   --sg-card: calc((var(--sg-panel) - 40px) / 2.5);
-  /* Kantenlänge der Karten-Bedienknöpfe: GEZEICHNET 40, ANGEFASST 44.
+  /* Kantenlänge der Karten-Bedienknöpfe. Am FINGER gezeichnet 40, angefasst 44:
      Apple und Google meinen mit ihren 44pt bzw. 48dp die antippbare Fläche, nicht
      das Gezeichnete — Material sagt ausdrücklich, das Sichtbare dürfe kleiner sein
      und der Rest transparente Polsterung. Google Maps zeichnet seine Zoom-Knöpfe
-     mit 40px. 44 gezeichnet sah auf der kleinen Spot-Karte nach Knöpfen mit ein
-     bisschen Karte drumherum aus; 40 mit unsichtbaren 44 erfüllt beide Regeln.
+     mit 40px.
+     Am ZEIGER (siehe unten) sind es wieder 32: Die ganze 44er-Regel gibt es, weil
+     eine Fingerkuppe breit und blind ist. Ein Mauszeiger trifft auf das Pixel genau,
+     dort sind grosse Knöpfe kein Zugewinn, sondern nur laut.
      EINE Quelle: das CSS zeichnet damit, und die Karten reservieren damit ihren
      fitBounds-Rand (mapControls.ts: MAP_CTRL_SIZE). */
   --sg-map-ctrl: 40px;
@@ -267,17 +269,21 @@ body {
    nicht zu sehen. In `components` verliert die Regel gegen jede Positions-Utility
    und greift nur dort, wo sonst nichts steht — genau wie gemeint. */
 @layer components {
-  .sg-hit {
-    position: relative;
-  }
-  .sg-hit::after {
-    content: "";
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    width: max(100%, 44px);
-    height: max(100%, 44px);
-    transform: translate(-50%, -50%);
+  /* Nur am Finger. Ein Mauszeiger trifft aufs Pixel genau; eine unsichtbare Fläche
+     über dem Knopf brächte ihm nichts und könnte dem Nachbarn Klicks wegnehmen. */
+  @media (hover: none) {
+    .sg-hit {
+      position: relative;
+    }
+    .sg-hit::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: max(100%, 44px);
+      height: max(100%, 44px);
+      transform: translate(-50%, -50%);
+    }
   }
 }
 
@@ -836,21 +842,32 @@ body {
     background-color: rgba(0, 0, 0, 0.05) !important;
   }
 }
-/* Die letzten 4px zu Apples 44: unsichtbar, damit die Knöpfe schlank bleiben.
-   `overflow` muss dafür auf BEIDEN Ebenen offen sein — Mapbox setzt es auch auf dem
-   Knopf selbst, und ihr Stylesheet wird nach unserem geladen, daher !important. */
-.mapboxgl-ctrl-group button {
-  position: relative;
-  overflow: visible !important;
+/* NUR AM FINGER: die letzten 4px zu Apples 44, unsichtbar, damit die Knöpfe schlank
+   bleiben. `overflow` muss dafür auf BEIDEN Ebenen offen sein — Mapbox setzt es auch
+   auf dem Knopf selbst, und ihr Stylesheet wird nach unserem geladen, daher !important.
+   Am Zeiger entfällt beides: Dort sind die Knöpfe 32px und treffen sich von selbst,
+   eine unsichtbare Fläche darüber würde nur mit dem Nachbarn im Stapel streiten. */
+@media (hover: none) {
+  .mapboxgl-ctrl-group button {
+    position: relative;
+    overflow: visible !important;
+  }
+  .mapboxgl-ctrl-group button::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 44px;
+    height: 44px;
+    transform: translate(-50%, -50%);
+  }
 }
-.mapboxgl-ctrl-group button::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 44px;
-  height: 44px;
-  transform: translate(-50%, -50%);
+
+/* Zeigegeräte: zurück auf die kompakte Grösse, die die Karten vorher hatten. */
+@media (hover: hover) {
+  :root {
+    --sg-map-ctrl: 32px;
+  }
 }
 /* Übernimmt, was das weggefallene overflow:hidden am Desktop noch tat: den
    Hover-Schimmer an den Ecken der Gruppe abschneiden. */

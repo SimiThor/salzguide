@@ -164,7 +164,6 @@ export default function SpotDetailMap({
           center={center}
           zoom={13}
           padding={mapPadding}
-          cooperative
           mapClass="sg-ctrl-top"
           onFullscreen={() => setFullscreen(true)}
           openMapLabel={t("openMap")}

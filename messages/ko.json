@@ -220,7 +220,6 @@
     },
     "save": "저장",
     "back": "지도로 돌아가기",
-    "view": "보기",
     "weatherSoon": "날씨 정보 곧 제공",
     "openingSoon": "영업시간 곧 제공",
     "weather": { "title": "날씨", "today": "오늘" },

@@ -136,7 +136,6 @@ export default function SpotMap({
   center = [13.05, 47.6],
   zoom = 8,
   padding,
-  cooperative = false,
   focus,
   onMapClick,
   route,
@@ -167,9 +166,6 @@ export default function SpotMap({
   // Asymmetrisches Padding für fitBounds, damit z.B. das Bottom-Sheet (Mobile)
   // oder die Sidebar (Desktop) die Marker nicht verdeckt.
   padding?: Padding;
-  // cooperativeGestures: Seiten-Scroll geht durch; Karte zoomt nur mit Cmd/Strg+Scroll
-  // bzw. zwei Fingern. Für eingebettete Karten (Detailseite), damit nichts verrutscht.
-  cooperative?: boolean;
   // Sanft auf einen Punkt fliegen; padBottom hält unten Platz frei,
   // damit der Spot ÜBER der Vorschau-Karte/dem Sheet sitzt.
   // bounds = Routen-Bounding-Box [minLng,minLat,maxLng,maxLat]: liegt sofort vor,
@@ -436,11 +432,10 @@ export default function SpotMap({
       center,
       zoom,
       // Vorschau-Karten reagieren auf GAR keine Geste (siehe Kommentar unten): kein
-      // Ziehen, kein Zoomen, kein Drehen. Damit erübrigt sich auch cooperativeGestures
-      // — der Hinweis „Use two fingers to move the map" war einer der deutlichsten
-      // Verräter „Webseite" in einer App, die sich wie iOS anfühlen soll.
+      // Ziehen, kein Zoomen, kein Drehen. Deshalb braucht es hier auch keine
+      // Zwei-Finger-Sperre mehr — der Hinweis „Use two fingers to move the map" war
+      // einer der deutlichsten Verräter „Webseite", und ohne Gesten will ihn niemand.
       interactive: !preview,
-      cooperativeGestures: cooperative && !preview,
       // Immer flache 2D-Ansicht — keine 3D-Neigung (Pitch)
       pitch: 0,
       maxPitch: 0,
