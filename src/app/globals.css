@@ -451,6 +451,55 @@ body {
   }
 }
 
+/* Karten-Ladeschirm (iOS-2026), gleiche Sprache wie der Bild-Skeleton oben.
+   Warum überhaupt: Eine Mapbox-Karte braucht JS, Style und Kacheln. Bis das erste
+   Bild steht, lag dort eine leere Fläche — die Seite sah kaputt aus statt beschäftigt.
+   Der Schirm liegt deshalb VOR der Karte, kommt schon aus dem Server-HTML (kein
+   Warten auf React) und blendet erst weg, wenn wirklich etwas zu sehen ist.
+
+   Die Fläche ist minimal angedeutetes Kartenraster: feine Linien (Wege) und ein
+   gröberes Raster darüber (Hauptstraßen). Kein Bild, keine Grafik — nur Gradienten,
+   also nichts nachzuladen. Der Ton liegt einen Hauch unter Creme, damit die Fläche
+   als eigenes Element lesbar ist und nicht als leerer Seitenhintergrund. */
+.sg-map-loading {
+  background-color: #f3eee1;
+  background-image:
+    linear-gradient(to right, rgb(17 17 17 / 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(17 17 17 / 0.05) 1px, transparent 1px),
+    linear-gradient(to right, rgb(17 17 17 / 0.045) 2px, transparent 2px),
+    linear-gradient(to bottom, rgb(17 17 17 / 0.045) 2px, transparent 2px);
+  background-size:
+    56px 56px,
+    56px 56px,
+    224px 224px,
+    224px 224px;
+}
+/* Lichtschimmer über dem Raster. Eigene Ebene, weil die Animation die
+   background-position schiebt — läge sie auf derselben Ebene, wanderte das Raster mit. */
+.sg-map-shimmer {
+  background-image: linear-gradient(
+    100deg,
+    transparent 30%,
+    rgb(255 255 255 / 0.55) 50%,
+    transparent 70%
+  );
+  background-size: 200% 100%;
+  background-repeat: no-repeat;
+  animation: sg-shimmer 1.8s ease-in-out infinite;
+}
+/* Fortschrittsbalken. Der Startwert steht bewusst HIER und nicht als style-Prop in
+   React: Die Füllung wird pro Frame direkt am DOM gesetzt (transform), und ein
+   erneutes Rendern von React dürfte diesen Wert nicht überschreiben. */
+.sg-map-bar {
+  transform: scaleX(0);
+  transform-origin: left;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sg-map-shimmer {
+    animation: none;
+  }
+}
+
 /* Reader-Modus fürs Transkript: angenehm lesbar (Lesebreite, Zeilenhöhe, Trennung). */
 .sg-reader {
   max-inline-size: 62ch;

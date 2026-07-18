@@ -8,6 +8,7 @@ import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import BottomSheet from "./BottomSheet";
+import { MapLoadingScreen, useMapLoading } from "./MapLoading";
 import MobileSheet from "./MobileSheet";
 import { SHEET_PEEK_VAR, readCssLength } from "@/lib/sheet-metrics";
 import { RecenterControl } from "./mapControls";
@@ -81,6 +82,7 @@ export default function WaterExplore({
   const mapEl = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<Record<string, mapboxgl.Marker>>({});
+  const { bindMap, loading } = useMapLoading();
   const [isDesktop, setIsDesktop] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
   const selectedRef = useRef<string | null>(null);
@@ -155,8 +157,11 @@ export default function WaterExplore({
     // Beim ersten Laden automatisch auf alle Seen einpassen (kein fixer Ausschnitt).
     map.on("load", () => fitRef.current(0));
     map.on("click", () => setSelected(null));
+    // Ladeschirm über der Karte, bis das erste fertige Kartenbild steht (siehe MapLoading).
+    const unbindLoading = bindMap(map);
     mapRef.current = map;
     return () => {
+      unbindLoading();
       Object.values(markersRef.current).forEach((m) => m.remove());
       markersRef.current = {};
       map.remove();
@@ -278,7 +283,10 @@ export default function WaterExplore({
         style={{ "--sg-map-bottom": `calc(var(${SHEET_PEEK_VAR}) + 10px)` } as React.CSSProperties}
       >
         {TOKEN ? (
-          <div ref={mapEl} className="h-full w-full" />
+          <div className="relative isolate h-full w-full">
+            <div ref={mapEl} className="h-full w-full" />
+            <MapLoadingScreen {...loading} />
+          </div>
         ) : (
           <div className="flex h-full items-center justify-center text-sm text-muted">
             Karte nicht verfügbar (Mapbox-Token fehlt).
