@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useTransition } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
-import type { ExploreSpot } from "@/lib/spots";
+import type { SpotCardData } from "@/lib/spots";
 import { toggleSaved } from "@/lib/saved-actions";
 import { Bookmark, BookmarkFilled } from "./icons";
 import LockedMedia from "./LockedMedia";
@@ -25,12 +25,20 @@ export default function SpotCardDesktop({
   loggedIn = false,
   saved = false,
   onSavedChange,
+  panelOffset = true,
 }: {
-  spot: ExploreSpot;
+  // Wie bei SpotSheet: Diese Karte liest nur die Basis-Felder, also verlangt sie auch
+  // nur die. Damit passt ein gespeicherter Spot hinein und die Gespeichert-Karte zeigt
+  // am Desktop dasselbe wie Explore, statt eine zweite Fassung zu brauchen.
+  spot: SpotCardData;
   onClose: () => void;
   loggedIn?: boolean;
   saved?: boolean; // controlled durch Explore (Quelle der Wahrheit)
   onSavedChange?: (slug: string, saved: boolean) => void;
+  // Auf der Startseite steht links die Spot-Leiste, die Karte rückt daneben. Auf einer
+  // vollflächigen Karte (Gespeichert im Vollbild) gibt es die Leiste nicht — dort wäre
+  // der Versatz ein Loch von 432px, in das niemand etwas gestellt hat.
+  panelOffset?: boolean;
 }) {
   const t = useTranslations("Explore");
   const locale = useLocale();
@@ -59,7 +67,12 @@ export default function SpotCardDesktop({
     "flex h-8 w-8 items-center justify-center rounded-full bg-white/90 shadow backdrop-blur text-ink";
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-6 z-[55] px-4 md:left-[var(--sg-panel)] md:right-0">
+    <div
+      data-sg="spot-card-desktop"
+      className={`pointer-events-none fixed inset-x-0 bottom-6 z-[55] px-4 ${
+        panelOffset ? "md:left-[var(--sg-panel)] md:right-0" : ""
+      }`}
+    >
       <div className="pointer-events-auto mx-auto w-full max-w-sm overflow-hidden rounded-[20px] bg-white shadow-[0_18px_50px_-12px_rgba(0,0,0,0.4)]">
         <div className="relative">
           {spot.locked ? (

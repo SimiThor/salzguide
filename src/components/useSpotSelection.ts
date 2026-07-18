@@ -97,6 +97,15 @@ export function useSpotSelection<T extends SelectableSpot>(spots: T[]) {
    * Nachladen), sonst die geladene Linie, sonst der Punkt. Damit sitzt eine Wanderung
    * auf BEIDEN Karten am Ende im selben Ausschnitt — die Startseite kommt nur in einem
    * Rutsch dorthin, die Gespeichert-Karte zoomt nach, sobald die Linie da ist.
+   *
+   * WARUM `route` WEGGELASSEN WIRD, SOBALD ES EINE BOUNDING-BOX GIBT:
+   * Die Kamera hängt in SpotMap an der LÄNGE von `focus.route`. Gibt man beides mit,
+   * springt diese Länge beim Eintreffen der Linie von 0 auf N und feuert die Kamera ein
+   * ZWEITES Mal — auf dasselbe Ziel, also meist unsichtbar, aber nicht folgenlos: Wer in
+   * der Zwischenzeit die Karte verschoben hat, wird zurückgerissen. Genau dafür liegt
+   * die Box in der Datenbank: EIN Flug direkt auf den fertigen Ausschnitt, und die Linie
+   * zeichnet sich hinein. Ohne Box (Gespeichert-Liste) ist die Linie die einzige Quelle
+   * für den Ausschnitt, dort gehört sie mitgegeben.
    */
   const focusFor = useCallback(
     (padTop: number, padBottom: number) =>
@@ -107,7 +116,7 @@ export function useSpotSelection<T extends SelectableSpot>(spots: T[]) {
             padTop,
             padBottom,
             bounds: spot.routeBounds ?? undefined,
-            route: loadedRoute ?? undefined,
+            route: spot.routeBounds ? undefined : (loadedRoute ?? undefined),
           }
         : null,
     [spot, loadedRoute],

@@ -7,12 +7,16 @@ import { useEffect, useState } from "react";
 const FULLSCREEN_PAD_TOP = 96;
 // Sichtbarer Rand zwischen eingepasster Route und dem Sheet, wie auf der Startseite.
 const FULLSCREEN_GAP = 24;
+// Platz für die schwebende Desktop-Karte, dieselbe Zahl wie auf der Startseite.
+const DESKTOP_CARD_PAD = 470;
 import { createPortal } from "react-dom";
 import { useTranslations } from "next-intl";
 import SpotMap, { type MapMarker } from "./SpotMap";
 import SpotSheet, { SPOT_SHEET_PEEK } from "./SpotSheet";
+import SpotCardDesktop from "./SpotCardDesktop";
 import { useSpotSelection, type SelectableSpot } from "./useSpotSelection";
 import { useViewportHeight } from "@/lib/viewport";
+import { useIsDesktop } from "@/lib/use-is-desktop";
 import { useIsMounted } from "@/lib/use-is-mounted";
 
 // Karten-Kachel: eingebettet eine reine Vorschau (antippen macht sie gross), im
@@ -47,6 +51,7 @@ export default function MapCard({
   const [fullscreen, setFullscreen] = useState(false);
   const mounted = useIsMounted();
   const vh = useViewportHeight();
+  const isDesktop = useIsDesktop();
 
   useEffect(() => {
     if (!fullscreen) return;
@@ -88,9 +93,14 @@ export default function MapCard({
   // Ränder für die Kamerafahrt im Vollbild: oben die Safe-Area plus die schwebenden
   // Knöpfe, unten der Anteil, den das Spot-Sheet abdeckt — dieselbe Rechnung wie auf
   // der Startseite, nur ohne Header und Tab-Leiste.
+  // Unten bleibt frei, was den Spot verdecken würde: am Handy der Anteil des
+  // Peek-Sheets, am Desktop die schwebende Karte. Dieselben Zahlen wie auf der
+  // Startseite, damit sich die Kamerafahrt auf beiden Seiten gleich anfühlt.
   const focus = focusFor(
     FULLSCREEN_PAD_TOP,
-    Math.round((vh || 800) * SPOT_SHEET_PEEK) + FULLSCREEN_GAP,
+    isDesktop
+      ? DESKTOP_CARD_PAD
+      : Math.round((vh || 800) * SPOT_SHEET_PEEK) + FULLSCREEN_GAP,
   );
 
   // Beim Schliessen des Vollbilds darf kein Sheet zurückbleiben.
@@ -167,18 +177,35 @@ export default function MapCard({
                 eigener Optik löste. Wer von der Karte auf einen Spot tippt, soll überall
                 dieselbe Antwort bekommen — Bild, Titel, Kurztext, Merken, weiter zum
                 Spot. Möglich wurde das, weil SpotSheet nur noch SpotCardData verlangt. */}
-            {selected && (
-              <SpotSheet
-                key={selected.slug}
-                spot={selected}
-                closing={closing}
-                onDismissStart={() => setDismissing(true)}
-                onClose={clearSelection}
-                loggedIn={loggedIn}
-                saved={savedSlugs?.has(selected.slug) ?? false}
-                onSavedChange={onSavedChange}
-              />
-            )}
+            {/* Handy = ziehbares Bottom-Sheet, Desktop = schwebende Karte. Exakt die
+                Aufteilung der Startseite: Ein Sheet, das man am Mauszeiger hochzieht,
+                wäre am Desktop eine Geste, die es dort nicht gibt.
+                `isDesktop` darf hier an JavaScript hängen (anders als beim Grundlayout),
+                weil dieses Panel erst existiert, nachdem jemand einen Marker angetippt
+                hat — die Hydration ist da längst durch, es blitzt nichts auf. */}
+            {selected &&
+              (isDesktop ? (
+                <SpotCardDesktop
+                  spot={selected}
+                  // Kein Versatz: Diese Karte liegt vollflächig, ohne Spot-Leiste links.
+                  panelOffset={false}
+                  onClose={clearSelection}
+                  loggedIn={loggedIn}
+                  saved={savedSlugs?.has(selected.slug) ?? false}
+                  onSavedChange={onSavedChange}
+                />
+              ) : (
+                <SpotSheet
+                  key={selected.slug}
+                  spot={selected}
+                  closing={closing}
+                  onDismissStart={() => setDismissing(true)}
+                  onClose={clearSelection}
+                  loggedIn={loggedIn}
+                  saved={savedSlugs?.has(selected.slug) ?? false}
+                  onSavedChange={onSavedChange}
+                />
+              ))}
           </div>,
           document.body,
         )}
