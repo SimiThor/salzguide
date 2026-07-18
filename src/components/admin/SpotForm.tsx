@@ -20,6 +20,17 @@ import type { AdminCategory, AdminLocal } from "@/lib/admin";
 import { emptyManualWeek, type DayHours } from "@/lib/opening-hours";
 import type { MapPoi } from "@/lib/geo";
 import { POI_SUBTYPES } from "@/lib/poi";
+import {
+  ACCESS_OPTIONS,
+  AREA_GROUPS,
+  BEST_SEASONS,
+  DIFFICULTIES,
+  DURATION_WORDS,
+  FAME_LEVELS,
+  PRICE_LEVELS,
+  subtypeGroups,
+} from "@/lib/spot-options";
+import { factIsKnown, factPrice } from "@/lib/facts-i18n";
 import LocationPicker, { POI_STYLE, type PlacingKind } from "./LocationPicker";
 import ElevationProfile from "../ElevationProfile";
 import PhotoUploader from "./PhotoUploader";
@@ -107,26 +118,10 @@ const DAY_NAMES = [
   "Sonntag",
 ];
 
-// Vorschläge / Optionen (Arbeit abnehmen statt Freitext)
-const BEST_SEASONS = [
-  "Ganzjährig",
-  "Frühling bis Herbst",
-  "Mai bis Oktober",
-  "Juni bis September",
-  "Sommer",
-  "Frühling",
-  "Herbst",
-  "Winter",
-];
-const PRICE_LEVELS: [string, string][] = [
-  ["€", "€ – günstig"],
-  ["€€", "€€ – mittel"],
-  ["€€€", "€€€ – gehoben"],
-];
-const FAME_LEVELS = ["Hidden Gem", "Lokal beliebt", "Bekannt", "Institution", "Touristen-Hotspot"];
-const SUBTYPES_ACTIVITY = ["Wanderung", "Rundwanderung", "Aussichtspunkt", "See & Baden", "Klamm", "Wasserfall", "Radtour", "Therme", "Gipfel", "Spazierweg", "Klettersteig", "Rodelbahn"];
-const SUBTYPES_FOOD = ["Café", "Restaurant", "Gasthof", "Bar", "Bäckerei", "Eisdiele", "Pizzeria", "Hütte", "Beisl", "Bistro", "Heuriger"];
-const AREAS = ["Stadt Salzburg", "Altstadt", "Aigen", "Maxglan", "Gnigl", "Lehen", "Itzling", "Parsch", "Hallein", "Anif", "Grödig", "Wals", "Bergheim", "Hallwang", "Fuschl am See", "St. Gilgen", "Bad Gastein"];
+// Die Auswahllisten stehen NICHT mehr hier, sondern werden in spot-options.ts aus der
+// Übersetzungstabelle abgeleitet. Vorher waren es zwei getrennte Listen, die auseinander
+// gelaufen sind: „See" und „Cafe" waren auswählbar, hatten aber keine Übersetzung, und die
+// Seite zeigte sie in jeder Sprache deutsch an.
 const EMOJIS_ACTIVITY = ["🥾", "🏔️", "⛰️", "🌲", "🌊", "🏊", "💦", "🚠", "⛷️", "🛶", "🚲", "🏰", "🗻", "🌅"];
 const EMOJIS_FOOD = ["🍽️", "☕", "🍺", "🥨", "🍦", "🍰", "🍕", "🥐", "🍷", "🫖", "🍔", "🧁"];
 
@@ -243,6 +238,16 @@ export default function SpotForm({
     setDurUnit(unit);
     set({ duration: composeDuration(value, unit) });
   }
+
+  // Pauschale Dauer („Halbtag") statt Zahl+Einheit. Ohne diesen Weg zeigte das Formular ein
+  // gespeichertes „Halbtag" als leeres Feld an — der Wert war unsichtbar und beim nächsten
+  // Tippen weg. Zahl und Wort schliessen einander aus, deshalb wird die Zahl geleert.
+  function applyDurationWord(word: string) {
+    setDurValue("");
+    setDurUnit("Std");
+    set({ duration: word });
+  }
+  const durWord = DURATION_WORDS.includes(form.duration.trim()) ? form.duration.trim() : "";
 
   function toggleSeason(s: string) {
     set({
@@ -615,11 +620,22 @@ export default function SpotForm({
             </select>
           </div>
           <div>
+            {/* Auswahl statt Freitext: Die Unterkategorie steht auf der Detailseite und muss
+                in 9 Sprachen erscheinen. Frei getippt entstand genau der Fehler, den das hier
+                verhindert („Cafe" ohne Akzent, „See" statt „See & Baden"). */}
             <label className={labelCls}>Unterkategorie (Label)</label>
-            <input className={input} list="sg-subtypes" value={form.subtype} onChange={(e) => set({ subtype: e.target.value })} placeholder={isFood ? "Café" : "Wanderung"} />
-            <datalist id="sg-subtypes">
-              {(isFood ? SUBTYPES_FOOD : SUBTYPES_ACTIVITY).map((s) => <option key={s} value={s} />)}
-            </datalist>
+            <select className={input} value={form.subtype} onChange={(e) => set({ subtype: e.target.value })}>
+              <option value="">—</option>
+              {/* Altwert erhalten, statt ihn beim nächsten Speichern still zu löschen. */}
+              {form.subtype && !factIsKnown("subtype", form.subtype) && (
+                <option value={form.subtype}>{form.subtype} (alt, ohne Übersetzung)</option>
+              )}
+              {Object.entries(subtypeGroups(isFood)).map(([group, list]) => (
+                <optgroup key={group} label={group}>
+                  {list.map((s) => <option key={s} value={s}>{s}</option>)}
+                </optgroup>
+              ))}
+            </select>
           </div>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1210,25 +1226,42 @@ export default function SpotForm({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className={labelCls}>Preisniveau</label>
-              <select className={input} value={form.priceLevel} onChange={(e) => set({ priceLevel: e.target.value })}>
+              {/* factPrice bügelt Wort-Werte („mittel") auf €€ — die standen so in der DB und
+                  waren auch auf Deutsch falsch. Dadurch trifft die Auswahl wieder zu. */}
+              <select
+                className={input}
+                value={factPrice(form.priceLevel) ?? ""}
+                onChange={(e) => set({ priceLevel: e.target.value })}
+              >
                 <option value="">—</option>
-                {form.priceLevel && !PRICE_LEVELS.some(([v]) => v === form.priceLevel) && (
-                  <option value={form.priceLevel}>{form.priceLevel}</option>
+                {form.priceLevel && !PRICE_LEVELS.some(([v]) => v === factPrice(form.priceLevel)) && (
+                  <option value={form.priceLevel}>{form.priceLevel} (alt)</option>
                 )}
                 {PRICE_LEVELS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
               </select>
             </div>
             <div>
+              {/* Bewusst KEIN hartes Dropdown: Das Salzburger Land hat mehr Orte, als eine
+                  Liste je führen kann, und ein Riegel hiesse, den passenden Ort gar nicht
+                  einzutragen. Stattdessen viele Vorschläge plus sichtbare Warnung. */}
               <label className={labelCls}>Standort / Gegend</label>
               <input className={input} list="sg-areas" value={form.area} onChange={(e) => set({ area: e.target.value })} placeholder="z. B. Aigen" />
-              <datalist id="sg-areas">{AREAS.map((a) => <option key={a} value={a} />)}</datalist>
+              <datalist id="sg-areas">
+                {Object.values(AREA_GROUPS).flat().map((a) => <option key={a} value={a} />)}
+              </datalist>
+              {!factIsKnown("area", form.area) && (
+                <p className="mt-1 text-[12px] leading-snug text-accent">
+                  „{form.area}&ldquo; steht in keiner Gegend-Liste und bleibt in allen 9 Sprachen deutsch.
+                  Wähle einen Vorschlag oder trag den Ort in facts-i18n.json nach.
+                </p>
+              )}
             </div>
             <div>
               <label className={labelCls}>Bekanntheit</label>
               <select className={input} value={form.fame} onChange={(e) => set({ fame: e.target.value })}>
                 <option value="">—</option>
-                {form.fame && !FAME_LEVELS.includes(form.fame) && (
-                  <option value={form.fame}>{form.fame}</option>
+                {form.fame && !factIsKnown("fame", form.fame) && (
+                  <option value={form.fame}>{form.fame} (alt, ohne Übersetzung)</option>
                 )}
                 {FAME_LEVELS.map((f) => <option key={f} value={f}>{f}</option>)}
               </select>
@@ -1245,30 +1278,43 @@ export default function SpotForm({
                   inputMode="decimal"
                   placeholder="z. B. 1,5"
                   value={durValue}
+                  disabled={Boolean(durWord)}
                   onChange={(e) => applyDuration(e.target.value, durUnit)}
                 />
                 <select
                   className={input}
                   value={durUnit}
+                  disabled={Boolean(durWord)}
                   onChange={(e) => applyDuration(durValue, e.target.value as "Std" | "Min")}
                 >
                   <option value="Std">Std</option>
                   <option value="Min">Min</option>
                 </select>
               </div>
+              <select
+                className={`${input} mt-2`}
+                value={durWord}
+                onChange={(e) => (e.target.value ? applyDurationWord(e.target.value) : applyDuration("", "Std"))}
+              >
+                <option value="">… oder pauschal</option>
+                {DURATION_WORDS.map((w) => <option key={w} value={w}>{w}</option>)}
+              </select>
             </div>
             <div>
               <label className={labelCls}>Schwierigkeit</label>
               <select className={input} value={form.difficulty} onChange={(e) => set({ difficulty: e.target.value })}>
-                <option value="">—</option><option value="leicht">leicht</option><option value="mittel">mittel</option><option value="schwer">schwer</option>
+                <option value="">—</option>
+                {DIFFICULTIES.map((d) => <option key={d} value={d}>{d}</option>)}
               </select>
             </div>
             <div>
               <label className={labelCls}>Beste Zeit</label>
               <select className={input} value={form.bestSeason} onChange={(e) => set({ bestSeason: e.target.value })}>
                 <option value="">—</option>
-                {form.bestSeason && !BEST_SEASONS.includes(form.bestSeason) && (
-                  <option value={form.bestSeason}>{form.bestSeason}</option>
+                {/* factIsKnown statt includes: „Mai–Oktober" löst sich per Alias auf
+                    „Mai bis Oktober" auf und ist damit KEIN Altwert mehr. */}
+                {form.bestSeason && !factIsKnown("season", form.bestSeason) && (
+                  <option value={form.bestSeason}>{form.bestSeason} (alt, ohne Übersetzung)</option>
                 )}
                 {BEST_SEASONS.map((s) => <option key={s} value={s}>{s}</option>)}
               </select>
@@ -1276,7 +1322,8 @@ export default function SpotForm({
             <div>
               <label className={labelCls}>Anreise</label>
               <select className={input} value={form.access} onChange={(e) => set({ access: e.target.value })}>
-                <option value="">—</option><option value="oeffis">Öffis</option><option value="auto">Auto</option><option value="beides">Öffis & Auto</option>
+                <option value="">—</option>
+                {ACCESS_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
               </select>
             </div>
           </div>
