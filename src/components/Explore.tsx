@@ -12,6 +12,7 @@ import SpotSheet, { SPOT_SHEET_PEEK } from "./SpotSheet";
 import SeasonToggle, { type Season } from "./SeasonToggle";
 import SpotCard from "./SpotCard";
 import SpotMap, { type MapMarker } from "./SpotMap";
+import { MAP_CTRL_PAD } from "./mapControls";
 import MobileSheet, { type Detent } from "./MobileSheet";
 import { SHEET_PEEK_VAR, useSheetPeek } from "@/lib/sheet-metrics";
 import { useViewportHeight } from "@/lib/viewport";
@@ -123,7 +124,9 @@ export default function Explore({
     () =>
       isDesktop
         ? { top: 70, right: 70, left: 70, bottom: 70 }
-        : { top: 120, right: 40, left: 40, bottom: sheetPeek + FIT_GAP },
+        : // Rechts steht die Knopf-Säule (Zoom, Zentrieren, Standort), links nichts —
+          // deshalb nur rechts der reservierte Rand und links der schmale Sichtrand.
+          { top: 120, right: MAP_CTRL_PAD, left: 40, bottom: sheetPeek + FIT_GAP },
     [isDesktop, sheetPeek],
   );
 

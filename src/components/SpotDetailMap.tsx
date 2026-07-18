@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { AnimatePresence } from "framer-motion";
 import { useTranslations } from "next-intl";
 import SpotMap, { type SpotPoi } from "./SpotMap";
+import { MAP_CTRL_PAD } from "./mapControls";
 import MapPopover, { MapPopoverClose } from "./MapPopover";
 import ElevationProfile from "./ElevationProfile";
 import type { ElevationProfile as Profile } from "@/lib/admin-actions";
@@ -142,7 +143,15 @@ export default function SpotDetailMap({
   // fitBounds-Padding reserviert die Ecken mit den Karten-Buttons (Zoom/Zentrieren/
   // Standort oben rechts, Vollbild oben links) -> Start-/Ziel-Marker landen NEBEN
   // statt unter den Buttons.
-  const mapPadding = { top: 56, right: 70, bottom: 40, left: 40 };
+  // Links und rechts kommen aus MAP_CTRL_PAD, damit dieser Rand mitwächst, wenn die
+  // Knöpfe je wieder eine andere Grösse bekommen. Als getippte Zahl lief das beim
+  // Vergrössern auf Apples 44pt sofort auseinander.
+  const mapPadding = {
+    top: 56,
+    right: MAP_CTRL_PAD,
+    bottom: 40,
+    left: MAP_CTRL_PAD,
+  };
 
   return (
     <>
