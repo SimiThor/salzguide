@@ -337,6 +337,21 @@
     "successBody": "O teu acesso está a ser ativado. Pode demorar um instante – recarrega a página se necessário.",
     "canceledTitle": "Compra cancelada",
     "canceledBody": "Sem problema – podes tornar-te Pro quando quiseres.",
+    "notice": {
+      "dismiss": "Percebi",
+      "stripe": {
+        "title": "O teu Pro está ativo. 🎉",
+        "body": "Obrigado. A partir de agora todos os spots Pro estão abertos para ti."
+      },
+      "migration": {
+        "title": "O teu Pro está aqui 🎉",
+        "body": "Bem-vindo de volta! O teu Pro do site antigo foi transferido, sem limite. Não tens de fazer mais nada."
+      },
+      "comp": {
+        "title": "Ativámos o Pro para ti. 🎉",
+        "body": "É por nossa conta. A partir de agora todos os spots Pro estão abertos para ti."
+      }
+    },
     "heroTitle": "Toda a região de Salzburg desbloqueada",
     "heroSubtitle": "Todas as dicas secretas, todos os áudio-tours e o Toni sem limites. Feito por locais – sem kitsch turístico.",
     "loginNudge": "Só o teu email: enviamos-te um link de acesso e depois vais direto para o pagamento.",
@@ -344,8 +359,6 @@
     "exploreCta": "Começar a explorar"
   },
   "Account": {
-    "migrationWelcomeTitle": "O teu Pro está aqui",
-    "migrationWelcome": "Bem-vindo de volta! O teu Pro do site antigo foi transferido, sem limite. Não tens de fazer mais nada.",
     "title": "Os teus dados e privacidade",
     "linkLabel": "Os teus dados e privacidade",
     "intro": "Aqui geres as tuas autorizações e exerces os teus direitos ao abrigo do RGPD: cancela a newsletter, exporta todos os teus dados ou elimina a conta.",

@@ -337,6 +337,21 @@
     "successBody": "Your access is being activated. This can take a brief moment – reload the page if needed.",
     "canceledTitle": "Checkout canceled",
     "canceledBody": "No worries – you can go Pro anytime.",
+    "notice": {
+      "dismiss": "Got it",
+      "stripe": {
+        "title": "Your Pro is live. 🎉",
+        "body": "Thank you. Every Pro spot is open for you from now on."
+      },
+      "migration": {
+        "title": "Your Pro is here 🎉",
+        "body": "Welcome back! Your Pro from the old site has carried over, unlimited. Nothing else to do."
+      },
+      "comp": {
+        "title": "We've unlocked Pro for you. 🎉",
+        "body": "On the house. Every Pro spot is open for you from now on."
+      }
+    },
     "heroTitle": "Unlock all of Salzburg",
     "heroSubtitle": "Every hidden gem, all audio tours and Toni without limits. Made by locals – no tourist kitsch.",
     "loginNudge": "Just your email: we'll send you a login link, then you go straight to checkout.",
@@ -344,8 +359,6 @@
     "exploreCta": "Start exploring"
   },
   "Account": {
-    "migrationWelcomeTitle": "Your Pro is here",
-    "migrationWelcome": "Welcome back! Your Pro from the old site has carried over, unlimited. Nothing else to do.",
     "title": "Your data & privacy",
     "linkLabel": "Your data & privacy",
     "intro": "Manage your consents and exercise your GDPR rights here: unsubscribe from the newsletter, export all your data, or delete your account.",

@@ -385,6 +385,21 @@
     "successBody": "Deine Freischaltung wird gerade aktiviert. Das kann einen kurzen Moment dauern – lade die Seite ggf. neu.",
     "canceledTitle": "Kauf abgebrochen",
     "canceledBody": "Kein Problem – du kannst jederzeit Pro werden.",
+    "notice": {
+      "dismiss": "Alles klar",
+      "stripe": {
+        "title": "Dein Pro ist aktiv. 🎉",
+        "body": "Danke dir. Alle Pro-Spots sind ab jetzt für dich offen."
+      },
+      "migration": {
+        "title": "Dein Pro ist da 🎉",
+        "body": "Willkommen zurück! Dein Pro von der alten Seite ist übernommen, unbegrenzt. Du musst nichts weiter tun."
+      },
+      "comp": {
+        "title": "Wir haben dir Pro freigeschaltet. 🎉",
+        "body": "Geht aufs Haus. Alle Pro-Spots sind ab jetzt für dich offen."
+      }
+    },
     "heroTitle": "Das ganze Salzburger Land freigeschaltet",
     "heroSubtitle": "Alle Geheimtipps, Audio-Touren und Toni ohne Limit. Von Locals gemacht – kein Touri-Kitsch.",
     "loginNudge": "Nur noch deine E-Mail: Wir schicken dir einen Login-Link, danach geht's direkt zur Zahlung.",
@@ -392,8 +407,6 @@
     "exploreCta": "Jetzt entdecken"
   },
   "Account": {
-    "migrationWelcomeTitle": "Dein Pro ist da",
-    "migrationWelcome": "Willkommen zurück! Dein Pro von der alten Seite ist übernommen, unbegrenzt. Du musst nichts weiter tun.",
     "title": "Deine Daten & Datenschutz",
     "linkLabel": "Deine Daten & Datenschutz",
     "intro": "Hier verwaltest du deine Einwilligungen und übst deine DSGVO-Rechte aus: Newsletter widerrufen, alle deine Daten exportieren oder dein Konto löschen.",

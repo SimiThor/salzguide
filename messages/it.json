@@ -337,6 +337,21 @@
     "successBody": "Il tuo accesso si sta attivando. Può volerci un attimo – se serve, ricarica la pagina.",
     "canceledTitle": "Acquisto annullato",
     "canceledBody": "Nessun problema – puoi passare a Pro quando vuoi.",
+    "notice": {
+      "dismiss": "Ok, capito",
+      "stripe": {
+        "title": "Il tuo Pro è attivo. 🎉",
+        "body": "Grazie. Da adesso tutti gli spot Pro sono aperti per te."
+      },
+      "migration": {
+        "title": "Il tuo Pro è qui 🎉",
+        "body": "Bentornato! Il tuo Pro dal vecchio sito è stato trasferito, senza limiti. Non devi fare altro."
+      },
+      "comp": {
+        "title": "Ti abbiamo attivato Pro. 🎉",
+        "body": "Offre la casa. Da adesso tutti gli spot Pro sono aperti per te."
+      }
+    },
     "heroTitle": "Tutta Salisburgo sbloccata",
     "heroSubtitle": "Ogni chicca nascosta, tutti gli audio-tour e Toni senza limiti. Fatto dai local – niente kitsch da turisti.",
     "loginNudge": "Basta la tua email: ti mandiamo un link di accesso, poi vai dritto al pagamento.",
@@ -344,8 +359,6 @@
     "exploreCta": "Inizia a esplorare"
   },
   "Account": {
-    "migrationWelcomeTitle": "Il tuo Pro è qui",
-    "migrationWelcome": "Bentornato! Il tuo Pro dal vecchio sito è stato trasferito, senza limiti. Non devi fare altro.",
     "title": "I tuoi dati e la privacy",
     "linkLabel": "I tuoi dati e la privacy",
     "intro": "Qui gestisci i tuoi consensi ed eserciti i tuoi diritti DSGVO: disiscriverti dalla newsletter, esportare tutti i tuoi dati o eliminare il tuo account.",
