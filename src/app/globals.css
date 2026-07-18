@@ -515,6 +515,31 @@ body {
   }
 }
 
+/* DIE EINE Regel für jedes <video> der Plattform (Spot, Startseite, Admin-Vorschau).
+   Warum sie sein muss: In der Kachel füllt `object-fit: cover` den 9:16-Rahmen sauber aus,
+   auch wenn ein Clip nicht exakt hochkant ist. Im Vollbild kippt genau dieselbe Regel ins
+   Gegenteil. Ein 720x1280-Video in einem 1440x900-Fenster wird auf 1440x2560 hochskaliert,
+   um die Breite zu füllen — sichtbar bleiben 900 von 2560 Pixeln, also 35 %. Der Rest ist
+   abgeschnitten, und der Nutzer sieht einen Ausschnitt statt des Videos.
+   Im Vollbild gilt deshalb `contain`: ganzes Bild, schwarze Ränder daneben. Genau so macht
+   es die Fotos-App, und genau das erwartet man.
+   Kein JS und kein State: Der Browser weiß selbst, wann er im Vollbild ist. Ein
+   isFullscreen-State würde beim Laden die falsche Variante aufblitzen lassen.
+   :fullscreen = Standard (Chrome, Firefox, Safari 16.4+) · :-webkit-full-screen = altes
+   Safari/iOS. Getrennte Regelblöcke, weil ein Browser die GANZE Regel verwirft, sobald er
+   einen Selektor darin nicht kennt. */
+.sg-video {
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+}
+.sg-video:fullscreen {
+  object-fit: contain;
+}
+.sg-video:-webkit-full-screen {
+  object-fit: contain;
+}
+
 /* Karten-Ladeschirm (iOS-2026), gleiche Sprache wie der Bild-Skeleton oben.
    Warum überhaupt: Eine Mapbox-Karte braucht JS, Style und Kacheln. Bis das erste
    Bild steht, lag dort eine leere Fläche — die Seite sah kaputt aus statt beschäftigt.

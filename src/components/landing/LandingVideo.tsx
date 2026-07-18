@@ -28,6 +28,10 @@ export default function LandingVideo({
   playLabel: string;
 }) {
   const [playing, setPlaying] = useState(false);
+  // Wie in SpotVideo: Fehlt die Standbild-Datei, muss sich das verhalten wie „kein
+  // Standbild" statt eine leere Fläche zu hinterlassen.
+  const [posterBroken, setPosterBroken] = useState(false);
+  const poster = video && !posterBroken ? video.poster : null;
 
   return (
     // transform-gpu isolate overflow-hidden: sonst franst Safari die runden Ecken aus.
@@ -44,8 +48,9 @@ export default function LandingVideo({
       ) : playing ? (
         <video
           src={video.src}
-          poster={video.poster}
-          className="h-full w-full object-cover"
+          poster={poster ?? undefined}
+          // sg-video (globals.css): in der Kachel füllend, im Vollbild vollständig.
+          className="sg-video"
           controls
           autoPlay
           playsInline
@@ -57,15 +62,18 @@ export default function LandingVideo({
           aria-label={playLabel}
           className="group relative h-full w-full"
         >
-          <Image
-            src={video.poster}
-            alt=""
-            fill
-            // Am iPhone volle Spaltenbreite, am Desktop die halbe Spalte. Ohne diese
-            // Angabe lädt next/image auf dem Handy das Desktop-Bild.
-            sizes="(min-width: 768px) 380px, 100vw"
-            className="object-cover"
-          />
+          {poster && (
+            <Image
+              src={poster}
+              alt=""
+              fill
+              // Am iPhone volle Spaltenbreite, am Desktop die halbe Spalte. Ohne diese
+              // Angabe lädt next/image auf dem Handy das Desktop-Bild.
+              sizes="(min-width: 768px) 380px, 100vw"
+              onError={() => setPosterBroken(true)}
+              className="object-cover"
+            />
+          )}
           {/* Verlauf unten: Der weisse Play-Knopf muss auch auf einem hellen Standbild
               sichtbar bleiben. Ohne den hängt seine Lesbarkeit am Motiv des Videos. */}
           <span className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent" />

@@ -10,6 +10,7 @@
 //   node scripts/prune-orphan-images.mjs --apply    # löscht wirklich
 import fs from "fs";
 import path from "path";
+import { collectStorageRefs } from "./lib/storage-refs.mjs";
 
 const APPLY = process.argv.includes("--apply");
 const env = Object.fromEntries(
@@ -41,20 +42,14 @@ async function sel(table, cols) {
   const j = await r.json(); return Array.isArray(j) ? j : [];
 }
 
-// Jede referenzierte spot-media-URL einsammeln (dieselbe Menge wie in recompress-storage.mjs).
+// Jede referenzierte spot-media-URL einsammeln. Die Liste steht in lib/storage-refs.mjs und
+// gilt für beide Skripte: Als sie hier und in recompress-storage.mjs getrennt gepflegt wurde,
+// fehlte in beiden `spots.video_poster_url` — und dieses Skript hat das Standbild des
+// Hochkeil-Videos als verwaist gelöscht, obwohl die Spot-Seite es anzeigte.
 const referenced = new Set();
-const noteUrl = (url) => { if (typeof url === "string" && url.startsWith(PUB)) referenced.add(decodeURIComponent(url.slice(PUB.length).split("?")[0])); };
-for (const m of await sel("media", "url,poster_url")) { noteUrl(m.url); noteUrl(m.poster_url); }
-for (const e of await sel("events", "image_url")) noteUrl(e.image_url);
-for (const t of await sel("tours", "cover_url")) noteUrl(t.cover_url);
-for (const a of await sel("tour_areas", "cover_url")) noteUrl(a.cover_url);
-for (const p of await sel("tour_points", "image_url")) noteUrl(p.image_url);
-for (const l of await sel("locals", "avatar_url")) noteUrl(l.avatar_url);
-for (const s of await sel("app_settings", "key,value")) if (s.key === "toni_avatar_url") noteUrl(s.value);
-for (const hc of await sel("home_content", "media")) {
-  const m = hc.media || {};
-  for (const slot of ["heroPortrait", "heroLandscape", "antonPhoto", "simonPhoto"]) noteUrl(m[slot]?.src);
-  noteUrl(m.explainerVideo?.poster);
+const noop = async () => {};
+for (const ref of await collectStorageRefs(sel, noop, noop)) {
+  if (ref.url.startsWith(PUB)) referenced.add(decodeURIComponent(ref.url.slice(PUB.length).split("?")[0]));
 }
 
 const objects = await walk();
