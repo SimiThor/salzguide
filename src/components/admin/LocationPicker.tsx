@@ -3,6 +3,7 @@
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { useEffect, useRef, useState } from "react";
+import { MapLoadingScreen, useMapLoading } from "../MapLoading";
 import { RecenterControl } from "../mapControls";
 import type { MapPoi } from "@/lib/geo";
 import { poiEmoji, poiDeLabel } from "@/lib/poi";
@@ -72,6 +73,7 @@ export default function LocationPicker({
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
+  const { bindMap, loading } = useMapLoading();
   const pointMarkers = useRef<Record<"spot" | "parking", mapboxgl.Marker | null>>({
     spot: null,
     parking: null,
@@ -227,8 +229,11 @@ export default function LocationPicker({
         onSetRef.current("spot", lat, lng);
       }
     });
+    // Ladeschirm über der Karte, bis das erste fertige Kartenbild steht (siehe MapLoading).
+    const unbindLoading = bindMap(map);
     mapRef.current = map;
     return () => {
+      unbindLoading();
       // Marker gehören zur zerstörten Karte. Refs leeren (und Marker entfernen),
       // damit sie beim Neu-Mounten (z. B. Client-Navigation aus dem Menü) auf der
       // NEUEN Karte frisch erstellt werden statt auf der toten hängen zu bleiben.
@@ -384,7 +389,10 @@ export default function LocationPicker({
   return (
     <div>
       <div className="relative">
-        <div ref={ref} className="h-72 w-full overflow-hidden rounded-[14px]" />
+        <div className="relative isolate h-72 w-full overflow-hidden rounded-[14px]">
+          <div ref={ref} className="h-full w-full" />
+          <MapLoadingScreen {...loading} />
+        </div>
 
         {/* Ortssuche */}
         <div className="absolute left-2 top-2 w-[min(280px,72%)]">

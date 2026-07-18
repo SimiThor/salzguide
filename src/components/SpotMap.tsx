@@ -3,7 +3,8 @@
 import mapboxgl from "mapbox-gl";
 
 import "mapbox-gl/dist/mapbox-gl.css";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
+import { MapLoadingScreen, useMapLoading } from "./MapLoading";
 import { RecenterControl, FullscreenControl } from "./mapControls";
 import { poiEmoji, type PoiKind } from "@/lib/poi";
 
@@ -193,8 +194,8 @@ export default function SpotMap({
   mapClass?: string;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
-  // Steht das erste fertige Kartenbild? Steuert nur das Einblenden (siehe unten).
-  const [mapReady, setMapReady] = useState(false);
+  // Ladeschirm über der Karte, bis das erste fertige Kartenbild steht (siehe unten).
+  const { bindMap, loading } = useMapLoading();
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markerObjs = useRef<mapboxgl.Marker[]>([]);
   const hlMarker = useRef<mapboxgl.Marker | null>(null);
@@ -473,19 +474,14 @@ export default function SpotMap({
       }
       syncRouteRef.current();
     });
-    // Erst zeigen, wenn wirklich etwas zu sehen ist. Die Karte braucht JS und Kacheln,
-    // erschien also als harter Schnitt in eine Fläche, die vorher leer war. `idle`
-    // statt `load`: load feuert, sobald der Style steht, die erste Kachel aber noch
-    // fehlen kann -> man blendet Grau ein. idle heißt, das erste Bild ist fertig.
-    map.once("idle", () => setMapReady(true));
-    // Sicherheitsnetz: Bliebe `idle` je aus (tote Kacheln, kein Netz, WebGL-Zicken),
-    // wäre die Karte für immer unsichtbar. Lieber hart einblenden als gar nicht.
-    const showAnyway = setTimeout(() => setMapReady(true), 3000);
+    // Ladeschirm an die Karte hängen: Er zeigt den Fortschritt und geht weg, sobald
+    // das erste fertige Kartenbild steht (Meilensteine + Sicherheitsnetz in MapLoading).
+    const unbindLoading = bindMap(map);
     // Klick auf die leere Karte schließt die Vorschau (Marker stoppen das Event)
     map.on("click", () => onMapClickRef.current?.());
     mapRef.current = map;
     return () => {
-      clearTimeout(showAnyway);
+      unbindLoading();
       stopRouteAnim();
       poiMarkers.current.forEach((m) => m.remove());
       poiMarkers.current = [];
@@ -690,21 +686,18 @@ export default function SpotMap({
     );
   }
 
-  // Weich aufblenden statt aufpoppen. Reine CSS-Deckkraft: läuft im Compositor, kostet
-  // keinen Frame Rechenzeit und keine Mapbox-Neuzeichnung.
+  // Der Ladeschirm liegt deckend VOR der Karte und blendet weg — die Karte selbst
+  // braucht deshalb keine eigene Blende mehr (zwei überlagerte Blenden ergäben in der
+  // Mitte einen sichtbaren Helligkeits-Einbruch).
   //
-  // Die Blende MUSS auf einem eigenen Wrapper sitzen. Mapbox hängt seine Klasse
-  // `mapboxgl-map` per classList.add an den Container; React fasst className nur an,
-  // wenn sich der String ändert — genau das tut ein wechselndes opacity-0/100 aber, und
-  // React schreibt dann das ganze Attribut neu und wirft Mapbox' Klasse raus. Die Karte
-  // verlor damit ihr eigenes CSS. Der Container unten bleibt deshalb unveränderlich.
+  // Die Klasse am Container darf sich NIE ändern: Mapbox hängt `mapboxgl-map` per
+  // classList.add daran; React fasst className zwar nur an, wenn sich der String
+  // ändert, schreibt dann aber das ganze Attribut neu und wirft Mapbox' Klasse raus.
+  // Die Karte verlöre ihr eigenes CSS. Alles Wechselnde gehört darum nach außen.
   return (
-    <div
-      className={`h-full w-full motion-safe:transition-opacity motion-safe:duration-600 motion-safe:ease-out ${
-        mapReady ? "opacity-100" : "opacity-0"
-      }`}
-    >
+    <div className="relative isolate h-full w-full">
       <div ref={containerRef} className={`h-full w-full ${mapClass ?? ""}`} />
+      <MapLoadingScreen {...loading} />
     </div>
   );
 }
