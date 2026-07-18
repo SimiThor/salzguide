@@ -13,16 +13,19 @@ import { useTourAudio, type PlayerStop } from "./useTourAudio";
 import AudioTransport from "./AudioTransport";
 import TranscriptView from "./TranscriptView";
 import type { TourDetail } from "@/lib/tour-types";
-import { useViewportHeight } from "@/lib/viewport";
+import { useSheetPeek } from "@/lib/sheet-metrics";
 
-// Peek-Anteil des Sheets (Anteil der Viewport-Höhe). Muss zum Karten-Padding passen,
-// damit Pins nie hinter dem Sheet verschwinden -> EINE Zahl, zwei Schreibweisen.
+// Im Ruhezustand muss der Player vollständig dastehen – er ist das, wofür man die Seite
+// öffnet. Vorher stand hier ein Anteil (34svh), und der konnte gar nicht stimmen: über
+// dem Player hängt das Stopp-Foto, auf einem iPhone allein schon gut 220px hoch. Der
+// Player rutschte damit unter die Kante und war mittendrin abgeschnitten.
 //
-// Das Sheet will eine CSS-Länge, weil es seine Ruheposition in CSS rechnet und damit
-// schon im Server-HTML richtig sitzt (siehe MobileSheet). svh statt vh: das ist der
-// Viewport MIT ausgefahrener Safari-Toolbar und damit pro Gerät konstant.
-const PEEK = 0.34;
-const SHEET_PEEK = `${PEEK * 100}svh`;
+// Jetzt zeigt der Peek genau den Anker unten (Stopp-Zähler, Titel, Transport) und misst
+// sich daran – wie ein Mini-Player in Musik/Podcasts. Der Wert ist die Schätzung fürs
+// Server-HTML: Griff 26 + pt-1 4 + Zähler 15 + Titel 22 + mt-4 16 + Transport 117
+// (Scrubber 22 + 10 + Zeiten 19 + 10 + Knöpfe 56) + 16 Luft. Der Titel ist einzeilig
+// (truncate), deshalb kommt die Schätzung hier auf den Pixel hin – am Browser nachgemessen.
+const SHEET_PEEK = { fits: '[data-sg="tour-peek"]', fallback: "calc(216px + var(--sg-nav-h))" };
 // Ohne Peek – die ist beim Sheet eine eigene Angabe.
 const SHEET_DETENTS = [0.62, 0.94];
 
@@ -39,10 +42,10 @@ export default function TourView({
   const [active, setActive] = useState(0);
   const [focused, setFocused] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
-  // Dieselbe Größe, mit der SHEET_PEEK oben in CSS rechnet (svh). Vorher stand hier
-  // window.innerHeight: CSS rechnete mit der kleinen, JS mit der aktuellen Höhe – bei
-  // eingefahrener Toolbar war das Karten-Padding größer als der real verdeckte Streifen.
-  const vh = useViewportHeight();
+  // Die Peek-Höhe, die das Sheet gemessen hat – dieselbe Zahl, aus derselben Quelle.
+  // Vorher rechnete das Karten-Padding den Anteil hier noch einmal nach; sobald sich der
+  // Peek nach dem Inhalt richtet, kann man ihn nicht mehr nachrechnen, nur noch lesen.
+  const peekPx = useSheetPeek();
 
   // Desktop/Mobile messen. Die Viewport-Höhe hängt bewusst NICHT an diesem resize:
   // iOS feuert resize bei jedem Leisten-Zug (siehe lib/viewport.ts).
@@ -113,7 +116,7 @@ export default function TourView({
         : null;
 
   // Karten-Padding: Pins bleiben über dem Sheet (mobil) bzw. neben dem Panel (Desktop).
-  const sheetPad = isDesktop ? 40 : Math.round((vh || 800) * PEEK) + 32;
+  const sheetPad = isDesktop ? 40 : peekPx + 32;
   const mapPadding = isDesktop
     ? { top: 80, right: 80, left: 80, bottom: 80 }
     : { top: 96, right: 40, left: 40, bottom: sheetPad };
@@ -147,32 +150,38 @@ export default function TourView({
       {/* Now Playing – Trennung nur über Weißraum (keine Hairline, die am Peek-Rand
           durchblitzt), iOS-2026-minimalistisch. */}
       <div className="pb-2">
+        {/* Zähler, Titel und Transport bilden zusammen den Ruhezustand des Sheets – der
+            Anker, an dem sich der Peek misst (SHEET_PEEK oben). Sie stehen deshalb VOR
+            dem Foto: läge das Foto darüber, müsste der Peek es mitzeigen und würde die
+            halbe Karte verdecken. So ist der eingeklappte Zustand ein Mini-Player. */}
+        <div data-sg="tour-peek">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">
+            {t("stopOf", { current: active + 1, total: tour.stops.length })}
+          </p>
+          <h2 className="truncate text-[18px] font-bold leading-tight text-ink">
+            {activeStop?.title}
+          </h2>
+          {canPlay && (
+            <div className="mt-4">
+              <AudioTransport
+                audio={audio}
+                index={active}
+                total={tour.stops.length}
+                canPlay={canPlay}
+              />
+            </div>
+          )}
+        </div>
         {/* Foto bleibt auch bei gesperrten Stopps sichtbar: Titel/Bild/Position sind
             bei Touren öffentliche Teaser, nur das Audio ist Pro (Migration 0029). */}
         {activeStop?.imageUrl && (
-          <div className="relative mb-3 aspect-[16/10] overflow-hidden rounded-[16px] bg-black/5 shadow-sm">
+          <div className="relative mt-4 aspect-[16/10] overflow-hidden rounded-[16px] bg-black/5 shadow-sm">
             <Image
               src={activeStop.imageUrl}
               alt=""
               fill
               sizes="(min-width: 768px) 27rem, 100vw"
               className="object-cover"
-            />
-          </div>
-        )}
-        <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">
-          {t("stopOf", { current: active + 1, total: tour.stops.length })}
-        </p>
-        <h2 className="truncate text-[18px] font-bold leading-tight text-ink">
-          {activeStop?.title}
-        </h2>
-        {canPlay && (
-          <div className="mt-4">
-            <AudioTransport
-              audio={audio}
-              index={active}
-              total={tour.stops.length}
-              canPlay={canPlay}
             />
           </div>
         )}
@@ -336,19 +345,27 @@ export default function TourView({
         <div className="pointer-events-auto">{topRight}</div>
       </div>
 
-      {isDesktop ? (
-        <aside className="absolute inset-y-0 left-0 z-10 flex w-[var(--sg-panel)] flex-col border-r border-black/5 bg-cream/95 backdrop-blur-xl">
-          <div className="flex items-center justify-between gap-2 px-4 pt-4">
-            {backControl}
-            {topRight}
-          </div>
-          <div className="flex-1 overflow-y-auto pb-16 pt-6">{panel}</div>
-        </aside>
-      ) : (
+      {/* Welche Ansicht gilt, entscheidet CSS – nicht ein State, der erst nach der
+          Hydration stimmt. Vorher hing das an `isDesktop` (Startwert false), also
+          rendete der Server IMMER die Handy-Ansicht und der PC zeigte für einen Moment
+          ein breitgezogenes iPhone. Gemessen waren das 386ms, auf einem kalten Laden
+          deutlich mehr. Dasselbe Muster wie in Explore.tsx.
+          `isDesktop` bleibt für das Karten-Padding: Mapbox will Zahlen, das kann CSS nicht. */}
+      <aside className="absolute inset-y-0 left-0 z-10 hidden w-[var(--sg-panel)] flex-col border-r border-black/5 bg-cream/95 backdrop-blur-xl md:flex">
+        <div className="flex items-center justify-between gap-2 px-4 pt-4">
+          {backControl}
+          {topRight}
+        </div>
+        <div className="flex-1 overflow-y-auto pb-16 pt-6">{panel}</div>
+      </aside>
+      {/* `contents`: am Handy darf der Wrapper das Layout nicht anfassen, sonst verliert
+          das Sheet seinen Bezug zum `fixed inset-0` darüber. Ab md fällt der ganze
+          Teilbaum per display:none weg. */}
+      <div className="contents md:hidden">
         <MobileSheet hide={false} peek={SHEET_PEEK} detents={SHEET_DETENTS}>
           {panel}
         </MobileSheet>
-      )}
+      </div>
     </div>
   );
 }

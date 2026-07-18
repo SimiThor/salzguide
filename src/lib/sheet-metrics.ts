@@ -37,9 +37,16 @@ export function useSheetPeek(): number {
   useEffect(() => {
     const read = () => setPeek(readCssLength(SHEET_PEEK_VAR));
     read();
+    // Misst ein Sheet seinen Peek am Inhalt, schreibt es das Ergebnis an die Wurzel
+    // (siehe MobileSheet). Das ist eine stille Änderung: kein resize, kein Render hier.
+    // Der Observer holt sie ab – sonst rechnete die Karte weiter mit der Schätzung und
+    // die Pins säßen ein paar Dutzend Pixel zu tief.
+    const mo = new MutationObserver(read);
+    mo.observe(document.documentElement, { attributes: true, attributeFilter: ["style"] });
     window.addEventListener("resize", read);
     window.addEventListener("orientationchange", read);
     return () => {
+      mo.disconnect();
       window.removeEventListener("resize", read);
       window.removeEventListener("orientationchange", read);
     };

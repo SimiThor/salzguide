@@ -18,6 +18,13 @@ import { RecenterControl } from "./mapControls";
 const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 const BLUE = "#2f8fce"; // eine ruhige Akzentfarbe (Wasser), sonst ink/muted
 
+// Im Ruhezustand müssen Titel und Untertitel vollständig dastehen. Vorher galt hier der
+// globale Peek aus globals.css, und dessen 86px sind für die Explore-Karte gerechnet
+// (Griff + Saison-Umschalter) – der Kopf dieser Seite ist höher, also lief die Kante
+// mitten durch den Text. Der Wert ist die Schätzung fürs Server-HTML:
+// Griff 26 + pt-1 4 + Titel 32 + mt-1 4 + zwei Zeilen Untertitel 46 + 16 Luft.
+const SHEET_PEEK = { fits: '[data-sg="water-peek"]', fallback: "calc(128px + var(--sg-nav-h))" };
+
 // Temperatur einheitlich formatieren (eine Nachkommastelle, lokalisiert). Bewusst auf
 // Modulebene: so hängt der Marker-Effekt unten nur an der Sprache (ein String) statt an
 // einer Funktion, die bei jedem Render neu entstünde und alle Marker neu setzen würde.
@@ -236,10 +243,14 @@ export default function WaterExplore({
 
   const list = (
     <div className="px-4">
-      <h1 className="text-2xl font-bold tracking-tight text-ink">{labels.title}</h1>
-      <p className="mb-4 mt-1 text-[14px] leading-relaxed text-muted">
-        {labels.subtitle}
-      </p>
+      {/* Kopf = der Ruhezustand des Sheets. Der Peek misst sich an diesem Anker
+          (SHEET_PEEK oben), damit die Kante unter dem Untertitel liegt und nicht
+          mittendrin. Gemessen statt gerechnet, weil der Untertitel je nach Sprache,
+          Gerätebreite und eingestellter Schriftgröße auf zwei oder drei Zeilen umbricht. */}
+      <div className="mb-4" data-sg="water-peek">
+        <h1 className="text-2xl font-bold tracking-tight text-ink">{labels.title}</h1>
+        <p className="mt-1 text-[14px] leading-relaxed text-muted">{labels.subtitle}</p>
+      </div>
       {ordered.length === 0 ? (
         <div className="rounded-[18px] bg-white p-5 text-center text-[14px] text-muted shadow-sm">
           {labels.noData}
@@ -303,13 +314,16 @@ export default function WaterExplore({
         )}
       </div>
 
-      {isDesktop ? (
-        <aside className="absolute inset-y-0 left-0 z-10 w-[var(--sg-panel-water)] overflow-y-auto border-r border-black/5 bg-cream/95 py-6 backdrop-blur-xl">
+      {/* CSS entscheidet, nicht ein State nach der Hydration – siehe TourView/Explore.
+          Vorher zeigte der PC hier für 258ms die Handy-Ansicht in voller Breite. */}
+      <aside className="absolute inset-y-0 left-0 z-10 hidden w-[var(--sg-panel-water)] overflow-y-auto border-r border-black/5 bg-cream/95 py-6 backdrop-blur-xl md:block">
+        {list}
+      </aside>
+      <div className="contents md:hidden">
+        <MobileSheet hide={selected != null} peek={SHEET_PEEK}>
           {list}
-        </aside>
-      ) : (
-        <MobileSheet hide={selected != null}>{list}</MobileSheet>
-      )}
+        </MobileSheet>
+      </div>
 
       {/* Preview: Temperatur + Spots am See – wie auf der Startseite ohne Backdrop
           (Karte bleibt scharf): mobil ziehbares Sheet, Desktop schwebende Karte. */}

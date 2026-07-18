@@ -11,6 +11,7 @@ import {
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -75,6 +76,30 @@ export type Detent = number | { fits: string; fallback: number };
 // Modul-Konstante, kein Inline-Default: sonst wäre es bei jedem Render ein neues Array.
 const DEFAULT_DETENTS: Detent[] = [0.5, 0.9];
 
+// Der Peek ist entweder eine feste CSS-Länge ODER – wie eine `fits`-Stufe – die Ansage
+// „so hoch, dass DIESES Element im Ruhezustand ganz sichtbar ist".
+//
+// Warum es beim Peek die zweite Form braucht: eine feste Zahl beschreibt Inhalt, der
+// nicht fest ist. Der Untertitel der Wasser-Seite bricht je nach Sprache und Gerät auf
+// zwei oder drei Zeilen um, und wer im System größere Schrift eingestellt hat, bekommt
+// mit jeder festen Zahl irgendwann eine Kante mitten durch den Text. Gemessen wird das
+// zwangsläufig richtig.
+//
+// `fallback` ist trotzdem Pflicht und sollte die ehrliche Schätzung sein, nicht
+// irgendein Platzhalter: sie steht im Server-HTML und gilt bis zur ersten Messung.
+// Liegt sie daneben, sieht man beim Laden genau den Ruck, den die CSS-Ruheposition
+// eigentlich verhindert (siehe Kopf).
+export type Peek = string | { fits: string; fallback: string };
+
+// Luft über der Tab-Leiste – dieselbe wie bei den Stufen, damit Peek und Stufen nicht
+// unterschiedlich dicht an der Leiste kleben.
+const PEEK_AIR = DETENT_AIR;
+
+// Auf dem Server gibt es kein Layout, useLayoutEffect warnt dort. Auf dem Client MUSS
+// es useLayoutEffect sein: die gemessene Peek-Höhe muss VOR dem ersten Paint stehen,
+// sonst sieht man sie einrasten.
+const useIsoLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
+
 // Unterkante eines Elements, gemessen ab Oberkante des Sheets.
 //
 // Über offsetTop statt getBoundingClientRect: offsetTop ist reines Layout und ignoriert
@@ -100,9 +125,9 @@ export default function MobileSheet({
 }: {
   children: ReactNode;
   hide: boolean;
-  // CSS-Länge, überschreibt --sg-sheet-peek nur für dieses Sheet (z.B. "34svh").
+  // Überschreibt --sg-sheet-peek für diese Seite. Feste Länge oder gemessen (siehe Peek).
   // Muss eine Länge sein, kein Prozentwert: die Property ist als <length> registriert.
-  peek?: string;
+  peek?: Peek;
   // Die weiteren Stufen, von unten nach oben. Peek ist immer die unterste und steht
   // NICHT hier drin – die kommt aus CSS. Die LETZTE muss ein Anteil sein: sie bestimmt
   // die Höhe des Sheets selbst.
@@ -120,6 +145,90 @@ export default function MobileSheet({
 
   // Nur für die Interaktion, nicht für die Position (siehe Kopf).
   const [metrics, setMetrics] = useState({ peekPx: 0, fullPx: 0, containerPx: 0 });
+
+  // ── Peek: feste Länge oder gemessen ────────────────────────────────────────
+  const peekFits = typeof peek === "object" ? peek.fits : null;
+  const peekFallback = typeof peek === "object" ? peek.fallback : peek;
+  const [peekMeasured, setPeekMeasured] = useState<string | null>(null);
+  // Was tatsächlich gilt: die Messung, solange es eine gibt, sonst die Schätzung.
+  const effectivePeek = peekMeasured ?? peekFallback;
+
+  // Misst die Unterkante des Peek-Ankers und schreibt sie als CSS-Länge fort. Damit
+  // bleibt die Ruheposition weiterhin eine reine CSS-Rechnung – JS liefert nur die Zahl,
+  // es verschiebt das Sheet nicht selbst. Genau darum gibt es hier auch kein animate():
+  // ändert sich der Peek, ändert sich der Nullpunkt, und y = 0 stimmt weiter.
+  const measurePeek = useCallback(() => {
+    const rail = railRef.current;
+    const sheet = sheetRef.current;
+    const body = bodyRef.current;
+    if (!rail || !sheet || !body || !peekFits) return;
+    const el = body.querySelector<HTMLElement>(peekFits);
+    // Kein Anker (Inhalt noch nicht da, Audio gesperrt) -> bei der Schätzung bleiben.
+    if (!el) return;
+    const fullPx = rail.getBoundingClientRect().height;
+    if (!fullPx) return;
+    // Die Tab-Leiste liegt ÜBER dem Sheet, ihre Höhe gehört also dazu – sonst steht der
+    // Anker zwar im Sheet, aber hinter der Leiste. Nach oben begrenzt die Sheet-Höhe:
+    // ein Peek über der obersten Stufe wäre eine Ruheposition, die es nicht gibt.
+    const h = offsetBottomWithin(el, sheet) + PEEK_AIR + readCssLength(NAV_H_VAR, rail);
+    const next = `${Math.round(Math.min(fullPx, h))}px`;
+    setPeekMeasured((cur) => (cur === next ? cur : next));
+  }, [peekFits]);
+
+  // Der Anker wird direkt beobachtet, nicht nur bei resize nachgemessen. Sonst bliebe der
+  // Peek genau dann stehen, wenn sich am DOM nichts ändert und trotzdem alles höher wird:
+  // Inter lädt nach und der Untertitel bricht plötzlich auf drei Zeilen um. Ein
+  // MutationObserver sieht das nicht, ein ResizeObserver schon.
+  //
+  // Der MutationObserver daneben ist nur dafür da, den Anker neu zu greifen, wenn der
+  // Inhalt ausgetauscht wird (anderer Stopp) – dann zeigt der alte Beobachter ins Leere.
+  useIsoLayoutEffect(() => {
+    const body = bodyRef.current;
+    if (!body || !peekFits) return;
+    let watched: HTMLElement | null = null;
+    const ro = new ResizeObserver(() => measurePeek());
+    const attach = () => {
+      const next = body.querySelector<HTMLElement>(peekFits);
+      if (next !== watched) {
+        if (watched) ro.unobserve(watched);
+        watched = next;
+        if (watched) ro.observe(watched);
+      }
+      measurePeek();
+    };
+    attach();
+    const mo = new MutationObserver(attach);
+    mo.observe(body, { childList: true, subtree: true });
+    // resize bleibt trotzdem: die Tab-Leiste steckt im Peek, und die ändert sich mit der
+    // Safe Area, ohne dass der Anker selbst anders wird.
+    window.addEventListener("resize", measurePeek);
+    window.addEventListener("orientationchange", measurePeek);
+    return () => {
+      ro.disconnect();
+      mo.disconnect();
+      window.removeEventListener("resize", measurePeek);
+      window.removeEventListener("orientationchange", measurePeek);
+    };
+  }, [measurePeek, peekFits]);
+
+  // Der Peek gilt nicht nur fürs Sheet: das Karten-Padding hält Pins darüber und
+  // --sg-map-bottom hebt Mapbox-Logo und -Attribution an. Beide lesen dieselbe Variable,
+  // stehen aber außerhalb der Schiene – deshalb wird ein abweichender Peek an die Wurzel
+  // durchgereicht, statt jeden Verbraucher einzeln zu verkabeln. Pro Seite gibt es genau
+  // ein persistentes Sheet, also streitet sich niemand darum; beim Verlassen der Seite
+  // fällt der globale Standard aus globals.css zurück.
+  //
+  // `metrics.fullPx` ist die Sicherung: am Desktop hängt das Sheet in einem `md:hidden`
+  // und hat gar kein Layout (Höhe 0). Ohne die Abfrage schriebe es dort trotzdem einen
+  // Handy-Peek an die Wurzel, und --sg-map-bottom schöbe das Mapbox-Logo grundlos hoch.
+  useEffect(() => {
+    if (!effectivePeek || !metrics.fullPx) return;
+    const root = document.documentElement;
+    root.style.setProperty(SHEET_PEEK_VAR, effectivePeek);
+    return () => {
+      root.style.removeProperty(SHEET_PEEK_VAR);
+    };
+  }, [effectivePeek, metrics.fullPx]);
 
   // Die oberste Stufe gibt dem Sheet seine Höhe, muss also ein Anteil sein.
   const last = detents[detents.length - 1];
@@ -150,7 +259,9 @@ export default function MobileSheet({
       window.removeEventListener("resize", measure);
       window.removeEventListener("orientationchange", measure);
     };
-  }, [fullFraction]);
+    // effectivePeek in den Deps: nach der Messung ist peekPx ein anderer, und daran
+    // hängen die Zieh-Grenzen. Ohne das zöge man gegen die Grenzen der Schätzung.
+  }, [fullFraction, effectivePeek]);
 
   // y-Offset je Stufe. stops[0] ist immer 0 (Peek = Ruheposition).
   //
@@ -289,7 +400,7 @@ export default function MobileSheet({
     // DIE Zeile, die den Ladesprung beseitigt: Ruheposition = Peek, komplett in CSS.
     // `100%` ist die Höhe dieses Elements, --sg-sheet-peek kommt aus globals.css.
     transform: `translate3d(0, calc(100% - var(${SHEET_PEEK_VAR})), 0)`,
-    ...(peek ? { [SHEET_PEEK_VAR]: peek } : null),
+    ...(effectivePeek ? { [SHEET_PEEK_VAR]: effectivePeek } : null),
   } as CSSProperties;
 
   return (
