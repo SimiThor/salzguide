@@ -341,7 +341,7 @@
     "discover": "Entdecken"
   },
   "Auth": {
-    "relaunchNotice": "✨ Das neue SalzGuide ist da. Dein Pro von der alten Seite läuft weiter: gleiche E-Mail rein, Passwort brauchst du keins.",
+    "relaunchNotice": "✨ Der neue SalzGuide ist da. Dein Pro von der alten Seite läuft weiter: gleiche E-Mail rein, Passwort brauchst du keins.",
     "joinTitle": "Anmelden oder Konto erstellen",
     "joinSubtitle": "Mit deiner E-Mail – ganz ohne Passwort. Speichere deine Lieblings-Spots und plane deine Trips.",
     "emailPlaceholder": "deine@email.at",
