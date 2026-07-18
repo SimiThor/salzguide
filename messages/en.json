@@ -220,7 +220,6 @@
     },
     "save": "Save",
     "back": "Back to map",
-    "view": "View",
     "weatherSoon": "Weather coming soon",
     "openingSoon": "Opening hours coming soon",
     "weather": { "title": "Weather", "today": "Today" },
@@ -258,12 +257,12 @@
     "proTeaser": "This spot is part of SalzGuide Pro. Unlock all the hidden highlights.",
     "unlock": "Unlock SalzGuide Pro",
     "lockedLabel": "🤫 Secret Spot",
+    "openMap": "Open map",
     "elevation": {
       "profile": "Elevation profile",
       "ascent": "Ascent",
       "descent": "Descent",
       "highest": "Highest point",
-      "openMap": "Open map",
       "close": "Close",
       "unitElevation": "m"
     },

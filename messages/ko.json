@@ -220,7 +220,6 @@
     },
     "save": "저장",
     "back": "지도로 돌아가기",
-    "view": "보기",
     "weatherSoon": "날씨 정보 곧 제공",
     "openingSoon": "영업시간 곧 제공",
     "weather": { "title": "날씨", "today": "오늘" },
@@ -258,12 +257,12 @@
     "proTeaser": "이 스팟은 SalzGuide Pro에 포함돼 있어요. 숨은 하이라이트를 모두 잠금 해제하세요.",
     "unlock": "SalzGuide Pro 잠금 해제",
     "lockedLabel": "🤫 비밀 스팟",
+    "openMap": "지도 열기",
     "elevation": {
       "profile": "고도 프로필",
       "ascent": "오르막",
       "descent": "내리막",
       "highest": "최고 지점",
-      "openMap": "지도 열기",
       "close": "닫기",
       "unitElevation": "m"
     },

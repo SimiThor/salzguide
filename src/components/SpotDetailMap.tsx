@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { AnimatePresence } from "framer-motion";
 import { useTranslations } from "next-intl";
 import SpotMap, { type SpotPoi } from "./SpotMap";
+import { MAP_CTRL_PAD } from "./mapControls";
 import MapPopover, { MapPopoverClose } from "./MapPopover";
 import ElevationProfile from "./ElevationProfile";
 import type { ElevationProfile as Profile } from "@/lib/admin-actions";
@@ -142,7 +143,15 @@ export default function SpotDetailMap({
   // fitBounds-Padding reserviert die Ecken mit den Karten-Buttons (Zoom/Zentrieren/
   // Standort oben rechts, Vollbild oben links) -> Start-/Ziel-Marker landen NEBEN
   // statt unter den Buttons.
-  const mapPadding = { top: 56, right: 70, bottom: 40, left: 40 };
+  // Links und rechts kommen aus MAP_CTRL_PAD, damit dieser Rand mitwächst, wenn die
+  // Knöpfe je wieder eine andere Grösse bekommen. Als getippte Zahl lief das beim
+  // Vergrössern auf Apples 44pt sofort auseinander.
+  const mapPadding = {
+    top: 56,
+    right: MAP_CTRL_PAD,
+    bottom: 40,
+    left: MAP_CTRL_PAD,
+  };
 
   return (
     <>
@@ -155,21 +164,15 @@ export default function SpotDetailMap({
           center={center}
           zoom={13}
           padding={mapPadding}
-          cooperative
           mapClass="sg-ctrl-top"
           onFullscreen={() => setFullscreen(true)}
+          openMapLabel={t("openMap")}
           {...poiProps}
         />
-        <AnimatePresence>
-          {selected && (
-            <PoiCard
-              key={selKey}
-              poi={selected}
-              onClose={() => setSelected(null)}
-              closeLabel={t("elevation.close")}
-            />
-          )}
-        </AnimatePresence>
+        {/* Hier stand das POI-Kärtchen auch für die Vorschau. Es kann nicht mehr
+            auftauchen: Die Vorschau ist eine einzige Schaltfläche, einzelne Punkte
+            lassen sich dort nicht mehr antippen. Die Kärtchen leben im Vollbild
+            weiter, wo sie nicht die halbe Karte verdecken. */}
       </div>
 
       {/* Interaktives Höhenprofil */}
@@ -207,7 +210,7 @@ export default function SpotDetailMap({
               type="button"
               onClick={() => setFullscreen(false)}
               aria-label={t("elevation.close")}
-              className="absolute left-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-ink shadow-md ring-1 ring-black/5 backdrop-blur active:scale-95"
+              className="sg-hit absolute left-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-ink shadow-md ring-1 ring-black/5 backdrop-blur active:scale-95"
               style={{ top: "calc(env(safe-area-inset-top) + 12px)" }}
             >
               <svg

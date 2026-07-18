@@ -51,6 +51,17 @@ body {
   --sg-header-h: 60px;
   --sg-panel: 27rem; /* md (>=768): ~432px */
   --sg-card: calc((var(--sg-panel) - 40px) / 2.5);
+  /* Kantenlänge der Karten-Bedienknöpfe. Am FINGER gezeichnet 40, angefasst 44:
+     Apple und Google meinen mit ihren 44pt bzw. 48dp die antippbare Fläche, nicht
+     das Gezeichnete — Material sagt ausdrücklich, das Sichtbare dürfe kleiner sein
+     und der Rest transparente Polsterung. Google Maps zeichnet seine Zoom-Knöpfe
+     mit 40px.
+     Am ZEIGER (siehe unten) sind es wieder 32: Die ganze 44er-Regel gibt es, weil
+     eine Fingerkuppe breit und blind ist. Ein Mauszeiger trifft auf das Pixel genau,
+     dort sind grosse Knöpfe kein Zugewinn, sondern nur laut.
+     EINE Quelle: das CSS zeichnet damit, und die Karten reservieren damit ihren
+     fitBounds-Rand (mapControls.ts: MAP_CTRL_SIZE). */
+  --sg-map-ctrl: 40px;
 }
 @media (min-width: 768px) {
   :root {
@@ -239,6 +250,60 @@ body {
     -webkit-tap-highlight-color: transparent;
     -webkit-touch-callout: none;
   }
+
+}
+
+/* Trefferfläche auf Apples Mindestmass (44x44pt, Human Interface Guidelines),
+   OHNE das Aussehen zu ändern. Der Knopf bleibt so gross, wie er gezeichnet ist;
+   nur der Bereich, der auf den Finger hört, wächst unsichtbar mit.
+   Gemessen hatten wir 32px (Karten-Bedienung, "Neuer Chat"), 36px (Karten-Pins)
+   und 40px (Kopfzeilen-Knöpfe) — jeder Tap daneben sieht für den Menschen aus,
+   als hätte der Knopf nicht reagiert.
+
+   WARUM @layer components UND NICHT utilities:
+   `position: relative` braucht es nur, damit das ::after sich am Knopf ausrichten
+   kann. Stand die Regel in `utilities`, gewann sie gegen Tailwinds `absolute` —
+   dieselbe Ebene, aber später notiert. Genau das ist passiert: Der Schliessen-Knopf
+   der Vollbild-Karte trug `sg-hit absolute`, wurde dadurch `relative` und rutschte
+   an seine statische Position, also 12px UNTER den Bildschirmrand. Er war da, nur
+   nicht zu sehen. In `components` verliert die Regel gegen jede Positions-Utility
+   und greift nur dort, wo sonst nichts steht — genau wie gemeint. */
+@layer components {
+  /* Nur am Finger. Ein Mauszeiger trifft aufs Pixel genau; eine unsichtbare Fläche
+     über dem Knopf brächte ihm nichts und könnte dem Nachbarn Klicks wegnehmen. */
+  @media (hover: none) {
+    .sg-hit {
+      position: relative;
+    }
+    .sg-hit::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: max(100%, 44px);
+      height: max(100%, 44px);
+      transform: translate(-50%, -50%);
+    }
+  }
+}
+
+/* TAP-FEEDBACK: sofort da, sanft weg.
+   Rund 70 Komponenten setzen `active:scale-…` oder `active:opacity-…` zusammen mit
+   einem `transition … duration-150/200`. Diese Dauer gilt in BEIDE Richtungen, das
+   Gedrückt-Sein blendet also erst ein. Ein Tap dauert oft weniger lang als das —
+   dann sieht man nie, dass der Knopf reagiert hat. Beim Drücken deshalb Dauer 0,
+   beim Loslassen bleibt der weiche Rückweg.
+   Nur auf Geräten ohne echten Zeiger: am Desktop gibt es Hover als Vorstufe, dort
+   ist ein sanfter Übergang genau richtig.
+   Nicht in @layer: unlayered CSS sticht Tailwinds Utilities, egal wie spezifisch. */
+@media (hover: none) {
+  a:active,
+  button:active,
+  summary:active,
+  label:active,
+  [role="button"]:active {
+    transition-duration: 0s;
+  }
 }
 
 /* Mapbox Emoji-Marker (docs/10).
@@ -277,8 +342,30 @@ body {
     border-color 0.28s ease;
   animation: sg-pin-in 0.42s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
 }
-.sg-pin:hover .sg-marker {
-  transform: scale(1.12);
+/* Hover NUR, wo es einen echten Zeiger gibt.
+   Auf iOS bleibt ein Hover-Zustand nach dem Antippen HÄNGEN, bis man woanders
+   hintippt (WebKit-Bug 158517). Der Pin blieb also vergrössert stehen, als wäre er
+   ausgewählt. Tailwinds `hover:`-Klassen sind in v4 von Haus aus so abgesichert;
+   handgeschriebenes CSS wie dieses hier ist es nicht — deshalb von Hand. */
+@media (hover: hover) {
+  .sg-pin:hover .sg-marker {
+    transform: scale(1.12);
+  }
+}
+
+/* Karten-Pins: gezeichnet 36px, angefasst 44px (siehe .sg-hit). Ein Pin auf einer
+   Karte ist der Knopf, den man am häufigsten knapp verfehlt. */
+.sg-pin {
+  position: relative;
+}
+.sg-pin::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 44px;
+  height: 44px;
+  transform: translate(-50%, -50%);
 }
 /* Nummerierte Tour-Stopps: iOS-2026-Typo – Inter, kräftig, tabellarische Ziffern,
    Akzentfarbe passend zur roten Route. Etwas kompakter als die Emoji-Pins. */
@@ -721,24 +808,77 @@ body {
 /* Mapbox-Controls im SalzGuide-Stil (Glas, rund, weicher Schatten) */
 .mapboxgl-ctrl-group {
   border-radius: 11px !important;
-  overflow: hidden;
+  /* KEIN overflow:hidden: Es würde die unsichtbare 44er-Trefferfläche der Knöpfe
+     wieder auf die gezeichneten 40 zurückschneiden. Dass die Optik gleich bleibt,
+     ist geprüft, nicht vermutet: Screenshots mit und ohne diese Zeile waren
+     byte-identisch. Gezeichnet wird der Hintergrund der Gruppe, und der ist selbst
+     gerundet; nur der Hover-Schimmer am Desktop braucht eigene Ecken (siehe unten). */
+  overflow: visible;
   background: rgba(255, 255, 255, 0.82) !important;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(0, 0, 0, 0.05) !important;
   box-shadow: 0 3px 14px -4px rgba(0, 0, 0, 0.22) !important;
 }
+/* 44x44 ist Apples Mindestmass für alles, was ein Finger trifft (Human Interface
+   Guidelines, "Layout"). Vorher waren es 32px, und daneben getippt heisst hier: die
+   Karte verschiebt sich, statt zu zoomen — für den Menschen sieht das aus, als hätte
+   der Knopf nicht reagiert.
+   Die Zahl steht hier und NUR hier: Sie hängt an --sg-map-ctrl, weil der fitBounds-
+   Rand der Karten damit rechnen muss (sonst landen Marker unter den Knöpfen). */
 .mapboxgl-ctrl-group button {
-  width: 32px !important;
-  height: 32px !important;
+  width: var(--sg-map-ctrl) !important;
+  height: var(--sg-map-ctrl) !important;
   background-color: transparent !important;
   color: var(--color-ink);
 }
 .mapboxgl-ctrl-group button + button {
   border-top: 1px solid rgba(0, 0, 0, 0.07) !important;
 }
-.mapboxgl-ctrl-group button:hover {
-  background-color: rgba(0, 0, 0, 0.05) !important;
+/* Auch hier: Hover nur mit echtem Zeiger, sonst bleibt der graue Schimmer auf dem
+   zuletzt angetippten Knopf kleben (WebKit-Bug 158517). */
+@media (hover: hover) {
+  .mapboxgl-ctrl-group button:hover {
+    background-color: rgba(0, 0, 0, 0.05) !important;
+  }
+}
+/* NUR AM FINGER: die letzten 4px zu Apples 44, unsichtbar, damit die Knöpfe schlank
+   bleiben. `overflow` muss dafür auf BEIDEN Ebenen offen sein — Mapbox setzt es auch
+   auf dem Knopf selbst, und ihr Stylesheet wird nach unserem geladen, daher !important.
+   Am Zeiger entfällt beides: Dort sind die Knöpfe 32px und treffen sich von selbst,
+   eine unsichtbare Fläche darüber würde nur mit dem Nachbarn im Stapel streiten. */
+@media (hover: none) {
+  .mapboxgl-ctrl-group button {
+    position: relative;
+    overflow: visible !important;
+  }
+  .mapboxgl-ctrl-group button::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 44px;
+    height: 44px;
+    transform: translate(-50%, -50%);
+  }
+}
+
+/* Zeigegeräte: zurück auf die kompakte Grösse, die die Karten vorher hatten. */
+@media (hover: hover) {
+  :root {
+    --sg-map-ctrl: 32px;
+  }
+}
+/* Übernimmt, was das weggefallene overflow:hidden am Desktop noch tat: den
+   Hover-Schimmer an den Ecken der Gruppe abschneiden. */
+.mapboxgl-ctrl-group button:first-child {
+  border-radius: 11px 11px 0 0;
+}
+.mapboxgl-ctrl-group button:last-child {
+  border-radius: 0 0 11px 11px;
+}
+.mapboxgl-ctrl-group button:only-child {
+  border-radius: 11px;
 }
 .mapboxgl-ctrl-group button:focus:focus-visible {
   outline: 2px solid var(--color-accent);
@@ -761,6 +901,10 @@ body {
    von einem Marker verdeckt oder blockiert. */
 .mapboxgl-ctrl-top-left,
 .mapboxgl-ctrl-top-right,
+/* Mapbox-Logo (unten links) und Attribution (unten rechts) bleiben auf 10 — also
+   ÜBER der Tippfläche der Vorschau-Karten (Ebene 9, siehe SpotMap.tsx). Sie sind
+   das Einzige, was dort noch antippbar sein muss: Der „i"-Knopf klappt die Quellen
+   auf, und die Namensnennung ist Mapbox-Lizenzpflicht, keine Deko. */
 .mapboxgl-ctrl-bottom-left,
 .mapboxgl-ctrl-bottom-right {
   z-index: 10 !important;

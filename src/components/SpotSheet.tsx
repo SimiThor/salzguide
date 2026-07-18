@@ -11,7 +11,7 @@ import {
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, useTransition } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
-import type { ExploreSpot } from "@/lib/spots";
+import type { SpotCardData } from "@/lib/spots";
 import { toggleSaved } from "@/lib/saved-actions";
 import { Bookmark, BookmarkFilled } from "./icons";
 import LockedMedia from "./LockedMedia";
@@ -66,7 +66,13 @@ export default function SpotSheet({
   saved = false,
   onSavedChange,
 }: {
-  spot: ExploreSpot;
+  // BEWUSST SpotCardData und nicht ExploreSpot: Das Sheet liest nur slug, title,
+  // shortDesc, emoji, imageUrl, locked und previewUrl — also genau diese Basis. Mit dem
+  // engeren Typ passt auch ein gespeicherter Spot hinein, und die Gespeichert-Karte
+  // zeigt dasselbe Sheet wie Explore, statt ein zweites Kärtchen zu erfinden. Wer hier
+  // ein Feld aus ExploreSpot braucht (seasons, categoryKeys, routeBounds), soll den Typ
+  // bewusst wieder aufmachen und nicht aus Versehen zwei Sheets entstehen lassen.
+  spot: SpotCardData;
   onClose: () => void;
   // Feuert, sobald das Sheet losfährt — nicht erst, wenn es unten ist. Daran hängt
   // die Karte ihre Route und den hervorgehobenen Pin ab, damit beide MIT dem Sheet

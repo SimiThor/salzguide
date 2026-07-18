@@ -220,7 +220,6 @@
     },
     "save": "Guardar",
     "back": "Voltar ao mapa",
-    "view": "Ver",
     "weatherSoon": "Tempo em breve",
     "openingSoon": "Horário em breve",
     "weather": { "title": "Tempo", "today": "Hoje" },
@@ -258,12 +257,12 @@
     "proTeaser": "Este spot faz parte do SalzGuide Pro. Desbloqueia todos os destaques escondidos.",
     "unlock": "Desbloquear o SalzGuide Pro",
     "lockedLabel": "🤫 Dica secreta",
+    "openMap": "Abrir mapa",
     "elevation": {
       "profile": "Perfil de altitude",
       "ascent": "Subida",
       "descent": "Descida",
       "highest": "ponto mais alto",
-      "openMap": "Abrir mapa",
       "close": "Fechar",
       "unitElevation": "m"
     },

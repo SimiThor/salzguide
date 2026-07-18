@@ -5,7 +5,7 @@ import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { useEffect, useRef } from "react";
 import { MapLoadingScreen, useMapLoading } from "./MapLoading";
-import { RecenterControl, FullscreenControl } from "./mapControls";
+import { RecenterControl } from "./mapControls";
 import { useLatestRef } from "@/lib/use-latest-ref";
 import { poiEmoji, type PoiKind } from "@/lib/poi";
 
@@ -136,7 +136,6 @@ export default function SpotMap({
   center = [13.05, 47.6],
   zoom = 8,
   padding,
-  cooperative = false,
   focus,
   onMapClick,
   route,
@@ -149,6 +148,7 @@ export default function SpotMap({
   startLabel,
   finishLabel,
   onFullscreen,
+  openMapLabel,
   mapClass,
 }: {
   markers: MapMarker[];
@@ -166,9 +166,6 @@ export default function SpotMap({
   // Asymmetrisches Padding für fitBounds, damit z.B. das Bottom-Sheet (Mobile)
   // oder die Sidebar (Desktop) die Marker nicht verdeckt.
   padding?: Padding;
-  // cooperativeGestures: Seiten-Scroll geht durch; Karte zoomt nur mit Cmd/Strg+Scroll
-  // bzw. zwei Fingern. Für eingebettete Karten (Detailseite), damit nichts verrutscht.
-  cooperative?: boolean;
   // Sanft auf einen Punkt fliegen; padBottom hält unten Platz frei,
   // damit der Spot ÜBER der Vorschau-Karte/dem Sheet sitzt.
   // bounds = Routen-Bounding-Box [minLng,minLat,maxLng,maxLat]: liegt sofort vor,
@@ -194,8 +191,12 @@ export default function SpotMap({
   // Lokalisierte Beschriftungen der Routen-Enden (nur wenn onPoiSelect gesetzt ist).
   startLabel?: string;
   finishLabel?: string;
-  // Wenn gesetzt: Vollbild-Button anzeigen, Klick ruft den Callback
+  // Wenn gesetzt, ist diese Karte eine VORSCHAU: keine Gesten, keine Knöpfe, die ganze
+  // Fläche ruft beim Antippen diesen Callback (siehe `preview` weiter unten).
   onFullscreen?: () => void;
+  // Beschriftung dieser Fläche für Screenreader ("Karte öffnen"). Kommt wie start-/
+  // finishLabel vom Aufrufer per next-intl, damit SpotMap reine Darstellung bleibt.
+  openMapLabel?: string;
   // Zusätzliche CSS-Klasse am Karten-Container (steuert u.a. Control-Position mobil)
   mapClass?: string;
 }) {
@@ -212,7 +213,6 @@ export default function SpotMap({
   // immer den neuesten Stand statt der Props vom ersten Render. Siehe use-latest-ref.ts.
   // BEWUSST alle zusammen ganz oben: die Callback-Refs weiter unten (recenterRef,
   // syncRouteRef) greifen darauf zu und dürfen nicht auf später Deklariertes zeigen.
-  const onFullscreenRef = useLatestRef(onFullscreen);
   const onPoiSelectRef = useLatestRef(onPoiSelect);
   const startLabelRef = useLatestRef(startLabel);
   const finishLabelRef = useLatestRef(finishLabel);
@@ -401,6 +401,27 @@ export default function SpotMap({
     rafRef.current = requestAnimationFrame(step);
   });
 
+  // ZWEI ARTEN VON KARTE, EINE UNTERSCHEIDUNG.
+  //
+  // `onFullscreen` ist genau dann gesetzt, wenn diese Karte eine grosse Fassung hat —
+  // also auf den EINGEBETTETEN Karten (Spot-Seite, Gespeichert). Das ist keine Karte,
+  // auf der man arbeitet, sondern eine Vorschau: Sie beantwortet „wo ungefähr ist das",
+  // und wer mehr will, macht sie gross.
+  //
+  // Eine Vorschau ist deshalb ein BILD MIT EINEM TAP, nicht eine kleine Karte:
+  //   - Sie lässt sich nicht verschieben und nicht zoomen. Damit kann sie nie verrutscht
+  //     zurückbleiben und sieht bei jedem Besuch aus wie gedacht.
+  //   - Sie trägt keinen einzigen Knopf. Zoom konnten die Finger ohnehin, „Standort"
+  //     zeigt bei einem Spot 40km entfernt entweder nichts oder springt vom Thema weg,
+  //     und „Zentrieren" nützt erst, wenn man verschoben hat.
+  //   - Die ganze Fläche ist die Schaltfläche. Grösser als „alles" wird ein Tap-Ziel
+  //     nicht, und es gibt nur noch eine Sache, die man tun kann.
+  //
+  // Alles, was man vorher hier tun konnte, tut man eine Ebene weiter im Vollbild — dort
+  // ist Platz dafür. Arbeits-Karten (Explore, Wasser, Touren, alle Vollbild-Fassungen)
+  // bleiben unverändert.
+  const preview = Boolean(onFullscreen);
+
   // Karte einmalig initialisieren
   useEffect(() => {
     if (!TOKEN || !containerRef.current || mapRef.current) return;
@@ -410,28 +431,45 @@ export default function SpotMap({
       style: "mapbox://styles/mapbox/outdoors-v12",
       center,
       zoom,
-      cooperativeGestures: cooperative,
+      // Vorschau-Karten reagieren auf GAR keine Geste (siehe Kommentar unten): kein
+      // Ziehen, kein Zoomen, kein Drehen. Deshalb braucht es hier auch keine
+      // Zwei-Finger-Sperre mehr — der Hinweis „Use two fingers to move the map" war
+      // einer der deutlichsten Verräter „Webseite", und ohne Gesten will ihn niemand.
+      interactive: !preview,
+      // Attribution IMMER kompakt, auf jeder Karte.
+      //
+      // Mapbox entscheidet das sonst selbst — nach der BREITE der jeweiligen Karte
+      // (bis 640px das „i", darüber der ausgeschriebene Text). Unsere Karten sind
+      // verschieden breit, also stand bei 1024px Fensterbreite gemessen: Explore 544px
+      // -> „i", Spot-Seite 728px -> Text, Gespeichert 992px -> Text. Drei Karten, drei
+      // Antworten, auf demselben Bildschirm.
+      //
+      // Erlaubt ist beides: Mapbox verlangt das LOGO dauerhaft sichtbar („we require
+      // the Mapbox logo to appear on our maps"), die Text-Attribution darf hinter einer
+      // Schaltfläche liegen — ihre eigenen mobilen SDKs liefern genau so einen
+      // Info-Knopf mit. Das Logo bleibt unangetastet, nur der Text wandert einen Tap
+      // weiter. Kompakt passt ausserdem zu Karten, die bei uns oft klein sind.
+      attributionControl: false,
       // Immer flache 2D-Ansicht — keine 3D-Neigung (Pitch)
       pitch: 0,
       maxPitch: 0,
       pitchWithRotate: false,
       touchPitch: false,
     });
-    map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "top-right");
-    map.addControl(new RecenterControl(() => recenterRef.current()), "top-right");
-    map.addControl(
-      new mapboxgl.GeolocateControl({
-        positionOptions: { enableHighAccuracy: true },
-        trackUserLocation: true,
-        showUserHeading: true,
-      }),
-      "top-right",
-    );
-    if (onFullscreenRef.current) {
-      // Vollbild separat oben-links -> klar getrennt von den Karten-Tools rechts
+    map.addControl(new mapboxgl.AttributionControl({ compact: true }));
+
+    // Bedienung gibt es nur auf Arbeits-Karten. Vorschauen tragen keinen einzigen
+    // Knopf — dort ist die ganze Fläche der Knopf (siehe `preview` weiter oben).
+    if (!preview) {
+      map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "top-right");
+      map.addControl(new RecenterControl(() => recenterRef.current()), "top-right");
       map.addControl(
-        new FullscreenControl(() => onFullscreenRef.current?.()),
-        "top-left",
+        new mapboxgl.GeolocateControl({
+          positionOptions: { enableHighAccuracy: true },
+          trackUserLocation: true,
+          showUserHeading: true,
+        }),
+        "top-right",
       );
     }
     // Route-Layer anlegen, sobald der Style geladen ist
@@ -700,6 +738,51 @@ export default function SpotMap({
   return (
     <div className="relative isolate h-full w-full">
       <div ref={containerRef} className={`h-full w-full ${mapClass ?? ""}`} />
+
+      {/* Die Vorschau als EIN Bedienelement. Ein echter <button>, kein div mit onClick:
+          So kommt man auch mit Tastatur und Screenreader hin, und die Beschriftung sagt,
+          was passiert. Er liegt nach der Karte im DOM und damit über den Markern — die
+          sollen hier bewusst nicht einzeln antippbar sein, dafür ist das Vollbild da. */}
+      {preview && (
+        <button
+          type="button"
+          onClick={onFullscreen}
+          aria-label={openMapLabel}
+          // Ebene 9, mit Absicht knapp UNTER 10. Die Ebenen-Leiter der Karten steht in
+          // globals.css: Marker (bis 6) < Standort (8) < Bedienung und Attribution (10)
+          // < Schutzfläche (20). Auf 10 lag die Fläche gleichauf mit der Attribution und
+          // gewann als spätere Zeile — das Mapbox-Logo und der „i"-Knopf waren nicht mehr
+          // antippbar. Das ist nicht nur unschön, sondern verstösst gegen Mapbox' Regeln
+          // zur Namensnennung. Auf 9 deckt sie alles ab, worauf hier niemand tippen soll
+          // (Karte, Pins), und lässt genau das durch, was durchmuss.
+          className="sg-native-tap absolute inset-0 z-[9] cursor-pointer"
+        >
+          {/* Der Hinweis, dass hier etwas passiert. Rein dekorativ (der Knopf ist die
+              ganze Fläche), deshalb pointer-events-none und aria-hidden. Ohne ihn sieht
+              die Karte aus wie ein Bild, und niemand käme auf die Idee zu tippen. */}
+          <span
+            aria-hidden
+            className="pointer-events-none absolute left-3 top-3 flex h-9 w-9 items-center justify-center rounded-[11px] border border-black/5 bg-white/80 text-ink shadow-[0_3px_14px_-4px_rgba(0,0,0,0.22)] backdrop-blur-md"
+          >
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.4"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polyline points="15 3 21 3 21 9" />
+              <polyline points="9 21 3 21 3 15" />
+              <line x1="21" y1="3" x2="14" y2="10" />
+              <line x1="3" y1="21" x2="10" y2="14" />
+            </svg>
+          </span>
+        </button>
+      )}
+
       <MapLoadingScreen {...loading} />
     </div>
   );

@@ -322,7 +322,7 @@ export default function AiAssistant({
         disabled={!canReset && !input}
         aria-label={t("newChat")}
         title={t("newChat")}
-        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted transition hover:bg-black/5 active:scale-90 disabled:opacity-40"
+        className="sg-hit flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted transition hover:bg-black/5 active:scale-90 disabled:opacity-40"
       >
         <NewChatIcon />
       </button>
@@ -333,7 +333,7 @@ export default function AiAssistant({
           aria-label={t("history")}
           title={t("history")}
           aria-pressed={showHistory}
-          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition hover:bg-black/5 active:scale-90 ${
+          className={`sg-hit flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition hover:bg-black/5 active:scale-90 ${
             showHistory ? "text-accent" : "text-muted"
           }`}
         >

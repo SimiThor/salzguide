@@ -220,7 +220,6 @@
     },
     "save": "Guardar",
     "back": "Volver al mapa",
-    "view": "Ver",
     "weatherSoon": "El tiempo llega en breve",
     "openingSoon": "El horario llega en breve",
     "weather": { "title": "Tiempo", "today": "Hoy" },
@@ -258,12 +257,12 @@
     "proTeaser": "Este lugar forma parte de SalzGuide Pro. Desbloquea todos los destacados ocultos.",
     "unlock": "Desbloquear SalzGuide Pro",
     "lockedLabel": "🤫 Secreto",
+    "openMap": "Abrir mapa",
     "elevation": {
       "profile": "Perfil de altura",
       "ascent": "Ascenso",
       "descent": "Descenso",
       "highest": "punto más alto",
-      "openMap": "Abrir mapa",
       "close": "Cerrar",
       "unitElevation": "m"
     },

@@ -1,107 +1,57 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useState } from "react";
+
+// Freier Streifen oben im Vollbild: Safe-Area kommt per CSS dazu, hier zählt nur, was
+// die schwebenden Knöpfe (Schliessen, Titel-Pille) belegen.
+const FULLSCREEN_PAD_TOP = 96;
+// Sichtbarer Rand zwischen eingepasster Route und dem Sheet, wie auf der Startseite.
+const FULLSCREEN_GAP = 24;
+// Platz für die schwebende Desktop-Karte, dieselbe Zahl wie auf der Startseite.
+const DESKTOP_CARD_PAD = 470;
 import { createPortal } from "react-dom";
-import { AnimatePresence } from "framer-motion";
 import { useTranslations } from "next-intl";
-import { Link } from "@/i18n/navigation";
 import SpotMap, { type MapMarker } from "./SpotMap";
-import MapPopover, { MapPopoverClose } from "./MapPopover";
+import SpotSheet, { SPOT_SHEET_PEEK } from "./SpotSheet";
+import SpotCardDesktop from "./SpotCardDesktop";
+import { useSpotSelection, type SelectableSpot } from "./useSpotSelection";
+import { useViewportHeight } from "@/lib/viewport";
+import { useIsDesktop } from "@/lib/use-is-desktop";
 import { useIsMounted } from "@/lib/use-is-mounted";
 
-// Vorschau-Karte, die beim Antippen eines Markers erscheint: Foto/Emoji + Titel +
-// Kurzbeschreibung. Funktioniert eingebettet UND im Vollbild (MapPopover).
-//
-// Dass die Zeile weiterführt, sagt das Winkel-Zeichen am Ende — so schreibt iOS es in
-// jede Liste. Vorher stand dort „Ansehen →" in Rot: ein Pfeil, den Apple nirgends
-// verwendet, und ein Wort, das die Zeile ohnehin schon versprach. Das Wort lebt weiter
-// als Vorlese-Beschriftung des Links, wo es tatsächlich gebraucht wird.
-function MarkerPreview({
-  marker,
-  onClose,
-  viewLabel,
-  closeLabel,
-  safeBottom = false,
-}: {
-  marker: MapMarker;
-  onClose: () => void;
-  viewLabel: string;
-  closeLabel: string;
-  safeBottom?: boolean;
-}) {
-  return (
-    <MapPopover fullscreen={safeBottom}>
-      <Link
-        href={`/spot/${marker.slug}`}
-        aria-label={`${marker.title ?? ""} – ${viewLabel}`}
-        className="flex min-w-0 flex-1 items-center gap-3 p-2.5 pr-1.5 active:opacity-80"
-      >
-        {marker.imageUrl ? (
-          <Image
-            src={marker.imageUrl}
-            alt=""
-            width={56}
-            height={48}
-            sizes="56px"
-            className="h-12 w-14 shrink-0 rounded-[10px] object-cover"
-          />
-        ) : (
-          <span className="flex h-12 w-14 shrink-0 items-center justify-center rounded-[10px] bg-gradient-to-br from-accent/15 to-muted/15 text-2xl">
-            {marker.emoji ?? "📍"}
-          </span>
-        )}
-        <span className="min-w-0 flex-1">
-          <span className="block truncate text-[15px] font-semibold text-ink">
-            {marker.title}
-          </span>
-          {marker.subtitle && (
-            <span className="mt-0.5 block truncate text-[13px] leading-snug text-muted">
-              {marker.subtitle}
-            </span>
-          )}
-        </span>
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="shrink-0 text-black/25"
-          aria-hidden
-        >
-          <path d="m9 5 7 7-7 7" />
-        </svg>
-      </Link>
-      <MapPopoverClose onClick={onClose} label={closeLabel} />
-    </MapPopover>
-  );
-}
-
-// Wiederverwendbare Karten-Card mit Controls (oben-rechts) + Vollbild (Portal).
-// enablePreview: Marker werden antippbar -> Vorschau-Karte zum Öffnen des Spots.
+// Karten-Kachel: eingebettet eine reine Vorschau (antippen macht sie gross), im
+// Vollbild eine echte Karte mit antippbaren Markern und dem Spot-Sheet aus Explore.
 export default function MapCard({
   markers,
   title,
   className,
   center,
   zoom,
-  enablePreview = false,
+  spots,
+  loggedIn = false,
+  savedSlugs,
+  onSavedChange,
 }: {
   markers: MapMarker[];
   title?: string;
   className?: string;
   center?: [number, number];
   zoom?: number;
-  enablePreview?: boolean;
+  // Volle Spot-Daten zu den Markern. Sind sie da, sind die Marker IM VOLLBILD
+  // antippbar, öffnen dasselbe Sheet wie auf Explore und zeigen bei Wanderungen den
+  // Weg. Ohne sie bleibt die Karte reine Anzeige. Ersetzt das frühere
+  // `enablePreview`-Flag: Nicht ein Schalter entscheidet, ob etwas geht, sondern ob
+  // die Daten dafür da sind.
+  spots?: SelectableSpot[];
+  loggedIn?: boolean;
+  savedSlugs?: Set<string>;
+  onSavedChange?: (slug: string, saved: boolean) => void;
 }) {
   const t = useTranslations("Detail");
   const [fullscreen, setFullscreen] = useState(false);
   const mounted = useIsMounted();
-  const [sel, setSel] = useState<string | null>(null);
+  const vh = useViewportHeight();
+  const isDesktop = useIsDesktop();
 
   useEffect(() => {
     if (!fullscreen) return;
@@ -117,17 +67,47 @@ export default function MapCard({
     };
   }, [fullscreen]);
 
-  const selected = enablePreview
-    ? (markers.find((m) => m.slug === sel) ?? null)
-    : null;
-  // Interaktions-Props nur, wenn Vorschau aktiv (Detailseiten-Karte bleibt unberührt).
-  const interactive = enablePreview
-    ? {
-        onMarkerClick: (slug: string) => setSel(slug),
-        selectedSlug: sel,
-        onMapClick: () => setSel(null),
-      }
+  // DERSELBE HAKEN WIE AUF DER STARTSEITE.
+  // Auswahl, Wanderroute, Kamerafahrt und das Zusammenspiel mit dem Sheet kommen aus
+  // useSpotSelection — nicht nachgebaut, sondern dieselbe Quelle. Wer die Startseiten-
+  // Karte verbessert, verbessert diese hier mit. Der Unterschied zwischen den beiden
+  // bleibt genau da, wo er hingehört: Diese Karte ist im Grundzustand eine kleine
+  // Vorschau, und ihre Ränder unten/oben sind andere (siehe focusFor weiter unten).
+  const {
+    spot: selected,
+    open,
+    close: clearSelection,
+    route,
+    selectedSlug,
+    focusFor,
+    closing,
+    setDismissing,
+  } = useSpotSelection(spots ?? []);
+
+  // Marker sind NUR im Vollbild antippbar. Die eingebettete Karte ist eine einzige
+  // Schaltfläche (siehe SpotMap), dort kommt ohnehin kein Tap bei einem Marker an.
+  const interactive = spots
+    ? { onMarkerClick: open, selectedSlug, onMapClick: clearSelection }
     : {};
+
+  // Ränder für die Kamerafahrt im Vollbild: oben die Safe-Area plus die schwebenden
+  // Knöpfe, unten der Anteil, den das Spot-Sheet abdeckt — dieselbe Rechnung wie auf
+  // der Startseite, nur ohne Header und Tab-Leiste.
+  // Unten bleibt frei, was den Spot verdecken würde: am Handy der Anteil des
+  // Peek-Sheets, am Desktop die schwebende Karte. Dieselben Zahlen wie auf der
+  // Startseite, damit sich die Kamerafahrt auf beiden Seiten gleich anfühlt.
+  const focus = focusFor(
+    FULLSCREEN_PAD_TOP,
+    isDesktop
+      ? DESKTOP_CARD_PAD
+      : Math.round((vh || 800) * SPOT_SHEET_PEEK) + FULLSCREEN_GAP,
+  );
+
+  // Beim Schliessen des Vollbilds darf kein Sheet zurückbleiben.
+  function closeFullscreen() {
+    clearSelection();
+    setFullscreen(false);
+  }
 
   return (
     <>
@@ -136,22 +116,10 @@ export default function MapCard({
           markers={markers}
           center={center}
           zoom={zoom}
-          cooperative
           mapClass="sg-ctrl-top"
           onFullscreen={() => setFullscreen(true)}
-          {...interactive}
+          openMapLabel={t("openMap")}
         />
-        <AnimatePresence>
-          {selected && (
-            <MarkerPreview
-              key={selected.slug}
-              marker={selected}
-              onClose={() => setSel(null)}
-              viewLabel={t("view")}
-              closeLabel={t("elevation.close")}
-            />
-          )}
-        </AnimatePresence>
       </div>
 
       {mounted &&
@@ -163,14 +131,20 @@ export default function MapCard({
               center={center}
               zoom={zoom}
               mapClass="sg-ctrl-safe"
+              // Die Wanderwege, die es auf der Startseite immer schon gab. Ohne sie war
+              // eine gemerkte Wanderung hier nur ein Punkt.
+              route={route}
+              focus={focus}
+              showRouteEnds={false}
+              fitRoute={false}
               {...interactive}
             />
 
             <button
               type="button"
-              onClick={() => setFullscreen(false)}
+              onClick={closeFullscreen}
               aria-label={t("elevation.close")}
-              className="absolute left-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-ink shadow-md ring-1 ring-black/5 backdrop-blur active:scale-95"
+              className="sg-hit absolute left-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-ink shadow-md ring-1 ring-black/5 backdrop-blur active:scale-95"
               style={{ top: "calc(env(safe-area-inset-top) + 12px)" }}
             >
               <svg
@@ -197,18 +171,40 @@ export default function MapCard({
               </div>
             )}
 
-            <AnimatePresence>
-              {selected && (
-                <MarkerPreview
-                  key={selected.slug}
-                  marker={selected}
-                  onClose={() => setSel(null)}
-                  viewLabel={t("view")}
-                  closeLabel={t("elevation.close")}
-                  safeBottom
+            {/* DASSELBE Sheet wie auf Explore, nicht ein zweites Kärtchen daneben.
+                Vorher stand hier ein eigenes kleines Popup, das dieselbe Aufgabe mit
+                eigener Optik löste. Wer von der Karte auf einen Spot tippt, soll überall
+                dieselbe Antwort bekommen — Bild, Titel, Kurztext, Merken, weiter zum
+                Spot. Möglich wurde das, weil SpotSheet nur noch SpotCardData verlangt. */}
+            {/* Handy = ziehbares Bottom-Sheet, Desktop = schwebende Karte. Exakt die
+                Aufteilung der Startseite: Ein Sheet, das man am Mauszeiger hochzieht,
+                wäre am Desktop eine Geste, die es dort nicht gibt.
+                `isDesktop` darf hier an JavaScript hängen (anders als beim Grundlayout),
+                weil dieses Panel erst existiert, nachdem jemand einen Marker angetippt
+                hat — die Hydration ist da längst durch, es blitzt nichts auf. */}
+            {selected &&
+              (isDesktop ? (
+                <SpotCardDesktop
+                  spot={selected}
+                  // Kein Versatz: Diese Karte liegt vollflächig, ohne Spot-Leiste links.
+                  panelOffset={false}
+                  onClose={clearSelection}
+                  loggedIn={loggedIn}
+                  saved={savedSlugs?.has(selected.slug) ?? false}
+                  onSavedChange={onSavedChange}
                 />
-              )}
-            </AnimatePresence>
+              ) : (
+                <SpotSheet
+                  key={selected.slug}
+                  spot={selected}
+                  closing={closing}
+                  onDismissStart={() => setDismissing(true)}
+                  onClose={clearSelection}
+                  loggedIn={loggedIn}
+                  saved={savedSlugs?.has(selected.slug) ?? false}
+                  onSavedChange={onSavedChange}
+                />
+              ))}
           </div>,
           document.body,
         )}

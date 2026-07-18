@@ -220,7 +220,6 @@
     },
     "save": "Bewaren",
     "back": "Terug naar de kaart",
-    "view": "Bekijken",
     "weatherSoon": "Weer volgt binnenkort",
     "openingSoon": "Openingstijden volgen binnenkort",
     "weather": { "title": "Weer", "today": "Vandaag" },
@@ -258,12 +257,12 @@
     "proTeaser": "Deze spot hoort bij SalzGuide Pro. Ontgrendel alle verborgen highlights.",
     "unlock": "SalzGuide Pro ontgrendelen",
     "lockedLabel": "🤫 Geheime tip",
+    "openMap": "Kaart openen",
     "elevation": {
       "profile": "Hoogteprofiel",
       "ascent": "Stijging",
       "descent": "Daling",
       "highest": "hoogste punt",
-      "openMap": "Kaart openen",
       "close": "Sluiten",
       "unitElevation": "hm"
     },

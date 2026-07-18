@@ -220,7 +220,6 @@
     },
     "save": "Salva",
     "back": "Torna alla mappa",
-    "view": "Vedi",
     "weatherSoon": "Meteo in arrivo a breve",
     "openingSoon": "Orari in arrivo a breve",
     "weather": { "title": "Meteo", "today": "Oggi" },
@@ -258,12 +257,12 @@
     "proTeaser": "Questo spot fa parte di SalzGuide Pro. Sblocca tutti gli highlight nascosti.",
     "unlock": "Sblocca SalzGuide Pro",
     "lockedLabel": "🤫 Spot segreto",
+    "openMap": "Apri la mappa",
     "elevation": {
       "profile": "Profilo altimetrico",
       "ascent": "Salita",
       "descent": "Discesa",
       "highest": "punto più alto",
-      "openMap": "Apri la mappa",
       "close": "Chiudi",
       "unitElevation": "m"
     },
