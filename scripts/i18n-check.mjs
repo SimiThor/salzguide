@@ -250,6 +250,97 @@ const checkGroups = (name, cats) => {
 checkGroups("SUBTYPE_GROUPS", ["SUBTYPE"]);
 checkGroups("AREA_GROUPS", ["AREA", "AREA_NAMES"]);
 
+// ---------------------------------------------------------------------------
+// UNGELESENE KEYS (Hinweis, kein Fehler)
+//
+// Jeder Key wird in JEDE Sprache übersetzt und landet über getMessages() im HTML JEDER
+// Seite. Einer, den niemand liest, kostet also neunmal Übersetzungsarbeit und auf jedem
+// Seitenaufruf Bytes.
+//
+// Der naheliegende Weg — Key-Namen im Quelltext suchen — meldet Unsinn. Ein erster
+// Versuch fand 75 „tote" Keys, von denen 54 quicklebendig waren. Dieser Code holt
+// Übersetzungen auf fünf Arten, und jede davon hat einen Anlauf gekostet:
+//
+//   1. Die Funktion heisst nicht immer `t`.     const tc = useTranslations("Common")
+//   2. Der Namensraum kommt auch als Objekt.    getTranslations({ locale, namespace: "Meta" })
+//   3. Ein Name ist zweimal gebunden.           `const t` in generateMetadata UND in der Komponente
+//   4. Der Key steckt in einem Ausdruck.        t(gast ? "paywallGuestCta" : "paywallProCta")
+//   5. Ein Array wird am Stück geholt.          t.raw("launcherBubbles") deckt .0 .1 .2 ab
+//
+// Dazu Zusammengesetztes: t(`poi.${art}`) und t(item.key). Was sich nicht statisch
+// auflösen lässt, wird GESCHONT — der ganze Ast oder der ganze Namensraum.
+//
+// Deshalb bricht dieser Abschnitt den Check NICHT ab: Er ist eine Frage, keine Antwort.
+// Vor dem Löschen von Hand nachsehen; danach die Seiten durchklicken, next-intl schreibt
+// jeden fehlenden Key als MISSING_MESSAGE auf die Konsole.
+const srcFiles = [];
+(function walk(dir) {
+  for (const e of readdirSync(dir, { withFileTypes: true })) {
+    const p = join(dir, e.name);
+    if (e.isDirectory()) walk(p);
+    else if (/\.(tsx?|jsx?)$/.test(e.name)) srcFiles.push(p);
+  }
+})("src");
+
+const litKeys = new Set();
+const keyPrefixes = new Set();
+const dynamicNs = new Set();
+
+for (const file of srcFiles) {
+  const code = readFileSync(file, "utf8");
+  const bindings = new Map(); // Variablenname -> Namensräume (mehrere möglich, siehe 3.)
+  for (const m of code.matchAll(
+    /(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:await\s+)?(?:useTranslations|getTranslations)\(\s*(?:"([^"]*)"|\{[^}]*namespace:\s*"([^"]*)"[^}]*\}|)\s*\)/g,
+  )) {
+    bindings.set(m[1], [...(bindings.get(m[1]) ?? []), m[2] ?? m[3] ?? ""]);
+  }
+
+  for (const [name, nsList] of bindings) {
+    const q = name.replace(/\$/g, "\\$");
+    for (const ns of nsList) {
+      const add = (set, key) => set.add(ns ? `${ns}.${key}` : key);
+
+      // (4) Ganzes Argument bis zur passenden Klammer — t.rich("legalHint", { terms: (c) => … })
+      for (const m of code.matchAll(new RegExp(`\\b${q}(?:\\.rich|\\.raw|\\.markup)?\\(`, "g"))) {
+        let i = m.index + m[0].length;
+        for (let depth = 1; i < code.length && depth > 0; i++) {
+          if (code[i] === "(") depth++;
+          else if (code[i] === ")") depth--;
+        }
+        for (const lit of code.slice(m.index + m[0].length, i - 1).matchAll(/"([^"]+)"/g)) add(litKeys, lit[1]);
+      }
+      // Zusammengesetzt mit festem Anfang -> ganzer Ast benutzt
+      for (const m of code.matchAll(new RegExp(`\\b${q}(?:\\.rich|\\.raw)?\\(\\s*\`([^\`$]*)\\$\\{`, "g"))) {
+        const pre = m[1].replace(/\.$/, "");
+        if (pre) add(keyPrefixes, pre);
+        else dynamicNs.add(ns);
+      }
+      // Aus einer Variablen -> ganzer Namensraum benutzt
+      for (const m of code.matchAll(
+        new RegExp(`\\b${q}(?:\\.rich|\\.raw)?\\(\\s*([A-Za-z_$][\\w$]*(?:\\.[\\w$]+)*)\\s*[,)]`, "g"),
+      )) {
+        if (!/^["'`]/.test(m[1])) dynamicNs.add(ns);
+      }
+    }
+  }
+}
+
+const hasReader = (key) => {
+  if (litKeys.has(key)) return true;
+  for (const p of keyPrefixes) if (key === p || key.startsWith(`${p}.`)) return true;
+  for (const n of dynamicNs) if (n === "" || key === n || key.startsWith(`${n}.`)) return true;
+  for (const l of litKeys) if (l.startsWith(`${key}.`)) return true; // Ast benutzt
+  const parts = key.split(".");
+  for (let i = parts.length - 1; i > 0; i--) if (litKeys.has(parts.slice(0, i).join("."))) return true; // (5)
+  return false;
+};
+
+const unread = [...base.keys()].filter((k) => !isBaseOnly(k) && !hasReader(k));
+if (unread.length) {
+  console.warn(`\n⚠ ${unread.length} Key(s) ohne erkennbaren Leser — bitte einzeln prüfen, nicht blind löschen:`);
+  for (const k of unread) console.warn(`  ${k}`);
+}
+
 if (problems > 0) {
   console.error(`\n✗ ${problems} Problem(e) in ${locales.length} Sprachen.`);
   process.exit(1);
