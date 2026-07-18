@@ -215,15 +215,21 @@ Alle externen Calls **serverseitig**, Keys in ENV, Ergebnisse in `api_cache` (od
 
 ## 8a. Knöpfe & Status — `src/lib/ui.ts` (verbindlich)
 
-**Die Regel: gefüllt heisst anfassbar, umrandet heisst Zustand.**
+**Die Regel: flach gefüllt heisst anfassbar, mit Rand heisst Zustand.**
 
 Vorher trugen beide dieselbe graue Kapsel. In der Admin-Nutzerliste standen „Pro · geschenkt" (nur Text) und „Pro schenken" (ein Knopf) nebeneinander in derselben Zeile, unterschieden durch 4px Innenabstand und 1px Schriftgrösse. Die Oberfläche darf die Frage „welches davon kann ich drücken?" gar nicht erst stellen lassen.
 
 | | Knopf | Status |
 |---|---|---|
-| Fläche | **gefüllt** (`bg-accent`, `bg-black/5`, `bg-accent/10`) | **keine**, nur `ring-1` in der Textfarbe |
-| Schrift | `font-semibold`, ab `text-[13px]` | `font-medium`, `text-[11px]` |
+| Fläche | **flach gefüllt, ohne Rand** (`bg-accent`, `bg-black/5`) | **getönt + `ring-1 ring-inset`** in der Textfarbe |
+| Schrift | `font-semibold`, ab `text-[13px]` | `font-semibold`, `text-[11px]`, `leading-none` |
 | Berührung | **immer** `active:scale-[0.98]` (Icon-Knöpfe 0.95/0.90) | nie |
+
+Der Rand ist das Merkmal, **nicht** das Fehlen der Füllung. Zuerst war Status ganz ohne Fläche gebaut: eindeutig, aber zu zart für diese Marke, und es passte nicht zu `<ProBadge>`. Pro ist selbst ein Status, trägt aber eine volle Fläche, weil es die Marke IST. Ein hohler Umriss direkt daneben sah aus wie zwei Dinge aus verschiedenen Häusern. Jetzt sind es drei Lautstärken derselben Familie, gleiche Form, gleicher `ring-inset`, gleiche Höhe (`px-2 py-0.5 text-[11px]`, exakt `ProBadge` sm):
+
+`ProBadge` (volle Fläche, Verlauf, weisse Schrift) → `STATUS_ACCENT` (12% Rot) → `STATUS_NEUTRAL` (12% Warmgrau).
+
+Neutral ist bewusst **nicht** `bg-black/5`: Das ist die Fläche des Sekundär-Knopfs, und ihre Doppelbelegung war das ursprüngliche Problem. Stattdessen `muted` (#6C5B57), unser warmes Braungrau aus den Design-Tokens.
 
 Konstanten: `BTN_PRIMARY`, `BTN_SECONDARY`, `BTN_DANGER` (je mit `_SM`-Variante), `STATUS_NEUTRAL`, `STATUS_ACCENT`, `STATUS_GOOD`. Keine neuen Kapseln von Hand stylen.
 

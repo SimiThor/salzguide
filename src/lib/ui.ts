@@ -1,7 +1,7 @@
 // Knöpfe und Status-Kennzeichnungen, an EINER Stelle.
 //
 // ═══════════════════════════════════════════════════════════════════════════════
-//  DIE REGEL:  Gefüllt heisst anfassbar.  Umrandet heisst Zustand.
+//  DIE REGEL:  Flach gefüllt heisst anfassbar.  Mit Rand heisst Zustand.
 // ═══════════════════════════════════════════════════════════════════════════════
 //
 // WARUM ES DIE BRAUCHT: Vorher trugen beide dieselbe graue Kapsel. In der Admin-Nutzerliste
@@ -34,9 +34,15 @@
 
 // ── Knöpfe ───────────────────────────────────────────────────────────────────
 //
-// Gemeinsam: gefüllte Kapsel, halbfett, und IMMER Press-Feedback. Ein Knopf ohne
-// active:scale fühlt sich am Handy tot an, und genau daran fehlte es bisher bei rund 40
-// Stück (vor allem im Admin).
+// Gemeinsam: FLACH gefüllte Kapsel OHNE Rand, halbfett, und IMMER Press-Feedback.
+//
+// Kein Rand ist hier kein Schönheitsdetail, sondern die halbe Regel: Der Rand gehört den
+// Status-Kennzeichnungen. Ein Knopf, dem man einen ring-1 verpasst, macht die Trennung
+// wieder kaputt. (Ausnahme mit Grund: der weisse Google-Knopf im Login braucht eine
+// Kontur, sonst verschwände er auf weissem Grund. Er steht nie neben einem Status.)
+//
+// Ein Knopf ohne active:scale fühlt sich am Handy tot an, und genau daran fehlte es bisher
+// bei rund 40 Stück (vor allem im Admin).
 //
 // active:scale-[0.98] ist der Wert für Knöpfe mit Text: In der Codebase steht er 41 Mal und
 // ist damit der eingebürgerte Standard. Runde Icon-Knöpfe dürfen weiter kräftiger
@@ -66,14 +72,35 @@ export const BTN_DANGER_SM = `${BTN_SM} bg-accent/10 text-accent`;
 
 // ── Status ───────────────────────────────────────────────────────────────────
 //
-// Gemeinsam: KEINE Füllung, eine Haarlinie, kleiner und leichter gesetzt als jeder Knopf,
-// und niemals Press-Feedback. Die Linie nimmt die Farbe des Textes auf, damit ein Zustand
-// als EIN Ding liest und nicht als Text in einem fremden Rahmen.
-const STATUS = "inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium ring-1";
+// Gemeinsam: getönte Fläche, Rand nach INNEN in derselben Farbe, klein und halbfett, und
+// niemals Press-Feedback.
+//
+// Der Rand ist das Merkmal, nicht das Fehlen der Füllung. Erst stand Status ganz ohne
+// Fläche da — die Trennung zum Knopf war eindeutig, aber es war zu zart für diese Marke,
+// und vor allem passte es nicht zu <ProBadge>. Pro ist selbst ein Status, trägt aber eine
+// volle Fläche, weil es die Marke IST. Ein hohler Umriss direkt daneben sah aus wie zwei
+// Dinge aus verschiedenen Häusern.
+//
+// Jetzt sind sie eine Familie mit drei Lautstärken, gleiche Form, gleicher ring-inset,
+// gleiche Höhe (px-2 py-0.5 text-[11px], exakt ProBadge sm):
+//
+//   ProBadge         volle Fläche, Verlauf, weisse Schrift   <- die Marke, am lautesten
+//   STATUS_ACCENT    12% Fläche, Rand und Schrift in Rot     <- hebt hervor
+//   STATUS_NEUTRAL   12% Fläche in Warmgrau                  <- die sachliche Angabe
+//
+// Der Knopf bleibt trotzdem unverwechselbar, denn er ist FLACH GEFÜLLT OHNE RAND, grösser
+// (text-[13px] aufwärts) und zuckt beim Antippen. Merksatz: Rand heisst Zustand.
+//
+// WARUM NEUTRAL NICHT bg-black/5 IST, obwohl das naheliegt: Das ist die Fläche des
+// Sekundär-Knopfs, und genau ihre Doppelbelegung war das ursprüngliche Problem. `muted`
+// (#6C5B57) ist unser warmes Braungrau aus den Design-Tokens. Es sieht neben Creme und
+// Weiss wärmer aus als Schwarz auf 5% und gehört zur Marke, statt nur "grau" zu sein.
+const STATUS =
+  "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold leading-none ring-1 ring-inset";
 
 /** Der Normalfall: eine sachliche Angabe ohne Wertung. */
-export const STATUS_NEUTRAL = `${STATUS} text-muted ring-black/10`;
+export const STATUS_NEUTRAL = `${STATUS} bg-muted/12 text-muted ring-muted/25`;
 /** Hebt hervor, was zur Marke gehört oder Aufmerksamkeit verdient. */
-export const STATUS_ACCENT = `${STATUS} text-accent ring-accent/25`;
+export const STATUS_ACCENT = `${STATUS} bg-accent/12 text-accent ring-accent/25`;
 /** Erledigt, veröffentlicht, gratis. Grün ist im Projekt schon die Farbe dafür. */
-export const STATUS_GOOD = `${STATUS} text-emerald-700 ring-emerald-600/30`;
+export const STATUS_GOOD = `${STATUS} bg-emerald-600/12 text-emerald-700 ring-emerald-600/25`;
