@@ -345,19 +345,27 @@ export default function TourView({
         <div className="pointer-events-auto">{topRight}</div>
       </div>
 
-      {isDesktop ? (
-        <aside className="absolute inset-y-0 left-0 z-10 flex w-[var(--sg-panel)] flex-col border-r border-black/5 bg-cream/95 backdrop-blur-xl">
-          <div className="flex items-center justify-between gap-2 px-4 pt-4">
-            {backControl}
-            {topRight}
-          </div>
-          <div className="flex-1 overflow-y-auto pb-16 pt-6">{panel}</div>
-        </aside>
-      ) : (
+      {/* Welche Ansicht gilt, entscheidet CSS – nicht ein State, der erst nach der
+          Hydration stimmt. Vorher hing das an `isDesktop` (Startwert false), also
+          rendete der Server IMMER die Handy-Ansicht und der PC zeigte für einen Moment
+          ein breitgezogenes iPhone. Gemessen waren das 386ms, auf einem kalten Laden
+          deutlich mehr. Dasselbe Muster wie in Explore.tsx.
+          `isDesktop` bleibt für das Karten-Padding: Mapbox will Zahlen, das kann CSS nicht. */}
+      <aside className="absolute inset-y-0 left-0 z-10 hidden w-[var(--sg-panel)] flex-col border-r border-black/5 bg-cream/95 backdrop-blur-xl md:flex">
+        <div className="flex items-center justify-between gap-2 px-4 pt-4">
+          {backControl}
+          {topRight}
+        </div>
+        <div className="flex-1 overflow-y-auto pb-16 pt-6">{panel}</div>
+      </aside>
+      {/* `contents`: am Handy darf der Wrapper das Layout nicht anfassen, sonst verliert
+          das Sheet seinen Bezug zum `fixed inset-0` darüber. Ab md fällt der ganze
+          Teilbaum per display:none weg. */}
+      <div className="contents md:hidden">
         <MobileSheet hide={false} peek={SHEET_PEEK} detents={SHEET_DETENTS}>
           {panel}
         </MobileSheet>
-      )}
+      </div>
     </div>
   );
 }

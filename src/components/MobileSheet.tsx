@@ -175,15 +175,41 @@ export default function MobileSheet({
     setPeekMeasured((cur) => (cur === next ? cur : next));
   }, [peekFits]);
 
+  // Der Anker wird direkt beobachtet, nicht nur bei resize nachgemessen. Sonst bliebe der
+  // Peek genau dann stehen, wenn sich am DOM nichts ändert und trotzdem alles höher wird:
+  // Inter lädt nach und der Untertitel bricht plötzlich auf drei Zeilen um. Ein
+  // MutationObserver sieht das nicht, ein ResizeObserver schon.
+  //
+  // Der MutationObserver daneben ist nur dafür da, den Anker neu zu greifen, wenn der
+  // Inhalt ausgetauscht wird (anderer Stopp) – dann zeigt der alte Beobachter ins Leere.
   useIsoLayoutEffect(() => {
-    measurePeek();
+    const body = bodyRef.current;
+    if (!body || !peekFits) return;
+    let watched: HTMLElement | null = null;
+    const ro = new ResizeObserver(() => measurePeek());
+    const attach = () => {
+      const next = body.querySelector<HTMLElement>(peekFits);
+      if (next !== watched) {
+        if (watched) ro.unobserve(watched);
+        watched = next;
+        if (watched) ro.observe(watched);
+      }
+      measurePeek();
+    };
+    attach();
+    const mo = new MutationObserver(attach);
+    mo.observe(body, { childList: true, subtree: true });
+    // resize bleibt trotzdem: die Tab-Leiste steckt im Peek, und die ändert sich mit der
+    // Safe Area, ohne dass der Anker selbst anders wird.
     window.addEventListener("resize", measurePeek);
     window.addEventListener("orientationchange", measurePeek);
     return () => {
+      ro.disconnect();
+      mo.disconnect();
       window.removeEventListener("resize", measurePeek);
       window.removeEventListener("orientationchange", measurePeek);
     };
-  }, [measurePeek]);
+  }, [measurePeek, peekFits]);
 
   // Der Peek gilt nicht nur fürs Sheet: das Karten-Padding hält Pins darüber und
   // --sg-map-bottom hebt Mapbox-Logo und -Attribution an. Beide lesen dieselbe Variable,
@@ -191,14 +217,18 @@ export default function MobileSheet({
   // durchgereicht, statt jeden Verbraucher einzeln zu verkabeln. Pro Seite gibt es genau
   // ein persistentes Sheet, also streitet sich niemand darum; beim Verlassen der Seite
   // fällt der globale Standard aus globals.css zurück.
+  //
+  // `metrics.fullPx` ist die Sicherung: am Desktop hängt das Sheet in einem `md:hidden`
+  // und hat gar kein Layout (Höhe 0). Ohne die Abfrage schriebe es dort trotzdem einen
+  // Handy-Peek an die Wurzel, und --sg-map-bottom schöbe das Mapbox-Logo grundlos hoch.
   useEffect(() => {
-    if (!effectivePeek) return;
+    if (!effectivePeek || !metrics.fullPx) return;
     const root = document.documentElement;
     root.style.setProperty(SHEET_PEEK_VAR, effectivePeek);
     return () => {
       root.style.removeProperty(SHEET_PEEK_VAR);
     };
-  }, [effectivePeek]);
+  }, [effectivePeek, metrics.fullPx]);
 
   // Die oberste Stufe gibt dem Sheet seine Höhe, muss also ein Anteil sein.
   const last = detents[detents.length - 1];
@@ -347,9 +377,6 @@ export default function MobileSheet({
       // Ein Frame warten: beim Saison-Wechsel hängt kurz noch das alte Regal im DOM.
       raf = requestAnimationFrame(() => {
         if (hideRef.current || draggingRef.current) return;
-        // Auch der Peek hängt am Inhalt: der Stopp-Titel einer Tour wechselt, das Bild
-        // lädt nach. Ohne Neumessung bliebe der Ruhezustand auf dem alten Stand stehen.
-        measurePeek();
         const target = computeStops()[idxRef.current];
         if (Math.abs(y.get() - target) > 1) animate(y, target, transition);
       });
@@ -360,7 +387,7 @@ export default function MobileSheet({
       mo.disconnect();
       cancelAnimationFrame(raf);
     };
-  }, [computeStops, measurePeek, transition, y]);
+  }, [computeStops, transition, y]);
 
   // Tippen (statt ziehen) geht eine Stufe weiter, oben wieder zurück auf Peek.
   // detents.length = oberste Stufe (Peek ist die zusätzliche unterste).

@@ -314,15 +314,16 @@ export default function WaterExplore({
         )}
       </div>
 
-      {isDesktop ? (
-        <aside className="absolute inset-y-0 left-0 z-10 w-[var(--sg-panel-water)] overflow-y-auto border-r border-black/5 bg-cream/95 py-6 backdrop-blur-xl">
-          {list}
-        </aside>
-      ) : (
+      {/* CSS entscheidet, nicht ein State nach der Hydration – siehe TourView/Explore.
+          Vorher zeigte der PC hier für 258ms die Handy-Ansicht in voller Breite. */}
+      <aside className="absolute inset-y-0 left-0 z-10 hidden w-[var(--sg-panel-water)] overflow-y-auto border-r border-black/5 bg-cream/95 py-6 backdrop-blur-xl md:block">
+        {list}
+      </aside>
+      <div className="contents md:hidden">
         <MobileSheet hide={selected != null} peek={SHEET_PEEK}>
           {list}
         </MobileSheet>
-      )}
+      </div>
 
       {/* Preview: Temperatur + Spots am See – wie auf der Startseite ohne Backdrop
           (Karte bleibt scharf): mobil ziehbares Sheet, Desktop schwebende Karte. */}
