@@ -257,7 +257,7 @@ export type ExploreSpot = SpotCardData & {
 // nebenbei einen Bug verloren: Number(null) ist 0, ein null in den Koordinaten wurde
 // also zu Punkt (0,0) und hätte die Box bis Null Island aufgespannt. Die SQL prüft den
 // JSON-Typ und liefert in dem Fall NULL.
-function asBBox(v: unknown): [number, number, number, number] | null {
+export function asBBox(v: unknown): [number, number, number, number] | null {
   return Array.isArray(v) && v.length === 4 && v.every((n) => typeof n === "number")
     ? (v as [number, number, number, number])
     : null;

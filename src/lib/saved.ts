@@ -1,13 +1,23 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "./supabase/server";
 import {
+  asBBox,
   imagesFromMedia,
   localeWithFallback,
   pickTranslation,
   type SpotCardData,
 } from "./spots";
 
-export type SavedSpot = SpotCardData & { lat: number | null; lng: number | null };
+export type SavedSpot = SpotCardData & {
+  lat: number | null;
+  lng: number | null;
+  // Bounding-Box der Wanderroute, direkt aus der DB (generierte Spalte route_bbox).
+  // Ohne sie flöge die Karte erst zum Punkt und passte NACHTRÄGLICH auf die Route ein,
+  // sobald die Linie geladen ist — also genau das Springen, das es auf der Startseite
+  // seit Migration 0042 nicht mehr gibt. Vier Zahlen, die mit der Liste mitkommen,
+  // sparen diesen zweiten Zug.
+  routeBounds?: [number, number, number, number] | null;
+};
 
 // Default-Merkliste holen oder anlegen
 export async function getOrCreateDefaultList(
@@ -70,7 +80,7 @@ export async function getSavedSpots(locale: string): Promise<SavedSpot[] | null>
   const { data } = await supabase
     .from("spots")
     .select(
-      "slug, emoji, is_pro, type, lat, lng, spot_translations!inner(title, short_desc, lang), media(url, role, sort_order)",
+      "slug, emoji, is_pro, type, lat, lng, route_bbox, spot_translations!inner(title, short_desc, lang), media(url, role, sort_order)",
     )
     .in("id", ids)
     .eq("status", "published")
@@ -96,6 +106,10 @@ export async function getSavedSpots(locale: string): Promise<SavedSpot[] | null>
       shortDesc: t?.short_desc ?? null,
       lat: s.lat,
       lng: s.lng,
+      // Dieselbe Regel wie in getExploreSpots: Box nur für Wanderungen, die dieser
+      // Betrachter sehen darf. Gespeichertes ist nie gesperrt (siehe `locked` oben),
+      // die Prüfung auf den Typ genügt hier.
+      routeBounds: s.type === "activity" ? asBBox(s.route_bbox) : null,
     };
   });
 }
