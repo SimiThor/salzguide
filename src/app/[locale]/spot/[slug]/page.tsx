@@ -117,11 +117,12 @@ export default async function SpotPage({
       ) : !children && spot.images[0] ? (
         <GalleryImage
           index={0}
+          zoomable={false}
           src={spot.images[0]}
           alt={spot.title}
           sizes="100vw"
           priority
-          className={`block cursor-zoom-in ${HERO_BOX}`}
+          className={`block ${HERO_BOX}`}
           imgClassName="object-cover"
         />
       ) : (
