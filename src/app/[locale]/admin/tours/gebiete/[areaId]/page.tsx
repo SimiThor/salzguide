@@ -3,6 +3,7 @@ import { Link } from "@/i18n/navigation";
 import { getAreaForEdit, getAreaPoints } from "@/lib/tour-pool";
 import AreaForm from "@/components/admin/AreaForm";
 import BackButton from "@/components/BackButton";
+import { STATUS_NEUTRAL } from "@/lib/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -47,7 +48,7 @@ export default async function EditAreaPage({
               </span>
               <span className="flex shrink-0 items-center gap-1.5">
                 {p.hasAudio && (
-                  <span className="rounded-full bg-black/[0.06] px-2 py-0.5 text-[11px] text-muted">
+                  <span className={STATUS_NEUTRAL}>
                     🎧
                   </span>
                 )}

@@ -1,0 +1,8 @@
+{
+  // Tailwind v4 kennt zu vielen Klassen eine kürzere Schreibweise (bg-black/[0.05] ->
+  // bg-black/5). Beides rendert identisch, die Extension schlägt es nur vor. Wir haben
+  // uns bewusst für die ausgeschriebene Form entschieden: sie zeigt den echten Wert und
+  // hält den Bezug zu den Design-Tokens aus CLAUDE.md sichtbar. Der Vorschlag würde sonst
+  // dauerhaft ~200 gelbe Warnungen erzeugen, die keine sind.
+  "tailwindCSS.lint.suggestCanonicalClasses": "ignore"
+}

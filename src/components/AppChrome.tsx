@@ -6,6 +6,7 @@ import BottomNav from "@/components/BottomNav";
 import DesktopHeader from "@/components/DesktopHeader";
 import MobileHeader from "@/components/MobileHeader";
 import LegalFooter from "@/components/LegalFooter";
+import ProNotice from "@/components/ProNotice";
 import Analytics from "@/components/Analytics";
 
 // App-Chrome (Header, Tab-Leiste, Footer, Analytics) an EINER Stelle. Ob eine Route
@@ -32,6 +33,10 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
         <LegalFooter />
       </main>
       {!marketing && <BottomNav />}
+      {/* Einmaliger "dein Pro ist da"-Gruss. Nicht auf den Marketing-Seiten: dort ist der
+          Mensch noch im Verkaufsgespräch, und das Kärtchen bräuchte die Tab-Leiste, an der
+          es hängt. In der App sieht er ihn beim nächsten Schritt. */}
+      {!marketing && <ProNotice />}
       <Analytics />
     </>
   );

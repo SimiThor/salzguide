@@ -9,10 +9,11 @@ import { isOperatorClient } from "@/lib/analytics-operator";
 import { safeHttpUrl } from "@/lib/url";
 import { Bookmark, BookmarkFilled } from "./icons";
 import { useLoginGate } from "@/components/auth/LoginGate";
+import { STATUS_ACCENT, STATUS_GOOD, STATUS_NEUTRAL } from "@/lib/ui";
 
 function StarBadge({ label }: { label: string }) {
   return (
-    <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-accent/10 px-2 py-0.5 text-[11px] font-semibold text-accent">
+    <span className={`shrink-0 gap-1 ${STATUS_ACCENT}`}>
       <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
         <path d="M12 2l2.9 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14l-5-4.87 7.1-1.01L12 2z" />
       </svg>
@@ -201,11 +202,11 @@ export default function EventCard({
           {e.locationName && (
             <span className="text-muted">· {e.locationName}</span>
           )}
-          <span className="rounded-full bg-black/[0.05] px-2 py-0.5 text-[11px] font-medium text-muted">
+          <span className={STATUS_NEUTRAL}>
             {t(`cat.${e.category}`)}
           </span>
           {e.isFree && (
-            <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
+            <span className={STATUS_GOOD}>
               {t("free")}
             </span>
           )}

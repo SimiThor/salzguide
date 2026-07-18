@@ -10,6 +10,7 @@ import ElevationProfile from "./ElevationProfile";
 import type { ElevationProfile as Profile } from "@/lib/admin-actions";
 import { coordAtFraction } from "@/lib/geo";
 import { poiEmoji } from "@/lib/poi";
+import { useIsMounted } from "@/lib/use-is-mounted";
 
 const CARD =
   "rounded-[18px] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04),0_12px_32px_-20px_rgba(0,0,0,0.28)]";
@@ -85,11 +86,9 @@ export default function SpotDetailMap({
   const t = useTranslations("Detail");
   const [hoverF, setHoverF] = useState<number | null>(null);
   const [fullscreen, setFullscreen] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const mounted = useIsMounted();
   // Welcher Kartenpunkt ist gerade gewählt (zeigt unten das Kärtchen). null = keiner.
   const [selected, setSelected] = useState<SpotPoi | null>(null);
-
-  useEffect(() => setMounted(true), []);
 
   // Body-Scroll sperren + Esc schliesst im Vollbild
   useEffect(() => {
@@ -227,7 +226,7 @@ export default function SpotDetailMap({
             </button>
 
             <div
-              className="absolute left-1/2 z-10 max-w-[60%] -translate-x-1/2 truncate rounded-full bg-white/90 px-3.5 py-1.5 text-sm font-semibold text-ink shadow-md ring-1 ring-black/5 backdrop-blur"
+              className="absolute left-1/2 z-10 max-w-[60%] -translate-x-1/2 truncate rounded-full bg-white/90 px-3.5 py-1.5 text-sm font-medium text-ink ring-1 ring-black/5 backdrop-blur"
               style={{ top: "calc(env(safe-area-inset-top) + 14px)" }}
             >
               {title}

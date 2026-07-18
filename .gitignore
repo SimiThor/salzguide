@@ -19,6 +19,10 @@ next-env.d.ts
 # production
 /build
 
+# Temporäre Arbeitskopien von Claude-Subagenten. Werden nach getaner Arbeit gelöscht,
+# hinterlassen aber sonst Geister-Fehler im Editor (eigene tsconfig.json ohne Dateien).
+/.claude/worktrees/
+
 # misc
 .DS_Store
 *.pem

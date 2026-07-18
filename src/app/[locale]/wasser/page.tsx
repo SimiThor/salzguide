@@ -19,22 +19,17 @@ export async function generateMetadata({
   };
 }
 
-export default async function WaterPage({
-  params,
-}: {
-  params: Promise<{ locale: string }>;
-}) {
-  const { locale } = await params;
-  setRequestLocale(locale);
-  const t = await getTranslations({ locale, namespace: "Water" });
-
-  const [maps, lakeSpots] = await Promise.all([
-    getWaterMaps(),
-    getLakeSpots(locale),
-  ]);
+// Nur Seen mit AKTUELLER Messung (<= 7 Tage, via lookupLake) aufnehmen -> die
+// Übersicht (Liste + Karte) zeigt ausschliesslich verlässliche, aktuelle Werte.
+//
+// Bewusst eine eigene Funktion auf Modulebene: Date.now() liefert bei jedem Aufruf etwas
+// anderes und darf deshalb nicht im Render einer Komponente stehen (react-hooks/purity).
+// Hier ist es eine schlichte Datenaufbereitung — und die Seite bleibt lesbar.
+function freshLakes(
+  maps: Awaited<ReturnType<typeof getWaterMaps>>,
+  lakeSpots: Awaited<ReturnType<typeof getLakeSpots>>,
+): LakeTemp[] {
   const now = Date.now();
-  // Nur Seen mit AKTUELLER Messung (<= 7 Tage, via lookupLake) aufnehmen -> die
-  // Übersicht (Liste + Karte) zeigt ausschliesslich verlässliche, aktuelle Werte.
   const lakes: LakeTemp[] = [];
   for (const l of LAKES) {
     const r = lookupLake(maps, l, now);
@@ -50,6 +45,23 @@ export default async function WaterPage({
       spots: lakeSpots[l.slug] ?? [],
     });
   }
+  return lakes;
+}
+
+export default async function WaterPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  setRequestLocale(locale);
+  const t = await getTranslations({ locale, namespace: "Water" });
+
+  const [maps, lakeSpots] = await Promise.all([
+    getWaterMaps(),
+    getLakeSpots(locale),
+  ]);
+  const lakes = freshLakes(maps, lakeSpots);
 
   return (
     <WaterExplore

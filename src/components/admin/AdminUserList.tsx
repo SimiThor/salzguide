@@ -1,7 +1,10 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { setUserPro } from "@/lib/user-actions";
+import { setUserPro, type ProMailState } from "@/lib/user-actions";
+import { proSourceLabel } from "@/lib/pro-source";
+import { BTN_DANGER_SM, BTN_PRIMARY_SM, BTN_SECONDARY_SM, STATUS_ACCENT, STATUS_NEUTRAL } from "@/lib/ui";
+import ProBadge from "@/components/ProBadge";
 import type { AdminUser, ProGrantEntry } from "@/lib/admin";
 
 // Nutzerliste mit Pro-Schalter.
@@ -29,16 +32,36 @@ const ERRORS: Record<string, string> = {
   db: "Datenbank-Fehler. Steht Migration 0038 schon drin?",
 };
 
-function ProBadge({ user }: { user: AdminUser }) {
+// Was aus der Mail an den Beschenkten wurde. Als Record über die Union: Kommt ein Zustand
+// dazu, meckert TypeScript hier, statt ihn still verschwinden zu lassen.
+const MAIL_STATE: Record<ProMailState, string> = {
+  sent: "✉️ Mail ist raus.",
+  failed: "Pro gilt, aber die Mail ging nicht raus. Nochmal schenken schickt sie erneut.",
+  already: "Keine Mail: Dieser Person wurde für dieses Pro schon geschrieben.",
+  no_address: "Keine Mail: Zu diesem Konto ist keine Adresse hinterlegt.",
+  disabled: "Keine Mail: Es ist kein RESEND_KEY gesetzt (lokal normal).",
+};
+
+// Der Pro-Zustand einer Zeile: das echte Pro-Zeichen der Plattform plus die Herkunft
+// als Status daneben.
+//
+// Hier stand eine EIGENE Funktion, die auch ProBadge hiess, den geteilten Baustein nicht
+// importierte und anders aussah (flach statt Verlauf). components/ProBadge.tsx sagt in
+// seinem Kopf "PLATTFORMWEIT die EINZIGE Quelle für den Pro-Look" — das stimmte nicht.
+// Jetzt stimmt es.
+//
+// Die Herkunft ist bewusst umrandet statt gefüllt: Direkt daneben sitzt der Knopf
+// "Pro schenken". Vorher trugen beide dieselbe graue Kapsel und man musste raten, welches
+// davon man drücken kann (siehe lib/ui.ts).
+function ProState({ user }: { user: AdminUser }) {
   if (!user.isPro) return <span className="text-muted">–</span>;
-  const label = user.paidPro ? "Pro · bezahlt" : `Pro · ${user.proSource ?? "?"}`;
   return (
-    <span
-      className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-        user.paidPro ? "bg-accent/10 text-accent" : "bg-black/5 text-ink"
-      }`}
-    >
-      {label}
+    <span className="flex items-center gap-1.5">
+      <ProBadge />
+      {/* Bezahltes Pro rot: Das ist das einzige, das der Admin nicht anfassen darf. */}
+      <span className={user.paidPro ? STATUS_ACCENT : STATUS_NEUTRAL}>
+        {proSourceLabel(user.proSource)}
+      </span>
     </span>
   );
 }
@@ -48,6 +71,10 @@ function UserRow({ user, grant }: { user: AdminUser; grant?: ProGrantEntry }) {
   const [err, setErr] = useState("");
   const [note, setNote] = useState("");
   const [open, setOpen] = useState(false);
+  // Vorausgewählt: Wer Pro verschenkt, will das dem Menschen fast immer sagen. Der Haken
+  // ist für den Ausnahmefall da (Testkonto), nicht für den Normalfall.
+  const [mail, setMail] = useState(true);
+  const [mailState, setMailState] = useState<ProMailState | null>(null);
   // Optimistisch NICHT: Der Server entscheidet, und bei Pro will man sehen, was WIRKLICH
   // gilt. Nach Erfolg lädt die Seite neu (router.refresh über revalidate der Action).
   const [done, setDone] = useState<boolean | null>(null);
@@ -56,12 +83,16 @@ function UserRow({ user, grant }: { user: AdminUser; grant?: ProGrantEntry }) {
 
   function submit(next: boolean) {
     setErr("");
+    setMailState(null);
     start(async () => {
-      const r = await setUserPro(user.id, next, note);
+      const r = await setUserPro(user.id, next, note, next && mail);
       if (r.ok) {
         setDone(next);
         setOpen(false);
         setNote("");
+        // Nur melden, wenn es etwas zu melden gibt. Ein „Mail ist raus" nach jedem Entzug
+        // wäre Rauschen.
+        setMailState(r.mail ?? null);
       } else {
         setErr(ERRORS[r.error ?? ""] ?? r.error ?? "Fehlgeschlagen");
       }
@@ -90,7 +121,7 @@ function UserRow({ user, grant }: { user: AdminUser; grant?: ProGrantEntry }) {
           )}
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <ProBadge user={{ ...user, isPro }} />
+          <ProState user={{ ...user, isPro }} />
           {user.paidPro ? (
             // Kein Knopf, sondern der Grund. Ein ausgegrauter Knopf sagt „geht nicht",
             // dieser Text sagt „geht woanders" — das ist die Auskunft, die man braucht.
@@ -100,7 +131,7 @@ function UserRow({ user, grant }: { user: AdminUser; grant?: ProGrantEntry }) {
               type="button"
               onClick={() => setOpen((o) => !o)}
               disabled={pending}
-              className="rounded-full bg-black/5 px-3 py-1.5 text-xs font-semibold text-ink disabled:opacity-50"
+              className={BTN_SECONDARY_SM}
             >
               {isPro ? "Pro entziehen" : "Pro schenken"}
             </button>
@@ -118,11 +149,26 @@ function UserRow({ user, grant }: { user: AdminUser; grant?: ProGrantEntry }) {
             placeholder="Warum? z. B. Gewinnspiel Juli"
             className="min-w-0 flex-1 rounded-[10px] border border-black/10 bg-white px-3 py-1.5 text-xs text-ink outline-none focus:border-accent"
           />
+          {/* Nur beim Schenken. Beim Entziehen gibt es keine Mail, und ein Kästchen, das
+              nichts tut, ist schlimmer als keins. */}
+          {!isPro && (
+            <label className="flex shrink-0 items-center gap-1.5 text-xs text-ink">
+              <input
+                type="checkbox"
+                checked={mail}
+                onChange={(e) => setMail(e.target.checked)}
+                className="h-3.5 w-3.5 accent-accent"
+              />
+              Mail schicken
+            </label>
+          )}
           <button
             type="button"
             onClick={() => submit(!isPro)}
             disabled={pending}
-            className="rounded-full bg-accent px-3.5 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+            // Entziehen ist die Handlung, die man bereuen kann. Rot umrandet statt rot
+            // gefüllt: erkennbar, ohne wie die Haupt-Aktion zu rufen.
+            className={isPro ? BTN_DANGER_SM : BTN_PRIMARY_SM}
           >
             {pending ? "…" : isPro ? "Entziehen" : "Schenken"}
           </button>
@@ -130,6 +176,15 @@ function UserRow({ user, grant }: { user: AdminUser; grant?: ProGrantEntry }) {
       )}
 
       {err && <p className="text-[12px] text-accent">{err}</p>}
+      {/* Was aus der Mail geworden ist. Ohne diese Zeile bliebe nach dem Schenken die
+          Frage offen, ob der Mensch überhaupt etwas mitbekommen hat. */}
+      {mailState && (
+        <p
+          className={`text-[12px] ${mailState === "sent" ? "text-muted" : "text-accent"}`}
+        >
+          {MAIL_STATE[mailState]}
+        </p>
+      )}
     </li>
   );
 }

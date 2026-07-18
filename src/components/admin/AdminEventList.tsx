@@ -6,6 +6,7 @@ import { Link } from "@/i18n/navigation";
 import { deleteEvent, setEventStatus } from "@/lib/event-actions";
 import type { AdminEventRow } from "@/lib/events";
 import { CATEGORY_LABEL } from "@/lib/events-format";
+import { BTN_PRIMARY_SM, BTN_SECONDARY_SM, STATUS_NEUTRAL } from "@/lib/ui";
 const RejectIcon = () => (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden>
     <path d="M6 6l12 12M18 6L6 18" />
@@ -175,10 +176,12 @@ export default function AdminEventList({
                     disabled={busy === ev.id}
                     onClick={() => togglePublish(ev)}
                     title={published ? "Auf Entwurf setzen" : "Veröffentlichen"}
-                    className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold disabled:opacity-50 ${
+                    // Ein KNOPF, kein Badge: Er sah exakt aus wie die Status-Kennzeichnung
+                    // zwei Zeilen darunter, unterschieden nur durch die Schriftstärke.
+                    className={`shrink-0 ${
                       published
-                        ? "bg-green-600/10 text-green-700"
-                        : "bg-black/5 text-muted"
+                        ? BTN_SECONDARY_SM
+                        : BTN_PRIMARY_SM
                     }`}
                   >
                     {busy === ev.id ? "…" : published ? "live" : "→ live"}
@@ -227,7 +230,7 @@ export default function AdminEventList({
                       className="flex items-center gap-2 bg-white px-4 py-3 opacity-60"
                     >
                       {rowMain(ev)}
-                      <span className="shrink-0 rounded-full bg-black/5 px-2.5 py-1 text-[11px] font-medium text-muted">
+                      <span className={`shrink-0 ${STATUS_NEUTRAL}`}>
                         vorbei
                       </span>
                       {rejectBtn(ev)}

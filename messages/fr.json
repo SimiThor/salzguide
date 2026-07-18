@@ -337,6 +337,20 @@
     "successBody": "Ton accès est en cours d'activation. Ça peut prendre un court instant – recharge la page si besoin.",
     "canceledTitle": "Paiement annulé",
     "canceledBody": "Pas de souci – tu peux passer à Pro quand tu veux.",
+    "notice": {
+      "stripe": {
+        "title": "Ton Pro est actif. 🎉",
+        "body": "Merci à toi. Tous les spots Pro sont ouverts pour toi désormais."
+      },
+      "migration": {
+        "title": "Ton Pro est là 🎉",
+        "body": "Bon retour ! Ton Pro de l’ancien site est repris, sans limite. Tu n’as rien d’autre à faire."
+      },
+      "comp": {
+        "title": "On t'a débloqué Pro. 🎉",
+        "body": "C'est cadeau. Tous les spots Pro sont ouverts pour toi désormais."
+      }
+    },
     "heroTitle": "Tout Salzburg débloqué",
     "heroSubtitle": "Toutes les pépites cachées, tous les parcours audio et Toni sans limite. Fait par des locaux – zéro kitsch touristique.",
     "loginNudge": "Juste ton e-mail : on t'envoie un lien de connexion, puis direction le paiement.",
@@ -344,8 +358,6 @@
     "exploreCta": "Commencer à explorer"
   },
   "Account": {
-    "migrationWelcomeTitle": "Ton Pro est là",
-    "migrationWelcome": "Bon retour ! Ton Pro de l’ancien site est repris, sans limite. Tu n’as rien d’autre à faire.",
     "title": "Tes données & confidentialité",
     "linkLabel": "Tes données & confidentialité",
     "intro": "Gère ici tes consentements et exerce tes droits DSGVO : désinscris-toi de la newsletter, exporte toutes tes données ou supprime ton compte.",

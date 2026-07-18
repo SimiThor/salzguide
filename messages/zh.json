@@ -337,6 +337,20 @@
     "successBody": "你的权限正在开通中。可能需要一小会儿——如有需要请刷新页面。",
     "canceledTitle": "已取消购买",
     "canceledBody": "没关系——你随时可以开通 Pro。",
+    "notice": {
+      "stripe": {
+        "title": "你的 Pro 已开通。🎉",
+        "body": "谢谢你。从现在起所有 Pro 地点都为你开放。"
+      },
+      "migration": {
+        "title": "你的 Pro 已就位 🎉",
+        "body": "欢迎回来！你在旧网站的 Pro 已经带过来了，无限期有效。你不用再做任何事。"
+      },
+      "comp": {
+        "title": "我们为你开通了 Pro。🎉",
+        "body": "这是我们请客。从现在起所有 Pro 地点都为你开放。"
+      }
+    },
     "heroTitle": "解锁整个萨尔茨堡州",
     "heroSubtitle": "所有隐藏宝藏、全部语音导览，以及无限畅聊的 Toni。本地人打造——绝无游客俗套。",
     "loginNudge": "只需你的邮箱：我们给你发一个登录链接，然后直接进入付款。",
@@ -344,8 +358,6 @@
     "exploreCta": "开始探索"
   },
   "Account": {
-    "migrationWelcomeTitle": "你的 Pro 已就位",
-    "migrationWelcome": "欢迎回来！你在旧网站的 Pro 已经带过来了，无限期有效。你不用再做任何事。",
     "title": "你的数据与隐私",
     "linkLabel": "你的数据与隐私",
     "intro": "在这里管理你的授权并行使你的 DSGVO 权利：退订邮件、导出你的所有数据，或删除你的账号。",

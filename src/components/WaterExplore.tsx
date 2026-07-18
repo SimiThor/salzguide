@@ -12,10 +12,17 @@ import { MapLoadingScreen, useMapLoading } from "./MapLoading";
 import MobileSheet from "./MobileSheet";
 import { SHEET_PEEK_VAR, readCssLength } from "@/lib/sheet-metrics";
 import { useViewportHeight } from "@/lib/viewport";
+import { useLatestRef } from "@/lib/use-latest-ref";
 import { RecenterControl } from "./mapControls";
 
 const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 const BLUE = "#2f8fce"; // eine ruhige Akzentfarbe (Wasser), sonst ink/muted
+
+// Temperatur einheitlich formatieren (eine Nachkommastelle, lokalisiert). Bewusst auf
+// Modulebene: so hängt der Marker-Effekt unten nur an der Sprache (ein String) statt an
+// einer Funktion, die bei jedem Render neu entstünde und alle Marker neu setzen würde.
+const formatTemp = (v: number, loc: string) =>
+  v.toLocaleString(loc, { maximumFractionDigits: 1 });
 
 export type LakeSpot = {
   slug: string;
@@ -88,20 +95,17 @@ export default function WaterExplore({
   // Stabile Viewport-Höhe fürs Karten-Padding (siehe lib/viewport.ts).
   const vh = useViewportHeight();
   const [selected, setSelected] = useState<string | null>(null);
-  const selectedRef = useRef<string | null>(null);
-  selectedRef.current = selected;
 
   const t = useTranslations("Water");
   const loc = bcp47(locale);
   const dfmt = new Intl.DateTimeFormat(loc, { day: "numeric", month: "long" });
-  const fmt = (t: number) => t.toLocaleString(loc, { maximumFractionDigits: 1 });
+  const fmt = (v: number) => formatTemp(v, loc);
 
-  // Alle Seen einpassen (fitBounds) – wie die Startseiten-Karte. Die Ref wird bei
-  // jedem Render neu gesetzt, liest also immer die aktuellen Seen/Layout-Werte
-  // (kein veralteter Closure) und versorgt sowohl den "Zentrieren"-Button als auch
-  // das automatische Einpassen beim ersten Laden.
-  const fitRef = useRef<(duration: number) => void>(() => {});
-  fitRef.current = (duration: number) => {
+  // Alle Seen einpassen (fitBounds) – wie die Startseiten-Karte. Die Ref hält immer die
+  // neueste Fassung, liest also die aktuellen Seen/Layout-Werte (kein veralteter Closure)
+  // und versorgt sowohl den "Zentrieren"-Button als auch das automatische Einpassen beim
+  // ersten Laden. Siehe use-latest-ref.ts.
+  const fitRef = useLatestRef((duration: number) => {
     const map = mapRef.current;
     if (!map) return;
     const valid = lakes.filter((l) => l.lat != null && l.lng != null);
@@ -120,7 +124,7 @@ export default function WaterExplore({
           left: 40,
         };
     map.fitBounds(b, { padding: pad, maxZoom: 12, duration });
-  };
+  });
 
   useEffect(() => {
     const mq = window.matchMedia("(min-width: 768px)");
@@ -170,7 +174,9 @@ export default function WaterExplore({
       map.remove();
       mapRef.current = null;
     };
-  }, []);
+    // Die Karte wird GENAU EINMAL aufgebaut. bindMap und fitRef sind identitaetsstabil
+    // -> der Effekt laeuft trotz der Liste weiterhin nur beim Einhaengen.
+  }, [bindMap, fitRef]);
 
   // Marker (Temperatur-Badge, eine Farbe)
   useEffect(() => {
@@ -180,7 +186,7 @@ export default function WaterExplore({
     markersRef.current = {};
     lakes.forEach((l) => {
       const el = document.createElement("div");
-      el.textContent = l.tempC != null ? `${fmt(l.tempC)}°` : "–";
+      el.textContent = l.tempC != null ? `${formatTemp(l.tempC, loc)}°` : "–";
       el.style.cssText =
         "display:flex;align-items:center;justify-content:center;min-width:36px;height:27px;padding:0 8px;border-radius:9999px;border:2px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,.3);font:700 12px system-ui;color:#fff;cursor:pointer;transition:box-shadow .15s;background:" +
         (l.tempC != null ? BLUE : "#9aa0a6");
@@ -192,7 +198,7 @@ export default function WaterExplore({
         .setLngLat([l.lng, l.lat])
         .addTo(map);
     });
-  }, [lakes]);
+  }, [lakes, loc]);
 
   // Auswahl -> Karte fokussieren + Marker hervorheben
   useEffect(() => {

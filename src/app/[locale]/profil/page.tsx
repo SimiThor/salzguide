@@ -8,6 +8,7 @@ import LoginForm from "@/components/LoginForm";
 import ProUpgrade from "@/components/ProUpgrade";
 import ProBadge from "@/components/ProBadge";
 import { signOut } from "./actions";
+import { STATUS_NEUTRAL } from "@/lib/ui";
 
 export default async function ProfilPage({
   params,
@@ -18,10 +19,10 @@ export default async function ProfilPage({
   // damit der Nutzer nach der Anmeldung dort landet, wo er unterbrochen wurde – statt
   // im Profil zu stranden. Ungeprüft durchreichen ist sicher: safeNext() in actions.ts
   // lässt serverseitig nur eigene relative Pfade zu.
-  searchParams: Promise<{ checkout?: string; auth_error?: string; next?: string; welcome?: string }>;
+  searchParams: Promise<{ checkout?: string; auth_error?: string; next?: string }>;
 }) {
   const { locale } = await params;
-  const { checkout, auth_error, next, welcome } = await searchParams;
+  const { checkout, auth_error, next } = await searchParams;
   setRequestLocale(locale);
   const t = await getTranslations("Auth");
   const tA = await getTranslations("Account");
@@ -65,7 +66,11 @@ export default async function ProfilPage({
     <div className="mx-auto w-full max-w-[440px] px-4 pt-[calc(env(safe-area-inset-top)+4.5rem)] md:pt-6">
       <h1 className="text-2xl font-bold text-ink">{t("profileTitle")}</h1>
 
-      {checkout === "success" && (
+      {/* Nur solange die Freischaltung noch aussteht. Der Stripe-Webhook braucht einen
+          Moment; bis dahin sagt dieser Kasten "wird gerade aktiviert". Sobald er durch
+          ist, übernimmt der einmalige Gruss (ProNotice) das Wort. Ohne das !isPro stünden
+          nach dem Neuladen beide da und widersprächen sich. */}
+      {checkout === "success" && !isPro && (
         <div className="mt-4 rounded-[16px] bg-accent/10 p-4">
           <p className="text-[15px] font-semibold text-accent">{tPro("successTitle")}</p>
           <p className="mt-1 text-[13px] leading-relaxed text-muted">{tPro("successBody")}</p>
@@ -95,7 +100,7 @@ export default async function ProfilPage({
           {isPro ? (
             <ProBadge size="md" />
           ) : (
-            <span className="rounded-full bg-black/5 px-3 py-1 text-xs font-medium text-muted">
+            <span className={STATUS_NEUTRAL}>
               {t("free")}
             </span>
           )}

@@ -6,6 +6,7 @@ import "mapbox-gl/dist/mapbox-gl.css";
 import { useEffect, useRef } from "react";
 import { MapLoadingScreen, useMapLoading } from "./MapLoading";
 import { RecenterControl, FullscreenControl } from "./mapControls";
+import { useLatestRef } from "@/lib/use-latest-ref";
 import { poiEmoji, type PoiKind } from "@/lib/poi";
 
 export type MapMarker = {
@@ -207,15 +208,17 @@ export default function SpotMap({
   const poiMarkers = useRef<mapboxgl.Marker[]>([]);
   // DOM-Elemente der Routen-Enden (🥾/🏁) pro Schlüssel -> Hervorhebung + Antippen.
   const routeEndEls = useRef<Map<string, HTMLElement>>(new Map());
-  const onFullscreenRef = useRef(onFullscreen);
-  onFullscreenRef.current = onFullscreen;
-  // Callbacks/Labels für die antippbaren Punkte (Handler lesen immer den neuesten Stand).
-  const onPoiSelectRef = useRef(onPoiSelect);
-  onPoiSelectRef.current = onPoiSelect;
-  const startLabelRef = useRef(startLabel);
-  startLabelRef.current = startLabel;
-  const finishLabelRef = useRef(finishLabel);
-  finishLabelRef.current = finishLabel;
+  // Alle Props, die die langlebigen Karten-Handler brauchen, liegen in Refs -> sie lesen
+  // immer den neuesten Stand statt der Props vom ersten Render. Siehe use-latest-ref.ts.
+  // BEWUSST alle zusammen ganz oben: die Callback-Refs weiter unten (recenterRef,
+  // syncRouteRef) greifen darauf zu und dürfen nicht auf später Deklariertes zeigen.
+  const onFullscreenRef = useLatestRef(onFullscreen);
+  const onPoiSelectRef = useLatestRef(onPoiSelect);
+  const startLabelRef = useLatestRef(startLabel);
+  const finishLabelRef = useLatestRef(finishLabel);
+  const routeRef = useLatestRef(route);
+  const showRouteEndsRef = useLatestRef(showRouteEnds);
+  const fitRouteRef = useLatestRef(fitRoute);
   // Einen Punkt zentrieren (sanft), wenn er angetippt wird.
   const selectPoi = (p: SpotPoi) => {
     onPoiSelectRef.current?.(p);
@@ -223,18 +226,13 @@ export default function SpotMap({
   };
 
   // Aktuelle Marker/Padding für den Zentrieren-Button (liest immer den neuesten Stand)
-  const markersRef = useRef(markers);
-  markersRef.current = markers;
+  const markersRef = useLatestRef(markers);
   // Marker-DOM-Elemente pro Slug + ausgewählter Spot (für die Hervorhebung)
   const markerEls = useRef<Map<string, HTMLElement>>(new Map());
-  const selectedRef = useRef(selectedSlug);
-  selectedRef.current = selectedSlug;
-  const paddingRef = useRef(padding);
-  paddingRef.current = padding;
-  const onMapClickRef = useRef(onMapClick);
-  onMapClickRef.current = onMapClick;
-  const recenterRef = useRef<() => void>(() => {});
-  recenterRef.current = () => {
+  const selectedRef = useLatestRef(selectedSlug);
+  const paddingRef = useLatestRef(padding);
+  const onMapClickRef = useLatestRef(onMapClick);
+  const recenterRef = useLatestRef(() => {
     const map = mapRef.current;
     if (!map) return;
     // Wanderung: auf die Route zoomen
@@ -278,15 +276,9 @@ export default function SpotMap({
       maxZoom: 13,
       duration: 600,
     });
-  };
+  });
 
   // Route (Wanderweg) zeichnen
-  const routeRef = useRef(route);
-  routeRef.current = route;
-  const showRouteEndsRef = useRef(showRouteEnds);
-  showRouteEndsRef.current = showRouteEnds;
-  const fitRouteRef = useRef(fitRoute);
-  fitRouteRef.current = fitRoute;
   const routeMarkers = useRef<mapboxgl.Marker[]>([]);
   const routeSig = (route ?? []).map((c) => c.join(",")).join("|");
   // Was gerade auf der Karte liegt ("" = nichts). Trennt „hat sich wirklich geändert"
@@ -297,8 +289,7 @@ export default function SpotMap({
     if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
     rafRef.current = null;
   };
-  const syncRouteRef = useRef<() => void>(() => {});
-  syncRouteRef.current = () => {
+  const syncRouteRef = useLatestRef(() => {
     const map = mapRef.current;
     if (!map) return;
     const src = map.getSource("sg-route") as mapboxgl.GeoJSONSource | undefined;
@@ -408,7 +399,7 @@ export default function SpotMap({
       rafRef.current = t < 1 ? requestAnimationFrame(step) : null;
     };
     rafRef.current = requestAnimationFrame(step);
-  };
+  });
 
   // Karte einmalig initialisieren
   useEffect(() => {
@@ -606,25 +597,29 @@ export default function SpotMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [routeSig]);
 
-  // Dezenter Highlight-Punkt (Sync mit dem Höhenprofil)
+  // Dezenter Highlight-Punkt (Sync mit dem Höhenprofil).
+  // Auf die beiden Zahlen heruntergebrochen: `highlight` ist bei jedem Render ein neues
+  // Array und würde den Effekt sonst dauernd neu auslösen, obwohl der Punkt gleich blieb.
+  const hlLng = highlight?.[0];
+  const hlLat = highlight?.[1];
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
-    if (highlight) {
+    if (hlLng != null && hlLat != null) {
       if (!hlMarker.current) {
         const el = document.createElement("div");
         el.className = "sg-hl-dot";
         hlMarker.current = new mapboxgl.Marker({ element: el })
-          .setLngLat(highlight)
+          .setLngLat([hlLng, hlLat])
           .addTo(map);
       } else {
-        hlMarker.current.setLngLat(highlight);
+        hlMarker.current.setLngLat([hlLng, hlLat]);
       }
     } else {
       hlMarker.current?.remove();
       hlMarker.current = null;
     }
-  }, [highlight?.[0], highlight?.[1]]);
+  }, [hlLng, hlLat]);
 
   // Zusatzpunkte (Wasserstellen, Hütten, Parkplatz) als Emoji-Pins wie 🥾/🏁.
   // Antippen zentriert den Punkt und meldet ihn nach oben (onPoiSelect) -> das

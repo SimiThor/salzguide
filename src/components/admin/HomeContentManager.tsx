@@ -7,6 +7,7 @@ import { HOME_GROUPS } from "@/lib/home-fields";
 import { LOCALES } from "@/i18n/locales";
 import type { AdminHomeContent } from "@/lib/admin";
 import AiButton from "./AiButton";
+import { STATUS_NEUTRAL } from "@/lib/ui";
 
 // Die Texte der Startseite. Gruppen und Beschriftungen kommen aus HOME_GROUPS, nicht von
 // hier: Ein neues Feld dort taucht automatisch in diesem Formular auf, im Hash und in der
@@ -224,7 +225,7 @@ function Badge({
     );
   if (translatedCount === 0)
     return (
-      <span className="rounded-full bg-black/[0.06] px-2.5 py-1 text-[11px] font-semibold text-muted">
+      <span className={STATUS_NEUTRAL}>
         Nur Deutsch
       </span>
     );

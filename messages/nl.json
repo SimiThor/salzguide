@@ -337,6 +337,20 @@
     "successBody": "Je vrijschakeling wordt nu geactiveerd. Dat kan een kort moment duren – laad de pagina eventueel opnieuw.",
     "canceledTitle": "Aankoop afgebroken",
     "canceledBody": "Geen probleem – je kunt altijd Pro worden.",
+    "notice": {
+      "stripe": {
+        "title": "Je Pro is actief. 🎉",
+        "body": "Dank je. Vanaf nu staan alle Pro-spots voor je open."
+      },
+      "migration": {
+        "title": "Je Pro staat klaar 🎉",
+        "body": "Welkom terug! Je Pro van de oude site is overgenomen, onbeperkt. Je hoeft verder niets te doen."
+      },
+      "comp": {
+        "title": "We hebben Pro voor je vrijgeschakeld. 🎉",
+        "body": "Van het huis. Vanaf nu staan alle Pro-spots voor je open."
+      }
+    },
     "heroTitle": "Het hele Salzburger Land ontgrendeld",
     "heroSubtitle": "Alle geheime tips, audiotours en Toni zonder limiet. Gemaakt door locals – geen toeristenkitsch.",
     "loginNudge": "Alleen nog je e-mail: we sturen je een login-link, daarna ga je direct naar de betaling.",
@@ -344,8 +358,6 @@
     "exploreCta": "Nu ontdekken"
   },
   "Account": {
-    "migrationWelcomeTitle": "Je Pro staat klaar",
-    "migrationWelcome": "Welkom terug! Je Pro van de oude site is overgenomen, onbeperkt. Je hoeft verder niets te doen.",
     "title": "Jouw gegevens & privacy",
     "linkLabel": "Jouw gegevens & privacy",
     "intro": "Hier beheer je je toestemmingen en oefen je je AVG-rechten uit: nieuwsbrief opzeggen, al je gegevens exporteren of je account verwijderen.",

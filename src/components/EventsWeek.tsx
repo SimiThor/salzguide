@@ -10,6 +10,7 @@ import {
   type EventItem,
 } from "@/lib/events-format";
 import EventCard from "./EventCard";
+import { STATUS_ACCENT, STATUS_NEUTRAL } from "@/lib/ui";
 
 type Filter = "all" | "highlights" | "free" | EventCategory;
 
@@ -76,7 +77,7 @@ export default function EventsWeek({
           {t("title")}
         </h1>
         {span && (
-          <span className="rounded-full bg-white px-3 py-1 text-[13px] font-medium text-muted shadow-sm ring-1 ring-black/[0.04]">
+          <span className={STATUS_NEUTRAL}>
             {span}
           </span>
         )}
@@ -136,7 +137,7 @@ export default function EventsWeek({
                       <span className="text-ink">{weekday}</span>
                       <span>{date}</span>
                       {today && (
-                        <span className="rounded-full bg-accent/10 px-2 py-0.5 text-[11px] font-semibold normal-case text-accent">
+                        <span className={`normal-case ${STATUS_ACCENT}`}>
                           {t("today")}
                         </span>
                       )}

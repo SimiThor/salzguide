@@ -5,6 +5,7 @@ import Image from "next/image";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion, type PanInfo } from "framer-motion";
 import { useTranslations } from "next-intl";
+import { useIsMounted } from "@/lib/use-is-mounted";
 
 function Icon({ d }: { d: string }) {
   return (
@@ -38,12 +39,10 @@ export default function Lightbox({
   onClose: () => void;
 }) {
   const t = useTranslations("Detail");
-  const [mounted, setMounted] = useState(false);
+  const mounted = useIsMounted();
   const [[index, dir], setState] = useState<[number, number]>([startIndex, 0]);
   const n = images.length;
   const stripRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => setMounted(true), []);
 
   const paginate = useCallback(
     (d: number) =>

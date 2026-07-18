@@ -526,7 +526,7 @@ export default function PointForm({
             <button
               type="button"
               onClick={() => set({ imageUrl: null })}
-              className="rounded-full bg-black/5 px-4 py-2 text-[13px] font-semibold text-muted"
+              className="rounded-full bg-black/5 px-4 py-2 text-[13px] font-semibold text-muted transition active:scale-[0.98]"
             >
               Entfernen
             </button>

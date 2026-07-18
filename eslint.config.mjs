@@ -12,6 +12,12 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Statische Auslieferung, kein eigener Code. Hier liegt u.a. das fertig gebaute
+    // ffmpeg-core.js (112 KB minifiziert) — allein daher kamen 117 der ehemals 161
+    // Lint-Meldungen. Fremdcode linten wir nicht.
+    "public/**",
+    // Temporäre Arbeitskopien von Claude-Subagenten.
+    ".claude/**",
   ]),
 ]);
 

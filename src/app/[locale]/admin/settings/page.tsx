@@ -6,6 +6,7 @@ import LocalManager from "@/components/admin/LocalManager";
 import { getToniAvatarUrl } from "@/lib/settings";
 import { getCategoriesAdmin, getLocalsFull, getHomeStatus } from "@/lib/admin";
 import type { TranslationState } from "@/lib/spot-hash";
+import { STATUS_NEUTRAL } from "@/lib/ui";
 
 // Admin-Einstellungen. Zugriff ist über das Admin-Layout (Rollen-Guard) geschützt.
 export const dynamic = "force-dynamic";
@@ -102,7 +103,7 @@ function HomeBadge({ state }: { state: TranslationState }) {
     );
   if (state === "none")
     return (
-      <span className="rounded-full bg-black/[0.06] px-2.5 py-1 text-[11px] font-semibold text-muted">
+      <span className={STATUS_NEUTRAL}>
         Nur Deutsch
       </span>
     );
