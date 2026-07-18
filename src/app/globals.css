@@ -249,12 +249,24 @@ body {
     -webkit-touch-callout: none;
   }
 
-  /* Trefferfläche auf Apples Mindestmass (44x44pt, Human Interface Guidelines),
-     OHNE das Aussehen zu ändern. Der Knopf bleibt so gross, wie er gezeichnet ist;
-     nur der Bereich, der auf den Finger hört, wächst unsichtbar mit.
-     Gemessen hatten wir 32px (Karten-Bedienung, "Neuer Chat"), 36px (Karten-Pins)
-     und 40px (Kopfzeilen-Knöpfe) — jeder Tap daneben sieht für den Menschen aus,
-     als hätte der Knopf nicht reagiert. */
+}
+
+/* Trefferfläche auf Apples Mindestmass (44x44pt, Human Interface Guidelines),
+   OHNE das Aussehen zu ändern. Der Knopf bleibt so gross, wie er gezeichnet ist;
+   nur der Bereich, der auf den Finger hört, wächst unsichtbar mit.
+   Gemessen hatten wir 32px (Karten-Bedienung, "Neuer Chat"), 36px (Karten-Pins)
+   und 40px (Kopfzeilen-Knöpfe) — jeder Tap daneben sieht für den Menschen aus,
+   als hätte der Knopf nicht reagiert.
+
+   WARUM @layer components UND NICHT utilities:
+   `position: relative` braucht es nur, damit das ::after sich am Knopf ausrichten
+   kann. Stand die Regel in `utilities`, gewann sie gegen Tailwinds `absolute` —
+   dieselbe Ebene, aber später notiert. Genau das ist passiert: Der Schliessen-Knopf
+   der Vollbild-Karte trug `sg-hit absolute`, wurde dadurch `relative` und rutschte
+   an seine statische Position, also 12px UNTER den Bildschirmrand. Er war da, nur
+   nicht zu sehen. In `components` verliert die Regel gegen jede Positions-Utility
+   und greift nur dort, wo sonst nichts steht — genau wie gemeint. */
+@layer components {
   .sg-hit {
     position: relative;
   }
@@ -872,6 +884,10 @@ body {
    von einem Marker verdeckt oder blockiert. */
 .mapboxgl-ctrl-top-left,
 .mapboxgl-ctrl-top-right,
+/* Mapbox-Logo (unten links) und Attribution (unten rechts) bleiben auf 10 — also
+   ÜBER der Tippfläche der Vorschau-Karten (Ebene 9, siehe SpotMap.tsx). Sie sind
+   das Einzige, was dort noch antippbar sein muss: Der „i"-Knopf klappt die Quellen
+   auf, und die Namensnennung ist Mapbox-Lizenzpflicht, keine Deko. */
 .mapboxgl-ctrl-bottom-left,
 .mapboxgl-ctrl-bottom-right {
   z-index: 10 !important;

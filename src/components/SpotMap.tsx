@@ -737,7 +737,14 @@ export default function SpotMap({
           type="button"
           onClick={onFullscreen}
           aria-label={openMapLabel}
-          className="sg-native-tap absolute inset-0 z-10 cursor-pointer"
+          // Ebene 9, mit Absicht knapp UNTER 10. Die Ebenen-Leiter der Karten steht in
+          // globals.css: Marker (bis 6) < Standort (8) < Bedienung und Attribution (10)
+          // < Schutzfläche (20). Auf 10 lag die Fläche gleichauf mit der Attribution und
+          // gewann als spätere Zeile — das Mapbox-Logo und der „i"-Knopf waren nicht mehr
+          // antippbar. Das ist nicht nur unschön, sondern verstösst gegen Mapbox' Regeln
+          // zur Namensnennung. Auf 9 deckt sie alles ab, worauf hier niemand tippen soll
+          // (Karte, Pins), und lässt genau das durch, was durchmuss.
+          className="sg-native-tap absolute inset-0 z-[9] cursor-pointer"
         >
           {/* Der Hinweis, dass hier etwas passiert. Rein dekorativ (der Knopf ist die
               ganze Fläche), deshalb pointer-events-none und aria-hidden. Ohne ihn sieht
