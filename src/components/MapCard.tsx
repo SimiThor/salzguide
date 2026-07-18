@@ -1,11 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
+
+// Freier Streifen oben im Vollbild: Safe-Area kommt per CSS dazu, hier zählt nur, was
+// die schwebenden Knöpfe (Schliessen, Titel-Pille) belegen.
+const FULLSCREEN_PAD_TOP = 96;
+// Sichtbarer Rand zwischen eingepasster Route und dem Sheet, wie auf der Startseite.
+const FULLSCREEN_GAP = 24;
 import { createPortal } from "react-dom";
 import { useTranslations } from "next-intl";
 import SpotMap, { type MapMarker } from "./SpotMap";
-import SpotSheet from "./SpotSheet";
-import type { SpotCardData } from "@/lib/spots";
+import SpotSheet, { SPOT_SHEET_PEEK } from "./SpotSheet";
+import { useSpotSelection, type SelectableSpot } from "./useSpotSelection";
+import { useViewportHeight } from "@/lib/viewport";
 import { useIsMounted } from "@/lib/use-is-mounted";
 
 // Karten-Kachel: eingebettet eine reine Vorschau (antippen macht sie gross), im
@@ -27,10 +34,11 @@ export default function MapCard({
   center?: [number, number];
   zoom?: number;
   // Volle Spot-Daten zu den Markern. Sind sie da, sind die Marker IM VOLLBILD
-  // antippbar und öffnen dasselbe Sheet wie auf Explore. Ohne sie bleibt die Karte
-  // reine Anzeige. Ersetzt das frühere `enablePreview`-Flag: Nicht ein Schalter
-  // entscheidet, ob etwas geht, sondern ob die Daten dafür da sind.
-  spots?: SpotCardData[];
+  // antippbar, öffnen dasselbe Sheet wie auf Explore und zeigen bei Wanderungen den
+  // Weg. Ohne sie bleibt die Karte reine Anzeige. Ersetzt das frühere
+  // `enablePreview`-Flag: Nicht ein Schalter entscheidet, ob etwas geht, sondern ob
+  // die Daten dafür da sind.
+  spots?: SelectableSpot[];
   loggedIn?: boolean;
   savedSlugs?: Set<string>;
   onSavedChange?: (slug: string, saved: boolean) => void;
@@ -38,7 +46,7 @@ export default function MapCard({
   const t = useTranslations("Detail");
   const [fullscreen, setFullscreen] = useState(false);
   const mounted = useIsMounted();
-  const [sel, setSel] = useState<string | null>(null);
+  const vh = useViewportHeight();
 
   useEffect(() => {
     if (!fullscreen) return;
@@ -54,23 +62,40 @@ export default function MapCard({
     };
   }, [fullscreen]);
 
-  // Angetippter Spot -> volle Daten fürs Sheet. Marker allein reichen dafür nicht,
-  // sie tragen nur, was gezeichnet wird.
-  const selected = spots?.find((s) => s.slug === sel) ?? null;
+  // DERSELBE HAKEN WIE AUF DER STARTSEITE.
+  // Auswahl, Wanderroute, Kamerafahrt und das Zusammenspiel mit dem Sheet kommen aus
+  // useSpotSelection — nicht nachgebaut, sondern dieselbe Quelle. Wer die Startseiten-
+  // Karte verbessert, verbessert diese hier mit. Der Unterschied zwischen den beiden
+  // bleibt genau da, wo er hingehört: Diese Karte ist im Grundzustand eine kleine
+  // Vorschau, und ihre Ränder unten/oben sind andere (siehe focusFor weiter unten).
+  const {
+    spot: selected,
+    open,
+    close: clearSelection,
+    route,
+    selectedSlug,
+    focusFor,
+    closing,
+    setDismissing,
+  } = useSpotSelection(spots ?? []);
 
   // Marker sind NUR im Vollbild antippbar. Die eingebettete Karte ist eine einzige
   // Schaltfläche (siehe SpotMap), dort kommt ohnehin kein Tap bei einem Marker an.
   const interactive = spots
-    ? {
-        onMarkerClick: (slug: string) => setSel(slug),
-        selectedSlug: sel,
-        onMapClick: () => setSel(null),
-      }
+    ? { onMarkerClick: open, selectedSlug, onMapClick: clearSelection }
     : {};
+
+  // Ränder für die Kamerafahrt im Vollbild: oben die Safe-Area plus die schwebenden
+  // Knöpfe, unten der Anteil, den das Spot-Sheet abdeckt — dieselbe Rechnung wie auf
+  // der Startseite, nur ohne Header und Tab-Leiste.
+  const focus = focusFor(
+    FULLSCREEN_PAD_TOP,
+    Math.round((vh || 800) * SPOT_SHEET_PEEK) + FULLSCREEN_GAP,
+  );
 
   // Beim Schliessen des Vollbilds darf kein Sheet zurückbleiben.
   function closeFullscreen() {
-    setSel(null);
+    clearSelection();
     setFullscreen(false);
   }
 
@@ -97,6 +122,12 @@ export default function MapCard({
               center={center}
               zoom={zoom}
               mapClass="sg-ctrl-safe"
+              // Die Wanderwege, die es auf der Startseite immer schon gab. Ohne sie war
+              // eine gemerkte Wanderung hier nur ein Punkt.
+              route={route}
+              focus={focus}
+              showRouteEnds={false}
+              fitRoute={false}
               {...interactive}
             />
 
@@ -140,7 +171,9 @@ export default function MapCard({
               <SpotSheet
                 key={selected.slug}
                 spot={selected}
-                onClose={() => setSel(null)}
+                closing={closing}
+                onDismissStart={() => setDismissing(true)}
+                onClose={clearSelection}
                 loggedIn={loggedIn}
                 saved={savedSlugs?.has(selected.slug) ?? false}
                 onSavedChange={onSavedChange}

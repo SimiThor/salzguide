@@ -4,7 +4,6 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ExploreCategory, ExploreSpot } from "@/lib/spots";
-import { getSpotRoute } from "@/lib/spot-actions";
 import { useAi } from "./ai/AiProvider";
 import Carousel from "./Carousel";
 import SpotCardDesktop from "./SpotCardDesktop";
@@ -12,6 +11,7 @@ import SpotSheet, { SPOT_SHEET_PEEK } from "./SpotSheet";
 import SeasonToggle, { type Season } from "./SeasonToggle";
 import SpotCard from "./SpotCard";
 import SpotMap, { type MapMarker } from "./SpotMap";
+import { useSpotSelection } from "./useSpotSelection";
 import { MAP_CTRL_PAD } from "./mapControls";
 import MobileSheet, { type Detent } from "./MobileSheet";
 import { SHEET_PEEK_VAR, useSheetPeek } from "@/lib/sheet-metrics";
@@ -59,22 +59,7 @@ export default function Explore({
   // Höhe des überlagernden Mobile-Headers (inkl. Safe-Area/Notch) – gemessen, damit
   // der eingepasste Spot nicht unter den Header rutscht (auf iPhones mit Notch höher).
   const [headerH, setHeaderH] = useState(56);
-  const [previewSlug, setPreviewSlug] = useState<string | null>(null);
-  const [sheetClosing, setSheetClosing] = useState(false);
-  // Das Sheet fährt gerade raus. Karte und Sheet müssen zusammen gehen: Route und
-  // hervorgehobener Pin hängen an diesem Zustand, nicht am Ende der Sheet-Animation.
-  // Vorher blieben beide die vollen 0.5s stehen und schnappten dann weg.
-  const [dismissing, setDismissing] = useState(false);
-  // Solange eine Spot-Vorschau offen ist, hält Toni seine Sprechblase zurück – beide
-  // schweben unten rechts und lägen sonst übereinander.
   const { setOverlayOpen } = useAi();
-  useEffect(() => {
-    setOverlayOpen(!!previewSlug);
-    return () => setOverlayOpen(false); // beim Verlassen der Seite nicht blockiert lassen
-  }, [previewSlug, setOverlayOpen]);
-  // On-demand geladene Wanderrouten (pro Spot), clientseitig gecacht -> die
-  // Startseite lädt keine Routen vorab (Performance). null = keine Route.
-  const [routeCache, setRouteCache] = useState<Record<string, [number, number][] | null>>({});
   // Live-Merkzustand = Quelle der Wahrheit fürs Bookmark der Vorschau. Init aus
   // Server-Daten, in der Session live gehalten -> kein falscher Zustand beim
   // Spot-Wechsel oder nach dem Merken.
@@ -162,18 +147,32 @@ export default function Explore({
     [seasonSpots],
   );
 
-  // Einziger Weg, einen Spot zu öffnen — auch aus einem laufenden Schließen heraus.
-  // Beide Riegel müssen fallen, sonst bliebe die Route des neuen Spots aus.
-  const openSpot = useCallback((slug: string) => {
-    setSheetClosing(false);
-    setDismissing(false);
-    setPreviewSlug(slug);
-  }, []);
-  const closeSpot = useCallback(() => {
-    setPreviewSlug(null);
-    setSheetClosing(false);
-    setDismissing(false);
-  }, []);
+  // Auswahl, Route, Kamera und das Zusammenspiel mit dem Sheet kommen aus dem
+  // gemeinsamen Haken — dieselbe Quelle, aus der sich die Gespeichert-Karte bedient.
+  // Was hier bleibt, ist alles, was die Startseite WIRKLICH auszeichnet: Saison,
+  // Regale, Toni, der Desktop-Split.
+  const {
+    slug: previewSlug,
+    spot: previewSpot,
+    open: openSpot,
+    close: closeSpot,
+    route: activeRoute,
+    selectedSlug,
+    focusFor,
+    closing: sheetClosing,
+    setClosing: setSheetClosing,
+    // `dismissing` selbst braucht die Startseite nicht mehr zu lesen: Der Haken hat
+    // Route und hervorgehobenen Pin schon losgelassen, bevor sie danach fragen könnte.
+    setDismissing,
+  } = useSpotSelection(seasonSpots);
+
+  // Solange eine Spot-Vorschau offen ist, hält Toni seine Sprechblase zurück – beide
+  // schweben unten rechts und lägen sonst übereinander.
+  useEffect(() => {
+    setOverlayOpen(!!previewSlug);
+    return () => setOverlayOpen(false); // beim Verlassen der Seite nicht blockiert lassen
+  }, [previewSlug, setOverlayOpen]);
+
   const handleSavedChange = useCallback((slug: string, saved: boolean) => {
     setSavedSet((prev) => {
       const next = new Set(prev);
@@ -182,52 +181,15 @@ export default function Explore({
       return next;
     });
   }, []);
-  const previewSpot = seasonSpots.find((s) => s.slug === previewSlug) ?? null;
-
-  // Beim Antippen einer Wanderung (Nicht-Pro-Aktivität) deren Route on-demand laden.
-  useEffect(() => {
-    const slug = previewSlug;
-    if (!slug) return;
-    const spot = seasonSpots.find((s) => s.slug === slug);
-    // An `locked` hängen, nicht an `isPro` – sonst bleibt die Route für zahlende
-    // Pro-Kunden aus (getSpotRoute gibt sie ihnen sehr wohl heraus).
-    if (!spot || spot.type !== "activity" || spot.locked) return;
-    if (slug in routeCache) return; // schon geladen (auch null gecacht)
-    let alive = true;
-    getSpotRoute(slug).then((coords) => {
-      if (alive) setRouteCache((c) => ({ ...c, [slug]: coords }));
-    });
-    return () => {
-      alive = false;
-    };
-  }, [previewSlug, seasonSpots, routeCache]);
-
-  // Route des aktuell gewählten Spots (falls Wanderung + schon geladen)
-  const activeRoute =
-    previewSpot && previewSpot.type === "activity" && !previewSpot.locked
-      ? (routeCache[previewSpot.slug] ?? null)
-      : null;
-
   // Sanft auf den gewählten Spot fliegen, ihn über die Vorschau-Karte heben.
-  // Bei einer Wanderung sofort auf die Routen-Bounding-Box einpassen (kommt mit der
-  // Startseiten-Payload -> kein Nachladen, EIN Zoom, kein Umspringen). Die Routen-
-  // Linie (activeRoute) lädt weiter lazy und zeichnet sich in den fertigen Ausschnitt.
-  const focus =
-    previewSpot && previewSpot.lat != null && previewSpot.lng != null
-      ? {
-          lng: previewSpot.lng,
-          lat: previewSpot.lat,
-          // Mobile: exakt in den sichtbaren Streifen zwischen Header und Sheet einpassen.
-          //  - oben: gemessene Header-Höhe (Notch-sicher) + Rand
-          //  - unten: vom Sheet abgedeckter Anteil (SPOT_SHEET_PEEK) + Rand
-          // -> Spot/Route sitzen mittig & ausgeglichen, nichts unter Header/Sheet.
-          padTop: isDesktop ? 60 : headerH + FIT_GAP,
-          padBottom: isDesktop
-            ? 470
-            : Math.round((vh || 800) * SPOT_SHEET_PEEK) + FIT_GAP,
-          bounds: previewSpot.routeBounds ?? undefined,
-        }
-      : null;
+  // Nur die beiden Ränder sind hier zu Hause: oben der gemessene Header, unten der
+  // Anteil, den das Peek-Sheet abdeckt. Wie die Kamera daraus ihr Ziel wählt (fertige
+  // Bounding-Box, sonst Linie, sonst Punkt), steht im Haken — und gilt damit auch für
+  // die Gespeichert-Karte.
+  const focus = focusFor(
+    isDesktop ? 60 : headerH + FIT_GAP,
+    isDesktop ? 470 : Math.round((vh || 800) * SPOT_SHEET_PEEK) + FIT_GAP,
+  );
 
   const labels = useMemo(() => ({ summer: t("summer"), winter: t("winter") }), [t]);
 
@@ -329,8 +291,8 @@ export default function Explore({
           focus={focus}
           // Beim Schließen sofort loslassen: Der Pin geht auf Normalgröße zurück und
           // die Route blendet aus, während das Sheet fährt — nicht danach.
-          selectedSlug={dismissing ? null : previewSlug}
-          route={dismissing ? null : activeRoute}
+          selectedSlug={selectedSlug}
+          route={activeRoute}
           showRouteEnds={false}
           fitRoute={false}
           onMapClick={() => {
