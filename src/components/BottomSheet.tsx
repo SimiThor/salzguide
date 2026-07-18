@@ -8,15 +8,11 @@ import {
   useMotionValue,
   type PanInfo,
 } from "framer-motion";
-import {
-  useEffect,
-  useRef,
-  useState,
-  type PointerEvent as ReactPointerEvent,
-  type ReactNode,
-} from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useTranslations } from "next-intl";
+import SheetGrabber, { SHEET_HANDLE_CLASS } from "./SheetGrabber";
 import { useBodyDrag } from "./useBodyDrag";
+import { useSheetHandle } from "./useSheetHandle";
 
 // iOS-2026 Overlay (docs/02 §8), responsiv:
 // - Mobile: ziehbares Bottom-Sheet mit Detents (Halb/Voll), Grabber, Spring.
@@ -101,6 +97,10 @@ export default function BottomSheet({
   }
   const bodyRef = useRef<HTMLDivElement>(null);
   const bodyDrag = useBodyDrag(dragControls, bodyRef, atFull);
+  // Aktuelle Stufe – nur fürs Tippen auf den Balken nötig, deshalb ein Ref und kein State.
+  const idxRef = useRef(initialDetent);
+  // Der Kopf zieht, tippt aber nicht: Ein Tipp auf Titel oder Avatar soll nichts bewegen.
+  const headerHandle = useSheetHandle(dragControls);
 
   const full = detents[detents.length - 1];
   const base = vh || 800;
@@ -123,6 +123,7 @@ export default function BottomSheet({
   // Mobile-Sheet öffnen/schließen animieren
   useEffect(() => {
     if (isDesktop || !vh) return;
+    if (open) idxRef.current = initialDetent;
     const target = open ? snapY(detents[initialDetent]) : closedY;
     const controls = animate(y, target, SPRING);
     return () => controls.stop();
@@ -145,6 +146,15 @@ export default function BottomSheet({
     };
   }, [open, onClose, floating]);
 
+  // Eine Stufe ansteuern. Klemmt oben und unten, damit Tippen auf dem obersten Detent
+  // einfach stehen bleibt, statt zuzuklappen.
+  const snapToIndex = (i: number) => {
+    const c = Math.max(0, Math.min(detents.length - 1, i));
+    idxRef.current = c;
+    setAtFull(c === detents.length - 1);
+    animate(y, snapY(detents[c]), SPRING);
+  };
+
   const handleDragEnd = (
     _event: MouseEvent | TouchEvent | PointerEvent,
     info: PanInfo,
@@ -161,8 +171,7 @@ export default function BottomSheet({
     for (let i = 1; i < points.length; i++) {
       if (Math.abs(points[i] - current) < Math.abs(points[best] - current)) best = i;
     }
-    setAtFull(best === points.length - 1);
-    animate(y, points[best], SPRING);
+    snapToIndex(best);
   };
 
   // Gemeinsame Desktop-Innenstruktur (Header-Zeile, Scroll-Body, fixer Footer).
@@ -243,6 +252,7 @@ export default function BottomSheet({
       ) : (
         // ---- Mobile: ziehbares Bottom-Sheet ----
         <motion.div
+          data-sg="bottom-sheet"
           style={{ y, height: sheetH }}
           drag="y"
           dragListener={false}
@@ -254,20 +264,32 @@ export default function BottomSheet({
             open ? "" : "pointer-events-none"
           }`}
         >
-          {/* Nur der Grabber-Streifen startet das Ziehen – so lösen Buttons im
-              Header (Neuer Chat/Verlauf) keinen versehentlichen Drag aus. */}
+          {/* Der GANZE Kopf zieht, nicht nur der Balken: Balken, Titel, Avatar und die
+              freie Fläche daneben. Der Balken allein ist rund 22px hoch – den trifft man
+              am Handy nicht zuverlässig, und sobald der Inhalt gescrollt ist, gibt
+              useBodyDrag das Ziehen bewusst ans Scrollen ab. Dann wäre er die einzige
+              Stelle zum Zumachen. Knöpfe im Kopf bleiben ausgenommen (useSheetHandle). */}
           <div className="shrink-0">
-            <div
-              onPointerDown={(e: ReactPointerEvent) => dragControls.start(e)}
-              className="cursor-grab touch-none pb-1 pt-3 active:cursor-grabbing"
-            >
-              <span className="mx-auto block h-1.5 w-10 rounded-full bg-black/15" aria-hidden />
-            </div>
+            <SheetGrabber
+              dragControls={dragControls}
+              onTap={() => snapToIndex(idxRef.current + 1)}
+              className="pb-1 pt-3"
+            />
             {header ? (
-              <div className="border-b border-black/[0.06] px-5 pb-3 pt-1">{header}</div>
+              <div
+                {...headerHandle}
+                className={`${SHEET_HANDLE_CLASS} cursor-grab border-b border-black/[0.06] px-5 pb-3 pt-1 active:cursor-grabbing`}
+              >
+                {header}
+              </div>
             ) : (
               title && (
-                <h2 className="px-5 pb-2 pt-1 text-center text-lg font-semibold text-ink">{title}</h2>
+                <h2
+                  {...headerHandle}
+                  className={`${SHEET_HANDLE_CLASS} cursor-grab px-5 pb-2 pt-1 text-center text-lg font-semibold text-ink active:cursor-grabbing`}
+                >
+                  {title}
+                </h2>
               )
             )}
           </div>
