@@ -8,12 +8,16 @@ import MobileHeader from "@/components/MobileHeader";
 import LegalFooter from "@/components/LegalFooter";
 import ProNotice from "@/components/ProNotice";
 import Analytics from "@/components/Analytics";
+import { useTouchActiveState } from "@/components/useTouchActiveState";
 
 // App-Chrome (Header, Tab-Leiste, Footer, Analytics) an EINER Stelle. Ob eine Route
 // App-Navigation trägt oder Marketing ist, entscheidet lib/routes.ts.
 export default function AppChrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const marketing = isMarketingRoute(pathname);
+  // Hier, weil AppChrome auf JEDER Seite liegt (auch auf den Marketing-Seiten) und weil
+  // das Tap-Feedback nichts ist, um das sich 70 einzelne Komponenten kümmern sollten.
+  useTouchActiveState();
 
   return (
     <>

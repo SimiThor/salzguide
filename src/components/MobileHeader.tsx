@@ -65,7 +65,7 @@ export default function MobileHeader() {
           type="button"
           onClick={() => setOpen(true)}
           aria-label={t("Menu.open")}
-          className="flex h-10 w-10 items-center justify-center rounded-full text-ink active:bg-black/5"
+          className="sg-hit flex h-10 w-10 items-center justify-center rounded-full text-ink active:bg-black/5"
         >
           <Burger />
         </button>

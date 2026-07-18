@@ -207,7 +207,7 @@ export default function SpotDetailMap({
               type="button"
               onClick={() => setFullscreen(false)}
               aria-label={t("elevation.close")}
-              className="absolute left-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-ink shadow-md ring-1 ring-black/5 backdrop-blur active:scale-95"
+              className="sg-hit absolute left-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-ink shadow-md ring-1 ring-black/5 backdrop-blur active:scale-95"
               style={{ top: "calc(env(safe-area-inset-top) + 12px)" }}
             >
               <svg
