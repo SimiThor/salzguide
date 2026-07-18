@@ -751,6 +751,30 @@ input[type="number"] {
   appearance: textfield;
 }
 
+/* Kein Reinzoomen beim Tippen: EINE Quelle der Wahrheit für alle Eingabefelder.
+   iOS Safari zoomt beim Antippen automatisch auf jedes Feld, dessen Schrift kleiner
+   als 16px ist – und zoomt hinterher NICHT zurück. Man tippt seine Mail ein, verlässt
+   das Feld und die Seite bleibt vergrössert (betraf Login, Toni-Chat, Admin-Formulare:
+   alle lagen bei 13–15px). Deshalb bekommt jedes Textfeld auf Geräten mit Touchscreen
+   mindestens 16px – die einzige Lösung, die Safari, Chrome (Android) und Firefox gleich
+   behandeln, weil sie die Ursache beseitigt statt das Zoomen zu verbieten.
+   BEWUSST NICHT über den Viewport (maximum-scale=1 / user-scalable=no): Das nimmt auch
+   das absichtliche Zoomen mit zwei Fingern weg (Barrierefreiheit) und wird von neueren
+   iOS-Versionen ohnehin ignoriert.
+   `any-pointer: coarse` statt `pointer: coarse`, damit auch das iPad mit Trackpad und
+   Touch-Notebooks erfasst sind – dort tippt man trotzdem mit dem Finger ins Feld.
+   Die Regel steht bewusst AUSSERHALB jeder @layer: Ungeschichtete Regeln schlagen in der
+   Kaskade alle Tailwind-Utilities (text-[15px] & Co.), ganz ohne !important.
+   Achtung beim Erweitern: Ein Feld, das absichtlich grösser sein soll (>16px), müsste
+   seine Grösse hier drin setzen – die Utility-Klasse allein käme nicht durch. */
+@media (any-pointer: coarse) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}
+
 /* Dezenter Highlight-Punkt (Sync Höhenprofil <-> Karte) */
 .sg-hl-dot {
   width: 14px;
