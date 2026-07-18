@@ -16,6 +16,7 @@ import { toggleSaved } from "@/lib/saved-actions";
 import { Bookmark, BookmarkFilled } from "./icons";
 import LockedMedia from "./LockedMedia";
 import { useLoginGate } from "./auth/LoginGate";
+import SheetGrabber from "./SheetGrabber";
 import { useBodyDrag } from "./useBodyDrag";
 
 // Dieselbe Bewegung wie beim Explore-Sheet (siehe MobileSheet / --sg-ease-sheet in
@@ -66,7 +67,6 @@ export default function SpotSheet({
   const y = useMotionValue(2000);
   const dragControls = useDragControls();
   const idxRef = useRef(0);
-  const tapStart = useRef({ y: 0 });
   // Schließen darf nur EINMAL anlaufen: ✕, Esc, Runterziehen und der Karten-Klick
   // greifen alle in dismiss(), und zwei parallele Animationen auf dasselbe y kämpfen.
   const dismissed = useRef(false);
@@ -183,14 +183,8 @@ export default function SpotSheet({
     if (info.velocity.y > 400 && best > 0) best--;
     snapToIndex(best);
   }
-  function onHandleDown(e: React.PointerEvent) {
-    tapStart.current.y = e.clientY;
-    dragControls.start(e);
-  }
-  function onHandleUp(e: React.PointerEvent) {
-    if (Math.abs(e.clientY - tapStart.current.y) < 6) {
-      snapToIndex(idxRef.current < DETENTS.length - 1 ? idxRef.current + 1 : idxRef.current);
-    }
+  function onGrabberTap() {
+    snapToIndex(idxRef.current + 1); // snapToIndex klemmt oben, bleibt also auf Voll stehen
   }
 
   const btn =
@@ -208,14 +202,7 @@ export default function SpotSheet({
       onDragEnd={handleDragEnd}
       className="fixed inset-x-0 bottom-0 z-[55] flex w-full flex-col rounded-t-[22px] bg-cream shadow-[0_-10px_44px_-12px_rgba(0,0,0,0.4)]"
     >
-      {/* Griff = Drag/Tap */}
-      <div
-        onPointerDown={onHandleDown}
-        onPointerUp={onHandleUp}
-        className="sg-native-tap flex cursor-grab touch-none select-none justify-center py-3 active:cursor-grabbing"
-      >
-        <span className="h-1.5 w-10 rounded-full bg-black/15" aria-hidden />
-      </div>
+      <SheetGrabber dragControls={dragControls} onTap={onGrabberTap} className="py-3" />
 
       <div
         ref={bodyRef}

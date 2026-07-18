@@ -18,6 +18,7 @@ import {
   type ReactNode,
 } from "react";
 import { NAV_H_VAR, SHEET_PEEK_VAR, readCssLength } from "@/lib/sheet-metrics";
+import SheetGrabber from "./SheetGrabber";
 import { useBodyDrag } from "./useBodyDrag";
 
 // Persistentes, ziehbares Bottom-Sheet (Mobile) mit Detents/Grabber – iOS-2026.
@@ -277,17 +278,10 @@ export default function MobileSheet({
     };
   }, [computeStops, transition, y]);
 
-  const tapStart = useRef(0);
-  function onGrabberDown(e: React.PointerEvent) {
-    tapStart.current = e.clientY;
-    dragControls.start(e);
-  }
-  function onGrabberUp(e: React.PointerEvent) {
-    // Tippen (statt ziehen) geht eine Stufe weiter, oben wieder zurück auf Peek.
-    // detents.length = oberste Stufe (Peek ist die zusätzliche unterste).
-    if (Math.abs(e.clientY - tapStart.current) < 6) {
-      snapTo(idxRef.current < detents.length ? idxRef.current + 1 : 0);
-    }
+  // Tippen (statt ziehen) geht eine Stufe weiter, oben wieder zurück auf Peek.
+  // detents.length = oberste Stufe (Peek ist die zusätzliche unterste).
+  function onGrabberTap() {
+    snapTo(idxRef.current < detents.length ? idxRef.current + 1 : 0);
   }
 
   const railStyle = {
@@ -319,13 +313,8 @@ export default function MobileSheet({
         onDragEnd={onDragEnd}
         className="pointer-events-auto relative flex h-full flex-col rounded-t-[22px] bg-cream/95 shadow-2xl backdrop-blur-xl"
       >
-        <div
-          onPointerDown={onGrabberDown}
-          onPointerUp={onGrabberUp}
-          className="sg-native-tap flex shrink-0 cursor-pointer touch-none select-none flex-col items-center gap-1 pb-2 pt-3 active:cursor-grabbing"
-        >
-          <span className="h-1.5 w-10 rounded-full bg-black/15" aria-hidden />
-        </div>
+        {/* pb-2 pt-3 = 26px Streifen; genau der Wert, mit dem globals.css den Peek rechnet. */}
+        <SheetGrabber dragControls={dragControls} onTap={onGrabberTap} className="pb-2 pt-3" />
         <div
           ref={bodyRef}
           {...bodyDrag}
