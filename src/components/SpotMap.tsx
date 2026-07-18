@@ -436,12 +436,28 @@ export default function SpotMap({
       // Zwei-Finger-Sperre mehr — der Hinweis „Use two fingers to move the map" war
       // einer der deutlichsten Verräter „Webseite", und ohne Gesten will ihn niemand.
       interactive: !preview,
+      // Attribution IMMER kompakt, auf jeder Karte.
+      //
+      // Mapbox entscheidet das sonst selbst — nach der BREITE der jeweiligen Karte
+      // (bis 640px das „i", darüber der ausgeschriebene Text). Unsere Karten sind
+      // verschieden breit, also stand bei 1024px Fensterbreite gemessen: Explore 544px
+      // -> „i", Spot-Seite 728px -> Text, Gespeichert 992px -> Text. Drei Karten, drei
+      // Antworten, auf demselben Bildschirm.
+      //
+      // Erlaubt ist beides: Mapbox verlangt das LOGO dauerhaft sichtbar („we require
+      // the Mapbox logo to appear on our maps"), die Text-Attribution darf hinter einer
+      // Schaltfläche liegen — ihre eigenen mobilen SDKs liefern genau so einen
+      // Info-Knopf mit. Das Logo bleibt unangetastet, nur der Text wandert einen Tap
+      // weiter. Kompakt passt ausserdem zu Karten, die bei uns oft klein sind.
+      attributionControl: false,
       // Immer flache 2D-Ansicht — keine 3D-Neigung (Pitch)
       pitch: 0,
       maxPitch: 0,
       pitchWithRotate: false,
       touchPitch: false,
     });
+    map.addControl(new mapboxgl.AttributionControl({ compact: true }));
+
     // Bedienung gibt es nur auf Arbeits-Karten. Vorschauen tragen keinen einzigen
     // Knopf — dort ist die ganze Fläche der Knopf (siehe `preview` weiter oben).
     if (!preview) {

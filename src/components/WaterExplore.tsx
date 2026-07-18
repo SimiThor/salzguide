@@ -155,7 +155,13 @@ export default function WaterExplore({
       maxPitch: 0,
       pitchWithRotate: false,
       touchPitch: false,
+      // Attribution kompakt, wie auf allen anderen Karten (Begründung in SpotMap):
+      // Mapbox entschiede das sonst je nach Kartenbreite selbst, und diese Karte ist
+      // breiter als die übrigen — genau deshalb stand hier als einziger der
+      // ausgeschriebene Text, während der Rest den „i"-Knopf zeigte.
+      attributionControl: false,
     });
+    map.addControl(new mapboxgl.AttributionControl({ compact: true }));
     // Gleiche Karten-Tools wie die Startseite: Zoom, Zentrieren (alle Seen einpassen),
     // Standort (blauer Punkt / Heading).
     map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "top-right");

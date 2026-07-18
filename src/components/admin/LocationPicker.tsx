@@ -176,12 +176,16 @@ export default function LocationPicker({
       center: [13.05, 47.6],
       zoom: 9,
       cooperativeGestures: true,
+      // Gleiche Regel wie auf den öffentlichen Karten (SpotMap): Attribution kompakt,
+      // Logo bleibt. Sonst sähe ausgerechnet der Admin eine vierte Variante.
+      attributionControl: false,
       // Immer flache 2D-Ansicht — keine 3D-Neigung (Pitch)
       pitch: 0,
       maxPitch: 0,
       pitchWithRotate: false,
       touchPitch: false,
     });
+    map.addControl(new mapboxgl.AttributionControl({ compact: true }));
     map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "top-right");
     map.addControl(new RecenterControl(() => recenterRef.current()), "top-right");
     map.on("load", () => {
