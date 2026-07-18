@@ -214,7 +214,9 @@ export default function VideoUploader({
             controls
             playsInline
             preload="none"
-            className="h-full w-full object-cover"
+            // sg-video (globals.css): auch die Admin-Vorschau zeigt im Vollbild das ganze
+            // Video. Sonst prüfst du hier einen Ausschnitt und gibst etwas anderes frei.
+            className="sg-video"
           />
         </div>
       )}

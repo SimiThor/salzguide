@@ -1,6 +1,6 @@
 import "server-only";
 import { cache } from "react";
-import { createClient } from "./supabase/server";
+import { createServiceClient } from "./supabase/service";
 import { hashTexts } from "./spot-hash";
 import { homeTextParts, type HomeTexts } from "./home-fields";
 import {
@@ -57,8 +57,20 @@ const FILE_TEXTS: HomeTexts = Object.fromEntries(
 );
 
 // Ein Request liest die Zeile höchstens einmal, egal wie viele Sections danach fragen.
+//
+// Service-Client, NICHT der Cookie-Client: Der Inhalt der Startseite ist für JEDEN Besucher
+// derselbe, ein Cookie ändert daran nichts. Der Cookie-Client hat ihn aber trotzdem gelesen,
+// und sobald eine Seite Cookies liest, muss Next sie bei jedem einzelnen Aufruf neu rendern.
+// Die Startseite war deshalb `ƒ` (pro Request), obwohl sie eine Verkaufsseite ist, die sich
+// selten ändert: 269ms und drei DB-Abfragen für jeden Besucher, mal neun Sprachen, mal jeden
+// Crawler. Ohne Cookie kann Next sie vorrendern und aus dem Cache ausliefern.
+//
+// Aktuell bleibt sie trotzdem: Die vier Speicher-Aktionen im Admin (saveHomeTexts,
+// saveHomeMedia, saveHomeFeatured, fillHomeTranslations) rufen bereits revalidatePath für
+// alle Sprachen auf — diese Aufrufe liefen bisher nur ins Leere, weil an einer dynamischen
+// Seite nichts zu invalidieren ist.
 const readRow = cache(async function readRow(): Promise<Row | null> {
-  const supabase = await createClient();
+  const supabase = createServiceClient();
   const { data, error } = await supabase
     .from("home_content")
     .select("texts, translations, source_hash, media")

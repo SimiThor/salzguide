@@ -19,18 +19,29 @@ export default function SpotVideo({
   label: string;
 }) {
   const [playing, setPlaying] = useState(false);
+  // Ein Standbild, dessen Datei fehlt, muss sich verhalten wie gar kein Standbild. Sonst
+  // bleibt der Farbschleier leer UND die Kachel leer, und übrig ist ein Play-Knopf im
+  // Nichts. Genau das war beim Hochkeil zu sehen: Die DB zeigte auf eine Datei, die ein
+  // Aufräum-Skript gelöscht hatte (siehe scripts/lib/storage-refs.mjs).
+  const [posterBroken, setPosterBroken] = useState(false);
+  const usablePoster = posterBroken ? null : poster;
 
   return (
     <div className="relative overflow-hidden rounded-[22px] bg-white shadow-sm ring-1 ring-black/5">
       {/* Das Vorschaubild selbst, unscharf – in seinen ECHTEN Farben (nicht heller/dunkler),
           füllt die Kartenbreite -> das Hochkant-Video wirkt „wie aus einem Guss". */}
-      {poster && (
+      {usablePoster && (
         <Image
-          src={poster}
+          src={usablePoster}
           alt=""
           fill
-          sizes="760px"
+          // 96px, nicht 760px: Dieses Bild wird mit blur-2xl bis zur Unkenntlichkeit
+          // weichgezeichnet, es ist nur ein Farbschleier. Schärfe, die hier geladen wird,
+          // zeichnet der Filter direkt wieder weg. Spart ~8x Datenmenge, sieht identisch aus.
+          sizes="96px"
+          quality={50}
           aria-hidden
+          onError={() => setPosterBroken(true)}
           className="scale-110 object-cover blur-2xl"
         />
       )}
@@ -41,8 +52,9 @@ export default function SpotVideo({
           {playing ? (
             <video
               src={src}
-              poster={poster ?? undefined}
-              className="h-full w-full object-cover"
+              poster={usablePoster ?? undefined}
+              // sg-video (globals.css): in der Kachel füllend, im Vollbild vollständig.
+              className="sg-video"
               controls
               autoPlay
               playsInline
@@ -55,8 +67,15 @@ export default function SpotVideo({
               aria-label={label}
               className="sg-skeleton group absolute inset-0 h-full w-full"
             >
-              {poster ? (
-                <Image src={poster} alt="" fill sizes="300px" className="object-cover" />
+              {usablePoster ? (
+                <Image
+                  src={usablePoster}
+                  alt=""
+                  fill
+                  sizes="300px"
+                  onError={() => setPosterBroken(true)}
+                  className="object-cover"
+                />
               ) : (
                 <div className="h-full w-full bg-black/40" />
               )}

@@ -436,6 +436,11 @@ export async function saveSpot(input: SpotInput): Promise<SaveResult> {
     await removeBlurPreviews(supabase.storage, plan.orphanPreviews);
   }
 
+  // Die Startseite wird vorgerendert (siehe lib/home-content.ts) und zeigt die Spot-Anzahl
+  // sowie die ausgewählten Spots. Ohne diesen Aufruf hinge sie nach dem Veröffentlichen bis
+  // zu einer Stunde auf dem alten Stand.
+  for (const l of routing.locales) revalidatePath(`/${l}`);
+
   return { ok: true, id: spotId };
 }
 
@@ -863,6 +868,10 @@ export async function deleteSpot(id: string): Promise<SaveResult> {
 
   const { error } = await supabase.from("spots").delete().eq("id", id);
   if (error) return { ok: false, error: error.message };
+
+  // Wie in saveSpot: Die vorgerenderte Startseite muss die neue Spot-Anzahl mitbekommen.
+  for (const l of routing.locales) revalidatePath(`/${l}`);
+
   return { ok: true };
 }
 

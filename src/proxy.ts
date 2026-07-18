@@ -26,8 +26,21 @@ export default async function proxy(request: NextRequest) {
     },
   );
 
-  // Aktualisiert die Auth-Session (Cookies) bei jedem Request
-  await supabase.auth.getUser();
+  // Aktualisiert die Auth-Session (Cookies) bei jedem Request.
+  //
+  // getClaims() statt getUser(): getUser() fragt für JEDEN Request bei Supabase nach, ob das
+  // Token gültig ist. Das ist ein Netzwerk-Roundtrip, der fertig sein muss, BEVOR die Seite
+  // rendert — bei jedem Klick, für jeden eingeloggten Nutzer. In den Logs vom 18.07.2026
+  // waren das 415 Aufrufe auf /auth/v1/user in 30 Minuten.
+  //
+  // getClaims() macht dasselbe ohne den Umweg: Es holt die Session (frischt abgelaufene
+  // Tokens weiter auf, niemand wird ausgesperrt) und prüft die Signatur danach LOKAL gegen
+  // den öffentlichen Schlüssel des Projekts. Das geht nur, weil dieses Projekt asymmetrisch
+  // signiert (ES256, siehe /auth/v1/.well-known/jwks.json). Bei einem symmetrischen Secret
+  // (HS256) fällt die Bibliothek von selbst auf getUser() zurück, das bliebe also korrekt.
+  //
+  // Sicherheit: gleichwertig. Beide Wege prüfen kryptografisch, nur eben hier statt dort.
+  await supabase.auth.getClaims();
 
   return response;
 }

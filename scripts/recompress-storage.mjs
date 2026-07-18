@@ -12,6 +12,7 @@
 import fs from "fs";
 import path from "path";
 import sharp from "sharp";
+import { collectStorageRefs } from "./lib/storage-refs.mjs";
 
 const APPLY = process.argv.includes("--apply");
 const ROOT = path.resolve(".");
@@ -56,40 +57,20 @@ const pathOf = (url) => (typeof url === "string" && url.startsWith(PUB) ? decode
 
 // ---- Jede Referenz einsammeln, mit ihrer Ziel-Kantenlänge ----
 // kind bestimmt die maximale Kante: Hero gross, Foto mittel, Avatar klein.
+// Die Liste der URL-Spalten steht in lib/storage-refs.mjs und gilt auch für
+// prune-orphan-images.mjs. Getrennt gepflegt fehlte beiden `spots.video_poster_url`.
 const jobs = []; // { loc, kind, apply(newUrl,w,h), path, size }
-function add(loc, kind, url, apply) {
-  const p = pathOf(url); if (!p) return;
+for (const ref of await collectStorageRefs(sel, patch, patchHome)) {
+  // kind "video" heisst: nur schützen, nie anfassen. Ohne diese Bremse würde das Skript
+  // versuchen, eine MP4 in ein WebP umzurechnen.
+  if (ref.kind === "video") continue;
+  const p = pathOf(ref.url); if (!p) continue;
   const o = byPath.get(p);
   // Jedes Nicht-WebP wird umgerechnet, egal wie gross: Ein 361-KB-PNG-Avatar ist so gut
   // wie ein 7-MB-Foto ein Fall fürs Komprimieren. WebP ist schon fertig -> überspringen.
-  if (!o || o.mime === "image/webp") return;
-  jobs.push({ loc, kind, path: p, size: o.size, apply });
-}
-
-for (const m of await sel("media", "id,type,url,poster_url")) {
-  add(`media[${m.id}].url`, "photo", m.url, (u) => patch("media", `id=eq.${m.id}`, { url: u }));
-  add(`media[${m.id}].poster_url`, "photo", m.poster_url, (u) => patch("media", `id=eq.${m.id}`, { poster_url: u }));
-}
-for (const e of await sel("events", "id,image_url")) add(`events[${e.id}]`, "photo", e.image_url, (u) => patch("events", `id=eq.${e.id}`, { image_url: u }));
-for (const t of await sel("tours", "id,cover_url")) add(`tours[${t.id}]`, "photo", t.cover_url, (u) => patch("tours", `id=eq.${t.id}`, { cover_url: u }));
-for (const a of await sel("tour_areas", "id,cover_url")) add(`tour_areas[${a.id}]`, "photo", a.cover_url, (u) => patch("tour_areas", `id=eq.${a.id}`, { cover_url: u }));
-for (const p of await sel("tour_points", "id,image_url")) add(`tour_points[${p.id}]`, "photo", p.image_url, (u) => patch("tour_points", `id=eq.${p.id}`, { image_url: u }));
-for (const l of await sel("locals", "id,avatar_url")) add(`locals[${l.id}]`, "avatar", l.avatar_url, (u) => patch("locals", `id=eq.${l.id}`, { avatar_url: u }));
-for (const s of await sel("app_settings", "key,value")) if (s.key === "toni_avatar_url") add("app_settings.toni", "avatar", s.value, (u) => patch("app_settings", `key=eq.${s.key}`, { value: u }));
-
-// home_content.media: ganzes jsonb lesen, Slot-src + width/height ersetzen, zurückschreiben.
-const homeRows = await sel("home_content", "id,media");
-for (const hc of homeRows) {
-  const media = hc.media || {};
-  const slotKind = { heroPortrait: "hero", heroLandscape: "hero", antonPhoto: "avatar", simonPhoto: "avatar" };
-  for (const [slot, kind] of Object.entries(slotKind)) {
-    const img = media[slot];
-    if (!img?.src) continue;
-    add(`home_content.${slot}`, kind, img.src, (u, w, h) => patchHome(hc.id, slot, u, w, h));
-  }
-  if (media.explainerVideo?.poster) {
-    add("home_content.video.poster", "photo", media.explainerVideo.poster, (u) => patchHome(hc.id, "explainerVideo.poster", u));
-  }
+  // Zweiter Riegel gegen Nicht-Bilder, falls oben je eine Zeile ohne kind durchrutscht.
+  if (!o || o.mime === "image/webp" || !String(o.mime).startsWith("image/")) continue;
+  jobs.push({ loc: ref.loc, kind: ref.kind, path: p, size: o.size, apply: ref.apply });
 }
 
 // ---- Schreib-Helfer (nur bei --apply aktiv) ----
