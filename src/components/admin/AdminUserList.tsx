@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { setUserPro } from "@/lib/user-actions";
+import { proSourceLabel } from "@/lib/pro-source";
 import type { AdminUser, ProGrantEntry } from "@/lib/admin";
 
 // Nutzerliste mit Pro-Schalter.
@@ -31,7 +32,9 @@ const ERRORS: Record<string, string> = {
 
 function ProBadge({ user }: { user: AdminUser }) {
   if (!user.isPro) return <span className="text-muted">–</span>;
-  const label = user.paidPro ? "Pro · bezahlt" : `Pro · ${user.proSource ?? "?"}`;
+  // Rot hervorgehoben ist nur bezahltes Pro: Das ist das einzige, das der Admin nicht
+  // anfassen darf, und genau das soll man auf einen Blick sehen.
+  const label = `Pro · ${proSourceLabel(user.proSource)}`;
   return (
     <span
       className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${

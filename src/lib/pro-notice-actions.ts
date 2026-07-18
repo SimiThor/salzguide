@@ -17,12 +17,7 @@
 // seinen Gruss für immer verpasst.
 
 import { createClient } from "./supabase/server";
-
-// Entspricht dem Enum `pro_source` aus Migration 0001 und entscheidet nur, WELCHER
-// Text im Gruss steht.
-export type ProNoticeSource = "stripe" | "migration" | "comp";
-
-const SOURCES: readonly string[] = ["stripe", "migration", "comp"];
+import { isProSource, type ProSource } from "./pro-source";
 
 /**
  * Steht für den eingeloggten Nutzer noch der Gruss aus? Herkunft (bestimmt den Text)
@@ -36,7 +31,7 @@ const SOURCES: readonly string[] = ["stripe", "migration", "comp"];
  * hakt die Datenbank, gibt es eben keinen Gruss. Ein Hinweis, der ausfällt, darf nichts
  * mitreissen.
  */
-export async function getPendingProNotice(): Promise<ProNoticeSource | null> {
+export async function getPendingProNotice(): Promise<ProSource | null> {
   try {
     const supabase = await createClient();
     const {
@@ -56,10 +51,7 @@ export async function getPendingProNotice(): Promise<ProNoticeSource | null> {
     // Pro ohne Herkunft ist ein Datenfehler und sollte nicht vorkommen. Dann lieber
     // schweigen als raten: "wir haben dir Pro geschenkt" an jemanden, der bezahlt hat,
     // wäre schlimmer als gar kein Gruss.
-    const source = data.pro_source;
-    return typeof source === "string" && SOURCES.includes(source)
-      ? (source as ProNoticeSource)
-      : null;
+    return isProSource(data.pro_source) ? data.pro_source : null;
   } catch {
     return null;
   }

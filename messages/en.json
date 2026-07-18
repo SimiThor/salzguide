@@ -338,7 +338,6 @@
     "canceledTitle": "Checkout canceled",
     "canceledBody": "No worries – you can go Pro anytime.",
     "notice": {
-      "dismiss": "Got it",
       "stripe": {
         "title": "Your Pro is live. 🎉",
         "body": "Thank you. Every Pro spot is open for you from now on."

@@ -338,7 +338,6 @@
     "canceledTitle": "已取消购买",
     "canceledBody": "没关系——你随时可以开通 Pro。",
     "notice": {
-      "dismiss": "知道了",
       "stripe": {
         "title": "你的 Pro 已开通。🎉",
         "body": "谢谢你。从现在起所有 Pro 地点都为你开放。"

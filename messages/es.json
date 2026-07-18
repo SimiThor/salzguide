@@ -338,7 +338,6 @@
     "canceledTitle": "Compra cancelada",
     "canceledBody": "Sin problema: puedes pasarte a Pro cuando quieras.",
     "notice": {
-      "dismiss": "Entendido",
       "stripe": {
         "title": "Tu Pro ya está activo. 🎉",
         "body": "Gracias. Desde ahora todos los spots Pro están abiertos para ti."

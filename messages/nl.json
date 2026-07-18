@@ -338,7 +338,6 @@
     "canceledTitle": "Aankoop afgebroken",
     "canceledBody": "Geen probleem – je kunt altijd Pro worden.",
     "notice": {
-      "dismiss": "Duidelijk",
       "stripe": {
         "title": "Je Pro is actief. 🎉",
         "body": "Dank je. Vanaf nu staan alle Pro-spots voor je open."

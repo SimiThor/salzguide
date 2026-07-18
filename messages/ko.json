@@ -338,7 +338,6 @@
     "canceledTitle": "결제 취소됨",
     "canceledBody": "괜찮아요 – 언제든 Pro가 될 수 있어요.",
     "notice": {
-      "dismiss": "알겠어요",
       "stripe": {
         "title": "Pro가 활성화됐어요. 🎉",
         "body": "고마워요. 이제 모든 Pro 스팟이 열려 있어요."

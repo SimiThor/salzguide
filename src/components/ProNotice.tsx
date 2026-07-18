@@ -6,8 +6,8 @@ import { useTranslations } from "next-intl";
 import {
   dismissProNotice,
   getPendingProNotice,
-  type ProNoticeSource,
 } from "@/lib/pro-notice-actions";
+import type { ProSource } from "@/lib/pro-source";
 
 // Der einmalige "dein Pro ist da"-Gruss, als dezentes Kärtchen über der Tab-Leiste.
 //
@@ -26,8 +26,9 @@ import {
 // schiebt sich sauber darüber, statt mit dem Kärtchen zu streiten.
 export default function ProNotice() {
   const t = useTranslations("Pro");
+  const tCommon = useTranslations("Common");
   const reduce = useReducedMotion();
-  const [source, setSource] = useState<ProNoticeSource | null>(null);
+  const [source, setSource] = useState<ProSource | null>(null);
   const [, startTransition] = useTransition();
 
   // Einmal je echtem Seitenaufruf fragen. Bei Client-Navigation bleibt AppChrome stehen,
@@ -75,26 +76,52 @@ export default function ProNotice() {
             reduce ? { duration: 0.15 } : { type: "spring", stiffness: 440, damping: 34 }
           }
         >
-          {/* Knopf UNTER dem Text, nicht daneben: Neben dem Text nahm er so viel Breite,
-              dass schon die deutsche Überschrift umbrach. Über neun Sprachen mit sehr
-              unterschiedlicher Wortlänge ist untereinander die einzige Anordnung, die
-              immer absichtlich aussieht. */}
-          <div
+          {/* Schliessen wie beim Karten-Kärtchen (MapPopoverClose): kleines rundes ✕ in
+              der Ecke. Bewusst KEIN breiter Knopf unten — das ist ein Gruss, kein Dialog,
+              und ein Kärtchen, das über der Karte schwebt, schliesst in dieser App eben
+              so. Zusammen mit dem Wegwischen gibt es zwei Wege raus.
+              Das ✕ misst sichtbar 28px, die Trefferfläche darum ist über das Padding
+              auf ~44px gezogen (Apples Mindestmass). */}
+          <motion.div
             role="status"
-            className="pointer-events-auto mx-auto w-full max-w-[420px] rounded-[22px] border border-black/[0.06] bg-white/90 px-4 py-3.5 shadow-[0_2px_8px_rgba(0,0,0,0.06),0_18px_40px_-24px_rgba(0,0,0,0.35)] backdrop-blur-xl"
+            drag="y"
+            // Nur nach unten nachgeben. Nach oben bleibt es stehen, sonst könnte man das
+            // Kärtchen in den Bildschirm hineinziehen.
+            dragConstraints={{ top: 0, bottom: 0 }}
+            dragElastic={{ top: 0, bottom: 0.6 }}
+            dragDirectionLock
+            onDragEnd={(_, info) => {
+              // Weit genug ODER schnell genug: ein beherzter kurzer Wisch soll reichen.
+              if (info.offset.y > 60 || info.velocity.y > 500) close();
+            }}
+            className="pointer-events-auto relative mx-auto w-full max-w-[420px] cursor-grab rounded-[22px] border border-black/[0.06] bg-white/90 px-4 py-3.5 shadow-[0_2px_8px_rgba(0,0,0,0.06),0_18px_40px_-24px_rgba(0,0,0,0.35)] backdrop-blur-xl active:cursor-grabbing"
           >
-            <p className="text-[15px] font-semibold text-accent">{text.title}</p>
-            <p className="mt-1 text-[13px] leading-relaxed text-muted">{text.body}</p>
-            <div className="mt-3 flex justify-end">
-              <button
-                type="button"
-                onClick={close}
-                className="rounded-full bg-black/[0.06] px-4 py-2 text-[13px] font-semibold text-ink active:scale-[0.97]"
-              >
-                {t("notice.dismiss")}
-              </button>
+            <div className="pr-8">
+              <p className="text-[15px] font-semibold text-accent">{text.title}</p>
+              <p className="mt-1 text-[13px] leading-relaxed text-muted">{text.body}</p>
             </div>
-          </div>
+            <button
+              type="button"
+              onClick={close}
+              aria-label={tCommon("close")}
+              className="absolute right-1.5 top-1.5 flex h-11 w-11 items-center justify-center"
+            >
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-black/5 text-ink transition-transform active:scale-90">
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  aria-hidden
+                >
+                  <path d="M6 6l12 12M18 6L6 18" />
+                </svg>
+              </span>
+            </button>
+          </motion.div>
         </motion.div>
       )}
     </AnimatePresence>

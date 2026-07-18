@@ -5,6 +5,7 @@ import { translationStatus, type TranslationState } from "./spot-hash";
 import { HOME_KEYS, type HomeTexts } from "./home-fields";
 import { homeSourceHash, type HomeMedia } from "./home-content";
 import { parseLandingImage, parseLandingVideo } from "./landing-media";
+import type { ProSource } from "./pro-source";
 import deMessages from "../../messages/de.json";
 
 export type AdminCategory = { id: string; key: string; season: string; title: string };
@@ -15,7 +16,7 @@ export type AdminUser = {
   id: string;
   email: string | null;
   isPro: boolean;
-  proSource: "stripe" | "migration" | "comp" | null;
+  proSource: ProSource | null;
   proSince: string | null;
   role: "user" | "admin";
   newsletter: boolean;

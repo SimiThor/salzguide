@@ -338,7 +338,6 @@
     "canceledTitle": "Paiement annulé",
     "canceledBody": "Pas de souci – tu peux passer à Pro quand tu veux.",
     "notice": {
-      "dismiss": "C'est noté",
       "stripe": {
         "title": "Ton Pro est actif. 🎉",
         "body": "Merci à toi. Tous les spots Pro sont ouverts pour toi désormais."
