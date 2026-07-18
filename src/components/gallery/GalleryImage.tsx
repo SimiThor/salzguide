@@ -4,7 +4,12 @@ import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { useGalleryOpen } from "./SpotGalleryProvider";
 
-// Klickbares Foto, das den Lightbox am gegebenen Index öffnet (Hero + Kacheln).
+// Foto, das den Lightbox am gegebenen Index öffnet (Galerie-Kacheln).
+// Mit `zoomable={false}` bleibt es ein reines Bild ohne Tippfläche: das Hero-Foto
+// oben füllt den halben Bildschirm, direkt darauf liegen Zurück- und Merken-Knopf.
+// Wer daneben tippt, wollte fast immer zurück und nicht das Bild vergrössern -> das
+// Hero reagiert gar nicht mehr, die Fotos bleiben über die Galerie darunter gross
+// erreichbar (im Lightbox nach links wischen).
 // Bis das Bild geladen ist: sichtbare Skeleton-Kachel mit sanftem Schimmer (Instagram-
 // Stil); danach blendet das Bild weich ein. Aus dem Cache geladene Bilder erscheinen
 // sofort (kein künstlicher Verzug); nur bei echtem Laden bleibt der Schimmer kurz stehen.
@@ -22,6 +27,7 @@ export default function GalleryImage({
   imgClassName,
   priority = false,
   quality = 62,
+  zoomable = true,
 }: {
   index: number;
   src: string;
@@ -33,6 +39,8 @@ export default function GalleryImage({
   priority?: boolean;
   /** Galerie/Hero werden klein gezeigt; 62 spart die Hälfte, ohne sichtbar zu leiden. */
   quality?: number;
+  /** false = reines Bild ohne Tippfläche (Hero), siehe Kommentar oben. */
+  zoomable?: boolean;
 }) {
   const open = useGalleryOpen();
   const imgRef = useRef<HTMLImageElement>(null);
@@ -55,10 +63,15 @@ export default function GalleryImage({
 
   const show = imgLoaded && minDone;
 
+  // Ohne Zoom bewusst KEIN <button>: kein Klick, kein Fokus-Rahmen, kein
+  // Screenreader-Knopf. Das Bild ist dann nur noch Deko im Hintergrund.
+  const Box = zoomable ? "button" : "div";
+
   return (
-    <button
-      type="button"
-      onClick={() => open(index)}
+    <Box
+      {...(zoomable
+        ? { type: "button" as const, onClick: () => open(index) }
+        : null)}
       className={`relative ${className ?? ""} ${show ? "" : "sg-skeleton"}`}
     >
       <Image
@@ -76,6 +89,6 @@ export default function GalleryImage({
           show ? "opacity-100" : "opacity-0"
         }`}
       />
-    </button>
+    </Box>
   );
 }
