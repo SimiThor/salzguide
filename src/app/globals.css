@@ -879,12 +879,12 @@ body {
    halb in fremder, halb in eigener Strichstärke da. Nur das Bild wird ersetzt, das
    Verhalten bleibt Mapbox'. */
 .mapboxgl-ctrl-group button.mapboxgl-ctrl-zoom-in .mapboxgl-ctrl-icon {
-  background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23111111%22%20stroke-width%3D%221.75%22%20stroke-linecap%3D%22round%22%3E%3Cpath%20d%3D%22M12%205.5v13%22%2F%3E%3Cpath%20d%3D%22M5.5%2012h13%22%2F%3E%3C%2Fsvg%3E") !important;
-  background-size: 20px 20px;
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23111111%22%20stroke-width%3D%222.6%22%20stroke-linecap%3D%22round%22%3E%3Cpath%20d%3D%22M12%206v12%22%2F%3E%3Cpath%20d%3D%22M6%2012h12%22%2F%3E%3C%2Fsvg%3E") !important;
+  background-size: 19px 19px;
 }
 .mapboxgl-ctrl-group button.mapboxgl-ctrl-zoom-out .mapboxgl-ctrl-icon {
-  background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23111111%22%20stroke-width%3D%221.75%22%20stroke-linecap%3D%22round%22%3E%3Cpath%20d%3D%22M5.5%2012h13%22%2F%3E%3C%2Fsvg%3E") !important;
-  background-size: 20px 20px;
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23111111%22%20stroke-width%3D%222.6%22%20stroke-linecap%3D%22round%22%3E%3Cpath%20d%3D%22M6%2012h12%22%2F%3E%3C%2Fsvg%3E") !important;
+  background-size: 19px 19px;
 }
 
 /* STANDORT-SYMBOL IN DER HAUSSCHRIFT.
@@ -897,13 +897,13 @@ body {
    Die übrigen Zustände (waiting, error) lässt Mapbox unverändert: Sie sind selten,
    und ein falsch nachgebautes Fehlerbild ist schlimmer als ein fremdes. */
 .mapboxgl-ctrl-geolocate .mapboxgl-ctrl-icon {
-  background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23111111%22%20stroke-width%3D%221.75%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%226%22%2F%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%221.7%22%20fill%3D%22%23111111%22%20stroke%3D%22none%22%2F%3E%3Cpath%20d%3D%22M12%202.2v2.3%22%2F%3E%3Cpath%20d%3D%22M12%2019.5v2.3%22%2F%3E%3Cpath%20d%3D%22M2.2%2012h2.3%22%2F%3E%3Cpath%20d%3D%22M19.5%2012h2.3%22%2F%3E%3C%2Fsvg%3E") !important;
-  background-size: 20px 20px;
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22M19.71%204.09%205.52%209.96a.98.98%200%200%200%20.1%201.84l5.19%201.46%201.46%205.19a.98.98%200%200%200%201.84.1Z%22%20fill%3D%22%23111111%22%20stroke%3D%22%23111111%22%20stroke-width%3D%221.4%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E") !important;
+  background-size: 19px 19px;
 }
 .mapboxgl-ctrl-geolocate.mapboxgl-ctrl-geolocate-active .mapboxgl-ctrl-icon,
 .mapboxgl-ctrl-geolocate.mapboxgl-ctrl-geolocate-background .mapboxgl-ctrl-icon {
-  background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23cc2924%22%20stroke-width%3D%221.75%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%226%22%2F%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%221.7%22%20fill%3D%22%23cc2924%22%20stroke%3D%22none%22%2F%3E%3Cpath%20d%3D%22M12%202.2v2.3%22%2F%3E%3Cpath%20d%3D%22M12%2019.5v2.3%22%2F%3E%3Cpath%20d%3D%22M2.2%2012h2.3%22%2F%3E%3Cpath%20d%3D%22M19.5%2012h2.3%22%2F%3E%3C%2Fsvg%3E") !important;
-  background-size: 20px 20px;
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22M19.71%204.09%205.52%209.96a.98.98%200%200%200%20.1%201.84l5.19%201.46%201.46%205.19a.98.98%200%200%200%201.84.1Z%22%20fill%3D%22%23cc2924%22%20stroke%3D%22%23cc2924%22%20stroke-width%3D%221.4%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E") !important;
+  background-size: 19px 19px;
 }
 
 /* AM FINGER GIBT ES KEINE ZOOM-KNÖPFE.
