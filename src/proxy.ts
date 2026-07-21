@@ -46,6 +46,8 @@ export default async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // Alle Pfade außer API, Next-Internals und Dateien mit Endung (z.B. .png).
-  matcher: "/((?!api|_next|_vercel|.*\\..*).*)",
+  // Alle Pfade außer API, Next-Internals, Dateien mit Endung (z.B. .png) und der
+  // internen Render-Route (/render/*): die soll KEIN Locale-Präfix bekommen, sie ist
+  // sprachneutral und wird nur vom Intro-Renderer aufgerufen.
+  matcher: "/((?!api|_next|_vercel|render|.*\\..*).*)",
 };
