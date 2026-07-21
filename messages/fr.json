@@ -227,6 +227,8 @@
     "headGeneral": "À propos",
     "playVideo": "Lire la vidéo",
     "videoMaker": {
+      "sectionTitle": "Ta vidéo de cette randonnée",
+      "sectionSub": "Ajoute ton clip et partage-le, directement depuis ton téléphone.",
       "button": "Créer une story",
       "title": "Créer une story",
       "intro": "Ajoute ton clip à l'animation de la randonnée et partage la vidéo finie. Elle est créée directement sur ton téléphone et reste chez toi.",

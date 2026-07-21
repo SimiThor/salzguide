@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import BottomSheet from "./BottomSheet";
 import ClipTrimmer from "./ClipTrimmer";
@@ -13,7 +13,15 @@ type Phase = "idle" | "trim" | "working" | "done" | "error";
 // Wander-Animation und teilt das fertige Story-Video. Alles im Browser (ffmpeg.wasm,
 // src/lib/video-maker.ts) - der Clip verlässt das Gerät nie. Erscheint nur auf Spots mit
 // Intro. Ändert die Wanderkarte nicht: eigene Section.
-export default function VideoMaker({ introUrl, slug }: { introUrl: string; slug: string }) {
+export default function VideoMaker({
+  introUrl,
+  introPosterUrl,
+  slug,
+}: {
+  introUrl: string;
+  introPosterUrl?: string | null;
+  slug: string;
+}) {
   const t = useTranslations("Detail.videoMaker");
   const [open, setOpen] = useState(false);
   const [phase, setPhase] = useState<Phase>("idle");
@@ -24,6 +32,22 @@ export default function VideoMaker({ introUrl, slug }: { introUrl: string; slug:
   const [clipFile, setClipFile] = useState<File | null>(null);
   const blobRef = useRef<Blob | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const bgRef = useRef<HTMLVideoElement>(null);
+
+  // Hintergrund-Video nur abspielen, wenn die Section im Bild ist (Daten/Akku sparen).
+  useEffect(() => {
+    const v = bgRef.current;
+    if (!v) return;
+    const io = new IntersectionObserver(
+      ([e]) => {
+        if (e.isIntersecting) v.play().catch(() => {});
+        else v.pause();
+      },
+      { threshold: 0.25 },
+    );
+    io.observe(v);
+    return () => io.disconnect();
+  }, []);
 
   const reset = () => {
     if (resultUrl) URL.revokeObjectURL(resultUrl);
@@ -103,15 +127,39 @@ export default function VideoMaker({ introUrl, slug }: { introUrl: string; slug:
 
   return (
     <>
-      <button
-        className={`${BTN_PRIMARY} w-full active:scale-[0.98]`}
-        onClick={() => {
-          reset();
-          setOpen(true);
-        }}
-      >
-        {t("button")}
-      </button>
+      {/* Section im iOS-Stil: das Intro-Video läuft als Hintergrund, darüber ein Verlauf
+          und kurzer, klarer Text plus die CTA. Erklärt das Feature auf einen Blick. */}
+      <section className="relative aspect-[3/4] overflow-hidden rounded-[22px] shadow-sm ring-1 ring-black/5">
+        <video
+          ref={bgRef}
+          src={introUrl}
+          poster={introPosterUrl ?? undefined}
+          muted
+          loop
+          playsInline
+          preload="none"
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 p-5 pt-24">
+          <div className="mb-2 text-[26px] leading-none">🎬</div>
+          <h2 className="text-[22px] font-bold leading-tight text-white [text-shadow:0_2px_14px_rgba(0,0,0,0.55)]">
+            {t("sectionTitle")}
+          </h2>
+          <p className="mt-1.5 text-[14px] leading-snug text-white/90 [text-shadow:0_1px_8px_rgba(0,0,0,0.5)]">
+            {t("sectionSub")}
+          </p>
+          <button
+            className={`${BTN_PRIMARY} mt-4 w-full active:scale-[0.98]`}
+            onClick={() => {
+              reset();
+              setOpen(true);
+            }}
+          >
+            {t("button")}
+          </button>
+        </div>
+      </section>
 
       <BottomSheet open={open} onClose={() => setOpen(false)} title={t("title")} detents={[0.72, 0.94]}>
         <div className="px-5 pb-8 pt-2">

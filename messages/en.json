@@ -227,6 +227,8 @@
     "headGeneral": "About",
     "playVideo": "Play video",
     "videoMaker": {
+      "sectionTitle": "Your video of this hike",
+      "sectionSub": "Add your clip and share it, right from your phone.",
       "button": "Create a story",
       "title": "Create a story",
       "intro": "Add your own clip to the hike animation and share the finished video. It is built right on your phone and stays with you.",

@@ -227,6 +227,8 @@
     "headGeneral": "General",
     "playVideo": "Reproducir vídeo",
     "videoMaker": {
+      "sectionTitle": "Tu vídeo de esta ruta",
+      "sectionSub": "Añade tu clip y compártelo, directamente desde el móvil.",
       "button": "Crear una historia",
       "title": "Crear una historia",
       "intro": "Añade tu propio clip a la animación de la ruta y comparte el vídeo final. Se crea directamente en tu móvil y se queda contigo.",

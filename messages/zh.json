@@ -227,6 +227,8 @@
     "headGeneral": "简介",
     "playVideo": "播放视频",
     "videoMaker": {
+      "sectionTitle": "这条徒步路线的专属视频",
+      "sectionSub": "接上你的片段，直接从手机分享。",
       "button": "制作故事视频",
       "title": "制作故事视频",
       "intro": "把你自己的片段接在徒步动画后面，分享做好的视频。视频直接在你的手机上生成，只留在你的设备里。",

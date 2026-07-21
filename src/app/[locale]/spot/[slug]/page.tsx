@@ -395,17 +395,14 @@ export default async function SpotPage({
         {/* Die Route als 3D-Video: aus der Wanderung automatisch erzeugtes Intro
             (scripts/render-intro.ts), eigene Karte direkt unter der Karte. Ändert die
             Karte selbst nicht. Nur wenn vorhanden (Spots mit Route). */}
+        {/* Story-Section (Schicht B): das Intro-Video als Hintergrund + kurze Erklärung +
+            CTA. Eigene Section, ändert die Karte nicht. Nur auf Spots mit Intro. */}
         {spot.introVideoUrl && (
-          <>
-            <SpotVideo
-              src={spot.introVideoUrl}
-              poster={spot.introVideoPosterUrl}
-              label={t("playVideo")}
-            />
-            {/* Video-Maker (Schicht B): eigenen Clip anhängen + teilen. Eigene Section,
-                ändert die Karte nicht. Nur auf Spots mit Intro. */}
-            <VideoMaker introUrl={spot.introVideoUrl} slug={spot.slug} />
-          </>
+          <VideoMaker
+            introUrl={spot.introVideoUrl}
+            introPosterUrl={spot.introVideoPosterUrl}
+            slug={spot.slug}
+          />
         )}
 
         {/* Anfahrt + Action-Tiles. Nur eine Kachel -> volle Breite (nicht halb-leer). */}

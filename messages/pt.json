@@ -227,6 +227,8 @@
     "headGeneral": "Geral",
     "playVideo": "Reproduzir vídeo",
     "videoMaker": {
+      "sectionTitle": "O teu vídeo desta caminhada",
+      "sectionSub": "Junta o teu clipe e partilha, diretamente do telefone.",
       "button": "Criar uma story",
       "title": "Criar uma story",
       "intro": "Junta o teu clipe à animação da caminhada e partilha o vídeo final. É criado diretamente no teu telefone e fica contigo.",

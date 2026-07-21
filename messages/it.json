@@ -227,6 +227,8 @@
     "headGeneral": "Info",
     "playVideo": "Riproduci il video",
     "videoMaker": {
+      "sectionTitle": "Il tuo video di questa escursione",
+      "sectionSub": "Aggiungi il tuo video e condividilo, direttamente dal telefono.",
       "button": "Crea una storia",
       "title": "Crea una storia",
       "intro": "Aggiungi il tuo video all'animazione dell'escursione e condividi il risultato. Viene creato direttamente sul tuo telefono e resta con te.",

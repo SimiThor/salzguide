@@ -277,6 +277,8 @@
     "videoMaker": {
       "button": "Story erstellen",
       "title": "Story erstellen",
+      "sectionTitle": "Dein Video von dieser Wanderung",
+      "sectionSub": "Deinen Clip anhängen und teilen, direkt vom Handy.",
       "intro": "Häng deinen eigenen Clip an die Wander-Animation und teile das fertige Video. Es wird direkt auf deinem Handy gebaut und bleibt bei dir.",
       "hint": "Wähl ein Video vom Handy. Die passende Stelle suchst du danach aus.",
       "pick": "Clip auswählen",

@@ -227,6 +227,8 @@
     "headGeneral": "Algemeen",
     "playVideo": "Video afspelen",
     "videoMaker": {
+      "sectionTitle": "Jouw video van deze wandeling",
+      "sectionSub": "Zet je clip erbij en deel hem, direct vanaf je telefoon.",
       "button": "Story maken",
       "title": "Story maken",
       "intro": "Zet je eigen clip achter de wandelanimatie en deel de klare video. Hij wordt direct op je telefoon gemaakt en blijft bij jou.",
