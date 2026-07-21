@@ -147,7 +147,10 @@ async function run() {
       "-i", "anullsrc=channel_layout=stereo:sample_rate=44100",
       "-c:v", "libx264",
       "-preset", "medium",
-      "-crf", "20",
+      // CRF 24 statt 20: ~35% kleinere Datei bei praktisch gleicher Optik. Das Intro läuft
+      // als Autoplay-Hintergrund auf der Detailseite und wird in ffmpeg.wasm geladen, jede
+      // gesparte MB zählt (Daten, Ladezeit, Handy-Speicher).
+      "-crf", "24",
       "-pix_fmt", "yuv420p",
       "-c:a", "aac",
       "-b:a", "128k",

@@ -13,8 +13,9 @@ const OUT_W = 1080;
 const OUT_H = 1920;
 export const CLIP_SECONDS = 5;
 // Der ganze Eingabe-Clip landet im WASM-Speicher (auch wenn wir nur 5s nutzen). Ein
-// harter Riegel gegen sehr große Dateien schützt vor Out-of-Memory, vor allem auf iPhones.
-export const MAX_INPUT_BYTES = 200 * 1024 * 1024;
+// harter Riegel gegen sehr große Dateien schützt vor Out-of-Memory, vor allem auf älteren
+// iPhones (WASM-Speicher ist dort knapper). 120 MB deckt normale Handy-Clips locker ab.
+export const MAX_INPUT_BYTES = 120 * 1024 * 1024;
 
 export async function composeStory(opts: {
   introUrl: string;
@@ -52,7 +53,7 @@ export async function composeStory(opts: {
       `scale=${OUT_W}:${OUT_H}:force_original_aspect_ratio=increase,crop=${OUT_W}:${OUT_H},fps=30,format=yuv420p`,
       "-c:v", "libx264",
       "-preset", "veryfast",
-      "-crf", "20",
+      "-crf", "23",
       "-pix_fmt", "yuv420p",
       // Ton des User-Clips behalten, auf dieselben Parameter wie das (stumme) Intro bringen,
       // damit das Anhängen ohne Neukodierung klappt. Clips ohne Tonspur bleiben stumm.
