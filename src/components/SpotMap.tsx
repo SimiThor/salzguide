@@ -8,6 +8,16 @@ import { MapLoadingScreen, useMapLoading } from "./MapLoading";
 import { RecenterControl } from "./mapControls";
 import { useLatestRef } from "@/lib/use-latest-ref";
 import { poiEmoji, type PoiKind } from "@/lib/poi";
+import {
+  routeFC,
+  ROUTE_DRAW_MS,
+  ROUTE_FADE_MS,
+  easeOut,
+  progress,
+  setTrim,
+  setRouteOpacity,
+  addRouteSourceAndLayers,
+} from "@/lib/route-anim";
 
 export type MapMarker = {
   slug: string;
@@ -44,90 +54,15 @@ const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 // Emoji-Kreis-Marker (🤫 wenn locked), fitBounds, Navigation + Geolocate.
 type Padding = { top?: number; right?: number; bottom?: number; left?: number };
 
-function routeFC(coords: [number, number][]) {
-  return {
-    type: "FeatureCollection" as const,
-    features:
-      coords.length >= 2
-        ? [
-            {
-              type: "Feature" as const,
-              geometry: { type: "LineString" as const, coordinates: coords },
-              properties: {},
-            },
-          ]
-        : [],
-  };
-}
+// Die Route-Zeichnung (routeFC, Konstanten, setTrim/setRouteOpacity, Layer-Aufbau)
+// liegt jetzt in src/lib/route-anim.ts, damit Live-Karte und Intro-Video-Renderer
+// exakt denselben Look teilen. Hier bleibt nur, was rein zur Live-Karte gehört.
 
-// ——— Route-Animation ———————————————————————————————————————————————
-// Die Linie erscheint nicht, sie zeichnet sich: vom Start zum Ziel, einmal, ohne
-// Schnörkel. Das ist auch die Antwort auf die Ladezeit — die Route kommt per
-// Server-Action nach, und ein Strich, der sich zieht, liest sich als Ankunft und
-// nicht als Ruckler.
-//
-// Technik: line-trim-offset. Die Eigenschaft macht einen Abschnitt der Linie
-// unsichtbar; wir verstecken alles hinter dem Kopf und schieben den Kopf von 0 nach 1.
-// Das sind pro Frame ZWEI ZAHLEN an die GPU, sonst nichts. Die naheliegende Variante
-// (line-gradient mit line-progress) kostet pro Frame einen frischen Ausdruck, den
-// Mapbox parst, prüft und als Farbtextur hochlädt — gemessen 228ms Skriptzeit für
-// EINE Linie, gegenüber 20ms hier. Bedingung für beides: lineMetrics an der Quelle.
-//
-// 600ms ist kein Geschmack, sondern genau die Dauer des Kamerafluges (focus/fitBounds
-// unten). Solange die Kamera fliegt, malt Mapbox die Karte ohnehin jeden Frame neu —
-// das Zeichnen reitet also auf Bildern mit, die es sowieso gibt, und kostet fast
-// nichts extra. Karte und Linie kommen dadurch im selben Moment zur Ruhe, statt
-// nacheinander. Länger heißt: eigene Frames, eigene Kosten, und die Linie zappelt
-// noch, wenn die Karte längst steht.
-const ROUTE_DRAW_MS = 600;
-// Ausblenden ist bewusst deutlich kürzer als die 0.5s des Sheets: Route und Auswahl
-// sollen das Schließen ANFÜHREN, nicht hinterherhinken.
-const ROUTE_FADE_MS = 260;
-// Weicher Kopf (Anteil der Streckenlänge): line-trim-fade-range lässt die Spitze
-// auslaufen, statt sie wie abgeschnitten aussehen zu lassen. Wird einmalig gesetzt
-// und kostet im Betrieb nichts.
-const ROUTE_HEAD = 0.05;
-
-const ROUTE_LINE = "#e04848";
-const ROUTE_OUT = "#ffffff";
-
-// Mapbox legt auf line-opacity von sich aus einen 300ms-Übergang. Jeder Frame unserer
-// Blende startete damit einen NEUEN 300ms-Übergang — die Linie blieb fast deckend
-// stehen und wurde am Ende hart abgeschnitten, also genau das, was wir wegmachen
-// wollen. Wir steuern die Deckkraft selbst, deshalb muss Mapbox hier die Finger
-// stillhalten. (line-gradient ist laut Style-Spec nicht übergangsfähig, das Zeichnen
-// war deshalb nie betroffen.)
-const NO_TRANSITION = { duration: 0, delay: 0 };
-
-// Abbremsend (iOS-Gefühl): schnell los, sanft ankommen. Bewusst NICHT die
-// Sheet-Kurve — die Linie ist kein Sheet und muss nicht mit ihm synchron laufen.
-const easeOut = (t: number) => 1 - Math.pow(1 - t, 3);
-
-// Fortschritt 0..1. Der Zeitstempel von requestAnimationFrame ist der Beginn des
-// Frames und liegt dadurch ein paar Millisekunden VOR dem performance.now(), mit dem
-// wir starten — ohne die untere Klemme wird der erste Schritt negativ und Mapbox
-// weist die Deckkraft als „greater than the maximum value 1" zurück.
-const progress = (now: number, t0: number, ms: number) =>
-  Math.min(Math.max((now - t0) / ms, 0), 1);
-
+// Respektiert die System-Einstellung „Bewegung reduzieren": dann wird die Linie ohne
+// Zeichen-Animation sofort gezeigt.
 const reducedMotion = () =>
   typeof window !== "undefined" &&
   window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true;
-
-// Linie bis `p` (0..1) zeigen. line-trim-offset [a,b] blendet den Abschnitt ZWISCHEN
-// a und b aus, wir verstecken also alles hinter dem Kopf. p=0 -> [0,1] = ganz weg,
-// p=1 -> [1,1] = nichts versteckt.
-function setTrim(map: mapboxgl.Map, p: number) {
-  const head = Math.min(Math.max(p, 0), 1);
-  const trim: [number, number] = [head, 1];
-  map.setPaintProperty("sg-route-out", "line-trim-offset", trim);
-  map.setPaintProperty("sg-route-line", "line-trim-offset", trim);
-}
-
-function setRouteOpacity(map: mapboxgl.Map, o: number) {
-  map.setPaintProperty("sg-route-out", "line-opacity", o);
-  map.setPaintProperty("sg-route-line", "line-opacity", o);
-}
 
 export default function SpotMap({
   markers,
@@ -472,40 +407,9 @@ export default function SpotMap({
         "top-right",
       );
     }
-    // Route-Layer anlegen, sobald der Style geladen ist
+    // Route-Layer anlegen, sobald der Style geladen ist (gemeinsamer Aufbau, siehe route-anim.ts)
     map.on("load", () => {
-      if (!map.getSource("sg-route")) {
-        map.addSource("sg-route", {
-          type: "geojson",
-          data: routeFC(routeRef.current ?? []),
-          // Pflicht für line-progress -> ohne das kann sich die Linie nicht zeichnen.
-          lineMetrics: true,
-        });
-        map.addLayer({
-          id: "sg-route-out",
-          type: "line",
-          source: "sg-route",
-          paint: {
-            "line-color": ROUTE_OUT,
-            "line-width": 6.5,
-            "line-opacity-transition": NO_TRANSITION,
-            "line-trim-fade-range": [ROUTE_HEAD, 0],
-          },
-          layout: { "line-join": "round", "line-cap": "round" },
-        });
-        map.addLayer({
-          id: "sg-route-line",
-          type: "line",
-          source: "sg-route",
-          paint: {
-            "line-color": ROUTE_LINE,
-            "line-width": 3.5,
-            "line-opacity-transition": NO_TRANSITION,
-            "line-trim-fade-range": [ROUTE_HEAD, 0],
-          },
-          layout: { "line-join": "round", "line-cap": "round" },
-        });
-      }
+      addRouteSourceAndLayers(map, routeRef.current ?? []);
       syncRouteRef.current();
     });
     // Ladeschirm an die Karte hängen: Er zeigt den Fortschritt und geht weg, sobald
