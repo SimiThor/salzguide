@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { createServiceClient } from "@/lib/supabase/service";
-import IntroRenderMap from "@/components/render/IntroRenderMap";
+import IntroRenderMap, { type IntroMeta } from "@/components/render/IntroRenderMap";
+import { haversineMeters } from "@/lib/geo";
 
 // Diese Seite hat nur einen Zweck: das Render-Skript (Playwright) lädt sie und nimmt
 // die 3D-Kamerafahrt Frame für Frame auf. Kein Besucher-Feature. Deshalb per Secret
@@ -13,25 +14,45 @@ function allowed(token: string | undefined): boolean {
   return !!secret && token === secret;
 }
 
-// Route direkt laden. Da die Seite per Secret geschützt ist, liefern wir sie auch für
-// Pro-/Entwurf-Spots (der Renderer erzeugt Intros vor der Veröffentlichung).
-async function loadRoute(slug: string): Promise<[number, number][] | null> {
+type IntroData = { route: [number, number][]; meta: IntroMeta };
+
+function routeKm(route: [number, number][]): number {
+  let m = 0;
+  for (let i = 1; i < route.length; i++) m += haversineMeters(route[i - 1], route[i]);
+  return m / 1000;
+}
+
+// Route + Endkarten-Daten (Name, Distanz, Höhenmeter, Dauer) direkt laden. Per Secret
+// geschützt, daher auch für Pro-/Entwurf-Spots. Name = DE-Titel (sprachneutraler Eigenname).
+async function loadIntro(slug: string): Promise<IntroData | null> {
   const supabase = createServiceClient();
   const { data } = await supabase
     .from("spots")
-    .select("route_geojson")
+    .select("route_geojson, duration, elevation_profile, spot_translations(title, lang)")
     .eq("slug", slug)
     .maybeSingle();
+
   const rg = data?.route_geojson as
     | { type?: string; coordinates?: [number, number][] }
     | null
     | undefined;
-  return rg &&
-    rg.type === "LineString" &&
-    Array.isArray(rg.coordinates) &&
-    rg.coordinates.length >= 2
-    ? rg.coordinates
-    : null;
+  const route =
+    rg && rg.type === "LineString" && Array.isArray(rg.coordinates) && rg.coordinates.length >= 2
+      ? rg.coordinates
+      : null;
+  if (!route) return null;
+
+  const trs = (data?.spot_translations ?? []) as { title: string; lang: string }[];
+  const name = trs.find((t) => t.lang === "de")?.title ?? trs[0]?.title ?? slug;
+  const ep = data?.elevation_profile as
+    | { ascent?: number; distanceKm?: number }
+    | null
+    | undefined;
+  const distanceKm = ep?.distanceKm != null ? ep.distanceKm : routeKm(route);
+  const ascentM = ep?.ascent != null ? ep.ascent : null;
+  const duration = (data?.duration as string | null) ?? null;
+
+  return { route, meta: { name, distanceKm, ascentM, duration } };
 }
 
 // Positive Zahl aus einem Query-Param lesen, sonst undefined (Default greift dann).
@@ -51,8 +72,8 @@ export default async function IntroRenderPage({
   const sp = await searchParams;
   if (!allowed(sp.token)) notFound();
 
-  const route = await loadRoute(slug);
-  if (!route) {
+  const data = await loadIntro(slug);
+  if (!data) {
     return (
       <main style={{ color: "#fff", font: "16px system-ui", padding: 24 }}>
         Kein Routen-Video für „{slug}“ (dieser Spot hat keine Wanderroute).
@@ -60,6 +81,11 @@ export default async function IntroRenderPage({
     );
   }
   return (
-    <IntroRenderMap route={route} seconds={num(sp.seconds)} fps={num(sp.fps)} />
+    <IntroRenderMap
+      route={data.route}
+      meta={data.meta}
+      seconds={num(sp.seconds)}
+      fps={num(sp.fps)}
+    />
   );
 }

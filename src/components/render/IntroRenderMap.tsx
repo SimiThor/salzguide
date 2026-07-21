@@ -26,6 +26,20 @@ const INTRO_EDGE = "rgba(0,0,0,0.45)";
 const HEAD_SOURCE = "sg-head";
 const HEAD_LAYER = "sg-head-dot";
 
+// Endkarte kurz vor Schluss: Spot-Name + die wichtigsten Werte + klein SalzGuide.
+export type IntroMeta = {
+  name: string;
+  distanceKm: number | null;
+  ascentM: number | null;
+  duration: string | null;
+};
+
+// Weiche 0->1-Blende zwischen a und b (smoothstep).
+const smoothstep = (a: number, b: number, x: number) => {
+  const tt = Math.min(1, Math.max(0, (x - a) / (b - a)));
+  return tt * tt * (3 - 2 * tt);
+};
+
 // Österreich-Orthofoto von basemap.at (offiziell, kostenlos), OHNE Beschriftungen/Marker:
 // leerer Style, nur die Luftbild-Kacheln. Das 3D-Relief kommt von Mapbox-Terrain (unten).
 const BASEMAP_STYLE = {
@@ -73,14 +87,17 @@ function headFC(coord: [number, number]) {
 // der Route folgt. Geteilt mit der Live-Karte ist nur die Trim-Technik (route-anim.ts).
 export default function IntroRenderMap({
   route,
+  meta,
   seconds,
   fps,
 }: {
   route: [number, number][];
+  meta: IntroMeta;
   seconds?: number;
   fps?: number;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -124,6 +141,10 @@ export default function IntroRenderMap({
       setTrim(map, kf.trim);
       const src = map.getSource(HEAD_SOURCE) as mapboxgl.GeoJSONSource | undefined;
       src?.setData(headFC(kf.head));
+      // Endkarte kurz vor Schluss einblenden (direkt am DOM -> synchron zum Frame).
+      if (cardRef.current) {
+        cardRef.current.style.opacity = String(smoothstep(0.78, 0.94, kf.trim));
+      }
     };
 
     map.on("load", () => {
@@ -223,6 +244,14 @@ export default function IntroRenderMap({
     return () => map.remove();
   }, [route, seconds, fps]);
 
+  // Wichtigste Werte, sprachneutral (Zahlen + Einheiten). Nur was vorhanden ist, max drei.
+  const statsParts: string[] = [];
+  if (meta.distanceKm != null) {
+    statsParts.push(`${meta.distanceKm.toLocaleString("de-DE", { maximumFractionDigits: 1 })} km`);
+  }
+  if (meta.ascentM != null) statsParts.push(`↑ ${Math.round(meta.ascentM)} m`);
+  if (meta.duration && meta.duration.trim()) statsParts.push(meta.duration.trim());
+
   return (
     <>
       <style
@@ -234,23 +263,66 @@ export default function IntroRenderMap({
         }}
       />
       <div ref={containerRef} style={{ position: "fixed", inset: 0 }} />
-      {/* Sprachneutrales SalzGuide-Wasserzeichen (page.screenshot nimmt es mit auf). */}
+      {/* Endkarte: Spot-Name + wichtigste Werte + klein SalzGuide. Blendet kurz vor Schluss
+          ein (Opacity per applyFrame). Sonst KEIN Logo im Video. */}
       <div
+        ref={cardRef}
         style={{
           position: "fixed",
-          top: 18,
-          left: 20,
-          zIndex: 10,
-          color: "#fff",
-          fontFamily: "Inter, system-ui, sans-serif",
-          fontWeight: 700,
-          fontSize: 26,
-          letterSpacing: "-0.02em",
-          textShadow: "0 2px 12px rgba(0,0,0,0.55)",
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 9,
+          opacity: 0,
           pointerEvents: "none",
+          padding: "120px 28px 72px",
+          background:
+            "linear-gradient(to top, rgba(0,0,0,0.6), rgba(0,0,0,0.22) 45%, transparent)",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: 12,
+          textAlign: "center",
+          fontFamily: "Inter, system-ui, sans-serif",
         }}
       >
-        SalzGuide
+        <div
+          style={{
+            color: "#fff",
+            fontWeight: 700,
+            fontSize: 44,
+            lineHeight: 1.05,
+            letterSpacing: "-0.02em",
+            textShadow: "0 2px 18px rgba(0,0,0,0.6)",
+          }}
+        >
+          {meta.name}
+        </div>
+        {statsParts.length > 0 && (
+          <div
+            style={{
+              color: "rgba(255,255,255,0.94)",
+              fontWeight: 500,
+              fontSize: 20,
+              letterSpacing: "0.01em",
+              textShadow: "0 1px 10px rgba(0,0,0,0.55)",
+            }}
+          >
+            {statsParts.join("   ·   ")}
+          </div>
+        )}
+        <div
+          style={{
+            marginTop: 6,
+            color: "rgba(255,255,255,0.82)",
+            fontWeight: 700,
+            fontSize: 15,
+            letterSpacing: "0.02em",
+            textShadow: "0 1px 8px rgba(0,0,0,0.5)",
+          }}
+        >
+          SalzGuide
+        </div>
       </div>
       {/* Kleine, sichtbare Attribution (Bild: basemap.at, Relief: Mapbox). */}
       <div
