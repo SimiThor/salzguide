@@ -53,3 +53,6 @@ yarn-error.log*
 # Rollback-Protokolle einmaliger Storage-Migrationen (enthalten konkrete Objektpfade,
 # gehören nicht ins Repo; bleiben lokal als Sicherung liegen).
 /rollback-*.json
+
+# Lokale Render-Ausgaben des Intro-Skripts
+/intro-*.mp4
