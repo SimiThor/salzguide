@@ -282,7 +282,7 @@
       "intro": "Häng deinen eigenen Clip an die Wander-Animation und teile das fertige Video. Es wird direkt auf deinem Handy gebaut und bleibt bei dir.",
       "hint": "Wähl ein Video vom Handy. Die passende Stelle suchst du danach aus.",
       "pick": "Clip auswählen",
-      "trimHint": "Zieh den Rahmen auf die Stelle, die ins Video soll. Tipp aufs Bild zum Anhören.",
+      "trimHint": "Zieh den Rahmen auf die Stelle, die ins Video soll.",
       "trimUnavailable": "Vorschau hier nicht verfügbar. Es werden die ersten Sekunden deines Clips verwendet.",
       "use": "Verwenden",
       "back": "Zurück",

@@ -234,7 +234,7 @@
       "intro": "Añade tu propio clip a la animación de la ruta y comparte el vídeo final. Se crea directamente en tu móvil y se queda contigo.",
       "hint": "Elige un vídeo del móvil. El momento adecuado lo eliges después.",
       "pick": "Elegir un clip",
-      "trimHint": "Arrastra el marco a la parte que quieras en el vídeo. Toca la vista previa para escucharla.",
+      "trimHint": "Arrastra el marco a la parte que quieras en el vídeo.",
       "trimUnavailable": "Vista previa no disponible aquí. Se usarán los primeros segundos de tu clip.",
       "use": "Usar",
       "back": "Atrás",

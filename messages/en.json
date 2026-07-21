@@ -234,7 +234,7 @@
       "intro": "Add your own clip to the hike animation and share the finished video. It is built right on your phone and stays with you.",
       "hint": "Pick a video from your phone. You choose the right moment next.",
       "pick": "Choose a clip",
-      "trimHint": "Drag the frame to the part you want in the video. Tap the preview to hear it.",
+      "trimHint": "Drag the frame to the part you want in the video.",
       "trimUnavailable": "Preview not available here. The first seconds of your clip will be used.",
       "use": "Use",
       "back": "Back",

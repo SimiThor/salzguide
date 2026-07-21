@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import BottomSheet from "./BottomSheet";
 import ClipTrimmer from "./ClipTrimmer";
 import { composeStory, CLIP_SECONDS, MAX_INPUT_BYTES, type ComposeStage } from "@/lib/video-maker";
+import { getFFmpeg } from "@/lib/ffmpeg";
 import { BTN_PRIMARY, BTN_SECONDARY } from "@/lib/ui";
 
 type Phase = "idle" | "trim" | "working" | "done" | "error";
@@ -59,7 +60,10 @@ export default function VideoMaker({
 
   // Clip gewählt -> erst den Trimmer zeigen (Stelle wählen), dann zusammensetzen.
   const onFile = (file: File | undefined) => {
-    if (!file || !file.type.startsWith("video/")) return;
+    // Der Input filtert schon auf video/* (accept). Manche Browser liefern leeren Typ ->
+    // nur ablehnen, wenn ein Typ da ist und der KEIN Video ist.
+    if (!file) return;
+    if (file.type && !file.type.startsWith("video/")) return;
     if (file.size > MAX_INPUT_BYTES) {
       setErrorMsg(t("tooBig"));
       setPhase("error");
@@ -153,6 +157,7 @@ export default function VideoMaker({
             onClick={() => {
               reset();
               setOpen(true);
+              void getFFmpeg().catch(() => {}); // Core vorwärmen -> Trimmer + Compose starten schneller
             }}
           >
             {t("button")}
