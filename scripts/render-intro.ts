@@ -141,10 +141,17 @@ async function run() {
       "-y",
       "-framerate", String(fps),
       "-i", join(framesDir, "frame-%05d.png"),
+      // Stummer Stereo-Ton: Damit Schicht B den User-Clip (mit Ton) ohne Neukodierung
+      // anhängen kann, müssen beide Teile dieselbe Stream-Struktur haben (Video + Audio).
+      "-f", "lavfi",
+      "-i", "anullsrc=channel_layout=stereo:sample_rate=44100",
       "-c:v", "libx264",
       "-preset", "medium",
       "-crf", "20",
       "-pix_fmt", "yuv420p",
+      "-c:a", "aac",
+      "-b:a", "128k",
+      "-shortest",
       "-movflags", "+faststart",
       "-r", String(fps),
       out,

@@ -47,11 +47,16 @@ export async function composeStory(opts: {
       "-i", "clip_in",
       "-vf",
       `scale=${OUT_W}:${OUT_H}:force_original_aspect_ratio=increase,crop=${OUT_W}:${OUT_H},fps=30,format=yuv420p`,
-      "-an",
       "-c:v", "libx264",
       "-preset", "veryfast",
       "-crf", "20",
       "-pix_fmt", "yuv420p",
+      // Ton des User-Clips behalten, auf dieselben Parameter wie das (stumme) Intro bringen,
+      // damit das Anhängen ohne Neukodierung klappt. Clips ohne Tonspur bleiben stumm.
+      "-c:a", "aac",
+      "-ar", "44100",
+      "-ac", "2",
+      "-b:a", "128k",
       "-movflags", "+faststart",
       "clip.mp4",
     ]);
