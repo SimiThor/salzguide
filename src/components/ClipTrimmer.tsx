@@ -23,6 +23,54 @@ function fmt(t: number): string {
 }
 const clamp = (x: number, lo: number, hi: number) => Math.min(Math.max(x, lo), hi);
 
+// Dauer direkt aus dem MP4/MOV-Container lesen (moov -> mvhd). Pures JS, in JEDEM Browser
+// gleich, sofort - unabhängig davon, ob das <video>-Element oder der ffmpeg-Log mitspielt.
+// Deckt iPhone-Videos (.mov) und normale MP4s ab. Scannt nur Box-Header (schnell, auch
+// wenn moov am Dateiende liegt). 0 = nicht gefunden (z.B. WebM) -> Aufrufer nutzt Notnagel.
+function mp4Duration(b: Uint8Array): number {
+  const u32 = (o: number) => b[o] * 16777216 + b[o + 1] * 65536 + b[o + 2] * 256 + b[o + 3];
+  const type = (o: number) => String.fromCharCode(b[o], b[o + 1], b[o + 2], b[o + 3]);
+  const scan = (start: number, end: number): number => {
+    let o = start;
+    while (o + 8 <= end) {
+      let size = u32(o);
+      let hdr = 8;
+      if (size === 1) {
+        size = u32(o + 8) * 4294967296 + u32(o + 12);
+        hdr = 16;
+      } else if (size === 0) {
+        size = end - o;
+      }
+      if (size < hdr || o + size > end + 8) break;
+      const t = type(o + 4);
+      if (t === "moov" || t === "trak" || t === "mdia") {
+        const r = scan(o + hdr, o + size);
+        if (r > 0) return r;
+      } else if (t === "mvhd") {
+        const version = b[o + hdr];
+        let p = o + hdr + 4;
+        if (version === 1) {
+          p += 16;
+          const ts = u32(p);
+          const dur = u32(p + 4) * 4294967296 + u32(p + 8);
+          return ts ? dur / ts : 0;
+        }
+        p += 8;
+        const ts = u32(p);
+        const dur = u32(p + 4);
+        return ts ? dur / ts : 0;
+      }
+      o += size;
+    }
+    return 0;
+  };
+  try {
+    return scan(0, b.length);
+  } catch {
+    return 0;
+  }
+}
+
 export default function ClipTrimmer({
   file,
   windowSec,
@@ -43,28 +91,36 @@ export default function ClipTrimmer({
   const [preparing, setPreparing] = useState(true);
   const [failed, setFailed] = useState(false);
 
-  // ffmpeg: Datei schreiben, Dauer aus dem Log lesen, Bilder extrahieren. Alles in WASM,
-  // also überall gleich.
+  // Dauer aus dem Container lesen (pures JS), Datei an ffmpeg geben, Bilder per Seek
+  // extrahieren. Kein <video>-Element -> überall gleich, auch Safari/iOS.
   useEffect(() => {
     let cancelled = false;
     const made: string[] = [];
     (async () => {
       try {
-        const ff = await getFFmpeg();
         const { fetchFile } = await import("@ffmpeg/util");
-        await ff.writeFile("trim_in", await fetchFile(file));
+        const data = await fetchFile(file); // Uint8Array, einmal lesen
         if (cancelled) return;
 
-        // 1) Dauer aus dem ffmpeg-Log. `-i` ohne Ausgabe bricht ab, loggt aber "Duration:".
-        let log = "";
-        const onLog = (e: { message: string }) => {
-          log += e.message + "\n";
-        };
-        ff.on("log", onLog);
-        await ff.exec(["-i", "trim_in"]).catch(() => {});
-        ff.off("log", onLog);
-        const m = log.match(/Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)/);
-        const dur = m ? +m[1] * 3600 + +m[2] * 60 + parseFloat(m[3]) : 0;
+        // 1) Dauer: ZUERST direkt aus dem MP4/MOV-Container (pures JS, in jedem Browser gleich,
+        // sofort). Deckt iPhone-Videos und normale MP4s ab. Der ffmpeg-Log ist nur Notnagel für
+        // exotische Container - in Safari/WebKit ist er ohnehin unvollständig.
+        const ff = await getFFmpeg();
+        await ff.writeFile("trim_in", data);
+        if (cancelled) return;
+
+        let dur = mp4Duration(data);
+        if (!(dur > 0)) {
+          let log = "";
+          const onLog = (e: { message: string }) => {
+            log += e.message + "\n";
+          };
+          ff.on("log", onLog);
+          await ff.exec(["-i", "trim_in", "-t", "0.05", "-f", "null", "-"]).catch(() => {});
+          ff.off("log", onLog);
+          const m = log.match(/Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)/);
+          dur = m ? +m[1] * 3600 + +m[2] * 60 + parseFloat(m[3]) : 0;
+        }
         if (cancelled) return;
         if (!(dur > 0)) {
           setFailed(true);
