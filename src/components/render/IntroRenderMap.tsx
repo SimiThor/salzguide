@@ -18,6 +18,7 @@ import {
   DEFAULT_INTRO_CAMERA,
   type IntroKeyframe,
 } from "@/lib/intro-camera";
+import { loadTerrainSampler } from "@/lib/terrain-sampler";
 
 const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
@@ -227,49 +228,47 @@ export default function IntroRenderMap({
         });
 
       // --- Terrain-sichere Pitch-Kurve vorab berechnen (siehe Konstanten oben) ---
-      // 1) Höhenprofil der Route: queryTerrainElevation liefert nur am aktuell gerenderten
-      //    Mittelpunkt einen Wert. Also die Karte grob über die Route-Mittelpunkte führen
-      //    (Draufsicht, kurz rendern) und dort die Geländehöhe lesen; dazwischen interpolieren.
+      // Ob die Kamera in einen Berg fliegt, entscheidet die Höhe UNTER der Kamera - die kann
+      // NEBEN oder GEGENÜBER der Route liegen, nicht nur entlang. queryTerrainElevation kann
+      // solche off-screen-Punkte nicht, darum das DEM der ganzen Umgebung selbst dekodieren.
+      const EXAGG = 1.5; // muss zur setTerrain-Überhöhung passen
+      const bb = new mapboxgl.LngLatBounds();
+      for (const kf of keyframes) {
+        bb.extend(kf.center);
+        bb.extend(kf.head);
+      }
+      const bsw = bb.getSouthWest();
+      const bne = bb.getNorthEast();
+      const cosLat = Math.max(0.2, Math.cos((bsw.lat * Math.PI) / 180));
+      const padDeg = 0.045; // ~5 km rundum: deckt auch Berge neben/gegenüber der Route ab
+      const box = {
+        w: bsw.lng - padDeg / cosLat,
+        e: bne.lng + padDeg / cosLat,
+        s: bsw.lat - padDeg,
+        n: bne.lat + padDeg,
+      };
+      let elevAt: (lng: number, lat: number) => number = () => NaN;
+      if (TOKEN) {
+        try {
+          elevAt = await loadTerrainSampler(box, TOKEN);
+        } catch {
+          /* ohne DEM kein Schutz, aber auch keine Verschlechterung */
+        }
+      }
+
+      // Kamera-Höhe terrain-BEWUSST machen: getFreeCameraOptions liefert die echte Höhe
+      // (Gelände am Mittelpunkt + Kamera-Abstand) erst, wenn Terrain-Frames gerendert wurden.
+      // Einmal die ganze Route flach überblicken und rendern -> danach stimmt die Höhe.
       const nextPaint = () =>
         new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
-      const SAMPLES = Math.min(40, keyframes.length);
-      const sampleElev = new Array<number>(SAMPLES);
-      for (let s = 0; s < SAMPLES; s++) {
-        const idx = Math.round((s / (SAMPLES - 1)) * (keyframes.length - 1));
-        const kf = keyframes[idx];
-        map.jumpTo({ center: kf.center, zoom: kf.zoom, pitch: 0, bearing: 0 });
-        await waitIdle();
-        map.triggerRepaint();
-        await nextPaint();
-        const e = map.queryTerrainElevation(kf.center, { exaggerated: true });
-        sampleElev[s] = e == null ? NaN : e;
-      }
-      const routeElev = keyframes.map((_, i) => {
-        const fs = (i / Math.max(1, keyframes.length - 1)) * (SAMPLES - 1);
-        const a = Math.floor(fs);
-        const b = Math.min(SAMPLES - 1, a + 1);
-        const t = fs - a;
-        const va = sampleElev[a];
-        const vb = sampleElev[b];
-        if (Number.isNaN(va)) return vb;
-        if (Number.isNaN(vb)) return va;
-        return va * (1 - t) + vb * t;
-      });
+      map.fitBounds([[box.w, box.s], [box.e, box.n]], { padding: 20, pitch: 0, bearing: 0, duration: 0 });
+      await waitIdle();
+      map.triggerRepaint();
+      await nextPaint();
 
-      // 2) Geländе-„Drohung" je Frame = höchstes Route-Gelände im Blickfeld-Fenster.
-      const WINDOW = Math.max(1, Math.round(keyframes.length * 0.15));
-      const threat = keyframes.map((_, i) => {
-        let m = -Infinity;
-        for (let j = Math.max(0, i - WINDOW); j <= Math.min(keyframes.length - 1, i + WINDOW); j++) {
-          if (!Number.isNaN(routeElev[j])) m = Math.max(m, routeElev[j]);
-        }
-        return m;
-      });
-
-      // 3) Kamera-Höhe bei einem Pitch. getFreeCameraOptions liefert die terrain-BEWUSSTE
-      //    Höhe (Gelände am Mittelpunkt + Kamera-Abstand), aber nur weil der Abtast-Lauf oben
-      //    schon Terrain-Frames gerendert hat -> diese Reihenfolge nicht vertauschen.
-      const camAltAt = (kf: IntroKeyframe, pitch: number): number => {
+      // Abstand = Kamera-Höhe minus Gelände UNTER der Kamera (gerendert, also *EXAGG).
+      // Negativ = die Kamera steckt im Berg. Kein DEM an der Stelle -> als sicher behandeln.
+      const clearanceAt = (kf: IntroKeyframe, pitch: number): number => {
         map.jumpTo({
           center: kf.center,
           zoom: kf.zoom,
@@ -278,21 +277,21 @@ export default function IntroRenderMap({
           padding: { top: 0, right: 0, bottom: padBottom(), left: 0 },
         });
         const cam = map.getFreeCameraOptions();
-        return cam.position ? cam.position.toAltitude() : Infinity;
+        if (!cam.position) return Infinity;
+        const ll = cam.position.toLngLat();
+        const g = elevAt(ll.lng, ll.lat);
+        if (Number.isNaN(g)) return Infinity;
+        return cam.position.toAltitude() - g * EXAGG;
       };
-      // Steilster Pitch <= Vorgabe, bei dem die Kamera über der Drohung + Abstand bleibt.
-      const safePitchFor = (i: number): number => {
-        const kf = keyframes[i];
-        if (!Number.isFinite(threat[i])) return kf.pitch;
+      // Steilster Pitch <= Vorgabe, bei dem die Kamera mit Abstand über dem Gelände bleibt.
+      const safePitchFor = (kf: IntroKeyframe): number => {
         for (let p = kf.pitch; p > PITCH_FLOOR; p -= PITCH_SCAN_STEP) {
-          if (camAltAt(kf, p) >= threat[i] + TERRAIN_CLEARANCE_M) return p;
+          if (clearanceAt(kf, p) >= TERRAIN_CLEARANCE_M) return p;
         }
         return PITCH_FLOOR;
       };
-      const safePitch = slewLimitDown(
-        keyframes.map((_, i) => safePitchFor(i)),
-        PITCH_SLEW,
-      );
+      const rawSafe = keyframes.map(safePitchFor);
+      const safePitch = slewLimitDown(rawSafe, PITCH_SLEW);
 
       applyFrame(first, safePitch[0]);
 
