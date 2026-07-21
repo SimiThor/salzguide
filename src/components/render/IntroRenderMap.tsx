@@ -8,7 +8,6 @@ import {
   ROUTE_LAYER_OUT,
   ROUTE_LAYER_LINE,
   ROUTE_LINE,
-  ROUTE_OUT,
   NO_TRANSITION,
   routeFC,
   setTrim,
@@ -21,9 +20,9 @@ import {
 
 const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
-// Exakt dieselbe Routen-Optik wie die App-Karte, nur dicker: weiße Kontur (ROUTE_OUT)
-// unter der roten Linie (ROUTE_LINE). Die weiße Kontur lässt dasselbe Rot gleich hell
-// wirken wie auf der normalen Wanderkarte. Kopf = roter Punkt mit weißem Ring.
+// Nur Rot (ROUTE_LINE), KEINE weiße Kontur - wie Antons Vorlage. Nur eine hauchdünne
+// dunkle Kante zur Schärfe auf dem Luftbild. Kopf = roter Punkt mit weißem Ring.
+const INTRO_EDGE = "rgba(0,0,0,0.45)";
 const HEAD_SOURCE = "sg-head";
 const HEAD_LAYER = "sg-head-dot";
 
@@ -155,8 +154,8 @@ export default function IntroRenderMap({
         type: "line",
         source: ROUTE_SOURCE,
         paint: {
-          "line-color": ROUTE_OUT,
-          "line-width": 10,
+          "line-color": INTRO_EDGE,
+          "line-width": 8.5,
           "line-opacity-transition": NO_TRANSITION,
         },
         layout: { "line-join": "round", "line-cap": "round" },
@@ -167,7 +166,7 @@ export default function IntroRenderMap({
         source: ROUTE_SOURCE,
         paint: {
           "line-color": ROUTE_LINE,
-          "line-width": 6,
+          "line-width": 6.5,
           "line-opacity-transition": NO_TRANSITION,
         },
         layout: { "line-join": "round", "line-cap": "round" },
