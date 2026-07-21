@@ -25,6 +25,7 @@ import SpotGalleryProvider from "@/components/gallery/SpotGalleryProvider";
 import GalleryImage from "@/components/gallery/GalleryImage";
 import SpotGallery from "@/components/gallery/SpotGallery";
 import SpotVideo from "@/components/SpotVideo";
+import VideoMaker from "@/components/VideoMaker";
 import CardSkeleton from "@/components/CardSkeleton";
 import BackButton from "@/components/BackButton";
 import {
@@ -388,6 +389,19 @@ export default async function SpotPage({
             center={mainPoint ? [mainPoint[1], mainPoint[0]] : undefined}
             title={spot.title}
             subtitle={factSubtype(spot.subtype, locale)}
+          />
+        )}
+
+        {/* Die Route als 3D-Video: aus der Wanderung automatisch erzeugtes Intro
+            (scripts/render-intro.ts), eigene Karte direkt unter der Karte. Ändert die
+            Karte selbst nicht. Nur wenn vorhanden (Spots mit Route). */}
+        {/* Story-Section (Schicht B): das Intro-Video als Hintergrund + kurze Erklärung +
+            CTA. Eigene Section, ändert die Karte nicht. Nur auf Spots mit Intro. */}
+        {spot.introVideoUrl && (
+          <VideoMaker
+            introUrl={spot.introVideoUrl}
+            introPosterUrl={spot.introVideoPosterUrl}
+            slug={spot.slug}
           />
         )}
 

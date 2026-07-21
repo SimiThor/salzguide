@@ -1,10 +1,10 @@
 "use client";
 
 import { useRef, useState } from "react";
-import type { FFmpeg } from "@ffmpeg/ffmpeg";
 import { createClient } from "@/lib/supabase/client";
 import { IMMUTABLE_CACHE_SECONDS } from "@/lib/storage";
 import { encodeCanvas, uploadImage } from "@/lib/image-upload";
+import { getFFmpeg } from "@/lib/ffmpeg";
 
 // 9:16-Video je Spot: IMMER komprimieren, NIE das Original hochladen (zu unperformant).
 // Kompression via ffmpeg.wasm -> läuft in JEDEM Browser inkl. Safari (reines WebAssembly,
@@ -15,30 +15,7 @@ import { encodeCanvas, uploadImage } from "@/lib/image-upload";
 const POSTER_LONG_EDGE = 720;
 const HARD_MAX_BYTES = 60 * 1024 * 1024; // Sicherheits-Deckel nach der Kompression
 
-// ── ffmpeg.wasm: einmal laden, dann wiederverwenden ──────────────────────────
-let ffmpegSingleton: FFmpeg | null = null;
-let ffmpegLoading: Promise<FFmpeg> | null = null;
-
-async function getFFmpeg(): Promise<FFmpeg> {
-  if (ffmpegSingleton) return ffmpegSingleton;
-  if (!ffmpegLoading) {
-    ffmpegLoading = (async () => {
-      const [{ FFmpeg }, { toBlobURL }] = await Promise.all([
-        import("@ffmpeg/ffmpeg"),
-        import("@ffmpeg/util"),
-      ]);
-      const ff = new FFmpeg();
-      const base = "/ffmpeg";
-      await ff.load({
-        coreURL: await toBlobURL(`${base}/ffmpeg-core.js`, "text/javascript"),
-        wasmURL: await toBlobURL(`${base}/ffmpeg-core.wasm`, "application/wasm"),
-      });
-      ffmpegSingleton = ff;
-      return ff;
-    })();
-  }
-  return ffmpegLoading;
-}
+// ffmpeg.wasm-Lader liegt jetzt in src/lib/ffmpeg.ts (geteilt mit dem Video-Maker).
 
 // Auf ein Media-Event warten (mit Fehler-Reject), robust aufräumen.
 function once(el: HTMLVideoElement, ev: string): Promise<void> {

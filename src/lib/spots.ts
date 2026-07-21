@@ -414,6 +414,10 @@ export type SpotDetail = {
   localAvatar: string | null;
   videoUrl: string | null; // 9:16-Video (leer/gesperrt = null)
   videoPosterUrl: string | null; // Auto-Standbild zum Video
+  // Aus der Route erzeugtes 3D-Intro (scripts/render-intro.ts). Sprachneutral, eigenes
+  // Asset, unabhängig vom hand-hochgeladenen videoUrl. Leer/gesperrt = null.
+  introVideoUrl: string | null;
+  introVideoPosterUrl: string | null;
 };
 
 export const getSpotDetail = cache(async function getSpotDetail(
@@ -425,7 +429,7 @@ export const getSpotDetail = cache(async function getSpotDetail(
   // sensiblen Felder werden unten bei `locked` autoritativ genullt (kein Leak).
   const supabase = createServiceClient();
   const select =
-    "slug, type, subtype, emoji, is_pro, duration, lat, lng, parking_lat, parking_lng, transit_lat, transit_lng, water_stops, huts, route_geojson, elevation_profile, difficulty, best_season, access, price_level, area, fame, has_opening_hours, phone, website_url, ticket_url, ticket_partner, lake_name, google_place_id, video_url, video_poster_url, media(url, role, sort_order, blur_url), local:locals(id, name, role, avatar_url), spot_translations!inner(title, short_desc, general, insider_tip, section_a, section_b, location_text, insider_author, lang)";
+    "slug, type, subtype, emoji, is_pro, duration, lat, lng, parking_lat, parking_lng, transit_lat, transit_lng, water_stops, huts, route_geojson, elevation_profile, difficulty, best_season, access, price_level, area, fame, has_opening_hours, phone, website_url, ticket_url, ticket_partner, lake_name, google_place_id, video_url, video_poster_url, intro_video_url, intro_video_poster_url, media(url, role, sort_order, blur_url), local:locals(id, name, role, avatar_url), spot_translations!inner(title, short_desc, general, insider_tip, section_a, section_b, location_text, insider_author, lang)";
 
   const run = (lang: string) =>
     supabase
@@ -532,6 +536,8 @@ export const getSpotDetail = cache(async function getSpotDetail(
       localAvatar: null,
       videoUrl: null,
       videoPosterUrl: null,
+      introVideoUrl: null,
+      introVideoPosterUrl: null,
     };
   }
 
@@ -581,5 +587,7 @@ export const getSpotDetail = cache(async function getSpotDetail(
     localAvatar: local?.avatar_url ?? null,
     videoUrl: (data.video_url as string | null) ?? null,
     videoPosterUrl: (data.video_poster_url as string | null) ?? null,
+    introVideoUrl: (data.intro_video_url as string | null) ?? null,
+    introVideoPosterUrl: (data.intro_video_poster_url as string | null) ?? null,
   };
 });

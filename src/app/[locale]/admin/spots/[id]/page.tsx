@@ -3,6 +3,7 @@ import { getCategoriesAll, getLocalsAll, getSpotForEdit } from "@/lib/admin";
 import type { SpotInput } from "@/lib/admin-actions";
 import { normalizeManual, emptyManualWeek } from "@/lib/opening-hours";
 import { parsePois } from "@/lib/geo";
+import { introSourceHash } from "@/lib/intro-hash";
 import SpotForm from "@/components/admin/SpotForm";
 import BackButton from "@/components/BackButton";
 
@@ -99,10 +100,26 @@ export default async function EditSpotPage({
     translationsSourceHash,
   };
 
+  // Intro-Video-Status: veraltet, sobald sich die Route (oder die Renderer-Version) seit
+  // dem letzten Render geändert hat. Gleicher Hash wie im Render-Skript (intro-hash.ts).
+  const introUrl = str(s.intro_video_url) || null;
+  const introStatus: "none" | "current" | "stale" = !introUrl
+    ? "none"
+    : introSourceHash(s.route_geojson ?? null) === str(s.intro_source_hash)
+      ? "current"
+      : "stale";
+
   return (
     <div className="space-y-4">
       <BackButton fallbackHref="/admin" />
-      <SpotForm categories={categories} locals={locals} initial={initial} isNew={false} />
+      <SpotForm
+        categories={categories}
+        locals={locals}
+        initial={initial}
+        isNew={false}
+        introStatus={introStatus}
+        introUrl={introUrl}
+      />
     </div>
   );
 }
