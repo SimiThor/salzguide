@@ -6,7 +6,20 @@
 // die KAMERA folgt einer GEGLÄTTETEN Bahn und dreht nur langsam mit. So schwenkt nichts
 // nervös bei jeder kleinen Kurve; die Kamera gleitet und dreht sanft dem Verlauf nach.
 
-import { coordAtFraction, haversineMeters } from "@/lib/geo";
+import { haversineMeters } from "@/lib/geo";
+
+// Web-Mercator (normiert 0..1). Mapbox misst line-progress / line-trim-offset in dieser
+// Projektion. Wenn der Kopf-Punkt auf DERSELBEN Mercator-Bogenlänge sitzt, reicht die
+// gezeichnete Linie exakt bis zum Punkt (statt am Kopf voraus- oder nachzulaufen).
+function toMerc([lng, lat]: [number, number]): [number, number] {
+  const s = Math.min(0.9999, Math.max(-0.9999, Math.sin((lat * Math.PI) / 180)));
+  return [lng / 360 + 0.5, 0.5 - Math.log((1 + s) / (1 - s)) / (4 * Math.PI)];
+}
+function fromMerc([x, y]: [number, number]): [number, number] {
+  const lng = (x - 0.5) * 360;
+  const lat = (Math.atan(Math.sinh(Math.PI * (1 - 2 * y))) * 180) / Math.PI;
+  return [lng, lat];
+}
 
 export type IntroKeyframe = {
   center: [number, number]; // geglättete Kamera-Position (gleitet ruhig)
@@ -119,13 +132,35 @@ export function buildIntroCameraPath(
   // Zoom: explizit übergeben gewinnt, sonst adaptiv aus der Ausdehnung der Route.
   const zoom = typeof cfg.zoom === "number" ? cfg.zoom : adaptiveZoom(route);
 
+  // Kopf nach Mercator-Bogenlänge (wie Mapbox die Linie misst) -> Linie reicht exakt bis
+  // zum Punkt. Einmal die kumulierten Längen vorrechnen.
+  const merc = route.map(toMerc);
+  const cum: number[] = [0];
+  for (let i = 1; i < merc.length; i++) {
+    cum.push(cum[i - 1] + Math.hypot(merc[i][0] - merc[i - 1][0], merc[i][1] - merc[i - 1][1]));
+  }
+  const total = cum[cum.length - 1] || 1;
+  const headAt = (f: number): [number, number] => {
+    const target = Math.max(0, Math.min(1, f)) * total;
+    let i = 1;
+    while (i < cum.length && cum[i] < target) i++;
+    const a = i - 1;
+    const b = Math.min(i, merc.length - 1);
+    const seg = cum[b] - cum[a] || 1;
+    const t = (target - cum[a]) / seg;
+    return fromMerc([
+      merc[a][0] + (merc[b][0] - merc[a][0]) * t,
+      merc[a][1] + (merc[b][1] - merc[a][1]) * t,
+    ]);
+  };
+
   // 1) Fortschritt (mit sanftem Start/Schluss) und der exakte Kopf der Linie je Frame.
   const fs: number[] = [];
   const heads: [number, number][] = [];
   for (let i = 0; i < frames; i++) {
     const f = easeInOutSine(i / (frames - 1));
     fs.push(f);
-    heads.push(coordAtFraction(route, f) ?? route[route.length - 1]);
+    heads.push(headAt(f));
   }
 
   // 2) Kamera gleitet auf einer GEGLÄTTETEN Version der Köpfe (kein Zappeln bei Kurven).

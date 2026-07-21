@@ -8,7 +8,7 @@ import {
   ROUTE_LAYER_OUT,
   ROUTE_LAYER_LINE,
   ROUTE_LINE,
-  ROUTE_HEAD,
+  ROUTE_OUT,
   NO_TRANSITION,
   routeFC,
   setTrim,
@@ -21,10 +21,9 @@ import {
 
 const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
-// Look nach Antons Vorlage, aber mit der EINEN Routen-Farbe der App (ROUTE_LINE aus
-// route-anim.ts), damit das Rot überall einheitlich ist. Weiß umrandeter Kopf-Punkt,
-// kein weißer Kasten, nur eine dezente dunkle Kante für Kontrast auf hellem Fels/Schnee.
-const INTRO_CASING = "rgba(0,0,0,0.38)";
+// Exakt dieselbe Routen-Optik wie die App-Karte, nur dicker: weiße Kontur (ROUTE_OUT)
+// unter der roten Linie (ROUTE_LINE). Die weiße Kontur lässt dasselbe Rot gleich hell
+// wirken wie auf der normalen Wanderkarte. Kopf = roter Punkt mit weißem Ring.
 const HEAD_SOURCE = "sg-head";
 const HEAD_LAYER = "sg-head-dot";
 
@@ -147,18 +146,18 @@ export default function IntroRenderMap({
         });
       }
 
-      // Route: dicke rote Linie mit dezenter dunkler Kante (kein weißer Kasten). Trim
-      // läuft über dieselben Layer-IDs wie die Live-Karte, damit setTrim() greift.
+      // Route wie die App-Karte (weiße Kontur unter Rot), nur dicker. Kein weicher
+      // Auslauf am Kopf: die Linie endet hart am Punkt. Trim läuft über dieselben
+      // Layer-IDs wie die Live-Karte, damit setTrim() greift.
       map.addSource(ROUTE_SOURCE, { type: "geojson", data: routeFC(route), lineMetrics: true });
       map.addLayer({
         id: ROUTE_LAYER_OUT,
         type: "line",
         source: ROUTE_SOURCE,
         paint: {
-          "line-color": INTRO_CASING,
+          "line-color": ROUTE_OUT,
           "line-width": 10,
           "line-opacity-transition": NO_TRANSITION,
-          "line-trim-fade-range": [ROUTE_HEAD, 0],
         },
         layout: { "line-join": "round", "line-cap": "round" },
       });
@@ -168,9 +167,8 @@ export default function IntroRenderMap({
         source: ROUTE_SOURCE,
         paint: {
           "line-color": ROUTE_LINE,
-          "line-width": 6.5,
+          "line-width": 6,
           "line-opacity-transition": NO_TRANSITION,
-          "line-trim-fade-range": [ROUTE_HEAD, 0],
         },
         layout: { "line-join": "round", "line-cap": "round" },
       });
