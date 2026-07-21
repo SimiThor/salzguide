@@ -3,10 +3,11 @@
 import { useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import BottomSheet from "./BottomSheet";
-import { composeStory, MAX_INPUT_BYTES, type ComposeStage } from "@/lib/video-maker";
+import ClipTrimmer from "./ClipTrimmer";
+import { composeStory, CLIP_SECONDS, MAX_INPUT_BYTES, type ComposeStage } from "@/lib/video-maker";
 import { BTN_PRIMARY, BTN_SECONDARY } from "@/lib/ui";
 
-type Phase = "idle" | "working" | "done" | "error";
+type Phase = "idle" | "trim" | "working" | "done" | "error";
 
 // Video-Maker (Schicht B): Der Besucher hängt einen eigenen Clip an die vorgerenderte
 // Wander-Animation und teilt das fertige Story-Video. Alles im Browser (ffmpeg.wasm,
@@ -20,6 +21,7 @@ export default function VideoMaker({ introUrl, slug }: { introUrl: string; slug:
   const [stage, setStage] = useState<ComposeStage>("intro");
   const [resultUrl, setResultUrl] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [clipFile, setClipFile] = useState<File | null>(null);
   const blobRef = useRef<Blob | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -31,7 +33,8 @@ export default function VideoMaker({ introUrl, slug }: { introUrl: string; slug:
     setPct(0);
   };
 
-  const onFile = async (file: File | undefined) => {
+  // Clip gewählt -> erst den Trimmer zeigen (Stelle wählen), dann zusammensetzen.
+  const onFile = (file: File | undefined) => {
     if (!file || !file.type.startsWith("video/")) return;
     if (file.size > MAX_INPUT_BYTES) {
       setErrorMsg(t("tooBig"));
@@ -39,13 +42,21 @@ export default function VideoMaker({ introUrl, slug }: { introUrl: string; slug:
       return;
     }
     setErrorMsg(null);
+    setClipFile(file);
+    setPhase("trim");
+  };
+
+  const startCompose = async (startSec: number) => {
+    const clip = clipFile;
+    if (!clip) return;
     setPhase("working");
     setPct(0);
     setStage("intro");
     try {
       const blob = await composeStory({
         introUrl,
-        clip: file,
+        clip,
+        startSec,
         onProgress: (s, p) => {
           setStage(s);
           setPct(p);
@@ -112,6 +123,18 @@ export default function VideoMaker({ introUrl, slug }: { introUrl: string; slug:
                 {t("pick")}
               </button>
             </div>
+          )}
+
+          {phase === "trim" && clipFile && (
+            <ClipTrimmer
+              file={clipFile}
+              windowSec={CLIP_SECONDS}
+              onConfirm={startCompose}
+              onCancel={() => {
+                setClipFile(null);
+                setPhase("idle");
+              }}
+            />
           )}
 
           {phase === "working" && (
