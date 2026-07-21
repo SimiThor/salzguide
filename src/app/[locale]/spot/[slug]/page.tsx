@@ -391,6 +391,17 @@ export default async function SpotPage({
           />
         )}
 
+        {/* Die Route als 3D-Video: aus der Wanderung automatisch erzeugtes Intro
+            (scripts/render-intro.ts), eigene Karte direkt unter der Karte. Ändert die
+            Karte selbst nicht. Nur wenn vorhanden (Spots mit Route). */}
+        {spot.introVideoUrl && (
+          <SpotVideo
+            src={spot.introVideoUrl}
+            poster={spot.introVideoPosterUrl}
+            label={t("playVideo")}
+          />
+        )}
+
         {/* Anfahrt + Action-Tiles. Nur eine Kachel -> volle Breite (nicht halb-leer). */}
         <div className={`grid gap-3 ${actionCount > 1 ? "sm:grid-cols-2" : ""}`}>
           {showCar && carDest && (
