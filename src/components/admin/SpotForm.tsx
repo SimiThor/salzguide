@@ -36,7 +36,7 @@ import ElevationProfile from "../ElevationProfile";
 import PhotoUploader from "./PhotoUploader";
 import VideoUploader from "./VideoUploader";
 import AiButton from "./AiButton";
-import { STATUS_NEUTRAL } from "@/lib/ui";
+import { STATUS_NEUTRAL, STATUS_ACCENT, STATUS_GOOD } from "@/lib/ui";
 
 const EMPTY: SpotInput = {
   slug: "",
@@ -150,11 +150,15 @@ export default function SpotForm({
   categories,
   locals,
   isNew,
+  introStatus = "none",
+  introUrl = null,
 }: {
   initial?: Partial<SpotInput>;
   categories: AdminCategory[];
   locals: AdminLocal[];
   isNew: boolean;
+  introStatus?: "none" | "current" | "stale";
+  introUrl?: string | null;
 }) {
   const router = useRouter();
   const [form, setForm] = useState<SpotInput>({ ...EMPTY, ...initial });
@@ -891,6 +895,55 @@ export default function SpotForm({
           }
         />
       </section>
+
+      {/* Intro-Video: automatisch aus der Route gerendert. Nur für Spots mit Route. */}
+      {!isNew && form.routeSnapped.length >= 2 && (
+        <section className="space-y-3 rounded-[16px] bg-white p-5 shadow-sm">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="text-[15px] font-semibold text-ink">Intro-Video (aus der Route)</h2>
+            <span
+              className={
+                introStatus === "current"
+                  ? STATUS_GOOD
+                  : introStatus === "stale"
+                    ? STATUS_ACCENT
+                    : STATUS_NEUTRAL
+              }
+            >
+              {introStatus === "current"
+                ? "Aktuell"
+                : introStatus === "stale"
+                  ? "Veraltet"
+                  : "Keins"}
+            </span>
+          </div>
+          <p className="text-xs text-muted">
+            {introStatus === "current"
+              ? "Das 3D-Wander-Video passt zur aktuellen Route."
+              : introStatus === "stale"
+                ? "Die Route hat sich seit dem letzten Render geändert. Bitte neu rendern, sonst zeigt der Spot die alte Strecke."
+                : "Noch kein Intro-Video. Erzeuge es mit dem Befehl unten."}
+          </p>
+          {introUrl && (
+            <a
+              href={introUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-block text-xs text-accent underline"
+            >
+              Aktuelles Video ansehen
+            </a>
+          )}
+          <div className="rounded-[10px] bg-black/5 p-3">
+            <code className="select-all break-all text-[12px] text-ink">
+              npm run render:intro -- {form.slug} --upload
+            </code>
+          </div>
+          <p className="text-[11px] text-muted">
+            Lokal ausführen, während der Dev-Server läuft. Rendert die Animation neu und lädt sie hoch.
+          </p>
+        </section>
+      )}
 
       {/* Karte / Koordinaten */}
       <section className="space-y-3 rounded-[16px] bg-white p-5 shadow-sm">
