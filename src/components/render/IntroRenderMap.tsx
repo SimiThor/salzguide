@@ -14,11 +14,23 @@ import {
 } from "@/lib/route-anim";
 import {
   buildIntroCameraPath,
+  slewLimitDown,
   DEFAULT_INTRO_CAMERA,
   type IntroKeyframe,
 } from "@/lib/intro-camera";
 
 const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+
+// --- Terrain-Sicherheit: die Kamera darf nie in einen Berg tauchen ---
+// Über 3D-Terrain rechnet Mapbox die Kamera (hinter+über dem Ziel) bei steilem Pitch manchmal
+// UNTER die Geländeoberfläche -> das Bild bricht. Lösung: pro Frame prüfen, wo die Kamera bei
+// dem gewünschten Pitch landen würde, und den Pitch nur so weit abflachen, dass sie garantiert
+// mit Abstand über dem Gelände bleibt. Flacher schauen über Bergen ist genau der cinematische
+// Reflex (wie Apple Maps). Alles bleibt im jumpTo-Modell -> Komposition/Padding unverändert.
+const TERRAIN_CLEARANCE_M = 350; // Mindestabstand Kamera <-> höchstes Gelände im Blickfeld
+const PITCH_FLOOR = 8; // ganz flach ist erlaubt (crasht nie), bleibt aber minimal 3D
+const PITCH_SCAN_STEP = 2; // Grad-Schritt beim Absenken bis frei
+const PITCH_SLEW = 0.7; // max. Pitch-Änderung pro Frame -> sanfte Übergänge
 
 // Nur Rot (ROUTE_LINE), KEINE weiße Kontur - wie Antons Vorlage. Nur eine hauchdünne
 // dunkle Kante zur Schärfe auf dem Luftbild. Kopf = roter Punkt mit weißem Ring.
@@ -130,11 +142,11 @@ export default function IntroRenderMap({
     // Kopf-Punkt sitzt im oberen Drittel (wie in der Vorlage), Route läuft darunter.
     const padBottom = () => Math.round(el.clientHeight * 0.22);
 
-    const applyFrame = (kf: IntroKeyframe) => {
+    const applyFrame = (kf: IntroKeyframe, pitch: number = kf.pitch) => {
       map.jumpTo({
         center: kf.center,
         zoom: kf.zoom,
-        pitch: kf.pitch,
+        pitch,
         bearing: kf.bearing,
         padding: { top: 0, right: 0, bottom: padBottom(), left: 0 },
       });
@@ -147,7 +159,7 @@ export default function IntroRenderMap({
       }
     };
 
-    map.on("load", () => {
+    map.on("load", async () => {
       // Höhenrelief: echtes 3D, damit die Berge plastisch werden.
       if (!map.getSource("mapbox-dem")) {
         map.addSource("mapbox-dem", {
@@ -208,19 +220,89 @@ export default function IntroRenderMap({
         },
       });
 
-      applyFrame(first);
+      const waitIdle = () =>
+        new Promise<void>((resolve) => {
+          if (map.areTilesLoaded()) resolve();
+          else map.once("idle", () => resolve());
+        });
+
+      // --- Terrain-sichere Pitch-Kurve vorab berechnen (siehe Konstanten oben) ---
+      // 1) Höhenprofil der Route: queryTerrainElevation liefert nur am aktuell gerenderten
+      //    Mittelpunkt einen Wert. Also die Karte grob über die Route-Mittelpunkte führen
+      //    (Draufsicht, kurz rendern) und dort die Geländehöhe lesen; dazwischen interpolieren.
+      const nextPaint = () =>
+        new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
+      const SAMPLES = Math.min(40, keyframes.length);
+      const sampleElev = new Array<number>(SAMPLES);
+      for (let s = 0; s < SAMPLES; s++) {
+        const idx = Math.round((s / (SAMPLES - 1)) * (keyframes.length - 1));
+        const kf = keyframes[idx];
+        map.jumpTo({ center: kf.center, zoom: kf.zoom, pitch: 0, bearing: 0 });
+        await waitIdle();
+        map.triggerRepaint();
+        await nextPaint();
+        const e = map.queryTerrainElevation(kf.center, { exaggerated: true });
+        sampleElev[s] = e == null ? NaN : e;
+      }
+      const routeElev = keyframes.map((_, i) => {
+        const fs = (i / Math.max(1, keyframes.length - 1)) * (SAMPLES - 1);
+        const a = Math.floor(fs);
+        const b = Math.min(SAMPLES - 1, a + 1);
+        const t = fs - a;
+        const va = sampleElev[a];
+        const vb = sampleElev[b];
+        if (Number.isNaN(va)) return vb;
+        if (Number.isNaN(vb)) return va;
+        return va * (1 - t) + vb * t;
+      });
+
+      // 2) Geländе-„Drohung" je Frame = höchstes Route-Gelände im Blickfeld-Fenster.
+      const WINDOW = Math.max(1, Math.round(keyframes.length * 0.15));
+      const threat = keyframes.map((_, i) => {
+        let m = -Infinity;
+        for (let j = Math.max(0, i - WINDOW); j <= Math.min(keyframes.length - 1, i + WINDOW); j++) {
+          if (!Number.isNaN(routeElev[j])) m = Math.max(m, routeElev[j]);
+        }
+        return m;
+      });
+
+      // 3) Kamera-Höhe bei einem Pitch. getFreeCameraOptions liefert die terrain-BEWUSSTE
+      //    Höhe (Gelände am Mittelpunkt + Kamera-Abstand), aber nur weil der Abtast-Lauf oben
+      //    schon Terrain-Frames gerendert hat -> diese Reihenfolge nicht vertauschen.
+      const camAltAt = (kf: IntroKeyframe, pitch: number): number => {
+        map.jumpTo({
+          center: kf.center,
+          zoom: kf.zoom,
+          pitch,
+          bearing: kf.bearing,
+          padding: { top: 0, right: 0, bottom: padBottom(), left: 0 },
+        });
+        const cam = map.getFreeCameraOptions();
+        return cam.position ? cam.position.toAltitude() : Infinity;
+      };
+      // Steilster Pitch <= Vorgabe, bei dem die Kamera über der Drohung + Abstand bleibt.
+      const safePitchFor = (i: number): number => {
+        const kf = keyframes[i];
+        if (!Number.isFinite(threat[i])) return kf.pitch;
+        for (let p = kf.pitch; p > PITCH_FLOOR; p -= PITCH_SCAN_STEP) {
+          if (camAltAt(kf, p) >= threat[i] + TERRAIN_CLEARANCE_M) return p;
+        }
+        return PITCH_FLOOR;
+      };
+      const safePitch = slewLimitDown(
+        keyframes.map((_, i) => safePitchFor(i)),
+        PITCH_SLEW,
+      );
+
+      applyFrame(first, safePitch[0]);
 
       window.__introFrameCount = keyframes.length;
       window.__introFps = effectiveFps;
       window.__introSeek = (i: number) => {
         const idx = Math.max(0, Math.min(keyframes.length - 1, Math.round(i)));
-        applyFrame(keyframes[idx]);
+        applyFrame(keyframes[idx], safePitch[idx]);
       };
-      window.__introWaitIdle = () =>
-        new Promise<void>((resolve) => {
-          if (map.areTilesLoaded()) resolve();
-          else map.once("idle", () => resolve());
-        });
+      window.__introWaitIdle = waitIdle;
       window.__introReady = true;
 
       // Echtzeit-Vorschau für menschliche Besucher (Skript setzt __introDriven, übernimmt).
@@ -230,7 +312,8 @@ export default function IntroRenderMap({
         if (window.__introDriven) return;
         if (!start) start = now;
         const t = Math.min(1, (now - start) / durMs);
-        applyFrame(keyframes[Math.round(t * (keyframes.length - 1))]);
+        const idx = Math.round(t * (keyframes.length - 1));
+        applyFrame(keyframes[idx], safePitch[idx]);
         if (t >= 1) {
           start = 0;
           window.setTimeout(() => requestAnimationFrame(tick), 900);

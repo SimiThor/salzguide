@@ -108,6 +108,20 @@ function smoothPath(pts: [number, number][], win: number): [number, number][] {
   return out;
 }
 
+// Slew-Limiter für die Terrain-sichere Pitch-Kurve (siehe IntroRenderMap): begrenzt die
+// Änderung pro Frame in BEIDE Richtungen, OHNE je über den Vorgabewert `raw[i]` zu steigen.
+// Damit bleibt die Sicherheit (Ergebnis[i] <= raw[i], Kamera crasht nie), aber die Übergänge
+// sind sanft statt ruckartig. Vorwärts bremst das Wieder-Steiler-Werden, rückwärts zieht das
+// Abflachen VOR die kritische Stelle (die Kamera weicht dem Berg rechtzeitig aus, statt hart).
+export function slewLimitDown(raw: number[], maxStep: number): number[] {
+  const n = raw.length;
+  if (n === 0) return [];
+  const p = raw.slice();
+  for (let i = 1; i < n; i++) p[i] = Math.min(raw[i], p[i - 1] + maxStep);
+  for (let i = n - 2; i >= 0; i--) p[i] = Math.min(p[i], p[i + 1] + maxStep);
+  return p;
+}
+
 // Erzeugt die vollständige Kamera-Bahn.
 export function buildIntroCameraPath(
   route: [number, number][],
