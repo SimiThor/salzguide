@@ -12,6 +12,9 @@ export type ComposeProgress = (stage: ComposeStage, pct: number) => void;
 const OUT_W = 1080;
 const OUT_H = 1920;
 export const CLIP_SECONDS = 5;
+// Der ganze Eingabe-Clip landet im WASM-Speicher (auch wenn wir nur 5s nutzen). Ein
+// harter Riegel gegen sehr große Dateien schützt vor Out-of-Memory, vor allem auf iPhones.
+export const MAX_INPUT_BYTES = 200 * 1024 * 1024;
 
 export async function composeStory(opts: {
   introUrl: string;

@@ -286,7 +286,8 @@
       "share": "Teilen",
       "download": "Speichern",
       "again": "Anderen Clip",
-      "error": "Das hat nicht geklappt. Probier es mit einem anderen Clip."
+      "error": "Das hat nicht geklappt. Probier es mit einem anderen Clip.",
+      "tooBig": "Dieses Video ist zu groß fürs Handy. Nimm einen kürzeren Clip."
     },
     "headInsider": "Insider-Tipp",
     "headActivityA": "Dauer & Schwierigkeit",

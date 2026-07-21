@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import BottomSheet from "./BottomSheet";
-import { composeStory, type ComposeStage } from "@/lib/video-maker";
+import { composeStory, MAX_INPUT_BYTES, type ComposeStage } from "@/lib/video-maker";
 import { BTN_PRIMARY, BTN_SECONDARY } from "@/lib/ui";
 
 type Phase = "idle" | "working" | "done" | "error";
@@ -19,6 +19,7 @@ export default function VideoMaker({ introUrl, slug }: { introUrl: string; slug:
   const [pct, setPct] = useState(0);
   const [stage, setStage] = useState<ComposeStage>("intro");
   const [resultUrl, setResultUrl] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const blobRef = useRef<Blob | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -32,6 +33,12 @@ export default function VideoMaker({ introUrl, slug }: { introUrl: string; slug:
 
   const onFile = async (file: File | undefined) => {
     if (!file || !file.type.startsWith("video/")) return;
+    if (file.size > MAX_INPUT_BYTES) {
+      setErrorMsg(t("tooBig"));
+      setPhase("error");
+      return;
+    }
+    setErrorMsg(null);
     setPhase("working");
     setPct(0);
     setStage("intro");
@@ -150,7 +157,7 @@ export default function VideoMaker({ introUrl, slug }: { introUrl: string; slug:
 
           {phase === "error" && (
             <div className="space-y-4 py-8 text-center">
-              <p className="text-[15px] text-ink">{t("error")}</p>
+              <p className="text-[15px] text-ink">{errorMsg ?? t("error")}</p>
               <button className={`${BTN_PRIMARY} w-full active:scale-[0.98]`} onClick={pick}>
                 {t("pick")}
               </button>
