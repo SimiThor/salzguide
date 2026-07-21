@@ -24,6 +24,40 @@ function fmt(t: number): string {
 }
 const clamp = (x: number, lo: number, hi: number) => Math.min(Math.max(x, lo), hi);
 
+// Dauer robust lesen. Safari meldet für manche MP4/HEVC beim loadedmetadata
+// duration = Infinity und liefert die echte Länge erst nach einem Sprung weit hinter das
+// Ende (dann feuert durationchange). Ohne das bleibt die Dauer 0 und der Trimmer fehlt.
+function readDuration(v: HTMLVideoElement): Promise<number> {
+  const ok = (d: number) => Number.isFinite(d) && d > 0;
+  return new Promise((resolve) => {
+    if (ok(v.duration)) return resolve(v.duration);
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      v.removeEventListener("durationchange", onChange);
+      clearTimeout(to);
+      const d = ok(v.duration) ? v.duration : 0;
+      try {
+        v.currentTime = 0;
+      } catch {
+        /* egal */
+      }
+      resolve(d);
+    };
+    const onChange = () => {
+      if (ok(v.duration)) finish();
+    };
+    v.addEventListener("durationchange", onChange);
+    try {
+      v.currentTime = 1e7; // Safari zum Berechnen der echten Dauer zwingen
+    } catch {
+      /* egal */
+    }
+    const to = setTimeout(finish, 4000);
+  });
+}
+
 export default function ClipTrimmer({
   file,
   windowSec,
@@ -66,14 +100,18 @@ export default function ClipTrimmer({
       });
 
     (async () => {
+      // Metadaten abwarten (mit Timeout, damit es nie hängt).
       if (v.readyState < 1) {
-        await new Promise<void>((res, rej) => {
-          v.addEventListener("loadedmetadata", () => res(), { once: true });
-          v.addEventListener("error", () => rej(new Error("meta")), { once: true });
+        await new Promise<void>((res) => {
+          const done = () => res();
+          v.addEventListener("loadedmetadata", done, { once: true });
+          v.addEventListener("error", done, { once: true });
+          setTimeout(done, 4000);
         });
       }
       if (cancelled) return;
-      const dur = Number.isFinite(v.duration) ? v.duration : 0;
+      const dur = await readDuration(v);
+      if (cancelled) return;
       setDuration(dur);
 
       const canvas = document.createElement("canvas");

@@ -129,7 +129,7 @@ export default function VideoMaker({
     <>
       {/* Section im iOS-Stil: das Intro-Video läuft als Hintergrund, darüber ein Verlauf
           und kurzer, klarer Text plus die CTA. Erklärt das Feature auf einen Blick. */}
-      <section className="relative aspect-[3/4] overflow-hidden rounded-[22px] shadow-sm ring-1 ring-black/5">
+      <section className="relative aspect-[4/3] overflow-hidden rounded-[22px] shadow-sm ring-1 ring-black/5">
         <video
           ref={bgRef}
           src={introUrl}
@@ -140,17 +140,16 @@ export default function VideoMaker({
           preload="none"
           className="absolute inset-0 h-full w-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
-        <div className="absolute inset-x-0 bottom-0 p-5 pt-24">
-          <div className="mb-2 text-[26px] leading-none">🎬</div>
-          <h2 className="text-[22px] font-bold leading-tight text-white [text-shadow:0_2px_14px_rgba(0,0,0,0.55)]">
-            {t("sectionTitle")}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 p-4 pt-12">
+          <h2 className="text-[19px] font-bold leading-tight text-white [text-shadow:0_2px_14px_rgba(0,0,0,0.55)]">
+            🎬 {t("sectionTitle")}
           </h2>
-          <p className="mt-1.5 text-[14px] leading-snug text-white/90 [text-shadow:0_1px_8px_rgba(0,0,0,0.5)]">
+          <p className="mt-1 text-[13px] leading-snug text-white/90 [text-shadow:0_1px_8px_rgba(0,0,0,0.5)]">
             {t("sectionSub")}
           </p>
           <button
-            className={`${BTN_PRIMARY} mt-4 w-full active:scale-[0.98]`}
+            className={`${BTN_PRIMARY} mt-3 w-full active:scale-[0.98]`}
             onClick={() => {
               reset();
               setOpen(true);
