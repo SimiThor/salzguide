@@ -9,7 +9,7 @@
     "lint": "eslint",
     "i18n:check": "node scripts/i18n-check.mjs",
     "backfill:blur": "node --experimental-strip-types scripts/backfill-blur.ts",
-    "render:intro": "node scripts/render-intro.mjs"
+    "render:intro": "node --experimental-strip-types scripts/render-intro.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
