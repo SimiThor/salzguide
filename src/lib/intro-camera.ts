@@ -6,7 +6,7 @@
 // die KAMERA folgt einer GEGLÄTTETEN Bahn und dreht nur langsam mit. So schwenkt nichts
 // nervös bei jeder kleinen Kurve; die Kamera gleitet und dreht sanft dem Verlauf nach.
 
-import { coordAtFraction } from "@/lib/geo";
+import { coordAtFraction, haversineMeters } from "@/lib/geo";
 
 export type IntroKeyframe = {
   center: [number, number]; // geglättete Kamera-Position (gleitet ruhig)
@@ -54,6 +54,28 @@ function unwrap(prev: number, next: number): number {
   return prev + d;
 }
 
+// Adaptive Kamera-Distanz: kurze/kleine Wanderung -> nah dran (hoher Zoom), lange/große
+// -> weiter weg. So bleibt das Tempo im Bild etwa gleich und JEDE Route wirkt spannend
+// (bei einer kleinen Runde wie Aigen wäre ein fixer Zoom zu weit weg). Maß ist die
+// räumliche Ausdehnung (Bounding-Box-Diagonale), nicht die Weglänge: ein enger Zickzack
+// soll nah bleiben, ein weit gespannter Weg weiter raus.
+function adaptiveZoom(route: [number, number][]): number {
+  let minLng = Infinity;
+  let minLat = Infinity;
+  let maxLng = -Infinity;
+  let maxLat = -Infinity;
+  for (const [lng, lat] of route) {
+    if (lng < minLng) minLng = lng;
+    if (lat < minLat) minLat = lat;
+    if (lng > maxLng) maxLng = lng;
+    if (lat > maxLat) maxLat = lat;
+  }
+  const diagKm = haversineMeters([minLng, minLat], [maxLng, maxLat]) / 1000;
+  // ~1.2 km Diagonale -> Zoom 15.2; jede Verdopplung der Ausdehnung -> ein Zoom weiter raus.
+  const z = 15.2 - Math.log2(Math.max(0.3, diagKm) / 1.2);
+  return Math.max(12.6, Math.min(15.8, z));
+}
+
 // Symmetrischer gleitender Mittelwert über eine Koordinatenreihe (glättet die Bahn, ohne
 // nachzulaufen). Fenster wird an den Enden geklemmt.
 function smoothPath(pts: [number, number][], win: number): [number, number][] {
@@ -94,6 +116,9 @@ export function buildIntroCameraPath(
     }));
   }
 
+  // Zoom: explizit übergeben gewinnt, sonst adaptiv aus der Ausdehnung der Route.
+  const zoom = typeof cfg.zoom === "number" ? cfg.zoom : adaptiveZoom(route);
+
   // 1) Fortschritt (mit sanftem Start/Schluss) und der exakte Kopf der Linie je Frame.
   const fs: number[] = [];
   const heads: [number, number][] = [];
@@ -128,7 +153,7 @@ export function buildIntroCameraPath(
       head: heads[i],
       bearing: ((bearing % 360) + 360) % 360,
       pitch: c.pitch,
-      zoom: c.zoom,
+      zoom,
       trim: fs[i],
     });
   }

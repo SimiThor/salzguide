@@ -7,6 +7,7 @@ import {
   ROUTE_SOURCE,
   ROUTE_LAYER_OUT,
   ROUTE_LAYER_LINE,
+  ROUTE_LINE,
   ROUTE_HEAD,
   NO_TRANSITION,
   routeFC,
@@ -20,9 +21,10 @@ import {
 
 const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
-// Look nach Antons Vorlage: kräftiges Rot, weiß umrandeter Kopf-Punkt, kein weißer Kasten.
-const INTRO_LINE = "#e21b1b";
-const INTRO_CASING = "rgba(0,0,0,0.38)"; // dezente dunkle Kante für Kontrast auf hellem Fels/Schnee
+// Look nach Antons Vorlage, aber mit der EINEN Routen-Farbe der App (ROUTE_LINE aus
+// route-anim.ts), damit das Rot überall einheitlich ist. Weiß umrandeter Kopf-Punkt,
+// kein weißer Kasten, nur eine dezente dunkle Kante für Kontrast auf hellem Fels/Schnee.
+const INTRO_CASING = "rgba(0,0,0,0.38)";
 const HEAD_SOURCE = "sg-head";
 const HEAD_LAYER = "sg-head-dot";
 
@@ -165,7 +167,7 @@ export default function IntroRenderMap({
         type: "line",
         source: ROUTE_SOURCE,
         paint: {
-          "line-color": INTRO_LINE,
+          "line-color": ROUTE_LINE,
           "line-width": 6.5,
           "line-opacity-transition": NO_TRANSITION,
           "line-trim-fade-range": [ROUTE_HEAD, 0],
@@ -181,7 +183,7 @@ export default function IntroRenderMap({
         source: HEAD_SOURCE,
         paint: {
           "circle-radius": 9,
-          "circle-color": INTRO_LINE,
+          "circle-color": ROUTE_LINE,
           "circle-stroke-width": 4.5,
           "circle-stroke-color": "#ffffff",
           "circle-pitch-alignment": "viewport",
