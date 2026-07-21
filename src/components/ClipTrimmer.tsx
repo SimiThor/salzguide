@@ -90,6 +90,9 @@ export default function ClipTrimmer({
   const [frames, setFrames] = useState<string[]>([]);
   const [preparing, setPreparing] = useState(true);
   const [failed, setFailed] = useState(false);
+  const [playing, setPlaying] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const rafRef = useRef(0);
 
   // Dauer aus dem Container lesen (pures JS), Datei an ffmpeg geben, Bilder per Seek
   // extrahieren. Kein <video>-Element -> überall gleich, auch Safari/iOS.
@@ -171,6 +174,19 @@ export default function ClipTrimmer({
     };
   }, [file]);
 
+  // Blob-URL des Clips zum ABSPIELEN (Ton). Bewusst getrennt von ffmpeg: das <video> dient nur
+  // zum Anhören/Ansehen des gewählten Fensters, NICHT zum Dauer-Lesen (das war auf Safari
+  // unzuverlässig; Abspielen selbst klappt dort problemlos). src imperativ setzen (kein State),
+  // damit kein setState im Effect nötig ist.
+  useEffect(() => {
+    const u = URL.createObjectURL(file);
+    if (videoRef.current) videoRef.current.src = u;
+    return () => {
+      URL.revokeObjectURL(u);
+      cancelAnimationFrame(rafRef.current);
+    };
+  }, [file]);
+
   const trimmable = duration > windowSec + 0.05;
   const winFrac = trimmable ? windowSec / duration : 1;
 
@@ -182,6 +198,7 @@ export default function ClipTrimmer({
   // Ziehen des Rahmens: window-Listener statt setPointerCapture -> robust in jedem Browser,
   // auch wenn der Zeiger die Fläche verlässt.
   const onPointerDown = (e: React.PointerEvent) => {
+    stopPlayback(); // beim Verschieben nicht weiterlaufen lassen
     if (!trimmable) return;
     e.preventDefault();
     const strip = stripRef.current;
@@ -207,20 +224,120 @@ export default function ClipTrimmer({
   const from = trimmable ? start : 0;
   const to = trimmable ? start + windowSec : Math.min(duration, windowSec);
 
+  function stopPlayback() {
+    videoRef.current?.pause();
+    cancelAnimationFrame(rafRef.current);
+    setPlaying(false);
+  }
+
+  // Play: genau das gewählte Fenster mit Ton abspielen und am Fenster-Ende stoppen.
+  const togglePlay = async () => {
+    const v = videoRef.current;
+    if (!v) return;
+    if (playing) {
+      stopPlayback();
+      return;
+    }
+    const startAt = from;
+    const endAt = to;
+    try {
+      // Erst abspielbar? (Safari lädt Metadaten evtl. verzögert.) Nicht ewig warten.
+      if (v.readyState < 1) {
+        await new Promise<void>((res) => {
+          const on = () => {
+            v.removeEventListener("loadedmetadata", on);
+            res();
+          };
+          v.addEventListener("loadedmetadata", on);
+          window.setTimeout(res, 1500);
+        });
+      }
+      try {
+        v.currentTime = startAt;
+      } catch {
+        /* Seek nicht möglich -> von vorne; Hauptsache man hört den Ton */
+      }
+      await v.play();
+      setPlaying(true);
+      const tick = () => {
+        const vv = videoRef.current;
+        if (!vv || vv.paused) {
+          setPlaying(false);
+          return;
+        }
+        if (vv.currentTime >= endAt - 0.02) {
+          vv.pause();
+          try {
+            vv.currentTime = startAt;
+          } catch {
+            /* egal */
+          }
+          setPlaying(false);
+          return;
+        }
+        rafRef.current = requestAnimationFrame(tick);
+      };
+      rafRef.current = requestAnimationFrame(tick);
+    } catch {
+      setPlaying(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <p className="text-[13px] text-muted">{t("trimHint")}</p>
 
-      {/* Vorschau: das Bild an der aktuellen Stelle (aus ffmpeg extrahiert). */}
+      {/* Vorschau: beim Ziehen das Bild an der Stelle (aus ffmpeg), beim Abspielen das Video. */}
       <div className="relative mx-auto grid aspect-[9/16] max-h-[40vh] w-auto place-items-center overflow-hidden rounded-2xl bg-black">
         {previewIdx >= 0 && (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={frames[previewIdx]} alt="" className="h-full w-full object-cover" />
+          <img
+            src={frames[previewIdx]}
+            alt=""
+            className="h-full w-full object-cover transition-opacity"
+            style={{ opacity: playing ? 0 : 1 }}
+          />
         )}
+        {/* src wird per Ref gesetzt (siehe Effect oben) */}
+        <video
+          ref={videoRef}
+          playsInline
+          preload="metadata"
+          className="absolute inset-0 h-full w-full object-cover"
+          style={{ opacity: playing ? 1 : 0 }}
+          onEnded={stopPlayback}
+          onPause={() => setPlaying(false)}
+        />
         {(preparing || previewIdx < 0) && !failed && (
           <div className="absolute inset-0 grid place-items-center bg-black/40 backdrop-blur-sm">
             <span className="h-7 w-7 animate-spin rounded-full border-2 border-white/40 border-t-white" />
           </div>
+        )}
+        {/* Play/Pause: das gewählte Fenster anhören. Deckt die ganze Fläche ab (große Trefferfläche). */}
+        {!preparing && !failed && duration > 0 && (
+          <button
+            type="button"
+            onClick={togglePlay}
+            aria-label={playing ? t("pause") : t("play")}
+            className="absolute inset-0 grid place-items-center"
+          >
+            <span
+              className={`grid h-14 w-14 place-items-center rounded-full bg-black/45 text-white backdrop-blur-sm transition active:scale-95 ${
+                playing ? "opacity-0 hover:opacity-100" : "opacity-100"
+              }`}
+            >
+              {playing ? (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <rect x="6" y="5" width="4" height="14" rx="1.3" />
+                  <rect x="14" y="5" width="4" height="14" rx="1.3" />
+                </svg>
+              ) : (
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M8 5.5v13a1 1 0 0 0 1.5.87l11-6.5a1 1 0 0 0 0-1.74l-11-6.5A1 1 0 0 0 8 5.5Z" />
+                </svg>
+              )}
+            </span>
+          </button>
         )}
       </div>
 

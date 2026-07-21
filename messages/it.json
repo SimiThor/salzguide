@@ -245,7 +245,9 @@
       "download": "Salva",
       "again": "Un altro video",
       "error": "Non ha funzionato. Prova con un altro video.",
-      "tooBig": "Questo video è troppo grande per il telefono. Scegline uno più corto."
+      "tooBig": "Questo video è troppo grande per il telefono. Scegline uno più corto.",
+      "play": "Riproduci",
+      "pause": "Pausa"
     },
     "headInsider": "Consiglio insider",
     "headActivityA": "Durata e difficoltà",

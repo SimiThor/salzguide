@@ -245,7 +245,9 @@
       "download": "Opslaan",
       "again": "Andere clip",
       "error": "Dat lukte niet. Probeer een andere clip.",
-      "tooBig": "Deze video is te groot voor je telefoon. Kies een kortere clip."
+      "tooBig": "Deze video is te groot voor je telefoon. Kies een kortere clip.",
+      "play": "Afspelen",
+      "pause": "Pauzeren"
     },
     "headInsider": "Insidertip",
     "headActivityA": "Duur & moeilijkheid",

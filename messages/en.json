@@ -245,7 +245,9 @@
       "download": "Save",
       "again": "Another clip",
       "error": "That did not work. Try a different clip.",
-      "tooBig": "This video is too big for your phone. Pick a shorter clip."
+      "tooBig": "This video is too big for your phone. Pick a shorter clip.",
+      "play": "Play",
+      "pause": "Pause"
     },
     "headInsider": "Insider tip",
     "headActivityA": "Duration & difficulty",

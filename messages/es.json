@@ -245,7 +245,9 @@
       "download": "Guardar",
       "again": "Otro clip",
       "error": "No ha funcionado. Prueba con otro clip.",
-      "tooBig": "Este vídeo es demasiado grande para el móvil. Elige uno más corto."
+      "tooBig": "Este vídeo es demasiado grande para el móvil. Elige uno más corto.",
+      "play": "Reproducir",
+      "pause": "Pausar"
     },
     "headInsider": "Consejo de insider",
     "headActivityA": "Duración y dificultad",

@@ -245,7 +245,9 @@
       "download": "Enregistrer",
       "again": "Un autre clip",
       "error": "Ça n'a pas marché. Essaie avec un autre clip.",
-      "tooBig": "Cette vidéo est trop lourde pour le téléphone. Prends un clip plus court."
+      "tooBig": "Cette vidéo est trop lourde pour le téléphone. Prends un clip plus court.",
+      "play": "Lire",
+      "pause": "Pause"
     },
     "headInsider": "Tuyau de local",
     "headActivityA": "Durée & difficulté",
