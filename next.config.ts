@@ -30,7 +30,7 @@ const cspReportOnly = [
   "object-src 'none'",
   "frame-ancestors 'none'",
   "form-action 'self'",
-  "img-src 'self' data: blob: https://*.supabase.co https://*.mapbox.com https://*.tiles.mapbox.com",
+  "img-src 'self' data: blob: https://*.supabase.co https://*.mapbox.com https://*.tiles.mapbox.com https://*.wien.gv.at",
   "media-src 'self' blob: https://*.supabase.co",
   "font-src 'self'",
   "style-src 'self' 'unsafe-inline'",
@@ -41,7 +41,7 @@ const cspReportOnly = [
   "child-src 'self' blob:",
   // Turnstile rendert in einem iframe von challenges.cloudflare.com.
   "frame-src 'self' https://challenges.cloudflare.com",
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.mapbox.com https://*.tiles.mapbox.com https://events.mapbox.com https://challenges.cloudflare.com",
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.mapbox.com https://*.tiles.mapbox.com https://events.mapbox.com https://challenges.cloudflare.com https://*.wien.gv.at",
   "manifest-src 'self'",
   "upgrade-insecure-requests",
 ].join("; ");

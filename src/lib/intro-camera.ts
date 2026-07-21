@@ -1,16 +1,16 @@
 // Reine Kamera-Bahn für das Intro-Video (kein Mapbox, kein DOM -> testbar).
-// Aus einer Route [lng,lat][] entsteht pro Frame ein Kamerastand
-// (center/bearing/pitch/zoom) plus trim = Anteil der bereits gezeichneten Linie.
-// Die Kamera folgt dem Kopf der wachsenden Linie: center = Punkt bei Anteil f,
-// bearing = Blickrichtung des Wegs dort. So "wandert" die Kamera die Strecke ab.
+// Aus einer Route [lng,lat][] entsteht pro Frame ein Kamerastand plus der exakte Kopf
+// der Linie (für den Punkt). Deterministisch: gleiche Route + Config -> gleiche Frames.
 //
-// Sprachneutral und ohne Text: Beschriftung/Wasserzeichen kommen erst später
-// (ffmpeg-Overlay bzw. Video-Maker), damit ein Render pro Spot genügt.
+// Cinematisch-ruhig (wie Apple): Die Linie zeichnet exakt die echte, kurvige Route, aber
+// die KAMERA folgt einer GEGLÄTTETEN Bahn und dreht nur langsam mit. So schwenkt nichts
+// nervös bei jeder kleinen Kurve; die Kamera gleitet und dreht sanft dem Verlauf nach.
 
 import { coordAtFraction } from "@/lib/geo";
 
 export type IntroKeyframe = {
-  center: [number, number];
+  center: [number, number]; // geglättete Kamera-Position (gleitet ruhig)
+  head: [number, number]; // exakter Kopf der Linie (für den wandernden Punkt)
   bearing: number;
   pitch: number;
   zoom: number;
@@ -21,16 +21,14 @@ export type IntroCameraConfig = {
   fps: number; // Bilder pro Sekunde
   durationSec: number; // Länge der Fahrt
   pitch: number; // Kamera-Neigung in Grad (0 = Draufsicht, ~62 = schräg/3D)
-  zoom: number; // fixer Zoom entlang der Fahrt
-  bearingSmoothing: number; // 0..1, höher = ruhiger (aber träger) beim Drehen
+  zoom: number; // Zoom entlang der Fahrt
 };
 
 export const DEFAULT_INTRO_CAMERA: IntroCameraConfig = {
   fps: 30,
   durationSec: 10,
   pitch: 62,
-  zoom: 14.5,
-  bearingSmoothing: 0.85,
+  zoom: 14,
 };
 
 // Sanftes An- und Abbremsen der Fahrt (kein harter Start/Stopp).
@@ -56,7 +54,26 @@ function unwrap(prev: number, next: number): number {
   return prev + d;
 }
 
-// Erzeugt die vollständige Kamera-Bahn. Deterministisch: gleiche Route + Config -> gleiche Frames.
+// Symmetrischer gleitender Mittelwert über eine Koordinatenreihe (glättet die Bahn, ohne
+// nachzulaufen). Fenster wird an den Enden geklemmt.
+function smoothPath(pts: [number, number][], win: number): [number, number][] {
+  const n = pts.length;
+  const out: [number, number][] = [];
+  for (let i = 0; i < n; i++) {
+    let sx = 0;
+    let sy = 0;
+    let k = 0;
+    for (let j = Math.max(0, i - win); j <= Math.min(n - 1, i + win); j++) {
+      sx += pts[j][0];
+      sy += pts[j][1];
+      k++;
+    }
+    out.push([sx / k, sy / k]);
+  }
+  return out;
+}
+
+// Erzeugt die vollständige Kamera-Bahn.
 export function buildIntroCameraPath(
   route: [number, number][],
   cfg: Partial<IntroCameraConfig> = {},
@@ -66,9 +83,10 @@ export function buildIntroCameraPath(
 
   // Entartete Route (kein oder ein Punkt): ruhiges Standbild.
   if (!route || route.length < 2) {
-    const center = (route && route[0]) || ([13.05, 47.6] as [number, number]);
+    const p = (route && route[0]) || ([13.05, 47.6] as [number, number]);
     return Array.from({ length: frames }, () => ({
-      center,
+      center: p,
+      head: p,
       bearing: 0,
       pitch: c.pitch,
       zoom: c.zoom,
@@ -76,35 +94,42 @@ export function buildIntroCameraPath(
     }));
   }
 
-  // Tangenten-Abstand für die Blickrichtung (Anteil der Strecke vor/hinter dem Kopf).
-  const look = 0.02;
-
-  const out: IntroKeyframe[] = [];
-  let smoothed = Number.NaN;
+  // 1) Fortschritt (mit sanftem Start/Schluss) und der exakte Kopf der Linie je Frame.
+  const fs: number[] = [];
+  const heads: [number, number][] = [];
   for (let i = 0; i < frames; i++) {
-    const p = i / (frames - 1);
-    const f = easeInOutSine(p); // 0..1, langsamer Start und Schluss
-    const center = coordAtFraction(route, f) ?? route[route.length - 1];
+    const f = easeInOutSine(i / (frames - 1));
+    fs.push(f);
+    heads.push(coordAtFraction(route, f) ?? route[route.length - 1]);
+  }
 
-    // Blickrichtung aus einem Punkt hinter und vor dem Kopf.
-    const behind = coordAtFraction(route, Math.max(0, f - look)) ?? center;
-    const ahead = coordAtFraction(route, Math.min(1, f + look)) ?? center;
-    const raw = bearingBetween(behind, ahead);
+  // 2) Kamera gleitet auf einer GEGLÄTTETEN Version der Köpfe (kein Zappeln bei Kurven).
+  const centers = smoothPath(heads, Math.max(1, Math.round(frames * 0.05)));
 
-    // Exponentielle Glättung mit Entpackung, damit die Kamera nicht ruckt.
-    if (Number.isNaN(smoothed)) {
-      smoothed = raw;
-    } else {
-      const target = unwrap(smoothed, raw);
-      smoothed = smoothed + (1 - c.bearingSmoothing) * (target - smoothed);
-    }
+  // 3) Blickrichtung: Heading der geglätteten Bahn mit Vorlauf, dann langsames Nachdrehen
+  //    mit Winkelbremse -> nie schnelles Hin-und-Her-Schwenken.
+  const lead = Math.max(1, Math.round(frames * 0.08));
+  const emaK = 0.1; // je kleiner, desto träger/ruhiger die Drehung
+  const maxStepDeg = 1.2; // harte Obergrenze pro Frame (bei 30fps = max 36°/s)
+
+  let bearing = bearingBetween(centers[0], centers[Math.min(frames - 1, lead)]);
+  const out: IntroKeyframe[] = [];
+  for (let i = 0; i < frames; i++) {
+    const target = bearingBetween(centers[i], centers[Math.min(frames - 1, i + lead)]);
+    const aimed = unwrap(bearing, target);
+    let next = bearing + emaK * (aimed - bearing);
+    const step = next - bearing;
+    if (step > maxStepDeg) next = bearing + maxStepDeg;
+    else if (step < -maxStepDeg) next = bearing - maxStepDeg;
+    bearing = next;
 
     out.push({
-      center,
-      bearing: ((smoothed % 360) + 360) % 360,
+      center: centers[i],
+      head: heads[i],
+      bearing: ((bearing % 360) + 360) % 360,
       pitch: c.pitch,
       zoom: c.zoom,
-      trim: f,
+      trim: fs[i],
     });
   }
   return out;

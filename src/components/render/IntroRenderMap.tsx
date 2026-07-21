@@ -3,7 +3,15 @@
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { useEffect, useRef } from "react";
-import { addRouteSourceAndLayers, setTrim } from "@/lib/route-anim";
+import {
+  ROUTE_SOURCE,
+  ROUTE_LAYER_OUT,
+  ROUTE_LAYER_LINE,
+  ROUTE_HEAD,
+  NO_TRANSITION,
+  routeFC,
+  setTrim,
+} from "@/lib/route-anim";
 import {
   buildIntroCameraPath,
   DEFAULT_INTRO_CAMERA,
@@ -12,8 +20,35 @@ import {
 
 const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
+// Look nach Antons Vorlage: kräftiges Rot, weiß umrandeter Kopf-Punkt, kein weißer Kasten.
+const INTRO_LINE = "#e21b1b";
+const INTRO_CASING = "rgba(0,0,0,0.38)"; // dezente dunkle Kante für Kontrast auf hellem Fels/Schnee
+const HEAD_SOURCE = "sg-head";
+const HEAD_LAYER = "sg-head-dot";
+
+// Österreich-Orthofoto von basemap.at (offiziell, kostenlos), OHNE Beschriftungen/Marker:
+// leerer Style, nur die Luftbild-Kacheln. Das 3D-Relief kommt von Mapbox-Terrain (unten).
+const BASEMAP_STYLE = {
+  version: 8,
+  sources: {
+    basemap: {
+      type: "raster",
+      tiles: [
+        "https://mapsneu.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/{z}/{y}/{x}.jpeg",
+        "https://maps.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/{z}/{y}/{x}.jpeg",
+      ],
+      tileSize: 256,
+      maxzoom: 19,
+      attribution: "© basemap.at",
+    },
+  },
+  layers: [
+    { id: "bg", type: "background", paint: { "background-color": "#0c1410" } },
+    { id: "basemap", type: "raster", source: "basemap" },
+  ],
+} as unknown as mapboxgl.StyleSpecification;
+
 // Hooks, über die das Render-Skript (Playwright) diese Seite Frame für Frame steuert.
-// Menschliche Besucher brauchen sie nicht; ohne Skript läuft eine Echtzeit-Vorschau.
 declare global {
   interface Window {
     __introReady?: boolean;
@@ -25,11 +60,17 @@ declare global {
   }
 }
 
-// Vollflächige 3D-Satellitenkarte, deren Kamera der sich zeichnenden Route folgt.
-// Bewusst getrennt von SpotMap: hier zählt Kino (Terrain, Neigung, Flug), nicht
-// Bedienbarkeit. Geteilt wird nur der Linien-Look über route-anim.ts.
-// seconds/fps sind optional (aus der URL): das Render-Skript kann Dauer und Bildrate
-// steuern, ohne Wert gelten die Defaults aus intro-camera.ts.
+function headFC(coord: [number, number]) {
+  return {
+    type: "FeatureCollection" as const,
+    features: [
+      { type: "Feature" as const, geometry: { type: "Point" as const, coordinates: coord }, properties: {} },
+    ],
+  };
+}
+
+// Vollflächige 3D-Satellitenkarte (basemap.at + Terrain), deren Kamera ruhig dem Verlauf
+// der Route folgt. Geteilt mit der Live-Karte ist nur die Trim-Technik (route-anim.ts).
 export default function IntroRenderMap({
   route,
   seconds,
@@ -57,20 +98,20 @@ export default function IntroRenderMap({
 
     const map = new mapboxgl.Map({
       container: el,
-      style: "mapbox://styles/mapbox/satellite-streets-v12",
+      style: BASEMAP_STYLE,
       center: first.center,
       zoom: first.zoom,
       pitch: first.pitch,
       bearing: first.bearing,
-      // Kamera an, Bedienung aus: der Renderer setzt jeden Frame selbst.
       interactive: false,
-      // Pflicht, damit das Skript den GL-Canvas auslesen kann.
-      preserveDrawingBuffer: true,
-      // Keine weichen Label-/Kachel-Übergänge -> jeder Frame ist deterministisch.
-      fadeDuration: 0,
+      preserveDrawingBuffer: true, // Pflicht: Canvas später auslesen
+      fadeDuration: 0, // deterministische Frames
       projection: "mercator",
-      attributionControl: true,
+      attributionControl: false, // eigene, kleine Attribution unten
     });
+
+    // Kopf-Punkt sitzt im oberen Drittel (wie in der Vorlage), Route läuft darunter.
+    const padBottom = () => Math.round(el.clientHeight * 0.22);
 
     const applyFrame = (kf: IntroKeyframe) => {
       map.jumpTo({
@@ -78,8 +119,11 @@ export default function IntroRenderMap({
         zoom: kf.zoom,
         pitch: kf.pitch,
         bearing: kf.bearing,
+        padding: { top: 0, right: 0, bottom: padBottom(), left: 0 },
       });
       setTrim(map, kf.trim);
+      const src = map.getSource(HEAD_SOURCE) as mapboxgl.GeoJSONSource | undefined;
+      src?.setData(headFC(kf.head));
     };
 
     map.on("load", () => {
@@ -92,23 +136,60 @@ export default function IntroRenderMap({
           maxzoom: 14,
         });
       }
-      map.setTerrain({ source: "mapbox-dem", exaggeration: 1.4 });
-      // Himmel/Dunst für den schrägen Blick über die Gipfel.
+      map.setTerrain({ source: "mapbox-dem", exaggeration: 1.5 });
       if (!map.getLayer("sky")) {
         map.addLayer({
           id: "sky",
           type: "sky",
-          paint: {
-            "sky-type": "atmosphere",
-            "sky-atmosphere-sun-intensity": 12,
-          },
+          paint: { "sky-type": "atmosphere", "sky-atmosphere-sun-intensity": 12 },
         });
       }
-      // Dieselbe rote Linie auf weißer Kontur wie die App-Karte (route-anim.ts).
-      addRouteSourceAndLayers(map, route);
+
+      // Route: dicke rote Linie mit dezenter dunkler Kante (kein weißer Kasten). Trim
+      // läuft über dieselben Layer-IDs wie die Live-Karte, damit setTrim() greift.
+      map.addSource(ROUTE_SOURCE, { type: "geojson", data: routeFC(route), lineMetrics: true });
+      map.addLayer({
+        id: ROUTE_LAYER_OUT,
+        type: "line",
+        source: ROUTE_SOURCE,
+        paint: {
+          "line-color": INTRO_CASING,
+          "line-width": 10,
+          "line-opacity-transition": NO_TRANSITION,
+          "line-trim-fade-range": [ROUTE_HEAD, 0],
+        },
+        layout: { "line-join": "round", "line-cap": "round" },
+      });
+      map.addLayer({
+        id: ROUTE_LAYER_LINE,
+        type: "line",
+        source: ROUTE_SOURCE,
+        paint: {
+          "line-color": INTRO_LINE,
+          "line-width": 6.5,
+          "line-opacity-transition": NO_TRANSITION,
+          "line-trim-fade-range": [ROUTE_HEAD, 0],
+        },
+        layout: { "line-join": "round", "line-cap": "round" },
+      });
+
+      // Kopf-Punkt: roter Kreis mit weißem Ring, faces the camera.
+      map.addSource(HEAD_SOURCE, { type: "geojson", data: headFC(first.head) });
+      map.addLayer({
+        id: HEAD_LAYER,
+        type: "circle",
+        source: HEAD_SOURCE,
+        paint: {
+          "circle-radius": 9,
+          "circle-color": INTRO_LINE,
+          "circle-stroke-width": 4.5,
+          "circle-stroke-color": "#ffffff",
+          "circle-pitch-alignment": "viewport",
+        },
+      });
+
       applyFrame(first);
 
-      // Steuer-Hooks fürs Skript bereitstellen.
       window.__introFrameCount = keyframes.length;
       window.__introFps = effectiveFps;
       window.__introSeek = (i: number) => {
@@ -122,7 +203,7 @@ export default function IntroRenderMap({
         });
       window.__introReady = true;
 
-      // Echtzeit-Vorschau für menschliche Besucher (Skript setzt __introDriven und übernimmt).
+      // Echtzeit-Vorschau für menschliche Besucher (Skript setzt __introDriven, übernimmt).
       const durMs = durationSec * 1000;
       let start = 0;
       const tick = (now: number) => {
@@ -132,7 +213,7 @@ export default function IntroRenderMap({
         applyFrame(keyframes[Math.round(t * (keyframes.length - 1))]);
         if (t >= 1) {
           start = 0;
-          window.setTimeout(() => requestAnimationFrame(tick), 900); // in Schleife
+          window.setTimeout(() => requestAnimationFrame(tick), 900);
         } else {
           requestAnimationFrame(tick);
         }
@@ -147,15 +228,14 @@ export default function IntroRenderMap({
     <>
       <style
         dangerouslySetInnerHTML={{
-          // Nichts Fremdes im Video: Kompass (falls vorhanden) und der Next.js-Dev-
-          // Indikator (das "N" unten links, nur im Dev-Modus) raus. Mapbox-Logo und
-          // Attribution bleiben (rechtlich Pflicht). Gilt nur auf der Render-Seite.
+          // Sauberer Look wie basemap.at: Kompass, Mapbox-Logo (Bild ist basemap.at, nicht
+          // Mapbox) und der Next.js-Dev-Indikator raus. Die Text-Attribution unten bleibt.
           __html:
-            ".mapboxgl-ctrl-compass{display:none!important}nextjs-portal{display:none!important}",
+            ".mapboxgl-ctrl-compass,.mapboxgl-ctrl-logo{display:none!important}nextjs-portal{display:none!important}",
         }}
       />
       <div ref={containerRef} style={{ position: "fixed", inset: 0 }} />
-      {/* Sprachneutrales SalzGuide-Wasserzeichen. page.screenshot nimmt es mit auf. */}
+      {/* Sprachneutrales SalzGuide-Wasserzeichen (page.screenshot nimmt es mit auf). */}
       <div
         style={{
           position: "fixed",
@@ -172,6 +252,24 @@ export default function IntroRenderMap({
         }}
       >
         SalzGuide
+      </div>
+      {/* Kleine, sichtbare Attribution (Bild: basemap.at, Relief: Mapbox). */}
+      <div
+        style={{
+          position: "fixed",
+          bottom: 12,
+          left: 0,
+          right: 0,
+          zIndex: 10,
+          textAlign: "center",
+          color: "rgba(255,255,255,0.9)",
+          fontFamily: "Inter, system-ui, sans-serif",
+          fontSize: 12,
+          textShadow: "0 1px 6px rgba(0,0,0,0.6)",
+          pointerEvents: "none",
+        }}
+      >
+        © basemap.at · © Mapbox
       </div>
     </>
   );
