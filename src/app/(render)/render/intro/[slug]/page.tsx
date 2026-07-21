@@ -34,16 +34,22 @@ async function loadRoute(slug: string): Promise<[number, number][] | null> {
     : null;
 }
 
+// Positive Zahl aus einem Query-Param lesen, sonst undefined (Default greift dann).
+function num(v: string | undefined): number | undefined {
+  const n = v ? Number(v) : NaN;
+  return Number.isFinite(n) && n > 0 ? n : undefined;
+}
+
 export default async function IntroRenderPage({
   params,
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ token?: string }>;
+  searchParams: Promise<{ token?: string; seconds?: string; fps?: string }>;
 }) {
   const { slug } = await params;
-  const { token } = await searchParams;
-  if (!allowed(token)) notFound();
+  const sp = await searchParams;
+  if (!allowed(sp.token)) notFound();
 
   const route = await loadRoute(slug);
   if (!route) {
@@ -53,5 +59,7 @@ export default async function IntroRenderPage({
       </main>
     );
   }
-  return <IntroRenderMap route={route} />;
+  return (
+    <IntroRenderMap route={route} seconds={num(sp.seconds)} fps={num(sp.fps)} />
+  );
 }

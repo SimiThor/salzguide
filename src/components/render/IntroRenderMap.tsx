@@ -18,6 +18,7 @@ declare global {
   interface Window {
     __introReady?: boolean;
     __introFrameCount?: number;
+    __introFps?: number;
     __introSeek?: (i: number) => void;
     __introWaitIdle?: () => Promise<void>;
     __introDriven?: boolean;
@@ -27,7 +28,17 @@ declare global {
 // Vollflächige 3D-Satellitenkarte, deren Kamera der sich zeichnenden Route folgt.
 // Bewusst getrennt von SpotMap: hier zählt Kino (Terrain, Neigung, Flug), nicht
 // Bedienbarkeit. Geteilt wird nur der Linien-Look über route-anim.ts.
-export default function IntroRenderMap({ route }: { route: [number, number][] }) {
+// seconds/fps sind optional (aus der URL): das Render-Skript kann Dauer und Bildrate
+// steuern, ohne Wert gelten die Defaults aus intro-camera.ts.
+export default function IntroRenderMap({
+  route,
+  seconds,
+  fps,
+}: {
+  route: [number, number][];
+  seconds?: number;
+  fps?: number;
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -35,7 +46,13 @@ export default function IntroRenderMap({ route }: { route: [number, number][] })
     if (!el || !TOKEN) return;
     mapboxgl.accessToken = TOKEN;
 
-    const keyframes = buildIntroCameraPath(route);
+    const cfg = {
+      ...(seconds ? { durationSec: seconds } : {}),
+      ...(fps ? { fps } : {}),
+    };
+    const effectiveFps = fps ?? DEFAULT_INTRO_CAMERA.fps;
+    const durationSec = seconds ?? DEFAULT_INTRO_CAMERA.durationSec;
+    const keyframes = buildIntroCameraPath(route, cfg);
     const first = keyframes[0];
 
     const map = new mapboxgl.Map({
@@ -93,6 +110,7 @@ export default function IntroRenderMap({ route }: { route: [number, number][] })
 
       // Steuer-Hooks fürs Skript bereitstellen.
       window.__introFrameCount = keyframes.length;
+      window.__introFps = effectiveFps;
       window.__introSeek = (i: number) => {
         const idx = Math.max(0, Math.min(keyframes.length - 1, Math.round(i)));
         applyFrame(keyframes[idx]);
@@ -105,7 +123,7 @@ export default function IntroRenderMap({ route }: { route: [number, number][] })
       window.__introReady = true;
 
       // Echtzeit-Vorschau für menschliche Besucher (Skript setzt __introDriven und übernimmt).
-      const durMs = DEFAULT_INTRO_CAMERA.durationSec * 1000;
+      const durMs = durationSec * 1000;
       let start = 0;
       const tick = (now: number) => {
         if (window.__introDriven) return;
@@ -123,7 +141,38 @@ export default function IntroRenderMap({ route }: { route: [number, number][] })
     });
 
     return () => map.remove();
-  }, [route]);
+  }, [route, seconds, fps]);
 
-  return <div ref={containerRef} style={{ position: "fixed", inset: 0 }} />;
+  return (
+    <>
+      <style
+        dangerouslySetInnerHTML={{
+          // Nichts Fremdes im Video: Kompass (falls vorhanden) und der Next.js-Dev-
+          // Indikator (das "N" unten links, nur im Dev-Modus) raus. Mapbox-Logo und
+          // Attribution bleiben (rechtlich Pflicht). Gilt nur auf der Render-Seite.
+          __html:
+            ".mapboxgl-ctrl-compass{display:none!important}nextjs-portal{display:none!important}",
+        }}
+      />
+      <div ref={containerRef} style={{ position: "fixed", inset: 0 }} />
+      {/* Sprachneutrales SalzGuide-Wasserzeichen. page.screenshot nimmt es mit auf. */}
+      <div
+        style={{
+          position: "fixed",
+          top: 18,
+          left: 20,
+          zIndex: 10,
+          color: "#fff",
+          fontFamily: "Inter, system-ui, sans-serif",
+          fontWeight: 700,
+          fontSize: 26,
+          letterSpacing: "-0.02em",
+          textShadow: "0 2px 12px rgba(0,0,0,0.55)",
+          pointerEvents: "none",
+        }}
+      >
+        SalzGuide
+      </div>
+    </>
+  );
 }
