@@ -25,6 +25,7 @@ import SpotGalleryProvider from "@/components/gallery/SpotGalleryProvider";
 import GalleryImage from "@/components/gallery/GalleryImage";
 import SpotGallery from "@/components/gallery/SpotGallery";
 import SpotVideo from "@/components/SpotVideo";
+import VideoMaker from "@/components/VideoMaker";
 import CardSkeleton from "@/components/CardSkeleton";
 import BackButton from "@/components/BackButton";
 import {
@@ -395,11 +396,16 @@ export default async function SpotPage({
             (scripts/render-intro.ts), eigene Karte direkt unter der Karte. Ändert die
             Karte selbst nicht. Nur wenn vorhanden (Spots mit Route). */}
         {spot.introVideoUrl && (
-          <SpotVideo
-            src={spot.introVideoUrl}
-            poster={spot.introVideoPosterUrl}
-            label={t("playVideo")}
-          />
+          <>
+            <SpotVideo
+              src={spot.introVideoUrl}
+              poster={spot.introVideoPosterUrl}
+              label={t("playVideo")}
+            />
+            {/* Video-Maker (Schicht B): eigenen Clip anhängen + teilen. Eigene Section,
+                ändert die Karte nicht. Nur auf Spots mit Intro. */}
+            <VideoMaker introUrl={spot.introVideoUrl} slug={spot.slug} />
+          </>
         )}
 
         {/* Anfahrt + Action-Tiles. Nur eine Kachel -> volle Breite (nicht halb-leer). */}
