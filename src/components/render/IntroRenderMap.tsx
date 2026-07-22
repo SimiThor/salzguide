@@ -39,6 +39,12 @@ const INTRO_EDGE = "rgba(0,0,0,0.45)";
 const HEAD_SOURCE = "sg-head";
 const HEAD_LAYER = "sg-head-dot";
 
+// Anteil des Bildes, der unten frei bleibt (Padding). Dadurch sitzt der rote Kopf-Punkt bei
+// (1 - HEAD_PAD_FRAC)/2 ≈ 39 % von oben. EINE Quelle für Padding UND Titel-Position, damit die
+// Titelkarte robust mittig zwischen oberem Rand und Punkt bleibt, auch wenn sich der Wert ändert.
+const HEAD_PAD_FRAC = 0.22;
+const HEAD_TOP_FRAC = (1 - HEAD_PAD_FRAC) / 2; // ≈ 0.39: Höhe des Punktes von oben
+
 // Titelkarte oben (oberes Drittel, über dem Kopf-Punkt): Spot-Name + wichtigste Werte + klein
 // SalzGuide, blendet kurz vor Schluss ein.
 export type IntroMeta = {
@@ -145,7 +151,7 @@ export default function IntroRenderMap({
     });
 
     // Kopf-Punkt sitzt im oberen Drittel (wie in der Vorlage), Route läuft darunter.
-    const padBottom = () => Math.round(el.clientHeight * 0.22);
+    const padBottom = () => Math.round(el.clientHeight * HEAD_PAD_FRAC);
 
     const applyFrame = (kf: IntroKeyframe, pitch: number = kf.pitch) => {
       map.jumpTo({
@@ -363,15 +369,19 @@ export default function IntroRenderMap({
           left: 0,
           right: 0,
           top: 0,
+          // Container reicht vom oberen Rand bis zum roten Punkt; der Text wird darin vertikal
+          // zentriert -> Textmitte genau mittig zwischen Rand und Punkt (≈ 19,5 % von oben).
+          height: `${HEAD_TOP_FRAC * 100}vh`,
           zIndex: 9,
           opacity: 0,
           pointerEvents: "none",
-          padding: "54px 28px 44px",
+          padding: "0 28px",
           background:
-            "linear-gradient(to bottom, rgba(0,0,0,0.62), rgba(0,0,0,0.2) 52%, transparent)",
+            "linear-gradient(to bottom, rgba(0,0,0,0.58), rgba(0,0,0,0.33) 55%, rgba(0,0,0,0) 100%)",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
+          justifyContent: "center",
           gap: 7,
           textAlign: "center",
           fontFamily: "Inter, system-ui, sans-serif",
