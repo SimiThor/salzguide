@@ -414,6 +414,34 @@ export async function getAdminSpots(): Promise<AdminSpotRow[]> {
   });
 }
 
+// Intro-Videos zum Herunterladen (nur Admin): die "clean"-Variante ohne Text-Overlay für die
+// eigene Werbevideo-Produktion. Nur Spots, deren Clean-Video schon gerendert wurde.
+export type AdminIntroVideo = {
+  slug: string;
+  title: string;
+  cleanUrl: string;
+  posterUrl: string | null;
+};
+export async function getIntroVideos(): Promise<AdminIntroVideo[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("spots")
+    .select("slug, intro_video_clean_url, intro_video_poster_url, spot_translations(title, lang)")
+    .not("intro_video_clean_url", "is", null)
+    .order("sort_weight", { ascending: false });
+  if (error) return []; // Spalte fehlt (Migration 0048 nicht eingespielt) -> Liste bricht nie
+  return (data ?? []).map((s) => {
+    const tr = (s.spot_translations ?? []) as { title: string; lang: string }[];
+    const de = tr.find((t) => t.lang === "de") ?? tr[0];
+    return {
+      slug: s.slug as string,
+      title: (de?.title as string) ?? (s.slug as string),
+      cleanUrl: s.intro_video_clean_url as string,
+      posterUrl: (s.intro_video_poster_url as string | null) ?? null,
+    };
+  });
+}
+
 // Einen Spot zum Bearbeiten laden (Rohdaten + DE-Übersetzung + Kategorie-IDs)
 export async function getSpotForEdit(id: string) {
   const supabase = await createClient();

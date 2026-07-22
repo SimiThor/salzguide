@@ -63,6 +63,7 @@ if (!slug) {
 
 const base = flag("base") || ENV.RENDER_BASE_URL || "http://localhost:3000";
 const out = flag("out") || `intro-${slug}.mp4`;
+const cleanOut = out.replace(/\.mp4$/i, "-clean.mp4"); // saubere Variante ohne Text-Overlay
 const seconds = flag("seconds");
 const fpsArg = flag("fps");
 const width = Number(flag("width") || 1080);
@@ -96,6 +97,7 @@ async function run() {
 
   const browser = await chromium.launch(launchOpts);
   const framesDir = await mkdtemp(join(tmpdir(), `intro-${slug}-`));
+  const cleanDir = await mkdtemp(join(tmpdir(), `intro-${slug}-clean-`));
   try {
     const ctx = await browser.newContext({
       viewport: { width: Math.round(width / scale), height: Math.round(height / scale) },
@@ -128,8 +130,13 @@ async function run() {
       await page.evaluate((n) => window.__introSeek!(n), i);
       await Promise.race([page.evaluate(() => window.__introWaitIdle!()), sleep(8000)]);
       await sleep(90);
-      const file = join(framesDir, `frame-${String(i + 1).padStart(5, "0")}.png`);
-      await page.screenshot({ path: file, animations: "disabled" });
+      const name = `frame-${String(i + 1).padStart(5, "0")}.png`;
+      // Zwei Varianten in EINEM Durchlauf (Kamera/Kacheln nur einmal berechnet): normal MIT
+      // Titelkarte, dann Karte kurz ausblenden -> sauberes Bild ohne Text-Overlay.
+      await page.evaluate(() => window.__introSetCard!(true));
+      await page.screenshot({ path: join(framesDir, name), animations: "disabled" });
+      await page.evaluate(() => window.__introSetCard!(false));
+      await page.screenshot({ path: join(cleanDir, name), animations: "disabled" });
       if (i % 30 === 0 || i === frameCount - 1) console.log(`   Frame ${i + 1}/${frameCount}`);
     }
 
@@ -162,6 +169,24 @@ async function run() {
     const s = await stat(out);
     console.log(`   MP4: ${out}  (${(s.size / 1e6).toFixed(1)} MB)`);
 
+    // ---- Clean-Variante: dieselben Frames OHNE Text-Overlay, für die eigene Videoproduktion.
+    // Höhere Qualität (CRF 18) zum Weiterschneiden, ohne Tonspur (der Schnitt bringt eigenen Ton).
+    console.log("-> ffmpeg baut das Clean-MP4 …");
+    await ffmpeg([
+      "-y",
+      "-framerate", String(fps),
+      "-i", join(cleanDir, "frame-%05d.png"),
+      "-c:v", "libx264",
+      "-preset", "medium",
+      "-crf", "18",
+      "-pix_fmt", "yuv420p",
+      "-movflags", "+faststart",
+      "-r", String(fps),
+      cleanOut,
+    ]);
+    const sc = await stat(cleanOut);
+    console.log(`   Clean-MP4: ${cleanOut}  (${(sc.size / 1e6).toFixed(1)} MB)`);
+
     // ---- Poster (WebP) aus einem Frame, in dem die Route gut sichtbar ist ----
     const posterFrame = Math.max(1, Math.round(frameCount * 0.72));
     const posterPng = join(framesDir, `frame-${String(posterFrame).padStart(5, "0")}.png`);
@@ -171,17 +196,18 @@ async function run() {
       .toBuffer();
 
     if (doUpload) {
-      await upload(slug!, out, posterWebp);
+      await upload(slug!, out, cleanOut, posterWebp);
     } else {
-      console.log("\nFertig (lokal). Mit --upload landet es in spot-media + der DB.");
+      console.log("\nFertig (lokal, beide Varianten). Mit --upload landen sie in spot-media + der DB.");
     }
   } finally {
     await rm(framesDir, { recursive: true, force: true }).catch(() => {});
+    await rm(cleanDir, { recursive: true, force: true }).catch(() => {});
     if (browser.isConnected()) await browser.close().catch(() => {});
   }
 }
 
-async function upload(slug: string, mp4Path: string, posterWebp: Buffer) {
+async function upload(slug: string, mp4Path: string, cleanMp4Path: string, posterWebp: Buffer) {
   const supaUrl = ENV.NEXT_PUBLIC_SUPABASE_URL;
   const supaKey = ENV.SUPABASE_SERVICE_ROLE_KEY;
   if (!supaUrl || !supaKey) {
@@ -199,38 +225,46 @@ async function upload(slug: string, mp4Path: string, posterWebp: Buffer) {
 
   const hash = introSourceHash(spot.route_geojson);
   const mp4Path2 = `intro/${slug}-${hash}.mp4`;
+  const cleanPath = `intro/${slug}-${hash}-clean.mp4`;
   const posterPath = `intro/${slug}-${hash}.webp`;
 
-  console.log("-> lade Video + Poster nach spot-media …");
-  const mp4Buf = await readFile(mp4Path);
+  console.log("-> lade Video (normal + clean) + Poster nach spot-media …");
   const upV = await supabase.storage
     .from(BUCKET)
-    .upload(mp4Path2, mp4Buf, { contentType: "video/mp4", upsert: true, cacheControl: IMMUTABLE });
+    .upload(mp4Path2, await readFile(mp4Path), { contentType: "video/mp4", upsert: true, cacheControl: IMMUTABLE });
   if (upV.error) throw new Error(`Video-Upload fehlgeschlagen: ${upV.error.message}`);
+  const upC = await supabase.storage
+    .from(BUCKET)
+    .upload(cleanPath, await readFile(cleanMp4Path), { contentType: "video/mp4", upsert: true, cacheControl: IMMUTABLE });
+  if (upC.error) throw new Error(`Clean-Video-Upload fehlgeschlagen: ${upC.error.message}`);
   const upP = await supabase.storage
     .from(BUCKET)
     .upload(posterPath, posterWebp, { contentType: "image/webp", upsert: true, cacheControl: IMMUTABLE });
   if (upP.error) throw new Error(`Poster-Upload fehlgeschlagen: ${upP.error.message}`);
 
   const videoUrl = supabase.storage.from(BUCKET).getPublicUrl(mp4Path2).data.publicUrl;
+  const cleanUrl = supabase.storage.from(BUCKET).getPublicUrl(cleanPath).data.publicUrl;
   const posterUrl = supabase.storage.from(BUCKET).getPublicUrl(posterPath).data.publicUrl;
 
   const upd = await supabase
     .from("spots")
     .update({
       intro_video_url: videoUrl,
+      intro_video_clean_url: cleanUrl,
       intro_video_poster_url: posterUrl,
       intro_source_hash: hash,
     })
     .eq("id", spot.id);
   if (upd.error) {
     if (/column .* does not exist/i.test(upd.error.message)) {
-      throw new Error("Spalten fehlen. Wende zuerst die Migration 0047 in Supabase an.");
+      throw new Error("Spalten fehlen. Wende zuerst die Migrationen 0047 + 0048 in Supabase an.");
     }
     throw new Error(`DB-Update fehlgeschlagen: ${upd.error.message}`);
   }
 
-  console.log(`\nFertig & gespeichert:\n  Video:  ${videoUrl}\n  Poster: ${posterUrl}\n  Hash:   ${hash}`);
+  console.log(
+    `\nFertig & gespeichert:\n  Video:  ${videoUrl}\n  Clean:  ${cleanUrl}\n  Poster: ${posterUrl}\n  Hash:   ${hash}`,
+  );
 }
 
 function ffmpeg(args: string[]) {
