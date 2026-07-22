@@ -14,7 +14,7 @@ import {
 } from "@/lib/route-anim";
 import {
   buildIntroCameraPath,
-  slewLimitDown,
+  smoothSafePitch,
   DEFAULT_INTRO_CAMERA,
   type IntroKeyframe,
 } from "@/lib/intro-camera";
@@ -30,8 +30,8 @@ const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 // Reflex (wie Apple Maps). Alles bleibt im jumpTo-Modell -> Komposition/Padding unverändert.
 const TERRAIN_CLEARANCE_M = 350; // Mindestabstand Kamera <-> höchstes Gelände im Blickfeld
 const PITCH_FLOOR = 8; // ganz flach ist erlaubt (crasht nie), bleibt aber minimal 3D
-const PITCH_SCAN_STEP = 2; // Grad-Schritt beim Absenken bis frei
-const PITCH_SLEW = 0.7; // max. Pitch-Änderung pro Frame -> sanfte Übergänge
+const PITCH_SCAN_STEP = 1; // feine 1-Grad-Abtastung -> keine Treppen in der Roh-Kurve
+const PITCH_SMOOTH_FRAC = 0.03; // Glättungs-Radius als Anteil der Frames (~9 bei 300) -> weich
 
 // Nur Rot (ROUTE_LINE), KEINE weiße Kontur - wie Antons Vorlage. Nur eine hauchdünne
 // dunkle Kante zur Schärfe auf dem Luftbild. Kopf = roter Punkt mit weißem Ring.
@@ -292,7 +292,8 @@ export default function IntroRenderMap({
         return PITCH_FLOOR;
       };
       const rawSafe = keyframes.map(safePitchFor);
-      const safePitch = slewLimitDown(rawSafe, PITCH_SLEW);
+      const smoothR = Math.max(4, Math.round(keyframes.length * PITCH_SMOOTH_FRAC));
+      const safePitch = smoothSafePitch(rawSafe, smoothR);
 
       applyFrame(first, safePitch[0]);
 
