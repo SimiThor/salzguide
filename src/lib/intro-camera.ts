@@ -217,7 +217,13 @@ export function buildIntroCameraPath(
   let bearing = bearingBetween(centers[0], centers[Math.min(frames - 1, lead)]);
   const out: IntroKeyframe[] = [];
   for (let i = 0; i < frames; i++) {
-    const target = bearingBetween(centers[i], centers[Math.min(frames - 1, i + lead)]);
+    // Vorausschau-Punkt fürs Heading. Er klemmt am Ende auf den Endpunkt; im ALLERLETZTEN
+    // Bild fällt er auf i selbst -> bearingBetween(p, p) = 0 (Nord). Ohne Schutz zog der
+    // EMA-/Bremse-Schritt die Kamera dadurch im letzten Bild um einen festen Ruck nach
+    // Norden (sichtbares Ruckeln in der letzten Sekunde JEDES Videos). Kein "Voraus" mehr
+    // -> Blickrichtung halten statt auf Nord zu kollabieren.
+    const look = Math.min(frames - 1, i + lead);
+    const target = look > i ? bearingBetween(centers[i], centers[look]) : bearing;
     const aimed = unwrap(bearing, target);
     let next = bearing + emaK * (aimed - bearing);
     const step = next - bearing;
