@@ -81,6 +81,26 @@ export default async function AdminSettingsPage({
         </span>
       </Link>
 
+      {/* Download-Center für die Clean-Intro-Videos (ohne Text-Overlay), für die eigene
+          Werbevideo-Produktion. Bewusst versteckt in den Einstellungen: selten gebraucht. */}
+      <Link
+        href="/admin/settings/intro-videos"
+        className="flex items-center gap-4 rounded-[18px] bg-white p-5 shadow-sm ring-1 ring-black/5 transition hover:ring-black/15 active:scale-[0.995]"
+      >
+        <span className="text-[22px]" aria-hidden>
+          🎬
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="text-[17px] font-bold text-ink">Intro-Videos</span>
+          <span className="mt-1 block text-[13px] leading-relaxed text-muted">
+            Die Wander-Animationen ohne Text-Overlay herunterladen (für eigene Videos).
+          </span>
+        </span>
+        <span className="shrink-0 text-[18px] text-muted" aria-hidden>
+          ›
+        </span>
+      </Link>
+
       <ToniAvatarSettings current={toniAvatar} />
       <LocalManager locals={locals} />
       <CategoryManager categories={categories} />

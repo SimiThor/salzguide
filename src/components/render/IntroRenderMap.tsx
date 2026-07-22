@@ -85,6 +85,9 @@ declare global {
     __introSeek?: (i: number) => void;
     __introWaitIdle?: () => Promise<void>;
     __introDriven?: boolean;
+    // Titelkarte ein-/ausblenden: für die "clean"-Variante (ohne Text-Overlay) blendet das
+    // Render-Skript sie pro Frame kurz aus und schießt ein zweites, sauberes Bild.
+    __introSetCard?: (visible: boolean) => void;
   }
 }
 
@@ -304,6 +307,9 @@ export default function IntroRenderMap({
         applyFrame(keyframes[idx], safePitch[idx]);
       };
       window.__introWaitIdle = waitIdle;
+      window.__introSetCard = (visible: boolean) => {
+        if (cardRef.current) cardRef.current.style.display = visible ? "" : "none";
+      };
       window.__introReady = true;
 
       // Echtzeit-Vorschau für menschliche Besucher (Skript setzt __introDriven, übernimmt).
