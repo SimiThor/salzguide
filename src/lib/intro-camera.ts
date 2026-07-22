@@ -108,18 +108,46 @@ function smoothPath(pts: [number, number][], win: number): [number, number][] {
   return out;
 }
 
-// Slew-Limiter für die Terrain-sichere Pitch-Kurve (siehe IntroRenderMap): begrenzt die
-// Änderung pro Frame in BEIDE Richtungen, OHNE je über den Vorgabewert `raw[i]` zu steigen.
-// Damit bleibt die Sicherheit (Ergebnis[i] <= raw[i], Kamera crasht nie), aber die Übergänge
-// sind sanft statt ruckartig. Vorwärts bremst das Wieder-Steiler-Werden, rückwärts zieht das
-// Abflachen VOR die kritische Stelle (die Kamera weicht dem Berg rechtzeitig aus, statt hart).
-export function slewLimitDown(raw: number[], maxStep: number): number[] {
-  const n = raw.length;
-  if (n === 0) return [];
-  const p = raw.slice();
-  for (let i = 1; i < n; i++) p[i] = Math.min(raw[i], p[i - 1] + maxStep);
-  for (let i = n - 2; i >= 0; i--) p[i] = Math.min(p[i], p[i + 1] + maxStep);
-  return p;
+// Laufendes Minimum über Radius r (Erosion). Weitet die Dellen der sicheren Ober-Kurve, damit
+// die nachfolgende Mittelung nie über den sicheren Wert steigt.
+function minFilter(a: number[], r: number): number[] {
+  const n = a.length;
+  const out = new Array<number>(n);
+  for (let i = 0; i < n; i++) {
+    let m = Infinity;
+    for (let j = Math.max(0, i - r); j <= Math.min(n - 1, i + r); j++) if (a[j] < m) m = a[j];
+    out[i] = m;
+  }
+  return out;
+}
+
+// Laufender Mittelwert über Radius r (Box-Blur).
+function boxBlur(a: number[], r: number): number[] {
+  const n = a.length;
+  const out = new Array<number>(n);
+  for (let i = 0; i < n; i++) {
+    let s = 0;
+    let k = 0;
+    for (let j = Math.max(0, i - r); j <= Math.min(n - 1, i + r); j++) {
+      s += a[j];
+      k++;
+    }
+    out[i] = s / k;
+  }
+  return out;
+}
+
+// Terrain-sichere UND weiche Pitch-Kurve. `raw[i]` ist der steilste noch crash-sichere Pitch je
+// Frame (Ober-Grenze). Ein einfacher Slew-Limiter hielte die Grenze zwar ein, erzeugt aber
+// Rampen mit Geschwindigkeits-KNICKEN (Beschleunigung springt) -> es ruckelt. Stattdessen:
+// erst um 2r erodieren (Sicherheits-Reserve schaffen), dann ZWEIMAL mit Radius r mitteln
+// (Dreieckskern -> ableitungsstetiges, weiches S). Weil jeder in die Mittelung eingehende
+// erodierte Wert <= raw[i] ist (|i-k| <= 2r), bleibt das Ergebnis garantiert <= raw[i]: die
+// Kamera fliegt nie in den Berg, weicht aber flüssig statt ruckartig aus.
+export function smoothSafePitch(raw: number[], r: number): number[] {
+  if (raw.length === 0 || r < 1) return raw.slice();
+  const eroded = minFilter(raw, 2 * r);
+  return boxBlur(boxBlur(eroded, r), r);
 }
 
 // Erzeugt die vollständige Kamera-Bahn.

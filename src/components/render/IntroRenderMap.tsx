@@ -14,7 +14,7 @@ import {
 } from "@/lib/route-anim";
 import {
   buildIntroCameraPath,
-  slewLimitDown,
+  smoothSafePitch,
   DEFAULT_INTRO_CAMERA,
   type IntroKeyframe,
 } from "@/lib/intro-camera";
@@ -30,8 +30,8 @@ const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 // Reflex (wie Apple Maps). Alles bleibt im jumpTo-Modell -> Komposition/Padding unverändert.
 const TERRAIN_CLEARANCE_M = 350; // Mindestabstand Kamera <-> höchstes Gelände im Blickfeld
 const PITCH_FLOOR = 8; // ganz flach ist erlaubt (crasht nie), bleibt aber minimal 3D
-const PITCH_SCAN_STEP = 2; // Grad-Schritt beim Absenken bis frei
-const PITCH_SLEW = 0.7; // max. Pitch-Änderung pro Frame -> sanfte Übergänge
+const PITCH_SCAN_STEP = 1; // feine 1-Grad-Abtastung -> keine Treppen in der Roh-Kurve
+const PITCH_SMOOTH_FRAC = 0.03; // Glättungs-Radius als Anteil der Frames (~9 bei 300) -> weich
 
 // Nur Rot (ROUTE_LINE), KEINE weiße Kontur - wie Antons Vorlage. Nur eine hauchdünne
 // dunkle Kante zur Schärfe auf dem Luftbild. Kopf = roter Punkt mit weißem Ring.
@@ -39,7 +39,8 @@ const INTRO_EDGE = "rgba(0,0,0,0.45)";
 const HEAD_SOURCE = "sg-head";
 const HEAD_LAYER = "sg-head-dot";
 
-// Endkarte kurz vor Schluss: Spot-Name + die wichtigsten Werte + klein SalzGuide.
+// Titelkarte oben (oberes Drittel, über dem Kopf-Punkt): Spot-Name + wichtigste Werte + klein
+// SalzGuide, blendet kurz vor Schluss ein.
 export type IntroMeta = {
   name: string;
   distanceKm: number | null;
@@ -291,7 +292,8 @@ export default function IntroRenderMap({
         return PITCH_FLOOR;
       };
       const rawSafe = keyframes.map(safePitchFor);
-      const safePitch = slewLimitDown(rawSafe, PITCH_SLEW);
+      const smoothR = Math.max(4, Math.round(keyframes.length * PITCH_SMOOTH_FRAC));
+      const safePitch = smoothSafePitch(rawSafe, smoothR);
 
       applyFrame(first, safePitch[0]);
 
@@ -345,25 +347,26 @@ export default function IntroRenderMap({
         }}
       />
       <div ref={containerRef} style={{ position: "fixed", inset: 0 }} />
-      {/* Endkarte: Spot-Name + wichtigste Werte + klein SalzGuide. Blendet kurz vor Schluss
-          ein (Opacity per applyFrame). Sonst KEIN Logo im Video. */}
+      {/* Titelkarte OBEN (oberes Drittel, über dem roten Kopf-Punkt bei ~39%): Spot-Name +
+          Werte + klein SalzGuide, zusammen als eine Gruppe. Blendet kurz vor Schluss ein
+          (Opacity per applyFrame). Verlauf von oben für Lesbarkeit. Sonst KEIN Logo im Video. */}
       <div
         ref={cardRef}
         style={{
           position: "fixed",
           left: 0,
           right: 0,
-          bottom: 0,
+          top: 0,
           zIndex: 9,
           opacity: 0,
           pointerEvents: "none",
-          padding: "120px 28px 72px",
+          padding: "54px 28px 44px",
           background:
-            "linear-gradient(to top, rgba(0,0,0,0.6), rgba(0,0,0,0.22) 45%, transparent)",
+            "linear-gradient(to bottom, rgba(0,0,0,0.62), rgba(0,0,0,0.2) 52%, transparent)",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          gap: 12,
+          gap: 7,
           textAlign: "center",
           fontFamily: "Inter, system-ui, sans-serif",
         }}
@@ -372,10 +375,10 @@ export default function IntroRenderMap({
           style={{
             color: "#fff",
             fontWeight: 700,
-            fontSize: 44,
-            lineHeight: 1.05,
+            fontSize: 31,
+            lineHeight: 1.06,
             letterSpacing: "-0.02em",
-            textShadow: "0 2px 18px rgba(0,0,0,0.6)",
+            textShadow: "0 2px 16px rgba(0,0,0,0.62)",
           }}
         >
           {meta.name}
@@ -383,11 +386,11 @@ export default function IntroRenderMap({
         {statsParts.length > 0 && (
           <div
             style={{
-              color: "rgba(255,255,255,0.94)",
+              color: "rgba(255,255,255,0.95)",
               fontWeight: 500,
-              fontSize: 20,
+              fontSize: 15,
               letterSpacing: "0.01em",
-              textShadow: "0 1px 10px rgba(0,0,0,0.55)",
+              textShadow: "0 1px 10px rgba(0,0,0,0.6)",
             }}
           >
             {statsParts.join("   ·   ")}
@@ -395,12 +398,12 @@ export default function IntroRenderMap({
         )}
         <div
           style={{
-            marginTop: 6,
-            color: "rgba(255,255,255,0.82)",
+            marginTop: 4,
+            color: "rgba(255,255,255,0.85)",
             fontWeight: 700,
-            fontSize: 15,
-            letterSpacing: "0.02em",
-            textShadow: "0 1px 8px rgba(0,0,0,0.5)",
+            fontSize: 12.5,
+            letterSpacing: "0.04em",
+            textShadow: "0 1px 8px rgba(0,0,0,0.55)",
           }}
         >
           SalzGuide
