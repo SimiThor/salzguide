@@ -203,12 +203,16 @@ export default function BottomSheet({
 
   return (
     <>
-      {/* Backdrop nur im Modal-Modus – im Floating-Modus bleibt die Karte scharf. */}
+      {/* Backdrop nur im Modal-Modus – im Floating-Modus bleibt die Karte scharf.
+          min-h-[100lvh] NICHT entfernen: Ein fixes Element MIT backdrop-filter spannt sich in
+          Chromium über inset-0 (top+bottom:0) nicht zuverlässig auf die volle Viewport-Höhe auf
+          (auf hohen Seiten fehlten unten ~32px -> scharfer Streifen). Die explizite
+          Mindesthöhe erzwingt die volle Abdeckung; lvh ist eine native Einheit (kein CSS-Var). */}
       {!floating && (
         <div
           onClick={onClose}
           aria-hidden={!open}
-          className={`fixed inset-0 ${zBackdrop} bg-black/30 backdrop-blur-sm transition-opacity duration-300 ${
+          className={`fixed inset-0 ${zBackdrop} min-h-[100lvh] bg-black/30 backdrop-blur-sm transition-opacity duration-300 ${
             open ? "opacity-100" : "pointer-events-none opacity-0"
           }`}
         />

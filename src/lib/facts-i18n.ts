@@ -209,6 +209,23 @@ export function factDuration(
     .replace(/\bMin\b\.?/gi, "min");
 }
 
+// Wie factDuration, aber als EIN fester Wert statt eines Bereichs: "1–2 Std" -> "2 Std",
+// "1–1,5 Std" -> "1,5 Std", "~1 Std" -> "1 Std". Bewusst der OBERE Wert (konservativ planen),
+// bewusst aus der kuratierten Angabe abgeleitet (nicht aus Distanz/Höhe neu gerechnet), damit
+// es nie der Seite widerspricht. Einzelwerte und Wort-Dauern (Halbtag...) bleiben unverändert.
+// Für Stellen, die keinen Bereich zeigen wollen (Story-Bild). Ein Regex, nur Zahl–Zahl.
+export function factDurationFixed(
+  v: string | null | undefined,
+  locale: string,
+): string | null {
+  if (v == null || v.trim() === "") return null;
+  const fixed = v
+    .trim()
+    .replace(/^\s*(~|±|ca\.?|approx\.?|etwa|rund)\s*/i, "") // Näherungs-Marker weg
+    .replace(/(\d[\d.,]*)\s*[–—-]\s*(\d[\d.,]*)/, "$2"); // Bereich -> oberer Wert
+  return factDuration(fixed, locale);
+}
+
 // Anreise-Code (oeffis/auto/beides) sprachabhängig beschriften.
 export function factAccess(
   code: string | null | undefined,
