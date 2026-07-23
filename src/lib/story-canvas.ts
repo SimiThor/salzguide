@@ -97,8 +97,9 @@ function routeBox(preset: StoryPreset, W: number, H: number): Box {
     // Kleiner, tiefer, leicht nach links - die Werte sitzen darunter.
     return { x: W * 0.08, y: H * 0.52, w: W * 0.4, h: H * 0.22 };
   }
-  // "big": groß, mittig-oben, mit Platz für die Werte DIREKT darunter und Foto unten.
-  return { x: W * 0.15, y: H * 0.17, w: W * 0.7, h: H * 0.33 };
+  // "big": groß und vertikal MITTIG (wie Strava), mit Platz für die Werte direkt darunter
+  // und Foto oben wie unten. Bewusst nicht zu weit oben.
+  return { x: W * 0.15, y: H * 0.24, w: W * 0.7, h: H * 0.32 };
 }
 
 // Zeichnet die Route und gibt ihre tatsächliche Pixel-Bounding-Box zurück (damit die Werte
@@ -373,9 +374,9 @@ export function drawRouteHero(
   ctx.fillStyle = glow;
   ctx.fillRect(0, 0, W, H);
 
-  // Route in die obere Hälfte; unten bleibt Platz für Titel + CTA (der Textblock nimmt am
-  // kleinen Handy-Hero proportional mehr Höhe ein, darum bewusst hoch angesetzt).
-  const pts = projectRoute(route, { x: W * 0.08, y: H * 0.05, w: W * 0.84, h: H * 0.48 });
+  // Route in die obere Hälfte, aber nicht zu weit oben (mittiger, harmonischer). Unten bleibt
+  // Platz für Titel + CTA (der Textblock nimmt am kleinen Handy-Hero proportional mehr Höhe ein).
+  const pts = projectRoute(route, { x: W * 0.08, y: H * 0.1, w: W * 0.84, h: H * 0.46 });
   if (pts.length < 2) return;
 
   const path = () => {
