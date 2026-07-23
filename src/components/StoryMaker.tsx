@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import BottomSheet from "./BottomSheet";
 import StoryPhotoPanel from "./StoryPhotoPanel";
@@ -9,6 +9,17 @@ import { drawRouteHero } from "@/lib/story-canvas";
 import { BTN_PRIMARY } from "@/lib/ui";
 
 type Mode = "photo" | "video";
+
+// Peek zeigt nur den Auswahl-Zustand (Umschalter + Wählen-Fläche), Voll den Editor. Das Sheet
+// öffnet im Peek und fährt automatisch auf Voll, sobald ein Foto/Clip gewählt ist (snapIndex).
+// Gleiche Peek+Voll-Logik wie die anderen Content-Sheets der App (z.B. WaterExplore).
+const SHEET_DETENTS = [0.5, 0.95];
+
+// Was ein Panel dem Sheet über seinen Zustand meldet.
+export type StoryPanelUi = {
+  expanded: boolean; // Editor sichtbar -> Sheet auf Voll
+  busy: boolean; // läuft gerade Verarbeitung/Export -> Umschalten sperren (sonst Abbruch)
+};
 
 // Story-Maker: eine Section auf der Spot-Seite mit zwei Wegen, die eigene Wanderung zu teilen.
 // - Foto-Story (Strava-Look): eigenes Foto + echter Routenverlauf drüber. Auf JEDER Wanderung
@@ -33,8 +44,26 @@ export default function StoryMaker({
   const t = useTranslations("Detail.storyMaker");
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<Mode>("photo");
+  // Vom aktiven Panel gemeldet: expanded (Editor -> Voll) und busy (Verarbeitung -> Umschalten sperren).
+  const [ui, setUi] = useState<StoryPanelUi>({ expanded: false, busy: false });
   const bgRef = useRef<HTMLVideoElement>(null);
   const heroRef = useRef<HTMLCanvasElement>(null);
+
+  // Stabiler Callback: das jeweils gemountete Panel meldet hierüber seinen Zustand.
+  const onPanelUi = useCallback((s: StoryPanelUi) => setUi(s), []);
+
+  // Sheet öffnen/schliessen; beim Öffnen im gewünschten Modus und im Peek starten.
+  const openSheet = (m: Mode) => {
+    setMode(m);
+    setUi({ expanded: false, busy: false });
+    setOpen(true);
+  };
+  // Modus wechseln (nur erlaubt, wenn nicht busy). Neues Panel startet im Auswahl-Zustand -> Peek.
+  const switchMode = (m: Mode) => {
+    if (ui.busy || m === mode) return;
+    setUi({ expanded: false, busy: false });
+    setMode(m);
+  };
 
   // Intro-Hintergrundvideo nur abspielen, wenn die Section im Bild ist (Daten/Akku sparen).
   useEffect(() => {
@@ -122,26 +151,47 @@ export default function StoryMaker({
           </p>
           <button
             className={`${BTN_PRIMARY} mt-3 w-full active:scale-[0.98]`}
-            onClick={() => {
-              setMode("photo");
-              setOpen(true);
-            }}
+            onClick={() => openSheet("photo")}
           >
             {t("button")}
           </button>
         </div>
       </section>
 
-      <BottomSheet open={open} onClose={() => setOpen(false)} title={t("title")} detents={[0.72, 0.96]} initialDetent={1}>
-        <div className="px-5 pb-8 pt-1">
-          {/* Umschalter nur, wenn es beide Wege gibt (Intro-Video vorhanden). */}
+      <BottomSheet
+        open={open}
+        onClose={() => setOpen(false)}
+        title={t("title")}
+        detents={SHEET_DETENTS}
+        initialDetent={0}
+        snapIndex={ui.expanded ? 1 : 0}
+      >
+        {/* Kein eigenes px hier: das BottomSheet gibt den Rand (px-5) schon vor. */}
+        <div className="pb-2">
+          {/* Umschalter nur, wenn es beide Wege gibt (Intro-Video vorhanden). Während der
+              Verarbeitung (busy) gesperrt: ein Moduswechsel würde das laufende Panel aushängen
+              und Upload/Export abbrechen. */}
           {introUrl && (
-            <div className="mb-4 flex justify-center">
+            <div
+              className={`mb-4 flex justify-center transition-opacity ${ui.busy ? "opacity-40" : ""}`}
+            >
               <div className="inline-flex rounded-full bg-black/5 p-1 text-sm font-medium">
-                <button type="button" onClick={() => setMode("photo")} aria-pressed={mode === "photo"} className={seg(mode === "photo")}>
+                <button
+                  type="button"
+                  onClick={() => switchMode("photo")}
+                  disabled={ui.busy}
+                  aria-pressed={mode === "photo"}
+                  className={seg(mode === "photo")}
+                >
                   {t("tabPhoto")}
                 </button>
-                <button type="button" onClick={() => setMode("video")} aria-pressed={mode === "video"} className={seg(mode === "video")}>
+                <button
+                  type="button"
+                  onClick={() => switchMode("video")}
+                  disabled={ui.busy}
+                  aria-pressed={mode === "video"}
+                  className={seg(mode === "video")}
+                >
                   {t("tabVideo")}
                 </button>
               </div>
@@ -149,9 +199,9 @@ export default function StoryMaker({
           )}
 
           {showVideo ? (
-            <StoryVideoPanel introUrl={introUrl!} slug={slug} />
+            <StoryVideoPanel introUrl={introUrl!} slug={slug} onUiChange={onPanelUi} />
           ) : (
-            <StoryPhotoPanel slug={slug} route={route} stats={stats} />
+            <StoryPhotoPanel slug={slug} route={route} stats={stats} onUiChange={onPanelUi} />
           )}
         </div>
       </BottomSheet>

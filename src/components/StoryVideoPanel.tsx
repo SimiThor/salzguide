@@ -13,7 +13,16 @@ type Phase = "idle" | "trim" | "working" | "done" | "error";
 // vorgerenderte Wander-Animation und teilt das fertige Story-Video. Alles im Browser
 // (ffmpeg.wasm, src/lib/video-maker.ts) - der Clip verlässt das Gerät nie. Lebt jetzt als
 // Panel unter dem Video-Tab von StoryMaker; die Section + das Sheet gehören StoryMaker.
-export default function StoryVideoPanel({ introUrl, slug }: { introUrl: string; slug: string }) {
+export default function StoryVideoPanel({
+  introUrl,
+  slug,
+  onUiChange,
+}: {
+  introUrl: string;
+  slug: string;
+  // Meldet dem Sheet: Editor sichtbar (-> Voll) und ob gerade zusammengesetzt wird (-> Umschalten sperren).
+  onUiChange?: (s: { expanded: boolean; busy: boolean }) => void;
+}) {
   const t = useTranslations("Detail.videoMaker");
   const [phase, setPhase] = useState<Phase>("idle");
   const [pct, setPct] = useState(0);
@@ -36,6 +45,13 @@ export default function StoryVideoPanel({ introUrl, slug }: { introUrl: string; 
       if (blobRef.current) blobRef.current = null;
     };
   }, []);
+
+  // Zustand ans Sheet melden: ab dem Trimmer ist der Editor sichtbar (-> Voll); während des
+  // Zusammensetzens ist busy (Modus-Umschalten sperren, sonst bricht die Verarbeitung ab).
+  const expanded = phase === "trim" || phase === "working" || phase === "done";
+  useEffect(() => {
+    onUiChange?.({ expanded, busy: phase === "working" });
+  }, [expanded, phase, onUiChange]);
 
   const reset = () => {
     if (resultUrl) URL.revokeObjectURL(resultUrl);
