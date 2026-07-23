@@ -322,9 +322,19 @@ body {
   -webkit-user-select: none;
   user-select: none;
 }
-@media (hover: none) {
+/* Gedrückt-Feedback (leichtes Einsinken) NUR am echten Zeiger (Desktop/Maus). Am Touch
+   liegen die Foto-Karten im Scroll-Weg des Karussells: :active feuert dort schon beim
+   Berühren, also blitzte die Karte bei jedem Scroll-Wisch auf, ohne dass man wirklich
+   tippt. Kein Timing-Trick hält das zuverlässig auf; Apple zeigt in so einem Scroll-
+   Karussell am iPhone gar kein Gedrückt-Feedback. Deshalb: am Touch (hover: none) bewusst
+   NICHTS, und den Effekt allein bei echtem Zeiger einschalten. Der Klick am PC bleibt.
+   Nicht in @layer, damit es Tailwinds Utilities sticht (wie die Tap-Feedback-Regel oben). */
+@media (hover: hover) and (pointer: fine) {
+  .sg-tap-card {
+    transition: scale 0.2s ease-out;
+  }
   .sg-tap-card:active {
-    transition-delay: 80ms;
+    scale: 0.96;
   }
 }
 

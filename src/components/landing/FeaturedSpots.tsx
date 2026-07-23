@@ -63,7 +63,7 @@ export default async function FeaturedSpots({
               <Link
                 key={s.slug}
                 href={`/spot/${s.slug}`}
-                className="sg-tap-card block text-left transition-transform duration-200 ease-out active:scale-[0.96]"
+                className="sg-tap-card block text-left"
               >
                 <SpotCard
                   title={s.title}
