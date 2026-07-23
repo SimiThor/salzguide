@@ -221,8 +221,10 @@ function drawWordmark(ctx: CanvasRenderingContext2D, text: string, cx: number, y
   ctx.shadowColor = "rgba(0,0,0,0.6)";
   ctx.shadowBlur = 18 * u;
   ctx.shadowOffsetY = 1 * u;
-  ctx.font = `700 ${26 * u}px Inter, system-ui, -apple-system, sans-serif`;
-  ctx.fillStyle = "rgba(255,255,255,0.92)";
+  // Wortmarke als klarer Markenanker (wie Strava), aber nicht riesig: deutlich über den
+  // Labels, unter den Werten, mit etwas Sperrung.
+  ctx.font = `700 ${30 * u}px Inter, system-ui, -apple-system, sans-serif`;
+  ctx.fillStyle = "rgba(255,255,255,0.95)";
   drawTracked(ctx, text, cx, y, 1.5 * u);
   ctx.restore();
 }
