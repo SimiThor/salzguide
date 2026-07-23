@@ -51,16 +51,17 @@ export default function LandingNav({ ctaLabel }: { ctaLabel: string }) {
         </Link>
 
         <div className="flex items-center gap-2 md:gap-3">
-          {/* Der Sprachwähler wird NICHT umgefärbt. Er bringt seinen Kontrast selbst mit:
-              sein Auslöser ist eine weisse Glas-Pille mit dunkler Schrift, die über dem
-              dunklen Hero genauso lesbar ist wie über der hellen Leiste.
-              Hier stand `[&_button]:text-white`, solange die Leiste transparent war. Das
-              hat den Auslöser gar nicht gebraucht und dafür das AUFKLAPP-MENÜ zerstört:
-              Der Nachfahren-Selektor trifft jeden Button im Teilbaum, also auch die neun
-              Sprach-Einträge im weissen Popover. Weiss auf Weiss, man sah nur noch Flaggen.
-              Lehre daraus: Ein fremdes Bauteil von aussen einfärben heisst, jede seiner
-              inneren Ebenen mitzufärben, die man gerade nicht sieht. */}
-          <LanguageSwitcher />
+          {/* variant="glass": Der Sprachwähler liegt hier über dem dunklen Hero und muss
+              seinen Kontrast selbst mitbringen -> weisse Glas-Pille mit Schatten (statt der
+              flachen bg-black/5-Fläche, die er in den App-Headern trägt), über dem Hero wie
+              über der hellen Leiste lesbar. Er wird NICHT von aussen umgefärbt: Hier stand
+              `[&_button]:text-white`, solange die Leiste transparent war. Das hat den Auslöser
+              gar nicht gebraucht und dafür das AUFKLAPP-MENÜ zerstört: Der Nachfahren-Selektor
+              trifft jeden Button im Teilbaum, also auch die neun Sprach-Einträge im weissen
+              Popover. Weiss auf Weiss, man sah nur noch Flaggen. Lehre daraus: Ein fremdes
+              Bauteil von aussen einfärben heisst, jede seiner inneren Ebenen mitzufärben, die
+              man gerade nicht sieht. */}
+          <LanguageSwitcher variant="glass" />
           {/* Erscheint ERST beim Scrollen. Über dem Hero steht der gleiche rote CTA schon
               gross in der Bildmitte — zwei identische rote Pillen in einem Blick nehmen
               sich gegenseitig die Wirkung. Sobald der Hero-CTA rausgescrollt ist, übernimmt
