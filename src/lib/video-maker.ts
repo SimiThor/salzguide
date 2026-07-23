@@ -46,32 +46,49 @@ export async function composeStory(opts: {
     await ff.writeFile("clip_in", await fetchFile(clip));
     onProgress?.("intro", 100);
 
+    // Hat der Clip überhaupt eine Tonspur? Wenn NICHT, muss clip.mp4 trotzdem eine (stumme)
+    // bekommen - sonst hat der Clip nur Video, das Intro aber Video+Ton, und der stream-copy-
+    // concat unten scheitert an der unterschiedlichen Stream-Struktur (häufig: Bildschirm-
+    // aufnahmen, stumm exportierte Clips). Stream-Info aus dem ffmpeg-Log lesen (ein Aufruf
+    // ohne Ausgabe loggt sie und "scheitert" harmlos).
+    let clipHasAudio = false;
+    {
+      let probe = "";
+      const onProbe = (e: { message: string }) => {
+        probe += e.message + "\n";
+      };
+      ff.on("log", onProbe);
+      await ff.exec(["-i", "clip_in"]).catch(() => {});
+      ff.off("log", onProbe);
+      clipHasAudio = /Stream #\d+:\d+.*Audio:/i.test(probe);
+    }
+
     // User-Clip auf das Intro-Format bringen: mittig auf 1080x1920 füllen (increase+crop),
-    // 30fps, yuv420p, stumm, auf die ersten Sekunden getrimmt.
+    // 30fps, yuv420p, auf die ersten Sekunden getrimmt. Ton auf die Intro-Parameter bringen -
+    // oder, wenn der Clip keinen hat, eine stumme Stereo-Spur erzeugen (anullsrc).
     onProgress?.("clip", 0);
     const onProg = (e: { progress: number }) =>
       onProgress?.("clip", Math.max(0, Math.min(100, Math.round(e.progress * 100))));
     ff.on("progress", onProg);
-    await ff.exec([
-      "-ss", String(startSec),
-      "-t", String(CLIP_SECONDS),
-      "-i", "clip_in",
-      "-vf",
-      `scale=${OUT_W}:${OUT_H}:force_original_aspect_ratio=increase,crop=${OUT_W}:${OUT_H},fps=30,format=yuv420p`,
-      "-c:v", "libx264",
-      "-preset", "veryfast",
-      "-crf", "23",
-      "-pix_fmt", "yuv420p",
-      // Ton des User-Clips behalten, auf dieselben Parameter wie das (stumme) Intro bringen,
-      // damit das Anhängen ohne Neukodierung klappt. Clips ohne Tonspur bleiben stumm.
-      "-c:a", "aac",
-      "-ar", "44100",
-      "-ac", "2",
-      "-b:a", "128k",
-      "-movflags", "+faststart",
-      "clip.mp4",
-    ]);
-    ff.off("progress", onProg);
+    try {
+      const vf = `scale=${OUT_W}:${OUT_H}:force_original_aspect_ratio=increase,crop=${OUT_W}:${OUT_H},fps=30,format=yuv420p`;
+      const enc = [
+        "-vf", vf,
+        "-c:v", "libx264", "-preset", "veryfast", "-crf", "23", "-pix_fmt", "yuv420p",
+        "-c:a", "aac", "-ar", "44100", "-ac", "2", "-b:a", "128k",
+        "-movflags", "+faststart", "clip.mp4",
+      ];
+      const args = clipHasAudio
+        ? ["-ss", String(startSec), "-t", String(CLIP_SECONDS), "-i", "clip_in", ...enc]
+        : [
+            "-ss", String(startSec), "-t", String(CLIP_SECONDS), "-i", "clip_in",
+            "-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=44100",
+            "-map", "0:v:0", "-map", "1:a:0", "-shortest", ...enc,
+          ];
+      await ff.exec(args);
+    } finally {
+      ff.off("progress", onProg);
+    }
 
     // Intro + Clip OHNE Neukodierung aneinanderhängen (beide gleiche Parameter, stumm).
     onProgress?.("merge", 0);

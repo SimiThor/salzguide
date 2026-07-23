@@ -7,15 +7,17 @@ import StoryPhotoPanel from "./StoryPhotoPanel";
 import StoryVideoPanel from "./StoryVideoPanel";
 import { drawRouteHero } from "@/lib/story-canvas";
 import { BTN_PRIMARY } from "@/lib/ui";
+import { useViewportHeight } from "@/lib/viewport";
 
 type Mode = "photo" | "video";
 
 // Peek zeigt nur den Auswahl-Zustand (Umschalter + Wählen-Fläche), Voll den Editor. Das Sheet
 // öffnet im Peek und fährt automatisch auf Voll, sobald ein Foto/Clip gewählt ist (snapIndex).
-// Gleiche Peek+Voll-Logik wie die anderen Content-Sheets der App (z.B. WaterExplore).
-// Peek etwas höher (0.56), weil die mobile Tab-Leiste unten (~72px) die untersten Pixel des
-// Sheets überdeckt: so bleibt unter der Wählen-Fläche genug Weißraum bis zur Leiste.
-const SHEET_DETENTS = [0.56, 0.95];
+// Die Peek-HÖHE ist an einen festen PIXEL-Inhalt gekoppelt (Auswahl-Inhalt ~331px + Tab-Leiste
+// ~72px + Luft), NICHT an einen festen Bruchteil: sonst wäre der Peek auf kleinen Handys (iPhone
+// SE) zu kurz (Wählen-Fläche hinter der Leiste) und auf grossen zu leer. Als Bruchteil der
+// aktuellen Viewport-Höhe berechnet, sanft geklemmt.
+const PEEK_CONTENT_PX = 331 + 72 + 40; // Auswahl-Inhalt + Tab-Leiste + Luft
 
 // Was ein Panel dem Sheet über seinen Zustand meldet.
 export type StoryPanelUi = {
@@ -48,6 +50,11 @@ export default function StoryMaker({
   const [mode, setMode] = useState<Mode>("photo");
   // Vom aktiven Panel gemeldet: expanded (Editor -> Voll) und busy (Verarbeitung -> Umschalten sperren).
   const [ui, setUi] = useState<StoryPanelUi>({ expanded: false, busy: false });
+  // Peek an festen Pixel-Inhalt gekoppelt (siehe PEEK_CONTENT_PX), als Bruchteil der Viewport-
+  // Höhe; sanft geklemmt, damit es auf sehr kleinen/grossen Geräten nicht entartet.
+  const vh = useViewportHeight();
+  const peek = vh ? Math.max(0.42, Math.min(0.72, PEEK_CONTENT_PX / vh)) : 0.56;
+  const detents = [peek, 0.95];
   const bgRef = useRef<HTMLVideoElement>(null);
   const heroRef = useRef<HTMLCanvasElement>(null);
 
@@ -164,14 +171,15 @@ export default function StoryMaker({
         open={open}
         onClose={() => setOpen(false)}
         title={t("title")}
-        detents={SHEET_DETENTS}
+        detents={detents}
         initialDetent={0}
         snapIndex={ui.expanded ? 1 : 0}
       >
         {/* Kein eigenes px hier: das BottomSheet gibt den Rand (px-5) schon vor. Unten so viel
             Weißraum, dass Inhalt (Wählen-Fläche / Teilen+Speichern) NIE hinter der mobilen
-            Tab-Leiste (--sg-nav-h) klebt oder verschwindet. Einheitlicher Abstand nach unten. */}
-        <div className="pb-[calc(env(safe-area-inset-bottom)+var(--sg-nav-h)+0.75rem)]">
+            Tab-Leiste (--sg-nav-h) klebt oder verschwindet. Die Safe-Area gibt der Sheet-Body
+            schon dazu, hier NICHT nochmal (sonst doppelt) - nur die Leisten-Höhe + Abstand. */}
+        <div className="pb-[calc(var(--sg-nav-h)+0.75rem)]">
           {/* Umschalter nur, wenn es beide Wege gibt (Intro-Video vorhanden). Während der
               Verarbeitung (busy) gesperrt: ein Moduswechsel würde das laufende Panel aushängen
               und Upload/Export abbrechen. */}
@@ -202,11 +210,16 @@ export default function StoryMaker({
             </div>
           )}
 
-          {showVideo ? (
-            <StoryVideoPanel introUrl={introUrl!} slug={slug} onUiChange={onPanelUi} />
-          ) : (
-            <StoryPhotoPanel slug={slug} route={route} stats={stats} onUiChange={onPanelUi} />
-          )}
+          {/* Panels nur mounten, solange das Sheet offen ist (wie die Desktop-Variante). Sonst
+              bleibt auf Mobil das Foto-Panel mit seinem Bitmap gemountet: nach Schliessen + erneut
+              Öffnen meldet es kein "expanded" mehr -> Sheet klebt im Peek und der Editor ist
+              abgeschnitten. So startet jedes Öffnen sauber im Auswahl-Zustand. */}
+          {open &&
+            (showVideo ? (
+              <StoryVideoPanel introUrl={introUrl!} slug={slug} onUiChange={onPanelUi} />
+            ) : (
+              <StoryPhotoPanel slug={slug} route={route} stats={stats} onUiChange={onPanelUi} />
+            ))}
         </div>
       </BottomSheet>
     </>

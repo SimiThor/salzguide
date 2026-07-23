@@ -31,6 +31,8 @@ export default function StoryVideoPanel({
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [clipFile, setClipFile] = useState<File | null>(null);
   const blobRef = useRef<Blob | null>(null);
+  const resultUrlRef = useRef<string | null>(null); // aktuelle Ergebnis-URL (zum Freigeben beim Aushängen)
+  const mounted = useRef(true);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // ffmpeg-Core vorwärmen, sobald der Video-Tab sichtbar ist -> Trimmer + Compose starten
@@ -39,10 +41,16 @@ export default function StoryVideoPanel({
     void getFFmpeg().catch(() => {});
   }, []);
 
-  // Ergebnis-URL beim Verlassen freigeben (das Panel wird beim Schließen ausgehängt).
+  // Beim Aushängen (Sheet zu, Tab-Wechsel, Neu-Öffnen): Ergebnis-URL freigeben (sonst bleibt
+  // der MP4-Blob für die Seitenlebensdauer liegen) und merken, dass nichts mehr gesetzt werden
+  // darf (composeStory kann noch laufen -> kein setState nach Unmount).
   useEffect(() => {
+    mounted.current = true;
     return () => {
-      if (blobRef.current) blobRef.current = null;
+      mounted.current = false;
+      if (resultUrlRef.current) URL.revokeObjectURL(resultUrlRef.current);
+      resultUrlRef.current = null;
+      blobRef.current = null;
     };
   }, []);
 
@@ -54,7 +62,8 @@ export default function StoryVideoPanel({
   }, [expanded, phase, onUiChange]);
 
   const reset = () => {
-    if (resultUrl) URL.revokeObjectURL(resultUrl);
+    if (resultUrlRef.current) URL.revokeObjectURL(resultUrlRef.current);
+    resultUrlRef.current = null;
     setResultUrl(null);
     blobRef.current = null;
     setPhase("idle");
@@ -93,10 +102,14 @@ export default function StoryVideoPanel({
           setPct(p);
         },
       });
+      if (!mounted.current) return; // Panel schon weg -> Ergebnis verwerfen, kein setState/Leck
+      const url = URL.createObjectURL(blob);
+      resultUrlRef.current = url;
       blobRef.current = blob;
-      setResultUrl(URL.createObjectURL(blob));
+      setResultUrl(url);
       setPhase("done");
     } catch (e) {
+      if (!mounted.current) return;
       console.error("composeStory:", e);
       setPhase("error");
     }
@@ -121,8 +134,10 @@ export default function StoryVideoPanel({
       try {
         await navigator.share({ files: [file] });
         return;
-      } catch {
-        // Abbruch durch den Nutzer oder Teilen nicht möglich -> Fallback Download.
+      } catch (err) {
+        // Nutzer hat den Teilen-Dialog abgebrochen -> NICHT ersatzweise herunterladen (sonst
+        // landet ungefragt eine Datei im Download-Ordner). Nur bei echtem Fehler -> Download.
+        if (err instanceof Error && err.name === "AbortError") return;
       }
     }
     download();
@@ -215,7 +230,10 @@ export default function StoryVideoPanel({
         type="file"
         accept="video/*"
         hidden
-        onChange={(e) => onFile(e.target.files?.[0])}
+        onChange={(e) => {
+          onFile(e.target.files?.[0]);
+          e.target.value = ""; // gleichen Clip nach Fehler/Abbruch erneut wählbar (feuert sonst kein change)
+        }}
       />
     </div>
   );
