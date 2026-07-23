@@ -361,6 +361,18 @@ export function drawRouteHero(
   ctx.clearRect(0, 0, W, H);
   if (!route || route.length < 2) return;
   const u = W / 1000;
+
+  // Weicher warmer Schimmer wie ein Abendlicht hinterm Grat: gibt der Section Tiefe und
+  // Stimmung, ohne abzulenken. Liegt über dem kühlen CSS-Dämmerungsverlauf der Section.
+  const gx = W * 0.36;
+  const gy = H * 0.3;
+  const glow = ctx.createRadialGradient(gx, gy, 0, gx, gy, Math.max(W, H) * 0.62);
+  glow.addColorStop(0, "rgba(255,188,140,0.2)");
+  glow.addColorStop(0.55, "rgba(255,150,110,0.06)");
+  glow.addColorStop(1, "rgba(255,150,110,0)");
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 0, W, H);
+
   // Route in die obere Hälfte; unten bleibt Platz für Titel + CTA (der Textblock nimmt am
   // kleinen Handy-Hero proportional mehr Höhe ein, darum bewusst hoch angesetzt).
   const pts = projectRoute(route, { x: W * 0.08, y: H * 0.05, w: W * 0.84, h: H * 0.48 });
@@ -375,29 +387,27 @@ export function drawRouteHero(
   ctx.save();
   ctx.lineJoin = "round";
   ctx.lineCap = "round";
-  // Weicher Glanz (breit, halbtransparent), dann die klare rote Linie.
+  // WEISSE Route (die rote liegt schon auf der Karte direkt darüber): weicher weißer Schein,
+  // dann die klare weiße Linie mit sanftem dunklem Schatten für die Tiefe.
   path();
   ctx.lineWidth = 20 * u;
-  ctx.strokeStyle = "rgba(224,72,72,0.26)";
+  ctx.strokeStyle = "rgba(255,255,255,0.16)";
   ctx.stroke();
-  ctx.shadowColor = "rgba(0,0,0,0.35)";
-  ctx.shadowBlur = 10 * u;
+  ctx.shadowColor = "rgba(0,0,0,0.4)";
+  ctx.shadowBlur = 12 * u;
   ctx.shadowOffsetY = 2 * u;
   path();
   ctx.lineWidth = 8 * u;
-  ctx.strokeStyle = ROUTE_LINE;
+  ctx.strokeStyle = "#ffffff";
   ctx.stroke();
-  // Endpunkt: roter Punkt mit weißem Ring (wie der Intro-Kopf).
-  ctx.shadowBlur = 0;
+  // Endpunkt: weißer Punkt mit leichtem Schein.
+  ctx.shadowBlur = 6 * u;
   ctx.shadowOffsetY = 0;
   const end = pts[pts.length - 1];
   ctx.beginPath();
   ctx.arc(end[0], end[1], 7 * u, 0, Math.PI * 2);
-  ctx.fillStyle = ROUTE_LINE;
+  ctx.fillStyle = "#ffffff";
   ctx.fill();
-  ctx.lineWidth = 3 * u;
-  ctx.strokeStyle = "#ffffff";
-  ctx.stroke();
   ctx.restore();
 }
 

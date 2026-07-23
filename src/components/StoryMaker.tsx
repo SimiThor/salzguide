@@ -89,7 +89,7 @@ export default function StoryMaker({
           nicht verdecken). So bleibt hinter dem Popup nur der helle, unscharfe Seiteninhalt. */}
       <section
         aria-hidden={open}
-        className={`relative aspect-[4/3] overflow-hidden rounded-[22px] bg-gradient-to-br from-[#1b2a20] to-[#0c1410] shadow-sm ring-1 ring-black/5 transition-opacity duration-300 ${
+        className={`relative aspect-[4/3] overflow-hidden rounded-[22px] bg-gradient-to-b from-[#243b57] via-[#20263f] to-[#12131e] shadow-sm ring-1 ring-black/5 transition-opacity duration-300 ${
           open ? "opacity-0" : "opacity-100"
         }`}
       >
