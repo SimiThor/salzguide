@@ -247,7 +247,7 @@ export default function Explore({
                     key={s.slug}
                     type="button"
                     onClick={() => openSpot(s.slug)}
-                    className="block text-left transition-transform duration-200 ease-out active:scale-[0.96] md:hover:-translate-y-1"
+                    className="sg-tap-card block text-left transition-transform duration-200 ease-out active:scale-[0.96] md:hover:-translate-y-1"
                   >
                     <SpotCard
                       title={s.title}
