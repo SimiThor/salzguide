@@ -309,15 +309,23 @@ body {
   }
 }
 
-/* KARUSSELL-KARTEN (Explore-Regale, Featured u.ä.). Bewusst OHNE Hover-/Gedrückt-Feedback:
-   die Foto-Karten liegen im Scroll-Weg, jedes Antipp-Feedback blitzte beim Scrollen (horizontal
-   wie vertikal) auf. Cleaner und Apple-artiger ist: die Karte reagiert gar nicht auf Berührung,
-   nur der Klick navigiert. Bleibt: kein iOS-Langdruck ("Bild sichern"), keine Textauswahl,
-   kein Ziehen des Fotos. */
+/* KARUSSELL-KARTEN (Explore-Regale, Featured u.ä.). Der Klick-/Antipp-Effekt (active:scale)
+   BLEIBT — nur soll er nicht beim Scrollen aufblitzen und kein Hover am Desktop machen.
+   Auf Touch ist Tap-Feedback sonst sofort da (siehe Regel oben), also blitzte es bei jeder
+   Scroll-Berührung. Lösung: das Gedrückt-Sein am Finger um einen Tick VERZÖGERN. Ein
+   Scroll-Wisch bewegt sich vorher -> iOS nimmt :active vor Ablauf zurück -> kein Aufblitzen.
+   Ein echter, kurz gehaltener Tap zeigt den Effekt weiter. Am Desktop (echter Zeiger) feuert
+   :active nur beim bewussten Klick, also dort keine Verzögerung nötig.
+   Zusätzlich: kein iOS-Langdruck ("Bild sichern"), keine Textauswahl, kein Ziehen des Fotos. */
 .sg-tap-card {
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   user-select: none;
+}
+@media (hover: none) {
+  .sg-tap-card:active {
+    transition-delay: 80ms;
+  }
 }
 
 /* Mapbox Emoji-Marker (docs/10).
