@@ -25,7 +25,7 @@ import SpotGalleryProvider from "@/components/gallery/SpotGalleryProvider";
 import GalleryImage from "@/components/gallery/GalleryImage";
 import SpotGallery from "@/components/gallery/SpotGallery";
 import SpotVideo from "@/components/SpotVideo";
-import VideoMaker from "@/components/VideoMaker";
+import StoryMaker from "@/components/StoryMaker";
 import CardSkeleton from "@/components/CardSkeleton";
 import BackButton from "@/components/BackButton";
 import {
@@ -33,11 +33,13 @@ import {
   factArea,
   factDifficulty,
   factDuration,
+  factDurationFixed,
   factFame,
   factPrice,
   factSeason,
   factSubtype,
 } from "@/lib/facts-i18n";
+import { routeLengthKm } from "@/lib/geo";
 
 // Einheitlicher Karten-Look (Apple iOS 2026): weiß, weiche Schatten, 18px-Radius.
 const CARD =
@@ -233,6 +235,27 @@ export default async function SpotPage({
     if (ac) facts.push({ icon: "🚌", label: t("facts.access"), value: ac });
   }
 
+  // Werte für die Foto-Story als Label + Wert (wie Strava), vorformatiert + lokalisiert, damit
+  // die Canvas-Logik nichts über Sprachen wissen muss. Nur vorhandene Werte; Distanz notfalls
+  // aus der Route gerechnet.
+  const storyStats: { label: string; value: string }[] = [];
+  {
+    const km = spot.elevation?.distanceKm ?? routeLengthKm(spot.route);
+    if (km > 0) {
+      storyStats.push({
+        label: t("storyMaker.labelDistance"),
+        value: `${new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(km)} km`,
+      });
+    }
+    const asc = spot.elevation?.ascent;
+    if (asc != null && asc > 0) {
+      storyStats.push({ label: t("elevation.ascent"), value: `${Math.round(asc)} ${t("elevation.unitElevation")}` });
+    }
+    // Story zeigt einen festen Wert, keinen Bereich ("1–2 Std" -> "2 Std").
+    const du = factDurationFixed(spot.duration, locale);
+    if (du) storyStats.push({ label: t("facts.duration"), value: du });
+  }
+
   // Haupt-/Anreisepunkt: bei einer Wanderung der Startpunkt, sonst der Spot-Punkt.
   const mainPoint: readonly [number, number] | null =
     spot.lat != null && spot.lng != null
@@ -392,19 +415,6 @@ export default async function SpotPage({
           />
         )}
 
-        {/* Die Route als 3D-Video: aus der Wanderung automatisch erzeugtes Intro
-            (scripts/render-intro.ts), eigene Karte direkt unter der Karte. Ändert die
-            Karte selbst nicht. Nur wenn vorhanden (Spots mit Route). */}
-        {/* Story-Section (Schicht B): das Intro-Video als Hintergrund + kurze Erklärung +
-            CTA. Eigene Section, ändert die Karte nicht. Nur auf Spots mit Intro. */}
-        {spot.introVideoUrl && (
-          <VideoMaker
-            introUrl={spot.introVideoUrl}
-            introPosterUrl={spot.introVideoPosterUrl}
-            slug={spot.slug}
-          />
-        )}
-
         {/* Anfahrt + Action-Tiles. Nur eine Kachel -> volle Breite (nicht halb-leer). */}
         <div className={`grid gap-3 ${actionCount > 1 ? "sm:grid-cols-2" : ""}`}>
           {showCar && carDest && (
@@ -457,6 +467,20 @@ export default async function SpotPage({
               </div>
             ))}
           </div>
+        )}
+
+        {/* Story-Section: Foto-Story (eigenes Foto + Routenverlauf drüber) auf JEDER Wanderung
+            mit Route; die Video-Story (eigener Clip an die Wander-Animation) zusätzlich, wo ein
+            Intro-Video da ist. Steht bewusst NACH den Kurztexten (Dauer/Jahreszeit/Lage) und
+            damit einheitlich auf allen Spot-Seiten, nicht direkt am Höhenprofil. */}
+        {spot.route && spot.route.length >= 2 && (
+          <StoryMaker
+            slug={spot.slug}
+            route={spot.route}
+            stats={storyStats}
+            introUrl={spot.introVideoUrl}
+            introPosterUrl={spot.introVideoPosterUrl}
+          />
         )}
 
         {/* 9:16-Video (ohne Titel) – im Guide-Flow zwischen den Kurztexten (Dauer/Jahreszeit/

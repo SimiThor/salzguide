@@ -46,6 +46,15 @@ export function haversineMeters(a: [number, number], b: [number, number]): numbe
   return 2 * R * Math.asin(Math.sqrt(s));
 }
 
+// Gesamtlänge einer Route in Kilometern (Haversine-Summe). Fallback für die Distanz, wenn
+// kein Höhenprofil vorliegt (dort steckt sonst elevation.distanceKm). Route ist [lng,lat].
+export function routeLengthKm(route: [number, number][] | null | undefined): number {
+  if (!route || route.length < 2) return 0;
+  let m = 0;
+  for (let i = 1; i < route.length; i++) m += haversineMeters(route[i - 1], route[i]);
+  return m / 1000;
+}
+
 // Punkt auf der Route bei Bruchteil f ∈ [0..1] der Gesamtlänge (interpoliert).
 export function coordAtFraction(
   route: [number, number][],
