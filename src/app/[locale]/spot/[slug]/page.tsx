@@ -329,8 +329,13 @@ export default async function SpotPage({
       <Hero {...heroProps} />
 
       <div className="mx-auto w-full max-w-[760px]">
-        {/* Inhalt – Quick-Facts überlappen den Hero (schwebende Pille, iOS-2026) */}
-        <div className="relative z-10 -mt-9 space-y-8 px-4">
+        {/* Inhalt – Quick-Facts überlappen den Hero (schwebende Pille, iOS-2026).
+            space-y = EINZIGE Quelle für den Abstand ZWISCHEN den Sektionen. Bewusst
+            grosszügig und mit dem Viewport wachsend (40px mobil, 48px ab md), damit die
+            Seite aufgeräumt und hochwertig wirkt statt gedrängt. Die „Ähnliche Spots"-
+            Sektion unten steht ausserhalb dieses Containers und spiegelt denselben Wert
+            (pt-10 md:pt-12), damit der Rhythmus über die ganze Seite gleich bleibt. */}
+        <div className="relative z-10 -mt-9 space-y-10 px-4 md:space-y-12">
           <QuickFacts facts={facts} />
 
         {spot.general && (
@@ -518,7 +523,9 @@ export default async function SpotPage({
       {/* Ähnliche Spots – exakt in Sektionsbreite (px-4 wie die anderen Sektionen); das
           Karussell läuft innerhalb dieser Breite und ragt nicht rechts heraus. */}
       {related.length > 0 && (
-        <section className="px-4 pt-8">
+        // pt spiegelt das space-y der Hauptsektionen (siehe Kommentar oben) -> gleicher
+        // Abstand vor „Ähnliche Spots" wie zwischen allen anderen Sektionen.
+        <section className="px-4 pt-10 md:pt-12">
           <h2 className="mb-3 px-1 text-[17px] font-semibold text-ink">
             {t("related")}
           </h2>
