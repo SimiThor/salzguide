@@ -19,6 +19,7 @@ import {
   type IntroKeyframe,
 } from "@/lib/intro-camera";
 import { loadTerrainSampler } from "@/lib/terrain-sampler";
+import { outboundRoute } from "@/lib/geo";
 
 const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
@@ -133,7 +134,11 @@ export default function IntroRenderMap({
     };
     const effectiveFps = fps ?? DEFAULT_INTRO_CAMERA.fps;
     const durationSec = seconds ?? DEFAULT_INTRO_CAMERA.durationSec;
-    const keyframes = buildIntroCameraPath(route, cfg);
+    // Bei hin/retour nur den Hinweg animieren (Rückweg wäre langweilig); Rundweg + Punkt-zu-
+    // Punkt bleiben die ganze Route. Kamera-Pfad UND die gezeichnete Linie nutzen dieselbe
+    // getrimmte Route. Die Werte (Länge/Höhe/Dauer) kommen unabhängig aus der VOLLEN Route.
+    const animRoute = outboundRoute(route);
+    const keyframes = buildIntroCameraPath(animRoute, cfg);
     const first = keyframes[0];
 
     const map = new mapboxgl.Map({
@@ -192,7 +197,7 @@ export default function IntroRenderMap({
       // Route wie die App-Karte (weiße Kontur unter Rot), nur dicker. Kein weicher
       // Auslauf am Kopf: die Linie endet hart am Punkt. Trim läuft über dieselben
       // Layer-IDs wie die Live-Karte, damit setTrim() greift.
-      map.addSource(ROUTE_SOURCE, { type: "geojson", data: routeFC(route), lineMetrics: true });
+      map.addSource(ROUTE_SOURCE, { type: "geojson", data: routeFC(animRoute), lineMetrics: true });
       map.addLayer({
         id: ROUTE_LAYER_OUT,
         type: "line",
