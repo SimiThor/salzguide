@@ -318,7 +318,9 @@ export default function StoryPhotoPanel({
           onPointerCancel={endPointer}
           onLostPointerCapture={endPointer}
           className="aspect-[9/16] w-full touch-none select-none rounded-2xl bg-black shadow-sm ring-1 ring-black/10"
-          style={{ maxWidth: "calc(52svh * 9 / 16)" }}
+          // Höhe so, dass der ganze Editor (Vorschau + Regler + Aktionen) ÜBER der Tab-Leiste
+          // Platz hat (44svh statt 52svh) - sonst rutschen Teilen/Speichern hinter die Leiste.
+          style={{ maxWidth: "calc(44svh * 9 / 16)" }}
         />
       </div>
 

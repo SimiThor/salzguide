@@ -13,7 +13,9 @@ type Mode = "photo" | "video";
 // Peek zeigt nur den Auswahl-Zustand (Umschalter + Wählen-Fläche), Voll den Editor. Das Sheet
 // öffnet im Peek und fährt automatisch auf Voll, sobald ein Foto/Clip gewählt ist (snapIndex).
 // Gleiche Peek+Voll-Logik wie die anderen Content-Sheets der App (z.B. WaterExplore).
-const SHEET_DETENTS = [0.5, 0.95];
+// Peek etwas höher (0.56), weil die mobile Tab-Leiste unten (~72px) die untersten Pixel des
+// Sheets überdeckt: so bleibt unter der Wählen-Fläche genug Weißraum bis zur Leiste.
+const SHEET_DETENTS = [0.56, 0.95];
 
 // Was ein Panel dem Sheet über seinen Zustand meldet.
 export type StoryPanelUi = {
@@ -166,8 +168,10 @@ export default function StoryMaker({
         initialDetent={0}
         snapIndex={ui.expanded ? 1 : 0}
       >
-        {/* Kein eigenes px hier: das BottomSheet gibt den Rand (px-5) schon vor. */}
-        <div className="pb-2">
+        {/* Kein eigenes px hier: das BottomSheet gibt den Rand (px-5) schon vor. Unten so viel
+            Weißraum, dass Inhalt (Wählen-Fläche / Teilen+Speichern) NIE hinter der mobilen
+            Tab-Leiste (--sg-nav-h) klebt oder verschwindet. Einheitlicher Abstand nach unten. */}
+        <div className="pb-[calc(env(safe-area-inset-bottom)+var(--sg-nav-h)+0.75rem)]">
           {/* Umschalter nur, wenn es beide Wege gibt (Intro-Video vorhanden). Während der
               Verarbeitung (busy) gesperrt: ein Moduswechsel würde das laufende Panel aushängen
               und Upload/Export abbrechen. */}

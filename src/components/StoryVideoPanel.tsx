@@ -179,7 +179,7 @@ export default function StoryVideoPanel({
             src={resultUrl}
             controls
             playsInline
-            className="mx-auto max-h-[52vh] rounded-2xl bg-black"
+            className="mx-auto max-h-[44vh] rounded-2xl bg-black"
           />
           <div className="grid grid-cols-2 gap-3">
             <button className={`${BTN_PRIMARY} w-full active:scale-[0.98]`} onClick={share}>

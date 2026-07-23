@@ -98,6 +98,11 @@ export function useBodyDrag(
       const s = start.current;
       const t = e.touches[0];
       if (!t) return;
+      // Direkt am Ziel prüfen (bei Touch bleibt e.target das Start-Element der Geste): begann
+      // die Geste auf dem Foto-Canvas o.ä., NIE das Sheet ziehen - unabhängig davon, ob der
+      // Pointer-Handler oben schon gelaufen ist. Robust auf iOS, wo die Reihenfolge Pointer/
+      // Touch abweichen kann.
+      if (startsOnNoDrag(e.target)) return;
       if (!s.decided) {
         const dx = t.clientX - s.x;
         const dy = t.clientY - s.y;
@@ -128,6 +133,9 @@ export function useBodyDrag(
       };
     },
     onPointerMove: (e: React.PointerEvent) => {
+      // Gestartet auf einem Opt-out-Element (Foto-Canvas fängt den Pointer per Capture, daher
+      // bleibt e.target das Canvas)? Dann übernimmt das Sheet die Geste NIE.
+      if (startsOnNoDrag(e.target)) return;
       const s = start.current;
       if (!s.decided) {
         const dx = e.clientX - s.x;
