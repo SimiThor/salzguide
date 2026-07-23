@@ -415,19 +415,6 @@ export default async function SpotPage({
           />
         )}
 
-        {/* Story-Section: Foto-Story (eigenes Foto + Routenverlauf drüber) auf JEDER Wanderung
-            mit Route; die Video-Story (eigener Clip an die Wander-Animation) zusätzlich, wo ein
-            Intro-Video da ist. Alles im Browser, eigene Section, ändert die Karte nicht. */}
-        {spot.route && spot.route.length >= 2 && (
-          <StoryMaker
-            slug={spot.slug}
-            route={spot.route}
-            stats={storyStats}
-            introUrl={spot.introVideoUrl}
-            introPosterUrl={spot.introVideoPosterUrl}
-          />
-        )}
-
         {/* Anfahrt + Action-Tiles. Nur eine Kachel -> volle Breite (nicht halb-leer). */}
         <div className={`grid gap-3 ${actionCount > 1 ? "sm:grid-cols-2" : ""}`}>
           {showCar && carDest && (
@@ -480,6 +467,20 @@ export default async function SpotPage({
               </div>
             ))}
           </div>
+        )}
+
+        {/* Story-Section: Foto-Story (eigenes Foto + Routenverlauf drüber) auf JEDER Wanderung
+            mit Route; die Video-Story (eigener Clip an die Wander-Animation) zusätzlich, wo ein
+            Intro-Video da ist. Steht bewusst NACH den Kurztexten (Dauer/Jahreszeit/Lage) und
+            damit einheitlich auf allen Spot-Seiten, nicht direkt am Höhenprofil. */}
+        {spot.route && spot.route.length >= 2 && (
+          <StoryMaker
+            slug={spot.slug}
+            route={spot.route}
+            stats={storyStats}
+            introUrl={spot.introVideoUrl}
+            introPosterUrl={spot.introVideoPosterUrl}
+          />
         )}
 
         {/* 9:16-Video (ohne Titel) – im Guide-Flow zwischen den Kurztexten (Dauer/Jahreszeit/
