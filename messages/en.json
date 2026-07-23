@@ -189,6 +189,11 @@
     "empty": "No spots for this season yet."
   },
   "Detail": {
+    "routeShape": {
+      "loop": "Loop",
+      "outAndBack": "Out & back",
+      "pointToPoint": "One-way"
+    },
     "poi": {
       "start": "Start",
       "finish": "Finish",

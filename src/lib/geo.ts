@@ -88,3 +88,120 @@ export function coordAtFraction(
   }
   return route[route.length - 1];
 }
+
+// ——— Routen-Form: einordnen (EINE Quelle für Karte UND Wander-Animation) ————————————
+// Drei Fälle, robust und mit Messtoleranz:
+//  - "point-to-point": Start und Ziel weit auseinander (z.B. Gipfel einfach).
+//  - "loop":           Start ≈ Ziel, aber der Weg läuft NICHT doppelt (echter Rundweg).
+//  - "out-and-back":   Start ≈ Ziel UND die Rückhälfte ist der umgekehrte Hinweg (hin/retour).
+// Trägt der Admin hin+zurück ein (damit Länge/Höhe/Dauer stimmen), fallen Start und Ziel
+// zusammen: die Karte zeigt dann nur EINEN Pin, und die Story-Animation zeigt bei hin/retour
+// nur den Hinweg (Rückweg wäre langweilig), beim Rundweg den ganzen Weg.
+
+// Start/Ziel gelten als "gleiche Stelle", wenn näher als das. Bewusst absolut (kein relativer
+// Anteil, der bei langen Punkt-zu-Punkt-Wegen zu locker würde).
+const CLOSED_TOL_M = 120;
+// hin/retour: mittlerer Abstand der gefalteten Hälften darunter -> deckungsgleich (Toleranz
+// gegen Snapping-Jitter). Ein Rundweg (Hälften auf gegenüberliegenden Seiten) liegt weit drüber.
+const OUT_AND_BACK_TOL_M = 30;
+
+export type RouteShape = "point-to-point" | "loop" | "out-and-back";
+
+// Liegen Start und Ziel (fast) auf derselben Stelle? (Leichtgewichtig, für die Karten-Pins.)
+export function isClosedRoute(route: [number, number][] | null | undefined): boolean {
+  const n = route?.length ?? 0;
+  if (!route || n < 3) return false;
+  return haversineMeters(route[0], route[n - 1]) <= CLOSED_TOL_M;
+}
+
+function cumulativeMeters(route: [number, number][]): number[] {
+  const out = [0];
+  for (let i = 1; i < route.length; i++) {
+    out.push(out[i - 1] + haversineMeters(route[i - 1], route[i]));
+  }
+  return out;
+}
+
+// [lng,lat] in ein lokales Meter-System um lat0 (klein genug für Wander-Ausdehnungen).
+function toLocalM([lng, lat]: [number, number], lat0: number): [number, number] {
+  const mPerDegLat = 110540;
+  const mPerDegLng = 111320 * Math.cos((lat0 * Math.PI) / 180);
+  return [lng * mPerDegLng, lat * mPerDegLat];
+}
+
+// Abstand Punkt<->Segment in Metern (lokal projiziert).
+function pointSegDistM(p: [number, number], a: [number, number], b: [number, number]): number {
+  const dx = b[0] - a[0];
+  const dy = b[1] - a[1];
+  const len2 = dx * dx + dy * dy;
+  let t = len2 > 0 ? ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / len2 : 0;
+  t = Math.max(0, Math.min(1, t));
+  return Math.hypot(p[0] - (a[0] + t * dx), p[1] - (a[1] + t * dy));
+}
+
+// Mittlerer nächster Abstand von Stichproben auf A zur Polylinie B (Meter).
+function meanNearestDistM(
+  a: [number, number][],
+  b: [number, number][],
+  samples: number,
+  lat0: number,
+): number {
+  if (a.length < 1 || b.length < 2) return Infinity;
+  const bl = b.map((p) => toLocalM(p, lat0));
+  const step = Math.max(1, Math.floor(a.length / samples));
+  let sum = 0;
+  let count = 0;
+  for (let i = 0; i < a.length; i += step) {
+    const pl = toLocalM(a[i], lat0);
+    let best = Infinity;
+    for (let j = 1; j < bl.length; j++) {
+      const d = pointSegDistM(pl, bl[j - 1], bl[j]);
+      if (d < best) best = d;
+    }
+    sum += best;
+    count++;
+  }
+  return count ? sum / count : Infinity;
+}
+
+// Die Route einordnen. turnaroundIndex = Wendepunkt (Distanz-Mitte) bei hin/retour, sonst der
+// letzte Punkt (= ganze Route).
+export function classifyRoute(route: [number, number][] | null | undefined): {
+  shape: RouteShape;
+  turnaroundIndex: number;
+  closed: boolean;
+} {
+  const n = route?.length ?? 0;
+  if (!route || n < 4) {
+    return { shape: "point-to-point", turnaroundIndex: Math.max(0, n - 1), closed: false };
+  }
+  const last = n - 1;
+  if (!isClosedRoute(route)) return { shape: "point-to-point", turnaroundIndex: last, closed: false };
+
+  // In der Distanz-Mitte falten: bei exaktem hin/retour ist das der Wendepunkt.
+  const cum = cumulativeMeters(route);
+  const total = cum[last];
+  if (total <= 0) return { shape: "loop", turnaroundIndex: last, closed: true };
+  const halfDist = total / 2;
+  let mid = 1;
+  while (mid < last && cum[mid] < halfDist) mid++;
+  if (mid < 2 || mid > last - 2) return { shape: "loop", turnaroundIndex: last, closed: true };
+
+  const outbound = route.slice(0, mid + 1);
+  const inbound = route.slice(mid).reverse(); // Wendepunkt -> Start, umgedreht wie der Hinweg
+  const lat0 = route[0][1];
+  const worst = Math.max(
+    meanNearestDistM(outbound, inbound, 48, lat0),
+    meanNearestDistM(inbound, outbound, 48, lat0),
+  );
+  return worst <= OUT_AND_BACK_TOL_M
+    ? { shape: "out-and-back", turnaroundIndex: mid, closed: true }
+    : { shape: "loop", turnaroundIndex: last, closed: true };
+}
+
+// Die zu animierende Route: bei hin/retour nur der Hinweg, sonst die ganze Route
+// (Rundweg + Punkt-zu-Punkt). Für die Story-/Intro-Animation.
+export function outboundRoute(route: [number, number][]): [number, number][] {
+  const { shape, turnaroundIndex } = classifyRoute(route);
+  return shape === "out-and-back" ? route.slice(0, turnaroundIndex + 1) : route;
+}

@@ -189,6 +189,11 @@
     "empty": "Ancora nessuno spot per questa stagione."
   },
   "Detail": {
+    "routeShape": {
+      "loop": "Ad anello",
+      "outAndBack": "Andata e ritorno",
+      "pointToPoint": "Solo andata"
+    },
     "poi": {
       "start": "Partenza",
       "finish": "Arrivo",

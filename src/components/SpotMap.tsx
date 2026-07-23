@@ -8,6 +8,7 @@ import { MapLoadingScreen, useMapLoading } from "./MapLoading";
 import { RecenterControl } from "./mapControls";
 import { useLatestRef } from "@/lib/use-latest-ref";
 import { poiEmoji, type PoiKind } from "@/lib/poi";
+import { isClosedRoute } from "@/lib/geo";
 import {
   routeFC,
   ROUTE_DRAW_MS,
@@ -274,14 +275,17 @@ export default function SpotMap({
     routeEndEls.current.clear();
     // Start/Ziel-Marker (auf der Übersichtskarte aus -> nur die Linie)
     if (showRouteEndsRef.current) {
-      // Ziel zuerst (darunter), Start zuletzt + höherer z-index -> Start liegt
-      // immer ÜBER dem Ziel (wichtig bei Rundwegen, wo Start ≈ Ziel).
-      // Das Ziel wartet, bis die Linie dort angekommen ist (sg-pin-in füllt
-      // „backwards", hält es also bis dahin unsichtbar).
-      const ends: [[number, number], "start" | "finish", string, number, number][] = [
-        [r[r.length - 1], "finish", "🏁", 2, animated ? ROUTE_DRAW_MS : 0],
-        [r[0], "start", "🥾", 4, 0],
-      ];
+      // Bei geschlossenen Routen (Rundweg / hin+retour) liegen Start und Ziel auf derselben
+      // Stelle -> nur EIN Pin (🥾 Start), kein doppelter 🏁-Ziel-Pin. Sonst Ziel zuerst
+      // (darunter), Start zuletzt + höherer z-index, damit Start über dem Ziel liegt. Das Ziel
+      // wartet, bis die Linie dort angekommen ist (sg-pin-in füllt „backwards").
+      const closed = isClosedRoute(r);
+      const ends: [[number, number], "start" | "finish", string, number, number][] = closed
+        ? [[r[0], "start", "🥾", 4, 0]]
+        : [
+            [r[r.length - 1], "finish", "🏁", 2, animated ? ROUTE_DRAW_MS : 0],
+            [r[0], "start", "🥾", 4, 0],
+          ];
       for (const [c, kind, emoji, z, delay] of ends) {
         // Antippbar, wenn der Aufrufer onPoiSelect setzt (Detailkarte). Sonst reiner
         // Anzeige-Marker wie bisher (Tour-Übersicht etc.).

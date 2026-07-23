@@ -9,7 +9,7 @@ import { MAP_CTRL_PAD } from "./mapControls";
 import MapPopover, { MapPopoverClose } from "./MapPopover";
 import ElevationProfile from "./ElevationProfile";
 import type { ElevationProfile as Profile } from "@/lib/admin-actions";
-import { coordAtFraction } from "@/lib/geo";
+import { coordAtFraction, classifyRoute, type RouteShape } from "@/lib/geo";
 import { poiEmoji } from "@/lib/poi";
 import { useIsMounted } from "@/lib/use-is-mounted";
 
@@ -65,6 +65,60 @@ function PoiCard({
   );
 }
 
+// Kleines Linien-Symbol je Wegtyp (monochrom, passt zum iOS-Look).
+function RouteShapeIcon({ shape }: { shape: RouteShape }) {
+  const p = {
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 2,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+  };
+  if (shape === "loop") {
+    // Kreis-Pfeil = Rundweg.
+    return (
+      <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden {...p}>
+        <path d="M20 12a8 8 0 1 1-2.4-5.7" />
+        <path d="M20 4v3.6h-3.6" />
+      </svg>
+    );
+  }
+  if (shape === "out-and-back") {
+    // Doppelpfeil = hin und zurück.
+    return (
+      <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden {...p}>
+        <path d="M7 8 3 12l4 4M17 8l4 4-4 4M3 12h18" />
+      </svg>
+    );
+  }
+  // Einzelpfeil = Strecke (Punkt zu Punkt).
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden {...p}>
+      <path d="M4 12h14M13 7l5 5-5 5" />
+    </svg>
+  );
+}
+
+// Komoot-Stil: auf einen Blick, ob Rundweg / Hin & zurück / Strecke. Glas-Pille auf der Karte.
+function RouteShapeBadge({
+  shape,
+  label,
+  className = "",
+}: {
+  shape: RouteShape;
+  label: string;
+  className?: string;
+}) {
+  return (
+    <div
+      className={`pointer-events-none absolute z-10 inline-flex items-center gap-1.5 rounded-full bg-white/90 px-2.5 py-1 text-[12px] font-semibold text-ink shadow-sm ring-1 ring-black/5 backdrop-blur ${className}`}
+    >
+      <RouteShapeIcon shape={shape} />
+      {label}
+    </div>
+  );
+}
+
 export default function SpotDetailMap({
   route,
   elevation,
@@ -111,6 +165,17 @@ export default function SpotDetailMap({
   const startLabel = t("poi.start");
   const finishLabel = t("poi.finish");
   const selKey = selected ? poiKey(selected) : null;
+
+  // Wegtyp für den Klarheit-Chip: Rundweg / Hin & zurück / Strecke (eine Quelle: classifyRoute).
+  const shape: RouteShape | null = route && route.length >= 2 ? classifyRoute(route).shape : null;
+  const shapeLabel =
+    shape === "loop"
+      ? t("routeShape.loop")
+      : shape === "out-and-back"
+        ? t("routeShape.outAndBack")
+        : shape === "point-to-point"
+          ? t("routeShape.pointToPoint")
+          : null;
 
   // Der Spot selbst als antippbarer Punkt. Ohne Route steht genau EIN Pin auf der Karte
   // — und der zeigte bisher nichts, während jeder Parkplatz daneben sein Kärtchen hatte.
@@ -169,6 +234,9 @@ export default function SpotDetailMap({
           openMapLabel={t("openMap")}
           {...poiProps}
         />
+        {shape && shapeLabel && (
+          <RouteShapeBadge shape={shape} label={shapeLabel} className="right-3 top-3" />
+        )}
         {/* Hier stand das POI-Kärtchen auch für die Vorschau. Es kann nicht mehr
             auftauchen: Die Vorschau ist eine einzige Schaltfläche, einzelne Punkte
             lassen sich dort nicht mehr antippen. Die Kärtchen leben im Vollbild

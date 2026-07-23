@@ -189,6 +189,11 @@
     "empty": "이 시즌에는 아직 스팟이 없어요."
   },
   "Detail": {
+    "routeShape": {
+      "loop": "순환",
+      "outAndBack": "왕복",
+      "pointToPoint": "편도"
+    },
     "poi": {
       "start": "출발점",
       "finish": "도착점",

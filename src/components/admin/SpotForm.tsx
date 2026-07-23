@@ -16,6 +16,7 @@ import {
 import { routing } from "@/i18n/routing";
 import { localeMeta } from "@/i18n/locales";
 import { hashSpotTexts } from "@/lib/spot-hash";
+import { isClosedRoute } from "@/lib/geo";
 import type { AdminCategory, AdminLocal } from "@/lib/admin";
 import { emptyManualWeek, type DayHours } from "@/lib/opening-hours";
 import type { MapPoi } from "@/lib/geo";
@@ -317,17 +318,19 @@ export default function SpotForm({
   function addRoutePt() {
     setRoute([...form.routePoints, [13.05, 47.8]]);
   }
-  function onSnap() {
+  // Route an Wanderwege snappen. `forceDuration` überschreibt eine schon gesetzte Dauer
+  // (z.B. beim "Hin & zurück"-Verdoppeln, wo sich die Zeit zwangsläufig ändert).
+  function doSnap(points: [number, number][], forceDuration = false) {
     setSnapMsg("");
     start(async () => {
-      const r = await snapRoute(form.routePoints);
+      const r = await snapRoute(points);
       if (r.ok && r.coords) {
         const patch: Partial<SpotInput> = {
           routeSnapped: r.coords,
           elevationProfile: r.profile ?? null,
         };
         const auto: string[] = [];
-        if (!form.duration.trim() && r.durationMin) {
+        if ((forceDuration || !form.duration.trim()) && r.durationMin) {
           const lbl = durationFromMin(r.durationMin);
           const p = parseDuration(lbl);
           setDurValue(p.value);
@@ -342,12 +345,27 @@ export default function SpotForm({
         set(patch);
         const km = r.distanceKm ? `${r.distanceKm.toFixed(1)} km` : "";
         const hm = r.profile ? ` · ↑${r.profile.ascent} ↓${r.profile.descent} hm` : "";
+        // Berechnete Gehzeit der GANZEN Route immer zeigen -> eine schon gesetzte (evtl.
+        // veraltete) Dauer fällt sofort auf, sobald man z.B. auf hin+zurück umstellt.
+        const time = r.durationMin ? ` · ~${durationFromMin(r.durationMin)}` : "";
         const autoMsg = auto.length ? ` · ${auto.join(" & ")} übernommen` : "";
-        setSnapMsg(`Angepasst · ${km}${hm}${autoMsg}`);
+        setSnapMsg(`Angepasst · ${km}${hm}${time}${autoMsg}`);
       } else {
         setSnapMsg(r.error ?? "Fehler beim Anpassen");
       }
     });
+  }
+  function onSnap() {
+    doSnap(form.routePoints);
+  }
+  // Gipfeltour: aus dem Hinweg automatisch hin+zurück machen (Rückweg = Hinweg umgekehrt),
+  // dann snappen. So stimmen Länge/Höhe/Dauer für die ganze Tour, ohne den Rückweg zu tippen.
+  function makeThereAndBack() {
+    const pts = form.routePoints;
+    if (pts.length < 2 || isClosedRoute(pts)) return;
+    const full: [number, number][] = [...pts, ...pts.slice(0, -1).reverse()];
+    set({ routePoints: full, routeSnapped: [], elevationProfile: null });
+    doSnap(full, true);
   }
 
   function onSubmit(ev: React.FormEvent) {
@@ -1059,6 +1077,19 @@ export default function SpotForm({
               >
                 🥾 An Wanderwege anpassen
               </button>
+              {/* Gipfeltour: aus dem Hinweg mit einem Klick hin+zurück machen. Nur bei einer
+                  offenen Route (Start ≠ Ziel) sinnvoll; danach ist sie geschlossen -> Button weg. */}
+              {form.routePoints.length >= 2 && !isClosedRoute(form.routePoints) && (
+                <button
+                  type="button"
+                  onClick={makeThereAndBack}
+                  disabled={pending}
+                  title="Hängt den Rückweg an (umgekehrter Hinweg) und snappt die ganze Tour"
+                  className="rounded-full bg-black/5 px-3.5 py-1.5 text-xs font-semibold text-ink disabled:opacity-50"
+                >
+                  {"↔ Hin & zurück"}
+                </button>
+              )}
               {form.routeSnapped.length >= 2 && (
                 <>
                   <button

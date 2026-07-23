@@ -19,6 +19,7 @@ import {
   type IntroKeyframe,
 } from "@/lib/intro-camera";
 import { loadTerrainSampler } from "@/lib/terrain-sampler";
+import { outboundRoute } from "@/lib/geo";
 
 const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
@@ -133,7 +134,11 @@ export default function IntroRenderMap({
     };
     const effectiveFps = fps ?? DEFAULT_INTRO_CAMERA.fps;
     const durationSec = seconds ?? DEFAULT_INTRO_CAMERA.durationSec;
-    const keyframes = buildIntroCameraPath(route, cfg);
+    // Bei hin/retour nur den Hinweg animieren (Rückweg wäre langweilig); Rundweg + Punkt-zu-
+    // Punkt bleiben die ganze Route. Kamera-Pfad UND die gezeichnete Linie nutzen dieselbe
+    // getrimmte Route. Die Werte (Länge/Höhe/Dauer) kommen unabhängig aus der VOLLEN Route.
+    const animRoute = outboundRoute(route);
+    const keyframes = buildIntroCameraPath(animRoute, cfg);
     const first = keyframes[0];
 
     const map = new mapboxgl.Map({
@@ -192,7 +197,7 @@ export default function IntroRenderMap({
       // Route wie die App-Karte (weiße Kontur unter Rot), nur dicker. Kein weicher
       // Auslauf am Kopf: die Linie endet hart am Punkt. Trim läuft über dieselben
       // Layer-IDs wie die Live-Karte, damit setTrim() greift.
-      map.addSource(ROUTE_SOURCE, { type: "geojson", data: routeFC(route), lineMetrics: true });
+      map.addSource(ROUTE_SOURCE, { type: "geojson", data: routeFC(animRoute), lineMetrics: true });
       map.addLayer({
         id: ROUTE_LAYER_OUT,
         type: "line",
@@ -369,19 +374,26 @@ export default function IntroRenderMap({
           left: 0,
           right: 0,
           top: 0,
-          // Container reicht vom oberen Rand bis zum roten Punkt; der Text wird darin vertikal
-          // zentriert -> Textmitte genau mittig zwischen Rand und Punkt (≈ 19,5 % von oben).
+          // Container reicht vom oberen Rand bis zum roten Punkt (~39%). Der Text sitzt UNTEN in
+          // diesem Band (flex-end + Abstand) -> Textmitte bei ~1/3 von oben, knapp über dem Punkt,
+          // ausgeglichen statt am oberen Rand.
           height: `${HEAD_TOP_FRAC * 100}vh`,
           zIndex: 9,
           opacity: 0,
           pointerEvents: "none",
-          padding: "0 28px",
+          // border-box: die Höhe schließt das Padding ein, damit paddingBottom den Text im Band
+          // nach oben zieht (bei content-box läge das Padding außerhalb, der Text bliebe unten).
+          boxSizing: "border-box",
+          // Abstand unten hebt den Text vom roten Punkt ab -> Textmitte ~1/3, mit Luft zum Punkt.
+          padding: "0 28px 3vh",
+          // Verlauf als Band: oben leicht, um den Text (~1/3) herum am dunkelsten, unten aus.
+          // So bleibt der Text lesbar, ohne den ganzen oberen Bildteil schwer abzudunkeln.
           background:
-            "linear-gradient(to bottom, rgba(0,0,0,0.58), rgba(0,0,0,0.33) 55%, rgba(0,0,0,0) 100%)",
+            "linear-gradient(to bottom, rgba(0,0,0,0.12) 0%, rgba(0,0,0,0.5) 55%, rgba(0,0,0,0.5) 88%, rgba(0,0,0,0) 100%)",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          justifyContent: "center",
+          justifyContent: "flex-end",
           gap: 7,
           textAlign: "center",
           fontFamily: "Inter, system-ui, sans-serif",

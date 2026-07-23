@@ -230,6 +230,11 @@
     "empty": "Für diese Saison gibt es noch keine Spots."
   },
   "Detail": {
+    "routeShape": {
+      "loop": "Rundweg",
+      "outAndBack": "Hin & zurück",
+      "pointToPoint": "Strecke"
+    },
     "poi": {
       "start": "Startpunkt",
       "finish": "Ziel",
