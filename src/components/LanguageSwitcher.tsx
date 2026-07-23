@@ -20,10 +20,43 @@ const TITLE: Record<string, string> = {
   pt: "Idioma",
 };
 
+// iOS-Menü-Indikator (chevron.up.chevron.down): das kleine Auf/Ab-Zeichen, das Apple an
+// jeden Wert setzt, den man per Menü ÄNDERN kann. Genau das braucht der Sprachwähler, damit
+// klar ist, dass er nicht nur die Sprache anzeigt, sondern sie umstellt.
+function ChevronUpDown() {
+  return (
+    <svg
+      width="11"
+      height="14"
+      viewBox="0 0 11 14"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="text-muted/70"
+      aria-hidden
+    >
+      <path d="M3 5.5 5.5 3 8 5.5" />
+      <path d="M3 8.5 5.5 11 8 8.5" />
+    </svg>
+  );
+}
+
 // Mehrsprachiger Sprachwähler (iOS-2026): Flaggen-Button -> Dropdown (Desktop) bzw. ziehbares
 // Bottom-Sheet (Mobile). Alle Sprachen aus der zentralen Config -> neue Sprache erscheint
 // automatisch. Wechsel behält den aktuellen Pfad (SEO: eigene Unterseite je Sprache).
-export default function LanguageSwitcher() {
+//
+// variant: "solid" (Standard) ist der flach gefüllte Plattform-Button (bg-black/5, KEIN Rand
+// -> siehe ui.ts: „Mit Rand heisst Zustand"), damit er in den App-Headern wie jeder andere
+// Knopf aussieht. "glass" ist die weisse Glas-Pille mit Schatten für die Landingpage, wo der
+// Auslöser über dem dunklen Hero liegt und seinen Kontrast selbst mitbringen muss (ui.ts-
+// Ausnahme 3: über Foto trennt der Schatten statt der Füllung).
+export default function LanguageSwitcher({
+  variant = "solid",
+}: {
+  variant?: "solid" | "glass";
+}) {
   const locale = useLocale();
   const pathname = usePathname();
   const router = useRouter();
@@ -88,12 +121,17 @@ export default function LanguageSwitcher() {
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-label={TITLE[locale] ?? "Language"}
-        className="inline-flex items-center gap-1.5 rounded-full border border-black/10 bg-white/70 px-3 py-1.5 text-sm font-medium text-ink backdrop-blur transition-colors hover:bg-white active:scale-[0.98]"
+        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium text-ink transition active:scale-[0.98] ${
+          variant === "glass"
+            ? "bg-white/70 shadow-sm backdrop-blur hover:bg-white"
+            : "bg-black/5 hover:bg-black/10"
+        }`}
       >
         <span className="text-[15px] leading-none" aria-hidden>
           {current.flag}
         </span>
         <span className="uppercase leading-none text-muted">{current.code}</span>
+        <ChevronUpDown />
       </button>
 
       <AnimatePresence>
