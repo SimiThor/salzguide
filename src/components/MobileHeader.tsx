@@ -105,16 +105,27 @@ export default function MobileHeader() {
               </div>
 
               <nav className="mt-2 flex flex-col px-3">
-                {ready.map((i) => (
-                  <Link
-                    key={i.key}
-                    href={i.href}
-                    onClick={close}
-                    className="rounded-xl px-3 py-3 text-[17px] font-medium text-ink active:bg-black/5"
-                  >
-                    {t(`Nav.${i.key}`)}
-                  </Link>
-                ))}
+                {ready.map((i) => {
+                  // Aktive Seite rot markieren, exakt wie im DesktopHeader: gleicher
+                  // Vergleich (href === pathname, beide ohne Locale-Präfix aus
+                  // @/i18n/navigation), gleiche Farbe (text-accent) und gleiches
+                  // aria-current. active:bg-black/5 bleibt das Tipp-Feedback und hat mit
+                  // der aktiven Seite nichts zu tun.
+                  const active = i.href === pathname;
+                  return (
+                    <Link
+                      key={i.key}
+                      href={i.href}
+                      onClick={close}
+                      aria-current={active ? "page" : undefined}
+                      className={`rounded-xl px-3 py-3 text-[17px] font-medium active:bg-black/5 ${
+                        active ? "text-accent" : "text-ink"
+                      }`}
+                    >
+                      {t(`Nav.${i.key}`)}
+                    </Link>
+                  );
+                })}
                 <p className="px-3 pb-1 pt-4 text-[11px] font-semibold uppercase tracking-wider text-muted">
                   {t("Menu.soon")}
                 </p>
