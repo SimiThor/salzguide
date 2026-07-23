@@ -232,24 +232,34 @@ export function classifyRoute(route: [number, number][] | null | undefined): {
   );
   if (worst > OUT_AND_BACK_TOL_M) return { shape: "loop", turnaroundIndex: last, closed: true };
 
-  // Wendepunkt EXAKT bestimmen: der von Start am weitesten entfernte Punkt der ganzen Route.
-  // Die reine Distanz-Mitte trifft ihn bei (durch Snapping) ungleich langen Hälften knapp
-  // daneben; ist der Rückweg minimal länger, liegt die Mitte HINTER dem Wendepunkt -> der Hinweg
-  // nähme ein paar Rückweg-Punkte mit und der Kopf liefe am Ende ein Stück zurück.
-  // Warum der GLOBAL fernste Punkt robust ist: beim echten Hin/Retour (Rückweg = umgekehrter
-  // Hinweg, hier bereits bestätigt) liegt JEDER Rückweg-Punkt näher am Start als der Wendepunkt.
-  // Der fernste Punkt ist also genau der Wendepunkt, und die letzte Kopf-Bewegung geht immer nach
-  // AUSSEN, nie zurück. Kein Fenster nötig (das könnte bei ungleichen Hälften den Punkt verfehlen).
-  let apex = mid;
-  let far = -1;
-  for (let i = 1; i < last; i++) {
-    const d = haversineMeters(route[0], route[i]);
-    if (d > far) {
-      far = d;
-      apex = i;
+  // Wendepunkt EXAKT bestimmen. Die reine Distanz-Mitte trifft ihn bei (durch Snapping) ungleich
+  // langen Hälften knapp daneben (dann fehlt Weg oder der Kopf läuft am Ende zurück). "Am
+  // weitesten vom Start" ist KEIN guter Wendepunkt: krümmt sich der Weg (z.B. Hochkeil), liegt
+  // der echte Wendepunkt näher am Start als ein Punkt weiter vorne -> es fehlte viel Weg.
+  //
+  // Richtig: an der Faltstelle deckt sich der Rückweg mit dem Hinweg, also route[k+j] ≈ route[k-j]
+  // für viele j. Diese lokale Symmetrie ist genau am Wendepunkt minimal (scharfes Minimum) und
+  // unterscheidet ihn auch von Kehren/Serpentinen (dort passt die Symmetrie nur ganz kurz). Wir
+  // suchen sie in einem Fenster um die Distanz-Mitte (dort liegt der Wendepunkt garantiert nah).
+  const loc = route.map((p) => toLocalM(p, lat0));
+  const win = Math.max(6, Math.floor(n * 0.25));
+  const J = Math.max(4, Math.floor(n * 0.08));
+  let bestK = mid;
+  let bestErr = Infinity;
+  for (let k = Math.max(1, mid - win); k <= Math.min(last - 1, mid + win); k++) {
+    const jmax = Math.min(J, k, last - k);
+    if (jmax < 2) continue;
+    let sum = 0;
+    for (let j = 1; j <= jmax; j++) {
+      sum += Math.hypot(loc[k + j][0] - loc[k - j][0], loc[k + j][1] - loc[k - j][1]);
+    }
+    const err = sum / jmax;
+    if (err < bestErr) {
+      bestErr = err;
+      bestK = k;
     }
   }
-  return { shape: "out-and-back", turnaroundIndex: apex, closed: true };
+  return { shape: "out-and-back", turnaroundIndex: bestK, closed: true };
 }
 
 // Die zu animierende Route: bei hin/retour nur der Hinweg, sonst die ganze Route
