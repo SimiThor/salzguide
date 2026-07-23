@@ -71,10 +71,12 @@ export default function BottomNav() {
       <ul className="mx-auto flex h-full max-w-md items-stretch justify-around px-2 py-2">
         {tabs.map((tab) => {
           const active = !tab.action && tab.href === pathname;
-          // active:opacity-60 ersetzt den grauen Tap-Blitz, den sg-native-tap abschaltet.
-          // Ohne eigenes Feedback fühlen sich Taps tot an – der Blitz ist zwar der
-          // Verräter "Webseite", aber er ist auch die einzige Rückmeldung.
-          const cls = `flex w-full flex-col items-center justify-center gap-1 px-3 py-1 transition-[color,opacity] duration-150 active:opacity-60 ${
+          // Tap-Feedback: dieselbe dezente graue Pille wie im Burger-Menü (active:bg-black/5),
+          // statt des früheren opacity-60-Dimmens, das man kaum bemerkt hat. sg-native-tap
+          // auf der Leiste schaltet nur den nativen Tap-Blitz ab; diese CSS-:active-Fläche
+          // bleibt und gibt sofort Rückmeldung. Auf Touch erscheint sie sofort (globale
+          // Regel setzt die Dauer bei :active auf 0) und blendet beim Loslassen sanft aus.
+          const cls = `flex w-full flex-col items-center justify-center gap-1 rounded-2xl px-3 py-1 transition-colors duration-150 active:bg-black/5 ${
             active ? "text-accent" : "text-muted"
           }`;
           const inner = (
