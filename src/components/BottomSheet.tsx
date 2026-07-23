@@ -31,6 +31,10 @@ type BottomSheetProps = {
   onClose: () => void;
   detents?: number[]; // Mobile: aufsteigend, letzter = Voll
   initialDetent?: number;
+  // Von aussen angeforderte Stufe. Wirkt als SIGNAL: nur wenn sich der Wert ändert, springt
+  // das Sheet dorthin (danach kann der Nutzer frei ziehen). Z.B. Story: bei Foto-/Clip-Auswahl
+  // automatisch auf Voll, im Auswahl-Zustand wieder auf Peek. Nur Mobile.
+  snapIndex?: number;
   title?: string;
   header?: ReactNode;
   footer?: ReactNode;
@@ -69,6 +73,7 @@ export default function BottomSheet({
   onClose,
   detents = [0.55, 0.92],
   initialDetent = 0,
+  snapIndex,
   title,
   header,
   footer,
@@ -157,6 +162,20 @@ export default function BottomSheet({
     setAtFull(c === detents.length - 1);
     animate(y, snapY(detents[c]), SPRING);
   };
+
+  // Angeforderte Stufe von aussen: springt nur bei WERT-Änderung (nicht beim ersten Mount und
+  // nicht bei jedem Render), damit der Nutzer danach frei ziehen kann. Öffnen selbst erledigt
+  // der Öffnen-Effekt über initialDetent.
+  const lastSnap = useRef(snapIndex);
+  useEffect(() => {
+    if (snapIndex == null || snapIndex === lastSnap.current) {
+      lastSnap.current = snapIndex;
+      return;
+    }
+    lastSnap.current = snapIndex;
+    if (!isDesktop && vh && open) snapToIndex(snapIndex);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [snapIndex]);
 
   const handleDragEnd = (
     _event: MouseEvent | TouchEvent | PointerEvent,

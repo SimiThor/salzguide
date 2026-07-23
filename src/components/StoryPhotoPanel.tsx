@@ -30,10 +30,13 @@ export default function StoryPhotoPanel({
   slug,
   route,
   stats,
+  onUiChange,
 }: {
   slug: string;
   route: [number, number][];
   stats: StoryStat[];
+  // Meldet dem Sheet: Editor sichtbar (-> Voll) und ob gerade exportiert wird (-> Umschalten sperren).
+  onUiChange?: (s: { expanded: boolean; busy: boolean }) => void;
 }) {
   const t = useTranslations("Detail.storyMaker");
   const hasRoute = route.length >= 2;
@@ -109,6 +112,12 @@ export default function StoryPhotoPanel({
       bitmapRef.current?.close?.();
     };
   }, []);
+
+  // Zustand ans Sheet melden: Foto gewählt -> Editor sichtbar (Voll); Export läuft -> busy
+  // (Modus-Umschalten sperren, sonst bricht der Export ab).
+  useEffect(() => {
+    onUiChange?.({ expanded: bitmap != null, busy });
+  }, [bitmap, busy, onUiChange]);
 
   const loadPhoto = async (file: File | undefined) => {
     if (!file) return;
