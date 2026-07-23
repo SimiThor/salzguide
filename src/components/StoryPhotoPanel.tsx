@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { BTN_PRIMARY, BTN_SECONDARY } from "@/lib/ui";
+import { loadOrientedBitmap } from "@/lib/image-orientation";
 import {
   drawStory,
   exportStoryJpeg,
@@ -54,6 +55,10 @@ export default function StoryPhotoPanel({
   const inputRef = useRef<HTMLInputElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const bitmapRef = useRef<ImageBitmap | null>(null);
+  // Aktuelle Transform als Ref: Pan/Pinch-Handler feuern schneller als React committet (bis
+  // 120 Hz). Läse man `transform` aus dem State, wäre er zwischen zwei Frames veraltet und
+  // Bewegungen würden verschluckt (Bild hängt dem Finger nach). Der Ref ist immer aktuell.
+  const transformRef = useRef<StoryTransform>({ scale: 1, dx: 0, dy: 0 });
   // Aktive Zeiger (für Pan mit einem Finger, Pinch-Zoom mit zwei).
   const pointers = useRef<Map<number, { x: number; y: number }>>(new Map());
   const pinch = useRef<{ dist: number; midX: number; midY: number } | null>(null);
@@ -127,8 +132,9 @@ export default function StoryPhotoPanel({
       return;
     }
     try {
-      // EXIF-Drehung von Handy-Fotos respektieren, sonst liegt das Bild quer.
-      const bmp = await createImageBitmap(file, { imageOrientation: "from-image" });
+      // EXIF-Drehung von Handy-Fotos respektieren (über <img>, damit es auch auf Safari <17
+      // aufrecht ist - createImageBitmap({imageOrientation}) wird dort still ignoriert).
+      const bmp = await loadOrientedBitmap(file);
       bitmapRef.current?.close?.();
       bitmapRef.current = bmp;
       const cov = coverScale(bmp.width, bmp.height, STORY_W, STORY_H);
@@ -136,6 +142,7 @@ export default function StoryPhotoPanel({
       setBitmap(bmp);
       setDims({ w: bmp.width, h: bmp.height });
       setCover(cov);
+      transformRef.current = { scale: cov, dx: 0, dy: 0 };
       setTransform({ scale: cov, dx: 0, dy: 0 });
       if (hasRoute) setPreset("big");
     } catch {
@@ -150,7 +157,9 @@ export default function StoryPhotoPanel({
   };
 
   const applyTransform = (next: StoryTransform) => {
-    setTransform(clampTransform(next, dims.w, dims.h, STORY_W, STORY_H));
+    const clamped = clampTransform(next, dims.w, dims.h, STORY_W, STORY_H);
+    transformRef.current = clamped; // sofort aktuell für den nächsten Move
+    setTransform(clamped); // + Re-Render fürs Zeichnen
   };
 
   const onPointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
@@ -180,21 +189,23 @@ export default function StoryPhotoPanel({
       const midX = (a.x + b.x) / 2;
       const midY = (a.y + b.y) / 2;
       const ratio = pinch.current.dist ? dist / pinch.current.dist : 1;
-      const nextScale = Math.min(cover * MAX_ZOOM_FACTOR, Math.max(cover, transform.scale * ratio));
+      const cur = transformRef.current;
+      const nextScale = Math.min(cover * MAX_ZOOM_FACTOR, Math.max(cover, cur.scale * ratio));
       applyTransform({
         scale: nextScale,
-        dx: transform.dx + (midX - pinch.current.midX) * f,
-        dy: transform.dy + (midY - pinch.current.midY) * f,
+        dx: cur.dx + (midX - pinch.current.midX) * f,
+        dy: cur.dy + (midY - pinch.current.midY) * f,
       });
       pinch.current = { dist, midX, midY };
       return;
     }
 
     // Ein Finger: verschieben.
+    const cur = transformRef.current;
     applyTransform({
-      scale: transform.scale,
-      dx: transform.dx + (e.clientX - prev.x) * f,
-      dy: transform.dy + (e.clientY - prev.y) * f,
+      scale: cur.scale,
+      dx: cur.dx + (e.clientX - prev.x) * f,
+      dy: cur.dy + (e.clientY - prev.y) * f,
     });
   };
 
@@ -205,7 +216,7 @@ export default function StoryPhotoPanel({
 
   const onZoom = (v: number) => {
     const scale = cover * (1 + v * (MAX_ZOOM_FACTOR - 1));
-    applyTransform({ scale, dx: transform.dx, dy: transform.dy });
+    applyTransform({ scale, dx: transformRef.current.dx, dy: transformRef.current.dy });
   };
   const zoomValue = cover ? (transform.scale / cover - 1) / (MAX_ZOOM_FACTOR - 1) : 0;
 
@@ -318,9 +329,12 @@ export default function StoryPhotoPanel({
           onPointerCancel={endPointer}
           onLostPointerCapture={endPointer}
           className="aspect-[9/16] w-full touch-none select-none rounded-2xl bg-black shadow-sm ring-1 ring-black/10"
-          // Höhe so, dass der ganze Editor (Vorschau + Regler + Aktionen) ÜBER der Tab-Leiste
-          // Platz hat (44svh statt 52svh) - sonst rutschen Teilen/Speichern hinter die Leiste.
-          style={{ maxWidth: "calc(44svh * 9 / 16)" }}
+          // Höhe ADAPTIV: der ganze Editor (Kopf, Regler, Presets, Farben, Aktionen, "Neues Foto"
+          // ~31rem) plus die mobile Tab-Leiste muss ÜBER die Leiste passen - sonst rutschen die
+          // Aktionen auf kleinen Handys (iPhone SE) dahinter. `100svh - 31rem` reserviert diesen
+          // Platz; nach oben bei 46svh gedeckelt (auf grossen Handys nicht riesig), nach unten bei
+          // 140px (Querformat/sehr flach kollabiert die Vorschau sonst - dann scrollt der Inhalt).
+          style={{ maxWidth: "max(120px, min(calc(46svh * 9 / 16), calc((100svh - 31rem) * 9 / 16)))" }}
         />
       </div>
 
@@ -403,7 +417,10 @@ export default function StoryPhotoPanel({
         type="file"
         accept="image/*"
         hidden
-        onChange={(e) => loadPhoto(e.target.files?.[0])}
+        onChange={(e) => {
+          loadPhoto(e.target.files?.[0]);
+          e.target.value = ""; // gleiches Foto nach "Neues Foto"/Fehler erneut wählbar
+        }}
       />
     </div>
   );
