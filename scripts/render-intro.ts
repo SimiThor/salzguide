@@ -188,8 +188,10 @@ async function run() {
     console.log(`   Clean-MP4: ${cleanOut}  (${(sc.size / 1e6).toFixed(1)} MB)`);
 
     // ---- Poster (WebP) aus einem Frame, in dem die Route gut sichtbar ist ----
+    // Aus cleanDir (OHNE Text-Overlay): so trägt das Poster nie einen halb eingeblendeten
+    // Titel/Verlauf, und es passt zur Clean-Variante, die der Admin herunterlädt.
     const posterFrame = Math.max(1, Math.round(frameCount * 0.72));
-    const posterPng = join(framesDir, `frame-${String(posterFrame).padStart(5, "0")}.png`);
+    const posterPng = join(cleanDir, `frame-${String(posterFrame).padStart(5, "0")}.png`);
     const posterWebp = await sharp(posterPng)
       .resize({ width: 720, height: 1280, fit: "inside" })
       .webp({ quality: 80 })
@@ -265,6 +267,27 @@ async function upload(slug: string, mp4Path: string, cleanMp4Path: string, poste
   console.log(
     `\nFertig & gespeichert:\n  Video:  ${videoUrl}\n  Clean:  ${cleanUrl}\n  Poster: ${posterUrl}\n  Hash:   ${hash}`,
   );
+
+  // ---- Aufräumen: alte Intro-Dateien dieses Spots löschen ----
+  // Nach jedem Versions-/Routenwechsel bekommt der Spot neue <slug>-<hash>.* Dateien; die
+  // alten würden sonst für immer im Bucket liegen bleiben (nach mehreren Iterationen schnell
+  // Hunderte MB). Wir listen intro/ und löschen alles, was mit `<slug>-` beginnt, aber NICHT
+  // zu den drei gerade hochgeladenen Dateien gehört. Fehlschläge hier sind unkritisch (Video
+  // ist schon gespeichert), daher nur geloggt, nie geworfen.
+  try {
+    const keep = new Set([`${slug}-${hash}.mp4`, `${slug}-${hash}-clean.mp4`, `${slug}-${hash}.webp`]);
+    const { data: existing } = await supabase.storage.from(BUCKET).list("intro", { limit: 1000 });
+    const stale = (existing ?? [])
+      .filter((f) => f.name.startsWith(`${slug}-`) && !keep.has(f.name))
+      .map((f) => `intro/${f.name}`);
+    if (stale.length) {
+      const { error: rmErr } = await supabase.storage.from(BUCKET).remove(stale);
+      if (rmErr) console.warn(`  (Aufräumen übersprungen: ${rmErr.message})`);
+      else console.log(`  Aufgeräumt: ${stale.length} alte Datei(en) dieses Spots gelöscht.`);
+    }
+  } catch (e) {
+    console.warn(`  (Aufräumen übersprungen: ${(e as Error).message})`);
+  }
 }
 
 function ffmpeg(args: string[]) {

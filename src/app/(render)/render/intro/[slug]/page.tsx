@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { createServiceClient } from "@/lib/supabase/service";
 import IntroRenderMap, { type IntroMeta } from "@/components/render/IntroRenderMap";
 import { haversineMeters } from "@/lib/geo";
+import { factDurationFixed } from "@/lib/facts-i18n";
 
 // Diese Seite hat nur einen Zweck: das Render-Skript (Playwright) lädt sie und nimmt
 // die 3D-Kamerafahrt Frame für Frame auf. Kein Besucher-Feature. Deshalb per Secret
@@ -50,7 +51,10 @@ async function loadIntro(slug: string): Promise<IntroData | null> {
     | undefined;
   const distanceKm = ep?.distanceKm != null ? ep.distanceKm : routeKm(route);
   const ascentM = ep?.ascent != null ? ep.ascent : null;
-  const duration = (data?.duration as string | null) ?? null;
+  // Fester Wert statt Bereich ("1–2 Std" -> "2 Std"), damit die Video-Story dieselbe Dauer
+  // zeigt wie die Foto-Story (storyStats nutzt ebenfalls factDurationFixed). Intro ist
+  // DE-basiert (Name = DE-Titel), also auch die Dauer auf Deutsch.
+  const duration = factDurationFixed((data?.duration as string | null) ?? null, "de");
 
   return { route, meta: { name, distanceKm, ascentM, duration } };
 }

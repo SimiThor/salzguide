@@ -5,7 +5,7 @@
 
 // Hochzählen, wenn sich die OPTIK des Renderers ändert (z.B. Terrain-Überhöhung, Zoom,
 // Wasserzeichen), damit bestehende Intros als veraltet gelten und neu gerendert werden.
-export const INTRO_STYLE_VERSION = "15";
+export const INTRO_STYLE_VERSION = "17";
 
 // FNV-1a (32-bit): stabil, deterministisch, ohne Abhängigkeit und identisch in Node und
 // Browser (kein crypto nötig). Reicht als Änderungs-Erkennung völlig.

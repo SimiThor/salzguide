@@ -67,13 +67,27 @@ export const progress = (now: number, t0: number, ms: number) =>
 export function setTrim(map: MapboxMap, p: number) {
   const head = Math.min(Math.max(p, 0), 1);
   const trim: [number, number] = [head, 1];
-  map.setPaintProperty(ROUTE_LAYER_OUT, "line-trim-offset", trim);
-  map.setPaintProperty(ROUTE_LAYER_LINE, "line-trim-offset", trim);
+  // Robust: zwischen zwei Frames kann die Karte entfernt worden sein (Unmount, HMR-Remount
+  // im Dev). Dann ist der Style weg und setPaintProperty wirft ("reading 'setPaintProperty'
+  // of undefined") -> das würde einen ganzen Render abbrechen. Einen einzelnen verlorenen
+  // Frame lieber überspringen. getLayer im try fängt auch den Fall "Style schon weg".
+  try {
+    if (!map.getLayer(ROUTE_LAYER_LINE)) return;
+    map.setPaintProperty(ROUTE_LAYER_OUT, "line-trim-offset", trim);
+    map.setPaintProperty(ROUTE_LAYER_LINE, "line-trim-offset", trim);
+  } catch {
+    /* Karte nicht mehr bereit -> Trim-Schritt auslassen */
+  }
 }
 
 export function setRouteOpacity(map: MapboxMap, o: number) {
-  map.setPaintProperty(ROUTE_LAYER_OUT, "line-opacity", o);
-  map.setPaintProperty(ROUTE_LAYER_LINE, "line-opacity", o);
+  try {
+    if (!map.getLayer(ROUTE_LAYER_LINE)) return;
+    map.setPaintProperty(ROUTE_LAYER_OUT, "line-opacity", o);
+    map.setPaintProperty(ROUTE_LAYER_LINE, "line-opacity", o);
+  } catch {
+    /* Karte nicht mehr bereit -> auslassen */
+  }
 }
 
 // Quelle + beide Linien-Layer anlegen (weiße 6.5px-Kontur unter roter 3.5px-Linie).

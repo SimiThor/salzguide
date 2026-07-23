@@ -35,7 +35,14 @@ export async function composeStory(opts: {
   try {
     onProgress?.("intro", 0);
     // Beide Quellen ins ffmpeg-Dateisystem. Das Intro ist ein öffentliches Asset (CORS *).
-    await ff.writeFile("intro.mp4", await fetchFile(introUrl));
+    // WICHTIG: Das Intro mit `cache: "no-store"` laden, damit der Videoschnitt IMMER exakt
+    // die Bytes nimmt, die auch das Vorschau-Video zeigt. Sonst kann der Browser-Cache hier
+    // eine ältere, unter derselben URL abgelegte Fassung liefern (Titel oben statt auf 1/3),
+    // während die <video>-Vorschau längst die neue revalidiert hat -> "Vorschau richtig,
+    // Schnitt falsch". So bleiben Vorschau und Ergebnis garantiert dieselbe Variante.
+    const introRes = await fetch(introUrl, { cache: "no-store" });
+    if (!introRes.ok) throw new Error(`Intro-Download fehlgeschlagen (${introRes.status})`);
+    await ff.writeFile("intro.mp4", new Uint8Array(await introRes.arrayBuffer()));
     await ff.writeFile("clip_in", await fetchFile(clip));
     onProgress?.("intro", 100);
 
