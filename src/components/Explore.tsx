@@ -228,7 +228,13 @@ export default function Explore({
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -8 }}
           transition={{ duration: 0.32, ease: [0.34, 1.1, 0.64, 1] }}
-          className="mt-5 space-y-6"
+          // space-y = EINZIGE Quelle für den Abstand ZWISCHEN den Karussell-Regalen.
+          // Grosszügig und mit dem Viewport wachsend (40px, ab md 48px), damit die Regale
+          // klar als eigene Kategorien lesbar sind statt gedrängt - derselbe Rhythmus wie
+          // auf der Spot-Detailseite. Die Überschrift bleibt mit mb-3 bewusst ENG an ihrem
+          // eigenen Karussell (Gruppierung: viel Abstand trennt Kategorien, wenig bindet
+          // Titel an Inhalt).
+          className="mt-5 space-y-10 md:space-y-12"
         >
         {shelves.map(({ cat, spots: catSpots }, i) => {
           return (
