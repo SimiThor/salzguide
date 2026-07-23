@@ -309,22 +309,15 @@ body {
   }
 }
 
-/* KARUSSELL-KARTEN mobil benutzerfreundlich (Explore-Regale, Featured u.ä.).
-   1) Foto-Karten in horizontalen Karussells liegen im Scroll-Weg: die App zeigt Tap-Feedback
-      (active:scale) sofort (Dauer 0), also blitzte die Karte bei JEDER Berührung kurz "gedrückt"
-      auf - auch beim horizontalen UND vertikalen Scrollen. Lösung: das Gedrückt-Sein am Finger
-      um einen Tick VERZÖGERN. Ein Scroll-Wisch bewegt sich vorher, iOS nimmt :active zurück und
-      der Übergang startet nie -> kein Aufblitzen. Ein echter, kurz gehaltener Tap zeigt es weiter.
-   2) Kein iOS-Langdruck: keine "Bild sichern"-Aufforderung, keine Textauswahl, kein Ziehen. */
+/* KARUSSELL-KARTEN (Explore-Regale, Featured u.ä.). Bewusst OHNE Hover-/Gedrückt-Feedback:
+   die Foto-Karten liegen im Scroll-Weg, jedes Antipp-Feedback blitzte beim Scrollen (horizontal
+   wie vertikal) auf. Cleaner und Apple-artiger ist: die Karte reagiert gar nicht auf Berührung,
+   nur der Klick navigiert. Bleibt: kein iOS-Langdruck ("Bild sichern"), keine Textauswahl,
+   kein Ziehen des Fotos. */
 .sg-tap-card {
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   user-select: none;
-}
-@media (hover: none) {
-  .sg-tap-card:active {
-    transition-delay: 80ms;
-  }
 }
 
 /* Mapbox Emoji-Marker (docs/10).
