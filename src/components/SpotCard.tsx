@@ -59,6 +59,8 @@ export default function SpotCard({
               alt={title}
               fill
               sizes="(min-width: 768px) 220px, 76vw"
+              // Deko-Foto, kein Download: nicht ziehbar (das Langdruck-Menü sperrt .sg-tap-card).
+              draggable={false}
               className="rounded-card object-cover"
             />
           ) : (
