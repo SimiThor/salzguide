@@ -55,6 +55,42 @@ export function routeLengthKm(route: [number, number][] | null | undefined): num
   return m / 1000;
 }
 
+// --- Realistische Tour-Dauer (DAV-Gehzeit + Pausen) ------------------------------------
+// Ziel: eine ehrliche Zeit für einen NORMALEN Wanderer (kein Sportler), die die Höhenmeter
+// wirklich mitrechnet UND normale Pausen (Foto, Jause) einschließt. ORS' foot-hiking-Dauer
+// war dafür zu optimistisch (rechnet Berge zu schwach ein). Wir rechnen stattdessen selbst.
+//
+// Reine Gehzeit nach der im Alpenraum üblichen DAV-/DIN-33466-Methode:
+//   - 4 km/h in der Ebene (Wander-, kein Marschtempo)
+//   - 300 Höhenmeter/Stunde im Aufstieg
+//   - 500 Höhenmeter/Stunde im Abstieg
+//   - Horizontal- und Vertikalzeit überlagern sich nur teilweise: die GRÖSSERE der beiden
+//     zählt voll, die kleinere nur zur Hälfte.
+// Darauf ein Pausen-Puffer von ~10 Min/Stunde -> realistische Tour-Dauer, wie sie ein
+// normaler Wanderer wirklich braucht (reine Gehzeit wäre für die echte Tour zu optimistisch).
+//
+// Hin & zurück und Rundwege sind automatisch abgedeckt, weil die VOLLE Route eingegeben wird
+// (mit Auf- UND Abstieg): der Rückweg bringt seine eigenen Höhen-/Streckenmeter mit.
+export const HIKE_SPEED_KMH = 4;
+export const HIKE_ASCENT_MH = 300;
+export const HIKE_DESCENT_MH = 500;
+export const HIKE_BREAK_MIN_PER_HOUR = 10; // Pausen-Puffer auf die reine Gehzeit
+
+export function hikingTimeMinutes(
+  distanceKm: number,
+  ascentM: number,
+  descentM: number,
+): number {
+  const km = Math.max(0, distanceKm || 0);
+  const up = Math.max(0, ascentM || 0);
+  const down = Math.max(0, descentM || 0);
+  const tHoriz = km / HIKE_SPEED_KMH; // Stunden
+  const tVert = up / HIKE_ASCENT_MH + down / HIKE_DESCENT_MH; // Stunden
+  const gehzeitHours = Math.max(tHoriz, tVert) + 0.5 * Math.min(tHoriz, tVert);
+  const withBreaks = gehzeitHours * (1 + HIKE_BREAK_MIN_PER_HOUR / 60);
+  return Math.round(withBreaks * 60);
+}
+
 // Punkt auf der Route bei Bruchteil f ∈ [0..1] der Gesamtlänge (interpoliert).
 export function coordAtFraction(
   route: [number, number][],

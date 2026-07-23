@@ -10,7 +10,7 @@ import { localeMeta } from "@/i18n/locales";
 import { hashSpotTexts, translationsPublishable } from "./spot-hash";
 import { createBlurPreview, planImageBlur, removeBlurPreviews } from "./blur-preview";
 import { stripEmDashFields } from "./em-dash";
-import { parsePois, type MapPoi } from "./geo";
+import { parsePois, hikingTimeMinutes, type MapPoi } from "./geo";
 import { HOME_KEYS } from "./home-fields";
 import { translateHomeTextsWith } from "./home-translate";
 import { parseLandingImage, parseLandingVideo } from "./landing-media";
@@ -529,8 +529,6 @@ export async function snapRoute(
     const props = feat?.properties ?? {};
     const dist = props?.summary?.distance as number | undefined;
     const distanceKm = typeof dist === "number" ? dist / 1000 : undefined;
-    const dur = props?.summary?.duration as number | undefined;
-    const durationMin = typeof dur === "number" ? Math.round(dur / 60) : undefined;
 
     // Höhenprofil (nur wenn ORS Höhe liefert -> 3D-Koordinaten)
     let profile: ElevationProfile | null = null;
@@ -555,6 +553,13 @@ export async function snapRoute(
         distanceKm: distanceKm ?? cum / 1000,
       };
     }
+
+    // Gehzeit SELBST rechnen (DAV, siehe hikingTimeMinutes) statt ORS' optimistischer Dauer:
+    // ehrlich für einen normalen Wanderer, mit echten Höhenmetern (Auf- UND Abstieg). Ohne
+    // Höhenprofil (kein ORS-Höhe) bleibt nur die Horizontalzeit -> immer noch nachvollziehbar.
+    const km = distanceKm ?? profile?.distanceKm;
+    const durationMin =
+      km != null ? hikingTimeMinutes(km, profile?.ascent ?? 0, profile?.descent ?? 0) : undefined;
 
     return { ok: true, coords, distanceKm, durationMin, profile };
   } catch {
