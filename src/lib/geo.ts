@@ -230,9 +230,26 @@ export function classifyRoute(route: [number, number][] | null | undefined): {
     meanNearestDistM(outbound, inbound, 48, lat0),
     meanNearestDistM(inbound, outbound, 48, lat0),
   );
-  return worst <= OUT_AND_BACK_TOL_M
-    ? { shape: "out-and-back", turnaroundIndex: mid, closed: true }
-    : { shape: "loop", turnaroundIndex: last, closed: true };
+  if (worst > OUT_AND_BACK_TOL_M) return { shape: "loop", turnaroundIndex: last, closed: true };
+
+  // Wendepunkt EXAKT bestimmen: der von Start am weitesten entfernte Punkt der ganzen Route.
+  // Die reine Distanz-Mitte trifft ihn bei (durch Snapping) ungleich langen Hälften knapp
+  // daneben; ist der Rückweg minimal länger, liegt die Mitte HINTER dem Wendepunkt -> der Hinweg
+  // nähme ein paar Rückweg-Punkte mit und der Kopf liefe am Ende ein Stück zurück.
+  // Warum der GLOBAL fernste Punkt robust ist: beim echten Hin/Retour (Rückweg = umgekehrter
+  // Hinweg, hier bereits bestätigt) liegt JEDER Rückweg-Punkt näher am Start als der Wendepunkt.
+  // Der fernste Punkt ist also genau der Wendepunkt, und die letzte Kopf-Bewegung geht immer nach
+  // AUSSEN, nie zurück. Kein Fenster nötig (das könnte bei ungleichen Hälften den Punkt verfehlen).
+  let apex = mid;
+  let far = -1;
+  for (let i = 1; i < last; i++) {
+    const d = haversineMeters(route[0], route[i]);
+    if (d > far) {
+      far = d;
+      apex = i;
+    }
+  }
+  return { shape: "out-and-back", turnaroundIndex: apex, closed: true };
 }
 
 // Die zu animierende Route: bei hin/retour nur der Hinweg, sonst die ganze Route
