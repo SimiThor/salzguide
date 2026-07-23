@@ -38,7 +38,16 @@ type GestureStart = {
   decided: boolean; // Richtung dieser Geste steht fest (bleibt bis zum Loslassen)
   drag: boolean; // ... und sie zieht das Sheet (nicht scrollen/Karussell)
   started: boolean; // framer-motion-Drag schon gestartet
+  noDrag: boolean; // Geste begann auf einem Opt-out-Element ([data-sheet-no-drag]) -> nie ziehen
 };
+
+// Beginnt die Geste auf einem Element, das eigene Gesten braucht (z.B. das Foto-Canvas mit
+// Pan/Zoom), darf das Sheet die Geste NICHT übernehmen. Solche Elemente tragen
+// [data-sheet-no-drag]; sonst zöge ein Wisch auf dem Foto das ganze Sheet mit (oder klappte
+// es zu). Deckt beide Pfade ab: den React-Pointer UND den nativen touchmove-Listener.
+function startsOnNoDrag(target: EventTarget | null): boolean {
+  return target instanceof Element && !!target.closest("[data-sheet-no-drag]");
+}
 
 export function useBodyDrag(
   dragControls: DragControls,
@@ -51,6 +60,7 @@ export function useBodyDrag(
     decided: false,
     drag: false,
     started: false,
+    noDrag: false,
   });
   const lastScrollAt = useRef(-Infinity);
   // atFull über einen Ref, damit der einmalig gebundene Listener immer den aktuellen Wert
@@ -65,6 +75,7 @@ export function useBodyDrag(
   // Touch-Handler garantiert dasselbe entscheiden.
   const shouldDrag = useCallback(
     (dx: number, dy: number): boolean => {
+      if (start.current.noDrag) return false; // Geste begann auf einem Opt-out-Element
       if (Math.abs(dx) > Math.abs(dy)) return false; // horizontal -> Karussell/native
       const el = bodyRef.current;
       const full = atFullRef.current;
@@ -111,6 +122,9 @@ export function useBodyDrag(
         decided: false,
         drag: false,
         started: false,
+        // Zielelement der Geste merken: der native touchmove-Listener liest denselben Ref
+        // und weiß so, dass er auf Opt-out-Elementen (Foto-Canvas) nicht ziehen darf.
+        noDrag: startsOnNoDrag(e.target),
       };
     },
     onPointerMove: (e: React.PointerEvent) => {

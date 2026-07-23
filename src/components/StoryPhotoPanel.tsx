@@ -221,8 +221,11 @@ export default function StoryPhotoPanel({
       try {
         await navigator.share({ files: [file] });
         return;
-      } catch {
-        /* Abbruch oder nicht möglich -> Download */
+      } catch (err) {
+        // Nutzer hat den Teilen-Dialog abgebrochen -> NICHT ersatzweise herunterladen
+        // (sonst landet ungefragt eine Datei im Download-Ordner). Nur bei echtem Fehler
+        // auf Download ausweichen.
+        if (err instanceof Error && err.name === "AbortError") return;
       }
     }
     saveFile(file);
@@ -245,10 +248,11 @@ export default function StoryPhotoPanel({
   };
 
   const pick = () => inputRef.current?.click();
+  // Neues Foto wählen: nur den Dialog öffnen. NICHT vorher das aktuelle Bild verwerfen -
+  // sonst wechselt die UI in den Auswahl-Zustand, hängt den offenen File-Input aus und die
+  // Auswahl geht verloren; ausserdem bliebe man bei Abbruch ohne Bild da. loadPhoto ersetzt
+  // das Bitmap ohnehin erst, wenn wirklich ein Foto gewählt wurde.
   const newPhoto = () => {
-    bitmapRef.current?.close?.();
-    bitmapRef.current = null;
-    setBitmap(null);
     setErrorMsg(null);
     pick();
   };
@@ -274,7 +278,10 @@ export default function StoryPhotoPanel({
           type="file"
           accept="image/*"
           hidden
-          onChange={(e) => loadPhoto(e.target.files?.[0])}
+          onChange={(e) => {
+            loadPhoto(e.target.files?.[0]);
+            e.target.value = ""; // gleiche Datei nach Fehler erneut wählbar (feuert sonst kein change)
+          }}
         />
       </div>
     );
@@ -295,6 +302,7 @@ export default function StoryPhotoPanel({
       <div ref={wrapRef} className="flex justify-center">
         <canvas
           ref={canvasRef}
+          data-sheet-no-drag
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={endPointer}

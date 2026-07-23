@@ -136,7 +136,10 @@ function composeDuration(value: string, unit: "Std" | "Min"): string {
   return value.trim() === "" ? "" : `${value.trim()} ${unit}`;
 }
 function durationFromMin(min: number): string {
-  if (min < 60) return `${Math.max(5, Math.round(min / 5) * 5)} Min`;
+  // Unter einer Stunde in 5-Min-Schritten; ab 60 in 0,5-Std-Schritten. Wichtig: erst runden,
+  // dann entscheiden -> 58 Min rundet auf 60 und wird zu "1 Std" (nicht dem hässlichen "60 Min").
+  const min5 = Math.max(5, Math.round(min / 5) * 5);
+  if (min5 < 60) return `${min5} Min`;
   const h = Math.round((min / 60) * 2) / 2; // auf 0,5 runden
   return `${String(h).replace(".", ",")} Std`;
 }

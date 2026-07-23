@@ -41,10 +41,13 @@ const HEAD_SOURCE = "sg-head";
 const HEAD_LAYER = "sg-head-dot";
 
 // Anteil des Bildes, der unten frei bleibt (Padding). Dadurch sitzt der rote Kopf-Punkt bei
-// (1 - HEAD_PAD_FRAC)/2 ≈ 39 % von oben. EINE Quelle für Padding UND Titel-Position, damit die
-// Titelkarte robust mittig zwischen oberem Rand und Punkt bleibt, auch wenn sich der Wert ändert.
+// (1 - HEAD_PAD_FRAC)/2 ≈ 39 % von oben.
 const HEAD_PAD_FRAC = 0.22;
 const HEAD_TOP_FRAC = (1 - HEAD_PAD_FRAC) / 2; // ≈ 0.39: Höhe des Punktes von oben
+
+// Titelblock-MITTE bei 1/4 von oben. Bewusst ENTKOPPELT vom Kopf-Punkt (~39 %): so bleibt
+// zwischen Titel und Strecke genug Weißraum (der Titel soll nicht knapp über der Route kleben).
+const TITLE_MID_FRAC = 0.25;
 
 // Titelkarte oben (oberes Drittel, über dem Kopf-Punkt): Spot-Name + wichtigste Werte + klein
 // SalzGuide, blendet kurz vor Schluss ein.
@@ -318,8 +321,13 @@ export default function IntroRenderMap({
         applyFrame(keyframes[idx], safePitch[idx]);
       };
       window.__introWaitIdle = waitIdle;
+      // Für die "clean"-Variante die Karte per VISIBILITY aus-/einblenden, NIE per display.
+      // React setzt `display: flex` als Inline-Style; `style.display = ""` würde genau dieses
+      // Inline-flex löschen -> die Karte fiele auf display:block zurück, die vertikale
+      // Zentrierung (justify-center) verpufft und der Titel klebt wieder oben. visibility
+      // lässt das Layout unangetastet.
       window.__introSetCard = (visible: boolean) => {
-        if (cardRef.current) cardRef.current.style.display = visible ? "" : "none";
+        if (cardRef.current) cardRef.current.style.visibility = visible ? "visible" : "hidden";
       };
       window.__introReady = true;
 
@@ -364,9 +372,10 @@ export default function IntroRenderMap({
         }}
       />
       <div ref={containerRef} style={{ position: "fixed", inset: 0 }} />
-      {/* Titelkarte OBEN (oberes Drittel, über dem roten Kopf-Punkt bei ~39%): Spot-Name +
-          Werte + klein SalzGuide, zusammen als eine Gruppe. Blendet kurz vor Schluss ein
-          (Opacity per applyFrame). Verlauf von oben für Lesbarkeit. Sonst KEIN Logo im Video. */}
+      {/* Titelkarte im oberen Viertel (Mitte bei ~1/4, mit Luft zur Strecke darunter):
+          Spot-Name + Werte + klein SalzGuide, zusammen als eine Gruppe. Blendet kurz vor
+          Schluss ein (Opacity per applyFrame). Weicher Verlauf für Lesbarkeit. Sonst KEIN
+          Logo im Video. */}
       <div
         ref={cardRef}
         style={{
@@ -374,26 +383,22 @@ export default function IntroRenderMap({
           left: 0,
           right: 0,
           top: 0,
-          // Container reicht vom oberen Rand bis zum roten Punkt (~39%). Der Text sitzt UNTEN in
-          // diesem Band (flex-end + Abstand) -> Textmitte bei ~1/3 von oben, knapp über dem Punkt,
-          // ausgeglichen statt am oberen Rand.
-          height: `${HEAD_TOP_FRAC * 100}vh`,
+          // Band vom oberen Rand bis 2×TITLE_MID_FRAC, Text darin ZENTRIERT (justify-center)
+          // -> Textmitte exakt bei TITLE_MID_FRAC (1/4 von oben). Robust: unabhängig von der
+          // Zeilenzahl und von der Viewport-Höhe, kein flex-end/border-box-Trick mehr.
+          height: `${TITLE_MID_FRAC * 2 * 100}vh`,
           zIndex: 9,
           opacity: 0,
           pointerEvents: "none",
-          // border-box: die Höhe schließt das Padding ein, damit paddingBottom den Text im Band
-          // nach oben zieht (bei content-box läge das Padding außerhalb, der Text bliebe unten).
-          boxSizing: "border-box",
-          // Abstand unten hebt den Text vom roten Punkt ab -> Textmitte ~1/3, mit Luft zum Punkt.
-          padding: "0 28px 3vh",
-          // Verlauf als Band: oben leicht, um den Text (~1/3) herum am dunkelsten, unten aus.
-          // So bleibt der Text lesbar, ohne den ganzen oberen Bildteil schwer abzudunkeln.
+          padding: "0 28px",
+          // Weicher Verlauf, der um die Textmitte (Bandmitte) am dunkelsten ist und nach oben
+          // wie unten ausblendet -> Text lesbar, ohne Himmel/Strecke stark abzudunkeln.
           background:
-            "linear-gradient(to bottom, rgba(0,0,0,0.12) 0%, rgba(0,0,0,0.5) 55%, rgba(0,0,0,0.5) 88%, rgba(0,0,0,0) 100%)",
+            "linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0.14) 34%, rgba(0,0,0,0.5) 50%, rgba(0,0,0,0.14) 66%, rgba(0,0,0,0) 100%)",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          justifyContent: "flex-end",
+          justifyContent: "center",
           gap: 7,
           textAlign: "center",
           fontFamily: "Inter, system-ui, sans-serif",
