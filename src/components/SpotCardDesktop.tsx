@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useTransition } from "react";
+import { motion } from "framer-motion";
 import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import type { SpotCardData } from "@/lib/spots";
@@ -73,7 +74,18 @@ export default function SpotCardDesktop({
         panelOffset ? "md:left-[var(--sg-panel)] md:right-0" : ""
       }`}
     >
-      <div className="pointer-events-auto mx-auto w-full max-w-sm overflow-hidden rounded-[20px] bg-white shadow-[0_18px_50px_-12px_rgba(0,0,0,0.4)]">
+      {/* Wechsel von Spot zu Spot ist kein harter Cut: die Karte bleibt am selben Ort,
+          alte sinkt + verblasst, neue steigt + blendet ein (Kreuzblende). Die eigentliche
+          Presence-Steuerung (Öffnen/Wechseln/Schliessen) liefert das AnimatePresence an der
+          Aufrufstelle (Explore + Gespeichert-Karte), das den Slug als key setzt. Ohne
+          Presence-Kontext spielt hier nur die Enter-Animation beim Mounten — auch gut. */}
+      <motion.div
+        initial={{ opacity: 0, y: 12, scale: 0.96 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 12, scale: 0.96 }}
+        transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
+        className="pointer-events-auto mx-auto w-full max-w-sm overflow-hidden rounded-[20px] bg-white shadow-[0_18px_50px_-12px_rgba(0,0,0,0.4)]"
+      >
         <div className="relative">
           {spot.locked ? (
             // Kein Abzeichen: Die Überschrift darunter sagt bereits "🤫 Geheimtipp".
@@ -150,7 +162,7 @@ export default function SpotCardDesktop({
             </>
           )}
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

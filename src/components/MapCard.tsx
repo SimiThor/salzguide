@@ -10,6 +10,7 @@ const FULLSCREEN_GAP = 24;
 // Platz für die schwebende Desktop-Karte, dieselbe Zahl wie auf der Startseite.
 const DESKTOP_CARD_PAD = 470;
 import { createPortal } from "react-dom";
+import { AnimatePresence } from "framer-motion";
 import { useTranslations } from "next-intl";
 import SpotMap, { type MapMarker } from "./SpotMap";
 import SpotSheet, { SPOT_SHEET_PEEK } from "./SpotSheet";
@@ -182,18 +183,25 @@ export default function MapCard({
                 `isDesktop` darf hier an JavaScript hängen (anders als beim Grundlayout),
                 weil dieses Panel erst existiert, nachdem jemand einen Marker angetippt
                 hat — die Hydration ist da längst durch, es blitzt nichts auf. */}
-            {selected &&
-              (isDesktop ? (
-                <SpotCardDesktop
-                  spot={selected}
-                  // Kein Versatz: Diese Karte liegt vollflächig, ohne Spot-Leiste links.
-                  panelOffset={false}
-                  onClose={clearSelection}
-                  loggedIn={loggedIn}
-                  saved={savedSlugs?.has(selected.slug) ?? false}
-                  onSavedChange={onSavedChange}
-                />
-              ) : (
+            {/* Desktop: Slug als key in AnimatePresence -> Spot-Wechsel als weiche
+                Überblende statt hartem Cut, genau wie auf der Startseite. */}
+            {isDesktop ? (
+              <AnimatePresence>
+                {selected && (
+                  <SpotCardDesktop
+                    key={selected.slug}
+                    spot={selected}
+                    // Kein Versatz: Diese Karte liegt vollflächig, ohne Spot-Leiste links.
+                    panelOffset={false}
+                    onClose={clearSelection}
+                    loggedIn={loggedIn}
+                    saved={savedSlugs?.has(selected.slug) ?? false}
+                    onSavedChange={onSavedChange}
+                  />
+                )}
+              </AnimatePresence>
+            ) : (
+              selected && (
                 <SpotSheet
                   key={selected.slug}
                   spot={selected}
@@ -204,7 +212,8 @@ export default function MapCard({
                   saved={savedSlugs?.has(selected.slug) ?? false}
                   onSavedChange={onSavedChange}
                 />
-              ))}
+              )
+            )}
           </div>,
           document.body,
         )}

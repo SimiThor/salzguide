@@ -338,17 +338,26 @@ export default function Explore({
         </MobileSheet>
       </div>
 
-      {/* Spot-Vorschau: Mobile = ziehbares Bottom-Sheet, Desktop = schwebende Karte */}
-      {previewSpot &&
-        (isDesktop ? (
-          <SpotCardDesktop
-            spot={previewSpot}
-            onClose={closeSpot}
-            loggedIn={loggedIn}
-            saved={savedSet.has(previewSpot.slug)}
-            onSavedChange={handleSavedChange}
-          />
-        ) : (
+      {/* Spot-Vorschau: Mobile = ziehbares Bottom-Sheet, Desktop = schwebende Karte.
+          Am Desktop liegt die Karte in AnimatePresence mit dem Slug als key: Öffnen,
+          Wechseln (Spot A -> Spot B) und Schliessen laufen so als weiche Überblende statt
+          hartem Cut. Mobile hat seine eigene Sheet-Animation (closing/dismissing) und
+          bleibt unangetastet. */}
+      {isDesktop ? (
+        <AnimatePresence>
+          {previewSpot && (
+            <SpotCardDesktop
+              key={previewSpot.slug}
+              spot={previewSpot}
+              onClose={closeSpot}
+              loggedIn={loggedIn}
+              saved={savedSet.has(previewSpot.slug)}
+              onSavedChange={handleSavedChange}
+            />
+          )}
+        </AnimatePresence>
+      ) : (
+        previewSpot && (
           <SpotSheet
             spot={previewSpot}
             closing={sheetClosing}
@@ -358,7 +367,8 @@ export default function Explore({
             saved={savedSet.has(previewSpot.slug)}
             onSavedChange={handleSavedChange}
           />
-        ))}
+        )
+      )}
     </div>
   );
 }
