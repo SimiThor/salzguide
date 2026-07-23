@@ -189,6 +189,11 @@
     "empty": "Pas encore de spots pour cette saison."
   },
   "Detail": {
+    "routeShape": {
+      "loop": "Boucle",
+      "outAndBack": "Aller-retour",
+      "pointToPoint": "Aller simple"
+    },
     "poi": {
       "start": "Départ",
       "finish": "Arrivée",

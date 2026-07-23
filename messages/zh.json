@@ -189,6 +189,11 @@
     "empty": "本季还没有地点。"
   },
   "Detail": {
+    "routeShape": {
+      "loop": "环线",
+      "outAndBack": "往返",
+      "pointToPoint": "单程"
+    },
     "poi": {
       "start": "起点",
       "finish": "终点",

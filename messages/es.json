@@ -189,6 +189,11 @@
     "empty": "Todavía no hay lugares para esta temporada."
   },
   "Detail": {
+    "routeShape": {
+      "loop": "Circular",
+      "outAndBack": "Ida y vuelta",
+      "pointToPoint": "Solo ida"
+    },
     "poi": {
       "start": "Inicio",
       "finish": "Meta",

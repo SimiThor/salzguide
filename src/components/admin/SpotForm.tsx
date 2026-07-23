@@ -342,8 +342,11 @@ export default function SpotForm({
         set(patch);
         const km = r.distanceKm ? `${r.distanceKm.toFixed(1)} km` : "";
         const hm = r.profile ? ` · ↑${r.profile.ascent} ↓${r.profile.descent} hm` : "";
+        // Berechnete Gehzeit der GANZEN Route immer zeigen -> eine schon gesetzte (evtl.
+        // veraltete) Dauer fällt sofort auf, sobald man z.B. auf hin+zurück umstellt.
+        const time = r.durationMin ? ` · ~${durationFromMin(r.durationMin)}` : "";
         const autoMsg = auto.length ? ` · ${auto.join(" & ")} übernommen` : "";
-        setSnapMsg(`Angepasst · ${km}${hm}${autoMsg}`);
+        setSnapMsg(`Angepasst · ${km}${hm}${time}${autoMsg}`);
       } else {
         setSnapMsg(r.error ?? "Fehler beim Anpassen");
       }

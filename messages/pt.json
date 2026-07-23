@@ -189,6 +189,11 @@
     "empty": "Ainda não há spots para esta estação."
   },
   "Detail": {
+    "routeShape": {
+      "loop": "Circular",
+      "outAndBack": "Ida e volta",
+      "pointToPoint": "Só ida"
+    },
     "poi": {
       "start": "Início",
       "finish": "Chegada",

@@ -189,6 +189,11 @@
     "empty": "Voor dit seizoen zijn er nog geen spots."
   },
   "Detail": {
+    "routeShape": {
+      "loop": "Rondje",
+      "outAndBack": "Heen en terug",
+      "pointToPoint": "Enkele reis"
+    },
     "poi": {
       "start": "Startpunt",
       "finish": "Eindpunt",
