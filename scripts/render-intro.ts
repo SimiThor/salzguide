@@ -79,7 +79,28 @@ if (fpsArg) url.searchParams.set("fps", fpsArg);
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+// Render-Status best-effort in die spots-Zeile schreiben (rendering/idle/error). Nur im
+// --upload-Betrieb (Supabase-Keys da). Fehler hier dürfen den Render NIE abbrechen - der
+// Status ist Komfort, das Video ist die Hauptsache; fehlt Migration 0049, wird still ignoriert.
+async function writeRenderStatus(s: string, status: string, errorMsg?: string) {
+  const supaUrl = ENV.NEXT_PUBLIC_SUPABASE_URL;
+  const supaKey = ENV.SUPABASE_SERVICE_ROLE_KEY;
+  if (!supaUrl || !supaKey) return;
+  try {
+    const supabase = createClient(supaUrl, supaKey, { auth: { persistSession: false } });
+    const patch: Record<string, unknown> = {
+      intro_render_status: status,
+      intro_render_error: errorMsg ?? null,
+    };
+    if (status === "rendering") patch.intro_render_started_at = new Date().toISOString();
+    await supabase.from("spots").update(patch).eq("slug", s);
+  } catch {
+    // Best-effort: Status darf nie den Render kippen.
+  }
+}
+
 async function run() {
+  if (doUpload && slug) await writeRenderStatus(slug, "rendering");
   // Retina: halber Viewport bei deviceScaleFactor 2 -> scharfe Labels, exakt width×height.
   const scale = 2;
   const launchOpts: Parameters<typeof chromium.launch>[0] = {
@@ -199,6 +220,7 @@ async function run() {
 
     if (doUpload) {
       await upload(slug!, out, cleanOut, posterWebp);
+      await writeRenderStatus(slug!, "idle");
     } else {
       console.log("\nFertig (lokal, beide Varianten). Mit --upload landen sie in spot-media + der DB.");
     }
@@ -304,7 +326,8 @@ function ffmpeg(args: string[]) {
   });
 }
 
-run().catch((e) => {
+run().catch(async (e) => {
   console.error("\nFehler:", e.message);
+  if (doUpload && slug) await writeRenderStatus(slug, "error", e.message);
   process.exit(1);
 });

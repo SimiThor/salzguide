@@ -1,6 +1,7 @@
 import { setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
-import { getIntroVideos } from "@/lib/admin";
+import { getIntroVideos, getIntroRenderList } from "@/lib/admin";
+import IntroRenderManager from "@/components/admin/IntroRenderManager";
 
 // Download-Center (nur Admin): die "clean"-Variante der Intro-Videos ohne Text-Overlay
 // (kein Titel, keine Werte, kein Logo – nur Karte, Route und die Attribution unten), fürs
@@ -15,7 +16,8 @@ export default async function IntroVideosPage({
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const videos = await getIntroVideos();
+  const [videos, renderList] = await Promise.all([getIntroVideos(), getIntroRenderList()]);
+  const githubConfigured = !!process.env.GITHUB_ACTIONS_TOKEN && !!process.env.GITHUB_REPO;
 
   return (
     <div className="space-y-4 pb-12">
@@ -28,11 +30,15 @@ export default async function IntroVideosPage({
         </Link>
         <h1 className="mt-1 text-2xl font-bold text-ink">Intro-Videos</h1>
         <p className="mt-1 text-[13px] leading-relaxed text-muted">
-          Die saubere Variante ohne Text-Overlay (kein Titel, keine Werte, kein Logo – nur Karte,
-          Route und Attribution) für die eigene Videoproduktion. Die normale Fassung mit Overlay
-          läuft weiter auf den Spot-Seiten.
+          Oben erzeugst du die Intros per Button. Unten liegt die saubere Variante ohne
+          Text-Overlay (nur Karte, Route und Attribution) zum Download für die eigene
+          Videoproduktion; die normale Fassung mit Overlay läuft weiter auf den Spot-Seiten.
         </p>
       </div>
+
+      <IntroRenderManager initial={renderList} configured={githubConfigured} />
+
+      <h2 className="pt-2 text-[15px] font-bold text-ink">Download (Clean-Fassung)</h2>
 
       {videos.length === 0 ? (
         <div className="rounded-[18px] bg-white p-6 text-center shadow-sm ring-1 ring-black/5">
@@ -41,12 +47,8 @@ export default async function IntroVideosPage({
           </div>
           <p className="mt-2 text-[14px] font-semibold text-ink">Noch keine Intro-Videos</p>
           <p className="mx-auto mt-1 max-w-[420px] text-[13px] leading-relaxed text-muted">
-            Sobald ein Spot mit Route gerendert ist, erscheint hier die Clean-Fassung zum Download.
-            Gerendert wird lokal mit{" "}
-            <code className="rounded bg-black/5 px-1.5 py-0.5 text-[12px]">
-              npm run render:intro -- &lt;slug&gt; --upload
-            </code>
-            .
+            Sobald du oben ein Intro erzeugt hast, erscheint hier die Clean-Fassung (ohne
+            Text-Overlay) zum Download.
           </p>
         </div>
       ) : (
