@@ -1798,7 +1798,7 @@ export async function saveHomeFeatured(
 // wären die Übersetzungen für immer scheinbar aktuell.
 export async function saveHomeTexts(
   texts: Record<string, string>,
-): Promise<{ ok: boolean; error?: string }> {
+): Promise<{ ok: boolean; error?: string; texts?: Record<string, string> }> {
   const gate = await requireAdmin();
   if (!gate.ok) return { ok: false, error: gate.error };
   if (!texts || typeof texts !== "object") return { ok: false, error: "Ungültige Texte." };
@@ -1830,7 +1830,9 @@ export async function saveHomeTexts(
     revalidatePath(`/${l}`);
     revalidatePath(`/${l}/ueber-uns`);
   }
-  return { ok: true };
+  // Den normalisierten Stand zurückgeben, damit das Formular ihn übernimmt: sonst bliebe der
+  // lokale Rohtext (Leerzeichen/Gedankenstrich) ungleich dem gespeicherten und „dirty" klemmte.
+  return { ok: true, texts: cleaned };
 }
 
 // „In alle Sprachen übersetzen": Deutsch -> alle Ziel-Locales, in einem Rutsch.
@@ -1850,7 +1852,7 @@ export async function fillHomeTranslations(): Promise<{
   const svc = createServiceClient();
   const { data, error } = await svc
     .from("home_content")
-    .select("texts")
+    .select("texts, translations, source_hash")
     .eq("id", 1)
     .maybeSingle();
   if (error) return { ok: false, error: error.message };
@@ -1863,12 +1865,23 @@ export async function fillHomeTranslations(): Promise<{
   if (!res.ok || !res.translations)
     return { ok: false, error: res.error === "empty" ? "Keine Texte." : "Übersetzung fehlgeschlagen." };
 
+  // Bereits gespeicherte Übersetzungen NICHT wegwerfen: nur die neu erhaltenen Sprachen
+  // überschreiben. Sonst würde ein Teilausfall (eine Sprache scheitert transient, der Lauf gilt
+  // trotzdem als ok) deren zuvor gute Übersetzung löschen und die Seite fiele dort auf Deutsch.
+  const prevTranslations = (data?.translations ?? {}) as Record<string, unknown>;
+  const mergedTranslations = { ...prevTranslations, ...res.translations };
+  // Die Aktualitäts-Marke nur setzen, wenn ALLE Zielsprachen geklappt haben. Bei Teilausfall die
+  // alte behalten -> das Badge bleibt „veraltet", statt die fehlgeschlagenen (jetzt alten)
+  // Sprachen fälschlich als aktuell auszuweisen.
+  const allSucceeded = !(res.failed && res.failed.length);
+  const nextSourceHash = allSucceeded
+    ? res.sourceHash
+    : ((data?.source_hash as string | null | undefined) ?? null);
   const { error: upErr } = await svc
     .from("home_content")
     .update({
-      translations: res.translations,
-      // Marke des Standes, der übersetzt wurde. Ändert Anton danach ein Wort, weicht sie ab.
-      source_hash: res.sourceHash,
+      translations: mergedTranslations,
+      source_hash: nextSourceHash,
       updated_at: new Date().toISOString(),
     })
     .eq("id", 1);
@@ -1886,7 +1899,9 @@ export async function fillHomeTranslations(): Promise<{
 // Dieselbe Prüfung wie beim Lesen (landing-media.ts): Was hier nicht durchkommt, wird zu
 // null statt zu einer halben Zeile in der DB. Der Alt-Text läuft NICHT durch die
 // Übersetzung — er gehört zum Bild, nicht zu den Texten.
-export async function saveHomeMedia(media: HomeMedia): Promise<{ ok: boolean; error?: string }> {
+export async function saveHomeMedia(
+  media: HomeMedia,
+): Promise<{ ok: boolean; error?: string; media?: HomeMedia }> {
   const gate = await requireAdmin();
   if (!gate.ok) return { ok: false, error: gate.error };
   if (!media || typeof media !== "object") return { ok: false, error: "Ungültige Medien." };
@@ -1922,7 +1937,9 @@ export async function saveHomeMedia(media: HomeMedia): Promise<{ ok: boolean; er
     revalidatePath(`/${l}`);
     revalidatePath(`/${l}/ueber-uns`);
   }
-  return { ok: true };
+  // Normalisierten Stand zurückgeben (verworfene Slots sind hier schon abgefangen), damit das
+  // Formular ihn übernimmt und „dirty" nicht auf getrimmten Alt-Texten hängen bleibt.
+  return { ok: true, media: clean };
 }
 
 // ── Intro-Video per Button rendern (GitHub Actions) ────────────────────────────

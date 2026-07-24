@@ -91,6 +91,8 @@ export default function HomeMediaManager({ media: saved }: { media: HomeMedia })
         setMsg({ ok: false, text: res.error ?? "Speichern fehlgeschlagen." });
         return;
       }
+      // Auf den normalisierten Server-Stand nachziehen, sonst klemmt "dirty" auf true.
+      if (res.media) setMedia(res.media);
       setMsg({ ok: true, text: "Gespeichert. Die Startseite zeigt jetzt diese Medien." });
       router.refresh();
     });

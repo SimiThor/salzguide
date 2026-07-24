@@ -51,6 +51,9 @@ export default function HomeContentManager({
         setMsg({ ok: false, text: res.error ?? "Speichern fehlgeschlagen." });
         return;
       }
+      // Auf den normalisierten Server-Stand nachziehen, sonst klemmt "dirty" auf true (der lokale
+      // Rohtext bliebe ungleich dem gespeicherten) und der Übersetzen-Knopf bliebe gesperrt.
+      if (res.texts) setTexts(res.texts);
       setMsg({
         ok: true,
         text: translated.length
