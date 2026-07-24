@@ -375,21 +375,27 @@ export type AdminSpotRow = {
   trPresent: number;
   trTotal: number;
   trState: TranslationState;
+  // Fertiger Suchtext für die Admin-Suche: ALLE Titel-Sprachen + slug + Kennungen (Typ,
+  // Subtyp, Gebiet, See). So findet man einen Spot auch über den englischen Titel oder den
+  // See, nicht nur über den deutschen Namen. Wird erst im Client gefaltet (normalizeText).
+  search: string;
 };
 export async function getAdminSpots(): Promise<AdminSpotRow[]> {
   const supabase = await createClient();
   const targets = routing.locales.filter((l) => l !== "de");
+  // subtype/area/lake_name kommen aus 0001_init und existieren immer -> gefahrlos im Select.
+  const cols = "id, slug, type, subtype, area, lake_name, is_pro, status";
   // Mit source_hash (Aktualitäts-Check). Fällt zurück, falls Spalte noch nicht existiert
   // (Migration 0031 nicht eingespielt) -> Liste bricht NIE.
   const withHash = await supabase
     .from("spots")
-    .select("id, slug, type, is_pro, status, spot_translations(title, lang, source_hash)")
+    .select(`${cols}, spot_translations(title, lang, source_hash)`)
     .order("sort_weight", { ascending: false });
   const data = withHash.error
     ? (
         await supabase
           .from("spots")
-          .select("id, slug, type, is_pro, status, spot_translations(title, lang)")
+          .select(`${cols}, spot_translations(title, lang)`)
           .order("sort_weight", { ascending: false })
       ).data
     : withHash.data;
@@ -401,6 +407,17 @@ export async function getAdminSpots(): Promise<AdminSpotRow[]> {
     }[];
     const de = tr.find((t) => t.lang === "de") ?? tr[0];
     const st = translationStatus(tr, targets);
+    // Doppelte Wörter schaden der Suche nicht; leere Felder fliegen raus.
+    const search = [
+      ...tr.map((t) => t.title),
+      s.slug,
+      s.type,
+      s.subtype,
+      s.area,
+      s.lake_name,
+    ]
+      .filter(Boolean)
+      .join(" ");
     return {
       id: s.id,
       slug: s.slug,
@@ -411,6 +428,7 @@ export async function getAdminSpots(): Promise<AdminSpotRow[]> {
       trPresent: st.present,
       trTotal: st.total,
       trState: st.state,
+      search,
     };
   });
 }
