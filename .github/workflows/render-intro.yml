@@ -1,0 +1,44 @@
+name: Render Intro-Video
+
+# Wird vom Admin-Button ausgelöst (Server-Action triggerIntroRender -> GitHub-API
+# workflow_dispatch). Rendert das Wander-Intro auf einem GitHub-Runner (Chrome + ffmpeg
+# sind auf ubuntu-latest vorinstalliert) GEGEN DIE PRODUKTIONS-URL und lädt Video + Poster
+# zu Supabase. Kein Dauer-Dienst, kein Terminal.
+#
+# Einmalig zu hinterlegen (Repo -> Settings -> Secrets and variables -> Actions):
+#   RENDER_BASE_URL             https://<eure-domain>   (die Prod-URL, /render/intro/<slug> lebt dort)
+#   RENDER_SECRET               dasselbe wie in Vercel  (Token-Gate der Render-Route)
+#   NEXT_PUBLIC_SUPABASE_URL    Supabase-Projekt-URL
+#   SUPABASE_SERVICE_ROLE_KEY   Supabase Service-Role-Key (Upload + spots-Update)
+on:
+  workflow_dispatch:
+    inputs:
+      slug:
+        description: "Spot-Slug (z. B. nockstein)"
+        required: true
+        type: string
+
+# Nie zwei Renders desselben Spots gleichzeitig laufen lassen.
+concurrency:
+  group: render-intro-${{ github.event.inputs.slug }}
+  cancel-in-progress: false
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # Chrome (channel "chrome") und ffmpeg sind auf ubuntu-latest bereits vorhanden.
+      - name: Render + Upload
+        env:
+          RENDER_BASE_URL: ${{ secrets.RENDER_BASE_URL }}
+          RENDER_SECRET: ${{ secrets.RENDER_SECRET }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node --experimental-strip-types scripts/render-intro.ts "${{ github.event.inputs.slug }}" --upload

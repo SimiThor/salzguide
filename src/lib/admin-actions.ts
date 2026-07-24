@@ -18,6 +18,7 @@ import type { HomeMedia } from "./home-content";
 import { MAX_HOME_FEATURED } from "./home-featured";
 import { requireAdmin } from "./admin-guard";
 import { factCanonical, factPrice, type FactField } from "./facts-i18n";
+import { getIntroRenderList, type IntroRenderItem } from "./admin";
 
 export type SpotInput = {
   id?: string;
@@ -1922,4 +1923,71 @@ export async function saveHomeMedia(media: HomeMedia): Promise<{ ok: boolean; er
     revalidatePath(`/${l}/ueber-uns`);
   }
   return { ok: true };
+}
+
+// ── Intro-Video per Button rendern (GitHub Actions) ────────────────────────────
+// Der Render selbst läuft NICHT hier (Playwright + ffmpeg, Minuten-Job) - das passt nicht in
+// eine Vercel-Funktion. Diese Action stösst nur den GitHub-Actions-Workflow (render-intro.yml)
+// an, der auf einem Runner gegen die Prod-URL rendert und hochlädt. Den Fortschritt meldet das
+// Skript zurück in die spots-Zeile (intro_render_status), die die Admin-Seite pollt.
+export async function triggerIntroRender(
+  slug: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const gate = await requireAdmin();
+  if (!gate.ok) return { ok: false, error: gate.error };
+
+  const token = process.env.GITHUB_ACTIONS_TOKEN;
+  const repo = process.env.GITHUB_REPO; // "owner/name"
+  if (!token || !repo) {
+    return {
+      ok: false,
+      error: "GitHub ist nicht konfiguriert (GITHUB_ACTIONS_TOKEN / GITHUB_REPO fehlen).",
+    };
+  }
+
+  const svc = createServiceClient();
+  // Sofort 'queued', damit die Seite gleich „in Warteschlange" zeigt. Best-effort: fehlt
+  // Migration 0049, ignorieren wir den Fehler und stossen den Workflow trotzdem an.
+  await svc
+    .from("spots")
+    .update({
+      intro_render_status: "queued",
+      intro_render_error: null,
+      intro_render_started_at: new Date().toISOString(),
+    })
+    .eq("slug", slug);
+
+  const res = await fetch(
+    `https://api.github.com/repos/${repo}/actions/workflows/render-intro.yml/dispatches`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+        "User-Agent": "salzguide-admin",
+      },
+      body: JSON.stringify({ ref: "main", inputs: { slug } }),
+    },
+  );
+
+  if (res.status !== 204) {
+    const txt = await res.text().catch(() => "");
+    await svc
+      .from("spots")
+      .update({
+        intro_render_status: "error",
+        intro_render_error: `GitHub API ${res.status}: ${txt.slice(0, 300)}`,
+      })
+      .eq("slug", slug);
+    return { ok: false, error: `Workflow konnte nicht gestartet werden (GitHub ${res.status}).` };
+  }
+  return { ok: true };
+}
+
+// Aktuelle Render-Liste neu laden (fürs Polling der Admin-Seite).
+export async function refreshIntroRenderList(): Promise<IntroRenderItem[]> {
+  const gate = await requireAdmin();
+  if (!gate.ok) return [];
+  return getIntroRenderList();
 }

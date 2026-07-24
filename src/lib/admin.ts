@@ -6,6 +6,7 @@ import { HOME_KEYS, type HomeTexts } from "./home-fields";
 import { homeSourceHash, type HomeMedia } from "./home-content";
 import { parseLandingImage, parseLandingVideo } from "./landing-media";
 import type { ProSource } from "./pro-source";
+import { introSourceHash } from "./intro-hash";
 import deMessages from "../../messages/de.json";
 
 export type AdminCategory = { id: string; key: string; season: string; title: string };
@@ -440,6 +441,67 @@ export async function getIntroVideos(): Promise<AdminIntroVideo[]> {
       posterUrl: (s.intro_video_poster_url as string | null) ?? null,
     };
   });
+}
+
+// ── Intro-Render (Admin erzeugt Videos per Button) ─────────────────────────────
+export type IntroRenderStatus = "idle" | "queued" | "rendering" | "error";
+export type IntroRenderItem = {
+  slug: string;
+  title: string;
+  hasVideo: boolean;
+  posterUrl: string | null;
+  /** Route/Renderer-Version hat sich seit dem letzten Render geändert -> neu rendern. */
+  outdated: boolean;
+  status: IntroRenderStatus;
+  error: string | null;
+  startedAt: string | null;
+};
+
+// Alle veröffentlichten Wanderungen (Aktivität + LineString-Route) mit ihrem Intro-Render-
+// Zustand. Basis der Admin-Seite, auf der man das Intro per Button erzeugt.
+export async function getIntroRenderList(): Promise<IntroRenderItem[]> {
+  const supabase = await createClient();
+  const base =
+    "slug, route_geojson, intro_video_url, intro_video_poster_url, intro_source_hash, spot_translations(title, lang)";
+  const withStatus = `${base}, intro_render_status, intro_render_error, intro_render_started_at`;
+  const q = (cols: string) =>
+    supabase
+      .from("spots")
+      .select(cols)
+      .eq("type", "activity")
+      .eq("status", "published")
+      .not("route_geojson", "is", null)
+      .order("sort_weight", { ascending: false });
+
+  let res = await q(withStatus);
+  // Migration 0049 evtl. noch nicht eingespielt -> ohne Status-Spalten (Status = idle).
+  if (res.error) res = await q(base);
+  if (res.error) return [];
+
+  return ((res.data ?? []) as unknown as Record<string, unknown>[])
+    .filter((s) => (s.route_geojson as { type?: string } | null)?.type === "LineString")
+    .map((s) => {
+      const tr = (s.spot_translations ?? []) as { title: string; lang: string }[];
+      const de = tr.find((t) => t.lang === "de") ?? tr[0];
+      const hasVideo = !!s.intro_video_url;
+      const st = (s as { intro_render_status?: string }).intro_render_status;
+      const status: IntroRenderStatus =
+        st === "queued" || st === "rendering" || st === "error" ? st : "idle";
+      return {
+        slug: s.slug as string,
+        title: (de?.title as string) ?? (s.slug as string),
+        hasVideo,
+        posterUrl: (s.intro_video_poster_url as string | null) ?? null,
+        outdated:
+          hasVideo &&
+          introSourceHash(s.route_geojson) !==
+            ((s.intro_source_hash as string | null) ?? ""),
+        status,
+        error: (s as { intro_render_error?: string | null }).intro_render_error ?? null,
+        startedAt:
+          (s as { intro_render_started_at?: string | null }).intro_render_started_at ?? null,
+      };
+    });
 }
 
 // Einen Spot zum Bearbeiten laden (Rohdaten + DE-Übersetzung + Kategorie-IDs)
