@@ -58,6 +58,8 @@ export default function StoryMaker({
   const detents = [peek, 0.95];
   const bgRef = useRef<HTMLVideoElement>(null);
   const heroRef = useRef<HTMLCanvasElement>(null);
+  // Medium (Video-Frame bzw. gezeichnete Route) bereit -> sanft über die Landschaft einblenden.
+  const [heroReady, setHeroReady] = useState(false);
 
   // Stabiler Callback: das jeweils gemountete Panel meldet hierüber seinen Zustand.
   const onPanelUi = useCallback((s: StoryPanelUi) => setUi(s), []);
@@ -105,6 +107,7 @@ export default function StoryMaker({
       c.height = Math.round(h * dpr);
       const ctx = c.getContext("2d");
       if (ctx) drawRouteHero(ctx, c.width, c.height, route);
+      setHeroReady(true);
     };
     draw();
     const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(draw) : null;
@@ -137,9 +140,10 @@ export default function StoryMaker({
           open ? "opacity-0" : "opacity-100"
         }`}
       >
-        {/* Warme Berglandschaft als Hintergrund (statt kühlem Blau/Lila). Liegt hinter Video/
-            Route: im No-Intro-Fall scheint sie durch die transparente Routen-Grafik, im
-            Intro-Fall deckt das Video sie ab (und beim Laden sieht man Berge statt Blackscreen). */}
+        {/* Warme Berglandschaft als sofortiger, stabiler Ladescreen (Inline-SVG, kein Netz).
+            Video bzw. Routen-Grafik blenden darüber SANFT ein (opacity), statt hart aufzupoppen
+            -> nichts springt beim Laden. Ohne Intro scheint die Landschaft durch die transparente
+            Route; mit Intro deckt das Video sie ab, sobald sein erster Frame da ist. */}
         <StoryHeroBackdrop className="absolute inset-0 h-full w-full" />
         {introUrl ? (
           <video
@@ -150,11 +154,20 @@ export default function StoryMaker({
             loop
             playsInline
             preload="none"
-            className="absolute inset-0 h-full w-full object-cover"
+            onLoadedData={() => setHeroReady(true)}
+            className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-500 ${
+              heroReady ? "opacity-100" : "opacity-0"
+            }`}
           />
         ) : (
-          // Kein Video -> Route als Grafik (füllt den sonst leeren dunklen Hero).
-          <canvas ref={heroRef} aria-hidden className="absolute inset-0 h-full w-full" />
+          // Kein Video -> Route als Grafik, sanft eingeblendet über der Landschaft.
+          <canvas
+            ref={heroRef}
+            aria-hidden
+            className={`absolute inset-0 h-full w-full transition-opacity duration-500 ${
+              heroReady ? "opacity-100" : "opacity-0"
+            }`}
+          />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
         <div className="absolute inset-x-0 bottom-0 p-4 pt-12">
