@@ -17,6 +17,7 @@ import type { HomeMedia } from "./home-content";
 import { MAX_HOME_FEATURED } from "./home-featured";
 import { requireAdmin } from "./admin-guard";
 import { factCanonical, factPrice, type FactField } from "./facts-i18n";
+import { slugify } from "./slug";
 import { getIntroRenderList, type IntroRenderItem } from "./admin";
 
 export type SpotInput = {
@@ -148,8 +149,11 @@ export async function saveSpot(input: SpotInput): Promise<SaveResult> {
   if (!gate.ok) return { ok: false, error: gate.error };
   const { supabase } = gate;
 
-  if (!input.slug.trim() || !input.title.trim())
-    return { ok: false, error: "required" };
+  // Slug = URL-Schlüssel. Bei NEUEN Spots kanonisieren, damit nie ein roher „Hallstätter See!"
+  // als URL landet. Bestehende Spots NICHT umschreiben: ein geänderter Slug bräche alte
+  // Links/SEO; wer ihn bewusst ändert, tut das im Feld selbst.
+  const slug = input.id ? input.slug.trim() : slugify(input.slug);
+  if (!slug || !input.title.trim()) return { ok: false, error: "required" };
 
   // Öffnungszeiten: im Google-Modus (Default) ist die Place-ID Pflicht.
   if (
@@ -211,7 +215,7 @@ export async function saveSpot(input: SpotInput): Promise<SaveResult> {
   const huts = parsePois(input.huts);
 
   const row = {
-    slug: input.slug.trim(),
+    slug,
     type: input.type,
     subtype: canon("subtype", input.subtype),
     emoji: e(input.emoji),
@@ -249,17 +253,23 @@ export async function saveSpot(input: SpotInput): Promise<SaveResult> {
   };
 
   // Spot anlegen/aktualisieren
+  // Ein doppelter Slug verletzt den unique-Constraint (Postgres 23505). Statt die rohe
+  // Postgres-Meldung zu zeigen, geben wir „slug_taken" zurück -> das Formular macht daraus
+  // eine klare Bitte, einen anderen Slug zu wählen.
+  const slugTaken = (code?: string) => code === "23505";
   let spotId = input.id;
   if (spotId) {
     const { error } = await supabase.from("spots").update(row).eq("id", spotId);
-    if (error) return { ok: false, error: error.message };
+    if (error)
+      return { ok: false, error: slugTaken(error.code) ? "slug_taken" : error.message };
   } else {
     const { data, error } = await supabase
       .from("spots")
       .insert(row)
       .select("id")
       .single();
-    if (error) return { ok: false, error: error.message };
+    if (error)
+      return { ok: false, error: slugTaken(error.code) ? "slug_taken" : error.message };
     spotId = data.id;
   }
 

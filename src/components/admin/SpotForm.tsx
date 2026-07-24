@@ -32,6 +32,7 @@ import {
   subtypeGroups,
 } from "@/lib/spot-options";
 import { factIsKnown, factPrice } from "@/lib/facts-i18n";
+import { slugify } from "@/lib/slug";
 import LocationPicker, { POI_STYLE, type PlacingKind } from "./LocationPicker";
 import ElevationProfile from "../ElevationProfile";
 import PhotoUploader from "./PhotoUploader";
@@ -99,14 +100,6 @@ const emptyTexts = (): SpotTexts => ({
   sectionB: "",
   locationText: "",
 });
-
-function slugify(s: string) {
-  return s
-    .toLowerCase()
-    .replace(/ä/g, "ae").replace(/ö/g, "oe").replace(/ü/g, "ue").replace(/ß/g, "ss")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
-}
 
 const input =
   "w-full rounded-[12px] border border-black/10 bg-white px-3 py-2 text-[15px] text-ink outline-none focus:border-accent";
@@ -401,7 +394,9 @@ export default function SpotForm({
         setErr(
           r.error === "place_id_required"
             ? "Google Place ID ist Pflicht – bitte eintragen oder auf „Manuell angeben“ umstellen."
-            : r.error === "required"
+            : r.error === "slug_taken"
+              ? "Dieser Slug ist schon vergeben – bitte einen anderen wählen."
+              : r.error === "required"
               ? "Bitte Slug und Titel ausfüllen."
               : r.error === "translations_incomplete"
                 ? "Zum Veröffentlichen erst „🌍 In alle Sprachen übersetzen“ – oder als Entwurf speichern."
