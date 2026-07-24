@@ -40,6 +40,12 @@ const INTRO_EDGE = "rgba(0,0,0,0.45)";
 const HEAD_SOURCE = "sg-head";
 const HEAD_LAYER = "sg-head-dot";
 
+// Mapbox GL v3 beleuchtet 2D-Layer (circle/line) über dem 3D-Terrain mit dem Szenenlicht.
+// circle-/line-emissive-strength steht ab Werk auf 0 -> das Rot wird vom Licht abgedunkelt
+// und wirkt leicht durchscheinend/billig. 1 = der Layer leuchtet in seiner vollen Eigenfarbe,
+// unabhängig vom Licht. EINHEITLICH auf Punkt UND Linie, damit das Rot überall gleich satt ist.
+const MAP_EMISSIVE = 1;
+
 // Anteil des Bildes, der unten frei bleibt (Padding). Dadurch sitzt der rote Kopf-Punkt bei
 // (1 - HEAD_PAD_FRAC)/2 ≈ 39 % von oben.
 const HEAD_PAD_FRAC = 0.22;
@@ -208,6 +214,7 @@ export default function IntroRenderMap({
         paint: {
           "line-color": INTRO_EDGE,
           "line-width": 8.5,
+          "line-emissive-strength": MAP_EMISSIVE,
           "line-opacity-transition": NO_TRANSITION,
         },
         layout: { "line-join": "round", "line-cap": "round" },
@@ -219,6 +226,7 @@ export default function IntroRenderMap({
         paint: {
           "line-color": ROUTE_LINE,
           "line-width": 6.5,
+          "line-emissive-strength": MAP_EMISSIVE,
           "line-opacity-transition": NO_TRANSITION,
         },
         layout: { "line-join": "round", "line-cap": "round" },
@@ -233,8 +241,11 @@ export default function IntroRenderMap({
         paint: {
           "circle-radius": 9,
           "circle-color": ROUTE_LINE,
+          "circle-opacity": 1,
           "circle-stroke-width": 4.5,
           "circle-stroke-color": "#ffffff",
+          "circle-stroke-opacity": 1,
+          "circle-emissive-strength": MAP_EMISSIVE,
           "circle-pitch-alignment": "viewport",
         },
       });
