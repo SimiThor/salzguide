@@ -127,13 +127,13 @@ export default function EventsWeek({
               {t("noneFiltered")}
             </p>
           ) : (
-            <div className="mt-5 space-y-6">
+            <div className="mt-5 space-y-10 md:space-y-12">
               {days.map((d) => {
                 const { weekday, date } = dayLabel(d.key, locale);
                 const today = d.key === todayKey;
                 return (
                   <section key={d.key}>
-                    <h2 className="mb-2.5 flex items-baseline gap-2 text-[13px] font-bold uppercase tracking-wide text-muted">
+                    <h2 className="mb-3 flex items-baseline gap-2 text-[13px] font-bold uppercase tracking-wide text-muted">
                       <span className="text-ink">{weekday}</span>
                       <span>{date}</span>
                       {today && (
