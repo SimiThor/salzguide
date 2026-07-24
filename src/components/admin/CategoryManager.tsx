@@ -159,6 +159,7 @@ export default function CategoryManager({
   const [creating, setCreating] = useState<Season | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [movingSeason, setMovingSeason] = useState<Season | null>(null);
+  const [delErr, setDelErr] = useState<string | null>(null);
 
   // Kategorien, denen eine Zielsprache fehlt (z.B. nach Hinzufügen einer neuen Sprache).
   const incomplete = categories
@@ -172,9 +173,13 @@ export default function CategoryManager({
   };
 
   async function onDelete(id: string) {
+    setDelErr(null);
     const r = await deleteCategory(id);
     setConfirmDelete(null);
+    // Ohne diese Zeile blieb ein fehlgeschlagenes Löschen stumm: Der Dialog schloss, die Zeile
+    // blieb stehen, und der Admin hielt es für einen Aussetzer.
     if (r.ok) router.refresh();
+    else setDelErr("Löschen hat nicht geklappt. Bitte neu laden und erneut versuchen.");
   }
 
   // Kategorie in ihrer Saison eine Position nach oben/unten schieben.
@@ -199,6 +204,7 @@ export default function CategoryManager({
         Titel der Explore-Karussells je Saison. Umbenennen ändert nur den angezeigten
         Titel – die Zuordnung der Spots bleibt erhalten.
       </p>
+      {delErr && <p className="mt-2 text-[13px] font-medium text-accent">{delErr}</p>}
 
       {(["summer", "winter"] as const).map((season) => {
         const cats = categories.filter((c) => c.season === season);
