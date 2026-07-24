@@ -15,6 +15,7 @@
     "weatherSource": "天气数据"
   },
   "Menu": {
+    "more": "更多",
     "open": "打开菜单",
     "soon": "即将上线",
     "about": "关于我们",

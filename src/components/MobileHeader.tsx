@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { Link, usePathname } from "@/i18n/navigation";
 import LanguageSwitcher from "./LanguageSwitcher";
+import { NAV_ITEMS } from "@/lib/nav";
 
 function Burger() {
   return (
@@ -43,15 +44,10 @@ export default function MobileHeader() {
 
   const close = () => setOpen(false);
 
-  // Aktuell verfügbar vs. bald
-  const ready = [
-    { key: "explore", href: "/explore" as const },
-    { key: "tours", href: "/touren" as const },
-    { key: "water", href: "/wasser" as const },
-    { key: "events", href: "/events" as const },
-    { key: "saved", href: "/gespeichert" as const },
-    { key: "profile", href: "/profil" as const },
-  ];
+  // Aktuell verfügbar (alle untereinander) vs. bald. Die Seiten kommen aus der gemeinsamen
+  // Quelle (lib/nav.ts) -> exakt dieselben Punkte wie am PC. KI ist hier bewusst NICHT
+  // dabei: die sitzt in der unteren Leiste, im Burger wäre sie doppelt.
+  const ready = NAV_ITEMS;
   const soon = [{ label: t("Menu.about") }];
 
   return (
