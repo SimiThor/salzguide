@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "./supabase/server";
 import { createServiceClient } from "./supabase/service";
 import { BRAND_VOICE } from "./brand-voice";
 import { normalizeManual, type OpeningWeek } from "./opening-hours";
@@ -145,17 +144,9 @@ function spotMediaUrl(
 }
 
 export async function saveSpot(input: SpotInput): Promise<SaveResult> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "auth" };
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
-  if (profile?.role !== "admin") return { ok: false, error: "forbidden" };
+  const gate = await requireAdmin();
+  if (!gate.ok) return { ok: false, error: gate.error };
+  const { supabase } = gate;
 
   if (!input.slug.trim() || !input.title.trim())
     return { ok: false, error: "required" };
@@ -490,17 +481,8 @@ export type SnapResult = {
 export async function snapRoute(
   waypoints: [number, number][],
 ): Promise<SnapResult> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "auth" };
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
-  if (profile?.role !== "admin") return { ok: false, error: "forbidden" };
+  const gate = await requireAdmin();
+  if (!gate.ok) return { ok: false, error: gate.error };
 
   if (waypoints.length < 2) return { ok: false, error: "Mindestens 2 Punkte nötig" };
   const key = process.env.ORS_KEY;
@@ -699,17 +681,8 @@ Finde konkrete Insider-Tipps, Besonderheiten, beste Zeit und Parken/Anreise.`;
 export async function generateSpotTexts(
   input: GenerateTextsInput,
 ): Promise<GenerateTextsResult> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "auth" };
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
-  if (profile?.role !== "admin") return { ok: false, error: "forbidden" };
+  const gate = await requireAdmin();
+  if (!gate.ok) return { ok: false, error: gate.error };
 
   if (!input.title.trim()) return { ok: false, error: "Bitte zuerst einen Titel eingeben." };
   const key = process.env.ANTHROPIC_API_KEY;
@@ -860,17 +833,9 @@ ${input.notes.trim() || "- (keine)"}${
 }
 
 export async function deleteSpot(id: string): Promise<SaveResult> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "auth" };
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
-  if (profile?.role !== "admin") return { ok: false, error: "forbidden" };
+  const gate = await requireAdmin();
+  if (!gate.ok) return { ok: false, error: gate.error };
+  const { supabase } = gate;
 
   const { error } = await supabase.from("spots").delete().eq("id", id);
   if (error) return { ok: false, error: error.message };
@@ -900,17 +865,8 @@ RULES:
 - If a source field is empty, return an empty string for it.`;
 
 export async function translateSpotTexts(input: SpotTexts): Promise<TranslateResult> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "auth" };
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
-  if (profile?.role !== "admin") return { ok: false, error: "forbidden" };
+  const gate = await requireAdmin();
+  if (!gate.ok) return { ok: false, error: gate.error };
 
   if (!input.title.trim()) return { ok: false, error: "Bitte zuerst deutsche Texte erstellen." };
   const key = process.env.ANTHROPIC_API_KEY;
@@ -1138,17 +1094,8 @@ export type TranslateAllResult = {
 };
 
 export async function translateSpotTextsAll(input: SpotTexts): Promise<TranslateAllResult> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "auth" };
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
-  if (profile?.role !== "admin") return { ok: false, error: "forbidden" };
+  const gate = await requireAdmin();
+  if (!gate.ok) return { ok: false, error: gate.error };
 
   if (!input.title.trim()) return { ok: false, error: "Bitte zuerst deutsche Texte erstellen." };
   const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -1270,17 +1217,8 @@ export type PlaceHit = { id: string; name: string; address: string };
 export async function searchPlaces(
   query: string,
 ): Promise<{ ok: true; results: PlaceHit[] } | { ok: false; error: string }> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "auth" };
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
-  if (profile?.role !== "admin") return { ok: false, error: "forbidden" };
+  const gate = await requireAdmin();
+  if (!gate.ok) return { ok: false, error: gate.error };
 
   const q = query.trim();
   if (q.length < 3) return { ok: true, results: [] };
@@ -1323,17 +1261,8 @@ export async function searchPlaces(
 export async function setToniAvatarUrl(
   url: string | null,
 ): Promise<{ ok: boolean; error?: string }> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "auth" };
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
-  if (profile?.role !== "admin") return { ok: false, error: "forbidden" };
+  const gate = await requireAdmin();
+  if (!gate.ok) return { ok: false, error: gate.error };
 
   const clean = typeof url === "string" && url.trim() ? url.trim() : null;
   if (clean) {
