@@ -7,15 +7,12 @@ import LandingVideo from "@/components/landing/LandingVideo";
 import MediaSlot from "@/components/landing/MediaSlot";
 import { CTA_PRIMARY } from "@/components/landing/cta";
 
-// „Über uns". Eine ganz normale APP-Seite (App-Header + Burger + Tab-Leiste, wie Explore) -
-// KEINE Marketing-Kopie der Startseite: Wer hier landet, ist schon in der App und soll von
-// hier weiter zur Karte und zu den anderen Seiten kommen, nicht in den Verkaufs-Pitch.
+// „Über uns". Eine normale APP-Seite (App-Header + Burger + Tab-Leiste, wie Explore), KEINE
+// Marketing-Kopie der Startseite. Inhalt = nur der Über-uns-Teil (die Gründer Anton & Simon
+// + das Video), gefüttert aus derselben Quelle (home_content) -> ein Text, zwei Orte.
 //
-// Inhalt = nur der ÜBER-UNS-TEIL der Startseite (die Gründer Anton & Simon), gefüttert aus
-// derselben Quelle (home_content). Wer im Admin die Gründer-Texte der Startseite pflegt,
-// pflegt damit automatisch auch diese Seite - ein Text, zwei Orte. Bewusst NICHT die
-// restlichen Startseiten-Sektionen (Story, Kacheln), damit die Seite kein Klon ist, sondern
-// im schlichten App-Layout steht.
+// Eigenes, „catchy" Layout im Apple/Airbnb-Stil: Split-Hero (grosse Aussage + Hochkant-
+// Video), zwei warme Gesichter als Karten, warmer Abschluss. Viel Weissraum, grosse Typo.
 export async function generateMetadata({
   params,
 }: {
@@ -43,61 +40,78 @@ export default async function AboutPage({
 
   const [texts, media] = await Promise.all([getHomeTexts(locale), getHomeMedia()]);
 
+  const founders = [
+    { name: texts.antonName, body: texts.antonBody, photo: media.antonPhoto },
+    { name: texts.simonName, body: texts.simonBody, photo: media.simonPhoto },
+  ];
+
   return (
-    // App-Seiten-Rahmen: oben Platz für den fixen Mobile-Header (Safe-Area + Headerhöhe),
-    // unten Platz für die Tab-Leiste; am Desktop schlanker, weil AppChrome dort schon oben
-    // Platz lässt. Gleiches Muster wie die anderen App-Inhaltsseiten (z.B. Events).
-    <div className="mx-auto w-full max-w-[760px] px-4 pt-[calc(env(safe-area-inset-top)+4.5rem)] pb-[calc(var(--sg-nav-h)+2.5rem)] md:pb-16 md:pt-8">
-      <p className="text-[13px] font-semibold uppercase tracking-wider text-accent">
-        {texts.foundersEyebrow}
-      </p>
-      <h1 className="mt-2 text-balance text-[30px] font-bold leading-[1.12] tracking-tight text-ink md:text-[40px]">
-        {texts.foundersTitle}
-      </h1>
-      <p className="mt-4 max-w-[62ch] text-balance text-[16px] leading-relaxed text-muted md:text-[18px]">
-        {texts.foundersBody}
-      </p>
+    <div className="pb-[calc(var(--sg-nav-h)+3rem)] pt-[calc(env(safe-area-inset-top)+7rem)] md:pb-28 md:pt-10">
+      <div className="mx-auto w-full max-w-[1040px] px-5 md:px-8">
+        {/* ── HERO ─── Split am Desktop (Aussage links, Hochkant-Video rechts), gestapelt
+            und zentriert am Handy. Das Video ist das Gründervideo (mit Ton, lädt erst beim
+            Antippen); fehlt es, steht hier der Platzhalter im richtigen Format. */}
+        <section className="grid items-center gap-12 md:grid-cols-[1.12fr_0.88fr] md:gap-14">
+          <div className="text-center md:text-left">
+            <p className="text-[13px] font-semibold uppercase tracking-[0.16em] text-accent">
+              {texts.foundersEyebrow}
+            </p>
+            <h1 className="mt-3 text-balance text-[40px] font-bold leading-[1.01] tracking-tight text-ink md:text-[62px]">
+              {texts.foundersTitle}
+            </h1>
+            <p className="mx-auto mt-5 max-w-[34ch] text-balance text-[18px] leading-relaxed text-muted md:mx-0 md:text-[22px]">
+              {texts.foundersBody}
+            </p>
+          </div>
 
-      {/* Gründer-/Erklärvideo (mit Ton) - volle Breite am Handy, begrenzt am Desktop. */}
-      <div className="mx-auto mt-8 w-full max-w-[320px] md:mx-0">
-        <LandingVideo
-          video={media.explainerVideo}
-          hint="Erklär-/Gründervideo 9:16, max. ~2,5 MB, mit Ton"
-          playLabel={texts.videoPlay}
-        />
-      </div>
-
-      {/* Anton & Simon, je als eigene Karte - zwei echte Gesichter sind der Vertrauens-Hebel. */}
-      <div className="mt-10 space-y-4">
-        {(["anton", "simon"] as const).map((who) => (
-          <div
-            key={who}
-            className="flex items-start gap-4 rounded-[18px] bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_12px_32px_-24px_rgba(0,0,0,0.3)] ring-1 ring-black/[0.04]"
-          >
-            <div className="h-14 w-14 shrink-0 transform-gpu isolate overflow-hidden rounded-full">
-              <MediaSlot
-                image={media[`${who}Photo`]}
-                hint=""
-                sizes="56px"
-                className="h-full w-full object-cover"
+          <div className="mx-auto w-full max-w-[270px] md:max-w-[320px]">
+            <div className="rounded-[28px] p-1.5 ring-1 ring-black/[0.05] shadow-[0_2px_4px_rgba(0,0,0,0.04),0_34px_80px_-34px_rgba(0,0,0,0.55)]">
+              <LandingVideo
+                video={media.explainerVideo}
+                hint="Erklär-/Gründervideo 9:16, max. ~2,5 MB, mit Ton"
+                playLabel={texts.videoPlay}
               />
             </div>
-            <div>
-              <p className="text-[16px] font-semibold text-ink">{texts[`${who}Name`]}</p>
-              <p className="mt-0.5 text-[14px] leading-relaxed text-muted">
-                {texts[`${who}Body`]}
-              </p>
-            </div>
           </div>
-        ))}
-      </div>
+        </section>
 
-      {/* Weiter in die App: der Weg zur Karte. Alles andere (Touren, Events, Profil …)
-          erreicht man über das Menü/die Tab-Leiste, die diese App-Seite mitbringt. */}
-      <div className="mt-10">
-        <Link href="/explore" className={`inline-block ${CTA_PRIMARY}`}>
-          {texts.heroCta}
-        </Link>
+        {/* ── DIE ZWEI DAHINTER ─── Zwei warme Gesichter, IMMER nebeneinander (auch am
+            Handy, dort kompakter), Airbnb-Muster: Foto oben, Name + Text darunter. */}
+        <section className="mt-20 md:mt-28">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:gap-x-10 sm:gap-y-12">
+            {founders.map((f, i) => (
+              <div key={i}>
+                <div className="aspect-[4/5] w-full transform-gpu isolate overflow-hidden rounded-[18px] bg-black/[0.04] shadow-[0_1px_2px_rgba(0,0,0,0.04),0_20px_44px_-28px_rgba(0,0,0,0.5)] sm:rounded-[24px]">
+                  <MediaSlot
+                    image={f.photo}
+                    hint={f.name}
+                    sizes="(min-width: 640px) 460px, 45vw"
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+                <h2 className="mt-3 text-[17px] font-bold tracking-tight text-ink sm:mt-5 sm:text-[23px]">
+                  {f.name}
+                </h2>
+                <p className="mt-1 text-[13px] leading-relaxed text-muted sm:mt-2 sm:text-[16px]">
+                  {f.body}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ── ABSCHLUSS ─── Nicht noch ein Argument, sondern der Weg zur Karte. Alles andere
+            (Touren, Events, Profil …) erreicht man über Menü/Tab-Leiste dieser App-Seite. */}
+        <section className="mt-20 md:mt-28">
+          <div className="mx-auto max-w-[640px] overflow-hidden rounded-[30px] bg-gradient-to-b from-white to-accent/[0.07] px-6 py-11 text-center ring-1 ring-black/[0.05] md:py-14">
+            <h2 className="mx-auto max-w-[18ch] text-balance text-[27px] font-bold leading-[1.1] tracking-tight text-ink md:text-[36px]">
+              {texts.finalTitle}
+            </h2>
+            <Link href="/explore" className={`mt-7 inline-block ${CTA_PRIMARY}`}>
+              {texts.heroCta}
+            </Link>
+          </div>
+        </section>
       </div>
     </div>
   );
