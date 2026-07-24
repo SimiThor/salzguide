@@ -24,6 +24,7 @@
 // Neue Sprache = Spalte in facts-i18n.json ergänzen. `npm run i18n:check` erzwingt, dass
 // jede Auswahlliste in jeder Sprache vollständig ist.
 import facts from "./facts-i18n.json" with { type: "json" };
+import { normalizeText } from "./normalize-text";
 
 type LangMap = Record<string, string>;
 type Table = Record<string, LangMap>;
@@ -40,27 +41,10 @@ const ACCESS_DE: Record<string, string> = {
 };
 
 // Vergleichsform: alles weg, was zwei Schreibweisen desselben Wortes unterscheidet.
-// Nur auf deutsche Schlüssel angewendet — Zielsprachen laufen hier nie durch.
-export function normalizeFact(s: string): string {
-  return s
-    .normalize("NFC")
-    .toLowerCase()
-    // Umlaut-Umschrift VOR dem Akzent-Abbau. Sonst würde "Grödig" zu "grodig" und träfe die
-    // verbreitete Tippweise "Groedig" nie. Der umgekehrte Weg (oe -> o) wäre falsch: der
-    // zerlegte deutsche Wörter wie "Feuer" oder "Neukirchen".
-    .replace(/ä/g, "ae")
-    .replace(/ö/g, "oe")
-    .replace(/ü/g, "ue")
-    .replace(/ß/g, "ss")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "") // restliche Akzente: "Café" = "Cafe"
-    .replace(/\bsankt\b/g, "st") // "Sankt Gilgen" = "St. Gilgen"
-    .replace(/[\u2010-\u2015]/g, "-") // –, —, ‒ = -
-    .replace(/\s*&\s*/g, " und ") // "See & Baden" = "See und Baden"
-    .replace(/[^\p{L}\p{N}]+/gu, " ") // Satzzeichen -> Trenner
-    .trim()
-    .replace(/\s+/g, " ");
-}
+// Nur auf deutsche Schlüssel angewendet, Zielsprachen laufen hier nie durch. Die Faltung
+// selbst lebt in normalize-text.ts, dieselbe, die die Admin-Spot-Suche nutzt, damit ein
+// abgelegter Wert und die Suche danach garantiert identisch falten.
+export const normalizeFact = normalizeText;
 
 // Wortreihenfolge ignorieren: "Salzburg Stadt" und "Stadt Salzburg" ergeben denselben Wert.
 // Bewusst die LETZTE Stufe — sie darf nur greifen, wenn exakt dieselben Wörter vorkommen.
