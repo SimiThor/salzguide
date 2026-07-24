@@ -6,6 +6,7 @@ import { getPublishedTours } from "@/lib/tours";
 import { listUserTours } from "@/lib/user-tours";
 import { alternatesFor } from "@/lib/metadata";
 import SavedRoutesList from "@/components/tours/SavedRoutesList";
+import AiSparkle from "@/components/ai/AiSparkle";
 import { STATUS_ACCENT, STATUS_GOOD, STATUS_NEUTRAL } from "@/lib/ui";
 
 const CARD =
@@ -49,18 +50,23 @@ export default async function ToursPage({
       <p className="mt-1 text-[15px] leading-relaxed text-muted">{t("subtitle")}</p>
 
       {/* Einstieg in den KI-Runden-Builder. Angemeldet -> Builder; sonst -> Login-Hinweis
-          (nicht angemeldete Nutzer können nur kuratierte Runden testen). */}
+          (nicht angemeldete Nutzer können nur kuratierte Runden testen).
+          Smart-AI-Look wie im Rest der App: helle Karte (Familie mit den Runden-Karten
+          darunter), das KI-Signal steckt im warmen Sparkle-Chip, nicht in einer lauten
+          Fläche. Der laute rote KI-Verlauf (.sg-ai-btn) bleibt dem „generiert gerade"-
+          Moment im Builder vorbehalten. */}
       <Link
         href={loggedIn ? "/touren/bauen" : "/profil"}
-        className="mt-5 flex items-center justify-between gap-3 rounded-[18px] bg-ink px-5 py-4 text-white transition active:scale-[0.99]"
+        className={`${CARD} mt-5 flex items-center gap-3 px-4 py-3.5 ring-1 ring-black/[0.05] transition active:scale-[0.99]`}
       >
-        <span>
-          <span className="block text-[15px] font-semibold">{t("buildCard")}</span>
-          <span className="block text-[12px] text-white/70">
+        <AiSparkle gradient className="h-[26px] w-[26px] shrink-0" />
+        <span className="min-w-0 flex-1">
+          <span className="block text-[15px] font-semibold text-ink">{t("buildCard")}</span>
+          <span className="block text-[13px] leading-snug text-muted">
             {loggedIn ? t("buildCardSub") : t("buildNeedLogin")}
           </span>
         </span>
-        <span className="text-[18px]" aria-hidden>
+        <span className="shrink-0 text-[17px] text-muted/50" aria-hidden>
           ›
         </span>
       </Link>

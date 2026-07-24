@@ -21,6 +21,7 @@ import { localeMeta } from "@/i18n/locales";
 import { hashTexts } from "@/lib/spot-hash";
 import PhotoUploader from "./PhotoUploader";
 import AiButton from "./AiButton";
+import AiSparkle from "@/components/ai/AiSparkle";
 
 const TARGET_LOCALES = routing.locales.filter((l) => l !== "de");
 
@@ -272,8 +273,9 @@ export default function EventForm({
 
       {/* KI-Recherche: Link/Stichwort -> Felder füllen (Grounding, docs/29 §4) */}
       <section className="space-y-2 rounded-[16px] bg-accent/[0.06] p-5 shadow-sm">
-        <h2 className="text-[15px] font-semibold text-ink">
-          ✨ Event per KI recherchieren
+        <h2 className="flex items-center gap-1.5 text-[15px] font-semibold text-ink">
+          <AiSparkle gradient className="h-[1.05em] w-[1.05em]" />
+          Event per KI recherchieren
         </h2>
         <p className="text-xs text-muted">
           Link (z. B. Veranstalter-Seite) oder Stichwort eingeben – die KI sucht

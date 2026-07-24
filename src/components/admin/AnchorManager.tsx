@@ -13,6 +13,7 @@ import {
 } from "@/lib/anchor-actions";
 import type { EventCategory } from "@/lib/events-format";
 import AiButton from "./AiButton";
+import AiSparkle from "@/components/ai/AiSparkle";
 
 const MONTHS = ["Jän", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"];
 const REGIONS = [
@@ -244,7 +245,8 @@ export default function AnchorManager({
                 onClick={onAiFill}
                 className="shrink-0 rounded-[12px] bg-accent px-3.5 text-sm font-semibold text-white"
               >
-                ✨ Mit KI ausfüllen
+                <AiSparkle className="h-[1.05em] w-[1.05em]" />
+                Mit KI ausfüllen
               </AiButton>
             </div>
             <p className="mt-1 text-[11px] text-muted">

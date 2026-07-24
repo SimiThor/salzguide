@@ -37,6 +37,7 @@ import ElevationProfile from "../ElevationProfile";
 import PhotoUploader from "./PhotoUploader";
 import VideoUploader from "./VideoUploader";
 import AiButton from "./AiButton";
+import AiSparkle from "@/components/ai/AiSparkle";
 import { STATUS_NEUTRAL, STATUS_ACCENT, STATUS_GOOD } from "@/lib/ui";
 
 const EMPTY: SpotInput = {
@@ -1465,12 +1466,13 @@ export default function SpotForm({
           <div className="flex flex-wrap items-center gap-2">
             <AiButton
               loading={aiAction === "generate"}
-              loadingLabel={aiWeb ? "✨ Recherchiere" : "✨ Erzeuge"}
+              loadingLabel={aiWeb ? "Recherchiere" : "Erzeuge"}
               onClick={onGenerate}
               disabled={pending}
               className="rounded-full bg-accent px-3.5 py-1.5 text-xs font-semibold text-white"
             >
-              ✨ Deutsche Texte erzeugen
+              <AiSparkle className="h-[1.05em] w-[1.05em]" />
+              Deutsche Texte erzeugen
             </AiButton>
             <AiButton
               loading={aiAction === "translate"}

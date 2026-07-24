@@ -5,29 +5,9 @@ import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import { Link, usePathname } from "@/i18n/navigation";
 import LanguageSwitcher from "./LanguageSwitcher";
+import AiSparkle from "./ai/AiSparkle";
 import { useAi } from "./ai/AiProvider";
 import { NAV_ITEMS } from "@/lib/nav";
-
-// Sparkle fürs KI/Toni. Phosphor-Sparkle in der GEFÜLLTEN Variante: bei der kleinen Grösse
-// liest sich ein solides Symbol klarer als die feine Outline. Gefüllt mit einem warmen
-// Marken-Verlauf (Akzentrot -> Orange -> Gold): der Verlauf ist das Apple-Intelligence-
-// Signal („smart"), die warmen Töne (Sonne über den Bergen) halten es vertrauenswürdig -
-// wie ein Local, der einen Tipp gibt, nicht wie kalte Technik. Bewusst nur auf dem kleinen
-// Icon, nicht auf der ganzen Pille (die bliebe sonst „ausgewählt"-rot).
-function Sparkle() {
-  return (
-    <svg className="h-[15px] w-[15px]" viewBox="0 0 256 256" aria-hidden>
-      <defs>
-        <linearGradient id="ki-sparkle" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#cc2924" />
-          <stop offset="55%" stopColor="#d8452a" />
-          <stop offset="100%" stopColor="#e8823a" />
-        </linearGradient>
-      </defs>
-      <path fill="url(#ki-sparkle)" d="M208,144a15.78,15.78,0,0,1-10.42,14.94L146,178l-19,51.62a15.92,15.92,0,0,1-29.88,0L78,178,26.42,159A15.92,15.92,0,0,1,26.42,129L78,110l19-51.62a15.92,15.92,0,0,1,29.88,0L146,110l51.62,19A15.78,15.78,0,0,1,208,144ZM152,48h16V64a8,8,0,0,0,16,0V48h16a8,8,0,0,0,0-16H184V16a8,8,0,0,0-16,0V32H152a8,8,0,0,0,0,16Zm88,32h-8V72a8,8,0,0,0-16,0v8h-8a8,8,0,0,0,0,16h8v8a8,8,0,0,0,16,0V96h8a8,8,0,0,0,0-16Z" />
-    </svg>
-  );
-}
 
 function ChevronDown({ open }: { open: boolean }) {
   return (
@@ -199,7 +179,7 @@ export default function DesktopHeader() {
           onClick={ai.open}
           className="inline-flex items-center gap-1.5 rounded-full bg-black/5 px-3 py-1.5 text-sm font-medium text-muted transition hover:bg-black/10 active:scale-[0.98]"
         >
-          <Sparkle />
+          <AiSparkle gradient className="h-[15px] w-[15px]" />
           <span className="leading-none">{t("Nav.ai")}</span>
         </button>
         <LanguageSwitcher />
