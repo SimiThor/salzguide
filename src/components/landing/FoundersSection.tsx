@@ -1,5 +1,5 @@
 import type { HomeTexts } from "@/lib/home-fields";
-import type { HomeMedia } from "@/lib/home-content";
+import { explainerVideoFor, type HomeMedia } from "@/lib/home-content";
 import LandingVideo from "./LandingVideo";
 import MediaSlot from "./MediaSlot";
 import { LANDING_CONTAINER } from "./layout";
@@ -10,9 +10,12 @@ import { LANDING_CONTAINER } from "./layout";
 export default function FoundersSection({
   texts,
   media,
+  locale,
 }: {
   texts: HomeTexts;
   media: HomeMedia;
+  /** Entscheidet, welches Erklärvideo läuft: Deutsch -> DE-Video, sonst EN (Fallback DE). */
+  locale: string;
 }) {
   return (
     <section className="bg-white/60 py-16 md:py-24">
@@ -21,7 +24,7 @@ export default function FoundersSection({
           {/* Video links am Desktop, oben am Handy */}
           <div className="mx-auto w-full max-w-[380px]">
             <LandingVideo
-              video={media.explainerVideo}
+              video={explainerVideoFor(media, locale)}
               hint="Erklär-/Gründervideo 9:16, max. ~2,5 MB, mit Ton"
               playLabel={texts.videoPlay}
             />

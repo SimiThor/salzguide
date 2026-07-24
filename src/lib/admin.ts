@@ -550,6 +550,7 @@ const EMPTY_MEDIA: HomeMedia = {
   heroPortrait: null,
   heroLandscape: null,
   explainerVideo: null,
+  explainerVideoEn: null,
   antonPhoto: null,
   simonPhoto: null,
 };
@@ -612,6 +613,7 @@ export async function getHomeContentAdmin(): Promise<AdminHomeContent> {
     heroPortrait: parseLandingImage(m.heroPortrait),
     heroLandscape: parseLandingImage(m.heroLandscape),
     explainerVideo: parseLandingVideo(m.explainerVideo),
+    explainerVideoEn: parseLandingVideo(m.explainerVideoEn),
     antonPhoto: parseLandingImage(m.antonPhoto),
     simonPhoto: parseLandingImage(m.simonPhoto),
   };

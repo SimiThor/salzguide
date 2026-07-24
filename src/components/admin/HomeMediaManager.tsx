@@ -121,22 +121,53 @@ export default function HomeMediaManager({ media: saved }: { media: HomeMedia })
           <h3 className="text-[14px] font-bold text-ink">Erklär-Video</h3>
           <p className="mt-1 text-[12px] leading-relaxed text-muted">
             Hochformat 9:16, kurz, mit Ton. Ein Video für Handy und Desktop. Das Standbild
-            entsteht automatisch und lädt zuerst, das Video erst beim Antippen.
+            entsteht automatisch und lädt zuerst, das Video erst beim Antippen. Steht auf der
+            Startseite und der Über-uns-Seite.
           </p>
-          <div className="mt-3">
-            <VideoUploader
-              videoUrl={media.explainerVideo?.src ?? null}
-              posterUrl={media.explainerVideo?.poster ?? null}
-              onChange={(src, poster) => {
-                setMsg(null);
-                // Ohne Standbild kein Video: LandingVideo verlangt ein poster, und ohne das
-                // wäre der erste Eindruck ein schwarzes Rechteck, bis das Video geladen ist.
-                setMedia((prev) => ({
-                  ...prev,
-                  explainerVideo: src && poster ? { src, poster } : null,
-                }));
-              }}
-            />
+
+          <div className="mt-4 space-y-5">
+            {/* Deutsch */}
+            <div>
+              <p className="text-[12px] font-semibold text-ink">🇩🇪 Deutsch</p>
+              <p className="text-[11px] leading-snug text-muted">Wird auf der deutschen Seite gezeigt.</p>
+              <div className="mt-2">
+                <VideoUploader
+                  videoUrl={media.explainerVideo?.src ?? null}
+                  posterUrl={media.explainerVideo?.poster ?? null}
+                  onChange={(src, poster) => {
+                    setMsg(null);
+                    // Ohne Standbild kein Video: LandingVideo verlangt ein poster, und ohne das
+                    // wäre der erste Eindruck ein schwarzes Rechteck, bis das Video geladen ist.
+                    setMedia((prev) => ({
+                      ...prev,
+                      explainerVideo: src && poster ? { src, poster } : null,
+                    }));
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Englisch – für alle anderen Sprachen */}
+            <div>
+              <p className="text-[12px] font-semibold text-ink">🇬🇧 Englisch</p>
+              <p className="text-[11px] leading-snug text-muted">
+                Wird in allen Sprachen ausser Deutsch gezeigt. Lädst du keins hoch, greift
+                überall das deutsche Video.
+              </p>
+              <div className="mt-2">
+                <VideoUploader
+                  videoUrl={media.explainerVideoEn?.src ?? null}
+                  posterUrl={media.explainerVideoEn?.poster ?? null}
+                  onChange={(src, poster) => {
+                    setMsg(null);
+                    setMedia((prev) => ({
+                      ...prev,
+                      explainerVideoEn: src && poster ? { src, poster } : null,
+                    }));
+                  }}
+                />
+              </div>
+            </div>
           </div>
         </div>
       </div>
