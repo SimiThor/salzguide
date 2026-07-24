@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import BottomSheet from "./BottomSheet";
+import StoryHeroBackdrop from "./StoryHeroBackdrop";
 import StoryPhotoPanel from "./StoryPhotoPanel";
 import StoryVideoPanel from "./StoryVideoPanel";
 import { drawRouteHero } from "@/lib/story-canvas";
@@ -120,8 +121,9 @@ export default function StoryMaker({
 
   return (
     <>
-      {/* Section im iOS-Stil. Mit Intro läuft das Video als Hintergrund; ohne Intro ein
-          ruhiger dunkelgrüner Verlauf. Darüber ein Verlauf, kurzer Text und die CTA.
+      {/* Section im iOS-Stil. Mit Intro läuft das Video als Hintergrund; ohne Intro eine
+          warme Berglandschaft (StoryHeroBackdrop) mit der Route drüber. Darüber ein Scrim,
+          kurzer Text und die CTA.
           Ist das Sheet offen, blenden wir die (dunkle) Section aus: sonst scheint sie hinter
           dem hellen Modal-Backdrop als dunkler Kasten durch (ein Schwarz-Scrim kann Schwarz
           nicht verdecken). So bleibt hinter dem Popup nur der helle, unscharfe Seiteninhalt. */}
@@ -131,10 +133,14 @@ export default function StoryMaker({
         // sauber oben WEGGESCHNITTEN wird und in der Vorschau kein On-Screen-Text mehr auftaucht.
         // Der Zuschnitt zentriert vertikal (object-cover), der obere Rand liegt so bei ~32 %,
         // klar unter der Wortmarke (~29 %). Eine Quelle -> gilt einheitlich für alle Spot-Seiten.
-        className={`relative aspect-[16/10] overflow-hidden rounded-[22px] bg-gradient-to-b from-[#243b57] via-[#20263f] to-[#12131e] shadow-sm ring-1 ring-black/5 transition-opacity duration-300 ${
+        className={`relative aspect-[16/10] overflow-hidden rounded-[22px] bg-[#3b2733] shadow-sm ring-1 ring-black/5 transition-opacity duration-300 ${
           open ? "opacity-0" : "opacity-100"
         }`}
       >
+        {/* Warme Berglandschaft als Hintergrund (statt kühlem Blau/Lila). Liegt hinter Video/
+            Route: im No-Intro-Fall scheint sie durch die transparente Routen-Grafik, im
+            Intro-Fall deckt das Video sie ab (und beim Laden sieht man Berge statt Blackscreen). */}
+        <StoryHeroBackdrop className="absolute inset-0 h-full w-full" />
         {introUrl ? (
           <video
             ref={bgRef}
