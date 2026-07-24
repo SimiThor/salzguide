@@ -167,36 +167,6 @@ export async function saveSpot(input: SpotInput): Promise<SaveResult> {
   const vidPoster = spotMediaUrl(input.videoPosterUrl);
   if (!vid.ok || !vidPoster.ok) return { ok: false, error: "bad_url" };
 
-  // Veröffentlichen-Gate (Anti-Chaos): live gehen darf ein Spot NUR, wenn er in ALLE Sprachen
-  // übersetzt UND aktuell ist. Geprüft wird NUR der Übergang Entwurf->Veröffentlicht: ein bereits
-  // veröffentlichter Spot bleibt frei editierbar (Koordinaten/Fotos/Tippfehler), ohne dass alle
-  // Sprachen erneut erzwungen werden. Entwurf speichern ist immer erlaubt. (Verbindliche Grenze.)
-  if (input.status === "published") {
-    let wasPublished = false;
-    if (input.id) {
-      const { data: cur } = await supabase
-        .from("spots")
-        .select("status")
-        .eq("id", input.id)
-        .maybeSingle();
-      wasPublished = (cur as { status?: string } | null)?.status === "published";
-    }
-    if (!wasPublished) {
-      const deHashGate = hashSpotTexts({
-        title: input.title,
-        shortDesc: input.shortDesc,
-        general: input.general,
-        insiderTip: input.insiderTip,
-        sectionA: input.sectionA,
-        sectionB: input.sectionB,
-        locationText: input.locationText,
-      });
-      const targets = routing.locales.filter((l) => l !== "de");
-      if (!translationsPublishable(input.translations, input.translationsSourceHash, deHashGate, targets))
-        return { ok: false, error: "translations_incomplete" };
-    }
-  }
-
   // Modus: Einzelner Punkt ODER Wanderung. Bei einer Wanderung ist der
   // Haupt-/Anreisepunkt (lat/lng) automatisch der Startpunkt (erster Kontrollpunkt).
   const isRoute = input.locationMode === "route" && input.routePoints.length >= 2;
@@ -213,6 +183,40 @@ export async function saveSpot(input: SpotInput): Promise<SaveResult> {
   // Zusatzpunkte säubern (echte Zahlen, Name getrimmt, leere raus); leer -> null.
   const waterStops = parsePois(input.waterStops);
   const huts = parsePois(input.huts);
+
+  // Veröffentlichen-Gate (Anti-Chaos): live gehen darf ein Spot NUR mit gesetztem Ort UND in
+  // ALLE Sprachen übersetzt & aktuell. Geprüft wird NUR der Übergang Entwurf->Veröffentlicht: ein
+  // bereits veröffentlichter Spot bleibt frei editierbar (Koordinaten/Fotos/Tippfehler), ohne dass
+  // alles erneut erzwungen wird. Entwurf speichern ist immer erlaubt. (Verbindliche Grenze.)
+  if (input.status === "published") {
+    let wasPublished = false;
+    if (input.id) {
+      const { data: cur } = await supabase
+        .from("spots")
+        .select("status")
+        .eq("id", input.id)
+        .maybeSingle();
+      wasPublished = (cur as { status?: string } | null)?.status === "published";
+    }
+    if (!wasPublished) {
+      // Ohne Ort ist der Spot auf der Karte unsichtbar -> nicht veröffentlichbar. Der Ort ist in
+      // beiden Modi ein Klick (Einzelpunkt oder Wanderung mit Start & Ziel).
+      if (lat == null || lng == null)
+        return { ok: false, error: "location_required" };
+      const deHashGate = hashSpotTexts({
+        title: input.title,
+        shortDesc: input.shortDesc,
+        general: input.general,
+        insiderTip: input.insiderTip,
+        sectionA: input.sectionA,
+        sectionB: input.sectionB,
+        locationText: input.locationText,
+      });
+      const targets = routing.locales.filter((l) => l !== "de");
+      if (!translationsPublishable(input.translations, input.translationsSourceHash, deHashGate, targets))
+        return { ok: false, error: "translations_incomplete" };
+    }
+  }
 
   const row = {
     slug,

@@ -369,7 +369,20 @@ export default function SpotForm({
     ev.preventDefault();
     setErr("");
     // Veröffentlichen-Gate: NUR beim Übergang Entwurf->Veröffentlicht (nicht beim Editieren eines
-    // bereits live Spots). Live NUR mit vollständigen & aktuellen Übersetzungen. Entwurf geht immer.
+    // bereits live Spots). Entwurf geht immer.
+    // (1) Ort ist Pflicht: ohne ihn ist der Spot auf der Karte unsichtbar. Punkt = lat+lng,
+    //     Wanderung = Start & Ziel (>= 2 Wegpunkte). Deckt sich mit dem Server-Gate.
+    const hasLocation =
+      form.locationMode === "route"
+        ? form.routePoints.length >= 2
+        : form.lat != null && form.lng != null;
+    if (form.status === "published" && !wasPublished && !hasLocation) {
+      setErr(
+        "Zum Veröffentlichen bitte den Ort auf der Karte setzen (Einzelpunkt, oder Wanderung mit Start & Ziel) – oder Status auf „Entwurf“ stellen.",
+      );
+      return;
+    }
+    // (2) Live NUR mit vollständigen & aktuellen Übersetzungen.
     if (form.status === "published" && !wasPublished && !trComplete) {
       setErr(
         `Zum Veröffentlichen müssen alle Sprachen übersetzt & aktuell sein (${translatedLangs.length}/${TARGET_LOCALES.length}). ` +
@@ -398,6 +411,8 @@ export default function SpotForm({
               ? "Dieser Slug ist schon vergeben – bitte einen anderen wählen."
               : r.error === "required"
               ? "Bitte Slug und Titel ausfüllen."
+              : r.error === "location_required"
+              ? "Zum Veröffentlichen bitte den Ort auf der Karte setzen (Einzelpunkt oder Wanderung mit Start & Ziel)."
               : r.error === "translations_incomplete"
                 ? "Zum Veröffentlichen erst „🌍 In alle Sprachen übersetzen“ – oder als Entwurf speichern."
                 : r.error === "translations_persist_failed"
