@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import BottomSheet from "./BottomSheet";
+import StoryHeroBackdrop from "./StoryHeroBackdrop";
 import StoryPhotoPanel from "./StoryPhotoPanel";
 import StoryVideoPanel from "./StoryVideoPanel";
 import { drawRouteHero } from "@/lib/story-canvas";
@@ -57,6 +58,8 @@ export default function StoryMaker({
   const detents = [peek, 0.95];
   const bgRef = useRef<HTMLVideoElement>(null);
   const heroRef = useRef<HTMLCanvasElement>(null);
+  // Medium (Video-Frame bzw. gezeichnete Route) bereit -> sanft über die Landschaft einblenden.
+  const [heroReady, setHeroReady] = useState(false);
 
   // Stabiler Callback: das jeweils gemountete Panel meldet hierüber seinen Zustand.
   const onPanelUi = useCallback((s: StoryPanelUi) => setUi(s), []);
@@ -104,6 +107,7 @@ export default function StoryMaker({
       c.height = Math.round(h * dpr);
       const ctx = c.getContext("2d");
       if (ctx) drawRouteHero(ctx, c.width, c.height, route);
+      setHeroReady(true);
     };
     draw();
     const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(draw) : null;
@@ -120,8 +124,9 @@ export default function StoryMaker({
 
   return (
     <>
-      {/* Section im iOS-Stil. Mit Intro läuft das Video als Hintergrund; ohne Intro ein
-          ruhiger dunkelgrüner Verlauf. Darüber ein Verlauf, kurzer Text und die CTA.
+      {/* Section im iOS-Stil. Mit Intro läuft das Video als Hintergrund; ohne Intro eine
+          warme Berglandschaft (StoryHeroBackdrop) mit der Route drüber. Darüber ein Scrim,
+          kurzer Text und die CTA.
           Ist das Sheet offen, blenden wir die (dunkle) Section aus: sonst scheint sie hinter
           dem hellen Modal-Backdrop als dunkler Kasten durch (ein Schwarz-Scrim kann Schwarz
           nicht verdecken). So bleibt hinter dem Popup nur der helle, unscharfe Seiteninhalt. */}
@@ -131,32 +136,48 @@ export default function StoryMaker({
         // sauber oben WEGGESCHNITTEN wird und in der Vorschau kein On-Screen-Text mehr auftaucht.
         // Der Zuschnitt zentriert vertikal (object-cover), der obere Rand liegt so bei ~32 %,
         // klar unter der Wortmarke (~29 %). Eine Quelle -> gilt einheitlich für alle Spot-Seiten.
-        className={`relative aspect-[16/10] overflow-hidden rounded-[22px] bg-gradient-to-b from-[#243b57] via-[#20263f] to-[#12131e] shadow-sm ring-1 ring-black/5 transition-opacity duration-300 ${
+        className={`relative aspect-[16/10] overflow-hidden rounded-[22px] bg-black/[0.05] shadow-sm ring-1 ring-black/5 transition-opacity duration-300 ${
           open ? "opacity-0" : "opacity-100"
         }`}
       >
-        {introUrl ? (
-          <video
-            ref={bgRef}
-            src={introUrl}
-            poster={introPosterUrl ?? undefined}
-            muted
-            loop
-            playsInline
-            preload="none"
-            className="absolute inset-0 h-full w-full object-cover"
-          />
-        ) : (
-          // Kein Video -> Route als Grafik (füllt den sonst leeren dunklen Hero).
-          <canvas ref={heroRef} aria-hidden className="absolute inset-0 h-full w-full" />
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent" />
+        {/* Skeleton-Ladescreen (Shimmer) wie bei den Foto-Sections: liegt zuunterst und ist
+            sichtbar, solange das richtige Medium noch nicht geladen ist. Nichts springt beim
+            Laden - erst wenn das Video (bzw. die gezeichnete Route) da ist, blendet der fertige
+            Inhalt darüber ein und deckt den Shimmer ab. */}
+        <div className="absolute inset-0 sg-skeleton" aria-hidden />
+        <div
+          className={`absolute inset-0 transition-opacity duration-500 ${
+            heroReady ? "opacity-100" : "opacity-0"
+          }`}
+        >
+          {/* Warme Berglandschaft als Hintergrund: ohne Intro scheint sie durch die transparente
+              Route, mit Intro deckt das Video sie ab. */}
+          <StoryHeroBackdrop className="absolute inset-0 h-full w-full" />
+          {introUrl ? (
+            <video
+              ref={bgRef}
+              src={introUrl}
+              poster={introPosterUrl ?? undefined}
+              muted
+              loop
+              playsInline
+              preload="none"
+              onLoadedData={() => setHeroReady(true)}
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+          ) : (
+            // Kein Video -> Route als Grafik über der Landschaft.
+            <canvas ref={heroRef} aria-hidden className="absolute inset-0 h-full w-full" />
+          )}
+        </div>
+        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
         <div className="absolute inset-x-0 bottom-0 p-4 pt-12">
           <h2 className="text-[19px] font-bold leading-tight text-white [text-shadow:0_2px_14px_rgba(0,0,0,0.55)]">
             📸 {t("sectionTitle")}
           </h2>
           <p className="mt-1 text-[13px] leading-snug text-white/90 [text-shadow:0_1px_8px_rgba(0,0,0,0.5)]">
-            {t("sectionSub")}
+            {/* Ist ein Intro-Video da, bietet der Maker Foto UND Video -> Text erwähnt beides. */}
+            {t(introUrl ? "sectionSubVideo" : "sectionSub")}
           </p>
           <button
             className={`${BTN_PRIMARY} mt-3 w-full active:scale-[0.98]`}

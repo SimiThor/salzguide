@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import ClipTrimmer from "./ClipTrimmer";
 import { composeStory, CLIP_SECONDS, MAX_INPUT_BYTES, type ComposeStage } from "@/lib/video-maker";
 import { getFFmpeg } from "@/lib/ffmpeg";
+import { firstFrameDataUrl } from "@/lib/video-thumb";
 import { BTN_PRIMARY, BTN_SECONDARY } from "@/lib/ui";
 
 type Phase = "idle" | "trim" | "working" | "done" | "error";
@@ -28,6 +29,7 @@ export default function StoryVideoPanel({
   const [pct, setPct] = useState(0);
   const [stage, setStage] = useState<ComposeStage>("intro");
   const [resultUrl, setResultUrl] = useState<string | null>(null);
+  const [resultPoster, setResultPoster] = useState<string | null>(null); // Frame 1 gegen Blackscreen
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [clipFile, setClipFile] = useState<File | null>(null);
   const blobRef = useRef<Blob | null>(null);
@@ -65,6 +67,7 @@ export default function StoryVideoPanel({
     if (resultUrlRef.current) URL.revokeObjectURL(resultUrlRef.current);
     resultUrlRef.current = null;
     setResultUrl(null);
+    setResultPoster(null);
     blobRef.current = null;
     setPhase("idle");
     setPct(0);
@@ -108,6 +111,11 @@ export default function StoryVideoPanel({
       blobRef.current = blob;
       setResultUrl(url);
       setPhase("done");
+      // Frame 1 als Thumbnail -> der Ergebnis-<video>-Kasten ist nie schwarz, bevor man
+      // abspielt. Lokaler Blob, also kein CORS; schlägt es fehl, bleibt es beim Alten.
+      firstFrameDataUrl(url).then((poster) => {
+        if (mounted.current && poster) setResultPoster(poster);
+      });
     } catch (e) {
       if (!mounted.current) return;
       console.error("composeStory:", e);
@@ -192,6 +200,7 @@ export default function StoryVideoPanel({
         <div className="space-y-4">
           <video
             src={resultUrl}
+            poster={resultPoster ?? undefined}
             controls
             playsInline
             className="mx-auto max-h-[44vh] rounded-2xl bg-black"
