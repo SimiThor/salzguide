@@ -22,6 +22,7 @@ const POINT_TARGETS = routing.locales.filter((l) => l !== "de");
 const emptyPointTexts = (): PointTexts => ({ title: "", audioText: "", audioUrl: null });
 import LocationPicker from "./LocationPicker";
 import AiButton from "./AiButton";
+import AiSparkle from "@/components/ai/AiSparkle";
 import { IMMUTABLE_CACHE_SECONDS } from "@/lib/storage";
 import { compressImage, uploadImage } from "@/lib/image-upload";
 
@@ -432,7 +433,8 @@ export default function PointForm({
             disabled={!form.de.title.trim()}
             className="mt-2 w-full rounded-full bg-ink px-4 py-2.5 text-[14px] font-semibold text-white sm:w-auto"
           >
-            ✨ Mit KI ausfüllen
+            <AiSparkle className="h-[1.05em] w-[1.05em]" />
+            Mit KI ausfüllen
           </AiButton>
           <p className="mt-1.5 text-[12px] text-muted">
             Füllt EN-Titel, Tags, Emoji, Typ &amp; den deutschen Sprechtext. Den EN-Text übersetzt du danach mit einem Klick.

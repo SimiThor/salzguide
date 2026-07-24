@@ -7,6 +7,7 @@ import TourView from "@/components/tours/TourView";
 import BackButton from "@/components/BackButton";
 import { generateTour } from "@/lib/tour-generate";
 import AiButton from "@/components/admin/AiButton";
+import AiSparkle from "@/components/ai/AiSparkle";
 import { TAG_KEYS, TAG_EMOJI } from "@/lib/tour-tags";
 import type { TourDetail } from "@/lib/tour-types";
 import type { PublicArea } from "@/lib/tours";
@@ -130,7 +131,8 @@ export default function TourBuilder({ areas }: { areas: PublicArea[] }) {
             disabled={!areaId}
             className="mt-6 w-full rounded-full bg-accent px-5 py-3 text-[15px] font-semibold text-white sm:w-auto"
           >
-            ✨ {t("generate")}
+            <AiSparkle className="h-[1.05em] w-[1.05em]" />
+            {t("generate")}
           </AiButton>
         </>
       )}

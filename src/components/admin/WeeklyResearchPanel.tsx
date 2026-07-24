@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "@/i18n/navigation";
 import { runWeekResearchNow } from "@/lib/event-actions";
 import AiButton from "./AiButton";
+import AiSparkle from "@/components/ai/AiSparkle";
 
 export type WeekInfo = {
   offset: number; // 0 = diese, 1 = nächste, 2 = übernächste Woche
@@ -49,8 +50,9 @@ export default function WeeklyResearchPanel({ weeks }: { weeks: WeekInfo[] }) {
   return (
     <section className="space-y-3 rounded-[16px] bg-white p-4 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-[15px] font-semibold text-ink">
-          ✨ KI-Wochenrecherche
+        <h2 className="flex items-center gap-1.5 text-[15px] font-semibold text-ink">
+          <AiSparkle gradient className="h-[1.05em] w-[1.05em]" />
+          KI-Wochenrecherche
         </h2>
         {msg && <span className="text-xs text-muted">{msg}</span>}
       </div>

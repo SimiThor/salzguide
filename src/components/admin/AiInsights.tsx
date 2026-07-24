@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { runAnalyticsInsights } from "@/lib/analytics-ai";
+import AiSparkle from "@/components/ai/AiSparkle";
 import type { AnalyticsQuery } from "@/lib/analytics-queries";
 
 // KI-Auswertung (docs/34 §H): schickt auf Knopfdruck NUR anonyme Aggregate an die
@@ -33,9 +34,18 @@ export default function AiInsights({ query }: { query: AnalyticsQuery }) {
           type="button"
           onClick={run}
           disabled={busy}
-          className="shrink-0 rounded-full bg-accent px-4 py-2 text-[13px] font-semibold text-white transition active:scale-95 disabled:opacity-50"
+          className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-full bg-accent px-4 py-2 text-[13px] font-semibold text-white transition active:scale-95 disabled:opacity-50"
         >
-          {busy ? "Analysiere …" : text ? "Neu analysieren" : "✨ KI-Analyse starten"}
+          {busy ? (
+            "Analysiere …"
+          ) : text ? (
+            "Neu analysieren"
+          ) : (
+            <>
+              <AiSparkle className="h-[1.05em] w-[1.05em]" />
+              KI-Analyse starten
+            </>
+          )}
         </button>
       </div>
 
