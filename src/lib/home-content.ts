@@ -32,8 +32,11 @@ export type HomeMedia = {
   heroPortrait: LandingImage | null;
   /** Hero, Desktop: Querformat ~16:9. */
   heroLandscape: LandingImage | null;
-  /** Erklär-/Gründervideo, Hochformat 9:16. Ein Video reicht für beide Geräte. */
+  /** Erklär-/Gründervideo (deutsch), Hochformat 9:16. Ein Video reicht für beide Geräte. */
   explainerVideo: LandingVideo | null;
+  /** Englische Fassung des Erklärvideos – wird in ALLEN Sprachen ausser Deutsch gezeigt.
+      Fehlt sie, fällt die Anzeige auf die deutsche zurück (siehe explainerVideoFor). */
+  explainerVideoEn: LandingVideo | null;
   // ZWEI Gesichter, nicht eines. Hier stand ein einzelner `founders`-Slot, und die
   // Gründer-Section rendert ihn PRO PERSON: Antons Foto hätte also neben Simons Namen
   // gestanden. Zwei Gründer sind zwei Bilder, und der Typ sagt das jetzt.
@@ -109,9 +112,20 @@ export async function getHomeMedia(): Promise<HomeMedia> {
     heroPortrait: parseLandingImage(m.heroPortrait),
     heroLandscape: parseLandingImage(m.heroLandscape),
     explainerVideo: parseLandingVideo(m.explainerVideo),
+    explainerVideoEn: parseLandingVideo(m.explainerVideoEn),
     antonPhoto: parseLandingImage(m.antonPhoto),
     simonPhoto: parseLandingImage(m.simonPhoto),
   };
+}
+
+/**
+ * Welches Erklärvideo für diese Sprache? Deutsch bekommt die deutsche Fassung, jede andere
+ * Sprache die englische – mit Rückfall auf die deutsche, solange keine englische hochgeladen
+ * ist (lieber die deutsche als gar keine). EINE Quelle für Startseite und Über-uns-Seite.
+ */
+export function explainerVideoFor(media: HomeMedia, locale: string): LandingVideo | null {
+  if (locale === "de") return media.explainerVideo;
+  return media.explainerVideoEn ?? media.explainerVideo;
 }
 
 /** Versionsmarke der deutschen Texte. Weicht sie ab, sind die Übersetzungen veraltet. */

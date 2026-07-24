@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
-import { getHomeTexts, getHomeMedia } from "@/lib/home-content";
+import { getHomeTexts, getHomeMedia, explainerVideoFor } from "@/lib/home-content";
 import { alternatesFor } from "@/lib/metadata";
 import LandingVideo from "@/components/landing/LandingVideo";
 import MediaSlot from "@/components/landing/MediaSlot";
@@ -65,13 +65,11 @@ export default async function AboutPage({
           </div>
 
           <div className="mx-auto w-full max-w-[270px] md:max-w-[320px]">
-            <div className="rounded-[28px] p-1.5 ring-1 ring-black/[0.05] shadow-[0_2px_4px_rgba(0,0,0,0.04),0_34px_80px_-34px_rgba(0,0,0,0.55)]">
-              <LandingVideo
-                video={media.explainerVideo}
-                hint="Erklär-/Gründervideo 9:16, max. ~2,5 MB, mit Ton"
-                playLabel={texts.videoPlay}
-              />
-            </div>
+            <LandingVideo
+              video={explainerVideoFor(media, locale)}
+              hint="Erklär-/Gründervideo 9:16, max. ~2,5 MB, mit Ton"
+              playLabel={texts.videoPlay}
+            />
           </div>
         </section>
 

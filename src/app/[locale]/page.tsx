@@ -76,7 +76,7 @@ export default async function HomePage({
           Einstellungen; ohne Auswahl blendet sich die Section selbst aus. */}
       <FeaturedSpots texts={texts} locale={locale} />
       <Story texts={texts} />
-      <FoundersSection texts={texts} media={media} />
+      <FoundersSection texts={texts} media={media} locale={locale} />
       <ToniSection texts={texts} />
       <ProSection texts={texts} locale={locale} />
 

@@ -1822,10 +1822,13 @@ export async function saveHomeTexts(
     .eq("id", 1);
   if (error) return { ok: false, error: error.message };
 
-  // Die Startseite ist statisch gerendert -> ohne revalidate bliebe der alte Text stehen,
-  // und im Admin sähe alles richtig aus. Alle Sprachen, weil jede die deutschen Texte als
-  // Auffangnetz nutzt (siehe home-content.ts).
-  for (const l of routing.locales) revalidatePath(`/${l}`);
+  // Die Startseite UND die Über-uns-Seite (nutzt dieselben Gründer-Texte) sind statisch
+  // gerendert -> ohne revalidate bliebe der alte Text stehen, und im Admin sähe alles
+  // richtig aus. Alle Sprachen, weil jede die deutschen Texte als Auffangnetz nutzt.
+  for (const l of routing.locales) {
+    revalidatePath(`/${l}`);
+    revalidatePath(`/${l}/ueber-uns`);
+  }
   return { ok: true };
 }
 
@@ -1870,7 +1873,10 @@ export async function fillHomeTranslations(): Promise<{
     .eq("id", 1);
   if (upErr) return { ok: false, error: upErr.message };
 
-  for (const l of routing.locales) revalidatePath(`/${l}`);
+  for (const l of routing.locales) {
+    revalidatePath(`/${l}`);
+    revalidatePath(`/${l}/ueber-uns`);
+  }
   return { ok: true, failed: res.failed, rejected: res.rejected };
 }
 
@@ -1888,6 +1894,7 @@ export async function saveHomeMedia(media: HomeMedia): Promise<{ ok: boolean; er
     heroPortrait: parseLandingImage(media.heroPortrait),
     heroLandscape: parseLandingImage(media.heroLandscape),
     explainerVideo: parseLandingVideo(media.explainerVideo),
+    explainerVideoEn: parseLandingVideo(media.explainerVideoEn),
     antonPhoto: parseLandingImage(media.antonPhoto),
     simonPhoto: parseLandingImage(media.simonPhoto),
   };
@@ -1909,6 +1916,10 @@ export async function saveHomeMedia(media: HomeMedia): Promise<{ ok: boolean; er
     .eq("id", 1);
   if (error) return { ok: false, error: error.message };
 
-  for (const l of routing.locales) revalidatePath(`/${l}`);
+  // Startseite UND Über-uns-Seite: beide zeigen dieselben Medien (Video, Gründerfotos).
+  for (const l of routing.locales) {
+    revalidatePath(`/${l}`);
+    revalidatePath(`/${l}/ueber-uns`);
+  }
   return { ok: true };
 }

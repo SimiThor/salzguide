@@ -34,56 +34,61 @@ export default function LandingVideo({
   const poster = video && !posterBroken ? video.poster : null;
 
   return (
-    // transform-gpu isolate overflow-hidden: sonst franst Safari die runden Ecken aus.
-    // Kein fixes max-w hier: die Breite bestimmt die Spalte in FoundersSection, damit das
-    // Video am iPhone die volle Breite nutzt und am Desktop mit der Spalte mitwächst.
-    <div className="relative aspect-[9/16] w-full transform-gpu isolate overflow-hidden rounded-[22px] bg-black/[0.06] shadow-[0_1px_2px_rgba(0,0,0,0.04),0_24px_60px_-24px_rgba(0,0,0,0.45)]">
-      {!video ? (
-        <div className="grid h-full w-full place-items-center px-4 text-center" aria-hidden>
-          <div>
-            <p className="text-[22px]">🎬</p>
-            <p className="mt-1 text-[11px] font-medium leading-snug text-muted/70">{hint}</p>
+    // RAHMEN um das Video: EINE Quelle für den „gerahmten Moment" (zarter Ring + schmales
+    // Mat + weicher Schatten). Dadurch sieht das Video überall gleich aus, wo LandingVideo
+    // steht (Startseite UND Über-uns-Seite) - einheitlich und robust, statt an jeder Stelle
+    // einen eigenen Rahmen zu bauen. Der Schatten sitzt am Rahmen, nicht am inneren Kasten.
+    <div className="rounded-[28px] p-1.5 ring-1 ring-black/[0.05] shadow-[0_2px_4px_rgba(0,0,0,0.04),0_34px_80px_-34px_rgba(0,0,0,0.55)]">
+      {/* transform-gpu isolate overflow-hidden am inneren Kasten: sonst franst Safari die
+          runden Ecken aus. Kein fixes max-w hier: die Breite bestimmt die Spalte am Aufrufort. */}
+      <div className="relative aspect-[9/16] w-full transform-gpu isolate overflow-hidden rounded-[22px] bg-black/[0.06]">
+        {!video ? (
+          <div className="grid h-full w-full place-items-center px-4 text-center" aria-hidden>
+            <div>
+              <p className="text-[22px]">🎬</p>
+              <p className="mt-1 text-[11px] font-medium leading-snug text-muted/70">{hint}</p>
+            </div>
           </div>
-        </div>
-      ) : playing ? (
-        <video
-          src={video.src}
-          poster={poster ?? undefined}
-          // sg-video (globals.css): in der Kachel füllend, im Vollbild vollständig.
-          className="sg-video"
-          controls
-          autoPlay
-          playsInline
-        />
-      ) : (
-        <button
-          type="button"
-          onClick={() => setPlaying(true)}
-          aria-label={playLabel}
-          className="group relative h-full w-full"
-        >
-          {poster && (
-            <Image
-              src={poster}
-              alt=""
-              fill
-              // Am iPhone volle Spaltenbreite, am Desktop die halbe Spalte. Ohne diese
-              // Angabe lädt next/image auf dem Handy das Desktop-Bild.
-              sizes="(min-width: 768px) 380px, 100vw"
-              onError={() => setPosterBroken(true)}
-              className="object-cover"
-            />
-          )}
-          {/* Verlauf unten: Der weisse Play-Knopf muss auch auf einem hellen Standbild
-              sichtbar bleiben. Ohne den hängt seine Lesbarkeit am Motiv des Videos. */}
-          <span className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent" />
-          <span className="absolute inset-0 grid place-items-center">
-            <span className="grid h-16 w-16 place-items-center rounded-full bg-white/90 text-ink shadow-lg backdrop-blur-md transition group-active:scale-95">
-              <Play className="ml-0.5 h-6 w-6" />
+        ) : playing ? (
+          <video
+            src={video.src}
+            poster={poster ?? undefined}
+            // sg-video (globals.css): in der Kachel füllend, im Vollbild vollständig.
+            className="sg-video"
+            controls
+            autoPlay
+            playsInline
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={() => setPlaying(true)}
+            aria-label={playLabel}
+            className="group relative h-full w-full"
+          >
+            {poster && (
+              <Image
+                src={poster}
+                alt=""
+                fill
+                // Am iPhone volle Spaltenbreite, am Desktop die halbe Spalte. Ohne diese
+                // Angabe lädt next/image auf dem Handy das Desktop-Bild.
+                sizes="(min-width: 768px) 380px, 100vw"
+                onError={() => setPosterBroken(true)}
+                className="object-cover"
+              />
+            )}
+            {/* Verlauf unten: Der weisse Play-Knopf muss auch auf einem hellen Standbild
+                sichtbar bleiben. Ohne den hängt seine Lesbarkeit am Motiv des Videos. */}
+            <span className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent" />
+            <span className="absolute inset-0 grid place-items-center">
+              <span className="grid h-16 w-16 place-items-center rounded-full bg-white/90 text-ink shadow-lg backdrop-blur-md transition group-active:scale-95">
+                <Play className="ml-0.5 h-6 w-6" />
+              </span>
             </span>
-          </span>
-        </button>
-      )}
+          </button>
+        )}
+      </div>
     </div>
   );
 }
