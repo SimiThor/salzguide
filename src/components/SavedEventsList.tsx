@@ -43,13 +43,13 @@ export default function SavedEventsList({
   return (
     <section className={className}>
       <h2 className="mb-3 px-4 text-xl font-bold text-ink">{title}</h2>
-      <div className="space-y-6 px-4">
+      <div className="space-y-10 px-4 md:space-y-12">
         <AnimatePresence initial={false}>
           {days.map((d) => {
             const { weekday, date } = dayLabel(d.key, locale);
             return (
               <motion.div key={d.key} layout {...EXIT}>
-                <h3 className="mb-2.5 flex items-baseline gap-2 text-[13px] font-bold uppercase tracking-wide text-muted">
+                <h3 className="mb-3 flex items-baseline gap-2 text-[13px] font-bold uppercase tracking-wide text-muted">
                   <span className="text-ink">{weekday}</span>
                   <span>{date}</span>
                   {d.key === todayKey && (
