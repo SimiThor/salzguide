@@ -37,15 +37,15 @@ export default async function AdminSupportPage({
             { key: "open", label: "Offen" },
             { key: "done", label: "Erledigt" },
           ].map((t) => (
-            <a
+            <Link
               key={t.key}
-              href={`/${locale}/admin/support?status=${t.key}`}
+              href={`/admin/users/support?status=${t.key}`}
               className={`rounded-full px-4 py-1.5 text-sm font-semibold transition ${
                 (t.key === "done") === showDone ? "bg-white text-ink shadow-sm" : "text-muted"
               }`}
             >
               {t.label}
-            </a>
+            </Link>
           ))}
         </div>
       </div>

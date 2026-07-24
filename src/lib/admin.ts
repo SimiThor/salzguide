@@ -129,6 +129,9 @@ export type ProMigrationList = {
   total: number;
   claimed: number;
   open: number;
+  // Noch nicht per Mail angeschrieben (announced_at = null). Das ist die Menge, die der
+  // Versand-Knopf wirklich adressiert — NICHT `open` (noch nicht eingelöst).
+  unannounced: number;
 };
 
 /**
@@ -144,7 +147,7 @@ export async function getProMigrations(): Promise<ProMigrationList> {
   const { data, error } = await supabase
     .from("pro_migrations")
     .select(
-      "email, note, created_at, claimed_at, claimer:profiles!pro_migrations_claimed_by_fkey(email)",
+      "email, note, created_at, claimed_at, announced_at, claimer:profiles!pro_migrations_claimed_by_fkey(email)",
     )
     // nullsFirst: die offenen (claimed_at = null) nach oben.
     .order("claimed_at", { ascending: true, nullsFirst: true })
@@ -152,7 +155,7 @@ export async function getProMigrations(): Promise<ProMigrationList> {
     .limit(500);
   if (error) {
     console.warn("getProMigrations übersprungen – Migration 0040 nötig?", error.message);
-    return { rows: [], total: 0, claimed: 0, open: 0 };
+    return { rows: [], total: 0, claimed: 0, open: 0, unannounced: 0 };
   }
 
   const rows: ProMigrationRow[] = (data ?? []).map((r) => {
@@ -167,7 +170,10 @@ export async function getProMigrations(): Promise<ProMigrationList> {
     };
   });
   const claimed = rows.filter((r) => r.claimedAt).length;
-  return { rows, total: rows.length, claimed, open: rows.length - claimed };
+  const unannounced = (data ?? []).filter(
+    (r) => !(r as { announced_at?: string | null }).announced_at,
+  ).length;
+  return { rows, total: rows.length, claimed, open: rows.length - claimed, unannounced };
 }
 
 // ── Support ──────────────────────────────────────────────────────────────────

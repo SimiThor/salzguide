@@ -62,9 +62,12 @@ export default function AnalyticsFilters({
   function push(next: Partial<Current>) {
     const m = { ...current, ...next };
     const p = new URLSearchParams();
-    if (m.from && m.to) {
-      p.set("from", m.from);
-      p.set("to", m.to);
+    // Ein einzelner Endpunkt muss in der URL bleiben, sonst setzt sich das gerade gewählte
+    // Datum sofort zurück und der zweite Endpunkt lässt sich nie ergänzen (der Server nutzt
+    // den Zeitraum ohnehin erst, wenn beide da sind – sonst greift das Preset).
+    if (m.from || m.to) {
+      if (m.from) p.set("from", m.from);
+      if (m.to) p.set("to", m.to);
     } else if (m.range && m.range !== "30d") {
       p.set("range", m.range);
     }
