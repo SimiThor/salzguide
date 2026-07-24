@@ -136,39 +136,40 @@ export default function StoryMaker({
         // sauber oben WEGGESCHNITTEN wird und in der Vorschau kein On-Screen-Text mehr auftaucht.
         // Der Zuschnitt zentriert vertikal (object-cover), der obere Rand liegt so bei ~32 %,
         // klar unter der Wortmarke (~29 %). Eine Quelle -> gilt einheitlich für alle Spot-Seiten.
-        className={`relative aspect-[16/10] overflow-hidden rounded-[22px] bg-[#5c90bd] shadow-sm ring-1 ring-black/5 transition-opacity duration-300 ${
+        className={`relative aspect-[16/10] overflow-hidden rounded-[22px] bg-black/[0.05] shadow-sm ring-1 ring-black/5 transition-opacity duration-300 ${
           open ? "opacity-0" : "opacity-100"
         }`}
       >
-        {/* Warme Berglandschaft als sofortiger, stabiler Ladescreen (Inline-SVG, kein Netz).
-            Video bzw. Routen-Grafik blenden darüber SANFT ein (opacity), statt hart aufzupoppen
-            -> nichts springt beim Laden. Ohne Intro scheint die Landschaft durch die transparente
-            Route; mit Intro deckt das Video sie ab, sobald sein erster Frame da ist. */}
-        <StoryHeroBackdrop className="absolute inset-0 h-full w-full" />
-        {introUrl ? (
-          <video
-            ref={bgRef}
-            src={introUrl}
-            poster={introPosterUrl ?? undefined}
-            muted
-            loop
-            playsInline
-            preload="none"
-            onLoadedData={() => setHeroReady(true)}
-            className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-500 ${
-              heroReady ? "opacity-100" : "opacity-0"
-            }`}
-          />
-        ) : (
-          // Kein Video -> Route als Grafik, sanft eingeblendet über der Landschaft.
-          <canvas
-            ref={heroRef}
-            aria-hidden
-            className={`absolute inset-0 h-full w-full transition-opacity duration-500 ${
-              heroReady ? "opacity-100" : "opacity-0"
-            }`}
-          />
-        )}
+        {/* Skeleton-Ladescreen (Shimmer) wie bei den Foto-Sections: liegt zuunterst und ist
+            sichtbar, solange das richtige Medium noch nicht geladen ist. Nichts springt beim
+            Laden - erst wenn das Video (bzw. die gezeichnete Route) da ist, blendet der fertige
+            Inhalt darüber ein und deckt den Shimmer ab. */}
+        <div className="absolute inset-0 sg-skeleton" aria-hidden />
+        <div
+          className={`absolute inset-0 transition-opacity duration-500 ${
+            heroReady ? "opacity-100" : "opacity-0"
+          }`}
+        >
+          {/* Warme Berglandschaft als Hintergrund: ohne Intro scheint sie durch die transparente
+              Route, mit Intro deckt das Video sie ab. */}
+          <StoryHeroBackdrop className="absolute inset-0 h-full w-full" />
+          {introUrl ? (
+            <video
+              ref={bgRef}
+              src={introUrl}
+              poster={introPosterUrl ?? undefined}
+              muted
+              loop
+              playsInline
+              preload="none"
+              onLoadedData={() => setHeroReady(true)}
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+          ) : (
+            // Kein Video -> Route als Grafik über der Landschaft.
+            <canvas ref={heroRef} aria-hidden className="absolute inset-0 h-full w-full" />
+          )}
+        </div>
         <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
         <div className="absolute inset-x-0 bottom-0 p-4 pt-12">
           <h2 className="text-[19px] font-bold leading-tight text-white [text-shadow:0_2px_14px_rgba(0,0,0,0.55)]">
