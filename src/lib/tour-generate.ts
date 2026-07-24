@@ -322,16 +322,26 @@ async function optimizeLoop(
   start: LngLat,
   points: Cand[],
 ): Promise<{ order: Cand[]; geo: [number, number][] | null; distanceM: number | null; durationS: number | null }> {
-  const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+  // WICHTIG: eigener SERVER-Token, nicht der öffentliche NEXT_PUBLIC-Token. Der öffentliche
+  // ist URL-beschränkt (nur erlaubte Browser-Referer); ein serverseitiger fetch sendet GAR
+  // KEINEN Referer -> Mapbox antwortet 403, und die Runde fiele still auf gerade Linien
+  // zurück. Deshalb MAPBOX_SERVER_TOKEN (nicht URL-beschränkt, bleibt geheim wie ORS_KEY).
+  // Fallback auf den öffentlichen Token nur, damit lokal nichts hart bricht.
+  const token = process.env.MAPBOX_SERVER_TOKEN ?? process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
   const coords = [start, ...points.map((p) => ({ lat: p.lat, lng: p.lng }))];
   if (!token || coords.length < 2 || coords.length > 12) {
+    if (!token) console.error("[tour-generate] Kein Mapbox-Token (MAPBOX_SERVER_TOKEN) -> gerade Linien.");
     return { order: nearestNeighbor(start, points), geo: null, distanceM: null, durationS: null };
   }
   const coordStr = coords.map((c) => `${c.lng},${c.lat}`).join(";");
   const url = `https://api.mapbox.com/optimized-trips/v1/mapbox/walking/${coordStr}?roundtrip=true&source=first&geometries=geojson&overview=full&access_token=${token}`;
   try {
     const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
-    if (!res.ok) throw new Error(String(res.status));
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      // 403 = fast immer ein URL-beschränkter Token (Referer fehlt serverseitig).
+      throw new Error(`Mapbox ${res.status} ${body.slice(0, 200)}`);
+    }
     const j = await res.json();
     if (j.code !== "Ok" || !Array.isArray(j.trips) || !j.trips.length) throw new Error("no trip");
     const trip = j.trips[0];
@@ -348,7 +358,13 @@ async function optimizeLoop(
       distanceM: typeof trip.distance === "number" ? trip.distance : null,
       durationS: typeof trip.duration === "number" ? trip.duration : null,
     };
-  } catch {
+  } catch (e) {
+    // Nicht mehr still schlucken: ohne Log war unsichtbar, warum die Runde als gerade
+    // Linien ohne Start ankam. Der Fallback bleibt (nie leer ausliefern).
+    console.error(
+      "[tour-generate] optimizeLoop -> gerade Linien:",
+      e instanceof Error ? e.message : e,
+    );
     return { order: nearestNeighbor(start, points), geo: null, distanceM: null, durationS: null };
   }
 }

@@ -92,12 +92,21 @@ export default function TourView({
       ? { slug: "__start__", lat: tour.start.lat, lng: tour.start.lng, emoji: "🚩", title: t("start") }
       : null;
   const markers: MapMarker[] = startMarker ? [startMarker, ...stopMarkers] : stopMarkers;
+  // Echte, an Straßen gesnappte Route (Normalfall). Fehlt sie (Routing-Dienst war nicht
+  // erreichbar), keine losen Segmente zeigen: die Ersatzlinie läuft vom Start (Mirabell)
+  // über die Stops und zurück, damit die Runde wenigstens am Start verankert ist.
   const route: [number, number][] | null =
     tour.routeGeo && tour.routeGeo.length > 1
       ? tour.routeGeo
-      : stopMarkers.length > 1
-        ? stopMarkers.map((m) => [m.lng, m.lat])
-        : null;
+      : startMarker && stopMarkers.length > 0
+        ? [
+            [startMarker.lng, startMarker.lat],
+            ...stopMarkers.map((m) => [m.lng, m.lat] as [number, number]),
+            [startMarker.lng, startMarker.lat],
+          ]
+        : stopMarkers.length > 1
+          ? stopMarkers.map((m) => [m.lng, m.lat])
+          : null;
   const center: [number, number] = startMarker
     ? [startMarker.lng, startMarker.lat]
     : stopMarkers.length
