@@ -1,7 +1,9 @@
-// Hintergrund des Story-Maker-Heros: eine flache, verspielte Berglandschaft (Airbnb/Komoot-
-// Formen-Look), in WARMEN Marken-Tönen statt des alten kühlen Blau/Lila. Sonne, Himmel in
-// Abenddämmerung, gestaffelte Berg-Silhouetten, ein Streifen Wiese. Bewusst mittel-dunkel:
-// darüber liegen die weisse Routen-Linie und (unten) der weisse Titel-Text mit Scrim.
+// Hintergrund des Story-Maker-Heros: eine flache, verspielte Salzburger Landschaft im
+// Airbnb/Komoot-Formen-Look. Echte Landschaftsfarben, aber gedämpft/abgestimmt auf unsere
+// Marke: blauer Alpen-Himmel, warme Sonne, GRAUE gestaffelte Berge (atmosphärisch von hinten
+// hell/bläulich nach vorne dunkler), grüne Wiesen-Hügel im Vordergrund. Bewusst so getönt,
+// dass die weisse Routen-Linie darüber und (unten, über dem Scrim) der weisse Titel lesbar
+// bleiben.
 //
 // EINE Quelle: dieselbe Grafik für alle Spot-Seiten. Reines Inline-SVG (kein Netzwerk, kein
 // Layout-Sprung), skaliert per preserveAspectRatio="…slice" formatfüllend auf 16/10.
@@ -14,45 +16,50 @@ export default function StoryHeroBackdrop({ className }: { className?: string })
       aria-hidden
     >
       <defs>
-        {/* Himmel: warme Dämmerung von tief oben zu glühend am Horizont. */}
+        {/* Alpen-Himmel: sattes Blau oben, heller zum Horizont. */}
         <linearGradient id="sg-sky" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#3a2632" />
-          <stop offset="0.5" stopColor="#9b4d3b" />
-          <stop offset="1" stopColor="#e58c4c" />
+          <stop offset="0" stopColor="#5c90bd" />
+          <stop offset="1" stopColor="#accbe0" />
         </linearGradient>
-        {/* Weiches Sonnenlicht um die Sonne. */}
-        <radialGradient id="sg-sunglow" cx="0.31" cy="0.33" r="0.55">
-          <stop offset="0" stopColor="#ffe1ad" stopOpacity="0.9" />
-          <stop offset="0.4" stopColor="#f9ad63" stopOpacity="0.32" />
-          <stop offset="1" stopColor="#f9ad63" stopOpacity="0" />
+        {/* Weiches Sonnenlicht. */}
+        <radialGradient id="sg-sun" cx="0.3" cy="0.3" r="0.52">
+          <stop offset="0" stopColor="#fff4d4" stopOpacity="0.7" />
+          <stop offset="0.45" stopColor="#ffe9b0" stopOpacity="0.18" />
+          <stop offset="1" stopColor="#ffe9b0" stopOpacity="0" />
         </radialGradient>
+        {/* Wiese: frisches Grün, unten etwas dunkler. */}
+        <linearGradient id="sg-meadow" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#6f9a4c" />
+          <stop offset="1" stopColor="#4a6f33" />
+        </linearGradient>
       </defs>
 
       {/* Himmel + Sonnenschein */}
       <rect width="400" height="250" fill="url(#sg-sky)" />
-      <rect width="400" height="250" fill="url(#sg-sunglow)" />
+      <rect width="400" height="250" fill="url(#sg-sun)" />
 
-      {/* Sonne (leicht überm Grat der fernen Berge). */}
-      <circle cx="124" cy="79" r="31" fill="#ffdca0" />
+      {/* Sonne */}
+      <circle cx="118" cy="74" r="26" fill="#ffe49b" />
 
-      {/* Ferne Berge – hell, hazy, warm coral. */}
+      {/* Ferne Berge – hell, bläulich-grau (atmosphärische Ferne). Unregelmässige Gipfel:
+          ein dominanter Grat, dazwischen niedrigere Kuppen, variabler Abstand. */}
       <path
-        d="M0 150 L58 108 L118 150 L182 96 L250 150 L316 112 L400 150 L400 250 L0 250 Z"
-        fill="#d17b52"
+        d="M0 134 L44 110 L92 132 L150 82 L198 124 L244 100 L300 130 L356 106 L400 122 L400 250 L0 250 Z"
+        fill="#9cb4c4"
         opacity="0.92"
       />
-      {/* Mittlere Bergkette. */}
+      {/* Mittlere Bergkette – klares Grau, VERSETZT zur fernen Kette (Gipfel liegen zwischen
+          deren Gipfeln -> Tiefe), ebenfalls unregelmässig. */}
       <path
-        d="M0 176 L70 132 L134 178 L206 126 L286 180 L346 146 L400 178 L400 250 L0 250 Z"
-        fill="#963f2b"
+        d="M0 172 L64 128 L112 166 L176 100 L226 150 L292 120 L340 162 L400 138 L400 250 L0 250 Z"
+        fill="#76828d"
       />
-      {/* Vordere, dunkle Berge – geben Tiefe und tragen die weisse Route. */}
+      {/* Vordere grüne Wiesen-Hügel (weiche Kuppen statt Zacken), bewusst höher, damit das
+          Grün auch über dem Titel-Scrim sichtbar bleibt. */}
       <path
-        d="M0 210 L86 162 L166 210 L246 166 L332 212 L400 188 L400 250 L0 250 Z"
-        fill="#48241a"
+        d="M0 190 Q104 166 208 185 T400 182 L400 250 L0 250 Z"
+        fill="url(#sg-meadow)"
       />
-      {/* Wiese: warmer, leicht grüner Streifen ganz unten (grösstenteils unter dem Scrim). */}
-      <path d="M0 227 Q200 213 400 229 L400 250 L0 250 Z" fill="#3f4326" />
     </svg>
   );
 }

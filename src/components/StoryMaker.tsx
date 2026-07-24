@@ -133,7 +133,7 @@ export default function StoryMaker({
         // sauber oben WEGGESCHNITTEN wird und in der Vorschau kein On-Screen-Text mehr auftaucht.
         // Der Zuschnitt zentriert vertikal (object-cover), der obere Rand liegt so bei ~32 %,
         // klar unter der Wortmarke (~29 %). Eine Quelle -> gilt einheitlich für alle Spot-Seiten.
-        className={`relative aspect-[16/10] overflow-hidden rounded-[22px] bg-[#3b2733] shadow-sm ring-1 ring-black/5 transition-opacity duration-300 ${
+        className={`relative aspect-[16/10] overflow-hidden rounded-[22px] bg-[#5c90bd] shadow-sm ring-1 ring-black/5 transition-opacity duration-300 ${
           open ? "opacity-0" : "opacity-100"
         }`}
       >
@@ -156,7 +156,7 @@ export default function StoryMaker({
           // Kein Video -> Route als Grafik (füllt den sonst leeren dunklen Hero).
           <canvas ref={heroRef} aria-hidden className="absolute inset-0 h-full w-full" />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
         <div className="absolute inset-x-0 bottom-0 p-4 pt-12">
           <h2 className="text-[19px] font-bold leading-tight text-white [text-shadow:0_2px_14px_rgba(0,0,0,0.55)]">
             📸 {t("sectionTitle")}
