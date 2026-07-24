@@ -1289,11 +1289,24 @@ export async function reorderCategories(
   if (season !== "summer" && season !== "winter")
     return { ok: false, error: "Ungültige Saison." };
   if (!Array.isArray(ids) || ids.length === 0) return { ok: false, error: "bad_input" };
-  for (let i = 0; i < ids.length; i++) {
+  // ALLE Kategorien der Saison holen und vollständig neu durchnummerieren. Käme nur eine
+  // Teilliste an, behielten die ausgelassenen ihre alte sort_order und kollidierten mit den
+  // neu vergebenen Positionen (doppelte Nummern -> unbestimmte Reihenfolge in den Karussells).
+  const { data: all, error: readErr } = await gate.supabase
+    .from("categories")
+    .select("id")
+    .eq("season", season)
+    .order("sort_order", { ascending: true });
+  if (readErr) return { ok: false, error: "db" };
+  const allIds = (all ?? []).map((r) => r.id as string);
+  const wanted = ids.filter((id) => allIds.includes(id));
+  // Gewünschte Reihenfolge zuerst, alles Übrige (stabil nach alter Sortierung) dahinter.
+  const ordered = [...wanted, ...allIds.filter((id) => !wanted.includes(id))];
+  for (let i = 0; i < ordered.length; i++) {
     const { error } = await gate.supabase
       .from("categories")
       .update({ sort_order: i + 1 })
-      .eq("id", ids[i])
+      .eq("id", ordered[i])
       .eq("season", season);
     if (error) return { ok: false, error: "db" };
   }
@@ -1582,7 +1595,10 @@ export async function saveHomeFeatured(
   if (slugs.length > MAX_HOME_FEATURED)
     return { ok: false, error: `Höchstens ${MAX_HOME_FEATURED} Spots auf der Startseite.` };
 
-  const svc = createServiceClient();
+  // spots hat die RLS-Policy spots_admin_all -> der Session-Client (mit Admin-Login) darf lesen
+  // und schreiben, und die zweite Schloss-Ebene (RLS) bleibt aktiv. Kein Service-Client nötig,
+  // wie schon saveSpot zeigt. Nur home_content bräuchte ihn (dort gibt es keine Admin-Write-Policy).
+  const svc = gate.supabase;
 
   // Nur das durchlassen, was wirklich frei und veröffentlicht ist. Der Client könnte
   // veraltete oder manipulierte Slugs schicken.
@@ -1798,7 +1814,8 @@ export async function triggerIntroRender(
     };
   }
 
-  const svc = createServiceClient();
+  // spots hat die RLS-Policy spots_admin_all -> Session-Client genügt (RLS bleibt zweites Schloss).
+  const svc = gate.supabase;
   // Sofort 'queued', damit die Seite gleich „in Warteschlange" zeigt. Best-effort: fehlt
   // Migration 0049, ignorieren wir den Fehler und stossen den Workflow trotzdem an.
   await svc
