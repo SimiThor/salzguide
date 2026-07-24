@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "./supabase/server";
 import { createServiceClient } from "./supabase/service";
 import { BRAND_VOICE } from "./brand-voice";
 import { normalizeManual, type OpeningWeek } from "./opening-hours";
@@ -18,6 +17,7 @@ import type { HomeMedia } from "./home-content";
 import { MAX_HOME_FEATURED } from "./home-featured";
 import { requireAdmin } from "./admin-guard";
 import { factCanonical, factPrice, type FactField } from "./facts-i18n";
+import { slugify } from "./slug";
 import { getIntroRenderList, type IntroRenderItem } from "./admin";
 
 export type SpotInput = {
@@ -145,20 +145,15 @@ function spotMediaUrl(
 }
 
 export async function saveSpot(input: SpotInput): Promise<SaveResult> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "auth" };
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
-  if (profile?.role !== "admin") return { ok: false, error: "forbidden" };
+  const gate = await requireAdmin();
+  if (!gate.ok) return { ok: false, error: gate.error };
+  const { supabase } = gate;
 
-  if (!input.slug.trim() || !input.title.trim())
-    return { ok: false, error: "required" };
+  // Slug = URL-Schlüssel. Bei NEUEN Spots kanonisieren, damit nie ein roher „Hallstätter See!"
+  // als URL landet. Bestehende Spots NICHT umschreiben: ein geänderter Slug bräche alte
+  // Links/SEO; wer ihn bewusst ändert, tut das im Feld selbst.
+  const slug = input.id ? input.slug.trim() : slugify(input.slug);
+  if (!slug || !input.title.trim()) return { ok: false, error: "required" };
 
   // Öffnungszeiten: im Google-Modus (Default) ist die Place-ID Pflicht.
   if (
@@ -171,36 +166,6 @@ export async function saveSpot(input: SpotInput): Promise<SaveResult> {
   const vid = spotMediaUrl(input.videoUrl);
   const vidPoster = spotMediaUrl(input.videoPosterUrl);
   if (!vid.ok || !vidPoster.ok) return { ok: false, error: "bad_url" };
-
-  // Veröffentlichen-Gate (Anti-Chaos): live gehen darf ein Spot NUR, wenn er in ALLE Sprachen
-  // übersetzt UND aktuell ist. Geprüft wird NUR der Übergang Entwurf->Veröffentlicht: ein bereits
-  // veröffentlichter Spot bleibt frei editierbar (Koordinaten/Fotos/Tippfehler), ohne dass alle
-  // Sprachen erneut erzwungen werden. Entwurf speichern ist immer erlaubt. (Verbindliche Grenze.)
-  if (input.status === "published") {
-    let wasPublished = false;
-    if (input.id) {
-      const { data: cur } = await supabase
-        .from("spots")
-        .select("status")
-        .eq("id", input.id)
-        .maybeSingle();
-      wasPublished = (cur as { status?: string } | null)?.status === "published";
-    }
-    if (!wasPublished) {
-      const deHashGate = hashSpotTexts({
-        title: input.title,
-        shortDesc: input.shortDesc,
-        general: input.general,
-        insiderTip: input.insiderTip,
-        sectionA: input.sectionA,
-        sectionB: input.sectionB,
-        locationText: input.locationText,
-      });
-      const targets = routing.locales.filter((l) => l !== "de");
-      if (!translationsPublishable(input.translations, input.translationsSourceHash, deHashGate, targets))
-        return { ok: false, error: "translations_incomplete" };
-    }
-  }
 
   // Modus: Einzelner Punkt ODER Wanderung. Bei einer Wanderung ist der
   // Haupt-/Anreisepunkt (lat/lng) automatisch der Startpunkt (erster Kontrollpunkt).
@@ -219,8 +184,42 @@ export async function saveSpot(input: SpotInput): Promise<SaveResult> {
   const waterStops = parsePois(input.waterStops);
   const huts = parsePois(input.huts);
 
+  // Veröffentlichen-Gate (Anti-Chaos): live gehen darf ein Spot NUR mit gesetztem Ort UND in
+  // ALLE Sprachen übersetzt & aktuell. Geprüft wird NUR der Übergang Entwurf->Veröffentlicht: ein
+  // bereits veröffentlichter Spot bleibt frei editierbar (Koordinaten/Fotos/Tippfehler), ohne dass
+  // alles erneut erzwungen wird. Entwurf speichern ist immer erlaubt. (Verbindliche Grenze.)
+  if (input.status === "published") {
+    let wasPublished = false;
+    if (input.id) {
+      const { data: cur } = await supabase
+        .from("spots")
+        .select("status")
+        .eq("id", input.id)
+        .maybeSingle();
+      wasPublished = (cur as { status?: string } | null)?.status === "published";
+    }
+    if (!wasPublished) {
+      // Ohne Ort ist der Spot auf der Karte unsichtbar -> nicht veröffentlichbar. Der Ort ist in
+      // beiden Modi ein Klick (Einzelpunkt oder Wanderung mit Start & Ziel).
+      if (lat == null || lng == null)
+        return { ok: false, error: "location_required" };
+      const deHashGate = hashSpotTexts({
+        title: input.title,
+        shortDesc: input.shortDesc,
+        general: input.general,
+        insiderTip: input.insiderTip,
+        sectionA: input.sectionA,
+        sectionB: input.sectionB,
+        locationText: input.locationText,
+      });
+      const targets = routing.locales.filter((l) => l !== "de");
+      if (!translationsPublishable(input.translations, input.translationsSourceHash, deHashGate, targets))
+        return { ok: false, error: "translations_incomplete" };
+    }
+  }
+
   const row = {
-    slug: input.slug.trim(),
+    slug,
     type: input.type,
     subtype: canon("subtype", input.subtype),
     emoji: e(input.emoji),
@@ -258,17 +257,23 @@ export async function saveSpot(input: SpotInput): Promise<SaveResult> {
   };
 
   // Spot anlegen/aktualisieren
+  // Ein doppelter Slug verletzt den unique-Constraint (Postgres 23505). Statt die rohe
+  // Postgres-Meldung zu zeigen, geben wir „slug_taken" zurück -> das Formular macht daraus
+  // eine klare Bitte, einen anderen Slug zu wählen.
+  const slugTaken = (code?: string) => code === "23505";
   let spotId = input.id;
   if (spotId) {
     const { error } = await supabase.from("spots").update(row).eq("id", spotId);
-    if (error) return { ok: false, error: error.message };
+    if (error)
+      return { ok: false, error: slugTaken(error.code) ? "slug_taken" : error.message };
   } else {
     const { data, error } = await supabase
       .from("spots")
       .insert(row)
       .select("id")
       .single();
-    if (error) return { ok: false, error: error.message };
+    if (error)
+      return { ok: false, error: slugTaken(error.code) ? "slug_taken" : error.message };
     spotId = data.id;
   }
 
@@ -382,12 +387,20 @@ export async function saveSpot(input: SpotInput): Promise<SaveResult> {
     }
   }
 
-  // Kategorien neu setzen
-  await supabase.from("spot_categories").delete().eq("spot_id", spotId);
+  // Kategorien neu setzen. Fehler NICHT verschlucken: Ohne diese Prüfung speichert ein Spot
+  // ohne (oder mit halben) Kategorien und meldet trotzdem „gespeichert" – er taucht dann in
+  // keinem Karussell auf, und niemand erfährt warum. Wie bei den Öffnungszeiten reicht ein
+  // Log (der Spot selbst ist schon geschrieben, ein erneutes Speichern setzt sie neu).
+  const { error: catDelErr } = await supabase
+    .from("spot_categories")
+    .delete()
+    .eq("spot_id", spotId);
+  if (catDelErr) console.error("spot_categories delete:", catDelErr.message);
   if (input.categoryIds.length) {
-    await supabase
+    const { error: catInsErr } = await supabase
       .from("spot_categories")
       .insert(input.categoryIds.map((cid) => ({ spot_id: spotId, category_id: cid })));
+    if (catInsErr) console.error("spot_categories insert:", catInsErr.message);
   }
 
   // Fotos neu setzen (erstes = Hero); media-Tabelle ist die Quelle der Wahrheit.
@@ -415,9 +428,16 @@ export async function saveSpot(input: SpotInput): Promise<SaveResult> {
     if (made) plan.blurByUrl.set(plan.heroNeedingPreview, made);
   }
 
-  await supabase.from("media").delete().eq("spot_id", spotId).eq("type", "image");
+  // Ebenso fehler-sichtbar wie die Kategorien oben: Ein stiller Foto-Fehler ließe einen Spot
+  // ohne Hero/Galerie live gehen, ohne Spur.
+  const { error: mediaDelErr } = await supabase
+    .from("media")
+    .delete()
+    .eq("spot_id", spotId)
+    .eq("type", "image");
+  if (mediaDelErr) console.error("media delete:", mediaDelErr.message);
   if (input.images.length) {
-    await supabase.from("media").insert(
+    const { error: mediaInsErr } = await supabase.from("media").insert(
       input.images.map((url, i) => ({
         spot_id: spotId,
         type: "image",
@@ -429,6 +449,7 @@ export async function saveSpot(input: SpotInput): Promise<SaveResult> {
         blur_url: plan.blurByUrl.get(url) ?? null,
       })),
     );
+    if (mediaInsErr) console.error("media insert:", mediaInsErr.message);
   }
 
   // Vorschauen entfernter Fotos wegräumen. Erst NACH dem Insert, damit ein Fehler beim
@@ -490,17 +511,8 @@ export type SnapResult = {
 export async function snapRoute(
   waypoints: [number, number][],
 ): Promise<SnapResult> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "auth" };
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
-  if (profile?.role !== "admin") return { ok: false, error: "forbidden" };
+  const gate = await requireAdmin();
+  if (!gate.ok) return { ok: false, error: gate.error };
 
   if (waypoints.length < 2) return { ok: false, error: "Mindestens 2 Punkte nötig" };
   const key = process.env.ORS_KEY;
@@ -699,17 +711,8 @@ Finde konkrete Insider-Tipps, Besonderheiten, beste Zeit und Parken/Anreise.`;
 export async function generateSpotTexts(
   input: GenerateTextsInput,
 ): Promise<GenerateTextsResult> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "auth" };
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
-  if (profile?.role !== "admin") return { ok: false, error: "forbidden" };
+  const gate = await requireAdmin();
+  if (!gate.ok) return { ok: false, error: gate.error };
 
   if (!input.title.trim()) return { ok: false, error: "Bitte zuerst einen Titel eingeben." };
   const key = process.env.ANTHROPIC_API_KEY;
@@ -860,17 +863,9 @@ ${input.notes.trim() || "- (keine)"}${
 }
 
 export async function deleteSpot(id: string): Promise<SaveResult> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "auth" };
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
-  if (profile?.role !== "admin") return { ok: false, error: "forbidden" };
+  const gate = await requireAdmin();
+  if (!gate.ok) return { ok: false, error: gate.error };
+  const { supabase } = gate;
 
   const { error } = await supabase.from("spots").delete().eq("id", id);
   if (error) return { ok: false, error: error.message };
@@ -879,138 +874,6 @@ export async function deleteSpot(id: string): Promise<SaveResult> {
   for (const l of routing.locales) revalidatePath(`/${l}`);
 
   return { ok: true };
-}
-
-// ---- 1-Klick DE→EN-Übersetzung der Spot-Texte -------------------------------
-export type TranslateResult = { ok: boolean; texts?: SpotTexts; error?: string };
-
-const EN_VOICE = `You are translating SalzGuide spot texts from German to natural English for salzguide.com (Salzburg region, Austria).
-
-STYLE:
-- Casual, buddy tone (German "Du" -> English "you"). Direct, honest, to the point.
-- Short, punchy sentences. Few, well-chosen adjectives.
-- Translate the MEANING into natural English, never word-for-word.
-- Keep ALL proper nouns and place names exactly (Hochkeil, Arthurhaus, Mandlwand, Salzburg, hut/dish names …). Keep numbers and units.
-
-NEVER use em dashes (—). They are the clearest tell of AI-written text and cost us the trust this brand is built on. Write like a human types: full stop, comma, colon, or a plain hyphen. The ONLY exception is Chinese, where the doubled "——" is standard punctuation.
-STRICTLY AVOID travel-brochure clichés: "breathtaking", "hidden gem", "paradise", "a must", "magical", "stunning vista", "nestled", "picturesque", "jewel".
-
-RULES:
-- Translate ONLY what is given. Do not add, embellish or invent facts.
-- If a source field is empty, return an empty string for it.`;
-
-export async function translateSpotTexts(input: SpotTexts): Promise<TranslateResult> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "auth" };
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
-  if (profile?.role !== "admin") return { ok: false, error: "forbidden" };
-
-  if (!input.title.trim()) return { ok: false, error: "Bitte zuerst deutsche Texte erstellen." };
-  const key = process.env.ANTHROPIC_API_KEY;
-  if (!key)
-    return { ok: false, error: "ANTHROPIC_API_KEY fehlt – bitte in .env.local eintragen" };
-
-  const src = {
-    title: input.title.trim(),
-    short_desc: input.shortDesc.trim(),
-    general: input.general.trim(),
-    insider_tip: input.insiderTip.trim(),
-    section_a: input.sectionA.trim(),
-    section_b: input.sectionB.trim(),
-    location_text: input.locationText.trim(),
-  };
-  const userMsg = `Translate these German spot fields to English and return them via the tool "spot_texts_en". Keep empty fields empty.\n\n${JSON.stringify(
-    src,
-    null,
-    2,
-  )}`;
-
-  try {
-    const res = await fetchWithRetry(
-      "https://api.anthropic.com/v1/messages",
-      {
-        method: "POST",
-        headers: {
-          "x-api-key": key,
-          "anthropic-version": "2023-06-01",
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-6",
-          max_tokens: 1500,
-          system: EN_VOICE,
-          messages: [{ role: "user", content: userMsg }],
-          tools: [
-            {
-              name: "spot_texts_en",
-              description: "The English translations of the SalzGuide spot fields.",
-              input_schema: {
-                type: "object",
-                properties: {
-                  title: { type: "string" },
-                  short_desc: { type: "string" },
-                  general: { type: "string" },
-                  insider_tip: { type: "string" },
-                  section_a: { type: "string" },
-                  section_b: { type: "string" },
-                  location_text: { type: "string" },
-                },
-                required: [
-                  "title",
-                  "short_desc",
-                  "general",
-                  "insider_tip",
-                  "section_a",
-                  "section_b",
-                  "location_text",
-                ],
-              },
-            },
-          ],
-          tool_choice: { type: "tool", name: "spot_texts_en" },
-        }),
-      },
-      2,
-      60000,
-    );
-    if (!res.ok) {
-      const txt = await res.text();
-      return { ok: false, error: `Claude ${res.status}: ${txt.slice(0, 160)}` };
-    }
-    const data = await res.json();
-    const block = (data.content ?? []).find(
-      (b: { type: string; name?: string }) =>
-        b.type === "tool_use" && b.name === "spot_texts_en",
-    ) as { input?: Record<string, string> } | undefined;
-    const t = block?.input;
-    if (!t) return { ok: false, error: "Keine Übersetzung erhalten" };
-    // Leere DE-Felder bleiben leer (die KI soll nichts erfinden)
-    const keep = (deVal: string, enVal?: string) => (deVal.trim() ? (enVal ?? "").trim() : "");
-    return {
-      ok: true,
-      texts: stripEmDashFields(
-        {
-          title: t.title?.trim() || input.title.trim(),
-          shortDesc: keep(input.shortDesc, t.short_desc),
-          general: keep(input.general, t.general),
-          insiderTip: keep(input.insiderTip, t.insider_tip),
-          sectionA: keep(input.sectionA, t.section_a),
-          sectionB: keep(input.sectionB, t.section_b),
-          locationText: keep(input.locationText, t.location_text),
-        },
-        "en",
-      ),
-    };
-  } catch {
-    return { ok: false, error: "KI-Dienst gerade nicht erreichbar – bitte nochmal versuchen." };
-  }
 }
 
 // ---- „In ALLE Sprachen übersetzen" -----------------------------------------
@@ -1138,17 +1001,8 @@ export type TranslateAllResult = {
 };
 
 export async function translateSpotTextsAll(input: SpotTexts): Promise<TranslateAllResult> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "auth" };
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
-  if (profile?.role !== "admin") return { ok: false, error: "forbidden" };
+  const gate = await requireAdmin();
+  if (!gate.ok) return { ok: false, error: gate.error };
 
   if (!input.title.trim()) return { ok: false, error: "Bitte zuerst deutsche Texte erstellen." };
   const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -1270,17 +1124,8 @@ export type PlaceHit = { id: string; name: string; address: string };
 export async function searchPlaces(
   query: string,
 ): Promise<{ ok: true; results: PlaceHit[] } | { ok: false; error: string }> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "auth" };
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
-  if (profile?.role !== "admin") return { ok: false, error: "forbidden" };
+  const gate = await requireAdmin();
+  if (!gate.ok) return { ok: false, error: gate.error };
 
   const q = query.trim();
   if (q.length < 3) return { ok: true, results: [] };
@@ -1323,17 +1168,8 @@ export async function searchPlaces(
 export async function setToniAvatarUrl(
   url: string | null,
 ): Promise<{ ok: boolean; error?: string }> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "auth" };
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
-  if (profile?.role !== "admin") return { ok: false, error: "forbidden" };
+  const gate = await requireAdmin();
+  if (!gate.ok) return { ok: false, error: gate.error };
 
   const clean = typeof url === "string" && url.trim() ? url.trim() : null;
   if (clean) {
