@@ -81,8 +81,9 @@ export default function DesktopHeader() {
   const primary = NAV_ITEMS.filter((i) => i.primary);
   const secondary = NAV_ITEMS.filter((i) => !i.primary);
   // Steht der Nutzer auf einer Seite aus dem „Mehr"-Menü, wird „Mehr" selbst rot markiert,
-  // damit sichtbar bleibt, wo man gerade ist.
-  const moreActive = secondary.some((i) => i.href === pathname);
+  // damit sichtbar bleibt, wo man gerade ist. „Über uns" liegt auch dort drin.
+  const moreActive =
+    secondary.some((i) => i.href === pathname) || pathname === "/ueber-uns";
 
   const linkCls = (active: boolean) =>
     `rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
@@ -159,26 +160,28 @@ export default function DesktopHeader() {
                       <span className="flex-1 text-[15px] font-medium">
                         {t(`Nav.${item.key}`)}
                       </span>
-                      {active && (
-                        <span className="text-[15px]" aria-hidden>
-                          ✓
-                        </span>
-                      )}
                     </Link>
                   );
                 })}
 
-                {/* „Bald verfügbar": Über uns, nicht klickbar (wie im iPhone-Burger). */}
-                <div className="my-1 border-t border-black/[0.06]" />
-                <span className="flex items-center gap-3 rounded-2xl px-3 py-2.5 text-muted/70">
+                {/* Über uns: eigene Seite, als gleichwertiger Eintrag OHNE Trennstrich
+                    (einheitliche Liste, Apple-Stil). */}
+                <Link
+                  href="/ueber-uns"
+                  role="menuitem"
+                  onClick={() => setMoreOpen(false)}
+                  aria-current={pathname === "/ueber-uns" ? "page" : undefined}
+                  className={`flex items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition-colors ${
+                    pathname === "/ueber-uns"
+                      ? "bg-accent/10 text-accent"
+                      : "text-ink hover:bg-black/5"
+                  }`}
+                >
                   <span className="text-[18px] leading-none" aria-hidden>
                     👋
                   </span>
                   <span className="flex-1 text-[15px] font-medium">{t("Menu.about")}</span>
-                  <span className="rounded-full bg-black/5 px-2 py-0.5 text-[11px] font-semibold text-muted">
-                    {t("Menu.soon")}
-                  </span>
-                </span>
+                </Link>
               </motion.div>
             )}
           </AnimatePresence>
@@ -194,7 +197,7 @@ export default function DesktopHeader() {
         <button
           type="button"
           onClick={ai.open}
-          className="inline-flex items-center gap-1.5 rounded-full bg-black/5 px-3 py-1.5 text-sm font-medium text-ink transition hover:bg-black/10 active:scale-[0.98]"
+          className="inline-flex items-center gap-1.5 rounded-full bg-black/5 px-3 py-1.5 text-sm font-medium text-muted transition hover:bg-black/10 active:scale-[0.98]"
         >
           <Sparkle />
           <span className="leading-none">{t("Nav.ai")}</span>
