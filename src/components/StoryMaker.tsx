@@ -162,7 +162,8 @@ export default function StoryMaker({
             📸 {t("sectionTitle")}
           </h2>
           <p className="mt-1 text-[13px] leading-snug text-white/90 [text-shadow:0_1px_8px_rgba(0,0,0,0.5)]">
-            {t("sectionSub")}
+            {/* Ist ein Intro-Video da, bietet der Maker Foto UND Video -> Text erwähnt beides. */}
+            {t(introUrl ? "sectionSubVideo" : "sectionSub")}
           </p>
           <button
             className={`${BTN_PRIMARY} mt-3 w-full active:scale-[0.98]`}
