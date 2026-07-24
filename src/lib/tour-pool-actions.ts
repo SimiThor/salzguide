@@ -149,13 +149,22 @@ export async function saveArea(input: AreaInput): Promise<SaveResult> {
     }
   }
 
-  // Aktualitäts-Marke (source_hash) auf der DE-Zeile – fehlertolerant (Migration 0031).
+  // Aktualitäts-Marken (source_hash) fehlertolerant setzen (Migration 0031).
   const deHash = hashTexts([deName, input.de.subtitle]);
-  await supabase
+  const { error: dh } = await supabase
     .from("tour_area_translations")
     .update({ source_hash: deHash })
     .eq("area_id", areaId)
     .eq("lang", "de");
+  // Die ZIEL-Zeilen mit dem Stand markieren, aus dem übersetzt wurde – sonst blieben Gebiete ganz
+  // ohne Marke und der Veraltet-Vergleich beim nächsten Laden könnte nie greifen (wie savePoint).
+  if (!dh && input.translationsSourceHash) {
+    await supabase
+      .from("tour_area_translations")
+      .update({ source_hash: input.translationsSourceHash })
+      .eq("area_id", areaId)
+      .neq("lang", "de");
+  }
 
   return { ok: true, id: areaId };
 }
