@@ -48,7 +48,6 @@ export default function MobileHeader() {
   // Quelle (lib/nav.ts) -> exakt dieselben Punkte wie am PC. KI ist hier bewusst NICHT
   // dabei: die sitzt in der unteren Leiste, im Burger wäre sie doppelt.
   const ready = NAV_ITEMS;
-  const soon = [{ label: t("Menu.about") }];
 
   return (
     <>
@@ -122,17 +121,18 @@ export default function MobileHeader() {
                     </Link>
                   );
                 })}
-                <p className="px-3 pb-1 pt-4 text-[11px] font-semibold uppercase tracking-wider text-muted">
-                  {t("Menu.soon")}
-                </p>
-                {soon.map((i, idx) => (
-                  <span
-                    key={idx}
-                    className="px-3 py-3 text-[17px] font-medium text-muted/70"
-                  >
-                    {i.label}
-                  </span>
-                ))}
+                {/* Über uns: jetzt eine echte Seite (Marketing-Route), aus denselben
+                    Startseiten-Texten. Steht bewusst unter den App-Seiten. */}
+                <Link
+                  href="/ueber-uns"
+                  onClick={close}
+                  aria-current={pathname === "/ueber-uns" ? "page" : undefined}
+                  className={`rounded-xl px-3 py-3 text-[17px] font-medium active:bg-black/5 ${
+                    pathname === "/ueber-uns" ? "text-accent" : "text-ink"
+                  }`}
+                >
+                  {t("Menu.about")}
+                </Link>
               </nav>
 
               <div className="mt-auto px-5 pb-[calc(env(safe-area-inset-bottom)+1.25rem)] text-xs text-muted">

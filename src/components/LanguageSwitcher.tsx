@@ -104,11 +104,6 @@ export default function LanguageSwitcher({
           {m.flag}
         </span>
         <span className="flex-1 text-[15px] font-medium">{m.name}</span>
-        {active && (
-          <span className="text-[15px]" aria-hidden>
-            ✓
-          </span>
-        )}
       </button>
     );
   });
