@@ -15,6 +15,7 @@
     "weatherSource": "Dados meteorológicos"
   },
   "Menu": {
+    "more": "Mais",
     "open": "Abrir menu",
     "soon": "Brevemente",
     "about": "Sobre nós",

@@ -15,6 +15,7 @@
     "weatherSource": "Weergegevens"
   },
   "Menu": {
+    "more": "Meer",
     "open": "Menu openen",
     "soon": "Binnenkort beschikbaar",
     "about": "Over ons",
