@@ -373,12 +373,20 @@ export async function saveSpot(input: SpotInput): Promise<SaveResult> {
     }
   }
 
-  // Kategorien neu setzen
-  await supabase.from("spot_categories").delete().eq("spot_id", spotId);
+  // Kategorien neu setzen. Fehler NICHT verschlucken: Ohne diese Prüfung speichert ein Spot
+  // ohne (oder mit halben) Kategorien und meldet trotzdem „gespeichert" – er taucht dann in
+  // keinem Karussell auf, und niemand erfährt warum. Wie bei den Öffnungszeiten reicht ein
+  // Log (der Spot selbst ist schon geschrieben, ein erneutes Speichern setzt sie neu).
+  const { error: catDelErr } = await supabase
+    .from("spot_categories")
+    .delete()
+    .eq("spot_id", spotId);
+  if (catDelErr) console.error("spot_categories delete:", catDelErr.message);
   if (input.categoryIds.length) {
-    await supabase
+    const { error: catInsErr } = await supabase
       .from("spot_categories")
       .insert(input.categoryIds.map((cid) => ({ spot_id: spotId, category_id: cid })));
+    if (catInsErr) console.error("spot_categories insert:", catInsErr.message);
   }
 
   // Fotos neu setzen (erstes = Hero); media-Tabelle ist die Quelle der Wahrheit.
@@ -406,9 +414,16 @@ export async function saveSpot(input: SpotInput): Promise<SaveResult> {
     if (made) plan.blurByUrl.set(plan.heroNeedingPreview, made);
   }
 
-  await supabase.from("media").delete().eq("spot_id", spotId).eq("type", "image");
+  // Ebenso fehler-sichtbar wie die Kategorien oben: Ein stiller Foto-Fehler ließe einen Spot
+  // ohne Hero/Galerie live gehen, ohne Spur.
+  const { error: mediaDelErr } = await supabase
+    .from("media")
+    .delete()
+    .eq("spot_id", spotId)
+    .eq("type", "image");
+  if (mediaDelErr) console.error("media delete:", mediaDelErr.message);
   if (input.images.length) {
-    await supabase.from("media").insert(
+    const { error: mediaInsErr } = await supabase.from("media").insert(
       input.images.map((url, i) => ({
         spot_id: spotId,
         type: "image",
@@ -420,6 +435,7 @@ export async function saveSpot(input: SpotInput): Promise<SaveResult> {
         blur_url: plan.blurByUrl.get(url) ?? null,
       })),
     );
+    if (mediaInsErr) console.error("media insert:", mediaInsErr.message);
   }
 
   // Vorschauen entfernter Fotos wegräumen. Erst NACH dem Insert, damit ein Fehler beim
