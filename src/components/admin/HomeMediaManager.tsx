@@ -120,8 +120,8 @@ export default function HomeMediaManager({ media: saved }: { media: HomeMedia })
         <div className="rounded-[14px] bg-black/[0.02] p-4 ring-1 ring-black/5">
           <h3 className="text-[14px] font-bold text-ink">Erklär-Video</h3>
           <p className="mt-1 text-[12px] leading-relaxed text-muted">
-            Hochformat 9:16, kurz, ohne Ton. Ein Video für Handy und Desktop. Das Standbild
-            entsteht automatisch und lädt zuerst — das Video erst beim Antippen.
+            Hochformat 9:16, kurz, mit Ton. Ein Video für Handy und Desktop. Das Standbild
+            entsteht automatisch und lädt zuerst, das Video erst beim Antippen.
           </p>
           <div className="mt-3">
             <VideoUploader

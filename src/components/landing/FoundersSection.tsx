@@ -22,7 +22,7 @@ export default function FoundersSection({
           <div className="mx-auto w-full max-w-[380px]">
             <LandingVideo
               video={media.explainerVideo}
-              hint="Erklär-/Gründervideo 9:16, max. ~2,5 MB, ohne Ton"
+              hint="Erklär-/Gründervideo 9:16, max. ~2,5 MB, mit Ton"
               playLabel={texts.videoPlay}
             />
           </div>
