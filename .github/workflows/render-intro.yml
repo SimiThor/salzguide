@@ -53,7 +53,9 @@ jobs:
 
   render:
     needs: plan
-    if: needs.plan.outputs.slugs != '[]'
+    # Leere Liste: nichts zu tun. Leerer String: der Planer kam nicht bis zur Ausgabe -
+    # dann würde fromJson() den Lauf mit einer unverständlichen Meldung sprengen.
+    if: needs.plan.outputs.slugs != '[]' && needs.plan.outputs.slugs != ''
     strategy:
       # Ein kaputter Spot darf die anderen nicht mitreißen.
       fail-fast: false

@@ -1964,7 +1964,7 @@ export async function triggerIntroRender(
     targets = [slug];
   } else {
     const list = await getIntroRenderList();
-    targets = list.filter((i) => !i.hasVideo || i.outdated).map((i) => i.slug);
+    targets = list.filter((i) => i.due).map((i) => i.slug);
     if (!targets.length) return { ok: true, count: 0 };
   }
 

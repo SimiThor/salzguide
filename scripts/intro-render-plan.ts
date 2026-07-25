@@ -19,7 +19,7 @@
 
 import { readFileSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
-import { introSourceHash } from "../src/lib/intro-hash.ts";
+import { introNeedsRender } from "../src/lib/intro-hash.ts";
 
 function loadDotEnv(): Record<string, string> {
   try {
@@ -74,10 +74,10 @@ type Row = {
 
 const rows = ((data ?? []) as Row[]).filter((s) => s.route_geojson?.type === "LineString");
 
-// Dieselbe Regel wie das "Veraltet"-Schild im Admin: Kein Video, oder der Hash aus Route +
-// INTRO_STYLE_VERSION passt nicht mehr zum gespeicherten.
+// Dieselbe Funktion, die auch die Admin-Liste befragt (introNeedsRender). Nur so können
+// Knopf und Workflow nicht auseinanderlaufen.
 const needsRender = (s: Row) =>
-  !s.intro_video_url || introSourceHash(s.route_geojson) !== (s.intro_source_hash ?? "");
+  introNeedsRender(s.route_geojson, s.intro_video_url, s.intro_source_hash);
 
 let picked: string[];
 if (only) {
