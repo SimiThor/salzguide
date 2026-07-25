@@ -158,7 +158,7 @@ function LocalForm({
             disabled={!roles.de?.trim()}
             className="rounded-full bg-black/5 px-3 py-1.5 text-[12px] font-semibold text-ink"
           >
-            🌍 In alle Sprachen übersetzen
+            In alle Sprachen übersetzen
           </AiButton>
         </div>
         <div className="mt-2 grid gap-2 sm:grid-cols-2">
