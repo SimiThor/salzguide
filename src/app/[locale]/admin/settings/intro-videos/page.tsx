@@ -2,6 +2,8 @@ import { setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { getIntroVideos, getIntroRenderList } from "@/lib/admin";
 import IntroRenderManager from "@/components/admin/IntroRenderManager";
+import IntroVideoPreview from "@/components/admin/IntroVideoPreview";
+import { slugify } from "@/lib/slug";
 
 // Download-Center (nur Admin): die "clean"-Variante der Intro-Videos ohne Text-Overlay
 // (kein Titel, keine Werte, kein Logo – nur Karte, Route und die Attribution unten), fürs
@@ -56,22 +58,25 @@ export default async function IntroVideosPage({
           {videos.map((v) => (
             <li
               key={v.slug}
-              className="flex items-center gap-4 rounded-[18px] bg-white p-3 pr-4 shadow-sm ring-1 ring-black/5"
+              className="flex flex-wrap items-center gap-4 rounded-[18px] bg-white p-3 pr-4 shadow-sm ring-1 ring-black/5"
             >
-              <div className="h-[76px] w-[43px] shrink-0 overflow-hidden rounded-[10px] bg-black/5">
-                {v.posterUrl && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={v.posterUrl}
-                    alt=""
-                    className="h-full w-full object-cover"
-                    loading="lazy"
-                  />
-                )}
-              </div>
+              {/* Klick aufs Standbild spielt die Clean-Fassung ab, also genau die Datei,
+                  die der Knopf daneben herunterlädt. Anschauen vor dem Laden. */}
+              <IntroVideoPreview
+                src={v.cleanUrl}
+                poster={v.posterUrl}
+                title={v.title}
+                className="h-[76px] w-[43px]"
+              />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-[16px] font-bold text-ink">{v.title}</p>
-                <p className="truncate text-[12px] text-muted">{v.slug} · 1080×1920 · ohne Text</p>
+                {/* Der Slug steht nur da, wenn er nicht bloss der kleingeschriebene Titel
+                    ist: sonst liest man denselben Namen zweimal untereinander. */}
+                <p className="truncate text-[12px] text-muted">
+                  {[slugify(v.title) === v.slug ? null : v.slug, "1080×1920", "ohne Text"]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </p>
               </div>
               {/* Supabase erzwingt per ?download den Datei-Download (Content-Disposition),
                   auch cross-origin. Kein Client-JS nötig. */}

@@ -4,6 +4,8 @@ import { useState, useTransition } from "react";
 import { triggerIntroRender, refreshIntroRenderList } from "@/lib/admin-actions";
 import type { IntroRenderItem } from "@/lib/admin";
 import { introBadge, IntroRenderButton, useIntroRenderItems } from "./intro-render";
+import IntroVideoPreview from "./IntroVideoPreview";
+import { slugify } from "@/lib/slug";
 
 // Admin-Panel: alle Wanderungen mit Route, je Zeile ein Knopf, oben einer für alle fälligen.
 // Zustände, Knopf und Nachladen kommen aus intro-render.tsx, damit die Spot-Unterseite
@@ -93,19 +95,24 @@ export default function IntroRenderManager({
             return (
               <li
                 key={item.slug}
-                className="flex items-center gap-3 rounded-[14px] bg-black/[0.02] p-3 ring-1 ring-black/5"
+                className="flex flex-wrap items-center gap-3 rounded-[14px] bg-black/[0.02] p-3 ring-1 ring-black/5"
               >
-                <div className="h-[54px] w-[30px] shrink-0 overflow-hidden rounded-[8px] bg-black/5">
-                  {item.posterUrl && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={item.posterUrl} alt="" className="h-full w-full object-cover" loading="lazy" />
-                  )}
-                </div>
+                <IntroVideoPreview
+                  src={item.videoUrl}
+                  poster={item.posterUrl}
+                  title={item.title}
+                  className="h-[54px] w-[30px]"
+                />
 
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[15px] font-semibold text-ink">{item.title}</p>
                   <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
-                    <span className="truncate text-[12px] text-muted">{item.slug}</span>
+                    {/* Slug nur zeigen, wenn er NICHT bloss der kleingeschriebene Titel ist:
+                        sonst steht derselbe Name zweimal untereinander. Weicht er ab (Titel
+                        später umbenannt), ist er echte Information und bleibt sichtbar. */}
+                    {slugify(item.title) !== item.slug && (
+                      <span className="truncate text-[12px] text-muted">{item.slug}</span>
+                    )}
                     <span
                       className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold leading-none ring-1 ring-inset ${b.cls}`}
                     >
