@@ -76,7 +76,7 @@ export default async function EditAreaPage({
           ))}
           {points.length === 0 && (
             <p className="px-4 py-6 text-center text-sm text-muted">
-              Noch keine Punkte — leg mehr Punkte an, als eine Tour braucht.
+              Noch keine Punkte. Leg mehr Punkte an, als eine Tour braucht.
             </p>
           )}
         </div>

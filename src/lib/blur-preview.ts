@@ -297,12 +297,24 @@ export async function removeBlurPreviews(
   storage: StorageApi,
   previewUrls: string[],
 ): Promise<void> {
-  const paths = previewUrls
+  await removeSpotMediaFiles(storage, previewUrls);
+}
+
+// Beliebige spot-media-Dateien (Fotos, Vorschauen, Videos, Poster) anhand ihrer
+// Public-URLs löschen. Für deleteSpot: Die DB-Zeile ist schnell weg, aber ohne diesen
+// Aufruf blieben alle Dateien des Spots für immer öffentlich im Bucket liegen.
+// Best-effort wie oben: nur loggen, nie werfen – Aufräumen darf das Löschen nicht kippen.
+export async function removeSpotMediaFiles(
+  storage: StorageApi,
+  urls: (string | null | undefined)[],
+): Promise<void> {
+  const paths = urls
+    .filter((u): u is string => typeof u === "string" && u.trim() !== "")
     .map((u) => pathFromPublicUrl(u))
     .filter((p): p is string => p !== null);
   if (!paths.length) return;
   const { error } = await storage.from(BUCKET).remove(paths);
-  if (error) console.error("removeBlurPreviews: cleanup failed", error.message);
+  if (error) console.error("removeSpotMediaFiles: cleanup failed", error.message);
 }
 
 // Die Vorschau-URL für einen Schreibpfad, der pro Bild GENAU EINE Vorschau kennt und

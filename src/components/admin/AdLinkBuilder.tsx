@@ -1,21 +1,19 @@
 "use client";
 
 import { useState } from "react";
+import { slugifyKey } from "@/lib/slug";
 
 // Tracking-Link-Generator für IG/TikTok-Ads (docs/34 §H). Erzeugt saubere Kurz-URLs
 // (?s=&c=), die /api/track als Kampagne erfasst. Rein clientseitig, kein Storage.
-const slug = (s: string) =>
-  s
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 40);
+// slugifyKey aus lib/slug.ts: transliteriert Umlaute („Frühjahr" -> fruehjahr-…,
+// nicht fr-hjahr-…), gleiche Funktion wie überall sonst.
+const slug = (s: string) => slugifyKey(s, 40);
 
 export default function AdLinkBuilder({ baseUrl }: { baseUrl: string }) {
   const [campaign, setCampaign] = useState("");
   const [source, setSource] = useState("");
   const [copied, setCopied] = useState(false);
+  const [copyFailed, setCopyFailed] = useState(false);
 
   const c = slug(campaign);
   const s = slug(source);
@@ -30,9 +28,12 @@ export default function AdLinkBuilder({ baseUrl }: { baseUrl: string }) {
     try {
       await navigator.clipboard.writeText(url);
       setCopied(true);
+      setCopyFailed(false);
       setTimeout(() => setCopied(false), 1500);
     } catch {
-      /* ignore */
+      // Ohne Clipboard-Recht (http, alte Browser) passierte hier sichtbar NICHTS und
+      // der Admin hielt den Link für kopiert. Sagen, was zu tun ist.
+      setCopyFailed(true);
     }
   }
 
@@ -65,7 +66,20 @@ export default function AdLinkBuilder({ baseUrl }: { baseUrl: string }) {
       </div>
       {url ? (
         <div className="mt-3 flex items-center gap-2 rounded-lg bg-black/[0.04] p-2">
-          <code className="min-w-0 flex-1 truncate text-[12px] text-ink">{url}</code>
+          <code
+            className="min-w-0 flex-1 truncate text-[12px] text-ink"
+            // Fallback fürs Handkopieren: Ein Tap markiert die ganze URL.
+            onClick={(e) => {
+              const sel = window.getSelection();
+              if (!sel) return;
+              const range = document.createRange();
+              range.selectNodeContents(e.currentTarget);
+              sel.removeAllRanges();
+              sel.addRange(range);
+            }}
+          >
+            {url}
+          </code>
           <button
             type="button"
             onClick={copy}
@@ -76,6 +90,11 @@ export default function AdLinkBuilder({ baseUrl }: { baseUrl: string }) {
         </div>
       ) : (
         <p className="mt-3 text-[12px] text-muted">Gib einen Kampagnennamen ein …</p>
+      )}
+      {copyFailed && (
+        <p className="mt-2 text-[12px] font-medium text-accent">
+          Kopieren nicht möglich. Tipp auf den Link markiert ihn, dann von Hand kopieren.
+        </p>
       )}
     </div>
   );

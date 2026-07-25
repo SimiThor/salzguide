@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "@/i18n/navigation";
 import { setUserPro, type ProMailState } from "@/lib/user-actions";
 import { proSourceLabel } from "@/lib/pro-source";
 import { BTN_DANGER_SM, BTN_PRIMARY_SM, BTN_SECONDARY_SM, STATUS_ACCENT, STATUS_NEUTRAL } from "@/lib/ui";
@@ -67,6 +68,7 @@ function ProState({ user }: { user: AdminUser }) {
 }
 
 function UserRow({ user, grant }: { user: AdminUser; grant?: ProGrantEntry }) {
+  const router = useRouter();
   const [pending, start] = useTransition();
   const [err, setErr] = useState("");
   const [note, setNote] = useState("");
@@ -76,7 +78,8 @@ function UserRow({ user, grant }: { user: AdminUser; grant?: ProGrantEntry }) {
   const [mail, setMail] = useState(true);
   const [mailState, setMailState] = useState<ProMailState | null>(null);
   // Optimistisch NICHT: Der Server entscheidet, und bei Pro will man sehen, was WIRKLICH
-  // gilt. Nach Erfolg lädt die Seite neu (router.refresh über revalidate der Action).
+  // gilt. Nach Erfolg lädt router.refresh() die Seite neu (Protokollzeile, „X mit Pro"-
+  // Kopfzeile, proSince) – das lokale done-Flag überbrückt nur bis dahin.
   const [done, setDone] = useState<boolean | null>(null);
 
   const isPro = done ?? user.isPro;
@@ -85,16 +88,21 @@ function UserRow({ user, grant }: { user: AdminUser; grant?: ProGrantEntry }) {
     setErr("");
     setMailState(null);
     start(async () => {
-      const r = await setUserPro(user.id, next, note, next && mail);
-      if (r.ok) {
-        setDone(next);
-        setOpen(false);
-        setNote("");
-        // Nur melden, wenn es etwas zu melden gibt. Ein „Mail ist raus" nach jedem Entzug
-        // wäre Rauschen.
-        setMailState(r.mail ?? null);
-      } else {
-        setErr(ERRORS[r.error ?? ""] ?? r.error ?? "Fehlgeschlagen");
+      try {
+        const r = await setUserPro(user.id, next, note, next && mail);
+        if (r.ok) {
+          setDone(next);
+          setOpen(false);
+          setNote("");
+          // Nur melden, wenn es etwas zu melden gibt. Ein „Mail ist raus" nach jedem Entzug
+          // wäre Rauschen.
+          setMailState(r.mail ?? null);
+          router.refresh();
+        } else {
+          setErr(ERRORS[r.error ?? ""] ?? r.error ?? "Fehlgeschlagen");
+        }
+      } catch {
+        setErr("Gerade nicht erreichbar. Bitte nochmal versuchen.");
       }
     });
   }

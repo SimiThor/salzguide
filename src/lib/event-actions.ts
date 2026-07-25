@@ -18,6 +18,8 @@ import {
   type EventTranslateAllResult,
 } from "./event-translate";
 import { requireAdmin } from "./admin-guard";
+import { guardStorageUrl } from "./storage-guard";
+import { stripEmDash } from "./em-dash";
 
 export type { EventTexts, EventTranslateAllResult } from "./event-translate";
 export type EventInput = {
@@ -44,6 +46,11 @@ export type EventSaveResult = { ok: boolean; id?: string; error?: string };
 
 const e = (v: string) => (v.trim() === "" ? null : v.trim());
 
+// Rohe DB-Meldung ins Server-Log, kurzer Code zum Browser (UI übersetzt via admin-errors.ts).
+function logDb(where: string, message: string): "db" {
+  console.error(`${where}:`, message);
+  return "db";
+}
 
 const isoOrNull = (v: string | null): string | null => {
   if (!v) return null;
@@ -61,45 +68,65 @@ export async function saveEvent(input: EventInput): Promise<EventSaveResult> {
   const startsAt = isoOrNull(input.startsAt);
   if (!startsAt) return { ok: false, error: "start_required" };
   const endsAt = isoOrNull(input.endsAt);
-  // Endzeit darf nicht vor dem Start liegen (sonst ignorieren -> null).
-  const endClean = endsAt && Date.parse(endsAt) >= Date.parse(startsAt) ? endsAt : null;
+  // Endzeit vor dem Start ist ein Tippfehler, den der Admin erfahren muss. Vorher wurde
+  // sie STILL verworfen: Erfolg gemeldet, Event ohne Endzeit in der DB – und damit
+  // andere Auto-Ablauf-Logik (ohne ends_at fällt es um Mitternacht raus).
+  if (endsAt && Date.parse(endsAt) < Date.parse(startsAt))
+    return { ok: false, error: "end_before_start" };
+  const endClean = endsAt;
 
-  // Übersetzungen (nur Sprachen mit Inhalt). EN zusätzlich in die Alt-Spalten (Rückwärts-
-  // kompatibel, falls Migration 0032 noch nicht eingespielt ist).
+  // Nur eigene Storage-Bilder, wie bei jedem anderen Medien-Feld im Admin (Spot-Video,
+  // Tour-Cover, Local-Avatar). Ein fremdes Bild bräche next/image (remotePatterns).
+  const img = guardStorageUrl(e(input.imageUrl));
+  if (!img.ok) return { ok: false, error: "bad_url" };
+
+  // Gedankenstrich-Riegel beim Speichern (Projektregel; hashTexts säubert identisch,
+  // die Aktualitäts-Hashes bleiben also stimmig).
+  const deTitle = stripEmDash(input.title.trim(), "de");
+  const deDescription = stripEmDash(input.description, "de");
+
+  // Übersetzungen (nur BEKANNTE Sprachen mit Inhalt; der Client ist nicht vertrauens-
+  // würdig, Fantasie-Codes blieben sonst als Junk im JSONB). EN zusätzlich in die
+  // Alt-Spalten (rückwärtskompatibel, falls Migration 0032 noch nicht eingespielt ist).
   const translations: Record<string, EventTexts> = {};
-  for (const [l, tx] of Object.entries(input.translations ?? {})) {
-    if (l === "de" || !tx) continue;
-    const title = (tx.title ?? "").trim();
-    const description = (tx.description ?? "").trim();
+  for (const l of routing.locales) {
+    if (l === "de") continue;
+    const tx = input.translations?.[l];
+    if (!tx) continue;
+    const title = stripEmDash((tx.title ?? "").trim(), l);
+    const description = stripEmDash((tx.description ?? "").trim(), l);
     if (title || description) translations[l] = { title, description };
   }
-  const enTx = input.translations?.en;
+  const enTx = translations.en;
+
+  // VOR den Writes wissen, ob das Event schon live war: Das Publish-Gate prüft nur den
+  // Übergang Entwurf->Veröffentlicht, und die Rücknahme unten darf ein SCHON live
+  // stehendes Event nicht auf Entwurf zurückwerfen.
+  let wasPublished = false;
+  if (input.id) {
+    const { data: cur, error: curErr } = await supabase
+      .from("events")
+      .select("status")
+      .eq("id", input.id)
+      .maybeSingle();
+    if (curErr) return { ok: false, error: logDb("saveEvent: Status lesen", curErr.message) };
+    wasPublished = (cur as { status?: string } | null)?.status === "published";
+  }
 
   // Veröffentlichen-Gate (Anti-Chaos): live gehen darf ein Event NUR, wenn es in ALLE Sprachen
   // übersetzt UND aktuell ist. Geprüft wird NUR der Übergang Entwurf->Veröffentlicht – ein bereits
   // live Event bleibt frei editierbar. Entwurf speichern ist immer erlaubt.
-  if (input.status === "published") {
-    let wasPublished = false;
-    if (input.id) {
-      const { data: cur } = await supabase
-        .from("events")
-        .select("status")
-        .eq("id", input.id)
-        .maybeSingle();
-      wasPublished = (cur as { status?: string } | null)?.status === "published";
-    }
-    if (!wasPublished) {
-      const targets = routing.locales.filter((l) => l !== "de");
-      const deHashGate = hashTexts([input.title, input.description]);
-      if (!translationsPublishable(translations, input.translationsSourceHash, deHashGate, targets))
-        return { ok: false, error: "translations_incomplete" };
-    }
+  if (input.status === "published" && !wasPublished) {
+    const targets = routing.locales.filter((l) => l !== "de");
+    const deHashGate = hashTexts([input.title, input.description]);
+    if (!translationsPublishable(translations, input.translationsSourceHash, deHashGate, targets))
+      return { ok: false, error: "translations_incomplete" };
   }
 
   const row = {
-    title: input.title.trim(),
+    title: deTitle,
     title_en: e(enTx?.title ?? ""),
-    description: e(input.description),
+    description: e(deDescription),
     description_en: e(enTx?.description ?? ""),
     emoji: e(input.emoji),
     starts_at: startsAt,
@@ -110,17 +137,17 @@ export async function saveEvent(input: EventInput): Promise<EventSaveResult> {
     is_highlight: input.isHighlight,
     is_free: input.isFree,
     source_url: e(input.sourceUrl),
-    image_url: e(input.imageUrl),
+    image_url: img.url,
     status: input.status,
   };
 
   let eventId = input.id;
   if (eventId) {
     const { error } = await supabase.from("events").update(row).eq("id", eventId);
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: logDb("saveEvent: update", error.message) };
   } else {
     const { data, error } = await supabase.from("events").insert(row).select("id").single();
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: logDb("saveEvent: insert", error.message) };
     eventId = data.id;
   }
 
@@ -134,8 +161,10 @@ export async function saveEvent(input: EventInput): Promise<EventSaveResult> {
       .eq("id", eventId);
     if (te) {
       console.warn("event translations übersprungen – Migration 0032 nötig?", te.message);
-      // Beim VERÖFFENTLICHEN darf kein Event live+unübersetzt zurückbleiben -> auf Entwurf zurück.
-      if (input.status === "published") {
+      // Beim frisch VERÖFFENTLICHEN darf kein Event live+unübersetzt zurückbleiben ->
+      // auf Entwurf zurück. Ein SCHON live stehendes Event behält seinen Status: Seine
+      // Übersetzungen in der DB sind intakt, nur dieser Write ist gescheitert.
+      if (input.status === "published" && !wasPublished) {
         await supabase.from("events").update({ status: "draft" }).eq("id", eventId);
         return { ok: false, error: "translations_persist_failed" };
       }
@@ -148,7 +177,7 @@ export async function deleteEvent(id: string): Promise<EventSaveResult> {
   const gate = await requireAdmin();
   if (!gate.ok) return { ok: false, error: gate.error };
   const { error } = await gate.supabase.from("events").delete().eq("id", id);
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: logDb("deleteEvent", error.message) };
   return { ok: true };
 }
 
@@ -196,7 +225,7 @@ export async function setEventStatus(
     .from("events")
     .update({ status })
     .eq("id", id);
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: logDb("setEventStatus", error.message) };
   return { ok: true, id };
 }
 
@@ -455,7 +484,16 @@ GROUNDING: NUR recherchierte Fakten. Datum/Uhrzeit nicht sicher? -> all_day=true
       }),
       category: coerceCategory(t.category),
       emoji: String(t.emoji ?? "").trim(),
-      startsAt: normWall(t.start),
+      // Ganztags-Fallback wie in der Wochenrecherche (event-research.ts): Der Prompt
+      // erlaubt bei unsicherer Uhrzeit ausdrücklich „all_day=true bzw. Feld leer".
+      // Liefert die KI nur ein Datum („2026-08-15"), machte normWall daraus "" und das
+      // gefundene Datum ginge verloren, obwohl die KI es kannte.
+      startsAt: (() => {
+        const w = normWall(t.start);
+        if (w || !t.all_day) return w;
+        const d = String(t.start ?? "").match(/^(\d{4}-\d{2}-\d{2})/);
+        return d ? `${d[1]}T00:00` : "";
+      })(),
       endsAt: normWall(t.end),
       allDay: Boolean(t.all_day),
       isFree: Boolean(t.is_free),
@@ -604,11 +642,14 @@ export async function fillEventTranslations(
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) return { ok: false, error: "ANTHROPIC_API_KEY fehlt" };
 
-  const { data } = await gate.supabase
+  // Lese-Fehler nicht schlucken: Ein DB-Schluckauf meldete sonst fälschlich
+  // „not_found", und der Admin sucht den Fehler am falschen Ort.
+  const { data, error: readErr } = await gate.supabase
     .from("events")
     .select("title, description, translations, source_hash")
     .eq("id", eventId)
     .maybeSingle();
+  if (readErr) return { ok: false, error: logDb("fillEventTranslations: lesen", readErr.message) };
   if (!data) return { ok: false, error: "not_found" };
   const title = ((data.title as string | null) ?? "").trim();
   const description = ((data.description as string | null) ?? "").trim();

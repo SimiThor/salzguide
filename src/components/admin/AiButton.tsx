@@ -1,11 +1,16 @@
 "use client";
 
 import type { ReactNode } from "react";
+import AiSparkle from "@/components/ai/AiSparkle";
 
 // Button mit integriertem „KI arbeitet"-Zustand: dezenter Licht-Schimmer wandert
 // über den Button, Label wechselt auf den Lade-Text + pulsierende Punkte
 // (iOS-2026-Stil, Text bleibt gut lesbar). So passiert die Animation GENAU dort,
 // wo die KI-Aktion gestartet wurde. `className` liefert Farbe/Radius/Padding.
+//
+// Der Marken-Sparkle sitzt FEST im Button (currentColor, Projektregel: jeder
+// KI-Knopf trägt dasselbe Zeichen). Aufrufer geben nur noch den Text als Label,
+// keine 🌍/✨-Emojis mehr davor.
 export default function AiButton({
   loading,
   loadingLabel,
@@ -35,6 +40,7 @@ export default function AiButton({
       } ${disabled && !loading ? "opacity-60" : ""} ${className}`}
     >
       <span className="relative z-10 inline-flex items-center justify-center gap-1.5">
+        <AiSparkle className="h-[1.05em] w-[1.05em] shrink-0" />
         {loading ? (
           <>
             {loadingLabel}

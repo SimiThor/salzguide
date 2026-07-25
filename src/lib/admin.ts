@@ -107,11 +107,38 @@ export async function getAdminUsers(q?: string, page = 1): Promise<AdminUserPage
     return { users: [], total: 0, page: 1, pages: 1 };
   }
   const total = count ?? 0;
+  const pages = Math.max(1, Math.ceil(total / USER_PAGE_SIZE));
+
+  // Seitenzahl nach OBEN klammern: Ein Lesezeichen auf Seite 9, nachdem eine Suche die
+  // Treffer reduziert hat, lieferte sonst eine leere Liste („Seite 9 von 3") mit
+  // funktionslosem Zurück-Link. Die letzte existierende Seite ist die ehrliche Antwort.
+  if (safePage > pages && total > 0) {
+    const lastFrom = (pages - 1) * USER_PAGE_SIZE;
+    let lastQuery = supabase
+      .from("profiles")
+      .select("id, email, is_pro, pro_source, pro_since, role, newsletter_opt_in, created_at")
+      .order("created_at", { ascending: false })
+      .range(lastFrom, lastFrom + USER_PAGE_SIZE - 1);
+    if (term) {
+      const safe = term.replace(/[\\%_]/g, (c) => `\\${c}`);
+      lastQuery = lastQuery.ilike("email", `%${safe}%`);
+    }
+    const { data: lastData, error: lastErr } = await lastQuery;
+    if (!lastErr) {
+      return {
+        users: (lastData ?? []).map((r) => toAdminUser(r as Record<string, unknown>)),
+        total,
+        page: pages,
+        pages,
+      };
+    }
+  }
+
   return {
     users: (data ?? []).map((r) => toAdminUser(r as Record<string, unknown>)),
     total,
     page: safePage,
-    pages: Math.max(1, Math.ceil(total / USER_PAGE_SIZE)),
+    pages,
   };
 }
 
@@ -503,8 +530,25 @@ export async function getIntroRenderList(): Promise<IntroRenderItem[]> {
       const de = tr.find((t) => t.lang === "de") ?? tr[0];
       const hasVideo = !!s.intro_video_url;
       const st = (s as { intro_render_status?: string }).intro_render_status;
-      const status: IntroRenderStatus =
+      const startedAtRaw =
+        (s as { intro_render_started_at?: string | null }).intro_render_started_at ?? null;
+      let status: IntroRenderStatus =
         st === "queued" || st === "rendering" || st === "error" ? st : "idle";
+      let statusError =
+        (s as { intro_render_error?: string | null }).intro_render_error ?? null;
+      // Staleness-Riegel: Startet der GitHub-Runner nie (Workflow umbenannt, Runner
+      // gestorben, bevor er den ersten Status schrieb), stünde die Zeile für immer auf
+      // „in Warteschlange" und der Render-Button bliebe dauerhaft gesperrt – Reset nur
+      // per Hand in der DB. Ein Render dauert Minuten; nach 30 min ist er tot.
+      const STALE_MS = 30 * 60 * 1000;
+      if (
+        (status === "queued" || status === "rendering") &&
+        startedAtRaw &&
+        Date.now() - Date.parse(startedAtRaw) > STALE_MS
+      ) {
+        status = "error";
+        statusError = "Render hängt (über 30 min ohne Ergebnis). Bitte neu starten.";
+      }
       return {
         slug: s.slug as string,
         title: (de?.title as string) ?? (s.slug as string),
@@ -515,9 +559,8 @@ export async function getIntroRenderList(): Promise<IntroRenderItem[]> {
           introSourceHash(s.route_geojson) !==
             ((s.intro_source_hash as string | null) ?? ""),
         status,
-        error: (s as { intro_render_error?: string | null }).intro_render_error ?? null,
-        startedAt:
-          (s as { intro_render_started_at?: string | null }).intro_render_started_at ?? null,
+        error: statusError,
+        startedAt: startedAtRaw,
       };
     });
 }

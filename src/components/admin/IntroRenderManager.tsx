@@ -36,12 +36,16 @@ export default function IntroRenderManager({
   const anyBusy = items.some((i) => i.status === "queued" || i.status === "rendering");
 
   // Solange etwas läuft: alle 5 s den Stand nachladen (das Skript schreibt ihn in die DB).
+  // .catch: Ein Netz-Schluckauf im 5-Sekunden-Takt wäre sonst je eine unhandled
+  // rejection; der nächste Tick versucht es ohnehin erneut.
   useEffect(() => {
     if (!anyBusy) return;
     const id = setInterval(() => {
-      void refreshIntroRenderList().then((fresh) => {
-        if (fresh.length) setItems(fresh);
-      });
+      void refreshIntroRenderList()
+        .then((fresh) => {
+          if (fresh.length) setItems(fresh);
+        })
+        .catch(() => {});
     }, 5000);
     return () => clearInterval(id);
   }, [anyBusy]);
@@ -50,16 +54,21 @@ export default function IntroRenderManager({
     setMsg(null);
     setPendingSlug(slug);
     startTransition(async () => {
-      const res = await triggerIntroRender(slug);
-      setPendingSlug(null);
-      if (!res.ok) {
-        setMsg({ slug, text: res.error ?? "Konnte nicht gestartet werden." });
-        return;
+      try {
+        const res = await triggerIntroRender(slug);
+        if (!res.ok) {
+          setMsg({ slug, text: res.error ?? "Konnte nicht gestartet werden." });
+          return;
+        }
+        // Optimistisch auf „queued" – das Polling übernimmt danach.
+        setItems((prev) =>
+          prev.map((i) => (i.slug === slug ? { ...i, status: "queued", error: null } : i)),
+        );
+      } catch {
+        setMsg({ slug, text: "Gerade nicht erreichbar. Bitte nochmal versuchen." });
+      } finally {
+        setPendingSlug(null);
       }
-      // Optimistisch auf „queued" – das Polling übernimmt danach.
-      setItems((prev) =>
-        prev.map((i) => (i.slug === slug ? { ...i, status: "queued", error: null } : i)),
-      );
     });
   };
 

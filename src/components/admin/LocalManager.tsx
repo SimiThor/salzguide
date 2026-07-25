@@ -6,6 +6,7 @@ import { routing } from "@/i18n/routing";
 import { localeMeta } from "@/i18n/locales";
 import { saveLocal, deleteLocal, translateLocalRole } from "@/lib/admin-actions";
 import type { AdminLocalFull } from "@/lib/admin";
+import { adminErrorText } from "@/lib/admin-errors";
 import AiButton from "./AiButton";
 import { compressSquareImage, uploadImage } from "@/lib/image-upload";
 
@@ -56,31 +57,38 @@ function LocalForm({
     setErr(null);
     if (!roles.de?.trim()) return setErr("Bitte zuerst die deutsche Rolle eingeben.");
     setTranslating(true);
-    const r = await translateLocalRole(roles.de);
-    setTranslating(false);
-    if (r.ok && r.translations) setRoles((p) => ({ ...p, ...r.translations }));
-    else setErr(r.error === "ai" ? "Übersetzen hat nicht geklappt." : (r.error ?? "Fehler"));
+    // try/finally: Wirft die Action (Netz weg, Session abgelaufen), bliebe der Button
+    // sonst für immer auf „Übersetzt …" und disabled.
+    try {
+      const r = await translateLocalRole(roles.de);
+      if (r.ok && r.translations) setRoles((p) => ({ ...p, ...r.translations }));
+      else setErr(r.error === "ai" ? "Übersetzen hat nicht geklappt." : adminErrorText(r.error));
+    } catch {
+      setErr("Gerade nicht erreichbar. Bitte nochmal versuchen.");
+    } finally {
+      setTranslating(false);
+    }
   }
 
   async function onSave() {
     setErr(null);
     if (!name.trim()) return setErr("Bitte einen Namen eingeben.");
     setBusy(true);
-    const r = await saveLocal({
-      id: initial?.id,
-      name,
-      role: roles.de ?? "",
-      roleI18n: roles,
-      avatarUrl,
-    });
-    setBusy(false);
-    if (r.ok) onDone();
-    else
-      setErr(
-        r.error === "db" || r.error === "bad_url"
-          ? "Speichern hat nicht geklappt."
-          : (r.error ?? "Fehler"),
-      );
+    try {
+      const r = await saveLocal({
+        id: initial?.id,
+        name,
+        role: roles.de ?? "",
+        roleI18n: roles,
+        avatarUrl,
+      });
+      if (r.ok) onDone();
+      else setErr(adminErrorText(r.error));
+    } catch {
+      setErr("Gerade nicht erreichbar. Bitte nochmal versuchen.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   const initialLetter = (name.trim() || "?").charAt(0).toUpperCase();
@@ -202,6 +210,7 @@ export default function LocalManager({ locals }: { locals: AdminLocalFull[] }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [delErr, setDelErr] = useState<string | null>(null);
 
   const done = () => {
@@ -211,15 +220,24 @@ export default function LocalManager({ locals }: { locals: AdminLocalFull[] }) {
   };
 
   async function onDelete(id: string) {
+    if (deletingId) return; // Doppel-Klick -> zweiter Aufruf ins Leere
     setDelErr(null);
-    const r = await deleteLocal(id);
-    setConfirmDelete(null);
-    if (r.ok) router.refresh();
-    else if (r.error?.startsWith("in_use:"))
-      setDelErr(
-        `Dieser Local wird noch bei ${r.error.split(":")[1]} Spot(s) verwendet – dort erst einen anderen Local wählen.`,
-      );
-    else setDelErr("Löschen hat nicht geklappt.");
+    setDeletingId(id);
+    try {
+      const r = await deleteLocal(id);
+      setConfirmDelete(null);
+      if (r.ok) router.refresh();
+      else if (r.error?.startsWith("in_use:"))
+        setDelErr(
+          `Dieser Local wird noch bei ${r.error.split(":")[1]} Spot(s) verwendet – dort erst einen anderen Local wählen.`,
+        );
+      else setDelErr("Löschen hat nicht geklappt.");
+    } catch {
+      setConfirmDelete(null);
+      setDelErr("Gerade nicht erreichbar. Bitte nochmal versuchen.");
+    } finally {
+      setDeletingId(null);
+    }
   }
 
   return (
@@ -293,9 +311,10 @@ export default function LocalManager({ locals }: { locals: AdminLocalFull[] }) {
                     <button
                       type="button"
                       onClick={() => onDelete(l.id)}
-                      className="rounded-full bg-accent px-3 py-1 text-[12px] font-semibold text-white"
+                      disabled={deletingId !== null}
+                      className="rounded-full bg-accent px-3 py-1 text-[12px] font-semibold text-white disabled:opacity-50"
                     >
-                      Löschen
+                      {deletingId === l.id ? "Löscht …" : "Löschen"}
                     </button>
                     <button
                       type="button"

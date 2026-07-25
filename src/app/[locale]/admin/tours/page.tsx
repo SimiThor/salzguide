@@ -65,7 +65,7 @@ export default async function AdminToursPage() {
         ))}
         {tours.length === 0 && (
           <p className="px-4 py-6 text-center text-sm text-muted">
-            Noch keine Audio-Touren — leg die erste an.
+            Noch keine Audio-Touren. Leg die erste an.
           </p>
         )}
       </div>

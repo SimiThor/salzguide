@@ -22,7 +22,8 @@ const POINT_TARGETS = routing.locales.filter((l) => l !== "de");
 const emptyPointTexts = (): PointTexts => ({ title: "", audioText: "", audioUrl: null });
 import LocationPicker from "./LocationPicker";
 import AiButton from "./AiButton";
-import AiSparkle from "@/components/ai/AiSparkle";
+import { blockEnterSubmit } from "./form-utils";
+import { adminErrorText } from "@/lib/admin-errors";
 import { IMMUTABLE_CACHE_SECONDS } from "@/lib/storage";
 import { compressImage, uploadImage } from "@/lib/image-upload";
 
@@ -92,7 +93,17 @@ export default function PointForm({
   const [filling, setFilling] = useState(false);
   const [translating, setTranslating] = useState(false);
   const [ttsBusy, setTtsBusy] = useState<string[]>([]);
-  const [preview, setPreview] = useState<Record<string, string | undefined>>({});
+  // Vorbefüllt mit den Signed-URLs aus getPointForEdit: Vorher stand bei bestehenden
+  // Punkten nur „✓ MP3" ohne Player – zum Anhören musste man neu vertonen (kostet
+  // ElevenLabs-Guthaben) oder die Live-Tour öffnen.
+  const [preview, setPreview] = useState<Record<string, string | undefined>>(() => {
+    const p: Record<string, string | undefined> = {};
+    if (initial?.de.audioPreviewUrl) p.de = initial.de.audioPreviewUrl;
+    for (const [l, t] of Object.entries(initial?.translations ?? {})) {
+      if (t.audioPreviewUrl) p[l] = t.audioPreviewUrl;
+    }
+    return p;
+  });
   const [reviewLang, setReviewLang] = useState<string>(POINT_TARGETS[0] ?? "en");
   const set = (patch: Partial<FormState>) => setForm((f) => ({ ...f, ...patch }));
   const isUploading = (k: string) => uploading.includes(k);
@@ -138,27 +149,39 @@ export default function PointForm({
   function onFillAll() {
     if (filling) return;
     if (!form.de.title.trim()) return setErr("Bitte zuerst einen deutschen Titel eingeben.");
+    // Ein handpolierter Sprechtext ist Arbeit – vor dem Überschreiben fragen
+    // (dieselbe Rückfrage wie bei „In alle Sprachen übersetzen").
+    if (
+      form.de.audioText.trim() &&
+      !confirm("Der vorhandene deutsche Sprechtext (und Tags/Emoji/Typ) wird überschrieben. Fortfahren?")
+    )
+      return;
     setFilling(true);
     setErr("");
     setMsg("");
     void (async () => {
-      const r = await generatePointAll({ title: form.de.title, notes, areaName });
-      setFilling(false);
-      if (r.ok && r.data) {
-        const d = r.data;
-        setForm((f) => ({
-          ...f,
-          emoji: d.emoji || f.emoji,
-          kind: d.kind || f.kind,
-          tags: d.tags,
-          de: { ...f.de, audioText: d.audioTextDe },
-          translations: {
-            ...f.translations,
-            en: { ...(f.translations.en ?? emptyPointTexts()), title: d.titleEn },
-          },
-        }));
-        setMsg("✓ Ausgefüllt: Tags, Emoji, Typ & deutscher Sprechtext. Jetzt „🌍 In alle Sprachen übersetzen“ + „🔊 Alle vertonen“.");
-      } else setErr(r.error ?? "KI-Ausfüllen fehlgeschlagen.");
+      try {
+        const r = await generatePointAll({ title: form.de.title, notes, areaName });
+        if (r.ok && r.data) {
+          const d = r.data;
+          setForm((f) => ({
+            ...f,
+            emoji: d.emoji || f.emoji,
+            kind: d.kind || f.kind,
+            tags: d.tags,
+            de: { ...f.de, audioText: d.audioTextDe },
+            translations: {
+              ...f.translations,
+              en: { ...(f.translations.en ?? emptyPointTexts()), title: d.titleEn },
+            },
+          }));
+          setMsg("✓ Ausgefüllt: Tags, Emoji, Typ & deutscher Sprechtext. Jetzt „In alle Sprachen übersetzen“ + „Alle vertonen“.");
+        } else setErr(adminErrorText(r.error));
+      } catch {
+        setErr("Gerade nicht erreichbar. Bitte nochmal versuchen.");
+      } finally {
+        setFilling(false);
+      }
     })();
   }
 
@@ -176,23 +199,28 @@ export default function PointForm({
     setErr("");
     setMsg("");
     void (async () => {
-      const r = await translatePointTextsAll({
-        title: form.de.title,
-        audioText: form.de.audioText,
-      });
-      setTranslating(false);
-      if (r.ok && r.translations) {
-        setForm((f) => {
-          const next = { ...f.translations };
-          for (const [l, tx] of Object.entries(r.translations!)) {
-            // Audio-URL erhalten (Text geändert -> Vertonung ggf. neu nötig).
-            next[l] = { ...(f.translations[l] ?? emptyPointTexts()), title: tx.title, audioText: tx.audioText };
-          }
-          return { ...f, translations: next, translationsSourceHash: r.sourceHash };
+      try {
+        const r = await translatePointTextsAll({
+          title: form.de.title,
+          audioText: form.de.audioText,
         });
-        const failed = r.failed?.length ? ` (fehlgeschlagen: ${r.failed.join(", ")})` : "";
-        setMsg(`✓ In alle Sprachen übersetzt – jetzt „🔊 Alle vertonen“${failed}.`);
-      } else setErr(r.error ?? "Übersetzung fehlgeschlagen.");
+        if (r.ok && r.translations) {
+          setForm((f) => {
+            const next = { ...f.translations };
+            for (const [l, tx] of Object.entries(r.translations!)) {
+              // Audio-URL erhalten (Text geändert -> Vertonung ggf. neu nötig).
+              next[l] = { ...(f.translations[l] ?? emptyPointTexts()), title: tx.title, audioText: tx.audioText };
+            }
+            return { ...f, translations: next, translationsSourceHash: r.sourceHash };
+          });
+          const failed = r.failed?.length ? ` (fehlgeschlagen: ${r.failed.join(", ")})` : "";
+          setMsg(`✓ In alle Sprachen übersetzt – jetzt „Alle vertonen“${failed}.`);
+        } else setErr(adminErrorText(r.error));
+      } catch {
+        setErr("Gerade nicht erreichbar. Bitte nochmal versuchen.");
+      } finally {
+        setTranslating(false);
+      }
     })();
   }
 
@@ -204,13 +232,18 @@ export default function PointForm({
     setErr("");
     setMsg("");
     void (async () => {
-      const r = await synthesizePointVoice({ text, lang });
-      setTtsBusy((b) => b.filter((x) => x !== lang));
-      if (r.ok && r.path) {
-        setTexts(lang, { audioUrl: r.path });
-        setPreview((p) => ({ ...p, [lang]: r.previewUrl ?? undefined }));
-        setMsg(`✓ Stimme (${lang.toUpperCase()}) erzeugt. Nicht vergessen zu speichern.`);
-      } else setErr(r.error ?? "Stimme erzeugen fehlgeschlagen.");
+      try {
+        const r = await synthesizePointVoice({ text, lang });
+        if (r.ok && r.path) {
+          setTexts(lang, { audioUrl: r.path });
+          setPreview((p) => ({ ...p, [lang]: r.previewUrl ?? undefined }));
+          setMsg(`✓ Stimme (${lang.toUpperCase()}) erzeugt. Nicht vergessen zu speichern.`);
+        } else setErr(adminErrorText(r.error));
+      } catch {
+        setErr("Gerade nicht erreichbar. Bitte nochmal versuchen.");
+      } finally {
+        setTtsBusy((b) => b.filter((x) => x !== lang));
+      }
     })();
   }
 
@@ -223,17 +256,33 @@ export default function PointForm({
     setMsg("");
     void (async () => {
       let ok = 0;
+      const failed: string[] = [];
+      let firstErr: string | undefined;
       for (const lang of langs) {
         setTtsBusy((b) => [...b, lang]);
-        const r = await synthesizePointVoice({ text: getTexts(lang).audioText, lang });
-        setTtsBusy((b) => b.filter((x) => x !== lang));
-        if (r.ok && r.path) {
-          setTexts(lang, { audioUrl: r.path });
-          setPreview((p) => ({ ...p, [lang]: r.previewUrl ?? undefined }));
-          ok++;
+        try {
+          const r = await synthesizePointVoice({ text: getTexts(lang).audioText, lang });
+          if (r.ok && r.path) {
+            setTexts(lang, { audioUrl: r.path });
+            setPreview((p) => ({ ...p, [lang]: r.previewUrl ?? undefined }));
+            ok++;
+          } else {
+            failed.push(lang.toUpperCase());
+            firstErr ??= r.error;
+          }
+        } catch {
+          failed.push(lang.toUpperCase());
+          firstErr ??= "Gerade nicht erreichbar.";
+        } finally {
+          setTtsBusy((b) => b.filter((x) => x !== lang));
         }
       }
-      setMsg(`✓ ${ok}/${langs.length} Sprachen vertont. Nicht vergessen zu speichern.`);
+      if (failed.length) {
+        setErr(
+          `${failed.join(", ")} nicht vertont${firstErr ? ` (${adminErrorText(firstErr)})` : ""}.`,
+        );
+      }
+      if (ok > 0) setMsg(`✓ ${ok}/${langs.length} Sprachen vertont. Nicht vergessen zu speichern.`);
     })();
   }
 
@@ -275,11 +324,12 @@ export default function PointForm({
   function onSubmit(ev: React.FormEvent) {
     ev.preventDefault();
     setErr("");
+    setMsg("");
     if (!form.de.title.trim()) return setErr("Bitte einen deutschen Titel eingeben.");
     // Veröffentlichen nur, wenn ALLE Sprachen fertig (Titel + Sprechtext + Audio).
     if (form.status === "published" && !allComplete)
       return setErr(
-        "Zum Veröffentlichen müssen ALLE Sprachen Titel + Sprechtext + Audio haben. Erst „🌍 übersetzen“ + „🔊 alle vertonen“ – oder als Entwurf speichern.",
+        "Zum Veröffentlichen müssen ALLE Sprachen Titel + Sprechtext + Audio haben. Erst übersetzen + alle vertonen, oder als Entwurf speichern.",
       );
     if (
       trStale &&
@@ -302,24 +352,33 @@ export default function PointForm({
       translationsSourceHash: form.translationsSourceHash,
     };
     start(async () => {
-      const r = await savePoint(payload);
-      if (r.ok) router.push(backHref);
-      else
-        setErr(
-          r.error?.startsWith("langs_incomplete")
-            ? "Noch nicht alle Sprachen vollständig – erst übersetzen + vertonen (oder Entwurf)."
-            : (r.error ?? "Speichern fehlgeschlagen."),
-        );
+      try {
+        const r = await savePoint(payload);
+        if (r.ok) router.push(backHref);
+        else
+          setErr(
+            r.error?.startsWith("langs_incomplete")
+              ? "Noch nicht alle Sprachen vollständig – erst übersetzen + vertonen (oder Entwurf)."
+              : adminErrorText(r.error),
+          );
+      } catch {
+        setErr("Gerade nicht erreichbar. Bitte nochmal versuchen.");
+      }
     });
   }
 
   function onDelete() {
     if (!initial?.id) return;
-    if (!confirm("Diesen Punkt wirklich löschen?")) return;
+    if (!confirm("Diesen Punkt wirklich löschen? Er verschwindet damit aus allen kuratierten Runden."))
+      return;
     start(async () => {
-      const r = await deletePoint(initial.id);
-      if (r.ok) router.push(backHref);
-      else setErr(r.error ?? "Löschen fehlgeschlagen.");
+      try {
+        const r = await deletePoint(initial.id);
+        if (r.ok) router.push(backHref);
+        else setErr(adminErrorText(r.error));
+      } catch {
+        setErr("Gerade nicht erreichbar. Bitte nochmal versuchen.");
+      }
     });
   }
 
@@ -362,7 +421,7 @@ export default function PointForm({
             disabled={!data.audioText.trim()}
             className="rounded-full bg-accent px-3 py-1.5 text-[12px] font-semibold text-white"
           >
-            🔊 Vertonen
+            Vertonen
           </AiButton>
           <label className="cursor-pointer rounded-full bg-black/5 px-3 py-1.5 text-[12px] font-semibold text-ink">
             {isUploading(lang) ? "Lädt …" : data.audioUrl ? "MP3 ersetzen" : "MP3 wählen"}
@@ -400,7 +459,7 @@ export default function PointForm({
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-4 pb-16">
+    <form onSubmit={onSubmit} onKeyDown={blockEnterSubmit} className="space-y-4 pb-16">
       {/* Punkt + Ein-Klick-KI */}
       <section className={sectionCls}>
         <h2 className={h2Cls}>Punkt</h2>
@@ -433,7 +492,6 @@ export default function PointForm({
             disabled={!form.de.title.trim()}
             className="mt-2 w-full rounded-full bg-ink px-4 py-2.5 text-[14px] font-semibold text-white sm:w-auto"
           >
-            <AiSparkle className="h-[1.05em] w-[1.05em]" />
             Mit KI ausfüllen
           </AiButton>
           <p className="mt-1.5 text-[12px] text-muted">
@@ -596,7 +654,7 @@ export default function PointForm({
             disabled={!form.de.title.trim() || !form.de.audioText.trim()}
             className="rounded-full bg-accent px-4 py-2 text-[13px] font-semibold text-white disabled:opacity-60"
           >
-            🌍 In alle Sprachen übersetzen
+            In alle Sprachen übersetzen
           </AiButton>
           <AiButton
             loading={ttsBusy.length > 0}
@@ -604,14 +662,14 @@ export default function PointForm({
             onClick={onSynthesizeAll}
             className="rounded-full bg-black/5 px-4 py-2 text-[13px] font-semibold text-ink"
           >
-            🔊 Alle Sprachen vertonen
+            Alle Sprachen vertonen
           </AiButton>
         </div>
 
         {trStale && (
           <p className="rounded-[12px] bg-accent/10 px-3 py-2 text-[12px] text-accent">
-            ⚠ Der deutsche Text wurde nach dem Übersetzen geändert – bitte „🌍 In alle Sprachen
-            übersetzen“ + „🔊 Alle Sprachen vertonen“ erneut ausführen, damit alles gleich ist.
+            ⚠ Der deutsche Text wurde nach dem Übersetzen geändert – bitte „In alle Sprachen
+            übersetzen“ + „Alle Sprachen vertonen“ erneut ausführen, damit alles gleich ist.
           </p>
         )}
 
@@ -657,10 +715,20 @@ export default function PointForm({
       <div className="flex items-center gap-3">
         <button
           type="submit"
-          disabled={pending || uploading.length > 0 || uploadingImage}
+          disabled={
+            pending || uploading.length > 0 || uploadingImage || filling || translating || ttsBusy.length > 0
+          }
           className="rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
         >
-          {pending ? "Speichern …" : "Speichern"}
+          {pending
+            ? "Speichern …"
+            : ttsBusy.length > 0
+              ? "Vertont …"
+              : translating
+                ? "Übersetzt …"
+                : filling
+                  ? "KI füllt aus …"
+                  : "Speichern"}
         </button>
         {initial?.id && (
           <button

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "@/i18n/navigation";
 import { routing } from "@/i18n/routing";
 import {
@@ -10,7 +10,9 @@ import {
   reorderCategories,
 } from "@/lib/admin-actions";
 import type { AdminCategoryFull } from "@/lib/admin";
+import { adminErrorText } from "@/lib/admin-errors";
 import BulkTranslateButton from "./BulkTranslateButton";
+import AiButton from "./AiButton";
 
 const LOCALES = routing.locales;
 const TARGET_LOCALES = LOCALES.filter((l) => l !== "de");
@@ -47,10 +49,17 @@ function CategoryForm({
   async function onTranslate() {
     setErr(null);
     setTranslating(true);
-    const r = await translateCategoryTitle(titles.de ?? "");
-    setTranslating(false);
-    if (r.ok && r.translations) setTitles((p) => ({ ...p, ...r.translations }));
-    else setErr(r.error ?? "Übersetzen hat nicht geklappt.");
+    // try/finally: Wirft die Action (Netz weg, Session abgelaufen), bliebe der Button
+    // sonst für immer auf „Übersetzt …" und disabled (Muster: run() im ProMigrationManager).
+    try {
+      const r = await translateCategoryTitle(titles.de ?? "");
+      if (r.ok && r.translations) setTitles((p) => ({ ...p, ...r.translations }));
+      else setErr(adminErrorText(r.error));
+    } catch {
+      setErr("Gerade nicht erreichbar. Bitte nochmal versuchen.");
+    } finally {
+      setTranslating(false);
+    }
   }
 
   async function onSave() {
@@ -64,10 +73,15 @@ function CategoryForm({
       return;
     }
     setBusy(true);
-    const r = await saveCategory({ id: initial?.id, season, titles, sortOrder });
-    setBusy(false);
-    if (r.ok) onDone();
-    else setErr(r.error?.startsWith("Bitte") ? r.error : "Speichern hat nicht geklappt.");
+    try {
+      const r = await saveCategory({ id: initial?.id, season, titles, sortOrder });
+      if (r.ok) onDone();
+      else setErr(adminErrorText(r.error));
+    } catch {
+      setErr("Gerade nicht erreichbar. Bitte nochmal versuchen.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -119,14 +133,15 @@ function CategoryForm({
             className="w-20 rounded-[10px] bg-white px-2 py-1.5 text-[14px] text-ink ring-1 ring-black/[0.08] outline-none focus:ring-2 focus:ring-accent/40"
           />
         </label>
-        <button
-          type="button"
+        <AiButton
+          loading={translating}
+          loadingLabel="Übersetzt"
           onClick={onTranslate}
-          disabled={translating || !titles.de?.trim()}
-          className="rounded-full bg-black/5 px-3 py-1.5 text-[13px] font-semibold text-muted transition active:scale-95 disabled:opacity-50"
+          disabled={!titles.de?.trim()}
+          className="rounded-full bg-black/5 px-3 py-1.5 text-[13px] font-semibold text-muted active:scale-95 disabled:opacity-50"
         >
-          {translating ? "Übersetzt …" : "🇬🇧 Übersetzen"}
-        </button>
+          Übersetzen
+        </AiButton>
         <div className="flex-1" />
         <button
           type="button"
@@ -159,6 +174,12 @@ export default function CategoryManager({
   const [creating, setCreating] = useState<Season | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [movingSeason, setMovingSeason] = useState<Season | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [listErr, setListErr] = useState<string | null>(null);
+  // isPending deckt das router.refresh()-Fenster ab: Bis die frische Liste da ist,
+  // rechnete ein weiterer Pfeil-Klick sonst mit der VERALTETEN Reihenfolge und
+  // speicherte denselben Stand nochmal (zwei Klicks bewegen nur eine Position).
+  const [isPending, startTransition] = useTransition();
 
   // Kategorien, denen eine Zielsprache fehlt (z.B. nach Hinzufügen einer neuen Sprache).
   const incomplete = categories
@@ -168,13 +189,30 @@ export default function CategoryManager({
   const done = () => {
     setEditingId(null);
     setCreating(null);
-    router.refresh();
+    startTransition(() => router.refresh());
   };
 
   async function onDelete(id: string) {
-    const r = await deleteCategory(id);
-    setConfirmDelete(null);
-    if (r.ok) router.refresh();
+    if (deletingId) return; // Doppel-Klick auf „Löschen" -> zweiter Aufruf ins Leere
+    setListErr(null);
+    setDeletingId(id);
+    try {
+      const r = await deleteCategory(id);
+      if (r.ok) {
+        setConfirmDelete(null);
+        startTransition(() => router.refresh());
+      } else {
+        // Fehler NICHT schlucken: Vorher klappte das Confirm kommentarlos zu und die
+        // Kategorie blieb stehen – der Admin hielt es für einen Anzeigefehler.
+        setConfirmDelete(null);
+        setListErr(adminErrorText(r.error));
+      }
+    } catch {
+      setConfirmDelete(null);
+      setListErr("Gerade nicht erreichbar. Bitte nochmal versuchen.");
+    } finally {
+      setDeletingId(null);
+    }
   }
 
   // Kategorie in ihrer Saison eine Position nach oben/unten schieben.
@@ -183,10 +221,17 @@ export default function CategoryManager({
     const j = dir === "up" ? index - 1 : index + 1;
     if (j < 0 || j >= ids.length) return;
     [ids[index], ids[j]] = [ids[j], ids[index]];
+    setListErr(null);
     setMovingSeason(season);
-    const r = await reorderCategories(season, ids);
-    setMovingSeason(null);
-    if (r.ok) router.refresh();
+    try {
+      const r = await reorderCategories(season, ids);
+      if (r.ok) startTransition(() => router.refresh());
+      else setListErr(adminErrorText(r.error));
+    } catch {
+      setListErr("Gerade nicht erreichbar. Bitte nochmal versuchen.");
+    } finally {
+      setMovingSeason(null);
+    }
   }
 
   return (
@@ -199,6 +244,7 @@ export default function CategoryManager({
         Titel der Explore-Karussells je Saison. Umbenennen ändert nur den angezeigten
         Titel – die Zuordnung der Spots bleibt erhalten.
       </p>
+      {listErr && <p className="mt-2 text-[13px] font-medium text-accent">{listErr}</p>}
 
       {(["summer", "winter"] as const).map((season) => {
         const cats = categories.filter((c) => c.season === season);
@@ -251,7 +297,7 @@ export default function CategoryManager({
                       <button
                         type="button"
                         onClick={() => move(season, i, "up")}
-                        disabled={i === 0 || movingSeason === season}
+                        disabled={i === 0 || movingSeason === season || isPending}
                         aria-label="Nach oben"
                         className="flex h-4 w-5 items-center justify-center text-muted transition hover:text-ink disabled:opacity-25"
                       >
@@ -262,7 +308,7 @@ export default function CategoryManager({
                       <button
                         type="button"
                         onClick={() => move(season, i, "down")}
-                        disabled={i === cats.length - 1 || movingSeason === season}
+                        disabled={i === cats.length - 1 || movingSeason === season || isPending}
                         aria-label="Nach unten"
                         className="flex h-4 w-5 items-center justify-center text-muted transition hover:text-ink disabled:opacity-25"
                       >
@@ -288,9 +334,10 @@ export default function CategoryManager({
                           <button
                             type="button"
                             onClick={() => onDelete(c.id)}
-                            className="rounded-full bg-accent px-3 py-1 text-[12px] font-semibold text-white"
+                            disabled={deletingId !== null}
+                            className="rounded-full bg-accent px-3 py-1 text-[12px] font-semibold text-white disabled:opacity-50"
                           >
-                            Löschen
+                            {deletingId === c.id ? "Löscht …" : "Löschen"}
                           </button>
                           <button
                             type="button"

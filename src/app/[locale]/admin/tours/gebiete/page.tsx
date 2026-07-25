@@ -50,7 +50,7 @@ export default async function AreasPage() {
         ))}
         {areas.length === 0 && (
           <p className="px-4 py-6 text-center text-sm text-muted">
-            Noch keine Gebiete — leg das erste an (z.B. Salzburger Altstadt).
+            Noch keine Gebiete. Leg das erste an (z.B. Salzburger Altstadt).
           </p>
         )}
       </div>

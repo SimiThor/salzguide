@@ -36,13 +36,20 @@ export default function ToniAvatarSettings({ current }: { current: string | null
     setBusy(true);
     setErr(null);
     setMsg(null);
-    const r = await setToniAvatarUrl(null);
-    setBusy(false);
-    if (r.ok) {
-      setUrl(null);
-      setMsg("Auf Standard-Platzhalter zurückgesetzt.");
-    } else {
-      setErr("Konnte nicht zurücksetzen.");
+    // try/finally wie in onFile direkt darüber: Wirft die Action, bliebe der Button
+    // sonst für immer auf „Lädt …" und disabled.
+    try {
+      const r = await setToniAvatarUrl(null);
+      if (r.ok) {
+        setUrl(null);
+        setMsg("Auf Standard-Platzhalter zurückgesetzt.");
+      } else {
+        setErr("Konnte nicht zurücksetzen.");
+      }
+    } catch {
+      setErr("Gerade nicht erreichbar. Bitte nochmal versuchen.");
+    } finally {
+      setBusy(false);
     }
   }
 

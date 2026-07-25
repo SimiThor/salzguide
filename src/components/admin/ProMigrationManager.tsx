@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "@/i18n/navigation";
 import {
   addProMigrations,
   removeProMigration,
@@ -63,6 +64,7 @@ export default function ProMigrationManager({
   noticeOn: boolean;
   mailTexts: RelaunchMailTexts;
 }) {
+  const router = useRouter();
   const [notice, setNotice] = useState(noticeOn);
   const [texts, setTexts] = useState(mailTexts);
   const [dirty, setDirty] = useState(false);
@@ -170,10 +172,13 @@ export default function ProMigrationManager({
                   return;
                 }
                 setMsg(
-                  `${r.added} eingetragen${r.skipped ? `, ${r.skipped} standen schon drauf` : ""}. Seite neu laden.`,
+                  `${r.added} eingetragen${r.skipped ? `, ${r.skipped} standen schon drauf` : ""}.`,
                 );
                 setRaw("");
                 setChecked(null);
+                // Statistik-Kacheln + Zeilenliste kommen vom Server -> ohne refresh
+                // stünde da der alte Stand und die App bäte den Admin, selbst zu reloaden.
+                router.refresh();
               })
             }
             disabled={pending || !checked || checked.valid.length === 0}
@@ -352,14 +357,17 @@ export default function ProMigrationManager({
         {confirmSend ? (
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-[13px] font-semibold text-ink">
-              An {list.open} {list.open === 1 ? "Menschen" : "Menschen"} senden?
+              An {list.open} {list.open === 1 ? "Mensch" : "Menschen"} senden?
             </span>
             <button
               type="button"
               onClick={() =>
                 run(async () => {
-                  setConfirmSend(false);
+                  // confirmSend bleibt offen, bis die Antwort da ist: Sonst unmountet der
+                  // Zweig mit dem „sendet …"-Label, und während des Versands an bis zu 100
+                  // Kunden sähe der Admin nur einen stumm ausgegrauten Knopf.
                   const r = await sendMigrationAnnouncement();
+                  setConfirmSend(false);
                   if (!r.ok) {
                     setErr(r.error ?? "Fehlgeschlagen");
                     return;
@@ -369,8 +377,9 @@ export default function ProMigrationManager({
                       ? "Alle haben sie schon."
                       : `${r.sent} verschickt${
                           r.failed ? `, ${r.failed} fehlgeschlagen (der nächste Klick versucht es nochmal)` : ""
-                        }. Seite neu laden.`,
+                        }.`,
                   );
+                  router.refresh();
                 })
               }
               disabled={pending}
@@ -457,7 +466,8 @@ export default function ProMigrationManager({
                         setErr(res.error ?? "Fehlgeschlagen");
                         return;
                       }
-                      setMsg(`${r.email} entfernt. Seite neu laden.`);
+                      setMsg(`${r.email} entfernt.`);
+                      router.refresh();
                     })
                   }
                   disabled={pending}

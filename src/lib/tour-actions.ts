@@ -3,39 +3,17 @@
 import { fetchWithRetry } from "./ai-fetch";
 import { stripEmDashFields } from "./em-dash";
 import { requireAdmin } from "./admin-guard";
+import { slugifyKey } from "./slug";
+import { guardStorageUrl } from "./storage-guard";
 
 // Server-Actions für Audio-Touren. Muster wie admin-actions.ts:
 // - jede Action beginnt mit requireAdmin() aus lib/admin-guard (Defense-in-depth zur RLS)
 // - Writes über den SESSION-Client (läuft als eingeloggter Admin; RLS tours_admin_all /
 //   spot_audio_admin_all erlauben es)
 // - kein revalidatePath (gibt es repo-weit nicht) -> Client ruft router.refresh()
+// - slugifyKey/guardStorageUrl kommen aus lib/slug.ts bzw. lib/storage-guard.ts
 
 const e = (v: string) => (v.trim() === "" ? null : v.trim());
-
-function slugifyKey(s: string): string {
-  return s
-    .toLowerCase()
-    .replace(/ä/g, "ae")
-    .replace(/ö/g, "oe")
-    .replace(/ü/g, "ue")
-    .replace(/ß/g, "ss")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 40);
-}
-
-
-// Nur eigene Storage-URLs (spot-media-Bucket) zulassen -> kein Fremd-/Tracking-Medium.
-function guardStorageUrl(
-  url: string | null,
-): { ok: true; url: string | null } | { ok: false } {
-  const clean = typeof url === "string" && url.trim() ? url.trim() : null;
-  if (!clean) return { ok: true, url: null };
-  const base = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
-  if (!base || !clean.startsWith(`${base}/storage/v1/object/public/spot-media/`))
-    return { ok: false };
-  return { ok: true, url: clean };
-}
 
 // Ein Stop einer kuratierten Runde = ein POOL-PUNKT (tour_points). Audio/Text gehört
 // zum Punkt (im Punkt-Editor gepflegt), nicht zur Tour.
@@ -81,6 +59,49 @@ export async function saveTour(input: TourInput): Promise<TourSaveResult> {
   const freeStops = Number.isFinite(input.freeStops)
     ? Math.max(0, Math.floor(input.freeStops))
     : 0;
+
+  // Stops = geordnete Pool-Punkte (dedupe, Reihenfolge = Index). Audio/Text gehören
+  // zum Punkt und werden hier NICHT geschrieben.
+  const seen = new Set<string>();
+  const pointIds: string[] = [];
+  for (const s of input.stops) {
+    if (s.pointId && !seen.has(s.pointId)) {
+      seen.add(s.pointId);
+      pointIds.push(s.pointId);
+    }
+  }
+
+  // Stationen VOR jedem Write prüfen (danach wäre die Tour schon halb geschrieben):
+  // 1. Jede Station muss existieren und zum gewählten Gebiet gehören. Der Stationen-
+  //    Picker kann bei schnellem Gebiet-Wechsel noch Punkte des ALTEN Gebiets anbieten
+  //    (Race im Formular) – ohne diesen Check landete die Inkonsistenz in der DB.
+  // 2. Publish-Gate: Live gehen darf eine Tour nur mit mindestens einem
+  //    VERÖFFENTLICHTEN Punkt. Sonst erschiene sie öffentlich mit 0 Stationen
+  //    (getPublishedTours filtert Entwurfs-Punkte raus).
+  let publishedStops = 0;
+  if (pointIds.length) {
+    const { data: pts, error: ptsErr } = await supabase
+      .from("tour_points")
+      .select("id, area_id, status")
+      .in("id", pointIds);
+    if (ptsErr) return { ok: false, error: "db" };
+    const byId = new Map(
+      ((pts ?? []) as { id: string; area_id: string | null; status: string }[]).map((p) => [
+        p.id,
+        p,
+      ]),
+    );
+    for (const pid of pointIds) {
+      const p = byId.get(pid);
+      if (!p) return { ok: false, error: "points_area_mismatch" };
+      if (input.areaId && p.area_id !== input.areaId)
+        return { ok: false, error: "points_area_mismatch" };
+    }
+    publishedStops = [...byId.values()].filter((p) => p.status === "published").length;
+  }
+  const wantsPublish = input.status === "published";
+  if (wantsPublish && publishedStops === 0)
+    return { ok: false, error: "no_published_stops" };
 
   const row = {
     area_id: input.areaId ?? null,
@@ -173,23 +194,32 @@ export async function saveTour(input: TourInput): Promise<TourSaveResult> {
     if (eEnDel) return abort("db");
   }
 
-  // Stops = geordnete Pool-Punkte (dedupe, Reihenfolge = Index) — full replace.
-  // Audio/Text gehören zum Punkt und werden hier NICHT geschrieben.
-  const seen = new Set<string>();
-  const pointIds: string[] = [];
-  for (const s of input.stops) {
-    if (s.pointId && !seen.has(s.pointId)) {
-      seen.add(s.pointId);
-      pointIds.push(s.pointId);
-    }
-  }
+  // Stops schreiben (full replace). Die alte Liste wird VOR dem Löschen gelesen:
+  // Schlägt das Neu-Einfügen fehl (Netz, Constraint), werden die alten Stops
+  // zurückgeschrieben – sonst stünde eine bestehende Tour plötzlich ohne Stationen
+  // da, und die einzige Kopie der kuratierten Reihenfolge wäre der Formular-State.
+  const { data: prevStops, error: ePrevStops } = await supabase
+    .from("tour_stops")
+    .select("point_id, sort_order")
+    .eq("tour_id", tourId)
+    .order("sort_order", { ascending: true });
+  if (ePrevStops) return abort("db");
   const { error: eStopsDel } = await supabase.from("tour_stops").delete().eq("tour_id", tourId);
   if (eStopsDel) return abort("db");
   if (pointIds.length) {
     const { error: eStops } = await supabase
       .from("tour_stops")
       .insert(pointIds.map((pid, i) => ({ tour_id: tourId, point_id: pid, sort_order: i })));
-    if (eStops) return abort("db");
+    if (eStops) {
+      const old = (prevStops ?? []) as { point_id: string; sort_order: number }[];
+      if (old.length) {
+        const { error: eRestore } = await supabase
+          .from("tour_stops")
+          .insert(old.map((r) => ({ tour_id: tourId, point_id: r.point_id, sort_order: r.sort_order })));
+        if (eRestore) console.error("saveTour: Stops-Restore fehlgeschlagen", eRestore.message);
+      }
+      return abort("db");
+    }
   }
 
   return { ok: true, id: tourId };
@@ -210,6 +240,28 @@ export async function setTourStatus(
   const gate = await requireAdmin();
   if (!gate.ok) return { ok: false, error: gate.error };
   const s = status === "published" ? "published" : "draft";
+
+  // Publish-Gate wie in saveTour: Dieser Schnell-Schalter ist der Seitenweg am
+  // Formular vorbei und braucht dieselbe Grenze, sonst geht eine Tour ohne einen
+  // einzigen veröffentlichten Punkt live (öffentlich: 0 Stationen).
+  if (s === "published") {
+    const { data: stops, error: stopsErr } = await gate.supabase
+      .from("tour_stops")
+      .select("point_id")
+      .eq("tour_id", id);
+    if (stopsErr) return { ok: false, error: "db" };
+    const pointIds = ((stops ?? []) as { point_id: string }[]).map((r) => r.point_id);
+    if (!pointIds.length) return { ok: false, error: "no_published_stops" };
+    const { data: live, error: liveErr } = await gate.supabase
+      .from("tour_points")
+      .select("id")
+      .in("id", pointIds)
+      .eq("status", "published")
+      .limit(1);
+    if (liveErr) return { ok: false, error: "db" };
+    if (!(live ?? []).length) return { ok: false, error: "no_published_stops" };
+  }
+
   const { error } = await gate.supabase.from("tours").update({ status: s }).eq("id", id);
   if (error) return { ok: false, error: "db" };
   return { ok: true, id };

@@ -4,6 +4,7 @@ import { ANCHOR_EVENTS } from "./event-anchors";
 import { EVENT_CATEGORIES, type EventCategory } from "./events-format";
 import { fetchWithRetry, safeJsonParse } from "./ai-fetch";
 import { requireAdmin } from "./admin-guard";
+import { slugifyKey } from "./slug";
 
 const ANCHOR_REGIONS = [
   "Stadt Salzburg",
@@ -33,16 +34,10 @@ export type AnchorInput = {
 export type AnchorResult = { ok: boolean; id?: string; error?: string };
 
 
-function slugify(s: string): string {
-  return s
-    .toLowerCase()
-    .replace(/ä/g, "ae")
-    .replace(/ö/g, "oe")
-    .replace(/ü/g, "ue")
-    .replace(/ß/g, "ss")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 60);
+// Rohe DB-Meldung ins Server-Log, kurzer Code zum Browser (UI übersetzt via admin-errors.ts).
+function logDb(where: string, message: string): "db" {
+  console.error(`${where}:`, message);
+  return "db";
 }
 
 const cleanMonths = (m: number[]): number[] =>
@@ -61,7 +56,7 @@ export async function saveAnchor(input: AnchorInput): Promise<AnchorResult> {
     ? input.category
     : "kultur";
   const free = ["ja", "nein", "teils"].includes(input.free) ? input.free : "nein";
-  const key = (input.key.trim() || slugify(name)) || `anchor-${Date.now()}`;
+  const key = (input.key.trim() || slugifyKey(name, 60)) || `anchor-${Date.now()}`;
 
   const row = {
     key,
@@ -82,7 +77,14 @@ export async function saveAnchor(input: AnchorInput): Promise<AnchorResult> {
       .from("event_anchors")
       .update(row)
       .eq("id", input.id);
-    if (error) return { ok: false, error: error.message };
+    if (error)
+      return {
+        ok: false,
+        error:
+          (error as { code?: string }).code === "23505"
+            ? "key_taken"
+            : logDb("saveAnchor: update", error.message),
+      };
     return { ok: true, id: input.id };
   }
   const { data, error } = await supabase
@@ -90,7 +92,14 @@ export async function saveAnchor(input: AnchorInput): Promise<AnchorResult> {
     .insert(row)
     .select("id")
     .single();
-  if (error) return { ok: false, error: error.message };
+  if (error)
+    return {
+      ok: false,
+      error:
+        (error as { code?: string }).code === "23505"
+          ? "key_taken"
+          : logDb("saveAnchor: insert", error.message),
+    };
   return { ok: true, id: data.id };
 }
 
@@ -98,7 +107,7 @@ export async function deleteAnchor(id: string): Promise<AnchorResult> {
   const gate = await requireAdmin();
   if (!gate.ok) return { ok: false, error: gate.error };
   const { error } = await gate.supabase.from("event_anchors").delete().eq("id", id);
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: logDb("deleteAnchor", error.message) };
   return { ok: true };
 }
 
@@ -112,7 +121,7 @@ export async function toggleAnchorActive(
     .from("event_anchors")
     .update({ active })
     .eq("id", id);
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: logDb("toggleAnchorActive", error.message) };
   return { ok: true, id };
 }
 
@@ -141,7 +150,7 @@ export async function seedDefaultAnchors(): Promise<
     .from("event_anchors")
     .upsert(rows, { onConflict: "key", ignoreDuplicates: true })
     .select("id");
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: logDb("seedDefaultAnchors", error.message) };
   return { ok: true, inserted: data?.length ?? 0 };
 }
 

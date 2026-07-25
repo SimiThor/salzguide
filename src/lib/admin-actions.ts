@@ -1,15 +1,21 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "./supabase/server";
 import { createServiceClient } from "./supabase/service";
 import { BRAND_VOICE } from "./brand-voice";
 import { normalizeManual, type OpeningWeek } from "./opening-hours";
 import { routing } from "@/i18n/routing";
 import { localeMeta } from "@/i18n/locales";
 import { hashSpotTexts, translationsPublishable } from "./spot-hash";
-import { createBlurPreview, planImageBlur, removeBlurPreviews } from "./blur-preview";
+import {
+  createBlurPreview,
+  planImageBlur,
+  removeBlurPreviews,
+  removeSpotMediaFiles,
+} from "./blur-preview";
 import { stripEmDashFields } from "./em-dash";
+import { guardStorageUrl } from "./storage-guard";
+import { slugifyKey } from "./slug";
 import { parsePois, hikingTimeMinutes, type MapPoi } from "./geo";
 import { HOME_KEYS } from "./home-fields";
 import { translateHomeTextsWith } from "./home-translate";
@@ -132,30 +138,17 @@ async function fetchWithRetry(
   throw lastErr;
 }
 
-// Nur eigene öffentliche spot-media-URLs zulassen (Video + Standbild).
-function spotMediaUrl(
-  url: string | null,
-): { ok: true; url: string | null } | { ok: false } {
-  const clean = typeof url === "string" && url.trim() ? url.trim() : null;
-  if (!clean) return { ok: true, url: null };
-  const base = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
-  if (!base || !clean.startsWith(`${base}/storage/v1/object/public/spot-media/`))
-    return { ok: false };
-  return { ok: true, url: clean };
+// Rohe DB-Meldung ins Server-Log, kurzer Code zum Browser: Postgres-Texte verraten
+// Tabellen-/Constraint-Namen und sind englisch – das UI übersetzt Codes (admin-errors.ts).
+function logDb(where: string, message: string): "db" {
+  console.error(`${where}:`, message);
+  return "db";
 }
 
 export async function saveSpot(input: SpotInput): Promise<SaveResult> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "auth" };
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
-  if (profile?.role !== "admin") return { ok: false, error: "forbidden" };
+  const gate = await requireAdmin();
+  if (!gate.ok) return { ok: false, error: gate.error };
+  const { supabase } = gate;
 
   if (!input.slug.trim() || !input.title.trim())
     return { ok: false, error: "required" };
@@ -168,52 +161,77 @@ export async function saveSpot(input: SpotInput): Promise<SaveResult> {
   )
     return { ok: false, error: "place_id_required" };
 
-  const vid = spotMediaUrl(input.videoUrl);
-  const vidPoster = spotMediaUrl(input.videoPosterUrl);
+  const vid = guardStorageUrl(input.videoUrl);
+  const vidPoster = guardStorageUrl(input.videoPosterUrl);
   if (!vid.ok || !vidPoster.ok) return { ok: false, error: "bad_url" };
+
+  // Auch die FOTO-URLs müssen aus dem eigenen Bucket kommen (wie Video + Standbild):
+  // Eine fremde URL in der media-Tabelle bricht next/image (remotePatterns erlauben nur
+  // *.supabase.co), und createBlurPreview lädt die URL serverseitig – ohne Guard hieße
+  // das: der Server ruft beliebige Adressen ab (SSRF).
+  const images: string[] = [];
+  for (const raw of input.images ?? []) {
+    const img = guardStorageUrl(raw);
+    if (!img.ok || !img.url) return { ok: false, error: "bad_url" };
+    images.push(img.url);
+  }
+
+  // VOR den Writes wissen, ob der Spot schon live war: Das Publish-Gate unten prüft nur
+  // den Übergang Entwurf->Veröffentlicht, und die Fehler-Rücknahme (abort) darf einen
+  // SCHON live stehenden Spot nicht auf Entwurf zurückwerfen – seine Übersetzungen in
+  // der DB sind ja intakt, nur der neue Write ist gescheitert.
+  let wasPublished = false;
+  if (input.id) {
+    const { data: cur, error: curErr } = await supabase
+      .from("spots")
+      .select("status")
+      .eq("id", input.id)
+      .maybeSingle();
+    if (curErr) return { ok: false, error: logDb("saveSpot: Status lesen", curErr.message) };
+    wasPublished = (cur as { status?: string } | null)?.status === "published";
+  }
 
   // Veröffentlichen-Gate (Anti-Chaos): live gehen darf ein Spot NUR, wenn er in ALLE Sprachen
   // übersetzt UND aktuell ist. Geprüft wird NUR der Übergang Entwurf->Veröffentlicht: ein bereits
   // veröffentlichter Spot bleibt frei editierbar (Koordinaten/Fotos/Tippfehler), ohne dass alle
   // Sprachen erneut erzwungen werden. Entwurf speichern ist immer erlaubt. (Verbindliche Grenze.)
-  if (input.status === "published") {
-    let wasPublished = false;
-    if (input.id) {
-      const { data: cur } = await supabase
-        .from("spots")
-        .select("status")
-        .eq("id", input.id)
-        .maybeSingle();
-      wasPublished = (cur as { status?: string } | null)?.status === "published";
-    }
-    if (!wasPublished) {
-      const deHashGate = hashSpotTexts({
-        title: input.title,
-        shortDesc: input.shortDesc,
-        general: input.general,
-        insiderTip: input.insiderTip,
-        sectionA: input.sectionA,
-        sectionB: input.sectionB,
-        locationText: input.locationText,
-      });
-      const targets = routing.locales.filter((l) => l !== "de");
-      if (!translationsPublishable(input.translations, input.translationsSourceHash, deHashGate, targets))
-        return { ok: false, error: "translations_incomplete" };
-    }
+  if (input.status === "published" && !wasPublished) {
+    const deHashGate = hashSpotTexts({
+      title: input.title,
+      shortDesc: input.shortDesc,
+      general: input.general,
+      insiderTip: input.insiderTip,
+      sectionA: input.sectionA,
+      sectionB: input.sectionB,
+      locationText: input.locationText,
+    });
+    const targets = routing.locales.filter((l) => l !== "de");
+    if (!translationsPublishable(input.translations, input.translationsSourceHash, deHashGate, targets))
+      return { ok: false, error: "translations_incomplete" };
   }
+
+  // Zahlen härten, wie savePoint/saveTour es vormachen: Ein NaN aus dem Client
+  // serialisiert zu null und knallt erst als roher Postgres-Fehler (sort_weight ist
+  // NOT NULL); kaputte Koordinaten-Paare gingen über route_geojson bis auf die
+  // öffentliche Karte durch (getSpotRoute).
+  const sortWeight = Number.isFinite(input.sortWeight) ? Math.trunc(input.sortWeight) : 0;
+  const num = (v: number | null) => (v != null && Number.isFinite(v) ? v : null);
+  const finitePair = (p: [number, number]) =>
+    Array.isArray(p) && p.length === 2 && Number.isFinite(p[0]) && Number.isFinite(p[1]);
+  const routePoints = (input.routePoints ?? []).filter(finitePair);
+  const routeSnapped = (input.routeSnapped ?? []).filter(finitePair);
 
   // Modus: Einzelner Punkt ODER Wanderung. Bei einer Wanderung ist der
   // Haupt-/Anreisepunkt (lat/lng) automatisch der Startpunkt (erster Kontrollpunkt).
-  const isRoute = input.locationMode === "route" && input.routePoints.length >= 2;
-  const lat = isRoute ? input.routePoints[0][1] : input.lat;
-  const lng = isRoute ? input.routePoints[0][0] : input.lng;
+  const isRoute = input.locationMode === "route" && routePoints.length >= 2;
+  const lat = isRoute ? routePoints[0][1] : num(input.lat);
+  const lng = isRoute ? routePoints[0][0] : num(input.lng);
   // Anzeige-Linie: gesnappte Wege bevorzugen, sonst Luftlinie durch die Kontrollpunkte.
-  const lineCoords =
-    input.routeSnapped.length >= 2 ? input.routeSnapped : input.routePoints;
+  const lineCoords = routeSnapped.length >= 2 ? routeSnapped : routePoints;
   const routeGeojson = isRoute
     ? { type: "LineString", coordinates: lineCoords }
     : null;
-  const routeWaypoints = isRoute ? input.routePoints : null;
+  const routeWaypoints = isRoute ? routePoints : null;
   const elevationProfile = isRoute ? input.elevationProfile : null;
   // Zusatzpunkte säubern (echte Zahlen, Name getrimmt, leere raus); leer -> null.
   const waterStops = parsePois(input.waterStops);
@@ -227,11 +245,11 @@ export async function saveSpot(input: SpotInput): Promise<SaveResult> {
     seasons: input.seasons.length ? input.seasons : ["summer"],
     is_pro: input.isPro,
     status: input.status,
-    sort_weight: input.sortWeight,
+    sort_weight: sortWeight,
     lat,
     lng,
-    parking_lat: input.parkingLat,
-    parking_lng: input.parkingLng,
+    parking_lat: num(input.parkingLat),
+    parking_lng: num(input.parkingLng),
     water_stops: waterStops.length ? waterStops : null,
     huts: huts.length ? huts : null,
     // Öffis-Anreise zielt immer auf den Spot/Startpunkt -> kein eigener Transit-Punkt
@@ -257,26 +275,38 @@ export async function saveSpot(input: SpotInput): Promise<SaveResult> {
     video_poster_url: vidPoster.url,
   };
 
-  // Spot anlegen/aktualisieren
+  // Spot anlegen/aktualisieren. Der häufigste echte Fehler ist der doppelte Slug ->
+  // eigener Code statt roher Constraint-Meldung.
+  const spotErr = (e2: { message: string; code?: string }) =>
+    e2.code === "23505" ? ("slug_taken" as const) : logDb("saveSpot: spots-Write", e2.message);
+  const createdNew = !input.id;
   let spotId = input.id;
   if (spotId) {
     const { error } = await supabase.from("spots").update(row).eq("id", spotId);
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: spotErr(error) };
   } else {
     const { data, error } = await supabase
       .from("spots")
       .insert(row)
       .select("id")
       .single();
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: spotErr(error) };
     spotId = data.id;
   }
 
-  // Schlägt ein Übersetzungs-Write beim VERÖFFENTLICHEN fehl, darf der Spot nicht live+unübersetzt
-  // zurückbleiben -> Status auf Entwurf zurücknehmen (kein „published ohne Übersetzungen").
-  const abortPublish = async (err: string): Promise<SaveResult> => {
-    if (input.status === "published" && spotId)
+  // Schlägt ein Folge-Write fehl, bleibt kein halber Spot zurück:
+  // - Ein NEU angelegter Spot wird wieder gelöscht (sonst stünde ein titelloser
+  //   Slug-Geist in der Liste; die Tour-Actions machen das genauso).
+  // - Nur ein GERADE ERST veröffentlichter fällt auf Entwurf zurück. Ein schon vorher
+  //   live stehender behält seinen Status: Seine Übersetzungen in der DB sind intakt,
+  //   nur der neue Write ist gescheitert – ein Tippfehler-Fix darf den Spot nicht
+  //   von der öffentlichen Seite nehmen.
+  const abort = async (err: string): Promise<SaveResult> => {
+    if (createdNew && spotId) {
+      await supabase.from("spots").delete().eq("id", spotId);
+    } else if (input.status === "published" && !wasPublished && spotId) {
       await supabase.from("spots").update({ status: "draft" }).eq("id", spotId);
+    }
     return { ok: false, error: err };
   };
 
@@ -310,26 +340,47 @@ export async function saveSpot(input: SpotInput): Promise<SaveResult> {
     sectionB: input.sectionB,
     locationText: input.locationText,
   });
+  // Gedankenstrich-Riegel wie bei saveHomeTexts: Auch von Hand eingefügter Text (etwa
+  // aus einem KI-Chat, der NICHT durch unsere KI-Actions lief) wird beim Speichern
+  // gesäubert. hashTexts säubert identisch, die Aktualitäts-Marken bleiben stimmig.
+  const deClean = stripEmDashFields(
+    {
+      title: input.title.trim(),
+      shortDesc: input.shortDesc,
+      general: input.general,
+      insiderTip: input.insiderTip,
+      sectionA: input.sectionA,
+      sectionB: input.sectionB,
+      locationText: input.locationText,
+    },
+    "de",
+  );
   const { error: trErr } = await supabase.from("spot_translations").upsert(
     {
       spot_id: spotId,
       lang: "de",
-      title: input.title.trim(),
-      short_desc: e(input.shortDesc),
-      general: e(input.general),
-      insider_tip: e(input.insiderTip),
-      section_a: e(input.sectionA),
-      section_b: e(input.sectionB),
-      location_text: e(input.locationText),
+      title: deClean.title,
+      short_desc: e(deClean.shortDesc),
+      general: e(deClean.general),
+      insider_tip: e(deClean.insiderTip),
+      section_a: e(deClean.sectionA),
+      section_b: e(deClean.sectionB),
+      location_text: e(deClean.locationText),
     },
     { onConflict: "spot_id,lang" },
   );
-  if (trErr) return await abortPublish(trErr.message);
+  if (trErr) return await abort(logDb("saveSpot: DE-Texte", trErr.message));
 
   // Übersetzungen (alle Sprachen außer DE): je Sprache MIT Inhalt eine Zeile upserten,
   // leere Sprachen -> vorhandene Zeile löschen (keine leeren Übersetzungs-Datensätze).
-  for (const [lang, tx] of Object.entries(input.translations ?? {})) {
-    if (lang === "de" || !tx) continue;
+  // NUR bekannte Sprachen (routing.locales): Der Client ist nicht vertrauenswürdig,
+  // Fantasie-Codes würden sonst als Junk-Zeilen in spot_translations landen. Sprachen,
+  // die im Formular fehlen (z.B. weil eine Übersetzung fehlschlug), bleiben unangetastet.
+  const upsertedLangs: string[] = [];
+  for (const lang of routing.locales) {
+    if (lang === "de") continue;
+    const tx = input.translations?.[lang];
+    if (!tx) continue;
     const has = [
       tx.title,
       tx.shortDesc,
@@ -340,31 +391,35 @@ export async function saveSpot(input: SpotInput): Promise<SaveResult> {
       tx.locationText,
     ].some((s) => (s ?? "").trim() !== "");
     if (has) {
+      const clean = stripEmDashFields(tx, lang);
       const { error: txErr } = await supabase.from("spot_translations").upsert(
         {
           spot_id: spotId,
           lang,
-          title: tx.title.trim() || input.title.trim(), // Spalte ist NOT NULL
-          short_desc: e(tx.shortDesc),
-          general: e(tx.general),
-          insider_tip: e(tx.insiderTip),
-          section_a: e(tx.sectionA),
-          section_b: e(tx.sectionB),
-          location_text: e(tx.locationText),
+          title: clean.title.trim() || deClean.title, // Spalte ist NOT NULL
+          short_desc: e(clean.shortDesc),
+          general: e(clean.general),
+          insider_tip: e(clean.insiderTip),
+          section_a: e(clean.sectionA),
+          section_b: e(clean.sectionB),
+          location_text: e(clean.locationText),
         },
         { onConflict: "spot_id,lang" },
       );
-      if (txErr) return await abortPublish(txErr.message);
+      if (txErr) return await abort(logDb(`saveSpot: Übersetzung ${lang}`, txErr.message));
+      upsertedLangs.push(lang);
     } else {
-      await supabase
+      const { error: delTxErr } = await supabase
         .from("spot_translations")
         .delete()
         .eq("spot_id", spotId)
         .eq("lang", lang);
+      if (delTxErr)
+        return await abort(logDb(`saveSpot: Übersetzung ${lang} löschen`, delTxErr.message));
     }
   }
 
-  // Aktualitäts-Marken (source_hash) NACHRÜGLICH & fehlertolerant setzen: existiert die
+  // Aktualitäts-Marken (source_hash) NACHTRÄGLICH & fehlertolerant setzen: existiert die
   // Spalte noch nicht (Migration 0031 nicht eingespielt), scheitert nur DAS – nicht der Spot.
   {
     const { error: dh } = await supabase
@@ -373,21 +428,35 @@ export async function saveSpot(input: SpotInput): Promise<SaveResult> {
       .eq("spot_id", spotId)
       .eq("lang", "de");
     if (dh) console.warn("source_hash (de) übersprungen – Migration 0031 nötig?", dh.message);
-    else if (input.translationsSourceHash) {
+    else if (input.translationsSourceHash && upsertedLangs.length) {
+      // NUR die gerade wirklich geschriebenen Sprachen stempeln. Vorher stempelte
+      // `.neq("lang","de")` auch DB-Zeilen, die gar nicht im Formular standen (etwa
+      // weil ihre Übersetzung fehlgeschlagen war) – die galten dann als „aktuell",
+      // obwohl ihr Text noch aus dem alten Deutsch stammte. Das hebelte das
+      // Anti-Chaos-System aus.
       await supabase
         .from("spot_translations")
         .update({ source_hash: input.translationsSourceHash })
         .eq("spot_id", spotId)
-        .neq("lang", "de");
+        .in("lang", upsertedLangs);
     }
   }
 
-  // Kategorien neu setzen
-  await supabase.from("spot_categories").delete().eq("spot_id", spotId);
-  if (input.categoryIds.length) {
-    await supabase
+  // Kategorien neu setzen. Delete+Insert ist nicht transaktional -> beide Fehler
+  // PRÜFEN: Vorher lief die Funktion nach einem stillen Insert-Fehler weiter und
+  // meldete „gespeichert", während der Spot alle Kategorien verloren hatte.
+  {
+    const { error: delErr } = await supabase
       .from("spot_categories")
-      .insert(input.categoryIds.map((cid) => ({ spot_id: spotId, category_id: cid })));
+      .delete()
+      .eq("spot_id", spotId);
+    if (delErr) return await abort(logDb("saveSpot: Kategorien löschen", delErr.message));
+    if (input.categoryIds.length) {
+      const { error: insErr } = await supabase
+        .from("spot_categories")
+        .insert(input.categoryIds.map((cid) => ({ spot_id: spotId, category_id: cid })));
+      if (insErr) return await abort(logDb("saveSpot: Kategorien schreiben", insErr.message));
+    }
   }
 
   // Fotos neu setzen (erstes = Hero); media-Tabelle ist die Quelle der Wahrheit.
@@ -398,13 +467,14 @@ export async function saveSpot(input: SpotInput): Promise<SaveResult> {
   // statt sie erneut aus dem Netz zu laden und durch sharp zu schicken. Und – wichtiger –
   // ein Umsortieren kann keine funktionierende Vorschau mehr zerstören: Wir werfen nur
   // weg, was zu einem entfernten FOTO gehört, nie was zu einer alten Rolle gehörte.
-  const { data: prevRows } = await supabase
+  const { data: prevRows, error: prevErr } = await supabase
     .from("media")
     .select("url, blur_url")
     .eq("spot_id", spotId)
     .eq("type", "image");
+  if (prevErr) return await abort(logDb("saveSpot: Fotos lesen", prevErr.message));
 
-  const plan = planImageBlur(prevRows ?? [], input.images);
+  const plan = planImageBlur(prevRows ?? [], images);
 
   // Fehlt dem Hero die Vorschau, jetzt EINE erzeugen. Ein reines Textspeichern rendert
   // damit gar nichts, und Umsortieren auf ein Foto, das schon einmal Hero war, ebenso
@@ -415,26 +485,44 @@ export async function saveSpot(input: SpotInput): Promise<SaveResult> {
     if (made) plan.blurByUrl.set(plan.heroNeedingPreview, made);
   }
 
-  await supabase.from("media").delete().eq("spot_id", spotId).eq("type", "image");
-  if (input.images.length) {
-    await supabase.from("media").insert(
-      input.images.map((url, i) => ({
-        spot_id: spotId,
-        type: "image",
-        role: i === 0 ? "hero" : "gallery",
-        url,
-        sort_order: i,
-        // Eine einmal erzeugte Vorschau bleibt an ihrem Bild kleben, auch wenn es gerade
-        // in der Galerie steht: Sonst kostet jedes Hin-und-Her-Sortieren ein neues Rendern.
-        blur_url: plan.blurByUrl.get(url) ?? null,
-      })),
-    );
+  // Delete+Insert mit Fehlerprüfung (siehe Kategorien): Ein stiller Insert-Fehler
+  // hieß vorher „Spot live, aber alle Fotos weg" – und der Admin sah „gespeichert".
+  {
+    const { error: delErr } = await supabase
+      .from("media")
+      .delete()
+      .eq("spot_id", spotId)
+      .eq("type", "image");
+    if (delErr) return await abort(logDb("saveSpot: Fotos löschen", delErr.message));
+    if (images.length) {
+      const { error: insErr } = await supabase.from("media").insert(
+        images.map((url, i) => ({
+          spot_id: spotId,
+          type: "image",
+          role: i === 0 ? "hero" : "gallery",
+          url,
+          sort_order: i,
+          // Eine einmal erzeugte Vorschau bleibt an ihrem Bild kleben, auch wenn es gerade
+          // in der Galerie steht: Sonst kostet jedes Hin-und-Her-Sortieren ein neues Rendern.
+          blur_url: plan.blurByUrl.get(url) ?? null,
+        })),
+      );
+      if (insErr) return await abort(logDb("saveSpot: Fotos schreiben", insErr.message));
+    }
   }
 
-  // Vorschauen entfernter Fotos wegräumen. Erst NACH dem Insert, damit ein Fehler beim
-  // Aufräumen keine gerade gespeicherte Vorschau reißt.
+  // Vorschauen UND Originaldateien entfernter Fotos wegräumen. Erst NACH dem Insert,
+  // damit ein Fehler beim Aufräumen nichts gerade Gespeichertes reißt. Originale sind
+  // sicher wegwerfbar: Jeder Upload bekommt einen eigenen UUID-Dateinamen, die Datei
+  // gehört also genau diesem Spot. Best-effort, loggt nur.
   if (plan.orphanPreviews.length) {
     await removeBlurPreviews(supabase.storage, plan.orphanPreviews);
+  }
+  const removedOriginals = (prevRows ?? [])
+    .map((r) => r.url)
+    .filter((u): u is string => typeof u === "string" && u !== "" && !images.includes(u));
+  if (removedOriginals.length) {
+    await removeSpotMediaFiles(supabase.storage, removedOriginals);
   }
 
   // Die Startseite wird vorgerendert (siehe lib/home-content.ts) und zeigt die Spot-Anzahl
@@ -490,17 +578,8 @@ export type SnapResult = {
 export async function snapRoute(
   waypoints: [number, number][],
 ): Promise<SnapResult> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "auth" };
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
-  if (profile?.role !== "admin") return { ok: false, error: "forbidden" };
+  const gate = await requireAdmin();
+  if (!gate.ok) return { ok: false, error: gate.error };
 
   if (waypoints.length < 2) return { ok: false, error: "Mindestens 2 Punkte nötig" };
   const key = process.env.ORS_KEY;
@@ -699,17 +778,8 @@ Finde konkrete Insider-Tipps, Besonderheiten, beste Zeit und Parken/Anreise.`;
 export async function generateSpotTexts(
   input: GenerateTextsInput,
 ): Promise<GenerateTextsResult> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "auth" };
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
-  if (profile?.role !== "admin") return { ok: false, error: "forbidden" };
+  const gate = await requireAdmin();
+  if (!gate.ok) return { ok: false, error: gate.error };
 
   if (!input.title.trim()) return { ok: false, error: "Bitte zuerst einen Titel eingeben." };
   const key = process.env.ANTHROPIC_API_KEY;
@@ -860,20 +930,35 @@ ${input.notes.trim() || "- (keine)"}${
 }
 
 export async function deleteSpot(id: string): Promise<SaveResult> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "auth" };
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
+  const gate = await requireAdmin();
+  if (!gate.ok) return { ok: false, error: gate.error };
+  const { supabase } = gate;
+
+  // VOR dem Löschen alle Datei-URLs des Spots einsammeln: Die media-Zeilen kaskadieren
+  // mit der spots-Zeile weg, danach wüsste niemand mehr, welche Dateien im Bucket zu
+  // diesem Spot gehörten – sie lägen für immer öffentlich erreichbar herum.
+  const { data: mediaRows } = await supabase
+    .from("media")
+    .select("url, blur_url")
+    .eq("spot_id", id);
+  const { data: spotRow } = await supabase
+    .from("spots")
+    .select("video_url, video_poster_url")
+    .eq("id", id)
     .maybeSingle();
-  if (profile?.role !== "admin") return { ok: false, error: "forbidden" };
 
   const { error } = await supabase.from("spots").delete().eq("id", id);
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: logDb("deleteSpot", error.message) };
+
+  // Erst NACH dem erfolgreichen DB-Delete aufräumen (best-effort, loggt nur):
+  // Scheitert das Löschen der Zeile, bleiben die Dateien korrekt referenziert stehen.
+  const fileUrls = (mediaRows ?? []).flatMap((m) => [m.url, m.blur_url]);
+  const s = spotRow as { video_url?: string | null; video_poster_url?: string | null } | null;
+  await removeSpotMediaFiles(supabase.storage, [
+    ...fileUrls,
+    s?.video_url,
+    s?.video_poster_url,
+  ]);
 
   // Wie in saveSpot: Die vorgerenderte Startseite muss die neue Spot-Anzahl mitbekommen.
   for (const l of routing.locales) revalidatePath(`/${l}`);
@@ -900,17 +985,8 @@ RULES:
 - If a source field is empty, return an empty string for it.`;
 
 export async function translateSpotTexts(input: SpotTexts): Promise<TranslateResult> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "auth" };
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
-  if (profile?.role !== "admin") return { ok: false, error: "forbidden" };
+  const gate = await requireAdmin();
+  if (!gate.ok) return { ok: false, error: gate.error };
 
   if (!input.title.trim()) return { ok: false, error: "Bitte zuerst deutsche Texte erstellen." };
   const key = process.env.ANTHROPIC_API_KEY;
@@ -1138,17 +1214,8 @@ export type TranslateAllResult = {
 };
 
 export async function translateSpotTextsAll(input: SpotTexts): Promise<TranslateAllResult> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "auth" };
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
-  if (profile?.role !== "admin") return { ok: false, error: "forbidden" };
+  const gate = await requireAdmin();
+  if (!gate.ok) return { ok: false, error: gate.error };
 
   if (!input.title.trim()) return { ok: false, error: "Bitte zuerst deutsche Texte erstellen." };
   const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -1195,12 +1262,16 @@ export async function fillSpotTranslations(
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return { ok: false, error: "ANTHROPIC_API_KEY fehlt" };
 
-  const { data: rows } = await supabase
+  // Lese-Fehler nicht schlucken: Sonst meldet ein DB-Schluckauf fälschlich „no_de",
+  // und der Admin sucht den Fehler bei seinen Texten statt bei der Verbindung.
+  const { data: rows, error: readErr } = await supabase
     .from("spot_translations")
     .select(
       "lang, title, short_desc, general, insider_tip, section_a, section_b, location_text, source_hash",
     )
     .eq("spot_id", spotId);
+  if (readErr)
+    return { ok: false, error: logDb("fillSpotTranslations: lesen", readErr.message) };
   const list = (rows ?? []) as Record<string, string | null>[];
   const de = list.find((r) => r.lang === "de");
   if (!de || !(de.title ?? "").trim()) return { ok: false, error: "no_de" };
@@ -1270,17 +1341,8 @@ export type PlaceHit = { id: string; name: string; address: string };
 export async function searchPlaces(
   query: string,
 ): Promise<{ ok: true; results: PlaceHit[] } | { ok: false; error: string }> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "auth" };
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
-  if (profile?.role !== "admin") return { ok: false, error: "forbidden" };
+  const gate = await requireAdmin();
+  if (!gate.ok) return { ok: false, error: gate.error };
 
   const q = query.trim();
   if (q.length < 3) return { ok: true, results: [] };
@@ -1323,17 +1385,8 @@ export async function searchPlaces(
 export async function setToniAvatarUrl(
   url: string | null,
 ): Promise<{ ok: boolean; error?: string }> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "auth" };
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
-  if (profile?.role !== "admin") return { ok: false, error: "forbidden" };
+  const gate = await requireAdmin();
+  if (!gate.ok) return { ok: false, error: gate.error };
 
   const clean = typeof url === "string" && url.trim() ? url.trim() : null;
   if (clean) {
@@ -1356,18 +1409,7 @@ export async function setToniAvatarUrl(
 // Verknüpfung Spot↔Kategorie läuft über category_id (uuid), NICHT über den key ->
 // Umbenennen (Titel ändern) bricht keine Zuordnungen. Der key ist der stabile,
 // interne Matching-Token (Explore-Karussell + KI-Signal) und bleibt beim Bearbeiten
-// unverändert.
-function slugifyKey(s: string): string {
-  return s
-    .toLowerCase()
-    .replace(/ä/g, "ae")
-    .replace(/ö/g, "oe")
-    .replace(/ü/g, "ue")
-    .replace(/ß/g, "ss")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 40);
-}
+// unverändert. (slugifyKey kommt aus lib/slug.ts – EINE Implementierung für alle.)
 
 export type CategoryInput = {
   id?: string;
@@ -1412,23 +1454,32 @@ export async function saveCategory(
   }
 
   // Neu: eindeutigen key erzeugen (Slug aus dt. Titel), unique pro Saison.
+  // Insert mit Retry bei Unique-Kollision (TOCTOU-Race zwischen SELECT und INSERT),
+  // dasselbe Muster wie saveArea/saveTour.
   const base = slugifyKey(de) || "kategorie";
-  const { data: existing } = await supabase
+  const { data: existing, error: keysErr } = await supabase
     .from("categories")
     .select("key")
     .eq("season", input.season);
+  if (keysErr) return { ok: false, error: logDb("saveCategory: Keys lesen", keysErr.message) };
   const used = new Set(((existing ?? []) as { key: string }[]).map((r) => r.key));
-  let key = base;
-  let n = 2;
-  while (used.has(key)) key = `${base}-${n++}`;
-
-  const { data: created, error } = await supabase
-    .from("categories")
-    .insert({ key, season: input.season, title_translations: titles, sort_order: sortOrder })
-    .select("id")
-    .single();
-  if (error) return { ok: false, error: "db" };
-  return { ok: true, id: created.id as string };
+  for (let attempt = 0; attempt < 6; attempt++) {
+    let key = base;
+    let n = 2;
+    while (used.has(key)) key = `${base}-${n++}`;
+    const { data: created, error } = await supabase
+      .from("categories")
+      .insert({ key, season: input.season, title_translations: titles, sort_order: sortOrder })
+      .select("id")
+      .single();
+    if (!error && created) return { ok: true, id: created.id as string };
+    if (error && (error as { code?: string }).code === "23505") {
+      used.add(key); // Key inzwischen vergeben -> nächsten Suffix probieren
+      continue;
+    }
+    return { ok: false, error: logDb("saveCategory: anlegen", error?.message ?? "unbekannt") };
+  }
+  return { ok: false, error: "db" };
 }
 
 export async function deleteCategory(id: string): Promise<{ ok: boolean; error?: string }> {
@@ -1617,7 +1668,7 @@ export async function saveLocal(
   if (!name) return { ok: false, error: "Bitte einen Namen eingeben." };
   const role = (input.role ?? "").trim();
 
-  const avatar = spotMediaUrl(input.avatarUrl);
+  const avatar = guardStorageUrl(input.avatarUrl);
   if (!avatar.ok) return { ok: false, error: "bad_url" };
 
   // role_i18n bereinigen: nur Nicht-DE mit Inhalt (Deutsch steckt in der Spalte `role`).
@@ -1773,7 +1824,7 @@ export async function saveHomeFeatured(
     .in("slug", wanted.length ? wanted : ["__none__"])
     .eq("status", "published")
     .eq("is_pro", false);
-  if (checkErr) return { ok: false, error: checkErr.message };
+  if (checkErr) return { ok: false, error: logDb("saveHomeFeatured: Slugs prüfen", checkErr.message) };
 
   const allowed = new Set((valid ?? []).map((s) => s.slug as string));
   const ordered = wanted.filter((s) => allowed.has(s));
@@ -1783,7 +1834,7 @@ export async function saveHomeFeatured(
     .from("spots")
     .update({ home_rank: null })
     .not("home_rank", "is", null);
-  if (clearErr) return { ok: false, error: clearErr.message };
+  if (clearErr) return { ok: false, error: logDb("saveHomeFeatured: Ränge räumen", clearErr.message) };
 
   // Neu vergeben, Position = Rang.
   for (const [i, slug] of ordered.entries()) {
@@ -1791,7 +1842,7 @@ export async function saveHomeFeatured(
       .from("spots")
       .update({ home_rank: i + 1 })
       .eq("slug", slug);
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: logDb("saveHomeFeatured: Rang setzen", error.message) };
   }
 
   // Die Startseite ist statisch gerendert -> ohne revalidate bliebe die alte Auswahl
@@ -1837,7 +1888,7 @@ export async function saveHomeTexts(
     .from("home_content")
     .update({ texts: cleaned, updated_at: new Date().toISOString() })
     .eq("id", 1);
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: logDb("saveHomeTexts", error.message) };
 
   // Die Startseite UND die Über-uns-Seite (nutzt dieselben Gründer-Texte) sind statisch
   // gerendert -> ohne revalidate bliebe der alte Text stehen, und im Admin sähe alles
@@ -1869,7 +1920,7 @@ export async function fillHomeTranslations(): Promise<{
     .select("texts")
     .eq("id", 1)
     .maybeSingle();
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: logDb("fillHomeTranslations: lesen", error.message) };
 
   const de = (data?.texts ?? {}) as Record<string, string>;
   if (!Object.values(de).some((v) => (v ?? "").trim()))
@@ -1888,7 +1939,7 @@ export async function fillHomeTranslations(): Promise<{
       updated_at: new Date().toISOString(),
     })
     .eq("id", 1);
-  if (upErr) return { ok: false, error: upErr.message };
+  if (upErr) return { ok: false, error: logDb("fillHomeTranslations: schreiben", upErr.message) };
 
   for (const l of routing.locales) {
     revalidatePath(`/${l}`);
@@ -1931,7 +1982,7 @@ export async function saveHomeMedia(media: HomeMedia): Promise<{ ok: boolean; er
     .from("home_content")
     .update({ media: clean, updated_at: new Date().toISOString() })
     .eq("id", 1);
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: logDb("saveHomeMedia", error.message) };
 
   // Startseite UND Über-uns-Seite: beide zeigen dieselben Medien (Video, Gründerfotos).
   for (const l of routing.locales) {
@@ -1974,19 +2025,35 @@ export async function triggerIntroRender(
     })
     .eq("slug", slug);
 
-  const res = await fetch(
-    `https://api.github.com/repos/${repo}/actions/workflows/render-intro.yml/dispatches`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: "application/vnd.github+json",
-        "X-GitHub-Api-Version": "2022-11-28",
-        "User-Agent": "salzguide-admin",
+  // try/catch wie bei jedem anderen Netz-Aufruf der Datei: Ohne ihn wirft ein
+  // DNS-/Netzfehler aus der Action heraus, und die Zeile stünde für immer auf
+  // „in Warteschlange" – nur der non-204-Zweig unten schreibt den Fehlerstatus zurück.
+  let res: Response;
+  try {
+    res = await fetch(
+      `https://api.github.com/repos/${repo}/actions/workflows/render-intro.yml/dispatches`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/vnd.github+json",
+          "X-GitHub-Api-Version": "2022-11-28",
+          "User-Agent": "salzguide-admin",
+        },
+        body: JSON.stringify({ ref: "main", inputs: { slug } }),
+        signal: AbortSignal.timeout(15000),
       },
-      body: JSON.stringify({ ref: "main", inputs: { slug } }),
-    },
-  );
+    );
+  } catch (err) {
+    await svc
+      .from("spots")
+      .update({
+        intro_render_status: "error",
+        intro_render_error: `GitHub nicht erreichbar: ${err instanceof Error ? err.message : "Netzwerkfehler"}`,
+      })
+      .eq("slug", slug);
+    return { ok: false, error: "GitHub ist gerade nicht erreichbar. Bitte nochmal versuchen." };
+  }
 
   if (res.status !== 204) {
     const txt = await res.text().catch(() => "");

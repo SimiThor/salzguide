@@ -1,6 +1,7 @@
 // Deterministischer Inhalts-Hash der QUELL-Texte (Deutsch). Wird mit jeder Übersetzung als
 // `source_hash` gespeichert. Ändert sich Deutsch, weicht der Hash ab -> Übersetzungen sind
 // „veraltet". Läuft identisch auf Client (Formular) UND Server (Speichern/Status).
+import { stripEmDash } from "./em-dash";
 export type SpotTextFields = {
   title: string;
   shortDesc: string;
@@ -14,7 +15,14 @@ export type SpotTextFields = {
 export type TranslationState = "none" | "partial" | "stale" | "complete";
 
 export function hashTexts(parts: (string | null | undefined)[]): string {
-  const s = parts.map((x) => (x ?? "").trim()).join(" ");
+  // Em-Dash-unempfindlich, mit EXAKT derselben Säuberung wie beim Speichern:
+  // saveSpot/saveEvent jagen Texte durch stripEmDash (Projektregel). Hashte man den
+  // rohen Formular-Text, wäre „Text mit —" ein anderer Hash als der gespeicherte
+  // gesäuberte Text – und alle Übersetzungen gälten fälschlich als veraltet, obwohl
+  // sich inhaltlich nichts geändert hat. stripEmDash ist idempotent, gesäuberter
+  // Bestand hasht also unverändert. Gehasht wird nur QUELL-Text (de/en), die
+  // Chinesisch-Ausnahme spielt hier keine Rolle.
+  const s = parts.map((x) => stripEmDash((x ?? "").trim())).join(" ");
   // djb2 (schnell, deterministisch, reicht für Änderungs-Erkennung)
   let h = 5381;
   for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0;

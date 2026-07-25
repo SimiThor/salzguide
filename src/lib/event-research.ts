@@ -7,6 +7,7 @@
 import { createServiceClient } from "./supabase/service";
 import { fetchWithRetry, safeJsonParse } from "./ai-fetch";
 import { BRAND_VOICE } from "./brand-voice";
+import { stripEmDash } from "./em-dash";
 import { getActiveAnchorsForMonths } from "./anchors";
 import { translateEventAllLangsOneShot } from "./event-translate";
 import {
@@ -414,11 +415,14 @@ function toRows(ev: RawEvent, startIso: string, endIso: string): Record<string, 
   const endDay = endWall ? endWall.slice(0, 10) : "";
   const endTod = endWall ? endWall.slice(11, 16) : "";
 
+  // Gedankenstrich-Riegel VOR dem Insert (Projektregel „Zwang statt Bitte"): Diese
+  // Felder kommen roh vom Modell und gingen nach dem Veröffentlichen 1:1 live. Nur die
+  // JSONB-Übersetzungen liefen bisher durch stripEmDash (translateEventAllLangsOneShot).
   const baseFields = {
-    title,
-    title_en: (ev.title_en ?? "").trim() || null,
-    description: (ev.description ?? "").trim() || null,
-    description_en: (ev.description_en ?? "").trim() || null,
+    title: stripEmDash(title, "de"),
+    title_en: stripEmDash((ev.title_en ?? "").trim(), "en") || null,
+    description: stripEmDash((ev.description ?? "").trim(), "de") || null,
+    description_en: stripEmDash((ev.description_en ?? "").trim(), "en") || null,
     emoji: (ev.emoji ?? "").trim() || null,
     all_day: allDay,
     location_name: (ev.location_name ?? "").trim() || null,
