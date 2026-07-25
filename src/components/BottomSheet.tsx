@@ -13,7 +13,7 @@ import { useTranslations } from "next-intl";
 import SheetGrabber, { SHEET_HANDLE_CLASS } from "./SheetGrabber";
 import { useBodyDrag } from "./useBodyDrag";
 import { useSheetHandle } from "./useSheetHandle";
-import { useViewportHeight } from "@/lib/viewport";
+import { useKeyboard, useViewportHeight } from "@/lib/viewport";
 
 // iOS-2026 Overlay (docs/02 §8), responsiv:
 // - Mobile: ziehbares Bottom-Sheet mit Detents (Halb/Voll), Grabber, Spring.
@@ -25,6 +25,10 @@ import { useViewportHeight } from "@/lib/viewport";
 //   (deckendes bg-cream inkl. Safe-Area) -> z. B. Chat-Eingabe; nichts scheint
 //   darunter durch.
 const SPRING = { type: "spring" as const, damping: 36, stiffness: 380 };
+
+// Luft über einem Sheet, das von der Tastatur zusammengedrückt wird. Ohne sie klebte der
+// Kopf am oberen Rand und das Sheet sähe aus wie eine Vollbild-Seite statt wie ein Sheet.
+const KEYBOARD_TOP_GAP = 24;
 
 type BottomSheetProps = {
   open: boolean;
@@ -87,6 +91,9 @@ export default function BottomSheet({
   const zBackdrop = elevated ? "z-[75]" : "z-[60]";
   const zSheet = elevated ? "z-[78]" : "z-[70]";
   const vh = useViewportHeight();
+  // Die Tastatur ist das einzige, was weniger Platz lässt als svh – siehe useKeyboard.
+  // Beide Zahlen sind 0, solange keine offen ist: dann ändert sich hier gar nichts.
+  const kb = useKeyboard();
   const [isDesktop, setIsDesktop] = useState(false);
   const y = useMotionValue(2000); // Mobile-Sheet: startet off-screen
   const dragControls = useDragControls();
@@ -110,9 +117,18 @@ export default function BottomSheet({
 
   const full = detents[detents.length - 1];
   const base = vh || 800;
-  const sheetH = base * full;
-  const snapY = (d: number) => (full - d) * base;
+  // Ohne Tastatur ändert sich hier NICHTS: Das Sheet ist ein Anteil von svh, und svh ist
+  // die kleinste Höhe, die der Bildschirm annehmen kann. Fährt die Tastatur aus, ist der
+  // sichtbare Streifen zum ersten Mal kleiner als svh – dann deckelt er die Höhe. Sonst
+  // behielte das Sheet seine 92% und stünde oben aus dem Bild heraus, während die
+  // Eingabezeile hinter der Tastatur läge.
+  const sheetH = kb.visible
+    ? Math.min(base * full, Math.max(0, kb.visible - KEYBOARD_TOP_GAP))
+    : base * full;
   const closedY = sheetH;
+  // Nie unter die eigene Unterkante: Mit Tastatur wäre eine Stufe sonst eine Position,
+  // die es am geschrumpften Sheet gar nicht gibt.
+  const snapY = (d: number) => Math.min((full - d) * base, closedY);
 
   // Desktop/Mobile erkennen. Die Viewport-Höhe kommt aus useViewportHeight() und darf
   // NICHT an diesem resize hängen: iOS feuert resize bei jedem Leisten-Zug, `vh` steht
@@ -241,7 +257,12 @@ export default function BottomSheet({
         // ---- Desktop (floating): schwebende Karte im Kartenbereich, kein Backdrop ----
         <AnimatePresence>
           {open && (
-            <div className="pointer-events-none fixed inset-x-0 bottom-6 z-[55] px-4 md:left-[var(--sg-panel-water)] md:right-0">
+            <div
+              // Tastatur (Tablet): dieselbe Regel wie am Handy – über ihr bleiben, nicht
+              // dahinter. bottom-6 = 24px, die kommen oben drauf.
+              style={{ bottom: kb.inset ? kb.inset + 24 : undefined }}
+              className="pointer-events-none fixed inset-x-0 bottom-6 z-[55] px-4 md:left-[var(--sg-panel-water)] md:right-0"
+            >
               <motion.div
                 role="dialog"
                 aria-modal={false}
@@ -260,7 +281,12 @@ export default function BottomSheet({
         // ---- Desktop: zentriertes Modal ----
         <AnimatePresence>
           {open && (
-            <div className={`pointer-events-none fixed inset-0 ${zSheet} flex items-center justify-center p-4`}>
+            <div
+              // Tastatur (Tablet): Der freie Platz wird kleiner, also wird auch die Mitte
+              // eine andere. p-4 = 16px, die bleiben zusätzlich stehen.
+              style={{ paddingBottom: kb.inset ? kb.inset + 16 : undefined }}
+              className={`pointer-events-none fixed inset-0 ${zSheet} flex items-center justify-center p-4`}
+            >
               <motion.div
                 role="dialog"
                 aria-modal="true"
@@ -268,6 +294,11 @@ export default function BottomSheet({
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.97, y: 6 }}
                 transition={{ duration: 0.2, ease: "easeOut" }}
+                style={{
+                  maxHeight: kb.visible
+                    ? Math.max(0, kb.visible - 2 * KEYBOARD_TOP_GAP)
+                    : undefined,
+                }}
                 className="pointer-events-auto flex max-h-[85svh] w-full max-w-lg flex-col overflow-hidden rounded-[22px] bg-cream shadow-2xl"
               >
                 {desktopInner}
@@ -279,12 +310,19 @@ export default function BottomSheet({
         // ---- Mobile: ziehbares Bottom-Sheet ----
         <motion.div
           data-sg="bottom-sheet"
-          style={{ y, height: sheetH }}
+          // bottom statt der Klasse bottom-0, sobald die Tastatur offen ist: Ein fixiertes
+          // Element hängt am Dokument-Viewport, und der reicht unter der Tastatur weiter.
+          // Ohne diesen Abstand steht das Sheet dahinter.
+          style={{ y, height: sheetH, bottom: kb.inset }}
           drag="y"
           dragListener={false}
           dragControls={dragControls}
           dragConstraints={{ top: 0, bottom: closedY }}
-          dragElastic={0.1}
+          // Nach unten federt es (das gehört zum Zumachen), nach oben NICHT: Über der
+          // obersten Stufe gibt es nichts mehr zu zeigen. Ein iOS-Sheet dehnt sich dort
+          // auch nicht – es würde nur oben an den Rand stoßen und unten den Hintergrund
+          // durchblitzen lassen, weil darunter keine Fläche mehr kommt.
+          dragElastic={{ top: 0, bottom: 0.1 }}
           onDragEnd={handleDragEnd}
           className={`fixed inset-x-0 bottom-0 ${zSheet} mx-auto flex w-full max-w-lg flex-col overflow-hidden rounded-t-[22px] bg-cream shadow-2xl ${
             open ? "" : "pointer-events-none"
