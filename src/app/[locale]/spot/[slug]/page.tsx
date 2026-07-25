@@ -144,9 +144,13 @@ function Hero({
       </div>
       {back}
       <div className="absolute right-4 top-4 flex items-center gap-2">
-        {/* Sprach-Switch nur mobil – am Desktop ist er im Header */}
+        {/* Sprach-Switch nur mobil – am Desktop ist er im Header.
+            variant="overlay": Er schwebt hier über dem Hero-FOTO, direkt neben dem
+            Merken-Knopf. Mit der Standard-Fläche (bg-black/5) war er auf dem Bild kaum zu
+            sehen; die weisse Glas-Pille mit Schatten ist dieselbe, die Zurück und Merken
+            hier schon tragen. */}
         <span className="md:hidden">
-          <LanguageSwitcher />
+          <LanguageSwitcher variant="overlay" />
         </span>
         {!spot.locked && (
           <SaveButton
