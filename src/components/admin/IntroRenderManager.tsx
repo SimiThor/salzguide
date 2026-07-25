@@ -78,8 +78,8 @@ export default function IntroRenderManager({
       <p className="mt-1 text-[13px] leading-relaxed text-muted">
         Erzeugt das Wander-Intro (Karte + animierte Route) für einen Spot. Der Render läuft auf
         einem GitHub-Runner gegen die Live-Seite und lädt Video + Standbild automatisch hoch –
-        kein Terminal nötig. Dauert pro Video ein paar Minuten; der Status hier aktualisiert sich
-        von selbst.
+        kein Terminal nötig. Dauert pro Video rund 25 bis 30 Minuten (der Runner rechnet die
+        Karte ohne Grafikkarte); der Status hier aktualisiert sich von selbst.
       </p>
 
       {!configured && (
