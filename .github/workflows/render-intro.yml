@@ -1,9 +1,9 @@
 name: Render Intro-Video
 
 # Wird vom Admin-Button ausgelöst (Server-Action triggerIntroRender -> GitHub-API
-# workflow_dispatch). Rendert das Wander-Intro auf einem GitHub-Runner (Chrome + ffmpeg
-# sind auf ubuntu-latest vorinstalliert) GEGEN DIE PRODUKTIONS-URL und lädt Video + Poster
-# zu Supabase. Kein Dauer-Dienst, kein Terminal.
+# workflow_dispatch). Rendert das Wander-Intro auf einem GitHub-Runner GEGEN DIE
+# PRODUKTIONS-URL und lädt Video + Poster zu Supabase. Kein Dauer-Dienst, kein Terminal.
+# Chrome bringt ubuntu-latest mit, ffmpeg NICHT (siehe Schritt unten).
 #
 # Einmalig zu hinterlegen (Repo -> Settings -> Secrets and variables -> Actions):
 #   RENDER_BASE_URL             https://<eure-domain>   (die Prod-URL, /render/intro/<slug> lebt dort)
@@ -38,7 +38,17 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      # Chrome (channel "chrome") und ffmpeg sind auf ubuntu-latest bereits vorhanden.
+
+      # ubuntu-latest bringt ffmpeg NICHT mehr mit; hier stand lange das Gegenteil. Ohne
+      # diesen Schritt zeichnet der Runner 21 Minuten lang brav 300 Frames und scheitert
+      # dann in der letzten Sekunde beim Zusammenbauen des MP4. Genau daran sind alle
+      # bisherigen Läufe gestorben. Chrome (channel "chrome") ist dagegen vorhanden.
+      - name: ffmpeg installieren
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+          ffmpeg -version | head -1
+
       - name: Render + Upload
         env:
           RENDER_BASE_URL: ${{ secrets.RENDER_BASE_URL }}
