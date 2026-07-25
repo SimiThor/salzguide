@@ -126,18 +126,59 @@ async function run() {
     });
     const page = await ctx.newPage();
     page.on("pageerror", (e) => console.error("PAGEERROR:", e.message));
+    // Ohne das ist ein Fehlschlag auf dem Runner nicht nachvollziehbar: Man sieht nur, dass
+    // die Karte nicht bereit wurde, aber nicht, ob Kacheln, Skripte oder die Seite fehlten.
+    const netFails = new Map<string, number>();
+    const noteFail = (why: string, url: string) => {
+      const host = (() => {
+        try {
+          return new URL(url).host;
+        } catch {
+          return url.slice(0, 40);
+        }
+      })();
+      const k = `${why} ${host}`;
+      netFails.set(k, (netFails.get(k) ?? 0) + 1);
+    };
+    page.on("requestfailed", (r) => noteFail(r.failure()?.errorText ?? "fehlgeschlagen", r.url()));
+    page.on("response", (r) => {
+      if (r.status() >= 400) noteFail(`HTTP ${r.status()}`, r.url());
+    });
+    page.on("console", (m) => {
+      if (m.type() === "error") console.error("KONSOLE:", m.text().slice(0, 200));
+    });
+    const netReport = () =>
+      netFails.size
+        ? `\n  Fehlgeschlagene Requests:\n${[...netFails].map(([k, n]) => `    ${n}x ${k}`).join("\n")}`
+        : "\n  Fehlgeschlagene Requests: keine";
 
     console.log("-> lade", url.toString());
     const resp = await page.goto(url.toString(), { waitUntil: "domcontentloaded" });
     if (!resp || !resp.ok()) throw new Error(`Render-Seite antwortete ${resp && resp.status()}`);
 
+    // Bis zu 2 Minuten: Der Runner hat keine GPU und muss vorher die Kacheln der ganzen
+    // Route ziehen; die alten 30s waren an einem langsamen Tag zu knapp. Meldet die Seite
+    // vorher einen Grund (__introError), sofort damit abbrechen statt blind weiterzuwarten.
     let ready = false;
-    for (let i = 0; i < 60; i++) {
-      ready = await page.evaluate(() => window.__introReady === true).catch(() => false);
-      if (ready) break;
+    let pageErr: string | undefined;
+    for (let i = 0; i < 240; i++) {
+      const st = await page
+        .evaluate(() => ({ ready: window.__introReady === true, err: window.__introError }))
+        .catch(() => ({ ready: false, err: undefined }));
+      if (st.err) {
+        pageErr = st.err;
+        break;
+      }
+      if (st.ready) {
+        ready = true;
+        break;
+      }
       await sleep(500);
     }
-    if (!ready) throw new Error("Render-Karte wurde nicht bereit (kein __introReady).");
+    if (pageErr) throw new Error(`Render-Seite meldet: ${pageErr}${netReport()}`);
+    if (!ready) {
+      throw new Error(`Render-Karte wurde in 120s nicht bereit (kein __introReady).${netReport()}`);
+    }
 
     const frameCount = (await page.evaluate(() => window.__introFrameCount)) as number;
     const fps = (await page.evaluate(() => window.__introFps)) as number;

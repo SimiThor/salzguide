@@ -104,6 +104,10 @@ declare global {
     // Titelkarte ein-/ausblenden: für die "clean"-Variante (ohne Text-Overlay) blendet das
     // Render-Skript sie pro Frame kurz aus und schießt ein zweites, sauberes Bild.
     __introSetCard?: (visible: boolean) => void;
+    // Grund, warum die Karte NICHT bereit wurde. Ohne den bricht das Render-Skript nach
+    // seiner Wartezeit ohne Begründung ab: Mapbox meldet Fehler nur über sein error-Event,
+    // und ein Fehler im load-Handler landet als abgelehntes Promise im Nichts.
+    __introError?: string;
   }
 }
 
@@ -134,7 +138,11 @@ export default function IntroRenderMap({
 
   useEffect(() => {
     const el = containerRef.current;
-    if (!el || !TOKEN) return;
+    if (!el || !TOKEN) {
+      // Fehlt der Token im Build, blieb die Seite bisher wortlos leer.
+      if (!TOKEN) window.__introError = "NEXT_PUBLIC_MAPBOX_TOKEN fehlt in diesem Build.";
+      return;
+    }
     mapboxgl.accessToken = TOKEN;
 
     const cfg = {
@@ -164,6 +172,14 @@ export default function IntroRenderMap({
       attributionControl: false, // eigene, kleine Attribution unten
     });
 
+    // Mapbox wirft bei fehlenden Kacheln oder abgelehntem Token KEINE Exception, sondern
+    // feuert nur dieses Event. Ungehört ist es der Grund, warum ein toter Render aussieht
+    // wie ein hängender. Ersten Fehler festhalten, spätere sind meist Folgefehler.
+    map.on("error", (e) => {
+      const msg = (e as { error?: { message?: string } })?.error?.message ?? "unbekannter Kartenfehler";
+      if (!window.__introError) window.__introError = `Mapbox: ${msg}`;
+    });
+
     // Kopf-Punkt sitzt im oberen Drittel (wie in der Vorlage), Route läuft darunter.
     const padBottom = () => Math.round(el.clientHeight * HEAD_PAD_FRAC);
 
@@ -184,7 +200,7 @@ export default function IntroRenderMap({
       }
     };
 
-    map.on("load", async () => {
+    const setup = async () => {
       // Höhenrelief: echtes 3D, damit die Berge plastisch werden.
       if (!map.getSource("mapbox-dem")) {
         map.addSource("mapbox-dem", {
@@ -291,7 +307,20 @@ export default function IntroRenderMap({
       const nextPaint = () =>
         new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
       map.fitBounds([[box.w, box.s], [box.e, box.n]], { padding: 20, pitch: 0, bearing: 0, duration: 0 });
-      await waitIdle();
+      // Ohne Frist wartet das hier ewig, wenn die Kacheln nicht kommen (basemap.at drosselt
+      // oder blockt die Rechenzentrums-IP des GitHub-Runners). Genau so sah der Abbruch
+      // "kein __introReady" aus. Lieber laut scheitern als schweigend hängen: Ein Video aus
+      // leeren Kacheln wäre schlimmer als gar keins, darum hier werfen statt weitermachen.
+      const TILE_BUDGET_MS = 90_000;
+      const gotTiles = await Promise.race([
+        waitIdle().then(() => true),
+        new Promise<boolean>((r) => setTimeout(() => r(false), TILE_BUDGET_MS)),
+      ]);
+      if (!gotTiles) {
+        throw new Error(
+          `Kartenkacheln wurden in ${TILE_BUDGET_MS / 1000}s nicht fertig (basemap.at erreichbar?).`,
+        );
+      }
       map.triggerRepaint();
       await nextPaint();
 
@@ -359,6 +388,14 @@ export default function IntroRenderMap({
         }
       };
       requestAnimationFrame(tick);
+    };
+
+    // Wirft der Aufbau, war das bisher ein abgelehntes Promise, das niemand las: keine
+    // Meldung in der Konsole, kein Seitenfehler, nur eine Karte, die nie bereit wird.
+    map.on("load", () => {
+      void setup().catch((e: unknown) => {
+        window.__introError = `Kartenaufbau abgebrochen: ${e instanceof Error ? e.message : String(e)}`;
+      });
     });
 
     return () => map.remove();
