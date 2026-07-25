@@ -7,6 +7,7 @@
 // Läuft im Browser (createImageBitmap, canvas): nur aus Client-Komponenten aufrufen.
 import { createClient } from "./supabase/client";
 import { IMMUTABLE_CACHE_SECONDS } from "./storage";
+import { loadOrientedBitmap } from "./image-orientation";
 
 /** Alle Admin-Medien liegen im selben Bucket, unter zufälligem Pfad. */
 const BUCKET = "spot-media";
@@ -30,6 +31,21 @@ const EXTENSION: Record<string, string> = {
   "image/webp": "webp",
   "image/jpeg": "jpg",
 };
+
+/**
+ * Datei aufrecht dekodieren, mit VERSTÄNDLICHEM Fehler: Ein HEIC vom iPhone (oder ein
+ * beschädigtes Bild) wirft sonst eine englische DOMException, die 1:1 im deutschen
+ * Admin landete. Die Meldung sagt jetzt, was zu tun ist.
+ */
+async function decodeOriented(file: File): Promise<ImageBitmap> {
+  try {
+    return await loadOrientedBitmap(file);
+  } catch {
+    throw new Error(
+      "Dieses Bildformat kann der Browser nicht lesen (z. B. HEIC). Bitte als JPG oder PNG exportieren.",
+    );
+  }
+}
 
 export type CompressedImage = {
   blob: Blob;
@@ -95,7 +111,10 @@ export async function compressImage(
   maxDim = MAX_DIM,
   quality = QUALITY,
 ): Promise<CompressedImage> {
-  const bitmap = await createImageBitmap(file);
+  // loadOrientedBitmap statt createImageBitmap: Safari < 17 ignoriert die
+  // EXIF-Orientierung dort STILL – iPhone-Fotos lägen quer im Storage
+  // (Begründung in image-orientation.ts, gleiche Schnittstelle).
+  const bitmap = await decodeOriented(file);
   let { width, height } = bitmap;
   if (width > maxDim || height > maxDim) {
     const scale = maxDim / Math.max(width, height);
@@ -120,7 +139,8 @@ export async function compressSquareImage(
   dim = AVATAR_DIM,
   quality = AVATAR_QUALITY,
 ): Promise<CompressedImage> {
-  const bitmap = await createImageBitmap(file);
+  // Siehe compressImage: aufrecht laden, sonst liegen Safari-<17-Porträts quer.
+  const bitmap = await decodeOriented(file);
   const side = Math.min(bitmap.width, bitmap.height);
   // Mittig: Bei einem Porträt ist das Gesicht fast immer dort. Wer den Ausschnitt genau
   // will, schneidet vorher selbst zu.

@@ -1,4 +1,5 @@
-import { getFFmpeg } from "@/lib/ffmpeg";
+import { runExclusive } from "@/lib/ffmpeg";
+import type { FFmpeg } from "@ffmpeg/ffmpeg";
 
 // Baut das Story-Video KOMPLETT im Browser: vorgerendertes Intro (10s, 1080x1920, H.264,
 // stumm) + getrimmter User-Clip. Nur der 5s-Clip wird neu kodiert (auf exakt die
@@ -23,8 +24,22 @@ export async function composeStory(opts: {
   startSec?: number; // Trim-Start im User-Clip
   onProgress?: ComposeProgress;
 }): Promise<Blob> {
+  // runExclusive: Der ffmpeg-Core ist ein Singleton mit EINEM Dateisystem, geteilt mit
+  // dem Admin-Video-Upload. Der Mutex serialisiert die Läufe, sonst überschrieben sie
+  // sich gegenseitig die Dateien (lib/ffmpeg.ts).
+  return runExclusive((ff) => composeStoryWith(ff, opts));
+}
+
+async function composeStoryWith(
+  ff: FFmpeg,
+  opts: {
+    introUrl: string;
+    clip: File;
+    startSec?: number;
+    onProgress?: ComposeProgress;
+  },
+): Promise<Blob> {
   const { introUrl, clip, startSec = 0, onProgress } = opts;
-  const ff = await getFFmpeg();
   const { fetchFile } = await import("@ffmpeg/util");
 
   const files = ["intro.mp4", "clip_in", "clip.mp4", "list.txt", "out.mp4"];

@@ -79,6 +79,9 @@ export default function EventForm({
   // Save und Delete teilen sich die Transition mit den KI-Aktionen. Ohne eigenes Flag
   // stünde während der KI-Recherche „Speichern …" auf dem Submit-Button.
   const [formAction, setFormAction] = useState<"save" | "delete" | null>(null);
+  // Foto lädt noch? Dann kein Speichern: Sonst speichert das Event ohne Bild, die
+  // Navigation reisst das Formular ab, und der fertige Upload verpufft als Waise.
+  const [mediaBusy, setMediaBusy] = useState(false);
 
   const set = (patch: Partial<FormState>) => setForm((f) => ({ ...f, ...patch }));
 
@@ -299,10 +302,10 @@ export default function EventForm({
           )}
           <button
             type="submit"
-            disabled={pending}
+            disabled={pending || mediaBusy}
             className="rounded-full bg-accent px-5 py-2 text-sm font-semibold text-white disabled:opacity-60"
           >
-            {formAction === "save" ? "Speichern …" : "Speichern"}
+            {formAction === "save" ? "Speichern …" : mediaBusy ? "Foto lädt …" : "Speichern"}
           </button>
         </div>
       </div>
@@ -520,6 +523,7 @@ export default function EventForm({
           ordered={false}
           images={form.imageUrl ? [form.imageUrl] : []}
           onChange={(urls) => set({ imageUrl: urls[0] ?? "" })}
+          onBusyChange={setMediaBusy}
         />
       </section>
 

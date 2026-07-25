@@ -44,10 +44,11 @@ export default function GalleryImage({
 }) {
   const open = useGalleryOpen();
   const imgRef = useRef<HTMLImageElement>(null);
-  const [imgLoaded, setImgLoaded] = useState(false);
-  const [minDone, setMinDone] = useState(false);
+  const [imgLoaded, setImgLoaded] = useState(priority);
+  const [minDone, setMinDone] = useState(priority);
 
   useEffect(() => {
+    if (priority) return; // Hero: keine Verzögerung (siehe unten)
     // Schon im Cache -> sofort zeigen (kein Skeleton nötig).
     if (imgRef.current?.complete) {
       void Promise.resolve().then(() => {
@@ -59,8 +60,13 @@ export default function GalleryImage({
     // Sonst Schimmer mind. ~500 ms zeigen -> sichtbares, smoothes Instagram-Gefühl.
     const t = setTimeout(() => setMinDone(true), 500);
     return () => clearTimeout(t);
-  }, []);
+  }, [priority]);
 
+  // Das priority-Bild (Hero = LCP-Element) bekommt KEIN Opacity-Gate: Das server-
+  // gerenderte HTML trüge sonst opacity-0, und das Bild zählte erst nach Hydration +
+  // Laden + 500-ms-Timer als LCP-Kandidat – der Schimmer verzögerte künstlich genau
+  // die Metrik, für die priority da ist. Der Skeleton liegt einfach dahinter, bis
+  // der Browser malt.
   const show = imgLoaded && minDone;
 
   // Ohne Zoom bewusst KEIN <button>: kein Klick, kein Fokus-Rahmen, kein

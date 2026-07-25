@@ -187,7 +187,8 @@ function LocalForm({
         <button
           type="button"
           onClick={onCancel}
-          className="rounded-full px-3 py-1.5 text-[13px] font-medium text-muted"
+          disabled={uploading}
+          className="rounded-full px-3 py-1.5 text-[13px] font-medium text-muted disabled:opacity-50"
         >
           Abbrechen
         </button>
