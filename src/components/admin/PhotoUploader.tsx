@@ -110,6 +110,7 @@ export default function PhotoUploader({
   images,
   onChange,
   ordered = true,
+  onBusyChange,
 }: {
   images: string[];
   onChange: (urls: string[]) => void;
@@ -118,6 +119,12 @@ export default function PhotoUploader({
    * Ein „Hero" unter genau einem Bild wäre eine Auswahl, die es nicht gibt.
    */
   ordered?: boolean;
+  /**
+   * Meldet dem Host-Formular laufende Uploads. Ohne das Signal konnte man mitten im
+   * Upload speichern: Das Formular navigierte weg, der fertige Upload verpuffte, die
+   * Datei lag verwaist im Bucket.
+   */
+  onBusyChange?: (busy: boolean) => void;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
   // Immer die AKTUELLE Liste anhängen: addFiles fing sonst die images-Prop vom
@@ -128,8 +135,12 @@ export default function PhotoUploader({
   useEffect(() => {
     imagesRef.current = images;
   }, [images]);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusyState] = useState(false);
   const [err, setErr] = useState("");
+  const setBusy = (b: boolean) => {
+    setBusyState(b);
+    onBusyChange?.(b);
+  };
   const [dragOver, setDragOver] = useState(false);
   const [activeUrl, setActiveUrl] = useState<string | null>(null);
   const dndId = useId(); // sonst warnt React beim Hydrieren über wechselnde dnd-kit-IDs
@@ -145,26 +156,39 @@ export default function PhotoUploader({
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
-  async function addFiles(files: File[]) {
+  async function addFiles(allFiles: File[]) {
+    // ordered=false hat Platz für genau EIN Bild: Fünf aufs Feld gezogene Fotos wurden
+    // sonst alle komprimiert und hochgeladen, vier davon sofort verwaist.
+    const files = ordered ? allFiles : allFiles.slice(0, 1);
     if (!files.length) return;
     setErr("");
     setBusy(true);
-    const added: string[] = [];
-    try {
-      for (const file of files) {
-        const { blob } = await compressImage(file);
-        added.push(await uploadImage(blob));
+    // Begrenzte Parallelität statt streng seriell: Kompression von Foto N+1 überlappt
+    // den Upload von Foto N. Ergebnisse landen INDEXIERT, damit die Reihenfolge exakt
+    // der Auswahl entspricht (Position 0 = Hero). Fehler pro Datei isoliert: Was schon
+    // oben liegt, wird auch übernommen – sonst läge es verwaist im Storage.
+    const results: (string | null)[] = new Array(files.length).fill(null);
+    let firstErr: string | null = null;
+    let nextIdx = 0;
+    async function worker() {
+      for (;;) {
+        const i = nextIdx++;
+        if (i >= files.length) return;
+        try {
+          const { blob } = await compressImage(files[i]);
+          results[i] = await uploadImage(blob);
+        } catch (e) {
+          firstErr ??= e instanceof Error ? e.message : "Upload fehlgeschlagen";
+        }
       }
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : "Upload fehlgeschlagen");
-    } finally {
-      // Was schon oben liegt, wird auch übernommen: Ein Fehler beim vierten Foto darf die
-      // ersten drei nicht verwerfen – die lägen sonst verwaist im Storage.
-      //
-      // ordered=false heißt ERSETZEN, nicht anhängen: Dort gibt es nur Platz für ein Bild,
-      // und der Aufrufer nimmt images[0]. Angehängt landete das neue Foto auf Position 1
-      // und würde stillschweigend verworfen – man lädt hoch und nichts passiert.
+    }
+    try {
+      await Promise.all(Array.from({ length: Math.min(3, files.length) }, () => worker()));
+      if (firstErr) setErr(firstErr);
+      const added = results.filter((u): u is string => u !== null);
+      // ordered=false heißt ERSETZEN, nicht anhängen: Der Aufrufer nimmt images[0].
       if (added.length) onChange(ordered ? [...imagesRef.current, ...added] : added.slice(-1));
+    } finally {
       setBusy(false);
     }
   }

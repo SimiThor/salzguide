@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import { useTranslations } from "next-intl";
 import BottomSheet from "./BottomSheet";
 import StoryHeroBackdrop from "./StoryHeroBackdrop";
@@ -58,6 +59,12 @@ export default function StoryMaker({
   const detents = [peek, 0.95];
   const bgRef = useRef<HTMLVideoElement>(null);
   const heroRef = useRef<HTMLCanvasElement>(null);
+  const sectionRef = useRef<HTMLElement>(null);
+  // Video-Element erst mounten, wenn die Section wirklich im Bild war: Diese Section
+  // liegt auf jeder Spot-Seite UNTER dem Falz, und ein poster-Attribut kann nicht lazy
+  // laden – vorher zog jeder Seitenaufruf das 720p-Standbild sofort. Bis zum ersten
+  // Sichtkontakt zeigt ein lazy next/image das Poster, danach übernimmt das Video.
+  const [videoInView, setVideoInView] = useState(false);
   // Medium (Video-Frame bzw. gezeichnete Route) bereit -> sanft über die Landschaft einblenden.
   const [heroReady, setHeroReady] = useState(false);
 
@@ -77,20 +84,27 @@ export default function StoryMaker({
     setMode(m);
   };
 
-  // Intro-Hintergrundvideo nur abspielen, wenn die Section im Bild ist (Daten/Akku sparen).
+  // Intro-Hintergrundvideo nur laden UND abspielen, wenn die Section im Bild ist
+  // (Daten/Akku sparen). Beobachtet wird die Section: Das Video existiert erst nach
+  // dem ersten Sichtkontakt.
   useEffect(() => {
-    const v = bgRef.current;
-    if (!v) return;
+    if (!introUrl) return;
+    const el = sectionRef.current;
+    if (!el) return;
     const io = new IntersectionObserver(
       ([e]) => {
-        if (e.isIntersecting) v.play().catch(() => {});
-        else v.pause();
+        if (e.isIntersecting) setVideoInView(true);
+        const v = bgRef.current;
+        if (v) {
+          if (e.isIntersecting) v.play().catch(() => {});
+          else v.pause();
+        }
       },
       { threshold: 0.25 },
     );
-    io.observe(v);
+    io.observe(el);
     return () => io.disconnect();
-  }, []);
+  }, [introUrl]);
 
   // Ohne Intro-Video: die Route als dekorative Grafik in den Hero zeichnen (sonst wäre die
   // Section eine leere dunkle Fläche). Backing-Store an CSS-Größe × DPR, neu bei Resize.
@@ -131,6 +145,7 @@ export default function StoryMaker({
           dem hellen Modal-Backdrop als dunkler Kasten durch (ein Schwarz-Scrim kann Schwarz
           nicht verdecken). So bleibt hinter dem Popup nur der helle, unscharfe Seiteninhalt. */}
       <section
+        ref={sectionRef}
         aria-hidden={open}
         // 16/10 statt 4/3: etwas flacher, damit der 9:16-Intro-Titel (Text sitzt bei ~1/4)
         // sauber oben WEGGESCHNITTEN wird und in der Vorschau kein On-Screen-Text mehr auftaucht.
@@ -154,17 +169,34 @@ export default function StoryMaker({
               Route, mit Intro deckt das Video sie ab. */}
           <StoryHeroBackdrop className="absolute inset-0 h-full w-full" />
           {introUrl ? (
-            <video
-              ref={bgRef}
-              src={introUrl}
-              poster={introPosterUrl ?? undefined}
-              muted
-              loop
-              playsInline
-              preload="none"
-              onLoadedData={() => setHeroReady(true)}
-              className="absolute inset-0 h-full w-full object-cover"
-            />
+            <>
+              {/* Poster als lazy next/image: lädt erst nahe dem Sichtbereich und über den
+                  Optimizer (AVIF, passende Grösse) statt als eager poster-Attribut. */}
+              {introPosterUrl && (
+                <Image
+                  src={introPosterUrl}
+                  alt=""
+                  fill
+                  sizes="(min-width: 768px) 640px, 100vw"
+                  quality={62}
+                  onLoad={() => setHeroReady(true)}
+                  className="absolute inset-0 h-full w-full object-cover"
+                />
+              )}
+              {videoInView && (
+                <video
+                  ref={bgRef}
+                  src={introUrl}
+                  muted
+                  loop
+                  autoPlay
+                  playsInline
+                  preload="none"
+                  onLoadedData={() => setHeroReady(true)}
+                  className="absolute inset-0 h-full w-full object-cover"
+                />
+              )}
+            </>
           ) : (
             // Kein Video -> Route als Grafik über der Landschaft.
             <canvas ref={heroRef} aria-hidden className="absolute inset-0 h-full w-full" />

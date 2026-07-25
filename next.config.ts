@@ -89,7 +89,14 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "*.supabase.co",
+        // GENAU unser Supabase-Projekt, aus der ENV abgeleitet (zieht beim Projekt-
+        // Wechsel automatisch mit). Der Wildcard *.supabase.co liesse den Optimizer
+        // Bilder JEDES fremden Supabase-Projekts laden und rechnen – ein bekannter
+        // Quota-/Kosten-Missbrauchsvektor auf Vercel. Fallback nur, falls die ENV im
+        // Build fehlt (dann soll der Build nicht an einer URL-Parse-Stelle sterben).
+        hostname: process.env.NEXT_PUBLIC_SUPABASE_URL
+          ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname
+          : "*.supabase.co",
         pathname: "/storage/v1/object/public/**",
       },
     ],

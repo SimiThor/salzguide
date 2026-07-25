@@ -4,18 +4,22 @@ import { useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { IMMUTABLE_CACHE_SECONDS } from "@/lib/storage";
 import { encodeCanvas, uploadImage } from "@/lib/image-upload";
-import { getFFmpeg } from "@/lib/ffmpeg";
+import { runExclusive } from "@/lib/ffmpeg";
+import { MAX_INPUT_BYTES } from "@/lib/video-maker";
 
 // 9:16-Video je Spot: IMMER komprimieren, NIE das Original hochladen (zu unperformant).
 // Kompression via ffmpeg.wasm -> läuft in JEDEM Browser inkl. Safari (reines WebAssembly,
 // Core self-hosted unter /public/ffmpeg). Ausgabe = kleines H.264-MP4 (max 720x1280, CRF 28).
 // Standbild = erster Frame des KOMPRIMIERTEN MP4 -> überall dekodierbar, als WebP.
 // Schlägt die Kompression fehl -> Ablehnung (kein Upload).
+//
+// Die ffmpeg-Arbeit läuft über runExclusive (lib/ffmpeg.ts): Der Core ist ein Singleton
+// mit EINEM Dateisystem, und dieses Formular kann zweimal auf einer Seite stehen
+// (Erklärvideo DE + EN). Ohne den Mutex überschrieben sich parallele Läufe die Dateien.
 
 const POSTER_LONG_EDGE = 720;
 const HARD_MAX_BYTES = 60 * 1024 * 1024; // Sicherheits-Deckel nach der Kompression
-
-// ffmpeg.wasm-Lader liegt jetzt in src/lib/ffmpeg.ts (geteilt mit dem Video-Maker).
+const POSTER_TIMEOUT_MS = 4000; // wie video-thumb.ts: ein hängendes <video> darf nicht blockieren
 
 // Auf ein Media-Event warten (mit Fehler-Reject), robust aufräumen.
 function once(el: HTMLVideoElement, ev: string): Promise<void> {
@@ -37,14 +41,17 @@ function once(el: HTMLVideoElement, ev: string): Promise<void> {
   });
 }
 
-// Erster Frame des (H.264-)MP4 -> WebP-Standbild.
+// Erster Frame des (H.264-)MP4 -> WebP-Standbild. Mit Timeout: Ein Video-Element, das
+// weder lädt noch einen Fehler feuert (kommt vor), liesse busy sonst ewig stehen –
+// video-thumb.ts hat genau dieses Sicherheitsnetz schon immer.
 async function makePoster(mp4: Blob): Promise<Blob | null> {
   const url = URL.createObjectURL(mp4);
   const v = document.createElement("video");
   v.src = url;
   v.muted = true;
   v.playsInline = true;
-  try {
+  const timeout = new Promise<null>((res) => setTimeout(() => res(null), POSTER_TIMEOUT_MS));
+  const work = (async (): Promise<Blob | null> => {
     await once(v, "loadeddata");
     const dur = Number.isFinite(v.duration) ? v.duration : 1;
     v.currentTime = Math.min(0.1, dur / 2);
@@ -61,7 +68,10 @@ async function makePoster(mp4: Blob): Promise<Blob | null> {
     ctx.drawImage(v, 0, 0, w, h);
     // encodeCanvas prüft, ob wirklich WebP herauskam, und weicht sonst auf JPEG aus.
     // Ohne die Prüfung läge (wie lange bei den Fotos) ein PNG unter dem Namen .webp.
-    return await encodeCanvas(c, 0.8);
+    return await encodeCanvas(c, 0.82);
+  })();
+  try {
+    return await Promise.race([work, timeout]);
   } catch {
     return null;
   } finally {
@@ -73,15 +83,37 @@ export default function VideoUploader({
   videoUrl,
   posterUrl,
   onChange,
+  onBusyChange,
+  folder = "spots",
+  requirePoster = false,
 }: {
   videoUrl: string | null;
   posterUrl: string | null;
   onChange: (videoUrl: string | null, posterUrl: string | null) => void;
+  /**
+   * Meldet dem Host-Formular, dass hier gerade minutenlang gearbeitet wird. Ohne dieses
+   * Signal konnte man mitten im Upload speichern: Das Formular navigierte weg, der
+   * fertige Upload verpuffte, die Datei lag verwaist im Bucket.
+   */
+  onBusyChange?: (busy: boolean) => void;
+  /** Unterordner im spot-media-Bucket (Spots: "spots", Startseite: "home"). */
+  folder?: string;
+  /**
+   * true = ohne Standbild kein Erfolg (Startseiten-Slots: parseLandingVideo verlangt den
+   * Poster, ein Video ohne Standbild würde dort still verworfen). false = Poster ist
+   * nachrangig, das Video zählt (Spots).
+   */
+  requirePoster?: boolean;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusyState] = useState(false);
   const [stage, setStage] = useState("");
   const [err, setErr] = useState("");
+
+  const setBusy = (b: boolean) => {
+    setBusyState(b);
+    onBusyChange?.(b);
+  };
 
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -91,51 +123,70 @@ export default function VideoUploader({
       setErr("Bitte ein Video wählen.");
       return;
     }
+    // VOR dem Laden in den WASM-Speicher deckeln (wie der Story-Maker): Eine 2-GB-
+    // Bildschirmaufnahme landete sonst komplett im Speicher und riss den Tab.
+    if (file.size > MAX_INPUT_BYTES) {
+      setErr(
+        `Video ist zu groß (${Math.round(file.size / 1048576)} MB, max. ${Math.round(MAX_INPUT_BYTES / 1048576)} MB). Bitte einen kürzeren Clip exportieren.`,
+      );
+      return;
+    }
     setErr("");
     setBusy(true);
     try {
       setStage("Video-Encoder wird geladen … (einmalig)");
-      const ff = await getFFmpeg();
       const { fetchFile } = await import("@ffmpeg/util");
 
+      // Eindeutige Namen pro Lauf: Selbst wenn ein abgestürzter Lauf Dateien hinterliess,
+      // kollidiert der nächste nicht mit ihnen.
+      const runId = crypto.randomUUID();
       const inExt = file.name.match(/\.[a-z0-9]+$/i)?.[0] ?? ".mp4";
-      const inName = `in${inExt}`;
-      const outName = "out.mp4";
-      const onProg = (ev: { progress: number }) => {
-        const pct = Math.max(0, Math.min(100, Math.round(ev.progress * 100)));
-        setStage(`Video wird komprimiert … ${pct}%`);
-      };
-      ff.on("progress", onProg);
-      let mp4: Blob;
-      try {
-        await ff.writeFile(inName, await fetchFile(file));
-        await ff.exec([
-          "-i",
-          inName,
-          "-vf",
-          "scale=720:1280:force_original_aspect_ratio=decrease:force_divisible_by=2",
-          "-c:v",
-          "libx264",
-          "-preset",
-          "veryfast",
-          "-crf",
-          "28",
-          "-c:a",
-          "aac",
-          "-b:a",
-          "96k",
-          "-movflags",
-          "+faststart",
-          outName,
-        ]);
-        const data = (await ff.readFile(outName)) as Uint8Array;
-        await ff.deleteFile(inName).catch(() => {});
-        await ff.deleteFile(outName).catch(() => {});
-        if (!data || data.length < 1024) throw new Error("empty output");
-        mp4 = new Blob([data as unknown as BlobPart], { type: "video/mp4" });
-      } finally {
-        ff.off("progress", onProg);
-      }
+      const inName = `in-${runId}${inExt}`;
+      const outName = `out-${runId}.mp4`;
+
+      const mp4 = await runExclusive(async (ff) => {
+        const onProg = (ev: { progress: number }) => {
+          const pct = Math.max(0, Math.min(100, Math.round(ev.progress * 100)));
+          setStage(`Video wird komprimiert … ${pct}%`);
+        };
+        ff.on("progress", onProg);
+        try {
+          await ff.writeFile(inName, await fetchFile(file));
+          // -y: vorhandene Ausgabe überschreiben statt still zu verweigern. Und den
+          // EXIT-CODE prüfen: ff.exec wirft bei einem Encoder-Fehler NICHT, es gibt den
+          // Code zurück – ohne die Prüfung läse readFile eine halbe Datei.
+          const code = await ff.exec([
+            "-y",
+            "-i",
+            inName,
+            "-vf",
+            "scale=720:1280:force_original_aspect_ratio=decrease:force_divisible_by=2",
+            "-c:v",
+            "libx264",
+            "-preset",
+            "veryfast",
+            "-crf",
+            "28",
+            "-c:a",
+            "aac",
+            "-b:a",
+            "96k",
+            "-movflags",
+            "+faststart",
+            outName,
+          ]);
+          if (code !== 0) throw new Error(`ffmpeg exit ${code}`);
+          const data = (await ff.readFile(outName)) as Uint8Array;
+          if (!data || data.length < 1024) throw new Error("empty output");
+          return new Blob([data as unknown as BlobPart], { type: "video/mp4" });
+        } finally {
+          ff.off("progress", onProg);
+          // Aufräumen IMMER, auch im Fehlerfall: Sonst bleibt das volle Eingabevideo
+          // für die Sitzung im WASM-Speicher liegen (der ist v. a. auf iPhones knapp).
+          await ff.deleteFile(inName).catch(() => {});
+          await ff.deleteFile(outName).catch(() => {});
+        }
+      });
 
       if (mp4.size > HARD_MAX_BYTES) {
         setErr("Video ist auch nach der Komprimierung zu groß. Bitte einen kürzeren Clip.");
@@ -144,10 +195,16 @@ export default function VideoUploader({
 
       setStage("Standbild wird erstellt …");
       const poster = await makePoster(mp4);
+      if (!poster && requirePoster) {
+        // Startseiten-Slots: Ohne Poster würde parseLandingVideo den Slot verwerfen und
+        // der minutenlange Upload verschwände kommentarlos. Lieber hier klar scheitern.
+        setErr("Standbild konnte nicht erstellt werden. Bitte nochmal versuchen.");
+        return;
+      }
 
       setStage("Wird hochgeladen …");
       const supabase = createClient();
-      const vidPath = `spots/video-${crypto.randomUUID()}.mp4`;
+      const vidPath = `${folder}/video-${crypto.randomUUID()}.mp4`;
       const up = await supabase.storage
         .from("spot-media")
         .upload(vidPath, mp4, { contentType: "video/mp4", upsert: false, cacheControl: IMMUTABLE_CACHE_SECONDS });
@@ -165,11 +222,15 @@ export default function VideoUploader({
       let newPosterUrl: string | null = null;
       if (poster) {
         // Endung folgt dem echten Blob-Typ (webp oder jpg). Ein Fehlschlag beim Poster
-        // darf den Video-Upload nicht kippen, das Standbild ist nachrangig.
+        // darf den Video-Upload nur kippen, wenn der Host ihn zwingend braucht.
         try {
-          newPosterUrl = await uploadImage(poster, "spots");
+          newPosterUrl = await uploadImage(poster, folder);
         } catch {
           newPosterUrl = null;
+        }
+        if (!newPosterUrl && requirePoster) {
+          setErr("Standbild-Upload hat nicht geklappt. Bitte nochmal versuchen.");
+          return;
         }
       }
       onChange(newVideoUrl, newPosterUrl);

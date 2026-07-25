@@ -184,14 +184,23 @@ export async function saveSpot(input: SpotInput): Promise<SaveResult> {
   // SCHON live stehenden Spot nicht auf Entwurf zurückwerfen – seine Übersetzungen in
   // der DB sind ja intakt, nur der neue Write ist gescheitert.
   let wasPublished = false;
+  let prevVideoUrl: string | null = null;
+  let prevPosterUrl: string | null = null;
   if (input.id) {
     const { data: cur, error: curErr } = await supabase
       .from("spots")
-      .select("status")
+      .select("status, video_url, video_poster_url")
       .eq("id", input.id)
       .maybeSingle();
     if (curErr) return { ok: false, error: logDb("saveSpot: Status lesen", curErr.message) };
-    wasPublished = (cur as { status?: string } | null)?.status === "published";
+    const c = cur as {
+      status?: string;
+      video_url?: string | null;
+      video_poster_url?: string | null;
+    } | null;
+    wasPublished = c?.status === "published";
+    prevVideoUrl = c?.video_url ?? null;
+    prevPosterUrl = c?.video_poster_url ?? null;
   }
 
   // Zahlen härten, wie savePoint/saveTour es vormachen: Ein NaN aus dem Client
@@ -531,6 +540,17 @@ export async function saveSpot(input: SpotInput): Promise<SaveResult> {
     .filter((u): u is string => typeof u === "string" && u !== "" && !images.includes(u));
   if (removedOriginals.length) {
     await removeSpotMediaFiles(supabase.storage, removedOriginals);
+  }
+
+  // Ersetztes/entferntes VIDEO ebenso wegräumen: Jeder Tausch liess vorher ein bis zu
+  // 60 MB grosses MP4 plus Standbild für immer öffentlich im Bucket liegen. Best-effort
+  // wie bei den Fotos; der wöchentliche Waisen-Sweep ist das Sicherheitsnetz.
+  const replacedVideoFiles = [
+    prevVideoUrl && prevVideoUrl !== vid.url ? prevVideoUrl : null,
+    prevPosterUrl && prevPosterUrl !== vidPoster.url ? prevPosterUrl : null,
+  ].filter((u): u is string => !!u);
+  if (replacedVideoFiles.length) {
+    await removeSpotMediaFiles(supabase.storage, replacedVideoFiles);
   }
 
   // Die Startseite wird vorgerendert (siehe lib/home-content.ts) und zeigt die Spot-Anzahl
@@ -949,9 +969,16 @@ export async function deleteSpot(id: string): Promise<SaveResult> {
     .from("media")
     .select("url, blur_url")
     .eq("spot_id", id);
+  // Intro-Spalten defensiv separat lesen: Fehlt Migration 0047/0048 noch, darf das
+  // Löschen daran nicht scheitern – dann gibt es auch keine Intro-Dateien.
   const { data: spotRow } = await supabase
     .from("spots")
     .select("video_url, video_poster_url")
+    .eq("id", id)
+    .maybeSingle();
+  const { data: introRow } = await supabase
+    .from("spots")
+    .select("intro_video_url, intro_video_clean_url, intro_video_poster_url")
     .eq("id", id)
     .maybeSingle();
 
@@ -962,10 +989,20 @@ export async function deleteSpot(id: string): Promise<SaveResult> {
   // Scheitert das Löschen der Zeile, bleiben die Dateien korrekt referenziert stehen.
   const fileUrls = (mediaRows ?? []).flatMap((m) => [m.url, m.blur_url]);
   const s = spotRow as { video_url?: string | null; video_poster_url?: string | null } | null;
+  const intro = introRow as {
+    intro_video_url?: string | null;
+    intro_video_clean_url?: string | null;
+    intro_video_poster_url?: string | null;
+  } | null;
   await removeSpotMediaFiles(supabase.storage, [
     ...fileUrls,
     s?.video_url,
     s?.video_poster_url,
+    // Die gerenderten Intro-Videos (intro/<slug>-<hash>.*) hängen am Spot und wären
+    // sonst für immer verwaist (je Spot zwei MP4 + ein Poster).
+    intro?.intro_video_url,
+    intro?.intro_video_clean_url,
+    intro?.intro_video_poster_url,
   ]);
 
   // Wie in saveSpot: Die vorgerenderte Startseite muss die neue Spot-Anzahl mitbekommen.

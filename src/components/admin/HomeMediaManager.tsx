@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Image from "next/image";
 import { useRouter } from "@/i18n/navigation";
 import { saveHomeMedia } from "@/lib/admin-actions";
@@ -80,6 +80,11 @@ export default function HomeMediaManager({ media: saved }: { media: HomeMedia })
   const [pending, startTransition] = useTransition();
   const [media, setMedia] = useState<HomeMedia>(() => ({ ...saved }));
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  // Zähler statt Flag: Bild-Slots und zwei Video-Slots können gleichzeitig laden.
+  // Solange irgendetwas lädt, ist Speichern gesperrt – sonst speichert man den alten
+  // Stand, navigiert weg, und der fertige Upload verpufft als Waise im Bucket.
+  const [busyCount, setBusyCount] = useState(0);
+  const onSlotBusy = (b: boolean) => setBusyCount((n) => n + (b ? 1 : -1));
 
   const dirty = useMemo(() => JSON.stringify(media) !== JSON.stringify(saved), [media, saved]);
 
@@ -116,6 +121,7 @@ export default function HomeMediaManager({ media: saved }: { media: HomeMedia })
               setMsg(null);
               setMedia((prev) => ({ ...prev, [slot.key]: v }));
             }}
+            onBusyChange={onSlotBusy}
           />
         ))}
 
@@ -136,10 +142,14 @@ export default function HomeMediaManager({ media: saved }: { media: HomeMedia })
                 <VideoUploader
                   videoUrl={media.explainerVideo?.src ?? null}
                   posterUrl={media.explainerVideo?.poster ?? null}
+                  folder="home"
+                  // requirePoster: LandingVideo verlangt ein Standbild. Ohne diese Pflicht
+                  // verschwand ein minutenlanger Upload kommentarlos, wenn nur das Poster
+                  // scheiterte (Slot wurde still auf null gesetzt).
+                  requirePoster
+                  onBusyChange={onSlotBusy}
                   onChange={(src, poster) => {
                     setMsg(null);
-                    // Ohne Standbild kein Video: LandingVideo verlangt ein poster, und ohne das
-                    // wäre der erste Eindruck ein schwarzes Rechteck, bis das Video geladen ist.
                     setMedia((prev) => ({
                       ...prev,
                       explainerVideo: src && poster ? { src, poster } : null,
@@ -160,6 +170,9 @@ export default function HomeMediaManager({ media: saved }: { media: HomeMedia })
                 <VideoUploader
                   videoUrl={media.explainerVideoEn?.src ?? null}
                   posterUrl={media.explainerVideoEn?.poster ?? null}
+                  folder="home"
+                  requirePoster
+                  onBusyChange={onSlotBusy}
                   onChange={(src, poster) => {
                     setMsg(null);
                     setMedia((prev) => ({
@@ -178,10 +191,10 @@ export default function HomeMediaManager({ media: saved }: { media: HomeMedia })
         <button
           type="button"
           onClick={save}
-          disabled={pending || !dirty}
+          disabled={pending || !dirty || busyCount > 0}
           className="rounded-full bg-accent px-5 py-2.5 text-[14px] font-semibold text-white transition active:scale-[0.98] disabled:opacity-40"
         >
-          {pending ? "Speichert …" : "Speichern"}
+          {pending ? "Speichert …" : busyCount > 0 ? "Upload läuft …" : "Speichern"}
         </button>
         {msg ? (
           <span className={`text-[13px] ${msg.ok ? "text-muted" : "text-accent"}`}>{msg.text}</span>
@@ -197,14 +210,26 @@ function ImageSlotRow({
   slot,
   value,
   onChange,
+  onBusyChange,
 }: {
   slot: ImageSlot;
   value: LandingImage | null;
   onChange: (v: LandingImage | null) => void;
+  onBusyChange?: (busy: boolean) => void;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusyState] = useState(false);
   const [err, setErr] = useState("");
+  const setBusy = (b: boolean) => {
+    setBusyState(b);
+    onBusyChange?.(b);
+  };
+  // Immer den AKTUELLEN Alt-Text übernehmen: `value` im Handler ist der Stand beim
+  // Dateiwählen; wer während des Uploads am Alt-Text tippte, verlor die Eingabe.
+  const valueRef = useRef(value);
+  useEffect(() => {
+    valueRef.current = value;
+  }, [value]);
 
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -220,10 +245,10 @@ function ImageSlotRow({
       const { blob, width, height } = slot.square
         ? await compressSquareImage(file, slot.maxDim)
         : await compressImage(file, slot.maxDim);
-      const src = await uploadImage(blob);
+      const src = await uploadImage(blob, "home");
       // Alt-Text beim Austausch behalten: Wer nur ein besseres Foto nachlegt, hat ihn
       // sonst still verloren, und niemandem fällt es auf.
-      onChange({ src, alt: value?.alt ?? "", width, height });
+      onChange({ src, alt: valueRef.current?.alt ?? "", width, height });
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Upload fehlgeschlagen.");
     } finally {

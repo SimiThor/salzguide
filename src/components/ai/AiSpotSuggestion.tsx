@@ -80,6 +80,7 @@ export default function AiSpotSuggestion({
         emoji={spot.emoji}
         imageUrl={spot.imageUrl}
         sizeClassName="w-[210px]"
+        sizes="210px"
       />
       <button
         type="button"

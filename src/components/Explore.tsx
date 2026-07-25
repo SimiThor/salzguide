@@ -265,6 +265,7 @@ export default function Explore({
                       locked={s.locked}
                       lockedLabel={t("lockedLabel")}
                       sizeClassName="w-[76vw] max-w-[300px] md:w-[var(--sg-card)] md:max-w-none"
+                      sizes="(min-width: 768px) 220px, 76vw"
                     />
                   </button>
                 ))}

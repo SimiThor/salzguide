@@ -253,6 +253,11 @@ async function upload(slug: string, mp4Path: string, cleanMp4Path: string, poste
   const posterPath = `intro/${slug}-${hash}.webp`;
 
   console.log("-> lade Video (normal + clean) + Poster nach spot-media …");
+  // ACHTUNG: Dies ist die EINZIGE Stelle im Projekt mit festem Pfad + upsert:true +
+  // Jahres-Cache (src/lib/storage.ts warnt genau davor). Sicher NUR, weil der Hash im
+  // Namen Route + INTRO_STYLE_VERSION einschliesst: Jede OPTIK-Änderung (Titel, Overlay,
+  // Kamera) MUSS die Version hochzählen, sonst liefert der Cache ein Jahr lang das alte
+  // Video unter demselben Namen aus (siehe lib/intro-hash.ts).
   const upV = await supabase.storage
     .from(BUCKET)
     .upload(mp4Path2, await readFile(mp4Path), { contentType: "video/mp4", upsert: true, cacheControl: IMMUTABLE });

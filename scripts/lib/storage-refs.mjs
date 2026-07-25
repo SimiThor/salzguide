@@ -34,11 +34,19 @@ export async function collectStorageRefs(sel, patch, patchHome) {
   }
 
   // Spot-Video + sein Standbild. GENAU DIE ZEILE, die vorher fehlte.
-  for (const s of await sel("spots", "id,video_url,video_poster_url")) {
+  // Plus die gerenderten Intro-Videos (intro/<slug>-<hash>.*, Migration 0047/0048):
+  // alles nur schützen, nie anfassen.
+  for (const s of await sel(
+    "spots",
+    "id,video_url,video_poster_url,intro_video_url,intro_video_clean_url,intro_video_poster_url",
+  )) {
     add(`spots[${s.id}].video_poster_url`, "photo", s.video_poster_url, (u) =>
       patch("spots", `id=eq.${s.id}`, { video_poster_url: u }));
     // Das Video selbst nur schützen, niemals umrechnen.
     add(`spots[${s.id}].video_url`, "video", s.video_url, () => {});
+    add(`spots[${s.id}].intro_video_url`, "video", s.intro_video_url, () => {});
+    add(`spots[${s.id}].intro_video_clean_url`, "video", s.intro_video_clean_url, () => {});
+    add(`spots[${s.id}].intro_video_poster_url`, "video", s.intro_video_poster_url, () => {});
   }
 
   for (const e of await sel("events", "id,image_url"))
@@ -67,7 +75,26 @@ export async function collectStorageRefs(sel, patch, patchHome) {
       patchHome(hc.id, "explainerVideo.poster", u));
     // Erklärvideo der Startseite: schützen, nicht anfassen.
     add("home_content.video.src", "video", media.explainerVideo?.src, () => {});
+    // Die englische Fassung ebenso – sie FEHLTE hier, obwohl saveHomeMedia den Slot
+    // längst kennt. Genau die Drift, vor der der Kopf dieser Datei warnt.
+    add("home_content.videoEn.poster", "photo", media.explainerVideoEn?.poster, (u) =>
+      patchHome(hc.id, "explainerVideoEn.poster", u));
+    add("home_content.videoEn.src", "video", media.explainerVideoEn?.src, () => {});
   }
 
   return refs;
+}
+
+/**
+ * Alle referenzierten Objekt-PFADE im privaten Bucket `tour-audio`.
+ *
+ * Dort stehen PFADE in der DB (kein Public-Read, Auslieferung per Signed-URL), deshalb
+ * eine eigene, kleine Liste: tour_point_audio.audio_url ist die einzige Quelle.
+ */
+export async function collectTourAudioPaths(sel) {
+  const paths = [];
+  for (const a of await sel("tour_point_audio", "point_id,lang,audio_url")) {
+    if (typeof a.audio_url === "string" && a.audio_url) paths.push(a.audio_url);
+  }
+  return paths;
 }

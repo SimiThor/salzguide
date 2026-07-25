@@ -86,7 +86,7 @@ export default async function ToursPage({
         </div>
       ) : (
         <div className="mt-5 grid gap-4 sm:grid-cols-2">
-          {tours.map((tour) => (
+          {tours.map((tour, i) => (
             <Link
               key={tour.slug}
               href={`/touren/${tour.slug}`}
@@ -99,6 +99,8 @@ export default async function ToursPage({
                     alt=""
                     fill
                     sizes="(min-width: 640px) 380px, 100vw"
+                    // Die ersten Cover sind das LCP dieser Seite -> sofort laden.
+                    priority={i < 2}
                     className="object-cover"
                   />
                 </div>

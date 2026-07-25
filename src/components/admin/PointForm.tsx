@@ -293,6 +293,10 @@ export default function PointForm({
   }
 
   async function uploadAudio(lang: string, file: File) {
+    if (file.type !== "audio/mpeg" && file.type !== "audio/mp3") {
+      setErr("Bitte eine MP3-Datei wählen (andere Audio-Formate nimmt der Speicher nicht an).");
+      return;
+    }
     setUploading((u) => [...u, lang]);
     setErr("");
     try {
@@ -301,7 +305,7 @@ export default function PointForm({
       const { error } = await supabase.storage
         .from("tour-audio")
         .upload(path, file, {
-          contentType: file.type || "audio/mpeg",
+          contentType: "audio/mpeg",
           upsert: false,
           cacheControl: IMMUTABLE_CACHE_SECONDS,
         });
@@ -433,7 +437,7 @@ export default function PointForm({
             {isUploading(lang) ? "Lädt …" : data.audioUrl ? "MP3 ersetzen" : "MP3 wählen"}
             <input
               type="file"
-              accept="audio/mpeg,audio/mp3,audio/*"
+              accept="audio/mpeg,audio/mp3,.mp3"
               className="hidden"
               disabled={isUploading(lang)}
               onChange={(e) => {

@@ -99,6 +99,12 @@ export default function ClipTrimmer({
   useEffect(() => {
     let cancelled = false;
     const made: string[] = [];
+    // Eindeutige Namen pro Lauf: Beim schnellen Datei-Wechsel läuft das Aufräumen des
+    // ALTEN Effekts parallel zum Schreiben des neuen – mit festem Namen löschte es dem
+    // neuen Lauf die gerade geschriebene Datei unter den Fingern weg.
+    const runId = crypto.randomUUID();
+    const inName = `trim_in-${runId}`;
+    const frameName = `f-${runId}.jpg`;
     (async () => {
       try {
         const { fetchFile } = await import("@ffmpeg/util");
@@ -109,7 +115,7 @@ export default function ClipTrimmer({
         // sofort). Deckt iPhone-Videos und normale MP4s ab. Der ffmpeg-Log ist nur Notnagel für
         // exotische Container - in Safari/WebKit ist er ohnehin unvollständig.
         const ff = await getFFmpeg();
-        await ff.writeFile("trim_in", data);
+        await ff.writeFile(inName, data);
         if (cancelled) return;
 
         let dur = mp4Duration(data);
@@ -119,7 +125,7 @@ export default function ClipTrimmer({
             log += e.message + "\n";
           };
           ff.on("log", onLog);
-          await ff.exec(["-i", "trim_in", "-t", "0.05", "-f", "null", "-"]).catch(() => {});
+          await ff.exec(["-i", inName, "-t", "0.05", "-f", "null", "-"]).catch(() => {});
           ff.off("log", onLog);
           const m = log.match(/Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)/);
           dur = m ? +m[1] * 3600 + +m[2] * 60 + parseFloat(m[3]) : 0;
@@ -140,10 +146,10 @@ export default function ClipTrimmer({
           const ts = clamp((dur * (i + 0.5)) / FRAMES, 0, Math.max(0, dur - 0.1));
           try {
             await ff.exec([
-              "-ss", String(ts), "-i", "trim_in",
-              "-frames:v", "1", "-vf", `scale=${FRAME_W}:-2`, "-q:v", "5", "-y", "f.jpg",
+              "-ss", String(ts), "-i", inName,
+              "-frames:v", "1", "-vf", `scale=${FRAME_W}:-2`, "-q:v", "5", "-y", frameName,
             ]);
-            const data = (await ff.readFile("f.jpg")) as Uint8Array;
+            const data = (await ff.readFile(frameName)) as Uint8Array;
             const u = URL.createObjectURL(new Blob([data as unknown as BlobPart], { type: "image/jpeg" }));
             made.push(u);
             if (cancelled) {
@@ -161,7 +167,8 @@ export default function ClipTrimmer({
       } finally {
         try {
           const ff = await getFFmpeg();
-          await ff.deleteFile("trim_in").catch(() => {});
+          await ff.deleteFile(inName).catch(() => {});
+          await ff.deleteFile(frameName).catch(() => {});
         } catch {
           /* egal */
         }

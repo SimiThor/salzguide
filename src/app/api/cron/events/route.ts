@@ -1,6 +1,7 @@
 import { runAutoWeeklyResearch } from "@/lib/event-research";
 import { createServiceClient } from "@/lib/supabase/service";
 import { prunePreviews } from "@/lib/blur-preview";
+import { sweepOrphanMedia, type OrphanSweepResult } from "@/lib/storage-orphans";
 
 // DSGVO-Datensparsamkeit (docs/34 §D/§H): KI-Zähler > 90 Tage + Burst > 1 Tag löschen;
 // Analytics-Salt > 2 Tage (danach sind die Visitor-Hashes endgültig anonym) + Analytics-
@@ -67,8 +68,19 @@ export async function GET(req: Request): Promise<Response> {
     console.error("[cron] prunePreviews:", e instanceof Error ? e.message : e);
   }
 
+  // Waisen-Sweep über beide Buckets (storage-orphans.ts): Uploads passieren im Browser
+  // VOR dem Speichern, also hinterlässt jedes verworfene Formular und jeder Datei-Tausch
+  // prinzipbedingt unreferenzierte Dateien. Der Sweep ist fail-closed (bei jedem
+  // Lesefehler wird nichts gelöscht) und lässt Dateien jünger als 48 h in Ruhe.
+  let orphanSweep: OrphanSweepResult | null = null;
+  try {
+    orphanSweep = await sweepOrphanMedia(createServiceClient());
+  } catch (e) {
+    console.error("[cron] orphanSweep:", e instanceof Error ? e.message : e);
+  }
+
   return Response.json(
-    { ...result, purgedAiUsage, prunedPreviews },
+    { ...result, purgedAiUsage, prunedPreviews, orphanSweep },
     { status: result.ok ? 200 : 500 },
   );
 }

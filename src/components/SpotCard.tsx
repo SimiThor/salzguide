@@ -21,6 +21,10 @@ type SpotCardProps = {
   // Die Startseiten-Sidebar überschreibt dies mit einer aus --sg-panel abgeleiteten
   // Desktop-Breite (sauberer Halb-Anschnitt); Detailseite/Demo bleiben unberührt.
   sizeClassName?: string;
+  // MUSS zur echten Kartenbreite passen (sizeClassName!). Stimmt es nicht, lädt der
+  // Browser eine zu kleine Stufe und skaliert hoch -> weiche Fotos. Die Startseite
+  // (376px-Karten) übergibt deshalb ihre eigene Angabe.
+  sizes?: string;
 };
 
 export default function SpotCard({
@@ -32,6 +36,7 @@ export default function SpotCard({
   locked = false,
   lockedLabel = "🤫 Geheimtipp",
   sizeClassName = "w-[76vw] max-w-[300px]",
+  sizes = "(min-width: 768px) 300px, 76vw",
 }: SpotCardProps) {
   return (
     <article className={`${sizeClassName} shrink-0`}>
@@ -58,7 +63,7 @@ export default function SpotCard({
               src={imageUrl}
               alt={title}
               fill
-              sizes="(min-width: 768px) 220px, 76vw"
+              sizes={sizes}
               // Deko-Foto, kein Download: nicht ziehbar (das Langdruck-Menü sperrt .sg-tap-card).
               draggable={false}
               className="rounded-card object-cover"

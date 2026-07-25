@@ -86,6 +86,7 @@ export default async function FeaturedSpots({
                   // Reihe abgerissen aus statt scrollbar.
                   // Ändert sich der Container oder gap-3, muss diese Zahl mit.
                   sizeClassName="w-[76vw] max-w-[300px] md:w-[376px] md:max-w-none"
+                  sizes="(min-width: 768px) 376px, 76vw"
                 />
               </Link>
             ))}

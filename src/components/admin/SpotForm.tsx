@@ -175,6 +175,11 @@ export default function SpotForm({
   // Save/Delete teilen die Transition mit Snap + KI: Ohne eigenes Flag stünde während
   // des Snappens „Speichern …" auf dem Submit-Button.
   const [formAction, setFormAction] = useState<"save" | "delete" | null>(null);
+  // Fotos/Video laden noch? Zähler, weil beide gleichzeitig laufen können. Solange
+  // etwas lädt, ist Speichern gesperrt: Sonst speichert der Spot ohne die Datei, die
+  // Navigation reisst das Formular ab, und der fertige Upload verpufft als Waise.
+  const [mediaBusy, setMediaBusy] = useState(0);
+  const onMediaBusy = (b: boolean) => setMediaBusy((n) => n + (b ? 1 : -1));
   // Request-Token gegen die Snap-Race: Klickt der Admin während des Snappens einen
   // weiteren Wegpunkt, darf die ALTE Antwort nicht mehr als gesnappte Linie landen
   // (gespeichert würde sonst route_geojson der alten Punkte zu neuen Wegpunkten).
@@ -700,10 +705,10 @@ export default function SpotForm({
           )}
           <button
             type="submit"
-            disabled={pending}
+            disabled={pending || mediaBusy > 0}
             className="rounded-full bg-accent px-5 py-2 text-sm font-semibold text-white disabled:opacity-60"
           >
-            {formAction === "save" ? "Speichern …" : "Speichern"}
+            {formAction === "save" ? "Speichern …" : mediaBusy > 0 ? "Upload läuft …" : "Speichern"}
           </button>
         </div>
       </div>
@@ -1391,7 +1396,11 @@ export default function SpotForm({
           mit ★ holst du eines direkt nach vorn. Fotos lassen sich auch hierher ziehen;
           sie werden automatisch zu WebP verkleinert.
         </p>
-        <PhotoUploader images={form.images} onChange={(urls) => set({ images: urls })} />
+        <PhotoUploader
+          images={form.images}
+          onChange={(urls) => set({ images: urls })}
+          onBusyChange={onMediaBusy}
+        />
       </section>
 
       {/* Video (9:16, optional) */}
@@ -1402,6 +1411,7 @@ export default function SpotForm({
           Video-Sektion.
         </p>
         <VideoUploader
+          onBusyChange={onMediaBusy}
           videoUrl={form.videoUrl}
           posterUrl={form.videoPosterUrl}
           onChange={(videoUrl, posterUrl) =>
@@ -1695,10 +1705,10 @@ export default function SpotForm({
         )}
         <button
           type="submit"
-          disabled={pending}
+          disabled={pending || mediaBusy > 0}
           className="rounded-full bg-accent px-5 py-2 text-sm font-semibold text-white disabled:opacity-60"
         >
-          {formAction === "save" ? "Speichern …" : "Speichern"}
+          {formAction === "save" ? "Speichern …" : mediaBusy > 0 ? "Upload läuft …" : "Speichern"}
         </button>
       </div>
     </form>

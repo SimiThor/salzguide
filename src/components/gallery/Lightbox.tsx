@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Image from "next/image";
+import Image, { getImageProps } from "next/image";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion, type PanInfo } from "framer-motion";
 import { useTranslations } from "next-intl";
@@ -134,7 +134,17 @@ export default function Lightbox({
         <AnimatePresence initial={false} custom={dir}>
           <motion.img
             key={index}
-            src={images[index]}
+            {...(() => {
+              const { props } = getImageProps({
+                src: images[index],
+                alt: title,
+                fill: true,
+                sizes: "94vw",
+                quality: 75,
+              });
+              // Nur die Lade-Attribute übernehmen – Position/Styling macht die className.
+              return { src: props.src, srcSet: props.srcSet, sizes: props.sizes };
+            })()}
             alt={title}
             custom={dir}
             variants={{
