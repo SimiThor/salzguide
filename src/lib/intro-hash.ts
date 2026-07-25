@@ -18,3 +18,15 @@ export function introSourceHash(routeGeojson: unknown): string {
   }
   return (h >>> 0).toString(16).padStart(8, "0");
 }
+
+// „Ist für diesen Spot ein Render fällig?" Kein Video oder ein Hash, der nicht mehr passt.
+// Die eine Quelle für diese Frage: Admin-Liste, Server-Action und der Planer im Workflow
+// müssen sich einig sein. Weichen sie ab, stehen Zeilen auf „in Warteschlange", hinter
+// denen nie ein Render kommt, oder es wird gerendert, was längst aktuell ist.
+export function introNeedsRender(
+  routeGeojson: unknown,
+  videoUrl: string | null | undefined,
+  storedHash: string | null | undefined,
+): boolean {
+  return !videoUrl || introSourceHash(routeGeojson) !== (storedHash ?? "");
+}

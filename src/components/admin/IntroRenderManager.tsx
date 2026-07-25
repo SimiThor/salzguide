@@ -35,8 +35,8 @@ export default function IntroRenderManager({
   const [, startTransition] = useTransition();
 
   const anyBusy = items.some((i) => i.status === "queued" || i.status === "rendering");
-  // Dieselbe Regel wie Server-Action und Workflow-Planer: kein Video oder Hash veraltet.
-  const due = items.filter((i) => !i.hasVideo || i.outdated);
+  // introNeedsRender() hat das schon entschieden (src/lib/intro-hash.ts), hier nur zählen.
+  const due = items.filter((i) => i.due);
 
   // Solange etwas läuft: alle 5 s den Stand nachladen (das Skript schreibt ihn in die DB).
   // .catch: Ein Netz-Schluckauf im 5-Sekunden-Takt wäre sonst je eine unhandled

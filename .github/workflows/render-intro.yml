@@ -53,7 +53,9 @@ jobs:
 
   render:
     needs: plan
-    if: needs.plan.outputs.slugs != '[]'
+    # Leere Liste: nichts zu tun. Leerer String: der Planer kam nicht bis zur Ausgabe -
+    # dann würde fromJson() den Lauf mit einer unverständlichen Meldung sprengen.
+    if: needs.plan.outputs.slugs != '[]' && needs.plan.outputs.slugs != ''
     strategy:
       # Ein kaputter Spot darf die anderen nicht mitreißen.
       fail-fast: false
@@ -96,8 +98,13 @@ jobs:
       - name: Server starten
         run: |
           npm start &
+          # Nur fragen, ob der Server überhaupt antwortet, ganz gleich mit welchem Status.
+          # Vorher hing hier /de: Wäre die Startseite kaputt, scheiterte der Render an einer
+          # Seite, die er nie öffnet. curl ohne -f und ohne -L gibt sich mit der Umleitung
+          # zufrieden und rendert nichts. Was der Render-Route fehlt, meldet das Skript
+          # selbst und mit Statuscode.
           for i in $(seq 1 60); do
-            if curl -sfL -o /dev/null http://localhost:3000/de; then
+            if curl -s -o /dev/null http://localhost:3000/; then
               echo "Server antwortet nach ${i}x2s."
               exit 0
             fi

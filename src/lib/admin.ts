@@ -6,7 +6,7 @@ import { HOME_KEYS, type HomeTexts } from "./home-fields";
 import { homeSourceHash, type HomeMedia } from "./home-content";
 import { parseLandingImage, parseLandingVideo } from "./landing-media";
 import type { ProSource } from "./pro-source";
-import { introSourceHash } from "./intro-hash";
+import { introSourceHash, introNeedsRender } from "./intro-hash";
 import deMessages from "../../messages/de.json";
 
 export type AdminCategory = { id: string; key: string; season: string; title: string };
@@ -503,6 +503,8 @@ export type IntroRenderItem = {
   posterUrl: string | null;
   /** Route/Renderer-Version hat sich seit dem letzten Render geändert -> neu rendern. */
   outdated: boolean;
+  /** Render fällig (kein Video ODER veraltet). Eine Quelle für Liste, Knopf und Workflow. */
+  due: boolean;
   status: IntroRenderStatus;
   error: string | null;
   startedAt: string | null;
@@ -567,6 +569,11 @@ export async function getIntroRenderList(): Promise<IntroRenderItem[]> {
           hasVideo &&
           introSourceHash(s.route_geojson) !==
             ((s.intro_source_hash as string | null) ?? ""),
+        due: introNeedsRender(
+          s.route_geojson,
+          s.intro_video_url as string | null,
+          s.intro_source_hash as string | null,
+        ),
         status,
         error: statusError,
         startedAt: startedAtRaw,
