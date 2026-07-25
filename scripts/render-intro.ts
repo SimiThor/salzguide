@@ -331,8 +331,18 @@ function ffmpeg(args: string[]) {
   });
 }
 
-run().catch(async (e) => {
-  console.error("\nFehler:", e.message);
-  if (doUpload && slug) await writeRenderStatus(slug, "error", e.message);
-  process.exit(1);
-});
+// --report-failure "<Meldung>": rendert nichts, schreibt nur den Fehler in die spots-Zeile.
+// Ruft der Workflow nach einem harten Abbruch auf (Zeitlimit, Runner tot) - dann stirbt der
+// Render-Prozess ohne catch und der Status bliebe sonst auf 'rendering' stehen.
+if (hasFlag("report-failure")) {
+  const msg = flag("report-failure") || "Render abgebrochen (Zeitlimit oder Runner-Fehler).";
+  writeRenderStatus(slug!, "error", msg).then(() => {
+    console.log(`-> Status von "${slug}" auf 'error' gesetzt: ${msg}`);
+  });
+} else {
+  run().catch(async (e) => {
+    console.error("\nFehler:", e.message);
+    if (doUpload && slug) await writeRenderStatus(slug, "error", e.message);
+    process.exit(1);
+  });
+}

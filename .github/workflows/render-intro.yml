@@ -26,7 +26,11 @@ concurrency:
 jobs:
   render:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # Der Runner hat keine GPU, WebGL läuft in Software: ~4,5 s pro Frame, also gut 22 min
+    # für 300 Frames, dazu ffmpeg (zwei Fassungen) und der Upload. Mit 20 min wurde der Job
+    # kurz vor dem letzten Frame abgeschossen. 45 min lassen Luft; das Repo ist öffentlich,
+    # Actions-Minuten kosten hier nichts.
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -42,3 +46,15 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: node --experimental-strip-types scripts/render-intro.ts "${{ github.event.inputs.slug }}" --upload
+
+      # Wird der Job hart abgeschossen (Zeitlimit, Runner tot), kommt das Skript nicht mehr
+      # zum Fehler-Schreiben und die Admin-Seite stünde bis zum Stale-Riegel auf „wird
+      # gerendert …". Dieser Schritt läuft auch bei Abbruch und setzt die Zeile auf 'error'.
+      - name: Fehlschlag melden
+        if: ${{ failure() || cancelled() }}
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          node --experimental-strip-types scripts/render-intro.ts "${{ github.event.inputs.slug }}" \
+            --report-failure "Render abgebrochen (Zeitlimit oder Runner-Fehler). Log: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"

@@ -545,15 +545,18 @@ export async function getIntroRenderList(): Promise<IntroRenderItem[]> {
       // Staleness-Riegel: Startet der GitHub-Runner nie (Workflow umbenannt, Runner
       // gestorben, bevor er den ersten Status schrieb), stünde die Zeile für immer auf
       // „in Warteschlange" und der Render-Button bliebe dauerhaft gesperrt – Reset nur
-      // per Hand in der DB. Ein Render dauert Minuten; nach 30 min ist er tot.
-      const STALE_MS = 30 * 60 * 1000;
+      // per Hand in der DB. Muss ÜBER dem Zeitlimit des Workflows liegen (45 min, siehe
+      // .github/workflows/render-intro.yml), sonst meldet die Seite einen noch laufenden
+      // Render als tot. Normalfall ist ohnehin der „Fehlschlag melden"-Schritt dort; dieser
+      // Riegel greift nur, wenn auch der nicht mehr zum Zug kommt.
+      const STALE_MS = 60 * 60 * 1000;
       if (
         (status === "queued" || status === "rendering") &&
         startedAtRaw &&
         Date.now() - Date.parse(startedAtRaw) > STALE_MS
       ) {
         status = "error";
-        statusError = "Render hängt (über 30 min ohne Ergebnis). Bitte neu starten.";
+        statusError = "Render hängt (über eine Stunde ohne Ergebnis). Bitte neu starten.";
       }
       return {
         slug: s.slug as string,
