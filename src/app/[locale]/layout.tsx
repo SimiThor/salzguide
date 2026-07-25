@@ -28,6 +28,23 @@ export async function generateMetadata({
     metadataBase: new URL(siteUrl()),
     title: { default: "SalzGuide", template: "%s · SalzGuide" },
     description: t("description"),
+    // „Zum Home-Bildschirm" auf iOS. Ohne diesen Block landet dort ein Safari-Lesezeichen
+    // mit Adressleiste; mit ihm startet die Seite ohne Browser-Rahmen wie eine App.
+    //   title      — was unter dem Symbol steht (sonst nähme iOS den <title> der Seite,
+    //                also je nach Unterseite etwas anderes)
+    //   statusBarStyle „default" — undurchsichtige Systemleiste mit dunkler Schrift. Die
+    //                Alternative black-translucent schöbe den Inhalt unter die Uhr UND
+    //                machte deren Schrift weiss: unsichtbar auf unserem Creme.
+    // Symbole selbst kommen aus den Dateien daneben (app/icon.svg, app/apple-icon.png,
+    // app/favicon.ico) — die verlinkt Next von selbst und sie gehen VOR allem, was hier
+    // stünde. Deshalb steht hier bewusst kein `icons`.
+    appleWebApp: { capable: true, title: "SalzGuide", statusBarStyle: "default" },
+    // `capable: true` schreibt nur das neutrale `mobile-web-app-capable` — und das
+    // versteht Safari erst ab iOS 17.4. Auf allem davor startet die App ohne diese Zeile
+    // trotzdem mit Adressleiste, also genau der Fehler, den wir vermeiden wollen. Beide
+    // zusammen sind auch richtig herum: Chrome mahnt die Apple-Variante nur an, wenn die
+    // neutrale FEHLT.
+    other: { "apple-mobile-web-app-capable": "yes" },
     // BEWUSST KEIN `alternates` hier: Next vererbt Metadata nach unten, ein Canonical im
     // Layout gilt also für JEDE Unterseite und weist sie alle als Kopie der Startseite
     // aus -> sie werden nicht sauber indexiert. Jede Seite setzt ihr eigenes Canonical
