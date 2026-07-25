@@ -14,6 +14,7 @@ import {
 import type { HomeMedia } from "@/lib/home-content";
 import type { LandingImage } from "@/lib/landing-media";
 import VideoUploader from "./VideoUploader";
+import Busy from "@/components/Busy";
 
 // Bilder und Video der Startseite. Solange ein Slot leer ist, zeigt die Seite dort einen
 // markierten Platzhalter im richtigen Seitenverhältnis — das Layout steht also schon, und
@@ -194,7 +195,7 @@ export default function HomeMediaManager({ media: saved }: { media: HomeMedia })
           disabled={pending || !dirty || busyCount > 0}
           className="rounded-full bg-accent px-5 py-2.5 text-[14px] font-semibold text-white transition active:scale-[0.98] disabled:opacity-40"
         >
-          {pending ? "Speichert …" : busyCount > 0 ? "Upload läuft …" : "Speichern"}
+          {pending ? <Busy>Speichert</Busy> : busyCount > 0 ? <Busy>Upload läuft</Busy> : "Speichern"}
         </button>
         {msg ? (
           <span className={`text-[13px] ${msg.ok ? "text-muted" : "text-accent"}`}>{msg.text}</span>
@@ -286,7 +287,7 @@ function ImageSlotRow({
               disabled={busy}
               className="rounded-full bg-black/[0.06] px-3.5 py-2 text-[13px] font-semibold text-ink transition hover:bg-black/10 active:scale-[0.98] disabled:opacity-40"
             >
-              {busy ? "Lädt …" : value ? "Ersetzen" : "Bild wählen"}
+              {busy ? <Busy>Lädt</Busy> : value ? "Ersetzen" : "Bild wählen"}
             </button>
             {value && (
               <button

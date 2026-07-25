@@ -4,6 +4,7 @@ import { useActionState, useEffect, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import TurnstileWidget from "@/components/TurnstileWidget";
 import { submitSupportRequest, type SupportState } from "@/lib/support-actions";
+import { Spinner } from "@/components/Busy";
 
 // Kontaktformular. Turnstile-Handhabung bewusst identisch zu WithdrawalForm und LoginForm:
 // Der Knopf ist NIE tot — klickt jemand, bevor der Roboter-Check fertig ist, halten wir das
@@ -15,21 +16,6 @@ import { submitSupportRequest, type SupportState } from "@/lib/support-actions";
 // das Gegenteil: Wer nicht weiterkommt, muss uns in SEINER Sprache erreichen können.
 
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
-
-function Spinner() {
-  return (
-    <svg className="h-[18px] w-[18px] shrink-0 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <circle className="opacity-25" cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2.5" />
-      <path
-        className="opacity-90"
-        d="M12 3a9 9 0 0 1 9 9"
-        stroke="currentColor"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
 
 const inputCls =
   "w-full rounded-[14px] border border-black/10 bg-white px-4 py-3 text-[15px] text-ink outline-none focus:border-accent";

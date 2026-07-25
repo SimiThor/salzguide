@@ -9,30 +9,9 @@ import {
   type MagicLinkState,
 } from "@/app/[locale]/profil/actions";
 import TurnstileWidget from "@/components/TurnstileWidget";
+import { Spinner } from "@/components/Busy";
 
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
-
-// Feiner iOS-2026-Spinner: dünner Ring + rotierender Bogen mit runden Enden (erbt die
-// Button-Textfarbe). Kein Layout-Ruck durch feste Größe.
-function Spinner() {
-  return (
-    <svg
-      className="h-[18px] w-[18px] shrink-0 animate-spin"
-      viewBox="0 0 24 24"
-      fill="none"
-      aria-hidden
-    >
-      <circle className="opacity-25" cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2.5" />
-      <path
-        className="opacity-90"
-        d="M12 3a9 9 0 0 1 9 9"
-        stroke="currentColor"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
 
 // Mehrfarbiges Google-„G" (offizielle Markenfarben), inline -> keine externe Ressource (CSP).
 function GoogleIcon({ className = "" }: { className?: string }) {

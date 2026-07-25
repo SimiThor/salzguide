@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { setToniAvatarUrl } from "@/lib/admin-actions";
 import { compressSquareImage, uploadImage } from "@/lib/image-upload";
+import Busy from "@/components/Busy";
 
 export default function ToniAvatarSettings({ current }: { current: string | null }) {
   const fileRef = useRef<HTMLInputElement>(null);
@@ -75,7 +76,7 @@ export default function ToniAvatarSettings({ current }: { current: string | null
             disabled={busy}
             className="rounded-full bg-accent px-4 py-2 text-[13px] font-semibold text-white transition active:scale-95 disabled:opacity-50"
           >
-            {busy ? "Lädt …" : url ? "Bild ersetzen" : "Bild wählen"}
+            {busy ? <Busy>Lädt</Busy> : url ? "Bild ersetzen" : "Bild wählen"}
           </button>
           {url && (
             <button

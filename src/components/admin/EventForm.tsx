@@ -24,6 +24,7 @@ import AiButton from "./AiButton";
 import AiSparkle from "@/components/ai/AiSparkle";
 import { blockEnterSubmit } from "./form-utils";
 import { adminErrorText } from "@/lib/admin-errors";
+import Busy from "@/components/Busy";
 
 const TARGET_LOCALES = routing.locales.filter((l) => l !== "de");
 
@@ -297,7 +298,7 @@ export default function EventForm({
               disabled={pending}
               className="rounded-full bg-black/5 px-4 py-2 text-sm font-semibold text-accent disabled:opacity-60"
             >
-              {formAction === "delete" ? "Lösche …" : "Löschen"}
+              {formAction === "delete" ? <Busy>Lösche</Busy> : "Löschen"}
             </button>
           )}
           <button
@@ -305,7 +306,7 @@ export default function EventForm({
             disabled={pending || mediaBusy}
             className="rounded-full bg-accent px-5 py-2 text-sm font-semibold text-white disabled:opacity-60"
           >
-            {formAction === "save" ? "Speichern …" : mediaBusy ? "Foto lädt …" : "Speichern"}
+            {formAction === "save" ? <Busy>Speichern</Busy> : mediaBusy ? <Busy>Foto lädt</Busy> : "Speichern"}
           </button>
         </div>
       </div>

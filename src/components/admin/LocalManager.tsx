@@ -9,6 +9,7 @@ import type { AdminLocalFull } from "@/lib/admin";
 import { adminErrorText } from "@/lib/admin-errors";
 import AiButton from "./AiButton";
 import { compressSquareImage, uploadImage } from "@/lib/image-upload";
+import Busy from "@/components/Busy";
 
 const LOCALES = routing.locales;
 const TARGET_LOCALES = LOCALES.filter((l) => l !== "de");
@@ -119,7 +120,7 @@ function LocalForm({
           />
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <label className="cursor-pointer rounded-full bg-black/5 px-3 py-1.5 text-[12px] font-semibold text-ink">
-              {uploading ? "Lädt …" : avatarUrl ? "Foto ersetzen" : "Foto wählen"}
+              {uploading ? <Busy>Lädt</Busy> : avatarUrl ? "Foto ersetzen" : "Foto wählen"}
               <input
                 type="file"
                 accept="image/*"
@@ -198,7 +199,7 @@ function LocalForm({
           disabled={busy || uploading}
           className="rounded-full bg-accent px-4 py-1.5 text-[13px] font-semibold text-white transition active:scale-95 disabled:opacity-50"
         >
-          {busy ? "Speichert …" : "Speichern"}
+          {busy ? <Busy>Speichert</Busy> : "Speichern"}
         </button>
       </div>
       {err && <p className="mt-2 text-[13px] font-medium text-accent">{err}</p>}
@@ -315,7 +316,7 @@ export default function LocalManager({ locals }: { locals: AdminLocalFull[] }) {
                       disabled={deletingId !== null}
                       className="rounded-full bg-accent px-3 py-1 text-[12px] font-semibold text-white disabled:opacity-50"
                     >
-                      {deletingId === l.id ? "Löscht …" : "Löschen"}
+                      {deletingId === l.id ? <Busy>Löscht</Busy> : "Löschen"}
                     </button>
                     <button
                       type="button"

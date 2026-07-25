@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { triggerIntroRender } from "@/lib/admin-actions";
 import type { IntroRenderItem } from "@/lib/admin";
+import Busy from "@/components/Busy";
 
 // Alles, was ein Intro-Render dem Admin GEGENÜBER tut, liegt in dieser Datei: wie ein
 // Zustand heisst, was der Knopf macht und wie lange nachgeladen wird. Die Sammelseite
@@ -118,7 +119,7 @@ export function IntroRenderButton({
           item.due || item.status === "error" ? "bg-accent text-white" : "bg-black/5 text-ink"
         }`}
       >
-        {b.busy ? "läuft …" : pending ? "starte …" : item.hasVideo ? "Neu rendern" : "Generieren"}
+        {b.busy ? <Busy>läuft</Busy> : pending ? <Busy>starte</Busy> : item.hasVideo ? "Neu rendern" : "Generieren"}
       </button>
       {blockedReason && !busy && (
         <p className="mt-1 text-[11px] leading-snug text-muted">{blockedReason}</p>

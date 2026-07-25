@@ -6,28 +6,9 @@ import {
   submitWithdrawal,
   type WithdrawalState,
 } from "@/app/[locale]/rechtliches/widerruf/actions";
+import { Spinner } from "@/components/Busy";
 
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
-
-function Spinner() {
-  return (
-    <svg
-      className="h-[18px] w-[18px] shrink-0 animate-spin"
-      viewBox="0 0 24 24"
-      fill="none"
-      aria-hidden
-    >
-      <circle className="opacity-25" cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2.5" />
-      <path
-        className="opacity-90"
-        d="M12 3a9 9 0 0 1 9 9"
-        stroke="currentColor"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
 
 const ERRORS: Record<string, string> = {
   name: "Bitte gib deinen Namen an.",
@@ -163,7 +144,9 @@ export default function WithdrawalForm() {
         }`}
       >
         {busy && <Spinner />}
-        {pending ? "Wird gesendet …" : checking ? "Roboter-Check … 🤖" : "Widerruf bestätigen"}
+        {/* Das Ladezeichen steht hier schon eine Zeile höher, deshalb NUR der Text: sonst
+            drehen sich zwei nebeneinander. */}
+        {pending ? "Wird gesendet" : checking ? "Roboter-Check … 🤖" : "Widerruf bestätigen"}
       </button>
       <p className="text-[12px] leading-snug text-muted">
         Mit „Widerruf bestätigen“ senden wir dir unverzüglich eine Eingangsbestätigung per E-Mail.

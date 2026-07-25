@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { getFFmpeg } from "@/lib/ffmpeg";
 import { BTN_PRIMARY, BTN_SECONDARY } from "@/lib/ui";
+import { Spinner } from "@/components/Busy";
 
 // iOS-2026-Trimmer (wie die Fotos-App): Vorschau oben, darunter ein Filmstreifen mit einem
 // ziehbaren Rahmen. Der Rahmen ist genau `windowSec` breit (die Länge, die ins Story-Video
@@ -317,7 +318,10 @@ export default function ClipTrimmer({
         />
         {(preparing || previewIdx < 0) && !failed && (
           <div className="absolute inset-0 grid place-items-center bg-black/40 backdrop-blur-sm">
-            <span className="h-7 w-7 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+            {/* Dasselbe Ladezeichen wie überall sonst, nur grösser (28px über 1.05em der
+                Elterngrösse). Vorher stand hier ein Ring aus Rahmenlinien, der als einziger
+                anders aussah. */}
+            <Spinner className="text-[26px] text-white" />
           </div>
         )}
         {/* Play/Pause: das gewählte Fenster anhören. Deckt die ganze Fläche ab (große Trefferfläche). */}

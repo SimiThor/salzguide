@@ -44,6 +44,7 @@ import AiButton from "./AiButton";
 import { blockEnterSubmit } from "./form-utils";
 import { adminErrorText } from "@/lib/admin-errors";
 import { STATUS_NEUTRAL } from "@/lib/ui";
+import Busy from "@/components/Busy";
 
 const EMPTY: SpotInput = {
   slug: "",
@@ -719,7 +720,7 @@ export default function SpotForm({
               disabled={pending}
               className="rounded-full bg-black/5 px-4 py-2 text-sm font-semibold text-accent disabled:opacity-60"
             >
-              {formAction === "delete" ? "Lösche …" : "Löschen"}
+              {formAction === "delete" ? <Busy>Lösche</Busy> : "Löschen"}
             </button>
           )}
           <button
@@ -727,7 +728,7 @@ export default function SpotForm({
             disabled={pending || mediaBusy > 0}
             className="rounded-full bg-accent px-5 py-2 text-sm font-semibold text-white disabled:opacity-60"
           >
-            {formAction === "save" ? "Speichern …" : mediaBusy > 0 ? "Upload läuft …" : "Speichern"}
+            {formAction === "save" ? <Busy>Speichern</Busy> : mediaBusy > 0 ? <Busy>Upload läuft</Busy> : "Speichern"}
           </button>
         </div>
       </div>
@@ -1738,7 +1739,7 @@ export default function SpotForm({
           disabled={pending || mediaBusy > 0}
           className="rounded-full bg-accent px-5 py-2 text-sm font-semibold text-white disabled:opacity-60"
         >
-          {formAction === "save" ? "Speichern …" : mediaBusy > 0 ? "Upload läuft …" : "Speichern"}
+          {formAction === "save" ? <Busy>Speichern</Busy> : mediaBusy > 0 ? <Busy>Upload läuft</Busy> : "Speichern"}
         </button>
       </div>
     </form>

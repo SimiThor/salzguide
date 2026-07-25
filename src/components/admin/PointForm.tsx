@@ -26,6 +26,7 @@ import { blockEnterSubmit } from "./form-utils";
 import { adminErrorText } from "@/lib/admin-errors";
 import { IMMUTABLE_CACHE_SECONDS } from "@/lib/storage";
 import { compressImage, uploadImage } from "@/lib/image-upload";
+import Busy from "@/components/Busy";
 
 // ~140 Wörter/Minute gesprochen -> grobe Sekunden-Schätzung fürs Feedback.
 const wordCount = (s: string) => (s.trim() ? s.trim().split(/\s+/).length : 0);
@@ -434,7 +435,7 @@ export default function PointForm({
             Vertonen
           </AiButton>
           <label className="cursor-pointer rounded-full bg-black/5 px-3 py-1.5 text-[12px] font-semibold text-ink">
-            {isUploading(lang) ? "Lädt …" : data.audioUrl ? "MP3 ersetzen" : "MP3 wählen"}
+            {isUploading(lang) ? <Busy>Lädt</Busy> : data.audioUrl ? "MP3 ersetzen" : "MP3 wählen"}
             <input
               type="file"
               accept="audio/mpeg,audio/mp3,.mp3"
@@ -579,7 +580,7 @@ export default function PointForm({
             )}
           </div>
           <label className="cursor-pointer rounded-full bg-black/5 px-4 py-2 text-[13px] font-semibold text-ink">
-            {uploadingImage ? "Lädt …" : form.imageUrl ? "Ersetzen" : "Bild wählen"}
+            {uploadingImage ? <Busy>Lädt</Busy> : form.imageUrl ? "Ersetzen" : "Bild wählen"}
             <input
               type="file"
               accept="image/*"
@@ -731,13 +732,13 @@ export default function PointForm({
           className="rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
         >
           {pending
-            ? "Speichern …"
+            ? <Busy>Speichern</Busy>
             : ttsBusy.length > 0
-              ? "Vertont …"
+              ? <Busy>Vertont</Busy>
               : translating
-                ? "Übersetzt …"
+                ? <Busy>Übersetzt</Busy>
                 : filling
-                  ? "KI füllt aus …"
+                  ? <Busy>KI füllt aus</Busy>
                   : "Speichern"}
         </button>
         {initial?.id && (

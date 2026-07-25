@@ -22,6 +22,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { compressImage, uploadImage } from "@/lib/image-upload";
+import Busy from "@/components/Busy";
 
 // Fotos hochladen und ihre Reihenfolge per Ziehen bestimmen.
 //
@@ -287,7 +288,7 @@ export default function PhotoUploader({
           disabled={busy}
           className="rounded-full bg-black/5 px-3.5 py-1.5 text-xs font-semibold text-ink disabled:opacity-50"
         >
-          {busy ? "lädt hoch …" : "📷 Foto hinzufügen"}
+          {busy ? <Busy>lädt hoch</Busy> : "📷 Foto hinzufügen"}
         </button>
         {images.length > 0 && ordered && (
           <span className="text-xs text-muted">
