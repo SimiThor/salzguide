@@ -1136,3 +1136,25 @@ input[type="number"] {
     0 0 0 6px rgba(204, 41, 36, 0.18);
   pointer-events: none;
 }
+
+/* LADEZEICHEN (siehe components/Busy.tsx).
+   Acht Speichen, die der Reihe nach verblassen, wie der Aktivitätsanzeiger von iOS.
+   Bewusst OHNE Drehung: Chrome rastert ein laufendes transform einmal in eine Ebene und
+   dreht dann dieses Bild. Bei einem 1,4px dünnen Strich auf 13px Symbolgrösse wird daraus
+   sichtbares Flimmern („es eiert"). Hier bewegt sich nichts, es ändert sich nur die
+   Deckkraft, also bleibt jede Speiche in jedem Frame gestochen scharf, in jeder Grösse.
+   Nebeneffekt: Für Leute mit prefers-reduced-motion ist eine Blende deutlich freundlicher
+   als ein Kreisel, deshalb bleibt sie dort an, nur langsamer. */
+@keyframes sg-spinner-fade {
+  to {
+    opacity: 0.15;
+  }
+}
+.sg-spinner-spoke {
+  animation: sg-spinner-fade 0.8s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sg-spinner-spoke {
+    animation-duration: 1.6s;
+  }
+}

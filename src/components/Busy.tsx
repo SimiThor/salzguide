@@ -1,31 +1,48 @@
-// Das eine Ladezeichen der Plattform: dünner Ring, rotierender Bogen mit runden Enden,
-// wie iOS es macht. Es stand wortgleich in LoginForm, WithdrawalForm und SupportForm und
-// fehlte überall sonst, wo Knöpfe nur „Speichert …" schrieben. Drei Kopien und dreissig
-// Textstellen sind dreiunddreissig Wege, unterschiedlich auszusehen.
+// Das eine Ladezeichen der Plattform: acht Speichen, die der Reihe nach verblassen, wie
+// der Aktivitätsanzeiger von iOS. Es stand vorher als Ring mit rotierendem Bogen wortgleich
+// in LoginForm, WithdrawalForm und SupportForm und fehlte überall sonst, wo Knöpfe nur
+// „Speichert …" schrieben.
+//
+// WARUM NICHTS ROTIERT: Ein laufendes CSS-transform rastert Chrome einmal in eine Ebene und
+// dreht dann dieses Bild. Bei 1,4px Strichstärke auf 13px Symbolgrösse wird daraus sichtbares
+// Flimmern, das Zeichen „eiert". Hier bewegt sich nichts, es ändert sich nur die Deckkraft
+// je Speiche: jeder Frame ist gestochen scharf, in jeder Grösse. Die Drehung entsteht
+// allein im Auge, aus der Reihenfolge der Blenden (globals.css, sg-spinner-fade).
 //
 // NICHT für KI-Aktionen. Toni und die Analyse-Knöpfe haben ihre eigene Sprache
 // (sg-ai-shimmer, sg-ai-dot, sg-ai-glow in globals.css, siehe AiButton). Wer eine KI
 // arbeiten sieht, soll das auch am Zeichen erkennen.
 
+// Acht Speichen: bei 13px Symbolgrösse laufen zwölf ineinander, vier wirken ruckelig.
+const SPEICHEN = 8;
+
 // Grösse in `em`, nicht in Pixeln: So passt sich das Zeichen von selbst an die Schriftgrösse
 // des Knopfes an, vom 12px-Admin-Knopf bis zum grossen Formular-Knopf. Eine Regel statt
-// einer Entscheidung pro Aufrufstelle. Farbe erbt es ohnehin über currentColor.
+// einer Entscheidung pro Aufrufstelle. Die Farbe erbt es über currentColor.
 export function Spinner({ className = "" }: { className?: string }) {
   return (
     <svg
-      className={`h-[1.05em] w-[1.05em] shrink-0 animate-spin ${className}`}
+      className={`h-[1.05em] w-[1.05em] shrink-0 ${className}`}
       viewBox="0 0 24 24"
-      fill="none"
+      fill="currentColor"
+      role="img"
       aria-hidden
     >
-      <circle className="opacity-25" cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2.5" />
-      <path
-        className="opacity-90"
-        d="M12 3a9 9 0 0 1 9 9"
-        stroke="currentColor"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-      />
+      {Array.from({ length: SPEICHEN }, (_, i) => (
+        <rect
+          key={i}
+          className="sg-spinner-spoke"
+          x="10.85"
+          y="1.9"
+          width="2.3"
+          height="6.2"
+          rx="1.15"
+          transform={`rotate(${(360 / SPEICHEN) * i} 12 12)`}
+          // Negativer Versatz: Die Blende läuft schon, wenn das Zeichen erscheint, also
+          // startet keine Speiche bei voller Deckkraft und es gibt kein Aufblitzen.
+          style={{ animationDelay: `${-(0.8 / SPEICHEN) * (SPEICHEN - i)}s` }}
+        />
+      ))}
     </svg>
   );
 }
