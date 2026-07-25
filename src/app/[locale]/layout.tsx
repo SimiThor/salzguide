@@ -8,6 +8,7 @@ import { localeDir } from "@/i18n/locales";
 import AppChrome from "@/components/AppChrome";
 import AiProvider from "@/components/ai/AiProvider";
 import LoginGateProvider from "@/components/auth/LoginGate";
+import { APPLE_SPLASH_LINKS } from "@/lib/apple-splash";
 import { siteUrl } from "@/lib/site-url";
 import "../globals.css";
 
@@ -84,6 +85,15 @@ export default async function LocaleLayout({
   return (
     <html lang={locale} dir={localeDir(locale)} className={`${inter.variable} h-full`}>
       <body className="flex min-h-viewport flex-col bg-cream text-ink antialiased">
+        {/* iOS-Startbildschirme. React 19 hebt <link> von selbst in den <head>, deshalb
+            stehen sie hier und nicht in generateMetadata: Sobald dort `icons` gesetzt ist,
+            ERSETZT das die Dateikonvention und die Zeilen für icon.svg und apple-icon.png
+            verschwinden ersatzlos. Getestet, nicht vermutet.
+            Die Liste kommt aus lib/apple-splash.ts — dieselbe, aus der die Bilder
+            entstehen, damit Datei und Verweis nicht auseinanderlaufen können. */}
+        {APPLE_SPLASH_LINKS.map(({ href, media }) => (
+          <link key={href} rel="apple-touch-startup-image" href={href} media={media} />
+        ))}
         <NextIntlClientProvider messages={messages}>
           {/* LoginGateProvider MUSS aussen liegen: AiProvider rendert das Chat-Sheet
               als Geschwister von {children}. Laege das Gate innen, haetten die
