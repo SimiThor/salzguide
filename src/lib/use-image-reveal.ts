@@ -42,6 +42,9 @@ const MIN_SHIMMER_MS = 400;
 const WELLE_FRIST_MS = 1200;
 // Dauer der Einblendung. Muss zur `duration-500`-Klasse unten passen (beide stehen
 // bewusst in dieser Datei, damit sie nicht auseinanderlaufen können).
+// Die Kurve dazu ist --sg-ease-ui, dieselbe wie bei den Karussell-Pfeilen: eine Blende
+// verteilt gleichmässig. Eine Ankunftskurve (--sg-ease-sheet) schiebt die halbe Blende
+// in die ersten Zehntel und sieht dadurch aus wie ein Sprung, siehe globals.css.
 const FADE_MS = 500;
 
 // ---------------------------------------------------------------------------
@@ -250,7 +253,7 @@ export function useImageReveal(src: string | null | undefined, priority = false)
         ? ""
         : mode === "zu"
           ? "opacity-0"
-          : "transition-opacity duration-500 ease-out opacity-100",
+          : "transition-opacity duration-500 ease-[var(--sg-ease-ui)] opacity-100",
     /** Beide an das Bild hängen: Ein kaputtes Bild darf nicht ewig schimmern und auch
      *  keine Welle aufhalten. */
     onLoad: angekommen,
