@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "@/i18n/navigation";
 import {
   saveTour,
@@ -11,6 +11,8 @@ import {
 import { listAreaPoints, type PickerPoint } from "@/lib/tour-pool-actions";
 import type { TourEditData } from "@/lib/tours";
 import AiButton from "./AiButton";
+import { blockEnterSubmit } from "./form-utils";
+import { adminErrorText } from "@/lib/admin-errors";
 import { compressImage, uploadImage } from "@/lib/image-upload";
 
 const inputCls =
@@ -87,6 +89,12 @@ export default function TourForm({
   const [msg, setMsg] = useState("");
   const [uploadingCover, setUploadingCover] = useState(false);
   const [translating, setTranslating] = useState(false);
+  const [loadingPoints, setLoadingPoints] = useState(false);
+  const [pointsErr, setPointsErr] = useState(false);
+  // Request-Token gegen die Gebiet-Wechsel-Race: Wechselt der Admin schnell A -> B und
+  // As Antwort kommt SPÄTER an, zeigte der Picker sonst die Punkte von A, während
+  // form.areaId B ist – und eine Tour bekäme Punkte aus dem falschen Gebiet.
+  const pointsReq = useRef(0);
 
   const set = (patch: Partial<FormState>) => setForm((f) => ({ ...f, ...patch }));
 
@@ -103,13 +111,30 @@ export default function TourForm({
   const available = areaPoints.filter((p) => !usedIds.has(p.id));
 
   function onAreaChange(newAreaId: string) {
+    // Ein Fehlgriff ins Dropdown darf keine kuratierte 12-Stopp-Reihenfolge kosten.
+    if (
+      form.stops.length > 0 &&
+      !confirm("Beim Gebiet-Wechsel werden alle Stationen dieser Runde entfernt. Fortfahren?")
+    )
+      return;
     // Punkte gehören zum Gebiet -> bei Wechsel die Stops leeren und neu laden.
     setForm((f) => ({ ...f, areaId: newAreaId, stops: [] }));
     setAreaPoints([]);
+    setPointsErr(false);
+    const req = ++pointsReq.current;
     if (!newAreaId) return;
+    setLoadingPoints(true);
     void (async () => {
-      const r = await listAreaPoints(newAreaId);
-      setAreaPoints(r.ok && r.points ? r.points : []);
+      try {
+        const r = await listAreaPoints(newAreaId);
+        if (req !== pointsReq.current) return; // veraltete Antwort verwerfen
+        if (r.ok && r.points) setAreaPoints(r.points);
+        else setPointsErr(true);
+      } catch {
+        if (req === pointsReq.current) setPointsErr(true);
+      } finally {
+        if (req === pointsReq.current) setLoadingPoints(false);
+      }
     })();
   }
 
@@ -154,16 +179,21 @@ export default function TourForm({
     setErr("");
     setMsg("");
     void (async () => {
-      const r = await translateTourText({
-        title: form.de.title,
-        subtitle: form.de.subtitle,
-        description: form.de.description,
-      });
-      setTranslating(false);
-      if (r.ok && r.texts) {
-        set({ en: r.texts });
-        setMsg("✓ Ins Englische übersetzt – bitte kurz prüfen.");
-      } else setErr(r.error ?? "Übersetzung fehlgeschlagen.");
+      try {
+        const r = await translateTourText({
+          title: form.de.title,
+          subtitle: form.de.subtitle,
+          description: form.de.description,
+        });
+        if (r.ok && r.texts) {
+          set({ en: r.texts });
+          setMsg("✓ Ins Englische übersetzt – bitte kurz prüfen.");
+        } else setErr(adminErrorText(r.error));
+      } catch {
+        setErr("Gerade nicht erreichbar. Bitte nochmal versuchen.");
+      } finally {
+        setTranslating(false);
+      }
     })();
   }
 
@@ -189,24 +219,33 @@ export default function TourForm({
       stops: form.stops.map((s) => ({ pointId: s.pointId })),
     };
     start(async () => {
-      const r = await saveTour(payload);
-      if (r.ok) router.push("/admin/tours");
-      else setErr(r.error ?? "Speichern fehlgeschlagen.");
+      try {
+        const r = await saveTour(payload);
+        if (r.ok) router.push("/admin/tours");
+        else setErr(adminErrorText(r.error));
+      } catch {
+        setErr("Gerade nicht erreichbar. Bitte nochmal versuchen.");
+      }
     });
   }
 
   function onDelete() {
     if (!initial?.id) return;
-    if (!confirm("Diese Tour wirklich löschen?")) return;
+    if (!confirm("Diese Tour wirklich löschen? Die Punkte im Gebiets-Pool bleiben erhalten."))
+      return;
     start(async () => {
-      const r = await deleteTour(initial.id);
-      if (r.ok) router.push("/admin/tours");
-      else setErr(r.error ?? "Löschen fehlgeschlagen.");
+      try {
+        const r = await deleteTour(initial.id);
+        if (r.ok) router.push("/admin/tours");
+        else setErr(adminErrorText(r.error));
+      } catch {
+        setErr("Gerade nicht erreichbar. Bitte nochmal versuchen.");
+      }
     });
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-4 pb-16">
+    <form onSubmit={onSubmit} onKeyDown={blockEnterSubmit} className="space-y-4 pb-16">
       {/* Texte */}
       <section className={sectionCls}>
         <h2 className={h2Cls}>Texte</h2>
@@ -269,7 +308,7 @@ export default function TourForm({
           disabled={!form.de.title.trim()}
           className="rounded-full bg-black/5 px-4 py-2 text-[13px] font-semibold text-ink"
         >
-          🇬🇧 Aus dem Deutschen übersetzen
+          Aus dem Deutschen übersetzen
         </AiButton>
       </section>
 
@@ -285,7 +324,7 @@ export default function TourForm({
             value={form.areaId}
             onChange={(e) => onAreaChange(e.target.value)}
           >
-            <option value="">— Gebiet wählen —</option>
+            <option value="">Gebiet wählen …</option>
             {areas.map((a) => (
               <option key={a.id} value={a.id}>
                 {a.name}
@@ -452,6 +491,12 @@ export default function TourForm({
 
         {!form.areaId ? (
           <p className="text-[13px] text-muted">Zuerst oben ein Gebiet wählen.</p>
+        ) : loadingPoints ? (
+          <p className="text-[13px] text-muted">Lade Punkte des Gebiets …</p>
+        ) : pointsErr ? (
+          <p className="text-[13px] font-medium text-accent">
+            Punkte konnten nicht geladen werden. Gebiet erneut wählen oder Seite neu laden.
+          </p>
         ) : available.length > 0 ? (
           <select
             className={inputCls}
@@ -483,10 +528,16 @@ export default function TourForm({
       <div className="flex items-center gap-3">
         <button
           type="submit"
-          disabled={pending}
+          disabled={pending || uploadingCover || translating || loadingPoints}
           className="rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
         >
-          {pending ? "Speichern …" : "Speichern"}
+          {pending
+            ? "Speichern …"
+            : uploadingCover
+              ? "Cover lädt …"
+              : translating
+                ? "Übersetzt …"
+                : "Speichern"}
         </button>
         {initial?.id && (
           <button

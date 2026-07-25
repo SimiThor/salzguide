@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "@/i18n/navigation";
 import { setSupportStatus, deleteSupportRequest } from "@/lib/support-actions";
 import type { AdminSupportRequest } from "@/lib/admin";
+import { adminErrorText } from "@/lib/admin-errors";
 
 // Arbeitsliste der Service-Anfragen. Entscheidet nichts — beide Aktionen prüfen die
 // Admin-Rolle serverseitig, und RLS prüft nochmal.
@@ -22,6 +24,7 @@ function waitedDays(iso: string): number {
 }
 
 function Row({ r }: { r: AdminSupportRequest }) {
+  const router = useRouter();
   const [pending, start] = useTransition();
   const [gone, setGone] = useState(false);
   const [done, setDone] = useState(r.status === "done");
@@ -36,18 +39,32 @@ function Row({ r }: { r: AdminSupportRequest }) {
   function toggle() {
     setErr("");
     start(async () => {
-      const res = await setSupportStatus(r.id, !done);
-      if (res.ok) setDone(!done);
-      else setErr(res.error ?? "Fehlgeschlagen");
+      try {
+        const res = await setSupportStatus(r.id, !done);
+        if (res.ok) {
+          setDone(!done);
+          // Ohne refresh zeigten das rote Badge an „Nutzer" (AdminNav) und der
+          // „X offen"-Zähler weiter den alten Stand, bis man irgendwohin navigiert.
+          router.refresh();
+        } else setErr(adminErrorText(res.error));
+      } catch {
+        setErr("Gerade nicht erreichbar. Bitte nochmal versuchen.");
+      }
     });
   }
 
   function remove() {
     setErr("");
     start(async () => {
-      const res = await deleteSupportRequest(r.id);
-      if (res.ok) setGone(true);
-      else setErr(res.error ?? "Fehlgeschlagen");
+      try {
+        const res = await deleteSupportRequest(r.id);
+        if (res.ok) {
+          setGone(true);
+          router.refresh();
+        } else setErr(adminErrorText(res.error));
+      } catch {
+        setErr("Gerade nicht erreichbar. Bitte nochmal versuchen.");
+      }
     });
   }
 

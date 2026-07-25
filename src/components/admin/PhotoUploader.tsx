@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -120,6 +120,14 @@ export default function PhotoUploader({
   ordered?: boolean;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
+  // Immer die AKTUELLE Liste anhängen: addFiles fing sonst die images-Prop vom
+  // Aufruf-Zeitpunkt ein. Zwei parallele Batches überschrieben einander (Batch 1 lag
+  // im Storage, war aber aus der Liste verschwunden), und ein während des Uploads
+  // entferntes Foto kam nach Upload-Ende zurück.
+  const imagesRef = useRef(images);
+  useEffect(() => {
+    imagesRef.current = images;
+  }, [images]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [dragOver, setDragOver] = useState(false);
@@ -156,7 +164,7 @@ export default function PhotoUploader({
       // ordered=false heißt ERSETZEN, nicht anhängen: Dort gibt es nur Platz für ein Bild,
       // und der Aufrufer nimmt images[0]. Angehängt landete das neue Foto auf Position 1
       // und würde stillschweigend verworfen – man lädt hoch und nichts passiert.
-      if (added.length) onChange(ordered ? [...images, ...added] : added.slice(-1));
+      if (added.length) onChange(ordered ? [...imagesRef.current, ...added] : added.slice(-1));
       setBusy(false);
     }
   }
@@ -170,6 +178,11 @@ export default function PhotoUploader({
   async function onDrop(e: React.DragEvent) {
     e.preventDefault();
     setDragOver(false);
+    // Der Button ist bei busy gesperrt, die Drop-Zone braucht denselben Riegel.
+    if (busy) {
+      setErr("Ein Upload läuft noch – bitte kurz warten.");
+      return;
+    }
     await addFiles(Array.from(e.dataTransfer.files).filter((f) => f.type.startsWith("image/")));
   }
 

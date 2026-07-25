@@ -15,6 +15,8 @@ import { localeMeta } from "@/i18n/locales";
 import { hashTexts } from "@/lib/spot-hash";
 import LocationPicker from "./LocationPicker";
 import AiButton from "./AiButton";
+import { blockEnterSubmit } from "./form-utils";
+import { adminErrorText } from "@/lib/admin-errors";
 import { compressImage, uploadImage } from "@/lib/image-upload";
 
 const AREA_TARGETS = routing.locales.filter((l) => l !== "de");
@@ -107,18 +109,23 @@ export default function AreaForm({ initial }: { initial?: AreaEditData }) {
     setErr("");
     setMsg("");
     void (async () => {
-      const r = await translateAreaTextAll({ name: form.de.name, subtitle: form.de.subtitle });
-      setTranslating(false);
-      if (r.ok && r.translations) {
-        setForm((f) => ({
-          ...f,
-          translations: { ...f.translations, ...r.translations },
-          // Bei Teilausfall die Marke NICHT vorrücken (fehlgeschlagene Sprachen behalten alten Text).
-          translationsSourceHash: r.failed?.length ? f.translationsSourceHash : r.sourceHash,
-        }));
-        const failed = r.failed?.length ? ` (fehlgeschlagen: ${r.failed.join(", ")})` : "";
-        setMsg(`✓ In alle Sprachen übersetzt – bitte kurz prüfen${failed}.`);
-      } else setErr(r.error ?? "Übersetzung fehlgeschlagen.");
+      try {
+        const r = await translateAreaTextAll({ name: form.de.name, subtitle: form.de.subtitle });
+        if (r.ok && r.translations) {
+          setForm((f) => ({
+            ...f,
+            translations: { ...f.translations, ...r.translations },
+            // Bei Teilausfall die Marke NICHT vorrücken (fehlgeschlagene Sprachen behalten alten Text).
+            translationsSourceHash: r.failed?.length ? f.translationsSourceHash : r.sourceHash,
+          }));
+          const failed = r.failed?.length ? ` (fehlgeschlagen: ${r.failed.join(", ")})` : "";
+          setMsg(`✓ In alle Sprachen übersetzt – bitte kurz prüfen${failed}.`);
+        } else setErr(adminErrorText(r.error));
+      } catch {
+        setErr("Gerade nicht erreichbar. Bitte nochmal versuchen.");
+      } finally {
+        setTranslating(false);
+      }
     })();
   }
 
@@ -138,6 +145,7 @@ export default function AreaForm({ initial }: { initial?: AreaEditData }) {
   function onSubmit(ev: React.FormEvent) {
     ev.preventDefault();
     setErr("");
+    setMsg("");
     if (!form.de.name.trim()) return setErr("Bitte einen deutschen Namen eingeben.");
     if (
       trStale &&
@@ -156,24 +164,43 @@ export default function AreaForm({ initial }: { initial?: AreaEditData }) {
       translationsSourceHash: form.translationsSourceHash,
     };
     start(async () => {
-      const r = await saveArea(payload);
-      if (r.ok) router.push("/admin/tours/gebiete");
-      else setErr(r.error ?? "Speichern fehlgeschlagen.");
+      try {
+        const r = await saveArea(payload);
+        if (!r.ok) {
+          setErr(adminErrorText(r.error));
+          return;
+        }
+        // Neues Gebiet: direkt auf die Gebietsseite, wo der Punkte-Pool wartet –
+        // der nächste Arbeitsschritt ist immer „Punkte anlegen", nicht die Liste.
+        if (!initial?.id && r.id) router.push(`/admin/tours/gebiete/${r.id}`);
+        else router.push("/admin/tours/gebiete");
+      } catch {
+        setErr("Gerade nicht erreichbar. Bitte nochmal versuchen.");
+      }
     });
   }
 
   function onDelete() {
     if (!initial?.id) return;
-    if (!confirm("Gebiet inkl. aller Punkte wirklich löschen?")) return;
+    if (
+      !confirm(
+        "Gebiet inkl. aller Punkte wirklich löschen? Kuratierte Runden dieses Gebiets verlieren dabei ALLE ihre Stationen.",
+      )
+    )
+      return;
     start(async () => {
-      const r = await deleteArea(initial.id);
-      if (r.ok) router.push("/admin/tours/gebiete");
-      else setErr(r.error ?? "Löschen fehlgeschlagen.");
+      try {
+        const r = await deleteArea(initial.id);
+        if (r.ok) router.push("/admin/tours/gebiete");
+        else setErr(adminErrorText(r.error));
+      } catch {
+        setErr("Gerade nicht erreichbar. Bitte nochmal versuchen.");
+      }
     });
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-4 pb-16">
+    <form onSubmit={onSubmit} onKeyDown={blockEnterSubmit} className="space-y-4 pb-16">
       <section className={sectionCls}>
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className={h2Cls}>Gebiet</h2>
@@ -224,12 +251,12 @@ export default function AreaForm({ initial }: { initial?: AreaEditData }) {
           disabled={!form.de.name.trim()}
           className="rounded-full bg-accent px-4 py-2 text-[13px] font-semibold text-white disabled:opacity-60"
         >
-          🌍 In alle Sprachen übersetzen
+          In alle Sprachen übersetzen
         </AiButton>
 
         {trStale && (
           <p className="rounded-[12px] bg-accent/10 px-3 py-2 text-[12px] text-accent">
-            ⚠ Deutsch wurde nach dem Übersetzen geändert – bitte „🌍 In alle Sprachen übersetzen“
+            ⚠ Deutsch wurde nach dem Übersetzen geändert – bitte „In alle Sprachen übersetzen“
             erneut ausführen.
           </p>
         )}
@@ -325,11 +352,22 @@ export default function AreaForm({ initial }: { initial?: AreaEditData }) {
           onPoiChange={() => {}}
           onExitPlacing={() => {}}
         />
-        <p className="text-[12px] text-muted">
-          {form.startLat != null && form.startLng != null
-            ? `Gesetzt: ${form.startLat.toFixed(5)}, ${form.startLng.toFixed(5)}`
-            : "Noch kein Startpunkt gesetzt."}
-        </p>
+        <div className="flex flex-wrap items-center gap-3">
+          <p className="text-[12px] text-muted">
+            {form.startLat != null && form.startLng != null
+              ? `Gesetzt: ${form.startLat.toFixed(5)}, ${form.startLng.toFixed(5)}`
+              : "Noch kein Startpunkt gesetzt."}
+          </p>
+          {form.startLat != null && form.startLng != null && (
+            <button
+              type="button"
+              onClick={() => set({ startLat: null, startLng: null })}
+              className="rounded-full bg-black/5 px-3 py-1 text-[12px] font-semibold text-muted transition active:scale-95"
+            >
+              Startpunkt entfernen
+            </button>
+          )}
+        </div>
       </section>
 
       <section className={sectionCls}>
@@ -373,10 +411,16 @@ export default function AreaForm({ initial }: { initial?: AreaEditData }) {
       <div className="flex items-center gap-3">
         <button
           type="submit"
-          disabled={pending}
+          disabled={pending || uploadingCover || translating}
           className="rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
         >
-          {pending ? "Speichern …" : "Speichern"}
+          {pending
+            ? "Speichern …"
+            : uploadingCover
+              ? "Cover lädt …"
+              : translating
+                ? "Übersetzt …"
+                : "Speichern"}
         </button>
         {initial?.id && (
           <button

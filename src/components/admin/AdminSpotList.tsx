@@ -81,7 +81,7 @@ function SpotRow({ s }: { s: AdminSpotRow }) {
       <span className="min-w-0">
         <span className="block truncate text-[15px] font-medium text-ink">{s.title}</span>
         <span className="text-xs text-muted">
-          {s.type} · {s.slug}
+          {s.type === "food" ? "Essen" : "Aktivität"} · {s.slug}
         </span>
       </span>
       <span className="flex shrink-0 items-center gap-1.5">
@@ -110,7 +110,7 @@ function SpotRow({ s }: { s: AdminSpotRow }) {
               : "bg-black/5 text-muted"
           }`}
         >
-          {s.status === "published" ? "live" : "Entwurf"}
+          {s.status === "published" ? "Live" : "Entwurf"}
         </span>
       </span>
     </Link>

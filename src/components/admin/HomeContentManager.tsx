@@ -57,7 +57,7 @@ export default function HomeContentManager({
       setMsg({
         ok: true,
         text: translated.length
-          ? "Gespeichert. Die Übersetzungen sind jetzt veraltet — einmal neu übersetzen."
+          ? "Gespeichert. Die Übersetzungen sind jetzt veraltet: einmal neu übersetzen."
           : "Gespeichert. Die Startseite zeigt jetzt diese Texte.",
       });
       // Ohne refresh rechnet der Veraltet-Hinweis weiter gegen den alten Server-Stand.
@@ -75,8 +75,15 @@ export default function HomeContentManager({
       return;
     setMsg(null);
     setTranslating(true);
-    const res = await fillHomeTranslations();
-    setTranslating(false);
+    let res: Awaited<ReturnType<typeof fillHomeTranslations>>;
+    try {
+      res = await fillHomeTranslations();
+    } catch {
+      setMsg({ ok: false, text: "Gerade nicht erreichbar. Bitte nochmal versuchen." });
+      return;
+    } finally {
+      setTranslating(false);
+    }
 
     if (!res.ok) {
       setMsg({ ok: false, text: res.error ?? "Übersetzung fehlgeschlagen." });
@@ -87,7 +94,7 @@ export default function HomeContentManager({
     const parts: string[] = ["Übersetzt."];
     if (res.failed?.length)
       parts.push(
-        `${res.failed.join(", ")} hat nicht geklappt — dort steht weiter Deutsch. Nochmal drücken versucht es erneut.`,
+        `${res.failed.join(", ")} hat nicht geklappt, dort steht weiter Deutsch. Nochmal drücken versucht es erneut.`,
       );
     if (res.rejected?.length)
       parts.push(`${res.rejected.length} Felder verworfen (Platzhalter verloren): ${res.rejected.join(", ")}.`);
@@ -117,7 +124,7 @@ export default function HomeContentManager({
       </div>
       <p className="mt-1 text-[13px] leading-relaxed text-muted">
         Alles, was auf „/“ steht. Deutsch ist die Quelle: Was du hier änderst, ist sofort
-        live — in allen Sprachen, bis du neu übersetzt.
+        live, in allen Sprachen, bis du neu übersetzt.
       </p>
 
       {!fromDb && (
@@ -126,7 +133,7 @@ export default function HomeContentManager({
         // sagen, woher es kommt.
         <p className="mt-4 rounded-[12px] bg-black/[0.04] p-4 text-[13px] leading-relaxed text-ink">
           <strong>Noch nichts gespeichert.</strong> Unten stehen die aktuellen Texte aus der
-          Datei — genau das, was gerade live ist. Einmal Speichern, und ab dann kommt die
+          Datei, genau das, was gerade live ist. Einmal Speichern, und ab dann kommt die
           Startseite aus der Datenbank und gehört dir.
         </p>
       )}
@@ -191,7 +198,7 @@ export default function HomeContentManager({
             }
             className="rounded-full bg-black/[0.06] px-3.5 py-2.5 text-[14px] font-semibold text-ink transition hover:bg-black/10 active:scale-[0.98] disabled:opacity-40"
           >
-            🌍 In alle Sprachen übersetzen
+            In alle Sprachen übersetzen
           </AiButton>
 
           {msg ? (

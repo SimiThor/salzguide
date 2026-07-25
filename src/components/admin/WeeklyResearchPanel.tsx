@@ -21,7 +21,7 @@ export default function WeeklyResearchPanel({ weeks }: { weeks: WeekInfo[] }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [busy, setBusy] = useState<number | null>(null);
-  const [msg, setMsg] = useState("");
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   function run(offset: number, already: boolean) {
     if (
@@ -31,18 +31,25 @@ export default function WeeklyResearchPanel({ weeks }: { weeks: WeekInfo[] }) {
       )
     )
       return;
-    setMsg("");
+    setMsg(null);
     setBusy(offset);
     start(async () => {
-      const r = await runWeekResearchNow(offset);
-      setBusy(null);
-      if (r.ok) {
-        setMsg(
-          `✓ ${r.inserted} neue Entwürfe – gleich in alle Sprachen übersetzt${r.skipped ? ` · ${r.skipped} übersprungen` : ""}.`,
-        );
-        router.refresh();
-      } else {
-        setMsg(r.error ?? "Fehler bei der Recherche");
+      // try/finally: Wirft die Action, bliebe der Button sonst still hängen.
+      try {
+        const r = await runWeekResearchNow(offset);
+        if (r.ok) {
+          setMsg({
+            ok: true,
+            text: `✓ ${r.inserted} neue Entwürfe – gleich in alle Sprachen übersetzt${r.skipped ? ` · ${r.skipped} übersprungen` : ""}.`,
+          });
+          router.refresh();
+        } else {
+          setMsg({ ok: false, text: r.error ?? "Fehler bei der Recherche" });
+        }
+      } catch {
+        setMsg({ ok: false, text: "Gerade nicht erreichbar. Bitte nochmal versuchen." });
+      } finally {
+        setBusy(null);
       }
     });
   }
@@ -54,7 +61,11 @@ export default function WeeklyResearchPanel({ weeks }: { weeks: WeekInfo[] }) {
           <AiSparkle gradient className="h-[1.05em] w-[1.05em]" />
           KI-Wochenrecherche
         </h2>
-        {msg && <span className="text-xs text-muted">{msg}</span>}
+        {msg && (
+          <span className={`text-xs ${msg.ok ? "text-muted" : "font-medium text-accent"}`}>
+            {msg.text}
+          </span>
+        )}
       </div>
 
       <div className="space-y-2">

@@ -72,8 +72,8 @@ export default function HomeFeaturedManager({ spots, migrationMissing }: AdminHo
       setMsg({
         ok: true,
         text: res.saved
-          ? `Gespeichert — ${res.saved} Spot${res.saved === 1 ? "" : "s"} auf der Startseite.`
-          : "Gespeichert — aktuell kein Spot auf der Startseite.",
+          ? `Gespeichert. ${res.saved} Spot${res.saved === 1 ? "" : "s"} auf der Startseite.`
+          : "Gespeichert. Aktuell kein Spot auf der Startseite.",
       });
       // Ohne refresh zeigt die Seite ihren alten Server-Zustand und die nächste Änderung
       // rechnet gegen veraltete Ränge.
@@ -85,7 +85,7 @@ export default function HomeFeaturedManager({ spots, migrationMissing }: AdminHo
     <section className="rounded-[18px] bg-white p-5 shadow-sm ring-1 ring-black/5">
       <h2 className="text-[17px] font-bold text-ink">Spots auf der Startseite</h2>
       <p className="mt-1 text-[13px] leading-relaxed text-muted">
-        Diese Spots zeigt die Startseite mit Foto — in der Reihenfolge unten. Höchstens{" "}
+        Diese Spots zeigt die Startseite mit Foto, in der Reihenfolge unten. Höchstens{" "}
         {MAX_HOME_FEATURED}. Nur freie Spots: Bei Pro-Spots bleibt das Foto auf dem Server,
         die Karte wäre leer.
       </p>
@@ -159,7 +159,7 @@ export default function HomeFeaturedManager({ spots, migrationMissing }: AdminHo
 
           {/* Alle verfügbaren */}
           <p className="mt-5 text-[11px] font-semibold uppercase tracking-wider text-muted">
-            Verfügbar {full && `— ${MAX_HOME_FEATURED} erreicht, erst einen entfernen`}
+            Verfügbar {full && `(${MAX_HOME_FEATURED} erreicht, erst einen entfernen)`}
           </p>
           <ul className="mt-2 grid gap-2 sm:grid-cols-2">
             {spots.map((s) => {

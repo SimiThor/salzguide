@@ -53,7 +53,7 @@ export default async function AdminSupportPage({
       <AdminSupportList requests={requests} />
 
       <p className="px-1 text-xs leading-relaxed text-muted">
-        Jede Anfrage kommt zusätzlich per E-Mail — antworten kannst du direkt aus dem
+        Jede Anfrage kommt zusätzlich per E-Mail. Antworten kannst du direkt aus dem
         Postfach, die Antwort-Adresse steht schon richtig drin. Diese Liste sagt dir nur, was
         noch offen ist. Löschen ist für Auskunftsverlangen nach Art. 17 DSGVO von Leuten ohne
         Konto: Wer ein Konto hat, dessen Anfragen gehen beim Löschen des Kontos automatisch mit.

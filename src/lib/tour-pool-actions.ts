@@ -10,6 +10,8 @@ import { hashTexts } from "./spot-hash";
 import { stripEmDashFields } from "./em-dash";
 import { requireAdmin } from "./admin-guard";
 import { IMMUTABLE_CACHE_SECONDS } from "./storage";
+import { slugifyKey } from "./slug";
+import { guardStorageUrl } from "./storage-guard";
 
 const POINT_TARGET_LOCALES = routing.locales.filter((l) => l !== "de");
 
@@ -19,31 +21,8 @@ const POINT_TARGET_LOCALES = routing.locales.filter((l) => l !== "de");
 // kein revalidatePath.
 
 const e = (v: string) => (v.trim() === "" ? null : v.trim());
-
-function slugifyKey(s: string): string {
-  return s
-    .toLowerCase()
-    .replace(/ä/g, "ae")
-    .replace(/ö/g, "oe")
-    .replace(/ü/g, "ue")
-    .replace(/ß/g, "ss")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 40);
-}
-
-
-// Cover: nur eigene öffentliche spot-media-URL.
-function guardStorageUrl(
-  url: string | null,
-): { ok: true; url: string | null } | { ok: false } {
-  const clean = typeof url === "string" && url.trim() ? url.trim() : null;
-  if (!clean) return { ok: true, url: null };
-  const base = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
-  if (!base || !clean.startsWith(`${base}/storage/v1/object/public/spot-media/`))
-    return { ok: false };
-  return { ok: true, url: clean };
-}
+// slugifyKey/guardStorageUrl kommen aus lib/slug.ts bzw. lib/storage-guard.ts
+// (EINE Implementierung statt drei wortgleicher Kopien).
 
 // Audio: OBJEKT-PFAD im privaten tour-audio-Bucket (keine URL, kein "..").
 function guardAudioPath(
@@ -391,7 +370,10 @@ export async function listAreaPoints(
     .from("tour_points")
     .select("id, status, tour_point_translations(lang, title), tour_point_audio(lang)")
     .eq("area_id", areaId)
-    .order("sort_order", { ascending: true });
+    // sort_order wird (noch) nirgends gepflegt und steht überall auf 0. Ohne stabilen
+    // Zweitschlüssel wäre die Reihenfolge Postgres-Zufall und spränge zwischen Aufrufen.
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: true });
   if (error) return { ok: false, error: "db" };
   const points: PickerPoint[] = ((data as unknown as Record<string, unknown>[]) ?? []).map((p) => {
     const trs = (p.tour_point_translations as { lang: string; title: string }[] | null) ?? [];

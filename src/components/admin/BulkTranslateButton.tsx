@@ -55,23 +55,31 @@ export default function BulkTranslateButton({
       for (;;) {
         const item = queue.shift();
         if (!item) break;
-        const r = await fill(item.id);
-        d++;
-        setDone(d);
-        if (r.ok) {
-          filledTotal += r.filled ?? 0;
-          if (r.failed?.length) fails.push(item.label);
-        } else {
+        // try/catch PRO Eintrag: Wirft ein Aufruf (Netz weg), rejected sonst das ganze
+        // Promise.all und der Button bliebe für immer bei „Übersetzt n/m" hängen.
+        try {
+          const r = await fill(item.id);
+          if (r.ok) {
+            filledTotal += r.filled ?? 0;
+            if (r.failed?.length) fails.push(item.label);
+          } else {
+            fails.push(item.label);
+          }
+        } catch {
           fails.push(item.label);
         }
+        d++;
+        setDone(d);
       }
     }
 
-    // Begrenzte Parallelität (schont das Rate-Limit; jeder Eintrag übersetzt selbst mehrere Sprachen).
-    const CONC = Math.min(2, items.length);
-    await Promise.all(Array.from({ length: CONC }, () => worker()));
-
-    setRunning(false);
+    try {
+      // Begrenzte Parallelität (schont das Rate-Limit; jeder Eintrag übersetzt selbst mehrere Sprachen).
+      const CONC = Math.min(2, items.length);
+      await Promise.all(Array.from({ length: CONC }, () => worker()));
+    } finally {
+      setRunning(false);
+    }
     // Rückmeldung nur, wenn etwas offen blieb (Erfolg zeigt sich am aktualisierten Zähler).
     if (fails.length)
       alert(
@@ -88,7 +96,7 @@ export default function BulkTranslateButton({
       title="Bei allen noch nicht vollständig übersetzten Einträgen die fehlenden Sprachen aus dem Deutschen ergänzen"
       className="rounded-full bg-black/[0.06] px-3.5 py-2 text-[13px] font-semibold text-ink transition hover:bg-black/10 active:scale-[0.98]"
     >
-      🌍 Fehlende Sprachen füllen ({total})
+      Fehlende Sprachen füllen ({total})
     </AiButton>
   );
 }

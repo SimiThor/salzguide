@@ -22,6 +22,8 @@ import { hashTexts } from "@/lib/spot-hash";
 import PhotoUploader from "./PhotoUploader";
 import AiButton from "./AiButton";
 import AiSparkle from "@/components/ai/AiSparkle";
+import { blockEnterSubmit } from "./form-utils";
+import { adminErrorText } from "@/lib/admin-errors";
 
 const TARGET_LOCALES = routing.locales.filter((l) => l !== "de");
 
@@ -70,10 +72,13 @@ export default function EventForm({
   const [pending, start] = useTransition();
   const [err, setErr] = useState("");
   const [aiQuery, setAiQuery] = useState("");
-  const [aiMsg, setAiMsg] = useState("");
-  const [enMsg, setEnMsg] = useState("");
+  const [aiMsg, setAiMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [enMsg, setEnMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [reviewLang, setReviewLang] = useState<string>(TARGET_LOCALES[0] ?? "en");
   const [aiAction, setAiAction] = useState<"research" | "translate" | null>(null);
+  // Save und Delete teilen sich die Transition mit den KI-Aktionen. Ohne eigenes Flag
+  // stünde während der KI-Recherche „Speichern …" auf dem Submit-Button.
+  const [formAction, setFormAction] = useState<"save" | "delete" | null>(null);
 
   const set = (patch: Partial<FormState>) => setForm((f) => ({ ...f, ...patch }));
 
@@ -95,7 +100,7 @@ export default function EventForm({
 
   function onResearch() {
     if (!aiQuery.trim()) {
-      setAiMsg("Bitte einen Link oder ein Stichwort eingeben.");
+      setAiMsg({ ok: false, text: "Bitte einen Link oder ein Stichwort eingeben." });
       return;
     }
     if (
@@ -103,40 +108,48 @@ export default function EventForm({
       !confirm("Das Formular mit dem KI-Vorschlag überschreiben?")
     )
       return;
-    setAiMsg("");
+    setAiMsg(null);
     setAiAction("research");
     start(async () => {
-      const r = await generateEventDraft(aiQuery);
-      setAiAction(null);
-      if (r.ok && r.draft) {
-        const d = r.draft;
-        set({
-          title: d.title,
-          description: d.description,
-          translations: { en: { title: d.titleEn, description: d.descriptionEn } },
-          category: d.category,
-          emoji: d.emoji,
-          startsAt: d.startsAt,
-          endsAt: d.endsAt,
-          allDay: d.allDay,
-          isFree: d.isFree,
-          locationName: d.locationName,
-          sourceUrl: d.sourceUrl,
-        });
-        setAiMsg(
-          `✓ Vorschlag übernommen${
-            r.sources?.length ? ` · ${r.sources.length} Quellen` : ""
-          } – bitte prüfen (v. a. Datum & Uhrzeit).`,
-        );
-      } else {
-        setAiMsg(r.error ?? "Fehler bei der KI-Recherche");
+      // try/finally: Wirft die Action (Netz weg, Session abgelaufen), bliebe der
+      // AiButton sonst für immer im Lade-Zustand und disabled, ohne Meldung.
+      try {
+        const r = await generateEventDraft(aiQuery);
+        if (r.ok && r.draft) {
+          const d = r.draft;
+          set({
+            title: d.title,
+            description: d.description,
+            translations: { en: { title: d.titleEn, description: d.descriptionEn } },
+            category: d.category,
+            emoji: d.emoji,
+            startsAt: d.startsAt,
+            endsAt: d.endsAt,
+            allDay: d.allDay,
+            isFree: d.isFree,
+            locationName: d.locationName,
+            sourceUrl: d.sourceUrl,
+          });
+          setAiMsg({
+            ok: true,
+            text: `✓ Vorschlag übernommen${
+              r.sources?.length ? ` · ${r.sources.length} Quellen` : ""
+            } – bitte prüfen (v. a. Datum & Uhrzeit).`,
+          });
+        } else {
+          setAiMsg({ ok: false, text: adminErrorText(r.error) });
+        }
+      } catch {
+        setAiMsg({ ok: false, text: "Gerade nicht erreichbar. Bitte nochmal versuchen." });
+      } finally {
+        setAiAction(null);
       }
     });
   }
 
   function onTranslateAll() {
     if (!form.title.trim()) {
-      setEnMsg("Bitte zuerst deutschen Titel/Beschreibung erstellen.");
+      setEnMsg({ ok: false, text: "Bitte zuerst deutschen Titel/Beschreibung erstellen." });
       return;
     }
     if (
@@ -144,20 +157,35 @@ export default function EventForm({
       !confirm("Vorhandene Übersetzungen mit den neuen überschreiben?")
     )
       return;
-    setEnMsg("");
+    setEnMsg(null);
+    setAiMsg(null);
     setAiAction("translate");
     start(async () => {
-      const r = await translateEventTextsAll({
-        title: form.title,
-        description: form.description,
-      });
-      setAiAction(null);
-      if (r.ok && r.translations) {
-        set({ translations: r.translations, translationsSourceHash: r.sourceHash });
-        const failed = r.failed?.length ? ` (fehlgeschlagen: ${r.failed.join(", ")})` : "";
-        setEnMsg(`✓ In alle Sprachen übersetzt – bitte prüfen${failed}.`);
-      } else {
-        setEnMsg(r.error ?? "Fehler bei der Übersetzung");
+      try {
+        const r = await translateEventTextsAll({
+          title: form.title,
+          description: form.description,
+        });
+        if (r.ok && r.translations) {
+          // Fehlgeschlagene Sprachen NICHT aus der Map werfen: mergen statt ersetzen,
+          // sonst wirken ihre Felder leer und der alte DB-Stand bekäme beim Speichern
+          // trotzdem den neuen Aktualitäts-Stempel.
+          set({
+            translations: { ...form.translations, ...r.translations },
+            translationsSourceHash: r.sourceHash,
+          });
+          const failed = r.failed?.length ? ` (fehlgeschlagen: ${r.failed.join(", ")})` : "";
+          setEnMsg({
+            ok: !r.failed?.length,
+            text: `✓ In alle Sprachen übersetzt – bitte prüfen${failed}.`,
+          });
+        } else {
+          setEnMsg({ ok: false, text: adminErrorText(r.error) });
+        }
+      } catch {
+        setEnMsg({ ok: false, text: "Gerade nicht erreichbar. Bitte nochmal versuchen." });
+      } finally {
+        setAiAction(null);
       }
     });
   }
@@ -196,7 +224,7 @@ export default function EventForm({
     if (form.status === "published" && !wasPublished && !trComplete) {
       setErr(
         `Zum Veröffentlichen müssen alle Sprachen übersetzt & aktuell sein (${translatedLangs.length}/${TARGET_LOCALES.length}). ` +
-          "Bitte „🌍 In alle Sprachen übersetzen“ – oder Status auf „Entwurf“ stellen.",
+          "Bitte „In alle Sprachen übersetzen“, oder Status auf „Entwurf“ stellen.",
       );
       return;
     }
@@ -206,42 +234,54 @@ export default function EventForm({
       form.status === "published" &&
       trStale &&
       !confirm(
-        "Der deutsche Text wurde geändert – die Übersetzungen sind VERALTET.\n\nBesser zuerst „🌍 In alle Sprachen übersetzen“.\n\nTrotzdem speichern?",
+        "Der deutsche Text wurde geändert – die Übersetzungen sind VERALTET.\n\nBesser zuerst „In alle Sprachen übersetzen“.\n\nTrotzdem speichern?",
       )
     )
       return;
     const endsAt = form.endsAt ? viennaWallToUtcIso(form.endsAt) : null;
+    // Ende vor Start ist ein Tippfehler: sofort sagen, statt dass der Server das Ende
+    // ablehnt und der Admin es nie erfährt.
+    if (endsAt && startsAt && Date.parse(endsAt) < Date.parse(startsAt)) {
+      setErr("Das Ende liegt vor dem Start. Bitte End-Datum/-Zeit prüfen.");
+      return;
+    }
+    setFormAction("save");
     start(async () => {
-      const r = await saveEvent({ ...form, startsAt, endsAt });
-      if (r.ok) router.push("/admin/events");
-      else
-        setErr(
-          r.error === "required"
-            ? "Bitte einen Titel eingeben."
-            : r.error === "start_required"
-              ? "Bitte Datum & Startzeit angeben."
-              : r.error === "translations_incomplete"
-                ? "Zum Veröffentlichen erst „🌍 In alle Sprachen übersetzen“ – oder als Entwurf speichern."
-                : r.error === "translations_persist_failed"
-                  ? "Übersetzungen konnten nicht gespeichert werden – das Event bleibt als Entwurf. Bitte erneut versuchen."
-                  : r.error === "check_failed"
-                    ? "Konnte den Übersetzungs-Status nicht prüfen – bitte erneut versuchen."
-                    : (r.error ?? "Fehler"),
-        );
+      try {
+        const r = await saveEvent({ ...form, startsAt, endsAt });
+        if (r.ok) router.push("/admin/events");
+        else
+          setErr(
+            r.error === "translations_incomplete"
+              ? "Zum Veröffentlichen erst „In alle Sprachen übersetzen“ – oder als Entwurf speichern."
+              : adminErrorText(r.error),
+          );
+      } catch {
+        setErr("Gerade nicht erreichbar. Bitte nochmal versuchen.");
+      } finally {
+        setFormAction(null);
+      }
     });
   }
 
   function onDelete() {
     if (!form.id || !confirm("Dieses Event wirklich löschen?")) return;
+    setFormAction("delete");
     start(async () => {
-      const r = await deleteEvent(form.id!);
-      if (r.ok) router.push("/admin/events");
-      else setErr(r.error ?? "Fehler");
+      try {
+        const r = await deleteEvent(form.id!);
+        if (r.ok) router.push("/admin/events");
+        else setErr(adminErrorText(r.error));
+      } catch {
+        setErr("Gerade nicht erreichbar. Bitte nochmal versuchen.");
+      } finally {
+        setFormAction(null);
+      }
     });
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-6 pb-12">
+    <form onSubmit={onSubmit} onKeyDown={blockEnterSubmit} className="space-y-6 pb-12">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-ink">
           {isNew ? "Neues Event" : "Event bearbeiten"}
@@ -251,9 +291,10 @@ export default function EventForm({
             <button
               type="button"
               onClick={onDelete}
-              className="rounded-full bg-black/5 px-4 py-2 text-sm font-semibold text-accent"
+              disabled={pending}
+              className="rounded-full bg-black/5 px-4 py-2 text-sm font-semibold text-accent disabled:opacity-60"
             >
-              Löschen
+              {formAction === "delete" ? "Lösche …" : "Löschen"}
             </button>
           )}
           <button
@@ -261,7 +302,7 @@ export default function EventForm({
             disabled={pending}
             className="rounded-full bg-accent px-5 py-2 text-sm font-semibold text-white disabled:opacity-60"
           >
-            {pending ? "Speichern …" : "Speichern"}
+            {formAction === "save" ? "Speichern …" : "Speichern"}
           </button>
         </div>
       </div>
@@ -304,7 +345,11 @@ export default function EventForm({
             Recherchieren
           </AiButton>
         </div>
-        {aiMsg && <p className="text-xs text-muted">{aiMsg}</p>}
+        {aiMsg && (
+          <p className={`text-xs ${aiMsg.ok ? "text-muted" : "font-medium text-accent"}`}>
+            {aiMsg.text}
+          </p>
+        )}
       </section>
 
       {/* Basis */}
@@ -502,18 +547,22 @@ export default function EventForm({
         <div className="flex flex-wrap items-center gap-3">
           <AiButton
             loading={aiAction === "translate"}
-            loadingLabel="🌍 Übersetze alle"
+            loadingLabel="Übersetze alle"
             onClick={onTranslateAll}
             disabled={pending}
             className="rounded-full bg-ink px-3.5 py-1.5 text-xs font-semibold text-white"
           >
-            🌍 In alle Sprachen übersetzen
+            In alle Sprachen übersetzen
           </AiButton>
-          {enMsg && <span className="text-xs text-muted">{enMsg}</span>}
+          {enMsg && (
+            <span className={`text-xs ${enMsg.ok ? "text-muted" : "font-medium text-accent"}`}>
+              {enMsg.text}
+            </span>
+          )}
         </div>
         {trStale && (
           <p className="rounded-[10px] bg-accent/10 px-3 py-2 text-xs font-medium text-accent">
-            ⚠ Deutsch wurde geändert – Übersetzungen veraltet. Bitte „🌍 In alle Sprachen übersetzen“.
+            ⚠ Deutsch wurde geändert – Übersetzungen veraltet. Bitte „In alle Sprachen übersetzen“.
           </p>
         )}
 

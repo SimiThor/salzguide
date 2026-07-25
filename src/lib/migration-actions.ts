@@ -102,13 +102,18 @@ const ANNOUNCE_BATCH = 100;
 /**
  * Die Umzugs-Ankündigung an alle verschicken, die sie noch nicht haben.
  *
- * WARUM JEDE ZEILE EINZELN MARKIERT WIRD, direkt nach ihrem Versand:
- * Bricht der Lauf in der Mitte ab (Timeout, Resend-Limit, Netz), schickt der nächste Klick
- * genau den Rest — nicht alles nochmal. Bei 100 zahlenden Kunden ist „aus Versehen zweimal
- * angeschrieben" kein Schönheitsfehler, sondern der erste Eindruck der neuen Plattform.
+ * WARUM JEDE ZEILE EINZELN VOR ihrem Versand beansprucht wird (Claim per bedingtem
+ * Update, wie mailProGift es vormacht): Ein Lauf über bis zu 100 Mails dauert Minuten.
+ * Klicken in diesem Fenster zwei Admin-Sitzungen (oder derselbe Admin nach einem
+ * scheinbaren Hänger nochmal), sähen ohne Claim BEIDE Läufe dieselben unmarkierten
+ * Zeilen – und jeder zahlende Kunde bekäme die Mail doppelt. Das ist kein
+ * Schönheitsfehler, sondern der erste Eindruck der neuen Plattform.
  *
- * Deshalb auch: erst senden, DANN markieren. Andersherum gälte eine Mail als verschickt,
- * die nie ankam — und dieser Mensch erführe nie vom Umzug.
+ * Der Preis der Reihenfolge „erst markieren, dann senden": Stirbt die Funktion GENAU
+ * zwischen Claim und Versand (Timeout), gilt eine Mail als verschickt, die nie ankam –
+ * ein einzelner Mensch, sichtbar im Log. Scheitert der Versand NORMAL, wird der Claim
+ * sofort wieder gelöst und der nächste Lauf versucht es erneut. Das Doppel-Mail-Risiko
+ * traf dagegen potenziell alle 100 auf einmal.
  */
 export async function sendMigrationAnnouncement(): Promise<AnnounceResult> {
   const gate = await requireAdmin();
@@ -135,6 +140,21 @@ export async function sendMigrationAnnouncement(): Promise<AnnounceResult> {
   let sent = 0;
   let failed = 0;
   for (const row of rows) {
+    // Claim: Zeile bedingt markieren. Kommt nichts zurück, hat ein paralleler Lauf sie
+    // schon – überspringen statt doppelt mailen (Muster wie mailProGift).
+    const { data: claimed, error: claimErr } = await svc
+      .from("pro_migrations")
+      .update({ announced_at: new Date().toISOString() })
+      .eq("email", row.email)
+      .is("announced_at", null)
+      .select("email");
+    if (claimErr) {
+      console.error("sendMigrationAnnouncement: Claim fehlgeschlagen", row.email, claimErr.message);
+      failed++;
+      continue;
+    }
+    if (!(claimed ?? []).length) continue; // schon von einem anderen Lauf verschickt
+
     const ok = await sendEmail({
       to: row.email,
       subject: texts.subject,
@@ -144,19 +164,20 @@ export async function sendMigrationAnnouncement(): Promise<AnnounceResult> {
     });
 
     if (!ok) {
-      // NICHT markieren: Der nächste Lauf soll es nochmal versuchen. Wer den Umzug nie
-      // erfährt, steht irgendwann ratlos vor einer fremden Seite.
+      // Claim wieder lösen: Der nächste Lauf soll es nochmal versuchen. Wer den Umzug
+      // nie erfährt, steht irgendwann ratlos vor einer fremden Seite.
+      const { error: unclaimErr } = await svc
+        .from("pro_migrations")
+        .update({ announced_at: null })
+        .eq("email", row.email);
+      if (unclaimErr)
+        console.error(
+          "sendMigrationAnnouncement: Mail scheiterte UND Claim hängt – Zeile gilt fälschlich als verschickt",
+          row.email,
+          unclaimErr.message,
+        );
       failed++;
       continue;
-    }
-    const { error: markErr } = await svc
-      .from("pro_migrations")
-      .update({ announced_at: new Date().toISOString() })
-      .eq("email", row.email);
-    if (markErr) {
-      // Mail ist raus, Vermerk fehlt -> der nächste Lauf schriebe nochmal. Laut loggen,
-      // damit es jemand sieht, statt es still zu schlucken.
-      console.error("sendMigrationAnnouncement: nicht vermerkt", row.email, markErr.message);
     }
     sent++;
   }

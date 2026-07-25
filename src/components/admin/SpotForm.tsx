@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "@/i18n/navigation";
 import {
   deleteSpot,
@@ -30,6 +30,7 @@ import {
   FAME_LEVELS,
   PRICE_LEVELS,
   subtypeGroups,
+  subtypesFor,
 } from "@/lib/spot-options";
 import { factIsKnown, factPrice } from "@/lib/facts-i18n";
 import { slugify } from "@/lib/slug";
@@ -38,7 +39,8 @@ import ElevationProfile from "../ElevationProfile";
 import PhotoUploader from "./PhotoUploader";
 import VideoUploader from "./VideoUploader";
 import AiButton from "./AiButton";
-import AiSparkle from "@/components/ai/AiSparkle";
+import { blockEnterSubmit } from "./form-utils";
+import { adminErrorText } from "@/lib/admin-errors";
 import { STATUS_NEUTRAL, STATUS_ACCENT, STATUS_GOOD } from "@/lib/ui";
 
 const EMPTY: SpotInput = {
@@ -162,13 +164,22 @@ export default function SpotForm({
   const [form, setForm] = useState<SpotInput>({ ...EMPTY, ...initial });
   const [pending, start] = useTransition();
   const [err, setErr] = useState("");
-  const [snapMsg, setSnapMsg] = useState("");
+  // {ok,text} statt String: Fehler dürfen nicht im selben grauen Stil stehen wie Erfolg.
+  const [snapMsg, setSnapMsg] = useState<{ ok: boolean; text: string } | null>(null);
   // Welcher Zusatzpunkt wird gerade auf der Karte gesetzt (null = normaler Modus).
   const [placing, setPlacing] = useState<PlacingKind>(null);
   const [aiNotes, setAiNotes] = useState("");
-  const [aiMsg, setAiMsg] = useState("");
+  const [aiMsg, setAiMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [aiWeb, setAiWeb] = useState(true);
-  const [enMsg, setEnMsg] = useState("");
+  const [enMsg, setEnMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  // Save/Delete teilen die Transition mit Snap + KI: Ohne eigenes Flag stünde während
+  // des Snappens „Speichern …" auf dem Submit-Button.
+  const [formAction, setFormAction] = useState<"save" | "delete" | null>(null);
+  // Request-Token gegen die Snap-Race: Klickt der Admin während des Snappens einen
+  // weiteren Wegpunkt, darf die ALTE Antwort nicht mehr als gesnappte Linie landen
+  // (gespeichert würde sonst route_geojson der alten Punkte zu neuen Wegpunkten).
+  const snapReq = useRef(0);
+  const placeReq = useRef(0);
   // Welche Übersetzung wird gerade geprüft/bearbeitet (eine Sprache zur Zeit).
   const [reviewLang, setReviewLang] = useState<string>(TARGET_LOCALES[0] ?? "en");
   const [aiAction, setAiAction] = useState<"generate" | "translate" | null>(null); // laufende KI-Aktion
@@ -183,16 +194,24 @@ export default function SpotForm({
 
   async function doPlaceSearch() {
     if (placeQ.trim().length < 3) return;
+    if (placeBusy) return; // Enter feuerte sonst trotz laufender Suche erneut
+    const req = ++placeReq.current;
     setPlaceBusy(true);
     setPlaceMsg("");
-    const r = await searchPlaces(placeQ);
-    setPlaceBusy(false);
-    if (!r.ok) {
-      setPlaceHits([]);
-      setPlaceMsg(r.error);
-    } else {
-      setPlaceHits(r.results);
-      if (!r.results.length) setPlaceMsg("Keine Treffer.");
+    try {
+      const r = await searchPlaces(placeQ);
+      if (req !== placeReq.current) return; // langsamere alte Antwort verwerfen
+      if (!r.ok) {
+        setPlaceHits([]);
+        setPlaceMsg(r.error);
+      } else {
+        setPlaceHits(r.results);
+        if (!r.results.length) setPlaceMsg("Keine Treffer.");
+      }
+    } catch {
+      if (req === placeReq.current) setPlaceMsg("Suche gerade nicht erreichbar.");
+    } finally {
+      if (req === placeReq.current) setPlaceBusy(false);
     }
   }
 
@@ -294,8 +313,9 @@ export default function SpotForm({
 
   // Kontrollpunkte ändern -> Snapping + Höhenprofil verwerfen (muss neu berechnet werden)
   function setRoute(pts: [number, number][]) {
+    snapReq.current++; // laufende Snap-Antworten gehören zur alten Route
     set({ routePoints: pts, routeSnapped: [], elevationProfile: null });
-    setSnapMsg("");
+    setSnapMsg(null);
   }
   function updateRoutePt(i: number, lng: number | null, lat: number | null) {
     const cur = form.routePoints[i] ?? [13.05, 47.8];
@@ -318,37 +338,44 @@ export default function SpotForm({
   // Route an Wanderwege snappen. `forceDuration` überschreibt eine schon gesetzte Dauer
   // (z.B. beim "Hin & zurück"-Verdoppeln, wo sich die Zeit zwangsläufig ändert).
   function doSnap(points: [number, number][], forceDuration = false) {
-    setSnapMsg("");
+    setSnapMsg(null);
+    const req = ++snapReq.current;
     start(async () => {
-      const r = await snapRoute(points);
-      if (r.ok && r.coords) {
-        const patch: Partial<SpotInput> = {
-          routeSnapped: r.coords,
-          elevationProfile: r.profile ?? null,
-        };
-        const auto: string[] = [];
-        if ((forceDuration || !form.duration.trim()) && r.durationMin) {
-          const lbl = durationFromMin(r.durationMin);
-          const p = parseDuration(lbl);
-          setDurValue(p.value);
-          setDurUnit(p.unit);
-          patch.duration = lbl;
-          auto.push("Dauer");
+      try {
+        const r = await snapRoute(points);
+        if (req !== snapReq.current) return; // Route wurde inzwischen geändert
+        if (r.ok && r.coords) {
+          const patch: Partial<SpotInput> = {
+            routeSnapped: r.coords,
+            elevationProfile: r.profile ?? null,
+          };
+          const auto: string[] = [];
+          if ((forceDuration || !form.duration.trim()) && r.durationMin) {
+            const lbl = durationFromMin(r.durationMin);
+            const p = parseDuration(lbl);
+            setDurValue(p.value);
+            setDurUnit(p.unit);
+            patch.duration = lbl;
+            auto.push("Dauer");
+          }
+          if (!form.difficulty.trim() && r.distanceKm != null && r.profile) {
+            patch.difficulty = suggestDifficulty(r.distanceKm, r.profile.ascent);
+            auto.push("Schwierigkeit");
+          }
+          set(patch);
+          const km = r.distanceKm ? `${r.distanceKm.toFixed(1)} km` : "";
+          const hm = r.profile ? ` · ↑${r.profile.ascent} ↓${r.profile.descent} hm` : "";
+          // Berechnete Gehzeit der GANZEN Route immer zeigen -> eine schon gesetzte (evtl.
+          // veraltete) Dauer fällt sofort auf, sobald man z.B. auf hin+zurück umstellt.
+          const time = r.durationMin ? ` · ~${durationFromMin(r.durationMin)}` : "";
+          const autoMsg = auto.length ? ` · ${auto.join(" & ")} übernommen` : "";
+          setSnapMsg({ ok: true, text: `Angepasst · ${km}${hm}${time}${autoMsg}` });
+        } else {
+          setSnapMsg({ ok: false, text: r.error ?? "Fehler beim Anpassen" });
         }
-        if (!form.difficulty.trim() && r.distanceKm != null && r.profile) {
-          patch.difficulty = suggestDifficulty(r.distanceKm, r.profile.ascent);
-          auto.push("Schwierigkeit");
-        }
-        set(patch);
-        const km = r.distanceKm ? `${r.distanceKm.toFixed(1)} km` : "";
-        const hm = r.profile ? ` · ↑${r.profile.ascent} ↓${r.profile.descent} hm` : "";
-        // Berechnete Gehzeit der GANZEN Route immer zeigen -> eine schon gesetzte (evtl.
-        // veraltete) Dauer fällt sofort auf, sobald man z.B. auf hin+zurück umstellt.
-        const time = r.durationMin ? ` · ~${durationFromMin(r.durationMin)}` : "";
-        const autoMsg = auto.length ? ` · ${auto.join(" & ")} übernommen` : "";
-        setSnapMsg(`Angepasst · ${km}${hm}${time}${autoMsg}`);
-      } else {
-        setSnapMsg(r.error ?? "Fehler beim Anpassen");
+      } catch {
+        if (req === snapReq.current)
+          setSnapMsg({ ok: false, text: "Gerade nicht erreichbar. Bitte nochmal versuchen." });
       }
     });
   }
@@ -386,7 +413,7 @@ export default function SpotForm({
     if (form.status === "published" && !wasPublished && !trComplete) {
       setErr(
         `Zum Veröffentlichen müssen alle Sprachen übersetzt & aktuell sein (${translatedLangs.length}/${TARGET_LOCALES.length}). ` +
-          "Bitte „🌍 In alle Sprachen übersetzen“ – oder Status auf „Entwurf“ stellen.",
+          "Bitte „In alle Sprachen übersetzen“, oder Status auf „Entwurf“ stellen.",
       );
       return;
     }
@@ -396,44 +423,57 @@ export default function SpotForm({
       form.status === "published" &&
       trStale &&
       !confirm(
-        "Der deutsche Text wurde geändert – die Übersetzungen sind dadurch VERALTET.\n\nBesser zuerst „🌍 In alle Sprachen übersetzen“ klicken.\n\nTrotzdem jetzt speichern (veraltete Übersetzungen bleiben)?",
+        "Der deutsche Text wurde geändert – die Übersetzungen sind dadurch VERALTET.\n\nBesser zuerst „In alle Sprachen übersetzen“ klicken.\n\nTrotzdem jetzt speichern (veraltete Übersetzungen bleiben)?",
       )
     )
       return;
+    setFormAction("save");
     start(async () => {
-      const r = await saveSpot(form);
-      if (r.ok) router.push("/admin");
-      else
-        setErr(
-          r.error === "place_id_required"
-            ? "Google Place ID ist Pflicht – bitte eintragen oder auf „Manuell angeben“ umstellen."
-            : r.error === "slug_taken"
-              ? "Dieser Slug ist schon vergeben – bitte einen anderen wählen."
+      try {
+        const r = await saveSpot(form);
+        if (r.ok) router.push("/admin");
+        else
+          setErr(
+            r.error === "place_id_required"
+              ? "Google Place ID ist Pflicht – bitte eintragen oder auf „Manuell angeben“ umstellen."
               : r.error === "required"
-              ? "Bitte Slug und Titel ausfüllen."
-              : r.error === "location_required"
-              ? "Zum Veröffentlichen bitte den Ort auf der Karte setzen (Einzelpunkt oder Wanderung mit Start & Ziel)."
-              : r.error === "translations_incomplete"
-                ? "Zum Veröffentlichen erst „🌍 In alle Sprachen übersetzen“ – oder als Entwurf speichern."
-                : r.error === "translations_persist_failed"
-                  ? "Übersetzungen konnten nicht gespeichert werden – der Spot bleibt als Entwurf. Bitte erneut versuchen."
-                  : (r.error ?? "Fehler"),
-        );
+                ? "Bitte Slug und Titel ausfüllen."
+                : r.error === "location_required"
+                  ? "Zum Veröffentlichen bitte den Ort auf der Karte setzen (Einzelpunkt oder Wanderung mit Start & Ziel)."
+                  : r.error === "translations_incomplete"
+                    ? "Zum Veröffentlichen erst „In alle Sprachen übersetzen“ – oder als Entwurf speichern."
+                    : r.error === "bad_url"
+                      ? "Mindestens eine Datei kommt nicht aus unserem Speicher. Fotos/Video bitte neu hochladen."
+                      : adminErrorText(r.error),
+          );
+      } catch {
+        setErr("Gerade nicht erreichbar. Bitte nochmal versuchen.");
+      } finally {
+        setFormAction(null);
+      }
     });
   }
 
   function onDelete() {
-    if (!form.id || !confirm("Diesen Spot wirklich löschen?")) return;
+    if (!form.id || !confirm("Diesen Spot wirklich löschen? Fotos und Videos werden mitgelöscht."))
+      return;
+    setFormAction("delete");
     start(async () => {
-      const r = await deleteSpot(form.id!);
-      if (r.ok) router.push("/admin");
-      else setErr(r.error ?? "Fehler");
+      try {
+        const r = await deleteSpot(form.id!);
+        if (r.ok) router.push("/admin");
+        else setErr(adminErrorText(r.error));
+      } catch {
+        setErr("Gerade nicht erreichbar. Bitte nochmal versuchen.");
+      } finally {
+        setFormAction(null);
+      }
     });
   }
 
   function onGenerate() {
     if (!form.title.trim()) {
-      setAiMsg("Bitte zuerst einen Titel eingeben.");
+      setAiMsg({ ok: false, text: "Bitte zuerst einen Titel eingeben." });
       return;
     }
     const hasText = [
@@ -445,9 +485,13 @@ export default function SpotForm({
       form.shortDesc,
     ].some((s) => s.trim());
     if (hasText && !confirm("Vorhandene Texte mit den KI-Vorschlägen überschreiben?")) return;
-    setAiMsg("");
+    // BEIDE Meldungen leeren: Ein altes „✓ Texte erzeugt" verdeckte sonst den
+    // Übersetzungs-Fehler (Anzeige unten zeigt aiMsg VOR enMsg).
+    setAiMsg(null);
+    setEnMsg(null);
     setAiAction("generate");
     start(async () => {
+      try {
       const localName = locals.find((l) => l.id === form.localId)?.name ?? "";
       const cats = categories
         .filter((c) => form.categoryIds.includes(c.id))
@@ -478,7 +522,6 @@ export default function SpotForm({
         fame: form.fame,
         useWebResearch: aiWeb,
       });
-      setAiAction(null);
       if (r.ok && r.texts) {
         set({
           general: r.texts.general,
@@ -494,9 +537,14 @@ export default function SpotForm({
             : aiWeb
               ? " (ohne Web-Recherche)"
               : "";
-        setAiMsg(`✓ Texte erzeugt${web} – bitte prüfen und ggf. anpassen.`);
+        setAiMsg({ ok: true, text: `✓ Texte erzeugt${web} – bitte prüfen und ggf. anpassen.` });
       } else {
-        setAiMsg(r.error ?? "Fehler bei der KI-Generierung");
+        setAiMsg({ ok: false, text: adminErrorText(r.error) });
+      }
+      } catch {
+        setAiMsg({ ok: false, text: "Gerade nicht erreichbar. Bitte nochmal versuchen." });
+      } finally {
+        setAiAction(null);
       }
     });
   }
@@ -539,7 +587,7 @@ export default function SpotForm({
   // KI: deutsche Texte in ALLE Sprachen übersetzen (parallel). Ergebnis ist review-/editierbar.
   function onTranslateAll() {
     if (!form.title.trim() || ![form.general, form.shortDesc, form.insiderTip].some((s) => s.trim())) {
-      setEnMsg("Bitte zuerst die deutschen Texte erstellen.");
+      setEnMsg({ ok: false, text: "Bitte zuerst die deutschen Texte erstellen." });
       return;
     }
     if (
@@ -547,25 +595,42 @@ export default function SpotForm({
       !confirm("Vorhandene Übersetzungen mit den neuen überschreiben?")
     )
       return;
-    setEnMsg("");
+    setEnMsg(null);
+    setAiMsg(null);
     setAiAction("translate");
     start(async () => {
-      const r = await translateSpotTextsAll({
-        title: form.title,
-        shortDesc: form.shortDesc,
-        general: form.general,
-        insiderTip: form.insiderTip,
-        sectionA: form.sectionA,
-        sectionB: form.sectionB,
-        locationText: form.locationText,
-      });
-      setAiAction(null);
-      if (r.ok && r.translations) {
-        set({ translations: r.translations, translationsSourceHash: r.sourceHash });
-        const failed = r.failed?.length ? ` (fehlgeschlagen: ${r.failed.join(", ")})` : "";
-        setEnMsg(`✓ In alle Sprachen übersetzt – bitte prüfen${failed}.`);
-      } else {
-        setEnMsg(r.error ?? "Fehler bei der Übersetzung");
+      try {
+        const r = await translateSpotTextsAll({
+          title: form.title,
+          shortDesc: form.shortDesc,
+          general: form.general,
+          insiderTip: form.insiderTip,
+          sectionA: form.sectionA,
+          sectionB: form.sectionB,
+          locationText: form.locationText,
+        });
+        if (r.ok && r.translations) {
+          // MERGEN statt ersetzen: Schlägt eine Sprache fehl, blieb ihr alter Text sonst
+          // nur in der DB, wirkte im Formular aber leer – und bekam beim Speichern
+          // trotzdem den neuen Aktualitäts-Stempel (Anti-Chaos ausgehebelt; der Server
+          // stempelt inzwischen nur noch mitgeschickte Sprachen, das hier hält Formular
+          // und DB deckungsgleich).
+          set({
+            translations: { ...form.translations, ...r.translations },
+            translationsSourceHash: r.sourceHash,
+          });
+          const failed = r.failed?.length ? ` (fehlgeschlagen: ${r.failed.join(", ")})` : "";
+          setEnMsg({
+            ok: !r.failed?.length,
+            text: `✓ In alle Sprachen übersetzt – bitte prüfen${failed}.`,
+          });
+        } else {
+          setEnMsg({ ok: false, text: adminErrorText(r.error) });
+        }
+      } catch {
+        setEnMsg({ ok: false, text: "Gerade nicht erreichbar. Bitte nochmal versuchen." });
+      } finally {
+        setAiAction(null);
       }
     });
   }
@@ -599,8 +664,25 @@ export default function SpotForm({
   const sommerCats = categories.filter((c) => c.season === "summer");
   const winterCats = categories.filter((c) => c.season === "winter");
 
+  // Ungespeicherte Eingaben nicht kommentarlos verlieren: Ein Tab-Reload oder
+  // Fenster-Schliessen fragt nach, sobald das Formular vom Ausgangszustand abweicht
+  // (inkl. KI-Texten und Übersetzungen, die Geld gekostet haben). Der Vergleich läuft
+  // erst IM Event, nicht bei jedem Render.
+  const initialJson = useRef(JSON.stringify({ ...EMPTY, ...initial }));
+  const formJsonRef = useRef(form);
+  useEffect(() => {
+    formJsonRef.current = form;
+  }, [form]);
+  useEffect(() => {
+    const warn = (e: BeforeUnloadEvent) => {
+      if (JSON.stringify(formJsonRef.current) !== initialJson.current) e.preventDefault();
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, []);
+
   return (
-    <form onSubmit={onSubmit} className="space-y-6 pb-12">
+    <form onSubmit={onSubmit} onKeyDown={blockEnterSubmit} className="space-y-6 pb-12">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-ink">
           {isNew ? "Neuer Spot" : "Spot bearbeiten"}
@@ -610,9 +692,10 @@ export default function SpotForm({
             <button
               type="button"
               onClick={onDelete}
-              className="rounded-full bg-black/5 px-4 py-2 text-sm font-semibold text-accent"
+              disabled={pending}
+              className="rounded-full bg-black/5 px-4 py-2 text-sm font-semibold text-accent disabled:opacity-60"
             >
-              Löschen
+              {formAction === "delete" ? "Lösche …" : "Löschen"}
             </button>
           )}
           <button
@@ -620,7 +703,7 @@ export default function SpotForm({
             disabled={pending}
             className="rounded-full bg-accent px-5 py-2 text-sm font-semibold text-white disabled:opacity-60"
           >
-            {pending ? "Speichern …" : "Speichern"}
+            {formAction === "save" ? "Speichern …" : "Speichern"}
           </button>
         </div>
       </div>
@@ -663,9 +746,12 @@ export default function SpotForm({
             <label className={labelCls}>Unterkategorie (Label)</label>
             <select className={input} value={form.subtype} onChange={(e) => set({ subtype: e.target.value })}>
               <option value="">—</option>
-              {/* Altwert erhalten, statt ihn beim nächsten Speichern still zu löschen. */}
-              {form.subtype && !factIsKnown("subtype", form.subtype) && (
-                <option value={form.subtype}>{form.subtype} (alt, ohne Übersetzung)</option>
+              {/* Altwert erhalten, statt ihn beim nächsten Speichern still zu löschen.
+                  Geprüft gegen die Liste des AKTUELLEN Typs: Nach einem Typ-Wechsel
+                  („Café" bei Aktiv) zeigte der Select sonst „—", speicherte aber den
+                  alten Wert – Anzeige und Daten liefen auseinander. */}
+              {form.subtype && !subtypesFor(isFood).includes(form.subtype) && (
+                <option value={form.subtype}>{form.subtype} (alt/anderer Typ)</option>
               )}
               {Object.entries(subtypeGroups(isFood)).map(([group, list]) => (
                 <optgroup key={group} label={group}>
@@ -1013,7 +1099,11 @@ export default function SpotForm({
                   </span>
                 </>
               )}
-              {snapMsg && <span className="text-xs text-muted">{snapMsg}</span>}
+              {snapMsg && (
+                <span className={`text-xs ${snapMsg.ok ? "text-muted" : "font-medium text-accent"}`}>
+                  {snapMsg.text}
+                </span>
+              )}
             </div>
 
             {form.elevationProfile && (
@@ -1181,9 +1271,10 @@ export default function SpotForm({
                           step="any"
                           placeholder="lat"
                           value={p.lat}
-                          onChange={(ev) =>
-                            updatePoi(kind, i, { lat: ev.target.value === "" ? 0 : parseFloat(ev.target.value) })
-                          }
+                          onChange={(ev) => {
+                            const n = parseFloat(ev.target.value);
+                            if (Number.isFinite(n)) updatePoi(kind, i, { lat: n });
+                          }}
                         />
                         <input
                           className={input}
@@ -1191,9 +1282,10 @@ export default function SpotForm({
                           step="any"
                           placeholder="lng"
                           value={p.lng}
-                          onChange={(ev) =>
-                            updatePoi(kind, i, { lng: ev.target.value === "" ? 0 : parseFloat(ev.target.value) })
-                          }
+                          onChange={(ev) => {
+                            const n = parseFloat(ev.target.value);
+                            if (Number.isFinite(n)) updatePoi(kind, i, { lng: n });
+                          }}
                         />
                         <button
                           type="button"
@@ -1415,7 +1507,7 @@ export default function SpotForm({
         {/* Gegend: EIN Feld für beide Spot-Typen, bewusst ausserhalb der beiden Raster.
             Bei Lokalen ist sie einer der vier Quick-Facts auf der Spot-Seite. Bei Aktivitäten
             sind die vier Plätze mit Dauer/Schwierigkeit/Zeit/Anreise belegt, dort erscheint
-            sie NICHT — sie füttert nur Toni, der damit Spots einer Region findet
+            sie NICHT, sie füttert nur Toni, der damit Spots einer Region findet
             (ai-assistant.ts: Suchbegriff und Spot-Details). Kein zweites Feld dafür: dieselbe
             Spalte, dieselbe Auswahlliste, nur ein anderer Hinweistext.
 
@@ -1481,17 +1573,16 @@ export default function SpotForm({
               disabled={pending}
               className="rounded-full bg-accent px-3.5 py-1.5 text-xs font-semibold text-white"
             >
-              <AiSparkle className="h-[1.05em] w-[1.05em]" />
               Deutsche Texte erzeugen
             </AiButton>
             <AiButton
               loading={aiAction === "translate"}
-              loadingLabel="🌍 Übersetze alle"
+              loadingLabel="Übersetze alle"
               onClick={onTranslateAll}
               disabled={pending}
               className="rounded-full bg-ink px-3.5 py-1.5 text-xs font-semibold text-white"
             >
-              🌍 In alle Sprachen übersetzen
+              In alle Sprachen übersetzen
             </AiButton>
             <label className="flex items-center gap-1.5 text-xs text-ink">
               <input
@@ -1505,12 +1596,19 @@ export default function SpotForm({
           </div>
           {trStale && (
             <p className="rounded-[10px] bg-accent/10 px-3 py-2 text-xs font-medium text-accent">
-              ⚠ Deutsch wurde geändert – die Übersetzungen sind dadurch veraltet. Bitte „🌍 In alle
+              ⚠ Deutsch wurde geändert – die Übersetzungen sind dadurch veraltet. Bitte „In alle
               Sprachen übersetzen“, damit alle Sprachen wieder gleich sind.
             </p>
           )}
-          {(aiMsg || enMsg) && (
-            <p className="text-xs text-muted">{aiMsg || enMsg}</p>
+          {aiMsg && (
+            <p className={`text-xs ${aiMsg.ok ? "text-muted" : "font-medium text-accent"}`}>
+              {aiMsg.text}
+            </p>
+          )}
+          {enMsg && (
+            <p className={`text-xs ${enMsg.ok ? "text-muted" : "font-medium text-accent"}`}>
+              {enMsg.text}
+            </p>
           )}
           <p className="text-xs text-muted">
             Ablauf: Deutsch erzeugen/prüfen → „In alle Sprachen übersetzen“ → Übersetzungen unten
@@ -1586,6 +1684,23 @@ export default function SpotForm({
           </div>
         </div>
       </details>
+
+      {/* Zweiter Speichern-Knopf: Wer unten die Übersetzungen geprüft hat, soll nicht
+          erst das ganze Formular hochscrollen müssen. */}
+      <div className="flex items-center justify-end gap-2">
+        {err && (
+          <p className="min-w-0 flex-1 rounded-[12px] bg-accent/10 px-3 py-2 text-sm text-accent">
+            {err}
+          </p>
+        )}
+        <button
+          type="submit"
+          disabled={pending}
+          className="rounded-full bg-accent px-5 py-2 text-sm font-semibold text-white disabled:opacity-60"
+        >
+          {formAction === "save" ? "Speichern …" : "Speichern"}
+        </button>
+      </div>
     </form>
   );
 }

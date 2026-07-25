@@ -12,12 +12,27 @@ export default function AiInsights({ query }: { query: AnalyticsQuery }) {
   const [error, setError] = useState(false);
   const [busy, start] = useTransition();
 
+  // Prop-Sync (Muster wie AdminEventList): Wechselt der Admin Zeitraum/Filter, ist die
+  // alte Analyse eine Aussage über ANDERE Daten. Ohne Reset läse er die 30-Tage-Analyse
+  // weiter, während oben „12 Mon" gewählt ist – ohne jeden Hinweis.
+  const queryKey = JSON.stringify(query);
+  const [prevQueryKey, setPrevQueryKey] = useState(queryKey);
+  if (queryKey !== prevQueryKey) {
+    setPrevQueryKey(queryKey);
+    setText(null);
+    setError(false);
+  }
+
   function run() {
     setError(false);
     start(async () => {
-      const r = await runAnalyticsInsights(query);
-      if (r.ok) setText(r.text);
-      else setError(true);
+      try {
+        const r = await runAnalyticsInsights(query);
+        if (r.ok) setText(r.text);
+        else setError(true);
+      } catch {
+        setError(true);
+      }
     });
   }
 

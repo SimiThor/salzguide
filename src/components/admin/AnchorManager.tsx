@@ -13,7 +13,7 @@ import {
 } from "@/lib/anchor-actions";
 import type { EventCategory } from "@/lib/events-format";
 import AiButton from "./AiButton";
-import AiSparkle from "@/components/ai/AiSparkle";
+import { adminErrorText } from "@/lib/admin-errors";
 
 const MONTHS = ["Jän", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"];
 const REGIONS = [
@@ -86,7 +86,11 @@ export default function AnchorManager({
 
   const [query, setQuery] = useState("");
   const [draft, setDraft] = useState<AnchorInput | null>(null);
-  const [msg, setMsg] = useState("");
+  // {ok,text} statt String: Fehler dürfen nicht im selben grauen Stil stehen wie „✓".
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  // Merker, ob am offenen Entwurf schon getippt wurde: „+ Neuer Anker" und
+  // „Bearbeiten" ersetzen ihn sonst kommentarlos.
+  const [draftDirty, setDraftDirty] = useState(false);
   const [aiPending, startAi] = useTransition();
 
   const filtered = useMemo(() => {
@@ -97,58 +101,91 @@ export default function AnchorManager({
     );
   }, [list, query]);
 
-  const set = (patch: Partial<AnchorInput>) =>
+  const set = (patch: Partial<AnchorInput>) => {
+    setDraftDirty(true);
     setDraft((d) => (d ? { ...d, ...patch } : d));
-  const toggleMonth = (m: number) =>
+  };
+  const toggleMonth = (m: number) => {
+    setDraftDirty(true);
     setDraft((d) =>
       d
         ? { ...d, months: d.months.includes(m) ? d.months.filter((x) => x !== m) : [...d.months, m] }
         : d,
     );
+  };
+
+  // Ein offener, angefasster Entwurf ist Arbeit – vor dem Ersetzen fragen.
+  function openDraft(next: AnchorInput) {
+    if (draft && draftDirty && !confirm("Der offene Anker-Entwurf ist noch nicht gespeichert. Verwerfen?"))
+      return;
+    setMsg(null);
+    setDraftDirty(false);
+    setDraft(next);
+  }
 
   function onSave() {
     if (!draft) return;
     if (!draft.name.trim()) {
-      setMsg("Bitte einen Namen eingeben.");
+      setMsg({ ok: false, text: "Bitte einen Namen eingeben." });
       return;
     }
-    setMsg("");
+    setMsg(null);
     start(async () => {
-      const r = await saveAnchor(draft);
-      if (r.ok) {
-        setDraft(null);
-        router.refresh();
-      } else {
-        setMsg(r.error ?? "Speichern fehlgeschlagen");
+      try {
+        const r = await saveAnchor(draft);
+        if (r.ok) {
+          setDraft(null);
+          setDraftDirty(false);
+          router.refresh();
+        } else {
+          setMsg({ ok: false, text: adminErrorText(r.error) });
+        }
+      } catch {
+        setMsg({ ok: false, text: "Gerade nicht erreichbar. Bitte nochmal versuchen." });
       }
     });
   }
   function onAiFill() {
     if (!draft) return;
     if (!draft.name.trim()) {
-      setMsg("Bitte zuerst einen Namen eingeben.");
+      setMsg({ ok: false, text: "Bitte zuerst einen Namen eingeben." });
       return;
     }
-    setMsg("");
+    // Bei einem BESTEHENDEN, kuratierten Anker überschreibt die KI alle Felder –
+    // dieselbe Rückfrage wie beim EventForm vor der Recherche.
+    if (draft.id && !confirm("Alle Felder dieses Ankers mit dem KI-Vorschlag überschreiben?"))
+      return;
+    setMsg(null);
     startAi(async () => {
-      const r = await generateAnchorDraft(draft.name.trim());
-      if (r.ok && r.draft) {
-        // Name + aktiv-Status behalten, den Rest von der KI übernehmen.
-        setDraft((d) => (d ? { ...d, ...r.draft } : d));
-        setMsg("✓ Von KI ausgefüllt – bitte prüfen und ggf. anpassen.");
-      } else {
-        setMsg(r.error ?? "KI-Recherche fehlgeschlagen");
+      try {
+        const r = await generateAnchorDraft(draft.name.trim());
+        if (r.ok && r.draft) {
+          // Name + aktiv-Status behalten, den Rest von der KI übernehmen.
+          setDraftDirty(true);
+          setDraft((d) => (d ? { ...d, ...r.draft } : d));
+          setMsg({ ok: true, text: "✓ Von KI ausgefüllt – bitte prüfen und ggf. anpassen." });
+        } else {
+          setMsg({ ok: false, text: adminErrorText(r.error) });
+        }
+      } catch {
+        setMsg({ ok: false, text: "Gerade nicht erreichbar. Bitte nochmal versuchen." });
       }
     });
   }
   function onDelete(a: AdminAnchorRow) {
-    if (!confirm(`„${a.name}" wirklich löschen?`)) return;
+    if (!confirm(`„${a.name}“ wirklich löschen?`)) return;
     setList((l) => l.filter((x) => x.id !== a.id)); // optimistisch
     start(async () => {
-      const r = await deleteAnchor(a.id);
-      if (r.ok) router.refresh();
-      else {
-        setMsg(r.error ?? "Löschen fehlgeschlagen");
+      try {
+        const r = await deleteAnchor(a.id);
+        if (r.ok) router.refresh();
+        else {
+          setMsg({ ok: false, text: adminErrorText(r.error) });
+          router.refresh();
+        }
+      } catch {
+        // Wirft die Action, kommt die optimistisch entfernte Zeile per refresh zurück.
+        setMsg({ ok: false, text: "Gerade nicht erreichbar. Bitte nochmal versuchen." });
         router.refresh();
       }
     });
@@ -157,22 +194,31 @@ export default function AnchorManager({
     const next = !a.active;
     setList((l) => l.map((x) => (x.id === a.id ? { ...x, active: next } : x))); // optimistisch
     start(async () => {
-      const r = await toggleAnchorActive(a.id, next);
-      if (!r.ok) {
-        setMsg(r.error ?? "Umschalten fehlgeschlagen");
+      try {
+        const r = await toggleAnchorActive(a.id, next);
+        if (!r.ok) {
+          setMsg({ ok: false, text: adminErrorText(r.error) });
+          router.refresh();
+        }
+      } catch {
+        setMsg({ ok: false, text: "Gerade nicht erreichbar. Bitte nochmal versuchen." });
         router.refresh();
       }
     });
   }
   function onSeed() {
-    setMsg("");
+    setMsg(null);
     start(async () => {
-      const r = await seedDefaultAnchors();
-      if (r.ok) {
-        setMsg(`✓ ${r.inserted ?? 0} Standard-Anker geladen.`);
-        router.refresh();
-      } else {
-        setMsg(r.error ?? "Laden fehlgeschlagen");
+      try {
+        const r = await seedDefaultAnchors();
+        if (r.ok) {
+          setMsg({ ok: true, text: `✓ ${r.inserted ?? 0} Standard-Anker geladen.` });
+          router.refresh();
+        } else {
+          setMsg({ ok: false, text: adminErrorText(r.error) });
+        }
+      } catch {
+        setMsg({ ok: false, text: "Gerade nicht erreichbar. Bitte nochmal versuchen." });
       }
     });
   }
@@ -194,17 +240,18 @@ export default function AnchorManager({
         />
         <button
           type="button"
-          onClick={() => {
-            setMsg("");
-            setDraft(emptyDraft());
-          }}
+          onClick={() => openDraft(emptyDraft())}
           className="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-white active:scale-[0.98]"
         >
           + Neuer Anker
         </button>
       </div>
 
-      {msg && <p className="text-sm text-muted">{msg}</p>}
+      {msg && (
+        <p className={`text-sm ${msg.ok ? "text-muted" : "font-medium text-accent"}`}>
+          {msg.text}
+        </p>
+      )}
 
       {/* Editor */}
       {draft && (
@@ -239,13 +286,13 @@ export default function AnchorManager({
                 }}
                 placeholder="z. B. Rupertikirtag"
               />
+              {/* Sparkle steckt jetzt IM AiButton – kein zweites Symbol hier. */}
               <AiButton
                 loading={aiPending}
                 loadingLabel="Recherchiere"
                 onClick={onAiFill}
                 className="shrink-0 rounded-[12px] bg-accent px-3.5 text-sm font-semibold text-white"
               >
-                <AiSparkle className="h-[1.05em] w-[1.05em]" />
                 Mit KI ausfüllen
               </AiButton>
             </div>
@@ -384,7 +431,8 @@ export default function AnchorManager({
               type="button"
               onClick={() => {
                 setDraft(null);
-                setMsg("");
+                setDraftDirty(false);
+                setMsg(null);
               }}
               className="rounded-full bg-black/5 px-4 py-2 text-sm font-semibold text-ink"
             >
@@ -444,10 +492,7 @@ export default function AnchorManager({
               </div>
               <button
                 type="button"
-                onClick={() => {
-                  setMsg("");
-                  setDraft(rowToDraft(a));
-                }}
+                onClick={() => openDraft(rowToDraft(a))}
                 className="shrink-0 rounded-full bg-black/5 px-3 py-1.5 text-xs font-semibold text-ink"
               >
                 Bearbeiten
@@ -455,7 +500,7 @@ export default function AnchorManager({
               <button
                 type="button"
                 onClick={() => onDelete(a)}
-                className="shrink-0 rounded-full px-2 py-1.5 text-xs font-semibold text-accent"
+                className="sg-hit shrink-0 rounded-full px-2 py-1.5 text-xs font-semibold text-accent"
                 title="Löschen"
               >
                 ✕

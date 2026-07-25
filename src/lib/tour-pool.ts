@@ -17,7 +17,8 @@ export async function getAreasAdmin(): Promise<AdminAreaRow[]> {
   const { data } = await supabase
     .from("tour_areas")
     .select("id, key, status, tour_area_translations(lang, name), tour_points(id)")
-    .order("sort_order", { ascending: true });
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: true }); // sort_order ist überall 0 -> ohne Zweitschlüssel wäre die Reihenfolge Postgres-Zufall
   return ((data as unknown as Record<string, unknown>[]) ?? []).map((a) => {
     const trs = (a.tour_area_translations as { lang: string; name: string }[] | null) ?? [];
     const tr = trs.find((r) => r.lang === "de") ?? trs[0];
@@ -119,7 +120,8 @@ export async function getAreaPoints(areaId: string): Promise<AdminPointRow[]> {
       "id, lat, lng, status, tags, tour_point_translations(lang, title), tour_point_audio(lang, audio_url)",
     )
     .eq("area_id", areaId)
-    .order("sort_order", { ascending: true });
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: true }); // sort_order ist überall 0 -> ohne Zweitschlüssel wäre die Reihenfolge Postgres-Zufall
   return ((data as unknown as Record<string, unknown>[]) ?? []).map((p) => {
     const trs = (p.tour_point_translations as { lang: string; title: string }[] | null) ?? [];
     const audio =
@@ -146,7 +148,15 @@ export async function getAreaPoints(areaId: string): Promise<AdminPointRow[]> {
   });
 }
 
-type PointTextData = { title: string; audioText: string; audioUrl: string | null };
+type PointTextData = {
+  title: string;
+  audioText: string;
+  audioUrl: string | null;
+  // Kurzlebige Signed-URL zum Abhören im Editor (privater tour-audio-Bucket).
+  // Ohne sie zeigt das Formular nur "✓ MP3", und zum Anhören müsste man neu
+  // vertonen (kostet ElevenLabs-Guthaben) oder die Live-Tour öffnen.
+  audioPreviewUrl: string | null;
+};
 
 export type PointEditData = {
   id: string;
@@ -196,6 +206,17 @@ export async function getPointForEdit(id: string): Promise<PointEditData | null>
     (p.tour_point_audio as
       | { lang: string; audio_text: string | null; audio_url: string | null }[]
       | null) ?? [];
+  // Signed-URLs für alle vorhandenen MP3s in EINEM Aufruf (siehe PointTextData).
+  const audioPaths = audio.map((a) => a.audio_url).filter((u): u is string => !!u);
+  const signedByPath = new Map<string, string>();
+  if (audioPaths.length) {
+    const { data: signed } = await supabase.storage
+      .from("tour-audio")
+      .createSignedUrls(audioPaths, 60 * 60);
+    for (const sd of signed ?? []) {
+      if (sd.path && sd.signedUrl) signedByPath.set(sd.path, sd.signedUrl);
+    }
+  }
   const build = (lang: string): PointTextData => {
     const t = trs.find((r) => r.lang === lang);
     const a = audio.find((r) => r.lang === lang);
@@ -203,6 +224,7 @@ export async function getPointForEdit(id: string): Promise<PointEditData | null>
       title: t?.title ?? "",
       audioText: a?.audio_text ?? "",
       audioUrl: a?.audio_url ?? null,
+      audioPreviewUrl: a?.audio_url ? (signedByPath.get(a.audio_url) ?? null) : null,
     };
   };
   const translations: Record<string, PointTextData> = {};

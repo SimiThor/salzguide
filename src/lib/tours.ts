@@ -27,7 +27,8 @@ export async function getPublishedTours(locale: string): Promise<TourSummary[]> 
         "tour_translations(lang, title, subtitle), tour_stops(tour_points(status))",
     )
     .eq("status", "published")
-    .order("sort_order", { ascending: true });
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: true }); // sort_order ist überall 0 -> ohne Zweitschlüssel wäre die Reihenfolge Postgres-Zufall
   if (error || !data) return [];
 
   return (data as unknown as Record<string, unknown>[]).map((t) => {
@@ -222,7 +223,8 @@ export async function getPublishedAreas(locale: string): Promise<PublicArea[]> {
     .from("tour_areas")
     .select("id, start_lat, start_lng, tour_area_translations(lang, name)")
     .eq("status", "published")
-    .order("sort_order", { ascending: true });
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: true }); // sort_order ist überall 0 -> ohne Zweitschlüssel wäre die Reihenfolge Postgres-Zufall
   return ((data as unknown as Record<string, unknown>[]) ?? []).map((a) => {
     const trs = (a.tour_area_translations as { lang: string; name: string }[] | null) ?? [];
     const tr = trs.find((r) => r.lang === locale) ?? trs.find((r) => r.lang === "de") ?? trs[0];
@@ -251,7 +253,8 @@ export async function getToursAdmin(): Promise<AdminTourRow[]> {
   const { data } = await supabase
     .from("tours")
     .select("id, slug, region, status, is_pro, tour_translations(lang, title), tour_stops(id)")
-    .order("sort_order", { ascending: true });
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: true }); // sort_order ist überall 0 -> ohne Zweitschlüssel wäre die Reihenfolge Postgres-Zufall
   return ((data as unknown as Record<string, unknown>[]) ?? []).map((t) => {
     const trs = (t.tour_translations as { lang: string; title: string }[] | null) ?? [];
     const tr = trs.find((r) => r.lang === "de") ?? trs[0];

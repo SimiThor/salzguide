@@ -204,11 +204,11 @@ function GapList({ gaps }: { gaps: AiInsightsData["gaps"] }) {
     <div className="rounded-[16px] bg-white p-4 shadow-sm ring-1 ring-black/[0.04]">
       <h2 className="text-[15px] font-semibold text-ink">Content-Lücken</h2>
       <p className="text-[11px] text-muted">
-        Wünsche, die der Chatbot NICHT erfüllen konnte — was wir aufnehmen/ergänzen sollten.
+        Wünsche, die der Chatbot NICHT erfüllen konnte: was wir aufnehmen/ergänzen sollten.
       </p>
       {gaps.length === 0 ? (
         <p className="mt-3 text-[13px] text-muted">
-          Keine Lücken über der Sichtbarkeitsschwelle (k-Anonymität) — oder noch zu wenige Anfragen.
+          Keine Lücken über der Sichtbarkeitsschwelle (k-Anonymität), oder noch zu wenige Anfragen.
         </p>
       ) : (
         <ul className="mt-3 space-y-2">
@@ -348,7 +348,7 @@ export default async function AnalyticsPage({
         <div className="rounded-[16px] border border-amber-400/50 bg-amber-50 p-4 text-[13px] leading-relaxed text-amber-900">
           <strong>Vorschau mit Beispieldaten.</strong> So sieht dein Dashboard aus und das wird
           erfasst. Echte Zahlen &amp; die KI-Auswertung erscheinen automatisch, sobald die Seite
-          live ist — in der Entwicklung wird bewusst nicht getrackt (Datenschutz).
+          live ist. In der Entwicklung wird bewusst nicht getrackt (Datenschutz).
         </div>
       )}
 

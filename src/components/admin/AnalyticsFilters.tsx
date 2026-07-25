@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "@/i18n/navigation";
 import { routing } from "@/i18n/routing";
 import { localeMeta } from "@/i18n/locales";
@@ -59,6 +60,23 @@ export default function AnalyticsFilters({
 }) {
   const router = useRouter();
 
+  // Die Datumsfelder brauchen LOKALEN State: In die URL (und damit zum Server) geht der
+  // Zeitraum erst, wenn BEIDE Daten gewählt sind. Vorher waren die Inputs rein durch die
+  // Server-Props kontrolliert – wer „Von" wählte, hatte noch kein „Bis", die URL bekam
+  // nichts, der Server renderte mit leerem Wert, und das Feld sprang sofort zurück.
+  // Ein eigener Zeitraum war damit schlicht nicht einstellbar.
+  const [draftFrom, setDraftFrom] = useState(current.from ?? "");
+  const [draftTo, setDraftTo] = useState(current.to ?? "");
+  // Prop-Sync (Muster wie AdminEventList): Nach Navigation (Preset/Zurücksetzen) sind
+  // die Server-Props die Wahrheit.
+  const propKey = `${current.from ?? ""}|${current.to ?? ""}`;
+  const [prevPropKey, setPrevPropKey] = useState(propKey);
+  if (propKey !== prevPropKey) {
+    setPrevPropKey(propKey);
+    setDraftFrom(current.from ?? "");
+    setDraftTo(current.to ?? "");
+  }
+
   function push(next: Partial<Current>) {
     const m = { ...current, ...next };
     const p = new URLSearchParams();
@@ -91,7 +109,11 @@ export default function AnalyticsFilters({
               <button
                 key={r.key}
                 type="button"
-                onClick={() => push({ range: r.key, from: null, to: null })}
+                onClick={() => {
+                  setDraftFrom("");
+                  setDraftTo("");
+                  push({ range: r.key, from: null, to: null });
+                }}
                 className={`rounded-full px-3 py-1.5 text-[13px] font-semibold transition ${
                   active ? "bg-white text-ink shadow-sm" : "text-muted"
                 }`}
@@ -107,8 +129,12 @@ export default function AnalyticsFilters({
           Von
           <input
             type="date"
-            value={current.from ?? ""}
-            onChange={(e) => push({ from: e.target.value || null, to: current.to })}
+            value={draftFrom}
+            onChange={(e) => {
+              const v = e.target.value;
+              setDraftFrom(v);
+              if (v && draftTo) push({ from: v, to: draftTo });
+            }}
             className="rounded-lg border border-black/10 bg-white px-2 py-1.5 text-[13px] text-ink outline-none focus:border-accent"
           />
         </label>
@@ -116,8 +142,12 @@ export default function AnalyticsFilters({
           Bis
           <input
             type="date"
-            value={current.to ?? ""}
-            onChange={(e) => push({ from: current.from, to: e.target.value || null })}
+            value={draftTo}
+            onChange={(e) => {
+              const v = e.target.value;
+              setDraftTo(v);
+              if (draftFrom && v) push({ from: draftFrom, to: v });
+            }}
             className="rounded-lg border border-black/10 bg-white px-2 py-1.5 text-[13px] text-ink outline-none focus:border-accent"
           />
         </label>
