@@ -97,7 +97,7 @@ export async function submitSupportRequest(
       `Sprache: ${locale}\n` +
       `Konto: ${user ? user.id : "nicht angemeldet"}\n\n` +
       `${message}\n\n` +
-      `— Steht auch im Admin unter /admin/support.`,
+      `— Steht auch im Admin unter /admin/users/support.`,
   });
   if (!sent) {
     console.error("[support] Benachrichtigung nicht gesendet (RESEND_KEY prüfen). Anfrage ist gespeichert.");

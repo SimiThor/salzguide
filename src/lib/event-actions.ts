@@ -154,10 +154,12 @@ export async function saveEvent(input: EventInput): Promise<EventSaveResult> {
   // translations (JSONB) + source_hash NACHTRÄGLICH & fehlertolerant (Migration 0032):
   // existieren die Spalten noch nicht, scheitert nur DAS – nicht das Event.
   {
-    const deHash = hashTexts([input.title, input.description]);
+    // Keine Marke fabrizieren: nur die echte (aus „In alle Sprachen übersetzen") speichern, sonst
+    // null. Mit `?? deHash` galt handgetippt-ohne-Übersetzung als „aktuell" und kam nach einem
+    // Entwurf-Save + Neuladen durchs Publish-Gate, das genau eine echte Marke verlangt (spot-hash.ts).
     const { error: te } = await supabase
       .from("events")
-      .update({ translations, source_hash: input.translationsSourceHash ?? deHash })
+      .update({ translations, source_hash: input.translationsSourceHash ?? null })
       .eq("id", eventId);
     if (te) {
       console.warn("event translations übersprungen – Migration 0032 nötig?", te.message);

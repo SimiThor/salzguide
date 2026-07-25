@@ -351,13 +351,13 @@ export default function ProMigrationManager({
           hint={
             list.total === 0
               ? "Sobald Adressen auf der Liste stehen, geht die Mail von hier raus."
-              : `Geht an die ${list.open}, die noch keine haben. Wer schon angeschrieben wurde, bekommt sie nicht nochmal.`
+              : `Geht an die ${list.unannounced}, die noch nicht angeschrieben wurden. Wer die Mail schon hat, bekommt sie nicht nochmal.`
           }
         />
         {confirmSend ? (
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-[13px] font-semibold text-ink">
-              An {list.open} {list.open === 1 ? "Mensch" : "Menschen"} senden?
+              An {list.unannounced} {list.unannounced === 1 ? "Mensch" : "Menschen"} senden?
             </span>
             <button
               type="button"
@@ -396,7 +396,7 @@ export default function ProMigrationManager({
           <button
             type="button"
             onClick={() => setConfirmSend(true)}
-            disabled={pending || list.open === 0}
+            disabled={pending || list.unannounced === 0}
             className={BTN_SOFT}
           >
             ✉️ Ankündigung an alle

@@ -15,7 +15,6 @@ import {
 } from "./blur-preview";
 import { stripEmDashFields } from "./em-dash";
 import { guardStorageUrl } from "./storage-guard";
-import { slugifyKey } from "./slug";
 import { parsePois, hikingTimeMinutes, type MapPoi } from "./geo";
 import { HOME_KEYS } from "./home-fields";
 import { translateHomeTextsWith } from "./home-translate";
@@ -24,6 +23,7 @@ import type { HomeMedia } from "./home-content";
 import { MAX_HOME_FEATURED } from "./home-featured";
 import { requireAdmin } from "./admin-guard";
 import { factCanonical, factPrice, type FactField } from "./facts-i18n";
+import { slugify, slugifyKey } from "./slug";
 import { getIntroRenderList, type IntroRenderItem } from "./admin";
 
 export type SpotInput = {
@@ -150,8 +150,11 @@ export async function saveSpot(input: SpotInput): Promise<SaveResult> {
   if (!gate.ok) return { ok: false, error: gate.error };
   const { supabase } = gate;
 
-  if (!input.slug.trim() || !input.title.trim())
-    return { ok: false, error: "required" };
+  // Slug = URL-Schlüssel. Bei NEUEN Spots kanonisieren, damit nie ein roher „Hallstätter See!"
+  // als URL landet. Bestehende Spots NICHT umschreiben: ein geänderter Slug bräche alte
+  // Links/SEO; wer ihn bewusst ändert, tut das im Feld selbst.
+  const slug = input.id ? input.slug.trim() : slugify(input.slug);
+  if (!slug || !input.title.trim()) return { ok: false, error: "required" };
 
   // Öffnungszeiten: im Google-Modus (Default) ist die Place-ID Pflicht.
   if (
@@ -191,25 +194,6 @@ export async function saveSpot(input: SpotInput): Promise<SaveResult> {
     wasPublished = (cur as { status?: string } | null)?.status === "published";
   }
 
-  // Veröffentlichen-Gate (Anti-Chaos): live gehen darf ein Spot NUR, wenn er in ALLE Sprachen
-  // übersetzt UND aktuell ist. Geprüft wird NUR der Übergang Entwurf->Veröffentlicht: ein bereits
-  // veröffentlichter Spot bleibt frei editierbar (Koordinaten/Fotos/Tippfehler), ohne dass alle
-  // Sprachen erneut erzwungen werden. Entwurf speichern ist immer erlaubt. (Verbindliche Grenze.)
-  if (input.status === "published" && !wasPublished) {
-    const deHashGate = hashSpotTexts({
-      title: input.title,
-      shortDesc: input.shortDesc,
-      general: input.general,
-      insiderTip: input.insiderTip,
-      sectionA: input.sectionA,
-      sectionB: input.sectionB,
-      locationText: input.locationText,
-    });
-    const targets = routing.locales.filter((l) => l !== "de");
-    if (!translationsPublishable(input.translations, input.translationsSourceHash, deHashGate, targets))
-      return { ok: false, error: "translations_incomplete" };
-  }
-
   // Zahlen härten, wie savePoint/saveTour es vormachen: Ein NaN aus dem Client
   // serialisiert zu null und knallt erst als roher Postgres-Fehler (sort_weight ist
   // NOT NULL); kaputte Koordinaten-Paare gingen über route_geojson bis auf die
@@ -237,8 +221,32 @@ export async function saveSpot(input: SpotInput): Promise<SaveResult> {
   const waterStops = parsePois(input.waterStops);
   const huts = parsePois(input.huts);
 
+  // Veröffentlichen-Gate (Anti-Chaos): live gehen darf ein Spot NUR mit gesetztem Ort UND in
+  // ALLE Sprachen übersetzt & aktuell. Geprüft wird NUR der Übergang Entwurf->Veröffentlicht
+  // (wasPublished oben): ein bereits veröffentlichter Spot bleibt frei editierbar
+  // (Koordinaten/Fotos/Tippfehler), ohne dass alles erneut erzwungen wird. Entwurf speichern
+  // ist immer erlaubt. (Verbindliche Grenze.)
+  if (input.status === "published" && !wasPublished) {
+    // Ohne Ort ist der Spot auf der Karte unsichtbar -> nicht veröffentlichbar. Der Ort ist in
+    // beiden Modi ein Klick (Einzelpunkt oder Wanderung mit Start & Ziel).
+    if (lat == null || lng == null)
+      return { ok: false, error: "location_required" };
+    const deHashGate = hashSpotTexts({
+      title: input.title,
+      shortDesc: input.shortDesc,
+      general: input.general,
+      insiderTip: input.insiderTip,
+      sectionA: input.sectionA,
+      sectionB: input.sectionB,
+      locationText: input.locationText,
+    });
+    const targets = routing.locales.filter((l) => l !== "de");
+    if (!translationsPublishable(input.translations, input.translationsSourceHash, deHashGate, targets))
+      return { ok: false, error: "translations_incomplete" };
+  }
+
   const row = {
-    slug: input.slug.trim(),
+    slug,
     type: input.type,
     subtype: canon("subtype", input.subtype),
     emoji: e(input.emoji),
@@ -276,7 +284,7 @@ export async function saveSpot(input: SpotInput): Promise<SaveResult> {
   };
 
   // Spot anlegen/aktualisieren. Der häufigste echte Fehler ist der doppelte Slug ->
-  // eigener Code statt roher Constraint-Meldung.
+  // eigener Code statt roher Constraint-Meldung (rohe Postgres-Texte bleiben im Server-Log).
   const spotErr = (e2: { message: string; code?: string }) =>
     e2.code === "23505" ? ("slug_taken" as const) : logDb("saveSpot: spots-Write", e2.message);
   const createdNew = !input.id;
@@ -964,129 +972,6 @@ export async function deleteSpot(id: string): Promise<SaveResult> {
   for (const l of routing.locales) revalidatePath(`/${l}`);
 
   return { ok: true };
-}
-
-// ---- 1-Klick DE→EN-Übersetzung der Spot-Texte -------------------------------
-export type TranslateResult = { ok: boolean; texts?: SpotTexts; error?: string };
-
-const EN_VOICE = `You are translating SalzGuide spot texts from German to natural English for salzguide.com (Salzburg region, Austria).
-
-STYLE:
-- Casual, buddy tone (German "Du" -> English "you"). Direct, honest, to the point.
-- Short, punchy sentences. Few, well-chosen adjectives.
-- Translate the MEANING into natural English, never word-for-word.
-- Keep ALL proper nouns and place names exactly (Hochkeil, Arthurhaus, Mandlwand, Salzburg, hut/dish names …). Keep numbers and units.
-
-NEVER use em dashes (—). They are the clearest tell of AI-written text and cost us the trust this brand is built on. Write like a human types: full stop, comma, colon, or a plain hyphen. The ONLY exception is Chinese, where the doubled "——" is standard punctuation.
-STRICTLY AVOID travel-brochure clichés: "breathtaking", "hidden gem", "paradise", "a must", "magical", "stunning vista", "nestled", "picturesque", "jewel".
-
-RULES:
-- Translate ONLY what is given. Do not add, embellish or invent facts.
-- If a source field is empty, return an empty string for it.`;
-
-export async function translateSpotTexts(input: SpotTexts): Promise<TranslateResult> {
-  const gate = await requireAdmin();
-  if (!gate.ok) return { ok: false, error: gate.error };
-
-  if (!input.title.trim()) return { ok: false, error: "Bitte zuerst deutsche Texte erstellen." };
-  const key = process.env.ANTHROPIC_API_KEY;
-  if (!key)
-    return { ok: false, error: "ANTHROPIC_API_KEY fehlt – bitte in .env.local eintragen" };
-
-  const src = {
-    title: input.title.trim(),
-    short_desc: input.shortDesc.trim(),
-    general: input.general.trim(),
-    insider_tip: input.insiderTip.trim(),
-    section_a: input.sectionA.trim(),
-    section_b: input.sectionB.trim(),
-    location_text: input.locationText.trim(),
-  };
-  const userMsg = `Translate these German spot fields to English and return them via the tool "spot_texts_en". Keep empty fields empty.\n\n${JSON.stringify(
-    src,
-    null,
-    2,
-  )}`;
-
-  try {
-    const res = await fetchWithRetry(
-      "https://api.anthropic.com/v1/messages",
-      {
-        method: "POST",
-        headers: {
-          "x-api-key": key,
-          "anthropic-version": "2023-06-01",
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-6",
-          max_tokens: 1500,
-          system: EN_VOICE,
-          messages: [{ role: "user", content: userMsg }],
-          tools: [
-            {
-              name: "spot_texts_en",
-              description: "The English translations of the SalzGuide spot fields.",
-              input_schema: {
-                type: "object",
-                properties: {
-                  title: { type: "string" },
-                  short_desc: { type: "string" },
-                  general: { type: "string" },
-                  insider_tip: { type: "string" },
-                  section_a: { type: "string" },
-                  section_b: { type: "string" },
-                  location_text: { type: "string" },
-                },
-                required: [
-                  "title",
-                  "short_desc",
-                  "general",
-                  "insider_tip",
-                  "section_a",
-                  "section_b",
-                  "location_text",
-                ],
-              },
-            },
-          ],
-          tool_choice: { type: "tool", name: "spot_texts_en" },
-        }),
-      },
-      2,
-      60000,
-    );
-    if (!res.ok) {
-      const txt = await res.text();
-      return { ok: false, error: `Claude ${res.status}: ${txt.slice(0, 160)}` };
-    }
-    const data = await res.json();
-    const block = (data.content ?? []).find(
-      (b: { type: string; name?: string }) =>
-        b.type === "tool_use" && b.name === "spot_texts_en",
-    ) as { input?: Record<string, string> } | undefined;
-    const t = block?.input;
-    if (!t) return { ok: false, error: "Keine Übersetzung erhalten" };
-    // Leere DE-Felder bleiben leer (die KI soll nichts erfinden)
-    const keep = (deVal: string, enVal?: string) => (deVal.trim() ? (enVal ?? "").trim() : "");
-    return {
-      ok: true,
-      texts: stripEmDashFields(
-        {
-          title: t.title?.trim() || input.title.trim(),
-          shortDesc: keep(input.shortDesc, t.short_desc),
-          general: keep(input.general, t.general),
-          insiderTip: keep(input.insiderTip, t.insider_tip),
-          sectionA: keep(input.sectionA, t.section_a),
-          sectionB: keep(input.sectionB, t.section_b),
-          locationText: keep(input.locationText, t.location_text),
-        },
-        "en",
-      ),
-    };
-  } catch {
-    return { ok: false, error: "KI-Dienst gerade nicht erreichbar – bitte nochmal versuchen." };
-  }
 }
 
 // ---- „In ALLE Sprachen übersetzen" -----------------------------------------
@@ -1865,7 +1750,7 @@ export async function saveHomeFeatured(
 // wären die Übersetzungen für immer scheinbar aktuell.
 export async function saveHomeTexts(
   texts: Record<string, string>,
-): Promise<{ ok: boolean; error?: string }> {
+): Promise<{ ok: boolean; error?: string; texts?: Record<string, string> }> {
   const gate = await requireAdmin();
   if (!gate.ok) return { ok: false, error: gate.error };
   if (!texts || typeof texts !== "object") return { ok: false, error: "Ungültige Texte." };
@@ -1897,7 +1782,9 @@ export async function saveHomeTexts(
     revalidatePath(`/${l}`);
     revalidatePath(`/${l}/ueber-uns`);
   }
-  return { ok: true };
+  // Den normalisierten Stand zurückgeben, damit das Formular ihn übernimmt: sonst bliebe der
+  // lokale Rohtext (Leerzeichen/Gedankenstrich) ungleich dem gespeicherten und „dirty" klemmte.
+  return { ok: true, texts: cleaned };
 }
 
 // „In alle Sprachen übersetzen": Deutsch -> alle Ziel-Locales, in einem Rutsch.
@@ -1917,7 +1804,7 @@ export async function fillHomeTranslations(): Promise<{
   const svc = createServiceClient();
   const { data, error } = await svc
     .from("home_content")
-    .select("texts")
+    .select("texts, translations, source_hash")
     .eq("id", 1)
     .maybeSingle();
   if (error) return { ok: false, error: logDb("fillHomeTranslations: lesen", error.message) };
@@ -1930,12 +1817,23 @@ export async function fillHomeTranslations(): Promise<{
   if (!res.ok || !res.translations)
     return { ok: false, error: res.error === "empty" ? "Keine Texte." : "Übersetzung fehlgeschlagen." };
 
+  // Bereits gespeicherte Übersetzungen NICHT wegwerfen: nur die neu erhaltenen Sprachen
+  // überschreiben. Sonst würde ein Teilausfall (eine Sprache scheitert transient, der Lauf gilt
+  // trotzdem als ok) deren zuvor gute Übersetzung löschen und die Seite fiele dort auf Deutsch.
+  const prevTranslations = (data?.translations ?? {}) as Record<string, unknown>;
+  const mergedTranslations = { ...prevTranslations, ...res.translations };
+  // Die Aktualitäts-Marke nur setzen, wenn ALLE Zielsprachen geklappt haben. Bei Teilausfall die
+  // alte behalten -> das Badge bleibt „veraltet", statt die fehlgeschlagenen (jetzt alten)
+  // Sprachen fälschlich als aktuell auszuweisen.
+  const allSucceeded = !(res.failed && res.failed.length);
+  const nextSourceHash = allSucceeded
+    ? res.sourceHash
+    : ((data?.source_hash as string | null | undefined) ?? null);
   const { error: upErr } = await svc
     .from("home_content")
     .update({
-      translations: res.translations,
-      // Marke des Standes, der übersetzt wurde. Ändert Anton danach ein Wort, weicht sie ab.
-      source_hash: res.sourceHash,
+      translations: mergedTranslations,
+      source_hash: nextSourceHash,
       updated_at: new Date().toISOString(),
     })
     .eq("id", 1);
@@ -1953,7 +1851,9 @@ export async function fillHomeTranslations(): Promise<{
 // Dieselbe Prüfung wie beim Lesen (landing-media.ts): Was hier nicht durchkommt, wird zu
 // null statt zu einer halben Zeile in der DB. Der Alt-Text läuft NICHT durch die
 // Übersetzung — er gehört zum Bild, nicht zu den Texten.
-export async function saveHomeMedia(media: HomeMedia): Promise<{ ok: boolean; error?: string }> {
+export async function saveHomeMedia(
+  media: HomeMedia,
+): Promise<{ ok: boolean; error?: string; media?: HomeMedia }> {
   const gate = await requireAdmin();
   if (!gate.ok) return { ok: false, error: gate.error };
   if (!media || typeof media !== "object") return { ok: false, error: "Ungültige Medien." };
@@ -1989,7 +1889,9 @@ export async function saveHomeMedia(media: HomeMedia): Promise<{ ok: boolean; er
     revalidatePath(`/${l}`);
     revalidatePath(`/${l}/ueber-uns`);
   }
-  return { ok: true };
+  // Normalisierten Stand zurückgeben (verworfene Slots sind hier schon abgefangen), damit das
+  // Formular ihn übernimmt und „dirty" nicht auf getrimmten Alt-Texten hängen bleibt.
+  return { ok: true, media: clean };
 }
 
 // ── Intro-Video per Button rendern (GitHub Actions) ────────────────────────────

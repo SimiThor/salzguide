@@ -28,6 +28,8 @@ const ADMIN_ERRORS: Record<string, string> = {
   en_required: "Ist ein deutsches Feld gefüllt, muss das englische dazu gefüllt sein.",
   end_before_start: "Das Ende liegt vor dem Start.",
   place_id_required: "Für Google-Öffnungszeiten fehlt die Place-ID.",
+  location_required:
+    "Zum Veröffentlichen bitte den Ort auf der Karte setzen (Einzelpunkt oder Wanderung).",
   no_de: "Es gibt noch keine deutschen Texte als Quelle.",
   translations_incomplete:
     "Zum Veröffentlichen müssen alle Sprachen übersetzt und aktuell sein.",

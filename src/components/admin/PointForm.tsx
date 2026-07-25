@@ -211,7 +211,13 @@ export default function PointForm({
               // Audio-URL erhalten (Text geändert -> Vertonung ggf. neu nötig).
               next[l] = { ...(f.translations[l] ?? emptyPointTexts()), title: tx.title, audioText: tx.audioText };
             }
-            return { ...f, translations: next, translationsSourceHash: r.sourceHash };
+            // Bei Teilausfall die Marke NICHT vorrücken: fehlgeschlagene Sprachen behalten ihren
+            // alten Text (merge oben) und dürfen nicht als „aktuell" gelten -> Badge bleibt „veraltet".
+            return {
+              ...f,
+              translations: next,
+              translationsSourceHash: r.failed?.length ? f.translationsSourceHash : r.sourceHash,
+            };
           });
           const failed = r.failed?.length ? ` (fehlgeschlagen: ${r.failed.join(", ")})` : "";
           setMsg(`✓ In alle Sprachen übersetzt – jetzt „Alle vertonen“${failed}.`);

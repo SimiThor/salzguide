@@ -81,7 +81,9 @@ export async function getAreaForEdit(id: string): Promise<AreaEditData | null> {
     if (l === "de") continue;
     if (trs.some((r) => r.lang === l)) translations[l] = build(l);
   }
-  const deHash = trs.find((r) => r.lang === "de")?.source_hash ?? undefined;
+  // Wie bei den Punkten: die Marke steht auf den ZIEL-Zeilen (saveArea stempelt sie), nicht auf
+  // der DE-Zeile, die jeder Save auf aktuell setzt.
+  const deHash = trs.find((r) => r.lang !== "de" && r.source_hash)?.source_hash ?? undefined;
   return {
     id: a.id as string,
     emoji: (a.emoji as string | null) ?? "",
@@ -231,7 +233,10 @@ export async function getPointForEdit(id: string): Promise<PointEditData | null>
     const has = trs.some((r) => r.lang === l) || audio.some((r) => r.lang === l);
     if (has) translations[l] = build(l);
   }
-  const deHash = trs.find((r) => r.lang === "de")?.source_hash ?? undefined;
+  // Aus WELCHEM DE-Stand die Übersetzungen stammen, steht auf den ZIEL-Zeilen (savePoint stempelt
+  // sie mit dem Stand von damals). Die DE-Zeile trägt eine eigene Marke, die jeder Save auf aktuell
+  // setzt -> als Veraltet-Anker wertlos. Deshalb hier eine Ziel-Zeile lesen, nicht die DE-Zeile.
+  const deHash = trs.find((r) => r.lang !== "de" && r.source_hash)?.source_hash ?? undefined;
   return {
     id: p.id as string,
     areaId: p.area_id as string,

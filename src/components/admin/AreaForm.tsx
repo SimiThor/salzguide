@@ -115,7 +115,8 @@ export default function AreaForm({ initial }: { initial?: AreaEditData }) {
           setForm((f) => ({
             ...f,
             translations: { ...f.translations, ...r.translations },
-            translationsSourceHash: r.sourceHash,
+            // Bei Teilausfall die Marke NICHT vorrücken (fehlgeschlagene Sprachen behalten alten Text).
+            translationsSourceHash: r.failed?.length ? f.translationsSourceHash : r.sourceHash,
           }));
           const failed = r.failed?.length ? ` (fehlgeschlagen: ${r.failed.join(", ")})` : "";
           setMsg(`✓ In alle Sprachen übersetzt – bitte kurz prüfen${failed}.`);

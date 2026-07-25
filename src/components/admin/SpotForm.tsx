@@ -33,6 +33,7 @@ import {
   subtypesFor,
 } from "@/lib/spot-options";
 import { factIsKnown, factPrice } from "@/lib/facts-i18n";
+import { slugify } from "@/lib/slug";
 import LocationPicker, { POI_STYLE, type PlacingKind } from "./LocationPicker";
 import ElevationProfile from "../ElevationProfile";
 import PhotoUploader from "./PhotoUploader";
@@ -101,14 +102,6 @@ const emptyTexts = (): SpotTexts => ({
   sectionB: "",
   locationText: "",
 });
-
-function slugify(s: string) {
-  return s
-    .toLowerCase()
-    .replace(/ä/g, "ae").replace(/ö/g, "oe").replace(/ü/g, "ue").replace(/ß/g, "ss")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
-}
 
 const input =
   "w-full rounded-[12px] border border-black/10 bg-white px-3 py-2 text-[15px] text-ink outline-none focus:border-accent";
@@ -403,7 +396,20 @@ export default function SpotForm({
     ev.preventDefault();
     setErr("");
     // Veröffentlichen-Gate: NUR beim Übergang Entwurf->Veröffentlicht (nicht beim Editieren eines
-    // bereits live Spots). Live NUR mit vollständigen & aktuellen Übersetzungen. Entwurf geht immer.
+    // bereits live Spots). Entwurf geht immer.
+    // (1) Ort ist Pflicht: ohne ihn ist der Spot auf der Karte unsichtbar. Punkt = lat+lng,
+    //     Wanderung = Start & Ziel (>= 2 Wegpunkte). Deckt sich mit dem Server-Gate.
+    const hasLocation =
+      form.locationMode === "route"
+        ? form.routePoints.length >= 2
+        : form.lat != null && form.lng != null;
+    if (form.status === "published" && !wasPublished && !hasLocation) {
+      setErr(
+        "Zum Veröffentlichen bitte den Ort auf der Karte setzen (Einzelpunkt, oder Wanderung mit Start & Ziel) – oder Status auf „Entwurf“ stellen.",
+      );
+      return;
+    }
+    // (2) Live NUR mit vollständigen & aktuellen Übersetzungen.
     if (form.status === "published" && !wasPublished && !trComplete) {
       setErr(
         `Zum Veröffentlichen müssen alle Sprachen übersetzt & aktuell sein (${translatedLangs.length}/${TARGET_LOCALES.length}). ` +
@@ -432,11 +438,13 @@ export default function SpotForm({
               ? "Google Place ID ist Pflicht – bitte eintragen oder auf „Manuell angeben“ umstellen."
               : r.error === "required"
                 ? "Bitte Slug und Titel ausfüllen."
-                : r.error === "translations_incomplete"
-                  ? "Zum Veröffentlichen erst „In alle Sprachen übersetzen“ – oder als Entwurf speichern."
-                  : r.error === "bad_url"
-                    ? "Mindestens eine Datei kommt nicht aus unserem Speicher. Fotos/Video bitte neu hochladen."
-                    : adminErrorText(r.error),
+                : r.error === "location_required"
+                  ? "Zum Veröffentlichen bitte den Ort auf der Karte setzen (Einzelpunkt oder Wanderung mit Start & Ziel)."
+                  : r.error === "translations_incomplete"
+                    ? "Zum Veröffentlichen erst „In alle Sprachen übersetzen“ – oder als Entwurf speichern."
+                    : r.error === "bad_url"
+                      ? "Mindestens eine Datei kommt nicht aus unserem Speicher. Fotos/Video bitte neu hochladen."
+                      : adminErrorText(r.error),
           );
       } catch {
         setErr("Gerade nicht erreichbar. Bitte nochmal versuchen.");
@@ -950,111 +958,6 @@ export default function SpotForm({
         </section>
       )}
 
-      {/* Kategorien */}
-      <section className="space-y-3 rounded-[16px] bg-white p-5 shadow-sm">
-        <h2 className="text-[15px] font-semibold text-ink">Kategorien (Karussells)</h2>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">Sommer</p>
-            <div className="flex flex-col gap-1.5">
-              {sommerCats.map((c) => (
-                <label key={c.id} className="flex items-center gap-2 text-sm text-ink">
-                  <input type="checkbox" className="h-4 w-4 accent-[#cc2924]" checked={form.categoryIds.includes(c.id)} onChange={() => toggleCategory(c.id)} />
-                  {c.title}
-                </label>
-              ))}
-            </div>
-          </div>
-          <div>
-            <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">Winter</p>
-            <div className="flex flex-col gap-1.5">
-              {winterCats.map((c) => (
-                <label key={c.id} className="flex items-center gap-2 text-sm text-ink">
-                  <input type="checkbox" className="h-4 w-4 accent-[#cc2924]" checked={form.categoryIds.includes(c.id)} onChange={() => toggleCategory(c.id)} />
-                  {c.title}
-                </label>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Fotos */}
-      <section className="space-y-3 rounded-[16px] bg-white p-5 shadow-sm">
-        <h2 className="text-[15px] font-semibold text-ink">Fotos</h2>
-        <p className="text-xs text-muted">
-          Zum Sortieren ziehen. Das erste Bild ist das Hero (auf Karten & Detailseite),
-          mit ★ holst du eines direkt nach vorn. Fotos lassen sich auch hierher ziehen;
-          sie werden automatisch zu WebP verkleinert.
-        </p>
-        <PhotoUploader images={form.images} onChange={(urls) => set({ images: urls })} />
-      </section>
-
-      {/* Video (9:16, optional) */}
-      <section className="space-y-3 rounded-[16px] bg-white p-5 shadow-sm">
-        <h2 className="text-[15px] font-semibold text-ink">Video (9:16, optional)</h2>
-        <p className="text-xs text-muted">
-          Ein kurzes Hochkant-Video für die Spot-Unterseite. Ohne Video erscheint keine
-          Video-Sektion.
-        </p>
-        <VideoUploader
-          videoUrl={form.videoUrl}
-          posterUrl={form.videoPosterUrl}
-          onChange={(videoUrl, posterUrl) =>
-            set({ videoUrl, videoPosterUrl: posterUrl })
-          }
-        />
-      </section>
-
-      {/* Intro-Video: automatisch aus der Route gerendert. Nur für Spots mit Route. */}
-      {!isNew && form.routeSnapped.length >= 2 && (
-        <section className="space-y-3 rounded-[16px] bg-white p-5 shadow-sm">
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-[15px] font-semibold text-ink">Intro-Video (aus der Route)</h2>
-            <span
-              className={
-                introStatus === "current"
-                  ? STATUS_GOOD
-                  : introStatus === "stale"
-                    ? STATUS_ACCENT
-                    : STATUS_NEUTRAL
-              }
-            >
-              {introStatus === "current"
-                ? "Aktuell"
-                : introStatus === "stale"
-                  ? "Veraltet"
-                  : "Keins"}
-            </span>
-          </div>
-          <p className="text-xs text-muted">
-            {introStatus === "current"
-              ? "Das 3D-Wander-Video passt zur aktuellen Route."
-              : introStatus === "stale"
-                ? "Die Route hat sich seit dem letzten Render geändert. Bitte neu rendern, sonst zeigt der Spot die alte Strecke."
-                : "Noch kein Intro-Video. Erzeuge es mit dem Befehl unten."}
-          </p>
-          {introUrl && (
-            <a
-              href={introUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-block text-xs text-accent underline"
-            >
-              Aktuelles Video ansehen
-            </a>
-          )}
-          <div className="rounded-[10px] bg-black/5 p-3">
-            <code className="select-all break-all text-[12px] text-ink">
-              npm run render:intro -- {form.slug} --upload
-            </code>
-          </div>
-          <p className="text-[11px] text-muted">
-            Lokal ausführen, während der Dev-Server läuft. Rendert die Animation neu und lädt sie hoch.
-          </p>
-        </section>
-      )}
-
       {/* Karte / Koordinaten */}
       <section className="space-y-3 rounded-[16px] bg-white p-5 shadow-sm">
         <h2 className="text-[15px] font-semibold text-ink">Lage auf der Karte</h2>
@@ -1400,6 +1303,111 @@ export default function SpotForm({
             </div>
           );
         })}
+      </section>
+
+      {/* Intro-Video: automatisch aus der Route gerendert. Nur für Spots mit Route. */}
+      {!isNew && form.routeSnapped.length >= 2 && (
+        <section className="space-y-3 rounded-[16px] bg-white p-5 shadow-sm">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="text-[15px] font-semibold text-ink">Intro-Video (aus der Route)</h2>
+            <span
+              className={
+                introStatus === "current"
+                  ? STATUS_GOOD
+                  : introStatus === "stale"
+                    ? STATUS_ACCENT
+                    : STATUS_NEUTRAL
+              }
+            >
+              {introStatus === "current"
+                ? "Aktuell"
+                : introStatus === "stale"
+                  ? "Veraltet"
+                  : "Keins"}
+            </span>
+          </div>
+          <p className="text-xs text-muted">
+            {introStatus === "current"
+              ? "Das 3D-Wander-Video passt zur aktuellen Route."
+              : introStatus === "stale"
+                ? "Die Route hat sich seit dem letzten Render geändert. Bitte neu rendern, sonst zeigt der Spot die alte Strecke."
+                : "Noch kein Intro-Video. Erzeuge es mit dem Befehl unten."}
+          </p>
+          {introUrl && (
+            <a
+              href={introUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-block text-xs text-accent underline"
+            >
+              Aktuelles Video ansehen
+            </a>
+          )}
+          <div className="rounded-[10px] bg-black/5 p-3">
+            <code className="select-all break-all text-[12px] text-ink">
+              npm run render:intro -- {form.slug} --upload
+            </code>
+          </div>
+          <p className="text-[11px] text-muted">
+            Lokal ausführen, während der Dev-Server läuft. Rendert die Animation neu und lädt sie hoch.
+          </p>
+        </section>
+      )}
+
+      {/* Kategorien */}
+      <section className="space-y-3 rounded-[16px] bg-white p-5 shadow-sm">
+        <h2 className="text-[15px] font-semibold text-ink">Kategorien (Karussells)</h2>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">Sommer</p>
+            <div className="flex flex-col gap-1.5">
+              {sommerCats.map((c) => (
+                <label key={c.id} className="flex items-center gap-2 text-sm text-ink">
+                  <input type="checkbox" className="h-4 w-4 accent-[#cc2924]" checked={form.categoryIds.includes(c.id)} onChange={() => toggleCategory(c.id)} />
+                  {c.title}
+                </label>
+              ))}
+            </div>
+          </div>
+          <div>
+            <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">Winter</p>
+            <div className="flex flex-col gap-1.5">
+              {winterCats.map((c) => (
+                <label key={c.id} className="flex items-center gap-2 text-sm text-ink">
+                  <input type="checkbox" className="h-4 w-4 accent-[#cc2924]" checked={form.categoryIds.includes(c.id)} onChange={() => toggleCategory(c.id)} />
+                  {c.title}
+                </label>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Fotos */}
+      <section className="space-y-3 rounded-[16px] bg-white p-5 shadow-sm">
+        <h2 className="text-[15px] font-semibold text-ink">Fotos</h2>
+        <p className="text-xs text-muted">
+          Zum Sortieren ziehen. Das erste Bild ist das Hero (auf Karten & Detailseite),
+          mit ★ holst du eines direkt nach vorn. Fotos lassen sich auch hierher ziehen;
+          sie werden automatisch zu WebP verkleinert.
+        </p>
+        <PhotoUploader images={form.images} onChange={(urls) => set({ images: urls })} />
+      </section>
+
+      {/* Video (9:16, optional) */}
+      <section className="space-y-3 rounded-[16px] bg-white p-5 shadow-sm">
+        <h2 className="text-[15px] font-semibold text-ink">Video (9:16, optional)</h2>
+        <p className="text-xs text-muted">
+          Ein kurzes Hochkant-Video für die Spot-Unterseite. Ohne Video erscheint keine
+          Video-Sektion.
+        </p>
+        <VideoUploader
+          videoUrl={form.videoUrl}
+          posterUrl={form.videoPosterUrl}
+          onChange={(videoUrl, posterUrl) =>
+            set({ videoUrl, videoPosterUrl: posterUrl })
+          }
+        />
       </section>
 
       {/* Quick-Facts */}
