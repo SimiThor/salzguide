@@ -42,6 +42,19 @@ export const SPOT_SHEET_PEEK = 0.55;
 // MAX bleibt trotzdem: Es begrenzt lange Inhalte (großer Schriftgrad, langer Text) und
 // ist zugleich die Höhe des Sheet-Elements selbst (siehe sheetH unten).
 const SPOT_SHEET_MAX = 0.92;
+// Höhe des Griffstreifens über dem Inhalt: py-3 (12+12) plus 6px Balken. Eine Konstante
+// dieses Sheets, keine Messung wert – dieselbe Rechnung wie beim Explore-Sheet, das seine
+// 26px in globals.css einrechnet. Wer die Polsterung am SheetGrabber ändert, zieht hier nach.
+const GRAB_H = 30;
+// Luft zwischen dem, was im Ruhezustand sichtbar sein MUSS, und der Tab-Leiste darunter.
+// Dieselben 16px wie im MobileSheet (DETENT_AIR) und in --sg-sheet-peek, damit Peek-Inhalt
+// überall gleich dicht an der Leiste steht.
+const PEEK_AIR = 16;
+// Was im Ruhezustand tatsächlich sichtbar ist: der Peek, minus Tab-Leiste (sie liegt ÜBER
+// dem Sheet), minus Griffstreifen, minus Luft. Reines CSS und trotzdem aus SPOT_SHEET_PEEK
+// abgeleitet: 100svh ist genau die Basis, die useViewportHeight() als Zahl liest
+// (--sg-vh = 100svh), Zahl und Länge können also nicht auseinanderlaufen.
+const PEEK_CONTENT_MAX = `calc(${SPOT_SHEET_PEEK} * 100svh - var(--sg-nav-h) - ${GRAB_H + PEEK_AIR}px)`;
 // Auf dem Server gibt es kein Layout, useLayoutEffect warnt dort. Auf dem Client MUSS es
 // useLayoutEffect sein: die Höhe muss VOR dem ersten Paint stehen, sonst sieht man das
 // Sheet einrasten.
@@ -302,9 +315,22 @@ export default function SpotSheet({
             Stellschraube für die Luft unten – wer sie ändert, verschiebt zugleich die
             obere Stufe, ohne dass irgendwo eine zweite Zahl nachgezogen werden muss.
             2.5rem statt 2rem, weil ohne Home-Indicator (iPhone SE) sonst nur 32px
-            Weißraum unter dem Bild stünden und die Kante wie abgeschnitten wirkte. */}
-        <div ref={contentRef} className="pb-[calc(env(safe-area-inset-bottom)+2.5rem)]">
-          <div className="flex items-start justify-between gap-3">
+            Weißraum unter dem Bild stünden und die Kante wie abgeschnitten wirkte.
+
+            GESPERRT: dann keine Polsterung, sondern ein DECKEL. Die Pro-Karte ist alles,
+            was es zu diesem Spot zu sehen gibt – sie wird nicht gescrollt, sie steht im
+            Ruhezustand da. Also darf sie auch nur so hoch sein, wie im Ruhezustand
+            sichtbar ist (PEEK_CONTENT_MAX), und das Foto ist das einzige, was schrumpft.
+            Ohne den Deckel schnitt die Tab-Leiste am iPhone SE den Schlusssatz mitten
+            durch (am 375x667-Viewport nachgemessen). */}
+        <div
+          ref={contentRef}
+          style={spot.locked ? { maxHeight: PEEK_CONTENT_MAX } : undefined}
+          className={
+            spot.locked ? "flex flex-col" : "pb-[calc(env(safe-area-inset-bottom)+2.5rem)]"
+          }
+        >
+          <div className="flex shrink-0 items-start justify-between gap-3">
             {/* Gesperrt: "🤫 Geheimtipp" ist der EINZIGE Sperr-Hinweis. Das Bild trägt
                 deshalb kein Abzeichen mehr – sonst stünde dasselbe Wort doppelt da. */}
             <h2 className="text-2xl font-bold leading-tight text-ink">
@@ -333,44 +359,38 @@ export default function SpotSheet({
           </div>
 
           {spot.locked ? (
-            // Conversion-Reihenfolge: Motiv (macht Lust) -> ein Satz warum -> Button.
-            // ALLES muss in den Peek passen, sonst sieht man am iPhone das Foto, aber
-            // nicht den Button – und weiß nicht, wie man freischaltet.
+            // Apple-Reihenfolge (App Store / TV+): Motiv (macht Lust), dann die Aktion,
+            // dann der erklärende Nachsatz. Alles drei steht IMMER ganz da – gekürzt
+            // wird nur das Foto.
             //
-            // Das Sheet ist 92vh hoch, zeigt am Peek aber nur SPOT_SHEET_PEEK (55vh);
-            // sein unteres Ende liegt außerhalb des Bildschirms. Ein am Sheet-Boden
-            // klebender Button (sticky) wäre also unsichtbar – die Höhe muss stimmen.
+            // Warum das Foto: Der Deckel am gemessenen Kasten (siehe oben) gibt vor, wie
+            // viel Platz es gibt; Titel, Knopf und Text nehmen sich davon, was ihre
+            // Schrift braucht (shrink-0), das Foto bekommt den Rest. Vorher stand hier
+            // eine feste Bildhöhe und der Nachsatz war auf zwei Zeilen gekürzt – auf
+            // einem kleinen iPhone reichte das trotzdem nicht, die Tab-Leiste schnitt
+            // die letzte Zeile ab. Eine Zahl, die für jede Sprache und jeden Schriftgrad
+            // stimmt, gibt es nicht; "das Foto nimmt, was übrig bleibt" stimmt immer.
             //
-            // Deshalb vh-relativ statt fester Pixel: Auf kleinen Geräten (iPhone SE)
-            // schrumpft das Foto mit, statt den Button hinauszuschieben. Rechnung für
-            // den engsten Fall (667px hoch): 55vh Peek ≈ 367px, minus Griff ≈ 337px
-            // nutzbar; Inhalt ≈ 32 (Titel) + 160 (Foto) + 40 (Teaser) + 46 (Button)
-            // + 36 (Abstände) ≈ 314px. Passt mit Reserve.
-            // Apple-Reihenfolge (App Store / TV+): Motiv, dann die Aktion, dann Details.
-            // Der Button steht klar unter dem Bild – nichts liegt übereinander.
-            //
-            // Er MUSS im Peek sichtbar sein, sonst sieht man am iPhone nur das Foto und
-            // weiß nicht, wie man kauft. Das Sheet ist 92vh hoch, sichtbar sind aber nur
-            // SPOT_SHEET_PEEK (55vh) minus Tab-Leiste. Deshalb ist die Bildhöhe vh-relativ:
-            // Auf kleinen Geräten schrumpft das Foto, statt den Button hinauszudrücken.
-            // Gemessen (Chrome DevTools Protocol, echtes Viewport): iPhone SE 375x667 und
-            // iPhone 15 390x844 -> Button in beiden Fällen über der Tab-Leiste.
+            // min-h: Unter ~88px wäre das Foto ein Streifen und kein Motiv mehr. Am
+            // Viewport nachgemessen (Chrome DevTools Protocol, Home-Indicator simuliert):
+            // iPhone 15 390x844 -> Foto 150px, iPhone SE 375x667 -> 96px, in beiden
+            // Fällen und in jeder Sprache 16px Luft unter dem Schlusssatz. Erst unter
+            // ~600px Bildschirmhöhe (iPhone 5, seit iOS 15 kein Thema mehr) stößt das
+            // Foto an den Riegel und die Karte bräuchte mehr Platz, als der Peek hat.
             <>
               <LockedMedia
                 previewUrl={spot.previewUrl}
                 emoji={spot.emoji}
                 eager
-                className="mt-3 h-[20svh] max-h-[220px] min-h-[120px] w-full rounded-[16px]"
+                className="mt-3 h-[20svh] max-h-[220px] min-h-[88px] w-full shrink rounded-[16px]"
               />
               <Link
                 href="/pro"
-                className="mt-3 block rounded-full bg-accent px-5 py-3 text-center text-[15px] font-semibold text-white active:scale-[0.98]"
+                className="mt-3 block shrink-0 rounded-full bg-accent px-5 py-3 text-center text-[15px] font-semibold text-white active:scale-[0.98]"
               >
                 {t("unlock")}
               </Link>
-              {/* Erklärender Nachsatz. Steht bewusst NACH dem Button: Er darf am Peek
-                  angeschnitten sein, die Kernbotschaft (Motiv + Aktion) steht schon oben. */}
-              <p className="mt-3 line-clamp-2 text-[14px] leading-snug text-muted">
+              <p className="mt-3 shrink-0 text-[14px] leading-snug text-muted">
                 {t("proTeaser")}
               </p>
             </>
