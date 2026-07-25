@@ -18,7 +18,14 @@
 // Browser das ERSTE Element — und das steckt im DesktopHeader, der am Handy `display:none`
 // ist. Ein Verlauf in einem ausgeblendeten Teilbaum malt nicht, der Sparkle wäre unsichtbar.
 // Eindeutige ids schliessen das aus. (Deshalb "use client": useId ist ein Hook.)
-import { useId } from "react";
+import { createContext, useContext, useId } from "react";
+
+// Riegel gegen den doppelten Sparkle: AiButton trägt das Zeichen FEST im Knopf und legt
+// diesen Kontext um seine Kinder. Schreibt ein Aufrufer aus Versehen nochmal einen
+// <AiSparkle/> ins Label, malt der sich nicht — sonst stünden zwei Zeichen nebeneinander
+// (war so auf „Tour bauen"). Der Knopf-eigene Sparkle sitzt AUSSERHALB des Kontexts und
+// bleibt darum immer sichtbar.
+export const SparkleAlreadyShown = createContext(false);
 
 const SPARKLE_PATH =
   "M208,144a15.78,15.78,0,0,1-10.42,14.94L146,178l-19,51.62a15.92,15.92,0,0,1-29.88,0L78,178,26.42,159A15.92,15.92,0,0,1,26.42,129L78,110l19-51.62a15.92,15.92,0,0,1,29.88,0L146,110l51.62,19A15.78,15.78,0,0,1,208,144ZM152,48h16V64a8,8,0,0,0,16,0V48h16a8,8,0,0,0,0-16H184V16a8,8,0,0,0-16,0V32H152a8,8,0,0,0,0,16Zm88,32h-8V72a8,8,0,0,0-16,0v8h-8a8,8,0,0,0,0,16h8v8a8,8,0,0,0,16,0V96h8a8,8,0,0,0,0-16Z";
@@ -34,6 +41,17 @@ export default function AiSparkle({
 }) {
   // useId liefert ids mit „:" — im SVG-url()-Verweis unschön, deshalb rausfiltern.
   const gid = "sg-ai-sparkle-" + useId().replace(/:/g, "");
+  const alreadyShown = useContext(SparkleAlreadyShown);
+
+  if (alreadyShown) {
+    if (process.env.NODE_ENV !== "production") {
+      console.warn(
+        "[AiSparkle] Doppeltes KI-Zeichen: AiButton bringt den Sparkle schon mit. Im Label nur noch den Text angeben.",
+      );
+    }
+    return null;
+  }
+
   return (
     <svg className={className} viewBox="0 0 256 256" aria-hidden>
       {gradient && (

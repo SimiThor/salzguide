@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import AiSparkle from "@/components/ai/AiSparkle";
+import AiSparkle, { SparkleAlreadyShown } from "@/components/ai/AiSparkle";
 
 // Button mit integriertem „KI arbeitet"-Zustand: dezenter Licht-Schimmer wandert
 // über den Button, Label wechselt auf den Lade-Text + pulsierende Punkte
@@ -41,22 +41,25 @@ export default function AiButton({
     >
       <span className="relative z-10 inline-flex items-center justify-center gap-1.5">
         <AiSparkle className="h-[1.05em] w-[1.05em] shrink-0" />
-        {loading ? (
-          <>
-            {loadingLabel}
-            <span className="flex items-center gap-[3px]" aria-hidden>
-              {[0, 1, 2].map((i) => (
-                <span
-                  key={i}
-                  className="sg-ai-dot h-[3px] w-[3px] rounded-full bg-current"
-                  style={{ animationDelay: `${i * 0.18}s` }}
-                />
-              ))}
-            </span>
-          </>
-        ) : (
-          children
-        )}
+        {/* Kontext um die Kinder: ein zweiter <AiSparkle/> im Label malt nicht mehr. */}
+        <SparkleAlreadyShown value={true}>
+          {loading ? (
+            <>
+              {loadingLabel}
+              <span className="flex items-center gap-[3px]" aria-hidden>
+                {[0, 1, 2].map((i) => (
+                  <span
+                    key={i}
+                    className="sg-ai-dot h-[3px] w-[3px] rounded-full bg-current"
+                    style={{ animationDelay: `${i * 0.18}s` }}
+                  />
+                ))}
+              </span>
+            </>
+          ) : (
+            children
+          )}
+        </SparkleAlreadyShown>
       </span>
     </button>
   );
