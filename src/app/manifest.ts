@@ -9,9 +9,13 @@ import { DEFAULT_LOCALE } from "@/i18n/locales";
 // EINE SPRACHE, MIT ABSICHT
 //
 // Ein Manifest gibt es pro Seite genau einmal, es kennt kein Sprach-Präfix. Deshalb steht
-// hier Deutsch (DEFAULT_LOCALE) — und `start_url: "/"` ohne Präfix, damit der Proxy beim
-// Start wie sonst auch die Sprache des Geräts aushandelt. Ein Koreaner startet die App
-// also auf /ko, obwohl das Manifest deutsch ist.
+// hier Deutsch (DEFAULT_LOCALE) — und in `start_url` steht KEIN Präfix, damit der Proxy
+// beim Start die Sprache aushandelt wie bei jedem anderen Aufruf auch. Ein Koreaner
+// startet die App also auf /ko/explore, obwohl das Manifest deutsch ist.
+//
+// Ein festes /de/explore wäre der bequeme Fehler: Es funktioniert beim Testen (wir sind
+// deutsch) und sperrt danach jeden anderen dauerhaft in der falschen Sprache ein, weil die
+// installierte App IMMER dort startet.
 //
 // Der Beschreibungstext kommt aus messages/de.json und wird nicht hier abgetippt: sonst
 // steht derselbe Satz an zwei Stellen und einer davon veraltet.
@@ -27,7 +31,11 @@ export default async function manifest(): Promise<MetadataRoute.Manifest> {
     description: t("description"),
     lang: DEFAULT_LOCALE,
     dir: "ltr",
-    start_url: "/",
+    // Die installierte App startet auf der KARTE, nicht auf der Startseite. Die Startseite
+    // erklärt Fremden das Produkt; wer die App auf dem Homescreen hat, ist damit durch und
+    // will die Spots sehen. `scope` bleibt "/", damit die Startseite trotzdem IN der App
+    // aufgeht, wenn jemand im Menü daraufklickt, statt Safari daneben zu öffnen.
+    start_url: "/explore",
     scope: "/",
     // standalone = ohne Browser-Leisten, wie eine echte App. Bewusst KEIN `orientation`:
     // die Karte darf quer.
