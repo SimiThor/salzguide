@@ -143,8 +143,12 @@ export default function Carousel({
   // (scale-105) dieselbe Eigenschaft auf demselben Element überschreiben würden.
   // pointer-events erst beim Einblenden: Ein unsichtbarer Pfeil darf keinen Klick auf
   // die Karte darunter schlucken.
+  // --sg-ease-ui, NICHT --sg-ease-sheet: Die Sheet-Kurve ist eine Ankunftskurve und
+  // schiebt fast die ganze Strecke in den Anfang. Bei einer Deckkraft sah man davon nur,
+  // dass der Pfeil halb durchsichtig auftauchte und dann hart auf voll sprang (gemessen:
+  // nach 20 % der Zeit schon 66 % Deckkraft). Die Begründung steht bei den Tokens.
   const slot =
-    "pointer-events-none absolute z-10 hidden -translate-y-1/2 transition-[opacity,translate,scale] duration-300 ease-[var(--sg-ease-sheet)] motion-reduce:transition-none md:block";
+    "pointer-events-none absolute z-10 hidden -translate-y-1/2 transition-[opacity,translate,scale] duration-300 ease-[var(--sg-ease-ui)] motion-reduce:transition-none md:block";
   const revealed =
     "opacity-0 scale-90 group-hover/carousel:pointer-events-auto group-hover/carousel:translate-x-0 group-hover/carousel:scale-100 group-hover/carousel:opacity-100 group-focus-within/carousel:pointer-events-auto group-focus-within/carousel:translate-x-0 group-focus-within/carousel:scale-100 group-focus-within/carousel:opacity-100";
   const gone = "opacity-0 scale-90";

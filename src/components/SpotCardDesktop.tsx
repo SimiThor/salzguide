@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useTransition } from "react";
 import { motion } from "framer-motion";
 import { useLocale, useTranslations } from "next-intl";
@@ -9,6 +8,7 @@ import type { SpotCardData } from "@/lib/spots";
 import { toggleSaved } from "@/lib/saved-actions";
 import { Bookmark, BookmarkFilled } from "./icons";
 import LockedMedia from "./LockedMedia";
+import SmoothImage from "./SmoothImage";
 import { useLoginGate } from "./auth/LoginGate";
 
 function X() {
@@ -96,15 +96,12 @@ export default function SpotCardDesktop({
               className="aspect-[16/10] w-full"
             />
           ) : spot.imageUrl ? (
-            <div className="relative aspect-[16/10] w-full overflow-hidden">
-              <Image
-                src={spot.imageUrl}
-                alt={spot.title}
-                fill
-                sizes="384px"
-                className="object-cover"
-              />
-            </div>
+            <SmoothImage
+              src={spot.imageUrl}
+              alt={spot.title}
+              sizes="384px"
+              className="aspect-[16/10] w-full"
+            />
           ) : (
             <div className="flex aspect-[16/10] w-full items-center justify-center bg-gradient-to-br from-accent/20 to-muted/20">
               <span className="text-5xl" aria-hidden>

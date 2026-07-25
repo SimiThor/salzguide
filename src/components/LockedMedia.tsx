@@ -7,6 +7,13 @@
 // Lage, nicht das Bild: Titel sind geschwärzt, Koordinaten auf ~1 km gerundet.
 // Fehlt die Vorschau (kein Foto oder noch nicht erzeugt), fällt die Anzeige auf einen
 // ruhigen Farbverlauf mit Emoji zurück.
+//
+// Erscheint mit demselben Schimmer und derselben Blende wie ein normales Foto
+// (useImageReveal). Sonst blitzte im Regal die gesperrte Karte hart auf, während die
+// Karten daneben weich einblenden – und genau das läse sich wie ein Fehler.
+"use client";
+
+import { useImageReveal } from "@/lib/use-image-reveal";
 
 // Erlaubt zusätzlich normale Div-Attribute (z.B. data-carousel-media der Karussell-Karte).
 type LockedMediaProps = React.HTMLAttributes<HTMLDivElement> & {
@@ -16,9 +23,13 @@ type LockedMediaProps = React.HTMLAttributes<HTMLDivElement> & {
   // Wo daneben schon eine Überschrift "Geheimtipp" steht (Sheet, Desktop-Panel), bleibt
   // es weg – sonst steht dasselbe Wort zweimal übereinander.
   label?: string;
-  // Bild sofort laden statt lazy. Nur für das EINE Bild setzen, das beim Öffnen
-  // garantiert sichtbar ist (Sheet/Panel/Paywall) – dort wäre Lazy-Loading ein
-  // sinnloser Aufschub. Karussell-Karten bleiben lazy.
+  // Bild sofort laden statt lazy, mit hoher Netz-Priorität. Für Bilder, die beim
+  // Aufbau/Öffnen garantiert im Bild stehen (Sheet/Panel/Paywall, erste Karussell-Reihe)
+  // – dort wäre Lazy-Loading ein sinnloser Aufschub.
+  // NETZ, NICHT OPTIK: Wann die Vorschau ERSCHEINT, entscheidet allein die Welle in
+  // use-image-reveal.ts, genau wie bei jedem anderen Foto. Stand hier einmal als "kein
+  // Tor", dann preschte die gesperrte Karte allein vor, während die Karten daneben noch
+  // gemeinsam warteten.
   eager?: boolean;
   // Seitenverhältnis/Höhe + Radius kommen vom Aufrufer (Karte 4/3, Sheet/Panel 16/10).
   className?: string;
@@ -32,10 +43,16 @@ export default function LockedMedia({
   className = "",
   ...rest
 }: LockedMediaProps) {
+  const { ref, skeletonClassName, imageClassName, onLoad, onError } =
+    useImageReveal(previewUrl);
+
   return (
     // transform-gpu + isolate: erzwingt in Safari das Clipping der runden Ecken,
     // obwohl ein Kind einen blur()-Filter hat (sonst blitzen eckige Kanten durch).
-    <div {...rest} className={`relative isolate transform-gpu overflow-hidden ${className}`}>
+    <div
+      {...rest}
+      className={`relative isolate transform-gpu overflow-hidden ${skeletonClassName} ${className}`}
+    >
       {previewUrl ? (
         // Bewusst kein next/image: Die Datei ist bereits auf ~160px gerechnet und
         // unveränderlich gecacht – der Optimizer hätte nichts zu gewinnen und würde nur
@@ -45,15 +62,18 @@ export default function LockedMedia({
         // scale-105 überdeckt die weichen Ränder, die der Blur am Bildrand erzeugt.
         // eslint-disable-next-line @next/next/no-img-element
         <img
+          ref={ref}
           src={previewUrl}
           alt=""
           aria-hidden
           loading={eager ? "eager" : "lazy"}
           decoding="async"
           fetchPriority={eager ? "high" : "low"}
+          onLoad={onLoad}
+          onError={onError}
           // Nur so viel Schleier, dass die Pixelkanten der hochskalierten Vorschau
           // verschwinden und "gesperrt" lesbar bleibt – das Motiv soll wirken.
-          className="absolute inset-0 h-full w-full scale-105 object-cover blur-[3px] saturate-110"
+          className={`absolute inset-0 h-full w-full scale-105 object-cover blur-[3px] saturate-110 ${imageClassName}`}
         />
       ) : (
         <div className="absolute inset-0 bg-gradient-to-br from-accent/15 to-muted/15" />

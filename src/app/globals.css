@@ -230,6 +230,19 @@ body {
      nicht nach. Genau das Überschwingen einer zu weich gedämpften Feder war
      der sichtbare Sprung beim Laden. */
   --sg-ease-sheet: cubic-bezier(0.32, 0.72, 0, 1);
+
+  /* EIN- UND AUSBLENDEN (Deckkraft), NICHT Bewegung.
+     Warum eine zweite Kurve nötig ist: --sg-ease-sheet ist eine Ankunftskurve. Sie
+     schiebt fast die ganze Strecke in den Anfang, damit ein fliegendes Sheet früh
+     abbremst und weich landet. Bei einer Deckkraft gibt es aber keine Strecke, die man
+     ankommen sieht: Am gedrosselten Browser gemessen war die Blende nach 20 % der Zeit
+     schon zu 66 % durch und nach 30 % zu 85 %. Der Rest kroch unsichtbar. Für das Auge
+     erschien der Pfeil halb durchsichtig und sprang dann hart auf voll — genau der
+     Effekt, den eine Blende verhindern soll.
+     Diese Kurve verteilt gleichmässig (nach der Hälfte der Zeit die halbe Deckkraft)
+     und beginnt trotzdem sanft statt schlagartig.
+     REGEL: Bewegung (Position, Grösse) -> --sg-ease-sheet. Deckkraft -> diese hier. */
+  --sg-ease-ui: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* iOS Safe-Area-Helfer (Notch / Home-Indicator) */

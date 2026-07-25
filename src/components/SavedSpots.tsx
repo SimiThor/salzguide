@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useMemo, useState, useTransition } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useTranslations } from "next-intl";
@@ -8,6 +7,7 @@ import { Link } from "@/i18n/navigation";
 import type { SavedSpot } from "@/lib/saved";
 import { toggleSaved } from "@/lib/saved-actions";
 import MapCard from "./MapCard";
+import SmoothImage from "./SmoothImage";
 import { BookmarkFilled } from "./icons";
 
 // iOS-artige Entfern-Animation (fade + leicht schrumpfen, Lücke federt zu).
@@ -94,13 +94,11 @@ export default function SavedSpots({
                   className="flex min-w-0 flex-1 items-center gap-3 transition-transform active:scale-[0.99]"
                 >
                   {!s.locked && s.imageUrl ? (
-                    <Image
+                    <SmoothImage
                       src={s.imageUrl}
                       alt={s.title}
-                      width={80}
-                      height={64}
                       sizes="80px"
-                      className="h-16 w-20 shrink-0 rounded-[12px] object-cover"
+                      className="h-16 w-20 shrink-0 rounded-[12px]"
                     />
                   ) : (
                     <span className="flex h-16 w-20 shrink-0 items-center justify-center rounded-[12px] bg-gradient-to-br from-accent/15 to-muted/15 text-3xl">

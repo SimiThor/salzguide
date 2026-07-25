@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import {
   animate,
   motion,
@@ -15,6 +14,7 @@ import type { SpotCardData } from "@/lib/spots";
 import { toggleSaved } from "@/lib/saved-actions";
 import { Bookmark, BookmarkFilled } from "./icons";
 import LockedMedia from "./LockedMedia";
+import SmoothImage from "./SmoothImage";
 import { useLoginGate } from "./auth/LoginGate";
 import SheetGrabber from "./SheetGrabber";
 import { useBodyDrag } from "./useBodyDrag";
@@ -391,15 +391,12 @@ export default function SpotSheet({
               {/* Bild (sichtbar beim Hochziehen) */}
               <div className="mt-5">
                 {spot.imageUrl ? (
-                  <div className="relative aspect-[16/10] w-full overflow-hidden rounded-[16px]">
-                    <Image
-                      src={spot.imageUrl}
-                      alt={spot.title}
-                      fill
-                      sizes="(min-width: 768px) 27rem, 100vw"
-                      className="object-cover"
-                    />
-                  </div>
+                  <SmoothImage
+                    src={spot.imageUrl}
+                    alt={spot.title}
+                    sizes="(min-width: 768px) 27rem, 100vw"
+                    className="aspect-[16/10] w-full rounded-[16px]"
+                  />
                 ) : (
                   <div className="flex aspect-[16/10] items-center justify-center overflow-hidden rounded-[16px] bg-gradient-to-br from-accent/20 to-muted/20">
                     <span className="text-6xl" aria-hidden>

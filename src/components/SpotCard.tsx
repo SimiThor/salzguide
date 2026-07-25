@@ -2,9 +2,11 @@
 // Pro + gesperrt -> "🤫 Geheimtipp"-Badge + verschleierter Titel + Blur-Vorschau
 // (LockedMedia, gleiche Darstellung wie Spot-Sheet und Audio-Guide).
 // Bilder via next/image (AVIF/WebP + responsive + lazy) -> effizientes Laden.
+// Das Erscheinen des Fotos (Schimmer + weiche Blende) macht SmoothImage, damit eine
+// Reihe Karten nicht sechsmal einzeln aufblitzt.
 
-import Image from "next/image";
 import LockedMedia from "./LockedMedia";
+import SmoothImage from "./SmoothImage";
 
 type SpotCardProps = {
   title: string;
@@ -25,6 +27,11 @@ type SpotCardProps = {
   // Browser eine zu kleine Stufe und skaliert hoch -> weiche Fotos. Die Startseite
   // (376px-Karten) übergibt deshalb ihre eigene Angabe.
   sizes?: string;
+  // Sofort laden statt lazy (Netz-Priorität hoch). NUR für die Karten setzen, die beim
+  // Aufbau garantiert im Bild stehen: die erste Reihe. Alles andere bleibt lazy, sonst
+  // lädt die Seite Fotos, die nie jemand sieht.
+  // Ändert NICHT, wann die Karte erscheint - das macht die Welle in use-image-reveal.ts.
+  eager?: boolean;
 };
 
 export default function SpotCard({
@@ -37,6 +44,7 @@ export default function SpotCard({
   lockedLabel = "🤫 Geheimtipp",
   sizeClassName = "w-[76vw] max-w-[300px]",
   sizes = "(min-width: 768px) 300px, 76vw",
+  eager = false,
 }: SpotCardProps) {
   return (
     <article className={`${sizeClassName} shrink-0`}>
@@ -46,35 +54,28 @@ export default function SpotCard({
           previewUrl={previewUrl}
           emoji={emoji}
           label={lockedLabel}
+          eager={eager}
           className="aspect-[4/3] w-full rounded-card shadow-sm"
           data-carousel-media
         />
+      ) : imageUrl ? (
+        <SmoothImage
+          data-carousel-media
+          src={imageUrl}
+          alt={title}
+          sizes={sizes}
+          eager={eager}
+          className="aspect-[4/3] w-full rounded-card shadow-sm"
+          imgClassName="rounded-card object-cover"
+        />
       ) : (
-        // transform-gpu + isolate: erzwingt in Safari das Clipping der runden Ecken
-        // (sonst zeigen sich eckige Kanten).
         <div
           data-carousel-media
-          className={`relative aspect-[4/3] w-full transform-gpu isolate overflow-hidden rounded-card shadow-sm ${
-            imageUrl ? "sg-skeleton" : ""
-          }`}
+          className="relative flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-card bg-gradient-to-br from-accent/15 to-muted/15 shadow-sm"
         >
-          {imageUrl ? (
-            <Image
-              src={imageUrl}
-              alt={title}
-              fill
-              sizes={sizes}
-              // Deko-Foto, kein Download: nicht ziehbar (das Langdruck-Menü sperrt .sg-tap-card).
-              draggable={false}
-              className="rounded-card object-cover"
-            />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center rounded-card bg-gradient-to-br from-accent/15 to-muted/15">
-              <span className="text-5xl" aria-hidden>
-                {emoji ?? "📍"}
-              </span>
-            </div>
-          )}
+          <span className="text-5xl" aria-hidden>
+            {emoji ?? "📍"}
+          </span>
         </div>
       )}
 
