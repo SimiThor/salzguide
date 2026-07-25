@@ -21,15 +21,13 @@ type SmoothImageProps = React.HTMLAttributes<HTMLDivElement> & {
   className?: string;
   /** Klassen des Bildes. Default object-cover. */
   imgClassName?: string;
-  /** Nur fürs LCP-Bild: kein Tor, kein Schimmer (siehe use-image-reveal.ts). */
-  priority?: boolean;
   // Sofort laden statt lazy, und mit hoher Netz-Priorität. NUR für Bilder setzen, die
   // beim Aufbau garantiert im Bild stehen.
   //
   // NETZ, NICHT OPTIK: Das Bild wartet trotzdem auf seine Welle und erscheint mit den
-  // anderen zusammen. Genau darum ist das hier ein eigenes Merkmal und nicht `priority`:
-  // priority nimmt das Tor weg, das Bild würde also allein vorpreschen — und "eins ist
-  // da, der Rest kommt später" ist der Zustand, den die Welle gerade abgeschafft hat.
+  // anderen zusammen. Diese Trennung ist der Grund, warum hier ein eigenes Merkmal steht
+  // und nicht einfach next/image's priority durchgereicht wird: In dieser Datei bedeutet
+  // es NUR "lade früh". Wann etwas erscheint, entscheidet allein use-image-reveal.ts.
   // Schneller wird es trotzdem: Die Welle wartet auf ihr LETZTES Bild, und das kommt
   // früher, wenn die sichtbaren Bilder nicht hinten in der Warteschlange stehen.
   eager?: boolean;
@@ -42,15 +40,14 @@ export default function SmoothImage({
   sizes,
   className = "",
   imgClassName = "object-cover",
-  priority = false,
   eager = false,
   quality,
   ...rest
 }: SmoothImageProps) {
-  const { ref, skeletonClassName, imageClassName, onLoad, onError } = useImageReveal(
-    src,
-    priority,
-  );
+  // Ohne zweites Argument: Ein Foto in einer Karte, einem Sheet oder einer Liste hat
+  // IMMER ein Tor und wartet auf seine Welle. Die Ausnahme (LCP-Bild ohne Tor) gibt es
+  // nur auf der Detailseite, und die geht über GalleryImage.
+  const { ref, skeletonClassName, imageClassName, onLoad, onError } = useImageReveal(src);
 
   return (
     // transform-gpu + isolate: erzwingt in Safari das Clipping der runden Ecken
@@ -66,11 +63,20 @@ export default function SmoothImage({
         fill
         sizes={sizes}
         quality={quality}
-        priority={priority}
-        // Bewusst getrennt von `priority`: kein <link rel=preload> im Kopf. Die Bilder
-        // stehen bereits im Server-HTML, der Vorab-Leser des Browsers findet sie also
-        // ohnehin beim Parsen. Was fehlt, ist nur die Dringlichkeit, und die steht hier.
-        {...(eager && !priority ? { loading: "eager" as const, fetchPriority: "high" as const } : null)}
+        // priority UND fetchPriority, beides nachgemessen:
+        // - priority allein: Vorablade-Zeile im Kopf, aber die Anfrage ging als "Low"
+        //   hinaus (Chrome stuft vorgeladene Bilder ohne fetchpriority niedrig ein).
+        // - fetchPriority allein: "High", aber keine Vorablade-Zeile.
+        // Zusammen: "High" und früh entdeckt.
+        //
+        // Next warnt in der Entwicklung trotzdem, dieses Bild sei das LCP-Element ohne
+        // priority. Das ist ein Fehlalarm und bleibt einer: Next merkt sich pro Bild-URL
+        // nur den ZULETZT gerenderten Eintrag, und dasselbe Foto steht auf der
+        // Entdecken-Seite noch einmal weiter unten (faul, wie es sein soll) und ein
+        // drittes Mal in der versteckten Handy-Kopie. Dagegen hülfe nur, jeden Zwilling
+        // auch eilig zu laden - also Bandbreite für Fotos zu verbrennen, die niemand
+        // sieht. Die Anfrage geht nachweislich als "High" hinaus, und darauf kommt es an.
+        {...(eager ? { priority: true, fetchPriority: "high" as const } : null)}
         // Deko-Foto, kein Download: nicht ziehbar (das Langdruck-Menü sperrt .sg-tap-card).
         draggable={false}
         onLoad={onLoad}
