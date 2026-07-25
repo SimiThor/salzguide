@@ -6,6 +6,7 @@ import { useRouter } from "@/i18n/navigation";
 import { saveHomeFeatured } from "@/lib/admin-actions";
 import { MAX_HOME_FEATURED } from "@/lib/home-featured";
 import type { AdminHomeSpot, AdminHomeFeatured } from "@/lib/admin";
+import Busy from "@/components/Busy";
 
 // Welche Spots auf der Startseite („/") mit Foto gezeigt werden — und in welcher
 // Reihenfolge. Ohne diese Auswahl ist die Startseite eine Seite über schöne Orte, auf der
@@ -208,7 +209,7 @@ export default function HomeFeaturedManager({ spots, migrationMissing }: AdminHo
               disabled={pending || !dirty}
               className="rounded-full bg-accent px-5 py-2.5 text-[14px] font-semibold text-white transition active:scale-[0.98] disabled:opacity-40"
             >
-              {pending ? "Speichert …" : "Speichern"}
+              {pending ? <Busy>Speichert</Busy> : "Speichern"}
             </button>
             {msg && (
               <span className={`text-[13px] ${msg.ok ? "text-muted" : "text-accent"}`}>

@@ -8,6 +8,7 @@ import { LOCALES } from "@/i18n/locales";
 import type { AdminHomeContent } from "@/lib/admin";
 import AiButton from "./AiButton";
 import { STATUS_NEUTRAL } from "@/lib/ui";
+import Busy from "@/components/Busy";
 
 // Die Texte der Startseite. Gruppen und Beschriftungen kommen aus HOME_GROUPS, nicht von
 // hier: Ein neues Feld dort taucht automatisch in diesem Formular auf, im Hash und in der
@@ -180,7 +181,7 @@ export default function HomeContentManager({
             disabled={pending || !dirty}
             className="rounded-full bg-accent px-5 py-2.5 text-[14px] font-semibold text-white transition active:scale-[0.98] disabled:opacity-40"
           >
-            {pending ? "Speichert …" : "Speichern"}
+            {pending ? <Busy>Speichert</Busy> : "Speichern"}
           </button>
 
           <AiButton

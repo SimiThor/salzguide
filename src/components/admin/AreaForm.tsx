@@ -18,6 +18,7 @@ import AiButton from "./AiButton";
 import { blockEnterSubmit } from "./form-utils";
 import { adminErrorText } from "@/lib/admin-errors";
 import { compressImage, uploadImage } from "@/lib/image-upload";
+import Busy from "@/components/Busy";
 
 const AREA_TARGETS = routing.locales.filter((l) => l !== "de");
 const emptyAreaTexts = (): AreaTexts => ({ name: "", subtitle: "" });
@@ -380,7 +381,7 @@ export default function AreaForm({ initial }: { initial?: AreaEditData }) {
             )}
           </div>
           <label className="cursor-pointer rounded-full bg-black/5 px-4 py-2 text-[13px] font-semibold text-ink">
-            {uploadingCover ? "Lädt …" : form.coverUrl ? "Ersetzen" : "Bild wählen"}
+            {uploadingCover ? <Busy>Lädt</Busy> : form.coverUrl ? "Ersetzen" : "Bild wählen"}
             <input
               type="file"
               accept="image/*"
@@ -415,11 +416,11 @@ export default function AreaForm({ initial }: { initial?: AreaEditData }) {
           className="rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
         >
           {pending
-            ? "Speichern …"
+            ? <Busy>Speichern</Busy>
             : uploadingCover
-              ? "Cover lädt …"
+              ? <Busy>Cover lädt</Busy>
               : translating
-                ? "Übersetzt …"
+                ? <Busy>Übersetzt</Busy>
                 : "Speichern"}
         </button>
         {initial?.id && (

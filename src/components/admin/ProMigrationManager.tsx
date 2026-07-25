@@ -14,6 +14,7 @@ import {
 } from "@/lib/migration-actions";
 import type { ProMigrationList } from "@/lib/admin";
 import type { RelaunchMailTexts } from "@/lib/relaunch-mail";
+import Busy from "@/components/Busy";
 
 // Der Umzug in vier Schritten, in der Reihenfolge, in der man sie wirklich macht:
 // Adressen rein, Mail ansehen, Mail raus, Hinweis an.
@@ -385,7 +386,7 @@ export default function ProMigrationManager({
               disabled={pending}
               className={BTN_ACCENT}
             >
-              {pending ? "sendet …" : "Ja, senden"}
+              {pending ? <Busy>sendet</Busy> : "Ja, senden"}
             </button>
             <button type="button" onClick={() => setConfirmSend(false)} className="text-xs text-muted">
               Abbrechen

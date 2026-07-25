@@ -6,6 +6,7 @@ import type { IntroRenderItem } from "@/lib/admin";
 import { introBadge, IntroRenderButton, useIntroRenderItems } from "./intro-render";
 import IntroVideoPreview from "./IntroVideoPreview";
 import { slugify } from "@/lib/slug";
+import Busy from "@/components/Busy";
 
 // Admin-Panel: alle Wanderungen mit Route, je Zeile ein Knopf, oben einer für alle fälligen.
 // Zustände, Knopf und Nachladen kommen aus intro-render.tsx, damit die Spot-Unterseite
@@ -66,7 +67,7 @@ export default function IntroRenderManager({
           disabled={!configured || anyBusy || pendingAll || due.length === 0}
           className="sg-hit rounded-full bg-accent px-4 py-2 text-[13px] font-semibold text-white transition active:scale-[0.98] disabled:opacity-40"
         >
-          {pendingAll ? "Wird gestartet …" : `Alle fälligen rendern (${due.length})`}
+          {pendingAll ? <Busy>Wird gestartet</Busy> : `Alle fälligen rendern (${due.length})`}
         </button>
         {due.length === 0 && !anyBusy && (
           <span className="text-[12px] text-muted">Alle Videos sind aktuell.</span>

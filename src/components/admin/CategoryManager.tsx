@@ -13,6 +13,7 @@ import type { AdminCategoryFull } from "@/lib/admin";
 import { adminErrorText } from "@/lib/admin-errors";
 import BulkTranslateButton from "./BulkTranslateButton";
 import AiButton from "./AiButton";
+import Busy from "@/components/Busy";
 
 const LOCALES = routing.locales;
 const TARGET_LOCALES = LOCALES.filter((l) => l !== "de");
@@ -156,7 +157,7 @@ function CategoryForm({
           disabled={busy}
           className="rounded-full bg-accent px-4 py-1.5 text-[13px] font-semibold text-white transition active:scale-95 disabled:opacity-50"
         >
-          {busy ? "Speichert …" : "Speichern"}
+          {busy ? <Busy>Speichert</Busy> : "Speichern"}
         </button>
       </div>
       {err && <p className="mt-2 text-[13px] font-medium text-accent">{err}</p>}
@@ -337,7 +338,7 @@ export default function CategoryManager({
                             disabled={deletingId !== null}
                             className="rounded-full bg-accent px-3 py-1 text-[12px] font-semibold text-white disabled:opacity-50"
                           >
-                            {deletingId === c.id ? "Löscht …" : "Löschen"}
+                            {deletingId === c.id ? <Busy>Löscht</Busy> : "Löschen"}
                           </button>
                           <button
                             type="button"
