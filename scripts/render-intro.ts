@@ -82,7 +82,15 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 // Render-Status best-effort in die spots-Zeile schreiben (rendering/idle/error). Nur im
 // --upload-Betrieb (Supabase-Keys da). Fehler hier dürfen den Render NIE abbrechen - der
 // Status ist Komfort, das Video ist die Hauptsache; fehlt Migration 0049, wird still ignoriert.
-async function writeRenderStatus(s: string, status: string, errorMsg?: string) {
+async function writeRenderStatus(
+  s: string,
+  status: string,
+  errorMsg?: string,
+  // Nur schreiben, wenn noch kein Fehler dasteht. Der Auffang-Schritt des Workflows kennt
+  // nur "irgendwie abgebrochen"; hat das Skript vorher den echten Grund hinterlassen, wäre
+  // sein Überschreiben ein Rückschritt (genau das ist beim ersten Einsatz passiert).
+  keepExistingError = false,
+) {
   const supaUrl = ENV.NEXT_PUBLIC_SUPABASE_URL;
   const supaKey = ENV.SUPABASE_SERVICE_ROLE_KEY;
   if (!supaUrl || !supaKey) return;
@@ -93,7 +101,8 @@ async function writeRenderStatus(s: string, status: string, errorMsg?: string) {
       intro_render_error: errorMsg ?? null,
     };
     if (status === "rendering") patch.intro_render_started_at = new Date().toISOString();
-    await supabase.from("spots").update(patch).eq("slug", s);
+    const q = supabase.from("spots").update(patch).eq("slug", s);
+    await (keepExistingError ? q.neq("intro_render_status", "error") : q);
   } catch {
     // Best-effort: Status darf nie den Render kippen.
   }
@@ -377,8 +386,8 @@ function ffmpeg(args: string[]) {
 // Render-Prozess ohne catch und der Status bliebe sonst auf 'rendering' stehen.
 if (hasFlag("report-failure")) {
   const msg = flag("report-failure") || "Render abgebrochen (Zeitlimit oder Runner-Fehler).";
-  writeRenderStatus(slug!, "error", msg).then(() => {
-    console.log(`-> Status von "${slug}" auf 'error' gesetzt: ${msg}`);
+  writeRenderStatus(slug!, "error", msg, true).then(() => {
+    console.log(`-> Status von "${slug}" auf 'error' gesetzt (falls noch keiner dastand): ${msg}`);
   });
 } else {
   run().catch(async (e) => {
