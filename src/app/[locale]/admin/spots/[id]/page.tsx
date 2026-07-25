@@ -1,9 +1,13 @@
 import { notFound } from "next/navigation";
-import { getCategoriesAll, getLocalsAll, getSpotForEdit } from "@/lib/admin";
+import {
+  getCategoriesAll,
+  getLocalsAll,
+  getSpotForEdit,
+  getIntroRenderItem,
+} from "@/lib/admin";
 import type { SpotInput } from "@/lib/admin-actions";
 import { normalizeManual, emptyManualWeek } from "@/lib/opening-hours";
 import { parsePois } from "@/lib/geo";
-import { introSourceHash } from "@/lib/intro-hash";
 import SpotForm from "@/components/admin/SpotForm";
 import BackButton from "@/components/BackButton";
 
@@ -100,14 +104,11 @@ export default async function EditSpotPage({
     translationsSourceHash,
   };
 
-  // Intro-Video-Status: veraltet, sobald sich die Route (oder die Renderer-Version) seit
-  // dem letzten Render geändert hat. Gleicher Hash wie im Render-Skript (intro-hash.ts).
-  const introUrl = str(s.intro_video_url) || null;
-  const introStatus: "none" | "current" | "stale" = !introUrl
-    ? "none"
-    : introSourceHash(s.route_geojson ?? null) === str(s.intro_source_hash)
-      ? "current"
-      : "stale";
+  // Render-Zustand aus derselben Quelle wie die Sammelseite (getIntroRenderItem), damit
+  // beide Seiten dasselbe sagen. Null, wenn der Spot keine Route hat: dann zeigt das
+  // Formular die Section gar nicht erst.
+  const introItem = await getIntroRenderItem(str(s.slug));
+  const githubConfigured = !!process.env.GITHUB_ACTIONS_TOKEN && !!process.env.GITHUB_REPO;
 
   return (
     <div className="space-y-4">
@@ -117,8 +118,8 @@ export default async function EditSpotPage({
         locals={locals}
         initial={initial}
         isNew={false}
-        introStatus={introStatus}
-        introUrl={introUrl}
+        introItem={introItem}
+        githubConfigured={githubConfigured}
       />
     </div>
   );

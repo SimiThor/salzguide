@@ -501,6 +501,8 @@ export type IntroRenderItem = {
   title: string;
   hasVideo: boolean;
   posterUrl: string | null;
+  /** Fertiges Video, für den „ansehen"-Link auf der Spot-Unterseite. */
+  videoUrl: string | null;
   /** Route/Renderer-Version hat sich seit dem letzten Render geändert -> neu rendern. */
   outdated: boolean;
   /** Render fällig (kein Video ODER veraltet). Eine Quelle für Liste, Knopf und Workflow. */
@@ -510,13 +512,14 @@ export type IntroRenderItem = {
   startedAt: string | null;
 };
 
+const INTRO_COLS =
+  "slug, route_geojson, intro_video_url, intro_video_poster_url, intro_source_hash, spot_translations(title, lang)";
+const INTRO_COLS_STATUS = `${INTRO_COLS}, intro_render_status, intro_render_error, intro_render_started_at`;
+
 // Alle veröffentlichten Wanderungen (Aktivität + LineString-Route) mit ihrem Intro-Render-
 // Zustand. Basis der Admin-Seite, auf der man das Intro per Button erzeugt.
 export async function getIntroRenderList(): Promise<IntroRenderItem[]> {
   const supabase = await createClient();
-  const base =
-    "slug, route_geojson, intro_video_url, intro_video_poster_url, intro_source_hash, spot_translations(title, lang)";
-  const withStatus = `${base}, intro_render_status, intro_render_error, intro_render_started_at`;
   const q = (cols: string) =>
     supabase
       .from("spots")
@@ -526,59 +529,76 @@ export async function getIntroRenderList(): Promise<IntroRenderItem[]> {
       .not("route_geojson", "is", null)
       .order("sort_weight", { ascending: false });
 
-  let res = await q(withStatus);
+  let res = await q(INTRO_COLS_STATUS);
   // Migration 0049 evtl. noch nicht eingespielt -> ohne Status-Spalten (Status = idle).
-  if (res.error) res = await q(base);
+  if (res.error) res = await q(INTRO_COLS);
   if (res.error) return [];
 
   return ((res.data ?? []) as unknown as Record<string, unknown>[])
     .filter((s) => (s.route_geojson as { type?: string } | null)?.type === "LineString")
-    .map((s) => {
-      const tr = (s.spot_translations ?? []) as { title: string; lang: string }[];
-      const de = tr.find((t) => t.lang === "de") ?? tr[0];
-      const hasVideo = !!s.intro_video_url;
-      const st = (s as { intro_render_status?: string }).intro_render_status;
-      const startedAtRaw =
-        (s as { intro_render_started_at?: string | null }).intro_render_started_at ?? null;
-      let status: IntroRenderStatus =
-        st === "queued" || st === "rendering" || st === "error" ? st : "idle";
-      let statusError =
-        (s as { intro_render_error?: string | null }).intro_render_error ?? null;
-      // Staleness-Riegel: Startet der GitHub-Runner nie (Workflow umbenannt, Runner
-      // gestorben, bevor er den ersten Status schrieb), stünde die Zeile für immer auf
-      // „in Warteschlange" und der Render-Button bliebe dauerhaft gesperrt – Reset nur
-      // per Hand in der DB. Muss ÜBER dem Zeitlimit des Workflows liegen (45 min, siehe
-      // .github/workflows/render-intro.yml), sonst meldet die Seite einen noch laufenden
-      // Render als tot. Normalfall ist ohnehin der „Fehlschlag melden"-Schritt dort; dieser
-      // Riegel greift nur, wenn auch der nicht mehr zum Zug kommt.
-      const STALE_MS = 60 * 60 * 1000;
-      if (
-        (status === "queued" || status === "rendering") &&
-        startedAtRaw &&
-        Date.now() - Date.parse(startedAtRaw) > STALE_MS
-      ) {
-        status = "error";
-        statusError = "Render hängt (über eine Stunde ohne Ergebnis). Bitte neu starten.";
-      }
-      return {
-        slug: s.slug as string,
-        title: (de?.title as string) ?? (s.slug as string),
-        hasVideo,
-        posterUrl: (s.intro_video_poster_url as string | null) ?? null,
-        outdated:
-          hasVideo &&
-          introSourceHash(s.route_geojson) !==
-            ((s.intro_source_hash as string | null) ?? ""),
-        due: introNeedsRender(
-          s.route_geojson,
-          s.intro_video_url as string | null,
-          s.intro_source_hash as string | null,
-        ),
-        status,
-        error: statusError,
-        startedAt: startedAtRaw,
-      };
-    });
+    .map(mapIntroRow);
+}
+
+// EIN Spot, auch ein unveröffentlichter. Die Spot-Unterseite zeigt die Section auch für
+// Entwürfe, und ein Intro vor der Veröffentlichung fertig zu haben ist der Normalfall.
+export async function getIntroRenderItem(slug: string): Promise<IntroRenderItem | null> {
+  const supabase = await createClient();
+  const q = (cols: string) => supabase.from("spots").select(cols).eq("slug", slug).maybeSingle();
+
+  let res = await q(INTRO_COLS_STATUS);
+  if (res.error) res = await q(INTRO_COLS);
+  if (res.error || !res.data) return null;
+
+  const row = res.data as unknown as Record<string, unknown>;
+  if ((row.route_geojson as { type?: string } | null)?.type !== "LineString") return null;
+  return mapIntroRow(row);
+}
+
+// Eine Zeile -> ein Listeneintrag. Bewusst die einzige Stelle, die aus den Rohspalten
+// Zustand, Schild und Fälligkeit macht: Liste und Einzelabruf dürfen nicht auseinanderlaufen.
+function mapIntroRow(s: Record<string, unknown>): IntroRenderItem {
+  const tr = (s.spot_translations ?? []) as { title: string; lang: string }[];
+  const de = tr.find((t) => t.lang === "de") ?? tr[0];
+  const hasVideo = !!s.intro_video_url;
+  const st = (s as { intro_render_status?: string }).intro_render_status;
+  const startedAtRaw =
+    (s as { intro_render_started_at?: string | null }).intro_render_started_at ?? null;
+  let status: IntroRenderStatus =
+    st === "queued" || st === "rendering" || st === "error" ? st : "idle";
+  let statusError = (s as { intro_render_error?: string | null }).intro_render_error ?? null;
+  // Staleness-Riegel: Startet der GitHub-Runner nie (Workflow umbenannt, Runner gestorben,
+  // bevor er den ersten Status schrieb), stünde die Zeile für immer auf „in Warteschlange"
+  // und der Render-Button bliebe dauerhaft gesperrt – Reset nur per Hand in der DB. Muss
+  // ÜBER dem Zeitlimit des Workflows liegen (45 min, siehe render-intro.yml), sonst meldet
+  // die Seite einen noch laufenden Render als tot. Normalfall ist ohnehin der „Fehlschlag
+  // melden"-Schritt dort; dieser Riegel greift nur, wenn auch der nicht mehr zum Zug kommt.
+  const STALE_MS = 60 * 60 * 1000;
+  if (
+    (status === "queued" || status === "rendering") &&
+    startedAtRaw &&
+    Date.now() - Date.parse(startedAtRaw) > STALE_MS
+  ) {
+    status = "error";
+    statusError = "Render hängt (über eine Stunde ohne Ergebnis). Bitte neu starten.";
+  }
+  return {
+    slug: s.slug as string,
+    title: (de?.title as string) ?? (s.slug as string),
+    hasVideo,
+    posterUrl: (s.intro_video_poster_url as string | null) ?? null,
+    videoUrl: (s.intro_video_url as string | null) ?? null,
+    outdated:
+      hasVideo &&
+      introSourceHash(s.route_geojson) !== ((s.intro_source_hash as string | null) ?? ""),
+    due: introNeedsRender(
+      s.route_geojson,
+      s.intro_video_url as string | null,
+      s.intro_source_hash as string | null,
+    ),
+    status,
+    error: statusError,
+    startedAt: startedAtRaw,
+  };
 }
 
 // Einen Spot zum Bearbeiten laden (Rohdaten + DE-Übersetzung + Kategorie-IDs)

@@ -52,13 +52,19 @@ const supabase = createClient(supaUrl, supaKey, { auth: { persistSession: false 
 
 // Dieselbe Auswahl wie die Admin-Liste (getIntroRenderList): veröffentlichte Aktivitäten
 // mit echter LineString-Route. Wer keine Route hat, hat auch kein Intro.
-const { data, error } = await supabase
+//
+// Ausnahme beim Einzelauftrag: Dort zählt nur die Route, nicht der Veröffentlichungsstand.
+// Das Intro eines Entwurfs fertig zu haben, BEVOR er online geht, ist der Normalfall; die
+// Spot-Unterseite bietet den Knopf dort ebenfalls an.
+const listQuery = supabase
   .from("spots")
   .select("slug, route_geojson, intro_video_url, intro_source_hash")
-  .eq("type", "activity")
-  .eq("status", "published")
   .not("route_geojson", "is", null)
   .order("sort_weight", { ascending: false });
+
+const { data, error } = await (only
+  ? listQuery.eq("slug", only)
+  : listQuery.eq("type", "activity").eq("status", "published"));
 
 if (error) {
   console.error(`Spots laden fehlgeschlagen: ${error.message}`);
@@ -82,7 +88,7 @@ const needsRender = (s: Row) =>
 let picked: string[];
 if (only) {
   if (!rows.some((s) => s.slug === only)) {
-    console.error(`Kein renderbarer Spot mit slug "${only}" (veröffentlicht + LineString-Route?).`);
+    console.error(`Kein renderbarer Spot mit slug "${only}" (existiert er, hat er eine Route?).`);
     process.exit(1);
   }
   picked = [only]; // Einzelauftrag rendert immer, auch wenn das Video aktuell wäre.
