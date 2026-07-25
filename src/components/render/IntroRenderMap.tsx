@@ -414,7 +414,11 @@ export default function IntroRenderMap({
   if (meta.distanceKm != null) {
     statsParts.push(`${meta.distanceKm.toLocaleString("de-DE", { maximumFractionDigits: 1 })} km`);
   }
-  if (meta.ascentM != null) statsParts.push(`↑ ${Math.round(meta.ascentM)} m`);
+  // „254 hm" statt „↑ 254 m": Der Pfeil war das einzige Symbol auf der Karte und zog den
+  // Blick auf sich, ohne etwas zu erklären. „hm" ist im Alpenraum die übliche Kurzform für
+  // Höhenmeter und steht als unitElevation längst in messages/de.json, also sagt die App
+  // auf der Spot-Seite schon dasselbe. Eine Schreibweise für beide Stellen.
+  if (meta.ascentM != null) statsParts.push(`${Math.round(meta.ascentM)} hm`);
   if (meta.duration && meta.duration.trim()) statsParts.push(meta.duration.trim());
 
   return (
