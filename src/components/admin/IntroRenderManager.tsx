@@ -30,10 +30,13 @@ export default function IntroRenderManager({
 }) {
   const [items, setItems] = useState<IntroRenderItem[]>(initial);
   const [pendingSlug, setPendingSlug] = useState<string | null>(null);
+  const [pendingAll, setPendingAll] = useState(false);
   const [msg, setMsg] = useState<{ slug: string; text: string } | null>(null);
   const [, startTransition] = useTransition();
 
   const anyBusy = items.some((i) => i.status === "queued" || i.status === "rendering");
+  // Dieselbe Regel wie Server-Action und Workflow-Planer: kein Video oder Hash veraltet.
+  const due = items.filter((i) => !i.hasVideo || i.outdated);
 
   // Solange etwas läuft: alle 5 s den Stand nachladen (das Skript schreibt ihn in die DB).
   // .catch: Ein Netz-Schluckauf im 5-Sekunden-Takt wäre sonst je eine unhandled
@@ -49,6 +52,30 @@ export default function IntroRenderManager({
     }, 5000);
     return () => clearInterval(id);
   }, [anyBusy]);
+
+  // Ein Druck, alle fälligen Videos. Der Workflow verteilt sie auf je einen Runner, sie
+  // laufen also nebeneinander: sechs Videos dauern so lange wie eines.
+  const onGenerateAll = () => {
+    setMsg(null);
+    setPendingAll(true);
+    const slugs = due.map((i) => i.slug);
+    startTransition(async () => {
+      try {
+        const res = await triggerIntroRender();
+        if (!res.ok) {
+          setMsg({ slug: "", text: res.error ?? "Konnte nicht gestartet werden." });
+          return;
+        }
+        setItems((prev) =>
+          prev.map((i) => (slugs.includes(i.slug) ? { ...i, status: "queued", error: null } : i)),
+        );
+      } catch {
+        setMsg({ slug: "", text: "Gerade nicht erreichbar. Bitte nochmal versuchen." });
+      } finally {
+        setPendingAll(false);
+      }
+    });
+  };
 
   const onGenerate = (slug: string) => {
     setMsg(null);
@@ -76,11 +103,31 @@ export default function IntroRenderManager({
     <div className="rounded-[18px] bg-white p-5 shadow-sm ring-1 ring-black/5">
       <h2 className="text-[17px] font-bold text-ink">Intro-Video rendern</h2>
       <p className="mt-1 text-[13px] leading-relaxed text-muted">
-        Erzeugt das Wander-Intro (Karte + animierte Route) für einen Spot. Der Render läuft auf
-        einem GitHub-Runner gegen die Live-Seite und lädt Video + Standbild automatisch hoch –
-        kein Terminal nötig. Dauert pro Video rund 25 bis 30 Minuten (der Runner rechnet die
-        Karte ohne Grafikkarte); der Status hier aktualisiert sich von selbst.
+        Erzeugt das Wander-Intro (Karte + animierte Route) und lädt Video + Standbild automatisch
+        hoch, kein Terminal nötig. Ein Druck auf „Alle fälligen rendern“ genügt: Der Rest läuft
+        von selbst, jeder Spot auf einem eigenen Rechner, alle gleichzeitig. Rechne mit einer
+        guten halben Stunde, egal ob eines oder sechs. Der Status hier aktualisiert sich selbst,
+        die Seite darf zu.
       </p>
+
+      <div className="mt-3 flex flex-wrap items-center gap-2.5">
+        <button
+          type="button"
+          onClick={onGenerateAll}
+          disabled={!configured || anyBusy || pendingAll || due.length === 0}
+          className="sg-hit rounded-full bg-accent px-4 py-2 text-[13px] font-semibold text-white transition active:scale-[0.98] disabled:opacity-40"
+        >
+          {pendingAll ? "Wird gestartet …" : `Alle fälligen rendern (${due.length})`}
+        </button>
+        {due.length === 0 && !anyBusy && (
+          <span className="text-[12px] text-muted">Alle Videos sind aktuell.</span>
+        )}
+        {anyBusy && <span className="text-[12px] text-muted">Läuft gerade, bitte abwarten.</span>}
+      </div>
+
+      {msg?.slug === "" && (
+        <p className="mt-2 text-[12px] leading-snug text-accent">{msg.text}</p>
+      )}
 
       {!configured && (
         <p className="mt-3 rounded-[12px] bg-accent/8 px-3 py-2 text-[12px] leading-relaxed text-accent ring-1 ring-accent/15">
