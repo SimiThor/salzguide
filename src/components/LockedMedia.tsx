@@ -7,6 +7,13 @@
 // Lage, nicht das Bild: Titel sind geschwärzt, Koordinaten auf ~1 km gerundet.
 // Fehlt die Vorschau (kein Foto oder noch nicht erzeugt), fällt die Anzeige auf einen
 // ruhigen Farbverlauf mit Emoji zurück.
+//
+// Erscheint mit demselben Schimmer und derselben Blende wie ein normales Foto
+// (useImageReveal). Sonst blitzte im Regal die gesperrte Karte hart auf, während die
+// Karten daneben weich einblenden – und genau das läse sich wie ein Fehler.
+"use client";
+
+import { useImageReveal } from "@/lib/use-image-reveal";
 
 // Erlaubt zusätzlich normale Div-Attribute (z.B. data-carousel-media der Karussell-Karte).
 type LockedMediaProps = React.HTMLAttributes<HTMLDivElement> & {
@@ -32,10 +39,18 @@ export default function LockedMedia({
   className = "",
   ...rest
 }: LockedMediaProps) {
+  const { ref, skeletonClassName, imageClassName, onLoad, onError } = useImageReveal(
+    previewUrl,
+    eager,
+  );
+
   return (
     // transform-gpu + isolate: erzwingt in Safari das Clipping der runden Ecken,
     // obwohl ein Kind einen blur()-Filter hat (sonst blitzen eckige Kanten durch).
-    <div {...rest} className={`relative isolate transform-gpu overflow-hidden ${className}`}>
+    <div
+      {...rest}
+      className={`relative isolate transform-gpu overflow-hidden ${skeletonClassName} ${className}`}
+    >
       {previewUrl ? (
         // Bewusst kein next/image: Die Datei ist bereits auf ~160px gerechnet und
         // unveränderlich gecacht – der Optimizer hätte nichts zu gewinnen und würde nur
@@ -45,15 +60,18 @@ export default function LockedMedia({
         // scale-105 überdeckt die weichen Ränder, die der Blur am Bildrand erzeugt.
         // eslint-disable-next-line @next/next/no-img-element
         <img
+          ref={ref}
           src={previewUrl}
           alt=""
           aria-hidden
           loading={eager ? "eager" : "lazy"}
           decoding="async"
           fetchPriority={eager ? "high" : "low"}
+          onLoad={onLoad}
+          onError={onError}
           // Nur so viel Schleier, dass die Pixelkanten der hochskalierten Vorschau
           // verschwinden und "gesperrt" lesbar bleibt – das Motiv soll wirken.
-          className="absolute inset-0 h-full w-full scale-105 object-cover blur-[3px] saturate-110"
+          className={`absolute inset-0 h-full w-full scale-105 object-cover blur-[3px] saturate-110 ${imageClassName}`}
         />
       ) : (
         <div className="absolute inset-0 bg-gradient-to-br from-accent/15 to-muted/15" />

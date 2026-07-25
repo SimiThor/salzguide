@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useImageReveal } from "@/lib/use-image-reveal";
 import { useGalleryOpen } from "./SpotGalleryProvider";
 
 // Foto, das den Lightbox am gegebenen Index öffnet (Galerie-Kacheln).
@@ -43,31 +43,13 @@ export default function GalleryImage({
   zoomable?: boolean;
 }) {
   const open = useGalleryOpen();
-  const imgRef = useRef<HTMLImageElement>(null);
-  const [imgLoaded, setImgLoaded] = useState(priority);
-  const [minDone, setMinDone] = useState(priority);
-
-  useEffect(() => {
-    if (priority) return; // Hero: keine Verzögerung (siehe unten)
-    // Schon im Cache -> sofort zeigen (kein Skeleton nötig).
-    if (imgRef.current?.complete) {
-      void Promise.resolve().then(() => {
-        setImgLoaded(true);
-        setMinDone(true);
-      });
-      return;
-    }
-    // Sonst Schimmer mind. ~500 ms zeigen -> sichtbares, smoothes Instagram-Gefühl.
-    const t = setTimeout(() => setMinDone(true), 500);
-    return () => clearTimeout(t);
-  }, [priority]);
-
-  // Das priority-Bild (Hero = LCP-Element) bekommt KEIN Opacity-Gate: Das server-
-  // gerenderte HTML trüge sonst opacity-0, und das Bild zählte erst nach Hydration +
-  // Laden + 500-ms-Timer als LCP-Kandidat – der Schimmer verzögerte künstlich genau
-  // die Metrik, für die priority da ist. Der Skeleton liegt einfach dahinter, bis
-  // der Browser malt.
-  const show = imgLoaded && minDone;
+  // Schimmer + Blende kommen aus der gemeinsamen Regel (lib/use-image-reveal.ts), damit
+  // Galerie und Karten identisch erscheinen. Dort steht auch, warum das priority-Bild
+  // (Hero = LCP) kein Opacity-Tor bekommt.
+  const { ref, skeletonClassName, imageClassName, onLoad, onError } = useImageReveal(
+    src,
+    priority,
+  );
 
   // Ohne Zoom bewusst KEIN <button>: kein Klick, kein Fokus-Rahmen, kein
   // Screenreader-Knopf. Das Bild ist dann nur noch Deko im Hintergrund.
@@ -78,10 +60,10 @@ export default function GalleryImage({
       {...(zoomable
         ? { type: "button" as const, onClick: () => open(index) }
         : null)}
-      className={`relative ${className ?? ""} ${show ? "" : "sg-skeleton"}`}
+      className={`relative ${className ?? ""} ${skeletonClassName}`}
     >
       <Image
-        ref={imgRef}
+        ref={ref}
         src={src}
         alt={alt}
         fill
@@ -89,11 +71,9 @@ export default function GalleryImage({
         quality={quality}
         priority={priority}
         draggable={false}
-        onLoad={() => setImgLoaded(true)}
-        onError={() => setImgLoaded(true)}
-        className={`${imgClassName ?? ""} transition-opacity duration-500 ${
-          show ? "opacity-100" : "opacity-0"
-        }`}
+        onLoad={onLoad}
+        onError={onError}
+        className={`${imgClassName ?? ""} ${imageClassName}`}
       />
     </Box>
   );
