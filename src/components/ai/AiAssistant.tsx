@@ -23,6 +23,7 @@ import {
 } from "@/lib/ai-actions";
 import { getSavedSets } from "@/lib/saved-state-actions";
 import { readToniChat, writeToniChat, clearToniChat } from "@/lib/toni-chat-store";
+import { useKeyboard } from "@/lib/viewport";
 import type { AiCards, AiUiMessage, SavedApi } from "@/lib/ai-types";
 
 const MAX_INPUT = 800; // spiegelt das Server-Limit
@@ -74,6 +75,7 @@ export default function AiAssistant({
 }) {
   const t = useTranslations("Ai");
   const locale = useLocale();
+  const kb = useKeyboard(); // Tastatur offen? -> Sheet wird kürzer, siehe Scroll-Effekt
   const pathname = usePathname(); // locale-frei, z.B. "/spot/hochkeil" -> Seiten-Kontext für Toni
 
   const [messages, setMessages] = useState<AiUiMessage[]>([]);
@@ -181,12 +183,17 @@ export default function AiAssistant({
 
   // Ans Ende scrollen. Erster Scroll (Hydrierung/Chatwechsel) SOFORT (kein sicht-
   // bares Runterrasen); danach sanft für neue Nachrichten.
+  //
+  // `kb` steht mit in den Abhängigkeiten: Fährt die Tastatur aus, wird das Sheet kürzer
+  // (BottomSheet deckelt es, sonst stünde es oben aus dem Bild). Der Scroll-Stand des
+  // Verlaufs bleibt dabei stehen, also rutscht die letzte Nachricht unter den Rand –
+  // ausgerechnet in dem Moment, in dem man antworten will.
   useEffect(() => {
     if (showHistory) return;
     const behavior = firstScrollDone.current ? "smooth" : "auto";
     bottomRef.current?.scrollIntoView({ behavior, block: "end" });
     firstScrollDone.current = true;
-  }, [messages, pending, paywall, showHistory]);
+  }, [messages, pending, paywall, showHistory, kb.visible]);
 
   // Beim (Wieder-)Öffnen sofort ans Ende – auf Desktop remountet der Sheet-Inhalt,
   // daher würde die Scroll-Position sonst oben stehen.
