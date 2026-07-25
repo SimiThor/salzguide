@@ -23,9 +23,13 @@ type LockedMediaProps = React.HTMLAttributes<HTMLDivElement> & {
   // Wo daneben schon eine Überschrift "Geheimtipp" steht (Sheet, Desktop-Panel), bleibt
   // es weg – sonst steht dasselbe Wort zweimal übereinander.
   label?: string;
-  // Bild sofort laden statt lazy. Nur für das EINE Bild setzen, das beim Öffnen
-  // garantiert sichtbar ist (Sheet/Panel/Paywall) – dort wäre Lazy-Loading ein
-  // sinnloser Aufschub. Karussell-Karten bleiben lazy.
+  // Bild sofort laden statt lazy, mit hoher Netz-Priorität. Für Bilder, die beim
+  // Aufbau/Öffnen garantiert im Bild stehen (Sheet/Panel/Paywall, erste Karussell-Reihe)
+  // – dort wäre Lazy-Loading ein sinnloser Aufschub.
+  // NETZ, NICHT OPTIK: Wann die Vorschau ERSCHEINT, entscheidet allein die Welle in
+  // use-image-reveal.ts, genau wie bei jedem anderen Foto. Stand hier einmal als "kein
+  // Tor", dann preschte die gesperrte Karte allein vor, während die Karten daneben noch
+  // gemeinsam warteten.
   eager?: boolean;
   // Seitenverhältnis/Höhe + Radius kommen vom Aufrufer (Karte 4/3, Sheet/Panel 16/10).
   className?: string;
@@ -39,10 +43,8 @@ export default function LockedMedia({
   className = "",
   ...rest
 }: LockedMediaProps) {
-  const { ref, skeletonClassName, imageClassName, onLoad, onError } = useImageReveal(
-    previewUrl,
-    eager,
-  );
+  const { ref, skeletonClassName, imageClassName, onLoad, onError } =
+    useImageReveal(previewUrl);
 
   return (
     // transform-gpu + isolate: erzwingt in Safari das Clipping der runden Ecken,

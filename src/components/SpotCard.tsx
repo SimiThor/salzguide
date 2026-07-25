@@ -27,6 +27,11 @@ type SpotCardProps = {
   // Browser eine zu kleine Stufe und skaliert hoch -> weiche Fotos. Die Startseite
   // (376px-Karten) übergibt deshalb ihre eigene Angabe.
   sizes?: string;
+  // Sofort laden statt lazy (Netz-Priorität hoch). NUR für die Karten setzen, die beim
+  // Aufbau garantiert im Bild stehen: die erste Reihe. Alles andere bleibt lazy, sonst
+  // lädt die Seite Fotos, die nie jemand sieht.
+  // Ändert NICHT, wann die Karte erscheint - das macht die Welle in use-image-reveal.ts.
+  eager?: boolean;
 };
 
 export default function SpotCard({
@@ -39,6 +44,7 @@ export default function SpotCard({
   lockedLabel = "🤫 Geheimtipp",
   sizeClassName = "w-[76vw] max-w-[300px]",
   sizes = "(min-width: 768px) 300px, 76vw",
+  eager = false,
 }: SpotCardProps) {
   return (
     <article className={`${sizeClassName} shrink-0`}>
@@ -48,6 +54,7 @@ export default function SpotCard({
           previewUrl={previewUrl}
           emoji={emoji}
           label={lockedLabel}
+          eager={eager}
           className="aspect-[4/3] w-full rounded-card shadow-sm"
           data-carousel-media
         />
@@ -57,6 +64,7 @@ export default function SpotCard({
           src={imageUrl}
           alt={title}
           sizes={sizes}
+          eager={eager}
           className="aspect-[4/3] w-full rounded-card shadow-sm"
           imgClassName="rounded-card object-cover"
         />

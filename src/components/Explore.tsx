@@ -248,7 +248,7 @@ export default function Explore({
                 {cat.title}
               </h2>
               <Carousel>
-                {catSpots.map((s) => (
+                {catSpots.map((s, j) => (
                   <button
                     key={s.slug}
                     type="button"
@@ -264,6 +264,14 @@ export default function Explore({
                       isPro={s.isPro}
                       locked={s.locked}
                       lockedLabel={t("lockedLabel")}
+                      // Die ersten drei Karten des ERSTEN Regals stehen beim Aufbau
+                      // immer im Bild (Desktop zeigt 2,5 davon, das Handy 1,3). Sie
+                      // laden deshalb sofort und mit hoher Priorität statt lazy: Eines
+                      // davon ist das grösste Bild im ersten Bildschirm (LCP), und die
+                      // ganze Reihe erscheint erst, wenn ihr letztes Foto da ist.
+                      // Drei und nicht mehr: Was seitlich hinausragt, soll das Netz
+                      // nicht belegen, bevor jemand dorthin wischt.
+                      eager={i === 0 && j < 3}
                       sizeClassName="w-[76vw] max-w-[300px] md:w-[var(--sg-card)] md:max-w-none"
                       sizes="(min-width: 768px) 220px, 76vw"
                     />
