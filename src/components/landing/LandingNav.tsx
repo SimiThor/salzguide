@@ -51,17 +51,19 @@ export default function LandingNav({ ctaLabel }: { ctaLabel: string }) {
         </Link>
 
         <div className="flex items-center gap-2 md:gap-3">
-          {/* variant="glass": Der Sprachwähler liegt hier über dem dunklen Hero und muss
+          {/* variant="overlay": Der Sprachwähler liegt hier über dem dunklen Hero und muss
               seinen Kontrast selbst mitbringen -> weisse Glas-Pille mit Schatten (statt der
               flachen bg-black/5-Fläche, die er in den App-Headern trägt), über dem Hero wie
-              über der hellen Leiste lesbar. Er wird NICHT von aussen umgefärbt: Hier stand
+              über der hellen Leiste lesbar. Dieselbe Fassung trägt er auf dem Hero der
+              Spot-Unterseite — ein Aussehen für „liegt über einem Foto", nicht zwei.
+              Er wird NICHT von aussen umgefärbt: Hier stand
               `[&_button]:text-white`, solange die Leiste transparent war. Das hat den Auslöser
               gar nicht gebraucht und dafür das AUFKLAPP-MENÜ zerstört: Der Nachfahren-Selektor
               trifft jeden Button im Teilbaum, also auch die neun Sprach-Einträge im weissen
               Popover. Weiss auf Weiss, man sah nur noch Flaggen. Lehre daraus: Ein fremdes
               Bauteil von aussen einfärben heisst, jede seiner inneren Ebenen mitzufärben, die
               man gerade nicht sieht. */}
-          <LanguageSwitcher variant="glass" />
+          <LanguageSwitcher variant="overlay" />
           {/* Erscheint ERST beim Scrollen. Über dem Hero steht der gleiche rote CTA schon
               gross in der Bildmitte — zwei identische rote Pillen in einem Blick nehmen
               sich gegenseitig die Wirkung. Sobald der Hero-CTA rausgescrollt ist, übernimmt

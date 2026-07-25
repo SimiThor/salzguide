@@ -23,7 +23,7 @@ const TITLE: Record<string, string> = {
 // iOS-Menü-Indikator (chevron.up.chevron.down): das kleine Auf/Ab-Zeichen, das Apple an
 // jeden Wert setzt, den man per Menü ÄNDERN kann. Genau das braucht der Sprachwähler, damit
 // klar ist, dass er nicht nur die Sprache anzeigt, sondern sie umstellt.
-function ChevronUpDown() {
+function ChevronUpDown({ className = "text-muted/70" }: { className?: string }) {
   return (
     <svg
       width="11"
@@ -34,7 +34,7 @@ function ChevronUpDown() {
       strokeWidth="1.6"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="text-muted/70"
+      className={className}
       aria-hidden
     >
       <path d="M3 5.5 5.5 3 8 5.5" />
@@ -49,13 +49,22 @@ function ChevronUpDown() {
 //
 // variant: "solid" (Standard) ist der flach gefüllte Plattform-Button (bg-black/5, KEIN Rand
 // -> siehe ui.ts: „Mit Rand heisst Zustand"), damit er in den App-Headern wie jeder andere
-// Knopf aussieht. "glass" ist die weisse Glas-Pille mit Schatten für die Landingpage, wo der
-// Auslöser über dem dunklen Hero liegt und seinen Kontrast selbst mitbringen muss (ui.ts-
-// Ausnahme 3: über Foto trennt der Schatten statt der Füllung).
+// Knopf aussieht. Er setzt aber einen HELLEN, ruhigen Hintergrund voraus: 5% Schwarz auf
+// einem Foto ist praktisch unsichtbar.
+//
+// "overlay" ist die Fassung für genau diesen Fall — der Wähler liegt über einem Foto (Hero
+// der Spot-Unterseite, Hero der Startseite) und muss seinen Kontrast selbst mitbringen.
+// Er trägt deshalb Klasse für Klasse dieselbe Glas-Pille wie die anderen Knöpfe, die dort
+// schon über dem Bild schweben (BackButton, SaveButton, TourView): bg-white/85, shadow-md,
+// backdrop-blur-md. Das ist ui.ts-Ausnahme 3 („über Foto trennt der SCHATTEN statt der
+// Füllung") und macht die drei Hero-Knöpfe zu einer erkennbaren Familie.
+//
+// h-10 statt py-1.5: Dieselbe Höhe wie die runden 40px-Knöpfe daneben, sonst steht eine
+// 31px-Pille neben zwei 40px-Kreisen und die Zeile wirkt zusammengewürfelt.
 export default function LanguageSwitcher({
   variant = "solid",
 }: {
-  variant?: "solid" | "glass";
+  variant?: "solid" | "overlay";
 }) {
   const locale = useLocale();
   const pathname = usePathname();
@@ -116,17 +125,23 @@ export default function LanguageSwitcher({
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-label={TITLE[locale] ?? "Language"}
-        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium text-ink transition active:scale-[0.98] ${
-          variant === "glass"
-            ? "bg-white/70 shadow-sm backdrop-blur hover:bg-white"
-            : "bg-black/5 hover:bg-black/10"
+        className={`inline-flex items-center gap-1.5 rounded-full text-sm font-medium text-ink transition active:scale-[0.98] ${
+          variant === "overlay"
+            ? "h-10 bg-white/85 px-3.5 shadow-md backdrop-blur-md hover:bg-white"
+            : "bg-black/5 px-3 py-1.5 hover:bg-black/10"
         }`}
       >
         <span className="text-[15px] leading-none" aria-hidden>
           {current.flag}
         </span>
-        <span className="uppercase leading-none text-muted">{current.code}</span>
-        <ChevronUpDown />
+        {/* Über dem Foto trägt das Kürzel volles Ink statt Muted: Auf der weissen Pille
+            liegt oft ein heller Himmel, und ein 13px-Wort in Warmgrau ist genau das, was
+            man dann „fast nicht erkennt". Im Header bleibt es sekundär (muted), dort ist
+            der Hintergrund ruhig. */}
+        <span className={`uppercase leading-none ${variant === "overlay" ? "text-ink" : "text-muted"}`}>
+          {current.code}
+        </span>
+        <ChevronUpDown className={variant === "overlay" ? "text-muted" : "text-muted/70"} />
       </button>
 
       <AnimatePresence>
