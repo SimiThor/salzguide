@@ -24,7 +24,7 @@ import { MAX_HOME_FEATURED } from "./home-featured";
 import { requireAdmin } from "./admin-guard";
 import { factCanonical, factPrice, type FactField } from "./facts-i18n";
 import { slugify, slugifyKey } from "./slug";
-import { getIntroRenderList, type IntroRenderItem } from "./admin";
+import { getIntroRenderList, getIntroRenderItem, type IntroRenderItem } from "./admin";
 
 export type SpotInput = {
   id?: string;
@@ -2028,4 +2028,13 @@ export async function refreshIntroRenderList(): Promise<IntroRenderItem[]> {
   const gate = await requireAdmin();
   if (!gate.ok) return [];
   return getIntroRenderList();
+}
+
+// Dasselbe für einen einzelnen Spot (Spot-Unterseite). Gibt eine Liste zurück, damit beide
+// Seiten denselben Nachlade-Haken benutzen können (useIntroRenderItems).
+export async function refreshIntroRenderItem(slug: string): Promise<IntroRenderItem[]> {
+  const gate = await requireAdmin();
+  if (!gate.ok) return [];
+  const item = await getIntroRenderItem(slug);
+  return item ? [item] : [];
 }

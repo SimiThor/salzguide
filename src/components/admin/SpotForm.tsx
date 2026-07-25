@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "@/i18n/navigation";
 import {
   deleteSpot,
@@ -17,7 +17,7 @@ import { routing } from "@/i18n/routing";
 import { localeMeta } from "@/i18n/locales";
 import { hashSpotTexts } from "@/lib/spot-hash";
 import { isClosedRoute } from "@/lib/geo";
-import type { AdminCategory, AdminLocal } from "@/lib/admin";
+import type { AdminCategory, AdminLocal, IntroRenderItem } from "@/lib/admin";
 import { emptyManualWeek, type DayHours } from "@/lib/opening-hours";
 import type { MapPoi } from "@/lib/geo";
 import { POI_SUBTYPES } from "@/lib/poi";
@@ -37,11 +37,13 @@ import { slugify } from "@/lib/slug";
 import LocationPicker, { POI_STYLE, type PlacingKind } from "./LocationPicker";
 import ElevationProfile from "../ElevationProfile";
 import PhotoUploader from "./PhotoUploader";
+import { introBadge, IntroRenderButton, useIntroRenderItems } from "./intro-render";
+import { refreshIntroRenderItem } from "@/lib/admin-actions";
 import VideoUploader from "./VideoUploader";
 import AiButton from "./AiButton";
 import { blockEnterSubmit } from "./form-utils";
 import { adminErrorText } from "@/lib/admin-errors";
-import { STATUS_NEUTRAL, STATUS_ACCENT, STATUS_GOOD } from "@/lib/ui";
+import { STATUS_NEUTRAL } from "@/lib/ui";
 
 const EMPTY: SpotInput = {
   slug: "",
@@ -150,15 +152,16 @@ export default function SpotForm({
   categories,
   locals,
   isNew,
-  introStatus = "none",
-  introUrl = null,
+  introItem = null,
+  githubConfigured = false,
 }: {
   initial?: Partial<SpotInput>;
   categories: AdminCategory[];
   locals: AdminLocal[];
   isNew: boolean;
-  introStatus?: "none" | "current" | "stale";
-  introUrl?: string | null;
+  /** Render-Zustand dieses Spots, aus derselben Quelle wie die Sammelseite. */
+  introItem?: IntroRenderItem | null;
+  githubConfigured?: boolean;
 }) {
   const router = useRouter();
   const [form, setForm] = useState<SpotInput>({ ...EMPTY, ...initial });
@@ -168,6 +171,22 @@ export default function SpotForm({
   const [snapMsg, setSnapMsg] = useState<{ ok: boolean; text: string } | null>(null);
   // Welcher Zusatzpunkt wird gerade auf der Karte gesetzt (null = normaler Modus).
   const [placing, setPlacing] = useState<PlacingKind>(null);
+  // ---- Intro-Video ----
+  // Zustand, Schild und Knopf kommen aus intro-render.tsx, also exakt das, was auch die
+  // Sammelseite unter Einstellungen zeigt. Nachgeladen wird nur dieser eine Spot.
+  const intro = useIntroRenderItems(introItem ? [introItem] : [], () =>
+    refreshIntroRenderItem(introItem?.slug ?? ""),
+  );
+  const introNow = intro.items[0] ?? null;
+  // Gerendert wird die GESPEICHERTE Route mit den gespeicherten Werten. Wer erst die Route
+  // ändert und dann rendert, bekäme eine Viertelstunde später ein Video der alten Strecke,
+  // das die App danach für aktuell hält, weil der Hash zur gespeicherten Route passt. Der
+  // Fehler wäre also unsichtbar. Darum: erst speichern, dann rendern.
+  const unsaved = useMemo(
+    () => JSON.stringify(form) !== JSON.stringify({ ...EMPTY, ...initial }),
+    [form, initial],
+  );
+
   const [aiNotes, setAiNotes] = useState("");
   const [aiMsg, setAiMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [aiWeb, setAiWeb] = useState(true);
@@ -1310,52 +1329,63 @@ export default function SpotForm({
         })}
       </section>
 
-      {/* Intro-Video: automatisch aus der Route gerendert. Nur für Spots mit Route. */}
-      {!isNew && form.routeSnapped.length >= 2 && (
+      {/* Intro-Video: automatisch aus der Route gerendert. Nur für Spots mit Route. Der
+          Knopf stösst denselben Workflow an wie die Sammelseite unter Einstellungen. */}
+      {!isNew && form.routeSnapped.length >= 2 && introNow && (
         <section className="space-y-3 rounded-[16px] bg-white p-5 shadow-sm">
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-[15px] font-semibold text-ink">Intro-Video (aus der Route)</h2>
             <span
-              className={
-                introStatus === "current"
-                  ? STATUS_GOOD
-                  : introStatus === "stale"
-                    ? STATUS_ACCENT
-                    : STATUS_NEUTRAL
-              }
+              className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold leading-none ring-1 ring-inset ${introBadge(introNow).cls}`}
             >
-              {introStatus === "current"
-                ? "Aktuell"
-                : introStatus === "stale"
-                  ? "Veraltet"
-                  : "Keins"}
+              {introBadge(introNow).label}
             </span>
           </div>
+
           <p className="text-xs text-muted">
-            {introStatus === "current"
-              ? "Das 3D-Wander-Video passt zur aktuellen Route."
-              : introStatus === "stale"
-                ? "Die Route hat sich seit dem letzten Render geändert. Bitte neu rendern, sonst zeigt der Spot die alte Strecke."
-                : "Noch kein Intro-Video. Erzeuge es mit dem Befehl unten."}
+            {introNow.status === "error"
+              ? "Der letzte Versuch ist gescheitert."
+              : introBadge(introNow).busy
+                ? "Läuft gerade auf einem GitHub-Runner, rund eine Viertelstunde. Du kannst die Seite zumachen."
+                : introNow.outdated
+                  ? "Die Route hat sich seit dem letzten Render geändert. Bitte neu rendern, sonst zeigt der Spot die alte Strecke."
+                  : introNow.hasVideo
+                    ? "Das 3D-Wander-Video passt zur aktuellen Route."
+                    : "Noch kein Intro-Video. Ein Klick genügt, kein Terminal."}
           </p>
-          {introUrl && (
-            <a
-              href={introUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-block text-xs text-accent underline"
-            >
-              Aktuelles Video ansehen
-            </a>
+
+          {introNow.status === "error" && introNow.error && (
+            <p className="text-[11px] leading-snug text-accent">{introNow.error}</p>
           )}
-          <div className="rounded-[10px] bg-black/5 p-3">
-            <code className="select-all break-all text-[12px] text-ink">
-              npm run render:intro -- {form.slug} --upload
-            </code>
+
+          {/* items-start, nicht items-center: Sonst rutscht der Link nach unten, sobald
+              unter dem Knopf ein Hinweis auftaucht. Das py am Link richtet ihn dafür auf
+              der Höhe des Knopfs aus. */}
+          <div className="flex flex-wrap items-start gap-3">
+            <IntroRenderButton
+              item={introNow}
+              configured={githubConfigured}
+              blockedReason={unsaved ? "Erst speichern, dann rendern." : null}
+              onQueued={intro.markQueued}
+            />
+            {introNow.videoUrl && (
+              <a
+                href={introNow.videoUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="py-2.5 text-xs text-accent underline"
+              >
+                Aktuelles Video ansehen
+              </a>
+            )}
           </div>
-          <p className="text-[11px] text-muted">
-            Lokal ausführen, während der Dev-Server läuft. Rendert die Animation neu und lädt sie hoch.
-          </p>
+
+          {!githubConfigured && (
+            <p className="text-[11px] leading-snug text-muted">
+              GitHub ist nicht verbunden, deshalb ist der Knopf gesperrt. Siehe Einstellungen,
+              Intro-Videos.
+            </p>
+          )}
         </section>
       )}
 

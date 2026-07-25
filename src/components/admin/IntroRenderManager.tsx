@@ -1,25 +1,13 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { triggerIntroRender, refreshIntroRenderList } from "@/lib/admin-actions";
 import type { IntroRenderItem } from "@/lib/admin";
+import { introBadge, IntroRenderButton, useIntroRenderItems } from "./intro-render";
 
-// Admin-Panel: alle Wanderungen mit Route, je Zeile ein Button „Generieren / Neu rendern".
-// Der Klick stösst den GitHub-Actions-Workflow an (Server-Action), der Render läuft off-Vercel;
-// den Fortschritt (queued -> rendering -> idle/error) pollt diese Komponente aus der DB.
-function badge(item: IntroRenderItem): { label: string; cls: string; busy: boolean } {
-  if (item.status === "queued")
-    return { label: "In Warteschlange", cls: "bg-amber-500/12 text-amber-700 ring-amber-600/25", busy: true };
-  if (item.status === "rendering")
-    return { label: "Wird gerendert …", cls: "bg-blue-500/12 text-blue-700 ring-blue-600/25", busy: true };
-  if (item.status === "error")
-    return { label: "Fehler", cls: "bg-accent/12 text-accent ring-accent/25", busy: false };
-  if (!item.hasVideo)
-    return { label: "Kein Video", cls: "bg-muted/12 text-muted ring-muted/25", busy: false };
-  if (item.outdated)
-    return { label: "Veraltet", cls: "bg-accent/12 text-accent ring-accent/25", busy: false };
-  return { label: "Aktuell", cls: "bg-emerald-600/12 text-emerald-700 ring-emerald-600/25", busy: false };
-}
+// Admin-Panel: alle Wanderungen mit Route, je Zeile ein Knopf, oben einer für alle fälligen.
+// Zustände, Knopf und Nachladen kommen aus intro-render.tsx, damit die Spot-Unterseite
+// dasselbe zeigt und dasselbe tut. Hier lebt nur das Listen-Drumherum.
 
 export default function IntroRenderManager({
   initial,
@@ -28,30 +16,13 @@ export default function IntroRenderManager({
   initial: IntroRenderItem[];
   configured: boolean;
 }) {
-  const [items, setItems] = useState<IntroRenderItem[]>(initial);
-  const [pendingSlug, setPendingSlug] = useState<string | null>(null);
+  const { items, markQueued, anyBusy } = useIntroRenderItems(initial, refreshIntroRenderList);
   const [pendingAll, setPendingAll] = useState(false);
   const [msg, setMsg] = useState<{ slug: string; text: string } | null>(null);
   const [, startTransition] = useTransition();
 
-  const anyBusy = items.some((i) => i.status === "queued" || i.status === "rendering");
   // introNeedsRender() hat das schon entschieden (src/lib/intro-hash.ts), hier nur zählen.
   const due = items.filter((i) => i.due);
-
-  // Solange etwas läuft: alle 5 s den Stand nachladen (das Skript schreibt ihn in die DB).
-  // .catch: Ein Netz-Schluckauf im 5-Sekunden-Takt wäre sonst je eine unhandled
-  // rejection; der nächste Tick versucht es ohnehin erneut.
-  useEffect(() => {
-    if (!anyBusy) return;
-    const id = setInterval(() => {
-      void refreshIntroRenderList()
-        .then((fresh) => {
-          if (fresh.length) setItems(fresh);
-        })
-        .catch(() => {});
-    }, 5000);
-    return () => clearInterval(id);
-  }, [anyBusy]);
 
   // Ein Druck, alle fälligen Videos. Der Workflow verteilt sie auf je einen Runner, sie
   // laufen also nebeneinander: sechs Videos dauern so lange wie eines.
@@ -66,35 +37,11 @@ export default function IntroRenderManager({
           setMsg({ slug: "", text: res.error ?? "Konnte nicht gestartet werden." });
           return;
         }
-        setItems((prev) =>
-          prev.map((i) => (slugs.includes(i.slug) ? { ...i, status: "queued", error: null } : i)),
-        );
+        markQueued(slugs);
       } catch {
         setMsg({ slug: "", text: "Gerade nicht erreichbar. Bitte nochmal versuchen." });
       } finally {
         setPendingAll(false);
-      }
-    });
-  };
-
-  const onGenerate = (slug: string) => {
-    setMsg(null);
-    setPendingSlug(slug);
-    startTransition(async () => {
-      try {
-        const res = await triggerIntroRender(slug);
-        if (!res.ok) {
-          setMsg({ slug, text: res.error ?? "Konnte nicht gestartet werden." });
-          return;
-        }
-        // Optimistisch auf „queued" – das Polling übernimmt danach.
-        setItems((prev) =>
-          prev.map((i) => (i.slug === slug ? { ...i, status: "queued", error: null } : i)),
-        );
-      } catch {
-        setMsg({ slug, text: "Gerade nicht erreichbar. Bitte nochmal versuchen." });
-      } finally {
-        setPendingSlug(null);
       }
     });
   };
@@ -142,8 +89,7 @@ export default function IntroRenderManager({
       ) : (
         <ul className="mt-4 space-y-2.5">
           {items.map((item) => {
-            const b = badge(item);
-            const busy = b.busy || pendingSlug === item.slug;
+            const b = introBadge(item);
             return (
               <li
                 key={item.slug}
@@ -174,24 +120,12 @@ export default function IntroRenderManager({
                   )}
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => onGenerate(item.slug)}
-                  disabled={busy || !configured}
-                  className={`shrink-0 rounded-full px-4 py-2 text-[13px] font-semibold transition active:scale-[0.97] disabled:opacity-40 ${
-                    item.outdated || item.status === "error" || !item.hasVideo
-                      ? "bg-accent text-white"
-                      : "bg-black/5 text-ink"
-                  }`}
-                >
-                  {b.busy
-                    ? "läuft …"
-                    : pendingSlug === item.slug
-                      ? "starte …"
-                      : item.hasVideo
-                        ? "Neu rendern"
-                        : "Generieren"}
-                </button>
+                <IntroRenderButton
+                  item={item}
+                  configured={configured}
+                  onQueued={markQueued}
+                  className="shrink-0 text-right"
+                />
               </li>
             );
           })}
