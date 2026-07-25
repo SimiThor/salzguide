@@ -82,7 +82,15 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 // Render-Status best-effort in die spots-Zeile schreiben (rendering/idle/error). Nur im
 // --upload-Betrieb (Supabase-Keys da). Fehler hier dürfen den Render NIE abbrechen - der
 // Status ist Komfort, das Video ist die Hauptsache; fehlt Migration 0049, wird still ignoriert.
-async function writeRenderStatus(s: string, status: string, errorMsg?: string) {
+async function writeRenderStatus(
+  s: string,
+  status: string,
+  errorMsg?: string,
+  // Nur schreiben, wenn noch kein Fehler dasteht. Der Auffang-Schritt des Workflows kennt
+  // nur "irgendwie abgebrochen"; hat das Skript vorher den echten Grund hinterlassen, wäre
+  // sein Überschreiben ein Rückschritt (genau das ist beim ersten Einsatz passiert).
+  keepExistingError = false,
+) {
   const supaUrl = ENV.NEXT_PUBLIC_SUPABASE_URL;
   const supaKey = ENV.SUPABASE_SERVICE_ROLE_KEY;
   if (!supaUrl || !supaKey) return;
@@ -93,7 +101,8 @@ async function writeRenderStatus(s: string, status: string, errorMsg?: string) {
       intro_render_error: errorMsg ?? null,
     };
     if (status === "rendering") patch.intro_render_started_at = new Date().toISOString();
-    await supabase.from("spots").update(patch).eq("slug", s);
+    const q = supabase.from("spots").update(patch).eq("slug", s);
+    await (keepExistingError ? q.neq("intro_render_status", "error") : q);
   } catch {
     // Best-effort: Status darf nie den Render kippen.
   }
@@ -126,18 +135,59 @@ async function run() {
     });
     const page = await ctx.newPage();
     page.on("pageerror", (e) => console.error("PAGEERROR:", e.message));
+    // Ohne das ist ein Fehlschlag auf dem Runner nicht nachvollziehbar: Man sieht nur, dass
+    // die Karte nicht bereit wurde, aber nicht, ob Kacheln, Skripte oder die Seite fehlten.
+    const netFails = new Map<string, number>();
+    const noteFail = (why: string, url: string) => {
+      const host = (() => {
+        try {
+          return new URL(url).host;
+        } catch {
+          return url.slice(0, 40);
+        }
+      })();
+      const k = `${why} ${host}`;
+      netFails.set(k, (netFails.get(k) ?? 0) + 1);
+    };
+    page.on("requestfailed", (r) => noteFail(r.failure()?.errorText ?? "fehlgeschlagen", r.url()));
+    page.on("response", (r) => {
+      if (r.status() >= 400) noteFail(`HTTP ${r.status()}`, r.url());
+    });
+    page.on("console", (m) => {
+      if (m.type() === "error") console.error("KONSOLE:", m.text().slice(0, 200));
+    });
+    const netReport = () =>
+      netFails.size
+        ? `\n  Fehlgeschlagene Requests:\n${[...netFails].map(([k, n]) => `    ${n}x ${k}`).join("\n")}`
+        : "\n  Fehlgeschlagene Requests: keine";
 
     console.log("-> lade", url.toString());
     const resp = await page.goto(url.toString(), { waitUntil: "domcontentloaded" });
     if (!resp || !resp.ok()) throw new Error(`Render-Seite antwortete ${resp && resp.status()}`);
 
+    // Bis zu 2 Minuten: Der Runner hat keine GPU und muss vorher die Kacheln der ganzen
+    // Route ziehen; die alten 30s waren an einem langsamen Tag zu knapp. Meldet die Seite
+    // vorher einen Grund (__introError), sofort damit abbrechen statt blind weiterzuwarten.
     let ready = false;
-    for (let i = 0; i < 60; i++) {
-      ready = await page.evaluate(() => window.__introReady === true).catch(() => false);
-      if (ready) break;
+    let pageErr: string | undefined;
+    for (let i = 0; i < 240; i++) {
+      const st = await page
+        .evaluate(() => ({ ready: window.__introReady === true, err: window.__introError }))
+        .catch(() => ({ ready: false, err: undefined }));
+      if (st.err) {
+        pageErr = st.err;
+        break;
+      }
+      if (st.ready) {
+        ready = true;
+        break;
+      }
       await sleep(500);
     }
-    if (!ready) throw new Error("Render-Karte wurde nicht bereit (kein __introReady).");
+    if (pageErr) throw new Error(`Render-Seite meldet: ${pageErr}${netReport()}`);
+    if (!ready) {
+      throw new Error(`Render-Karte wurde in 120s nicht bereit (kein __introReady).${netReport()}`);
+    }
 
     const frameCount = (await page.evaluate(() => window.__introFrameCount)) as number;
     const fps = (await page.evaluate(() => window.__introFps)) as number;
@@ -336,8 +386,8 @@ function ffmpeg(args: string[]) {
 // Render-Prozess ohne catch und der Status bliebe sonst auf 'rendering' stehen.
 if (hasFlag("report-failure")) {
   const msg = flag("report-failure") || "Render abgebrochen (Zeitlimit oder Runner-Fehler).";
-  writeRenderStatus(slug!, "error", msg).then(() => {
-    console.log(`-> Status von "${slug}" auf 'error' gesetzt: ${msg}`);
+  writeRenderStatus(slug!, "error", msg, true).then(() => {
+    console.log(`-> Status von "${slug}" auf 'error' gesetzt (falls noch keiner dastand): ${msg}`);
   });
 } else {
   run().catch(async (e) => {
