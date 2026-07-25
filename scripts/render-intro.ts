@@ -18,7 +18,7 @@
 
 import { chromium } from "playwright-core";
 import { spawn } from "node:child_process";
-import { mkdtemp, rm, stat, readFile, copyFile } from "node:fs/promises";
+import { mkdtemp, rm, stat, readFile, copyFile, writeFile } from "node:fs/promises";
 import { readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -278,11 +278,19 @@ async function run() {
     const sc = await stat(cleanOut);
     console.log(`   Clean-MP4: ${cleanOut}  (${(sc.size / 1e6).toFixed(1)} MB)`);
 
-    // ---- Poster (WebP) aus einem Frame, in dem die Route gut sichtbar ist ----
-    // Aus cleanDir (OHNE Text-Overlay): so trägt das Poster nie einen halb eingeblendeten
-    // Titel/Verlauf, und es passt zur Clean-Variante, die der Admin herunterlädt.
-    const posterFrame = Math.max(1, Math.round(frameCount * 0.72));
-    const posterPng = join(cleanDir, `frame-${String(posterFrame).padStart(5, "0")}.png`);
+    // ---- Poster (WebP): der ERSTE Frame, nichts anderes ----
+    // Das Poster liegt im StoryMaker unter dem Video, das bei Frame 1 startet. Ein Poster
+    // aus der Mitte (früher 72%) hiess: Standbild vom Berg, dann springt das Video zurück
+    // zum Start. Ein harter Schnitt, jedes Mal. Frame 1 zeigt genau das, was der erste
+    // Videoframe zeigt, also fällt der Wechsel gar nicht auf.
+    //
+    // Aus framesDir, nicht cleanDir: Das Poster gehört zum Video, das wirklich läuft. Bei
+    // Frame 1 sind beide ohnehin Pixel für Pixel gleich (die Titelkarte blendet erst am
+    // Schluss ein), aber der Bezug soll im Code stimmen und nicht zufällig aufgehen.
+    //
+    // Dieselbe Regel wie bei hochgeladenen Videos: VideoUploader.makePoster() greift den
+    // Anfang ab (0,1 s). Zwei Wege zum Standbild wären zwei Wege, es falsch zu machen.
+    const posterPng = join(framesDir, `frame-00001.png`);
     const posterWebp = await sharp(posterPng)
       .resize({ width: 720, height: 1280, fit: "inside" })
       .webp({ quality: 80 })
@@ -292,7 +300,12 @@ async function run() {
       await upload(slug!, out, cleanOut, posterWebp);
       await writeRenderStatus(slug!, "idle");
     } else {
-      console.log("\nFertig (lokal, beide Varianten). Mit --upload landen sie in spot-media + der DB.");
+      // Auch lokal schreiben: Sonst entsteht das Poster zwar, ist aber nirgends anzusehen,
+      // und man kann vor dem Hochladen nicht prüfen, ob es zum ersten Videoframe passt.
+      const posterOut = out.replace(/\.mp4$/i, ".webp");
+      await writeFile(posterOut, posterWebp);
+      console.log(`   Poster: ${posterOut}  (${(posterWebp.length / 1e3).toFixed(0)} kB)`);
+      console.log("\nFertig (lokal, beide Varianten + Poster). Mit --upload landet alles in spot-media + der DB.");
     }
   } finally {
     await rm(framesDir, { recursive: true, force: true }).catch(() => {});
