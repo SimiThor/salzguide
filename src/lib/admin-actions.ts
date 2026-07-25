@@ -1937,8 +1937,11 @@ export async function saveHomeMedia(
 // an, der auf einem Runner gegen die Prod-URL rendert und hochlädt. Den Fortschritt meldet das
 // Skript zurück in die spots-Zeile (intro_render_status), die die Admin-Seite pollt.
 export async function triggerIntroRender(
-  slug: string,
-): Promise<{ ok: boolean; error?: string }> {
+  // Ohne slug: alles rendern, was veraltet ist oder noch kein Video hat. Der Workflow
+  // entscheidet das im Planer-Job noch einmal selbst; hier setzen wir nur schon mal den
+  // Status, damit die Seite sofort eine Warteschlange zeigt statt einer Minute Stille.
+  slug?: string,
+): Promise<{ ok: boolean; error?: string; count?: number }> {
   const gate = await requireAdmin();
   if (!gate.ok) return { ok: false, error: gate.error };
 
@@ -1953,6 +1956,18 @@ export async function triggerIntroRender(
 
   // spots hat die RLS-Policy spots_admin_all -> Session-Client genügt (RLS bleibt zweites Schloss).
   const svc = gate.supabase;
+
+  // Dieselbe Regel wie der Planer im Workflow (kein Video oder Hash veraltet). Weichen die
+  // beiden ab, stünden hier Zeilen auf „in Warteschlange", hinter denen nie ein Render kommt.
+  let targets: string[];
+  if (slug) {
+    targets = [slug];
+  } else {
+    const list = await getIntroRenderList();
+    targets = list.filter((i) => !i.hasVideo || i.outdated).map((i) => i.slug);
+    if (!targets.length) return { ok: true, count: 0 };
+  }
+
   // Sofort 'queued', damit die Seite gleich „in Warteschlange" zeigt. Best-effort: fehlt
   // Migration 0049, ignorieren wir den Fehler und stossen den Workflow trotzdem an.
   await svc
@@ -1962,7 +1977,7 @@ export async function triggerIntroRender(
       intro_render_error: null,
       intro_render_started_at: new Date().toISOString(),
     })
-    .eq("slug", slug);
+    .in("slug", targets);
 
   // try/catch wie bei jedem anderen Netz-Aufruf der Datei: Ohne ihn wirft ein
   // DNS-/Netzfehler aus der Action heraus, und die Zeile stünde für immer auf
@@ -1979,7 +1994,7 @@ export async function triggerIntroRender(
           "X-GitHub-Api-Version": "2022-11-28",
           "User-Agent": "salzguide-admin",
         },
-        body: JSON.stringify({ ref: "main", inputs: { slug } }),
+        body: JSON.stringify({ ref: "main", inputs: slug ? { slug } : {} }),
         signal: AbortSignal.timeout(15000),
       },
     );
@@ -1990,7 +2005,7 @@ export async function triggerIntroRender(
         intro_render_status: "error",
         intro_render_error: `GitHub nicht erreichbar: ${err instanceof Error ? err.message : "Netzwerkfehler"}`,
       })
-      .eq("slug", slug);
+      .in("slug", targets);
     return { ok: false, error: "GitHub ist gerade nicht erreichbar. Bitte nochmal versuchen." };
   }
 
@@ -2002,10 +2017,10 @@ export async function triggerIntroRender(
         intro_render_status: "error",
         intro_render_error: `GitHub API ${res.status}: ${txt.slice(0, 300)}`,
       })
-      .eq("slug", slug);
+      .in("slug", targets);
     return { ok: false, error: `Workflow konnte nicht gestartet werden (GitHub ${res.status}).` };
   }
-  return { ok: true };
+  return { ok: true, count: targets.length };
 }
 
 // Aktuelle Render-Liste neu laden (fürs Polling der Admin-Seite).

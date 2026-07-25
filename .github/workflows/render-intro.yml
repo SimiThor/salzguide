@@ -1,60 +1,132 @@
-name: Render Intro-Video
+name: Render Intro-Videos
 
-# Wird vom Admin-Button ausgelöst (Server-Action triggerIntroRender -> GitHub-API
-# workflow_dispatch). Rendert das Wander-Intro auf einem GitHub-Runner (Chrome + ffmpeg
-# sind auf ubuntu-latest vorinstalliert) GEGEN DIE PRODUKTIONS-URL und lädt Video + Poster
-# zu Supabase. Kein Dauer-Dienst, kein Terminal.
+# Wird vom Admin-Knopf ausgelöst (Server-Action triggerIntroRender -> GitHub-API
+# workflow_dispatch). OHNE slug rendert der Lauf alles, was veraltet ist: ein Runner pro
+# Spot, parallel. MIT slug nur diesen einen.
+#
+# Der Runner baut die App selbst und rendert gegen localhost. Das ist Absicht: Gegen die
+# Live-Seite zu rendern koppelte die Videos an den Zustand von Vercel (ein laufender Deploy
+# oder ein Fehler auf der Seite kippte den Lauf), und beim Domain-Umzug hätte es erneut
+# gebrochen. Der Mapbox-Token erlaubt localhost ohnehin.
 #
 # Einmalig zu hinterlegen (Repo -> Settings -> Secrets and variables -> Actions):
-#   RENDER_BASE_URL             https://<eure-domain>   (die Prod-URL, /render/intro/<slug> lebt dort)
-#   RENDER_SECRET               dasselbe wie in Vercel  (Token-Gate der Render-Route)
-#   NEXT_PUBLIC_SUPABASE_URL    Supabase-Projekt-URL
-#   SUPABASE_SERVICE_ROLE_KEY   Supabase Service-Role-Key (Upload + spots-Update)
+#   NEXT_PUBLIC_SUPABASE_URL        Supabase-Projekt-URL
+#   NEXT_PUBLIC_SUPABASE_ANON_KEY   öffentlicher Supabase-Key (steht ohnehin im Browser)
+#   NEXT_PUBLIC_MAPBOX_TOKEN        öffentlicher pk.-Token (steht ohnehin im Browser)
+#   SUPABASE_SERVICE_ROLE_KEY       Service-Role-Key: Upload + spots-Update. GEHEIM.
+#   RENDER_SECRET                   Token-Gate der Render-Route. GEHEIM.
 on:
   workflow_dispatch:
     inputs:
       slug:
-        description: "Spot-Slug (z. B. nockstein)"
-        required: true
+        description: "Ein Spot-Slug, oder leer für alle veralteten"
+        required: false
         type: string
 
-# Nie zwei Renders desselben Spots gleichzeitig laufen lassen.
+# Zwei Sammelläufe gleichzeitig würden dieselben Spots doppelt rendern und sich beim
+# Hochladen überholen.
 concurrency:
-  group: render-intro-${{ github.event.inputs.slug }}
+  group: render-intro
   cancel-in-progress: false
 
 jobs:
-  render:
+  # Erst überlegen, dann rechnen: Was schon aktuell ist, wird gar nicht erst gerendert.
+  plan:
     runs-on: ubuntu-latest
-    # Der Runner hat keine GPU, WebGL läuft in Software: ~4,5 s pro Frame, also gut 22 min
-    # für 300 Frames, dazu ffmpeg (zwei Fassungen) und der Upload. Mit 20 min wurde der Job
-    # kurz vor dem letzten Frame abgeschossen. 45 min lassen Luft; das Repo ist öffentlich,
-    # Actions-Minuten kosten hier nichts.
-    timeout-minutes: 45
+    timeout-minutes: 10
+    outputs:
+      slugs: ${{ steps.pick.outputs.slugs }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
       - run: npm ci
-      # Chrome (channel "chrome") und ffmpeg sind auf ubuntu-latest bereits vorhanden.
-      - name: Render + Upload
-        env:
-          RENDER_BASE_URL: ${{ secrets.RENDER_BASE_URL }}
-          RENDER_SECRET: ${{ secrets.RENDER_SECRET }}
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: node --experimental-strip-types scripts/render-intro.ts "${{ github.event.inputs.slug }}" --upload
-
-      # Wird der Job hart abgeschossen (Zeitlimit, Runner tot), kommt das Skript nicht mehr
-      # zum Fehler-Schreiben und die Admin-Seite stünde bis zum Stale-Riegel auf „wird
-      # gerendert …". Dieser Schritt läuft auch bei Abbruch und setzt die Zeile auf 'error'.
-      - name: Fehlschlag melden
-        if: ${{ failure() || cancelled() }}
+      - id: pick
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
-          node --experimental-strip-types scripts/render-intro.ts "${{ github.event.inputs.slug }}" \
+          slugs=$(node --experimental-strip-types scripts/intro-render-plan.ts "${{ inputs.slug }}" --commit)
+          echo "slugs=$slugs" >> "$GITHUB_OUTPUT"
+
+  render:
+    needs: plan
+    if: needs.plan.outputs.slugs != '[]'
+    strategy:
+      # Ein kaputter Spot darf die anderen nicht mitreißen.
+      fail-fast: false
+      matrix:
+        slug: ${{ fromJson(needs.plan.outputs.slugs) }}
+    runs-on: ubuntu-latest
+    # Der Runner hat keine GPU, WebGL läuft in Software. Bauen, rendern, kodieren, hochladen
+    # zusammen liegen bei gut einer halben Stunde.
+    timeout-minutes: 45
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      NEXT_PUBLIC_MAPBOX_TOKEN: ${{ secrets.NEXT_PUBLIC_MAPBOX_TOKEN }}
+      # Keine echte Adresse: Der Runner ist sein eigener Server. Siehe siteUrl().
+      NEXT_PUBLIC_SITE_URL: http://localhost:3000
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      # next start läuft mit NODE_ENV=production, also greift das Token-Gate der
+      # Render-Route auch lokal. Das Skript hängt denselben Token an die URL.
+      RENDER_SECRET: ${{ secrets.RENDER_SECRET }}
+      RENDER_BASE_URL: http://localhost:3000
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      # ubuntu-latest bringt ffmpeg NICHT mehr mit (früher schon, daher stand hier lange das
+      # Gegenteil). Ohne diesen Schritt läuft der Render 21 Minuten lang sauber durch und
+      # scheitert dann in der letzten Sekunde beim Zusammenbauen des MP4.
+      - name: ffmpeg installieren
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+          ffmpeg -version | head -1
+
+      - run: npm run build
+
+      - name: Server starten
+        run: |
+          npm start &
+          for i in $(seq 1 60); do
+            if curl -sfL -o /dev/null http://localhost:3000/de; then
+              echo "Server antwortet nach ${i}x2s."
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Server kam in 120s nicht hoch."
+          exit 1
+
+      # Ein Wiederholungsversuch: Kacheln, die einmal nicht kommen, haben schon einen
+      # kompletten Lauf gekostet. Das darf keine Handarbeit auslösen.
+      - name: Rendern
+        run: |
+          for versuch in 1 2; do
+            echo "::group::Versuch $versuch für ${{ matrix.slug }}"
+            if node --experimental-strip-types scripts/render-intro.ts "${{ matrix.slug }}" --upload; then
+              echo "::endgroup::"
+              exit 0
+            fi
+            echo "::endgroup::"
+            echo "Versuch $versuch gescheitert."
+            sleep 15
+          done
+          exit 1
+
+      # Wird der Job hart abgeschossen (Zeitlimit, Runner tot), kommt das Skript nicht mehr
+      # zum Fehler-Schreiben und die Admin-Seite stünde bis zum Stale-Riegel auf „wird
+      # gerendert …". Schreibt nur, wo noch kein Grund steht.
+      - name: Fehlschlag melden
+        if: ${{ failure() || cancelled() }}
+        run: |
+          node --experimental-strip-types scripts/render-intro.ts "${{ matrix.slug }}" \
             --report-failure "Render abgebrochen (Zeitlimit oder Runner-Fehler). Log: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"

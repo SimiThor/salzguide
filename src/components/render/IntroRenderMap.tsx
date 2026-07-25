@@ -104,6 +104,9 @@ declare global {
     // Titelkarte ein-/ausblenden: für die "clean"-Variante (ohne Text-Overlay) blendet das
     // Render-Skript sie pro Frame kurz aus und schießt ein zweites, sauberes Bild.
     __introSetCard?: (visible: boolean) => void;
+    // Ist die Titelkarte in diesem Frame überhaupt sichtbar? Sagt dem Render-Skript, wann
+    // sich der zweite Screenshot lohnt und wann er reine Rechenzeit wäre.
+    __introCardVisible?: () => boolean;
     // Grund, warum die Karte NICHT bereit wurde. Ohne den bricht das Render-Skript nach
     // seiner Wartezeit ohne Begründung ab: Mapbox meldet Fehler nur über sein error-Event,
     // und ein Fehler im load-Handler landet als abgelehntes Promise im Nichts.
@@ -369,6 +372,11 @@ export default function IntroRenderMap({
       window.__introSetCard = (visible: boolean) => {
         if (cardRef.current) cardRef.current.style.visibility = visible ? "visible" : "hidden";
       };
+      // Die Titelkarte blendet erst kurz vor Schluss ein (applyFrame). Solange ihre Deckkraft
+      // exakt 0 ist, sind das Bild MIT und das Bild OHNE Karte Pixel für Pixel dasselbe, und
+      // das Render-Skript kann sich den zweiten Screenshot sparen. Das betrifft rund drei
+      // Viertel aller Frames, gemessen 393 Aufnahmen statt 600.
+      window.__introCardVisible = () => Number(cardRef.current?.style.opacity ?? "0") > 0;
       window.__introReady = true;
 
       // Echtzeit-Vorschau für menschliche Besucher (Skript setzt __introDriven, übernimmt).
