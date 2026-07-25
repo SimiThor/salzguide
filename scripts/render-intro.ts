@@ -393,7 +393,11 @@ function ffmpeg(args: string[]) {
     p.on("error", (e: NodeJS.ErrnoException) =>
       reject(
         e.code === "ENOENT"
-          ? new Error(`ffmpeg nicht gefunden (${ffmpegBin}). Installiere es mit: brew install ffmpeg`)
+          ? // Diese Meldung landet über den Render-Status auch im Admin. Dort ist ein
+            // brew-Befehl nutzlos, deshalb beide Fälle nennen.
+            new Error(
+              `ffmpeg nicht gefunden (${ffmpegBin}). Lokal: brew install ffmpeg. Auf dem Runner erledigt das der Schritt „ffmpeg installieren" im Workflow.`,
+            )
           : e,
       ),
     );
