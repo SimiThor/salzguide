@@ -10,7 +10,7 @@ import { BookmarkFilled } from "@/components/icons";
 import SavedSpots from "@/components/SavedSpots";
 import SavedEventsList from "@/components/SavedEventsList";
 
-const PAD = "pt-[calc(env(safe-area-inset-top)+4.5rem)] md:pt-6";
+const PAD = "pt-[var(--sg-page-top)] md:pt-6";
 
 export default async function GespeichertPage({
   params,
@@ -30,7 +30,7 @@ export default async function GespeichertPage({
   // sind weg: Sie sagten dasselbe wie der Login-Kopf, nur anders formuliert.
   if (spots === null) {
     return (
-      <div className="mx-auto w-full max-w-[380px] px-5 pt-[calc(env(safe-area-inset-top)+5rem)] pb-10 md:pt-10">
+      <div className="mx-auto w-full max-w-[380px] px-5 pt-[calc(var(--sg-page-top)+8px)] pb-10 md:pt-10">
         <LoginPanel
           reason="saved"
           titleAs="h1"

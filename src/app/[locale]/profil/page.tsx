@@ -49,7 +49,7 @@ export default async function ProfilPage({
   // Seite laufen, sonst wirkt es wie ein Antrag.
   if (!user) {
     return (
-      <div className="mx-auto w-full max-w-[380px] px-5 pt-[calc(env(safe-area-inset-top)+5rem)] pb-10 md:pt-10">
+      <div className="mx-auto w-full max-w-[380px] px-5 pt-[calc(var(--sg-page-top)+8px)] pb-10 md:pt-10">
         <LoginPanel
           reason={safeLoginReason(reasonParam)}
           titleAs="h1"
@@ -74,7 +74,7 @@ export default async function ProfilPage({
   const priceStr = isPro ? "" : formatProPrice(await getProPrice(), locale);
 
   return (
-    <div className="mx-auto w-full max-w-[440px] px-4 pt-[calc(env(safe-area-inset-top)+4.5rem)] md:pt-6">
+    <div className="mx-auto w-full max-w-[440px] px-4 pt-[var(--sg-page-top)] md:pt-6">
       <h1 className="text-2xl font-bold text-ink">{t("profileTitle")}</h1>
 
       {/* Nur solange die Freischaltung noch aussteht. Der Stripe-Webhook braucht einen

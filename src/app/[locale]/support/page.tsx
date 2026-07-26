@@ -39,7 +39,10 @@ export default async function SupportPage({
   } = await supabase.auth.getUser();
 
   return (
-    <main className="mx-auto w-full max-w-[560px] px-4 pb-[calc(env(safe-area-inset-bottom)+6rem)] pt-8 md:pb-16">
+    // pt-[var(--sg-page-top)]: Am Handy liegt der App-Header `fixed` über dem Inhalt. Hier
+    // stand nur `pt-8` — die Überschrift lag damit 29px HINTER dem Balken und war nicht zu
+    // sehen. Der Abstand kommt aus der einen Quelle (globals.css), nicht als eigene Zahl.
+    <main className="mx-auto w-full max-w-[560px] px-4 pb-[calc(env(safe-area-inset-bottom)+6rem)] pt-[var(--sg-page-top)] md:pb-16 md:pt-8">
       <h1 className="text-[28px] font-bold leading-tight text-ink">{t("title")}</h1>
       <p className="mt-2 text-[15px] leading-relaxed text-muted">{t("subtitle")}</p>
       <div className="mt-5">
