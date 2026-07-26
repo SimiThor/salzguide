@@ -138,8 +138,11 @@ export default async function AgbPage({
       <p>
         Es gelten die gesetzlichen Gewährleistungsrechte. Für unentgeltliche Inhalte (z. B. Wege-,
         Wetter-, Öffnungszeiten- und Veranstaltungsangaben) übernehmen wir keine Gewähr für
-        Richtigkeit, Vollständigkeit und Aktualität; die Nutzung – insbesondere von Touren und
-        Outdoor-Aktivitäten – erfolgt auf eigene Verantwortung. Wir haften unbeschränkt bei Vorsatz
+        Richtigkeit, Vollständigkeit und Aktualität. Unabhängig davon, ob ein Inhalt kostenlos oder
+        Teil von Pro ist, gilt: Wanderungen, Touren und Outdoor-Aktivitäten unternimmst du auf
+        eigene Verantwortung. Unsere Wege-, Zeit- und Schwierigkeitsangaben sind Anhaltspunkte und
+        ersetzen weder eigene Einschätzung noch Ausrüstung, Kondition und aktuelle Verhältnisse
+        (Wetter, Schnee, Sperren). Wir haften unbeschränkt bei Vorsatz
         und grober Fahrlässigkeit sowie bei Personenschäden. Bei leichter Fahrlässigkeit haften wir
         nur für die Verletzung wesentlicher Vertragspflichten und begrenzt auf den vertragstypisch
         vorhersehbaren Schaden. Zwingende Verbraucherschutzbestimmungen bleiben unberührt.
