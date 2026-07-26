@@ -49,7 +49,6 @@ const MAP_EMISSIVE = 1;
 // Anteil des Bildes, der unten frei bleibt (Padding). Dadurch sitzt der rote Kopf-Punkt bei
 // (1 - HEAD_PAD_FRAC)/2 ≈ 39 % von oben.
 const HEAD_PAD_FRAC = 0.22;
-const HEAD_TOP_FRAC = (1 - HEAD_PAD_FRAC) / 2; // ≈ 0.39: Höhe des Punktes von oben
 
 // Titelblock-MITTE bei 1/4 von oben. Bewusst ENTKOPPELT vom Kopf-Punkt (~39 %): so bleibt
 // zwischen Titel und Strecke genug Weißraum (der Titel soll nicht knapp über der Route kleben).
