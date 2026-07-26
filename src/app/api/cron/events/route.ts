@@ -2,38 +2,13 @@ import { runAutoWeeklyResearch } from "@/lib/event-research";
 import { createServiceClient } from "@/lib/supabase/service";
 import { prunePreviews } from "@/lib/blur-preview";
 import { sweepOrphanMedia, type OrphanSweepResult } from "@/lib/storage-orphans";
+import { pruneExpiredData } from "@/lib/data-retention";
 
-// DSGVO-Datensparsamkeit (docs/34 §D/§H): KI-Zähler > 90 Tage + Burst > 1 Tag löschen;
-// Analytics-Salt > 2 Tage (danach sind die Visitor-Hashes endgültig anonym) + Analytics-
-// Events > 14 Monate. Best effort – blockiert den Cron nie.
-async function cleanupOldData(): Promise<number> {
-  const usageCutoff = new Date();
-  usageCutoff.setUTCDate(usageCutoff.getUTCDate() - 90);
-  const burstCutoff = new Date();
-  burstCutoff.setUTCDate(burstCutoff.getUTCDate() - 1);
-  const saltCutoff = new Date();
-  saltCutoff.setUTCDate(saltCutoff.getUTCDate() - 2);
-  const eventCutoff = new Date();
-  eventCutoff.setUTCDate(eventCutoff.getUTCDate() - 425); // ~14 Monate
-  try {
-    const service = createServiceClient();
-    const [usage] = await Promise.all([
-      service
-        .from("ai_usage")
-        .delete({ count: "exact" })
-        .lt("day", usageCutoff.toISOString().slice(0, 10)),
-      service.from("ai_burst").delete().lt("window_start", burstCutoff.toISOString()),
-      service.from("analytics_salt").delete().lt("day", saltCutoff.toISOString().slice(0, 10)),
-      service
-        .from("analytics_events")
-        .delete()
-        .lt("created_at", eventCutoff.toISOString()),
-    ]);
-    return usage.count ?? 0;
-  } catch {
-    return 0;
-  }
-}
+// Das Aufräumen alter Daten steckte hier und läuft jetzt TÄGLICH in einer eigenen Route
+// (api/cron/cleanup). Grund: Die in der Datenschutzerklärung genannten Fristen (2 bzw. 90
+// Tage) lassen sich mit einem wöchentlichen Lauf nicht einhalten. Der Aufruf bleibt hier
+// zusätzlich stehen, weil er billig und idempotent ist: Fällt ein Tageslauf aus, räumt
+// spätestens der Montag auf.
 
 // Wöchentlicher KI-Recherche-Lauf (Vercel Cron). Recherchiert die aktuelle,
 // nächste & übernächste Kalenderwoche – aber nur die noch NICHT protokollierten
@@ -51,7 +26,7 @@ export async function GET(req: Request): Promise<Response> {
   }
 
   const result = await runAutoWeeklyResearch();
-  const purgedAiUsage = await cleanupOldData();
+  const purgedAiUsage = (await pruneExpiredData()).aiUsage;
 
   // Nicht mehr gebrauchte Bild-Vorschauen wegräumen. Gehört hierher, weil dieser Lauf
   // längst die wöchentliche WARTUNG ist und nicht nur Recherche (cleanupOldData oben hat

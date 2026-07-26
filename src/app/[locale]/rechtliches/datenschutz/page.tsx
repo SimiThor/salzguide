@@ -95,11 +95,15 @@ export default async function DatenschutzPage({
         (Art. 6 Abs. 1 lit. c DSGVO). Löschst du dein Konto, bleibt der Zahlungsvorgang als
         Nachweis bestehen, ohne Verknüpfung zu einem Konto.
       </p>
-      <h3>f) Bot-Schutz am Login</h3>
+      <h3>f) Bot-Schutz an unseren Formularen</h3>
+      {/* Stand bis 07/2026 als „Bot-Schutz am Login" da und war damit zu eng: Turnstile läuft
+          auch am Support- und am Widerrufsformular (verifyTurnstile in support-actions.ts und
+          rechtliches/widerruf/actions.ts). Wer hier ein Formular ergänzt, ergänzt die Liste. */}
       <p>
-        Zum Schutz vor automatisiertem Missbrauch (Bots, Massen-Mailversand) setzen wir Cloudflare
-        Turnstile ein. Dabei werden technische Signale deines Browsers sowie deine IP-Adresse durch
-        Cloudflare verarbeitet, um „Mensch oder Bot“ zu unterscheiden.
+        Zum Schutz vor automatisiertem Missbrauch (Bots, Massen-Mailversand) setzen wir an unseren
+        Formularen Cloudflare Turnstile ein: beim Anmelden, beim Absenden einer Support-Anfrage und
+        beim Online-Widerruf. Dabei werden technische Signale deines Browsers sowie deine IP-Adresse
+        durch Cloudflare verarbeitet, um „Mensch oder Bot“ zu unterscheiden.
       </p>
       <h3>g) Server-Logs &amp; Sicherheit</h3>
       <p>
@@ -156,7 +160,7 @@ export default async function DatenschutzPage({
           Das bleibt auf deinem Gerät und wird nicht an uns übertragen.
         </li>
         <li>
-          <strong>Karte (lokaler Speicher):</strong> siehe Punkt k).
+          <strong>Karte (lokaler Speicher):</strong> siehe Punkt l).
         </li>
       </ul>
       <p>
@@ -164,7 +168,23 @@ export default async function DatenschutzPage({
         dafür nicht nötig (§ 165 Abs. 3 TKG). Löschen kannst du es jederzeit über die
         Einstellungen deines Browsers.
       </p>
-      <h3>j) Online-Widerruf</h3>
+      <h3>j) Support- und Kontaktanfragen</h3>
+      {/* Fehlte bis 07/2026 ganz, obwohl das Formular Daten speichert UND eine Mail auslöst
+          (lib/support-actions.ts schreibt in support_requests). Eine Verarbeitung, die in der
+          Erklärung nicht vorkommt, ist ein Verstoß gegen Art. 13 DSGVO, auch wenn sie noch so
+          harmlos ist. */}
+      <p>
+        Schreibst du uns über das Hilfe-Formular, verarbeiten wir deine E-Mail-Adresse, deinen
+        Namen (falls angegeben), deine Nachricht und die gewählte Sprache, um zu antworten. Bist
+        du angemeldet, ordnen wir die Anfrage deinem Konto zu, damit wir den Zusammenhang sehen.
+        Die Anfrage wird bei uns gespeichert und zusätzlich per E-Mail an uns zugestellt.
+        Rechtsgrundlage ist unser berechtigtes Interesse an der Beantwortung deiner Anfrage
+        (Art. 6 Abs. 1 lit. f DSGVO), bei Anfragen zu einem Kauf die Vertragserfüllung
+        (Art. 6 Abs. 1 lit. b DSGVO). Wir bewahren Anfragen so lange auf, wie es für die
+        Bearbeitung und für Rückfragen nötig ist.
+      </p>
+
+      <h3>k) Online-Widerruf</h3>
       <p>
         Nutzt du das Online-Widerrufsformular, verarbeiten wir die angegebenen Daten (Name,
         E-Mail-Adresse, Vertrags-/Bestellkennung, ggf. Anschrift) zur Bearbeitung deines Widerrufs
@@ -172,7 +192,7 @@ export default async function DatenschutzPage({
         einer rechtlichen Verpflichtung sowie die Vertragsabwicklung.
       </p>
 
-      <h3>k) Karte</h3>
+      <h3>l) Karte</h3>
       {/* Der einzige Grenzfall der ganzen Liste, deshalb steht er offen da: mapbox-gl (3.25)
           legt „mapbox.eventData" im localStorage ab und meldet Kartenaufrufe an
           events.mapbox.com. Das ist Mapbox' eigene Sitzungszählung, über die unser Vertrag
@@ -191,7 +211,7 @@ export default async function DatenschutzPage({
         speichern ihn nicht.
       </p>
 
-      <h3>l) Unsere Profile auf Instagram und TikTok</h3>
+      <h3>m) Unsere Profile auf Instagram und TikTok</h3>
       <p>
         Wir betreiben Profile auf Instagram (Meta) und TikTok. Rufst du eines auf, verarbeiten
         diese Plattformen deine Daten nach ihren eigenen Bestimmungen, auf die wir keinen
@@ -210,7 +230,7 @@ export default async function DatenschutzPage({
         Öffentlichkeitsarbeit (Art. 6 Abs. 1 lit. f DSGVO).
       </p>
 
-      <h3>m) Instagram-Beiträge auf unserer Seite</h3>
+      <h3>n) Instagram-Beiträge auf unserer Seite</h3>
       {/* Das ist der Grund, warum diese Seite keinen Cookie-Banner braucht, obwohl
           Instagram-Beiträge darauf zu sehen sind: Es sind unsere eigenen Bilder aus unserem
           eigenen Speicher (Supabase, EU), im Admin hochgeladen. Es gibt weder im Browser noch
@@ -257,36 +277,37 @@ export default async function DatenschutzPage({
       </p>
       <ul>
         <li>
-          <strong>Supabase</strong> – Datenbank, Authentifizierung, Speicher (Hosting in der EU).
+          <strong>Supabase</strong> – Datenbank, Authentifizierung, Speicher (Hosting in der EU;
+          Unternehmenssitz USA).
         </li>
         <li>
-          <strong>Vercel</strong> – Hosting/Auslieferung der Anwendung (CDN).
+          <strong>Vercel</strong> – Hosting/Auslieferung der Anwendung (CDN), USA.
         </li>
         <li>
-          <strong>Stripe</strong> – Zahlungsabwicklung.
+          <strong>Stripe</strong> – Zahlungsabwicklung, Irland/USA.
         </li>
         <li>
-          <strong>Anthropic</strong> – KI-Assistent und KI-gestützte Inhalte.
+          <strong>Anthropic</strong> – KI-Assistent und KI-gestützte Inhalte, USA.
         </li>
         <li>
-          <strong>Google</strong> – „Anmelden mit Google“ sowie Öffnungszeiten (Google Places).
+          <strong>Google</strong> – „Anmelden mit Google“ sowie Öffnungszeiten (Google Places), Irland/USA.
         </li>
         <li>
-          <strong>Mapbox</strong> (mit OpenStreetMap) – Kartendarstellung (siehe Punkt 3k).
+          <strong>Mapbox</strong> (mit OpenStreetMap) – Kartendarstellung (siehe Punkt 3l), USA.
         </li>
         <li>
-          <strong>Cloudflare</strong> – Bot-Schutz (Turnstile).
+          <strong>Cloudflare</strong> – Bot-Schutz (Turnstile), USA.
         </li>
         <li>
-          <strong>ElevenLabs</strong> – Sprachausgabe der Audio-Touren.
+          <strong>ElevenLabs</strong> – Sprachausgabe der Audio-Touren (unsere Texte, keine Nutzerdaten), USA.
         </li>
         <li>
-          <strong>Open-Meteo</strong> – Wetterdaten (es werden nur gerundete Koordinaten des
+          <strong>Open-Meteo</strong> – Wetterdaten, Deutschland (es werden nur gerundete Koordinaten des
           jeweiligen Ortes übermittelt, keine personenbezogenen Daten).
         </li>
         <li>
-          <strong>Resend</strong> bzw. Supabase-Mailversand – Versand von System-, Login- und
-          Widerruf-Bestätigungs-E-Mails.
+          <strong>Resend</strong> bzw. Supabase-Mailversand – Versand von System-, Login-,
+          Kauf- und Widerruf-Bestätigungs-E-Mails, USA.
         </li>
       </ul>
 
