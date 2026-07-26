@@ -170,28 +170,48 @@ export default function BottomSheet({
     };
   }, [open, onClose, floating]);
 
-  // Eine Stufe ansteuern. Klemmt oben und unten, damit Tippen auf dem obersten Detent
-  // einfach stehen bleibt, statt zuzuklappen.
+  // Klemmt oben und unten, damit Tippen auf dem obersten Detent einfach stehen bleibt,
+  // statt zuzuklappen.
+  const clampDetent = (i: number) => Math.max(0, Math.min(detents.length - 1, i));
+
+  // Eine Stufe ansteuern – aus einer Geste heraus (Ziehen, Tippen auf den Balken).
   const snapToIndex = (i: number) => {
-    const c = Math.max(0, Math.min(detents.length - 1, i));
+    const c = clampDetent(i);
     idxRef.current = c;
     setAtFull(c === detents.length - 1);
     animate(y, snapY(detents[c]), SPRING);
   };
 
-  // Angeforderte Stufe von aussen: springt nur bei WERT-Änderung (nicht beim ersten Mount und
+  // Angeforderte Stufe von aussen: wirkt nur bei WERT-Änderung (nicht beim ersten Mount und
   // nicht bei jedem Render), damit der Nutzer danach frei ziehen kann. Öffnen selbst erledigt
   // der Öffnen-Effekt über initialDetent.
-  const lastSnap = useRef(snapIndex);
+  //
+  // Der VERGLEICH steht im Render und nicht in einem Effekt: „State an eine geänderte Prop
+  // anpassen" ist genau der Fall, für den React das empfiehlt – dieselbe Form wie beim
+  // Öffnen weiter oben. Aus einem Effekt heraus wäre es eine zweite Render-Runde, und in
+  // der ersten stünde der Körper noch mit dem alten `atFull` da: einen Frame lang scrollend,
+  // obwohl das Sheet gerade auf Peek zurückfährt.
+  //
+  // Die BEWEGUNG bleibt trotzdem im Effekt darunter. Ein Render muss frei von
+  // Seiteneffekten sein, und `animate()` ist einer; hier wird nur das Ziel gemerkt.
+  const [lastSnap, setLastSnap] = useState(snapIndex);
+  const [snapTarget, setSnapTarget] = useState<number | null>(null);
+  if (snapIndex !== lastSnap) {
+    setLastSnap(snapIndex);
+    // Nur, wenn die Stufe gerade überhaupt erreichbar ist: Am Desktop gibt es keine Stufen,
+    // ohne gemessene Höhe wäre das Ziel geraten, und ein geschlossenes Sheet bekommt sein
+    // Ziel beim Öffnen (initialDetent).
+    const target =
+      snapIndex != null && !isDesktop && vh && open ? clampDetent(snapIndex) : null;
+    if (target != null) setAtFull(target === detents.length - 1);
+    setSnapTarget(target);
+  }
   useEffect(() => {
-    if (snapIndex == null || snapIndex === lastSnap.current) {
-      lastSnap.current = snapIndex;
-      return;
-    }
-    lastSnap.current = snapIndex;
-    if (!isDesktop && vh && open) snapToIndex(snapIndex);
+    if (snapTarget == null) return;
+    idxRef.current = snapTarget;
+    animate(y, snapY(detents[snapTarget]), SPRING);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [snapIndex]);
+  }, [snapTarget]);
 
   const handleDragEnd = (
     _event: MouseEvent | TouchEvent | PointerEvent,
