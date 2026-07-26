@@ -6,7 +6,7 @@
     "exploreTitle": "Esplora",
     "exploreDescription": "Salisburgo senza stress – i posti migliori, scelti dai local.",
     "proTitle": "Pro",
-    "proDescription": "Tutti i posti bloccati, ogni tour audio per intero, Toni senza limiti. Paghi una volta, nessun abbonamento."
+    "proDescription": "Posti bloccati con il consiglio da insider, escursioni con il percorso, tour audio interi e Toni senza limiti. Paghi una volta, nessun abbonamento."
   },
   "Common": {
     "back": "Indietro",
@@ -356,10 +356,10 @@
   "Pro": {
     "title": "SalzGuide",
     "subtitle": "Senza Pro questa parte della mappa resta chiusa.",
-    "feat1": "Tutti i posti bloccati, con consiglio e come arrivare",
-    "feat2": "Tour audio interi, non solo le prime tappe",
-    "feat3": "Chiedi a Toni quante volte vuoi",
-    "feat4": "Paghi una volta, nessun abbonamento, resta tuo",
+    "feat1": "Tutti i posti bloccati, con il consiglio da insider",
+    "feat2": "Escursioni con il percorso, fatte da noi",
+    "feat3": "Tour audio interi, non solo le prime tappe",
+    "feat4": "Chiedi a Toni quante volte vuoi",
     "oneTime": "pagamento unico · nessun abbonamento",
     "cta": "Attiva Pro",
     "spotTeaser": "Con Pro vedi questo posto, il consiglio che lo accompagna e tutti gli altri bloccati.",
@@ -400,8 +400,8 @@
       }
     },
     "heroTitle": "I posti davanti a cui passi senza saperlo",
-    "heroSubtitle": "Su ognuno trovi il nostro consiglio, se è aperto e come ci arrivi.",
-    "heroLockedRounded": "{count}+ di questi sono bloccati. Su ognuno trovi il consiglio, gli orari e come arrivarci.",
+    "heroSubtitle": "Ogni escursione l'abbiamo fatta, ogni posto l'abbiamo visto.",
+    "heroLockedRounded": "{count}+ di questi sono bloccati. Ogni escursione l'abbiamo fatta, ogni posto l'abbiamo visto.",
     "exploreCta": "Inizia a esplorare"
   },
   "Account": {

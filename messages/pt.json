@@ -6,7 +6,7 @@
     "exploreTitle": "Explorar",
     "exploreDescription": "Salzburg sem stress – os melhores spots, escolhidos por locais.",
     "proTitle": "Pro",
-    "proDescription": "Todos os sítios bloqueados, cada percurso áudio completo, Toni sem limite. Pagas uma vez, sem subscrição."
+    "proDescription": "Sítios bloqueados com a dica de local, caminhadas com o traçado, percursos áudio completos e Toni sem limite. Pagas uma vez, sem subscrição."
   },
   "Common": {
     "back": "Voltar",
@@ -356,10 +356,10 @@
   "Pro": {
     "title": "SalzGuide",
     "subtitle": "Sem Pro, esta parte do mapa fica fechada.",
-    "feat1": "Todos os sítios bloqueados, com a dica e como chegar",
-    "feat2": "Percursos áudio completos, não só as primeiras paragens",
-    "feat3": "Perguntar ao Toni as vezes que quiseres",
-    "feat4": "Pagas uma vez, sem subscrição, fica teu",
+    "feat1": "Todos os sítios bloqueados, com a dica de local",
+    "feat2": "Caminhadas com o traçado, feitas por nós",
+    "feat3": "Percursos áudio completos, não só as primeiras paragens",
+    "feat4": "Perguntar ao Toni as vezes que quiseres",
     "oneTime": "pagamento único · sem subscrição",
     "cta": "Ativar o Pro",
     "spotTeaser": "Com o Pro vês este sítio, a dica que o acompanha e todos os outros bloqueados.",
@@ -400,8 +400,8 @@
       }
     },
     "heroTitle": "Os sítios por onde passas sem saber",
-    "heroSubtitle": "Em cada um está a nossa dica, se está aberto e como chegar.",
-    "heroLockedRounded": "{count}+ estão bloqueados. Em cada um está a nossa dica, os horários e como chegar.",
+    "heroSubtitle": "Cada caminhada fizemos nós, cada sítio vimos nós.",
+    "heroLockedRounded": "{count}+ estão bloqueados. Cada caminhada fizemos nós, cada sítio vimos nós.",
     "exploreCta": "Começar a explorar"
   },
   "Account": {

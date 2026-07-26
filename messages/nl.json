@@ -6,7 +6,7 @@
     "exploreTitle": "Ontdekken",
     "exploreDescription": "Salzburg zonder stress – de beste spots, samengesteld door locals.",
     "proTitle": "Pro",
-    "proDescription": "Alle plekken op slot, elke audiotour helemaal, Toni zonder limiet. Eén keer betalen, geen abonnement."
+    "proDescription": "Plekken op slot met de insidertip, wandelingen met route, audiotours helemaal en Toni zonder limiet. Eén keer betalen, geen abonnement."
   },
   "Common": {
     "back": "Terug",
@@ -356,10 +356,10 @@
   "Pro": {
     "title": "SalzGuide",
     "subtitle": "Zonder Pro blijft dit deel van de kaart dicht.",
-    "feat1": "Alle plekken op slot, met de tip en de route",
-    "feat2": "Audiotours helemaal, niet alleen de eerste stops",
-    "feat3": "Toni vragen zo vaak je wilt",
-    "feat4": "Eén keer betalen, geen abonnement, blijft van jou",
+    "feat1": "Alle plekken op slot, met de insidertip erbij",
+    "feat2": "Wandelingen met route, zelf gelopen",
+    "feat3": "Audiotours helemaal, niet alleen de eerste stops",
+    "feat4": "Toni vragen zo vaak je wilt",
     "oneTime": "eenmalig · geen abonnement",
     "cta": "Pro ontgrendelen",
     "spotTeaser": "Met Pro zie je deze plek, de tip erbij en alle andere die op slot staan.",
@@ -400,8 +400,8 @@
       }
     },
     "heroTitle": "De plekken waar je anders langsrijdt",
-    "heroSubtitle": "Bij elke plek staat onze tip, of het open is en hoe je er komt.",
-    "heroLockedRounded": "{count}+ daarvan staan op slot. Bij elke staat onze tip, de openingstijden en de route.",
+    "heroSubtitle": "Elke wandeling zelf gelopen, elke plek zelf gezien.",
+    "heroLockedRounded": "{count}+ daarvan staan op slot. Elke wandeling zelf gelopen, elke plek zelf gezien.",
     "exploreCta": "Nu ontdekken"
   },
   "Account": {

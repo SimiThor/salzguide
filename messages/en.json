@@ -6,7 +6,7 @@
     "exploreTitle": "Explore",
     "exploreDescription": "Salzburg without the stress – the best spots, curated by locals.",
     "proTitle": "Pro",
-    "proDescription": "Every locked spot, every audio tour in full, Toni without a limit. Pay once, no subscription."
+    "proDescription": "Locked spots with the insider tip, hikes with the route, audio tours in full and Toni without a limit. Pay once, no subscription."
   },
   "Common": {
     "back": "Back",
@@ -356,10 +356,10 @@
   "Pro": {
     "title": "SalzGuide",
     "subtitle": "Without Pro this part of the map stays shut.",
-    "feat1": "Every locked spot, with the tip and the drive",
-    "feat2": "Audio tours in full, not just the first stops",
-    "feat3": "Ask Toni as often as you want",
-    "feat4": "Pay once, no subscription, stays yours",
+    "feat1": "Every locked spot, with the insider tip",
+    "feat2": "Hikes with the route, each one walked ourselves",
+    "feat3": "Audio tours in full, not just the first stops",
+    "feat4": "Ask Toni as often as you want",
     "oneTime": "one-time · no subscription",
     "cta": "Unlock Pro",
     "spotTeaser": "Pro opens this spot, the tip that goes with it, and every other locked one.",
@@ -400,8 +400,8 @@
       }
     },
     "heroTitle": "The spots you drive straight past",
-    "heroSubtitle": "Each one comes with our tip, whether it's open and how to get there.",
-    "heroLockedRounded": "{count}+ of them are locked. Each comes with our tip, the opening hours and the way there.",
+    "heroSubtitle": "Every hike walked ourselves, every spot seen ourselves.",
+    "heroLockedRounded": "{count}+ of them are locked. Every hike walked ourselves, every spot seen ourselves.",
     "exploreCta": "Start exploring"
   },
   "Account": {

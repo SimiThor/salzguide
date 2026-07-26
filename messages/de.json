@@ -6,7 +6,7 @@
     "exploreTitle": "Entdecken",
     "exploreDescription": "Salzburg ohne Stress – die besten Spots, kuratiert von Locals.",
     "proTitle": "Pro",
-    "proDescription": "Alle gesperrten Spots, jede Audio-Tour komplett, Toni ohne Limit. Einmal zahlen, kein Abo."
+    "proDescription": "Gesperrte Spots mit Insider-Tipp, Wanderungen mit Route, Audio-Touren komplett und Toni ohne Limit. Einmal zahlen, kein Abo."
   },
   "Common": {
     "back": "Zurück",
@@ -399,10 +399,10 @@
   "Pro": {
     "title": "SalzGuide",
     "subtitle": "Ohne Pro bleibt dieser Teil der Karte zu.",
-    "feat1": "Alle gesperrten Spots, mit Tipp und Anfahrt",
-    "feat2": "Audio-Touren ganz, nicht nur die ersten Stationen",
-    "feat3": "Toni fragen, so oft du willst",
-    "feat4": "Einmal zahlen, kein Abo, bleibt für immer",
+    "feat1": "Alle gesperrten Spots, mit dem Insider-Tipp dazu",
+    "feat2": "Wanderungen mit Route, jede selbst gegangen",
+    "feat3": "Audio-Touren ganz, nicht nur die ersten Stationen",
+    "feat4": "Toni fragen, so oft du willst",
     "oneTime": "einmalig · kein Abo",
     "cta": "Pro freischalten",
     "spotTeaser": "Mit Pro siehst du diesen Spot, den Tipp dazu und alle anderen gesperrten.",
@@ -443,8 +443,8 @@
       }
     },
     "heroTitle": "Die Spots, an denen du sonst vorbeifährst",
-    "heroSubtitle": "Bei jedem steht unser Tipp, ob offen ist und wie du hinfährst.",
-    "heroLockedRounded": "{count}+ davon sind gesperrt. Bei jedem steht unser Tipp, ob offen ist und wie du hinfährst.",
+    "heroSubtitle": "Jede Wanderung selbst gegangen, jeden Spot selbst gesehen.",
+    "heroLockedRounded": "{count}+ davon sind gesperrt. Jede Wanderung selbst gegangen, jeden Spot selbst gesehen.",
     "exploreCta": "Jetzt entdecken"
   },
   "Account": {
