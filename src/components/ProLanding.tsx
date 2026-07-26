@@ -6,7 +6,7 @@ import { Link } from "@/i18n/navigation";
 import { createCheckoutSession } from "@/lib/stripe-actions";
 import { Spinner } from "@/components/Busy";
 import { ProWordmark } from "@/components/ProBadge";
-import { PRO_FEATURES } from "@/components/proFeatures";
+import ProFeatureList from "@/components/ProFeatureList";
 
 // Conversion-Landing für den Pro-Kauf (mobile-first, iOS-2026).
 //
@@ -25,9 +25,19 @@ import { PRO_FEATURES } from "@/components/proFeatures";
 export default function ProLanding({
   price,
   canceled,
+  lockedSpots,
 }: {
   price: string;
   canceled: boolean;
+  /**
+   * Wie viele Spots gerade hinter Pro liegen, live aus der Datenbank (getProSpotCount).
+   * null = unbekannt, dann steht der Satz ohne Zahl da.
+   *
+   * Die Zahl ist das eine Verkaufsargument, das sich nicht anfühlt wie Werbung: Sie sagt
+   * schlicht, was man nicht sieht. Sie darf deshalb NIE im Übersetzungstext stehen, sondern
+   * kommt immer aus der DB (siehe lib/spots.ts).
+   */
+  lockedSpots: { value: number; rounded: boolean } | null;
 }) {
   const t = useTranslations("Pro");
   const locale = useLocale();
@@ -84,37 +94,42 @@ export default function ProLanding({
         </div>
       )}
 
-      {/* EINE zusammenhängende Fläche: warmer Salzburg-Verlauf oben, fließend nach unten
-          zu Features und Kauf. Keine abgesetzten Einzel-Kacheln -> ruhig & Apple-artig. */}
+      {/* EINE zusammenhängende Fläche mit drei klar getrennten Blöcken: was dir fehlt,
+          was du bekommst, was es kostet. Getrennt durch Haarlinien statt durch Kacheln —
+          gestapelte Kärtchen wären vier Flächen für eine Aussage (iOS macht das in
+          gruppierten Listen genauso). */}
       <div className="overflow-hidden rounded-[28px] bg-gradient-to-b from-accent/[0.12] via-white to-white shadow-[0_24px_60px_-28px_rgba(204,41,36,0.45)] ring-1 ring-black/[0.05]">
-        {/* Hero */}
-        <div className="px-7 pt-8 text-center">
-          <ProWordmark name={t("title")} className="text-[15px]" />
-          <h1 className="mt-5 text-[27px] font-bold leading-[1.15] tracking-tight text-ink">
+        {/* 1. Was dir ohne Pro entgeht. Die Wortmarke steht klein darüber (das Produkt
+            nennt sich einmal), die Überschrift sagt die Sache selbst. */}
+        <div className="px-7 pt-7 pb-6 text-center">
+          <ProWordmark name={t("title")} className="text-[14px]" />
+          <h1 className="mt-3 text-[28px] font-bold leading-[1.12] tracking-tight text-ink">
             {t("heroTitle")}
           </h1>
-          <p className="mx-auto mt-3 max-w-[20rem] text-[15px] leading-relaxed text-muted">
-            {t("heroSubtitle")}
+          {/* Die Zahl kommt aus der Datenbank, nie aus dem Text.
+              NUR AB ZEHN: getProSpotCount rundet erst ab zehn ab (`rounded`), darunter käme
+              die exakte Zahl. „1 Spot liegt gesperrt" ist grammatikalisch schief und als
+              Argument das Gegenteil von dem, was hier stehen soll. Unter zehn steht deshalb
+              derselbe Satz ohne Zahl: nichts behauptet, nichts kleingeredet. */}
+          <p className="mx-auto mt-2.5 max-w-[19rem] text-[15px] leading-relaxed text-muted">
+            {lockedSpots?.rounded
+              ? t("heroLockedRounded", { count: lockedSpots.value })
+              : t("heroSubtitle")}
           </p>
         </div>
 
-        {/* Features als warme iOS-Zeilen mit Emoji-Chips */}
-        <ul className="mt-7 space-y-1 px-5">
-          {PRO_FEATURES.map((f) => (
-            <li key={f.key} className="flex items-center gap-3.5 rounded-2xl px-2 py-2.5">
-              <span
-                className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-accent/10 text-[19px]"
-                aria-hidden
-              >
-                {f.icon}
-              </span>
-              <span className="text-[15px] font-medium leading-snug text-ink">{t(f.key)}</span>
-            </li>
-          ))}
-        </ul>
+        {/* 2. Was drin ist. Vier Zeilen, überall dieselben (ProFeatureList). */}
+        <div className="border-t border-black/[0.06] px-6 py-3">
+          <ProFeatureList density="page" />
+        </div>
 
-        {/* Preis + CTA als Höhepunkt derselben Fläche */}
-        <div className="mt-6 px-7 pb-8">
+        {/* 3. Was es kostet. Der Preis steht ganz für sich, darunter nur noch der Weg
+            zur Kasse und das Kleingedruckte. */}
+        {/* Der Kauf-Knopf muss am iPhone ohne Scrollen ganz dastehen: Die Abstände oben sind
+            genau so weit zusammengezogen, dass sein unterer Rand über der Tab-Leiste bleibt
+            (gemessen, 390x844). Die Zustimmungs-Zeile bleibt davon ausgenommen, die ist eine
+            Trefferfläche und darf die 44pt nicht unterschreiten. */}
+        <div className="border-t border-black/[0.06] px-7 pt-6 pb-8">
           <div className="flex items-baseline justify-center gap-2">
             {price ? (
               <>
@@ -205,8 +220,6 @@ export default function ProLanding({
           {err && <p className="mt-2 text-center text-[13px] text-accent">{err}</p>}
         </div>
       </div>
-
-      <p className="mt-5 text-center text-[13px] text-muted">💛 {t("trustLocal")}</p>
     </div>
   );
 }

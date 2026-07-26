@@ -12,7 +12,7 @@ import { Link, usePathname } from "@/i18n/navigation";
 import BottomSheet from "@/components/BottomSheet";
 import LockedMedia from "@/components/LockedMedia";
 import { ProWordmark } from "@/components/ProBadge";
-import { PRO_FEATURES } from "@/components/proFeatures";
+import ProFeatureList from "@/components/ProFeatureList";
 
 // Pro-Gate: EIN Hinweis für jede Stelle, an der jemand einen gesperrten Pro-Inhalt antippt.
 //
@@ -153,21 +153,9 @@ function ProGateSheet({
           </p>
         </div>
 
-        {/* Dieselben vier Zeilen wie auf /pro und /profil (PRO_FEATURES ist die eine
-            Quelle) – nur kompakter, weil hier ein Sheet steht und keine Seite. */}
-        <ul className="mt-4 shrink-0">
-          {PRO_FEATURES.map((f) => (
-            <li key={f.key} className="flex items-center gap-3 py-1.5">
-              <span
-                className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-accent/10 text-[17px]"
-                aria-hidden
-              >
-                {f.icon}
-              </span>
-              <span className="text-[14px] font-medium leading-snug text-ink">{t(f.key)}</span>
-            </li>
-          ))}
-        </ul>
+        {/* Dieselben vier Zeilen wie auf /pro und /profil, nur enger: hier steht ein
+            Foto darüber und ein Knopf darunter (ProFeatureList). */}
+        <ProFeatureList density="sheet" className="mt-4 shrink-0" />
       </div>
     </BottomSheet>
   );

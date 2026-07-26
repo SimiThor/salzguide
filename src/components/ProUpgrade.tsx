@@ -5,7 +5,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { createCheckoutSession } from "@/lib/stripe-actions";
 import { ProWordmark } from "@/components/ProBadge";
-import { PRO_FEATURES } from "@/components/proFeatures";
+import ProFeatureList from "@/components/ProFeatureList";
 
 // Pro-Upgrade-Karte auf /profil (eingeloggter Nutzer). Gleiche Design-Familie wie die
 // /pro-Landing (warme, zusammenhängende Fläche, Emoji-Chips, Preis+CTA), nur kompakter.
@@ -54,20 +54,10 @@ export default function ProUpgrade({ price }: { price: string }) {
         </p>
       </div>
 
-      {/* Vorteile als warme iOS-Zeilen mit Emoji-Chips (identisch zu /pro) */}
-      <ul className="mt-5 space-y-1 px-4">
-        {PRO_FEATURES.map((f) => (
-          <li key={f.key} className="flex items-center gap-3.5 rounded-2xl px-2 py-2.5">
-            <span
-              className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-accent/10 text-[19px]"
-              aria-hidden
-            >
-              {f.icon}
-            </span>
-            <span className="text-[15px] font-medium leading-snug text-ink">{t(f.key)}</span>
-          </li>
-        ))}
-      </ul>
+      {/* Dieselben vier Zeilen wie überall (ProFeatureList). */}
+      <div className="mt-5 border-t border-black/[0.06] px-5 py-3">
+        <ProFeatureList density="page" />
+      </div>
 
       {/* Preis + CTA */}
       <div className="mt-5 px-6 pb-7">

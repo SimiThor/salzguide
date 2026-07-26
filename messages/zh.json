@@ -6,7 +6,7 @@
     "exploreTitle": "探索",
     "exploreDescription": "萨尔茨堡，轻松游——由本地人精选的最棒去处。",
     "proTitle": "Pro",
-    "proDescription": "解锁所有秘密地点、所有语音路线，还有无限次的 Toni。一次性付费，非订阅。"
+    "proDescription": "所有锁住的地点、完整的语音导览、无限次的 Toni。一次付费，无订阅。"
   },
   "Common": {
     "back": "返回",
@@ -44,9 +44,8 @@
     "prev": "上一站",
     "next": "下一站",
     "seek": "选择时间",
-    "lockedTitle": "用 SalzGuide Pro 继续",
-    "lockedBody": "前几站免费。用 Pro 解锁完整语音导览。",
-    "unlock": "解锁 SalzGuide Pro",
+    "lockedTitle": "往后的部分要用 Pro",
+    "lockedBody": "前几站免费。剩下的路线在 Pro 里。",
     "noAudio": "这一站还没有语音录音。",
     "readMore": "展开",
     "readLess": "收起",
@@ -172,15 +171,12 @@
     "paywallGuestBody": "免费注册，就能更常问 Toni。",
     "paywallGuestCta": "免费注册",
     "paywallProTitle": "已达每日上限",
-    "paywallProBody": "有了 SalzGuide Pro，你可以无限次问 Toni——还能解锁所有秘密地点。",
-    "paywallProCta": "了解 SalzGuide Pro"
+    "paywallProBody": "有了 Pro，你可以无限次问 Toni，锁住的地点也一起打开。"
   },
   "Explore": {
     "summer": "夏季",
     "winter": "冬季",
     "lockedLabel": "🤫 秘密地点",
-    "proTeaser": "这个地点属于 SalzGuide Pro。解锁所有隐藏亮点。",
-    "unlock": "解锁 SalzGuide Pro",
     "more": "查看更多",
     "save": "收藏",
     "saved": "已收藏",
@@ -287,8 +283,6 @@
     "headFoodB": "价格水平",
     "headLocation": "位置与到达",
     "proTitle": "Pro 地点",
-    "proTeaser": "这个地点属于 SalzGuide Pro。解锁所有隐藏亮点。",
-    "unlock": "解锁 SalzGuide Pro",
     "lockedLabel": "🤫 秘密地点",
     "openMap": "打开地图",
     "elevation": {
@@ -361,13 +355,14 @@
   },
   "Pro": {
     "title": "SalzGuide",
-    "subtitle": "解锁秘密地点，玩转萨尔茨堡州。",
-    "feat1": "解锁所有秘密地点",
-    "feat2": "完整畅享每条语音路线（收听和阅读）",
-    "feat3": "无限次问 Toni，你的 AI 本地向导",
-    "feat4": "一次付费——不是订阅，永久有效",
+    "subtitle": "没有 Pro，地图的这一部分一直锁着。",
+    "feat1": "地图上所有锁住的地点",
+    "feat2": "语音导览完整收听，不只是前几站",
+    "feat3": "无限次问 Toni",
+    "feat4": "一次付费，永久有效",
     "oneTime": "一次性付费 · 非订阅",
-    "cta": "立即开通 Pro",
+    "cta": "开通 Pro",
+    "spotTeaser": "这个地点用 Pro 就能看。其他锁着的也一起打开。",
     "redirecting": "正在前往 Stripe……",
     "securePay": "通过 Stripe 安全付款",
     "legalHint": "购买即表示你同意我们的<terms>条款</terms>。关于撤销权的全部说明见<cancel>撤销权说明</cancel>。",
@@ -404,9 +399,9 @@
         "body": "这是我们请客。从现在起所有 Pro 地点都为你开放。"
       }
     },
-    "heroTitle": "解锁整个萨尔茨堡州",
-    "heroSubtitle": "所有隐藏宝藏、全部语音导览，以及无限畅聊的 Toni。本地人打造——绝无游客俗套。",
-    "trustLocal": "由萨尔茨堡本地人打造——真正的内行推荐。",
+    "heroTitle": "那些你会直接开过去的地方",
+    "heroSubtitle": "地图上有些地点锁着。开通 Pro 就能打开。",
+    "heroLockedRounded": "地图上还有 {count}+ 个地点锁着。开通 Pro 就能打开。",
     "exploreCta": "开始探索"
   },
   "Account": {

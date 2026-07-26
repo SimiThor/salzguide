@@ -174,6 +174,8 @@ export default async function SpotPage({
   const { locale, slug } = await params;
   setRequestLocale(locale);
   const t = await getTranslations("Detail");
+  // Pro-Texte aus dem Pro-Namensraum: eine Quelle für alle gesperrten Stellen der App.
+  const tPro = await getTranslations("Pro");
   const spot = await getSpotDetail(slug, locale);
 
   if (!spot) notFound();
@@ -205,12 +207,12 @@ export default async function SpotPage({
         <Hero {...heroProps} />
         <div className="mx-auto w-full max-w-[760px] px-4">
           <div className={`${CARD} relative z-10 -mt-9 flex flex-col items-start gap-4 p-6`}>
-            <p className="text-[15px] leading-relaxed text-muted">{t("proTeaser")}</p>
+            <p className="text-[15px] leading-relaxed text-muted">{tPro("spotTeaser")}</p>
             <Link
               href="/pro"
               className="rounded-full bg-accent px-5 py-3 text-sm font-semibold text-white active:scale-[0.98]"
             >
-              {t("unlock")}
+              {tPro("cta")}
             </Link>
           </div>
         </div>
@@ -549,7 +551,7 @@ export default async function SpotPage({
                   previewUrl={s.previewUrl}
                   emoji={s.emoji}
                   lockedLabel={t("lockedLabel")}
-                  unlockLabel={t("unlock")}
+                  unlockLabel={tPro("cta")}
                 />
               ) : (
                 <Link key={s.slug} href={`/spot/${s.slug}`} className="block">

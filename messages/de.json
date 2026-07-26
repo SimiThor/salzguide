@@ -6,7 +6,7 @@
     "exploreTitle": "Entdecken",
     "exploreDescription": "Salzburg ohne Stress – die besten Spots, kuratiert von Locals.",
     "proTitle": "Pro",
-    "proDescription": "Alle Geheimtipp-Spots, alle Audio-Touren und Toni ohne Limit. Einmal zahlen, kein Abo."
+    "proDescription": "Alle gesperrten Spots, jede Audio-Tour komplett, Toni ohne Limit. Einmal zahlen, kein Abo."
   },
   "Common": {
     "back": "Zurück",
@@ -87,9 +87,8 @@
     "prev": "Vorheriger Stopp",
     "next": "Nächster Stopp",
     "seek": "Zeit wählen",
-    "lockedTitle": "Weiter mit SalzGuide Pro",
-    "lockedBody": "Die ersten Stopps sind gratis. Schalte die komplette Audio-Tour mit Pro frei.",
-    "unlock": "SalzGuide Pro freischalten",
+    "lockedTitle": "Ab hier geht es mit Pro weiter",
+    "lockedBody": "Die ersten Stopps sind gratis. Der Rest der Tour liegt hinter Pro.",
     "noAudio": "Für diesen Stopp gibt es noch keine Audio-Aufnahme.",
     "readMore": "Weiterlesen",
     "readLess": "Weniger",
@@ -215,15 +214,12 @@
     "paywallGuestBody": "Meld dich kostenlos an und frag Toni öfter.",
     "paywallGuestCta": "Kostenlos anmelden",
     "paywallProTitle": "Tageslimit erreicht",
-    "paywallProBody": "Mit SalzGuide Pro fragst du Toni unbegrenzt – und schaltest alle Geheim-Spots frei.",
-    "paywallProCta": "SalzGuide Pro entdecken"
+    "paywallProBody": "Mit Pro fragst du Toni ohne Limit. Und die gesperrten Spots gehen auch auf."
   },
   "Explore": {
     "summer": "Sommer",
     "winter": "Winter",
     "lockedLabel": "🤫 Geheimtipp",
-    "proTeaser": "Dieser Spot gehört zu SalzGuide Pro. Schalte alle versteckten Highlights frei.",
-    "unlock": "SalzGuide Pro freischalten",
     "more": "Mehr ansehen",
     "save": "Merken",
     "saved": "Gemerkt",
@@ -330,8 +326,6 @@
     "headFoodB": "Preisniveau",
     "headLocation": "Lage & Erreichbarkeit",
     "proTitle": "Pro-Spot",
-    "proTeaser": "Dieser Spot gehört zu SalzGuide Pro. Schalte alle versteckten Highlights frei.",
-    "unlock": "SalzGuide Pro freischalten",
     "lockedLabel": "🤫 Geheimtipp",
     "openMap": "Karte öffnen",
     "elevation": {
@@ -404,13 +398,14 @@
   },
   "Pro": {
     "title": "SalzGuide",
-    "subtitle": "Schalt die Geheimtipps frei und hol das Meiste aus dem Salzburger Land.",
-    "feat1": "Alle Geheimtipp-Spots freigeschaltet",
-    "feat2": "Alle Audio-Touren komplett hören & lesen",
-    "feat3": "Toni, dein KI-Local, ohne Limit fragen",
-    "feat4": "Einmal zahlen – kein Abo, für immer",
+    "subtitle": "Ohne Pro bleibt dieser Teil der Karte zu.",
+    "feat1": "Alle gesperrten Spots auf der Karte",
+    "feat2": "Audio-Touren ganz, nicht nur die ersten Stationen",
+    "feat3": "Toni ohne Limit fragen",
+    "feat4": "Einmal zahlen, bleibt für immer",
     "oneTime": "einmalig · kein Abo",
-    "cta": "Jetzt Pro freischalten",
+    "cta": "Pro freischalten",
+    "spotTeaser": "Diesen Spot siehst du mit Pro. Und alle anderen gesperrten dazu.",
     "redirecting": "Weiter zu Stripe …",
     "securePay": "Sichere Zahlung über Stripe",
     "legalHint": "Mit dem Kauf stimmst du den <terms>AGB</terms> zu. Alles zum Rücktrittsrecht steht in der <cancel>Widerrufsbelehrung</cancel>.",
@@ -447,9 +442,9 @@
         "body": "Geht aufs Haus. Alle Pro-Spots sind ab jetzt für dich offen."
       }
     },
-    "heroTitle": "Das ganze Salzburger Land freigeschaltet",
-    "heroSubtitle": "Alle Geheimtipps, Audio-Touren und Toni ohne Limit. Von Locals gemacht – kein Touri-Kitsch.",
-    "trustLocal": "Von Salzburgern gemacht – echte Geheimtipps.",
+    "heroTitle": "Die Spots, an denen du sonst vorbeifährst",
+    "heroSubtitle": "Auf der Karte liegen Spots gesperrt. Mit Pro gehen sie auf.",
+    "heroLockedRounded": "{count}+ Spots liegen gesperrt auf der Karte. Mit Pro gehen sie auf.",
     "exploreCta": "Jetzt entdecken"
   },
   "Account": {

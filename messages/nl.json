@@ -6,7 +6,7 @@
     "exploreTitle": "Ontdekken",
     "exploreDescription": "Salzburg zonder stress – de beste spots, samengesteld door locals.",
     "proTitle": "Pro",
-    "proDescription": "Alle geheime-tip-spots, alle audiotours en Toni onbeperkt. Eenmalig betalen, geen abonnement."
+    "proDescription": "Alle plekken op slot, elke audiotour helemaal, Toni zonder limiet. Eén keer betalen, geen abonnement."
   },
   "Common": {
     "back": "Terug",
@@ -44,9 +44,8 @@
     "prev": "Vorige stop",
     "next": "Volgende stop",
     "seek": "Tijd kiezen",
-    "lockedTitle": "Verder met SalzGuide Pro",
-    "lockedBody": "De eerste stops zijn gratis. Ontgrendel de volledige audiotour met Pro.",
-    "unlock": "SalzGuide Pro ontgrendelen",
+    "lockedTitle": "Vanaf hier gaat het verder met Pro",
+    "lockedBody": "De eerste stops zijn gratis. De rest van de tour zit achter Pro.",
     "noAudio": "Voor deze stop is er nog geen audio-opname.",
     "readMore": "Verder lezen",
     "readLess": "Minder",
@@ -172,15 +171,12 @@
     "paywallGuestBody": "Meld je gratis aan en vraag Toni vaker om raad.",
     "paywallGuestCta": "Gratis aanmelden",
     "paywallProTitle": "Daglimiet bereikt",
-    "paywallProBody": "Met SalzGuide Pro vraag je Toni onbeperkt om raad – en ontgrendel je alle geheime spots.",
-    "paywallProCta": "SalzGuide Pro ontdekken"
+    "paywallProBody": "Met Pro vraag je Toni zonder limiet. En de plekken op slot gaan ook open."
   },
   "Explore": {
     "summer": "Zomer",
     "winter": "Winter",
     "lockedLabel": "🤫 Geheime tip",
-    "proTeaser": "Deze spot hoort bij SalzGuide Pro. Ontgrendel alle verborgen highlights.",
-    "unlock": "SalzGuide Pro ontgrendelen",
     "more": "Meer bekijken",
     "save": "Bewaren",
     "saved": "Bewaard",
@@ -287,8 +283,6 @@
     "headFoodB": "Prijsniveau",
     "headLocation": "Ligging & bereikbaarheid",
     "proTitle": "Pro-spot",
-    "proTeaser": "Deze spot hoort bij SalzGuide Pro. Ontgrendel alle verborgen highlights.",
-    "unlock": "SalzGuide Pro ontgrendelen",
     "lockedLabel": "🤫 Geheime tip",
     "openMap": "Kaart openen",
     "elevation": {
@@ -361,13 +355,14 @@
   },
   "Pro": {
     "title": "SalzGuide",
-    "subtitle": "Ontgrendel de geheime tips en haal het meeste uit het Salzburger Land.",
-    "feat1": "Alle geheime-tip-spots ontgrendeld",
-    "feat2": "Alle audiotours volledig beluisteren & lezen",
-    "feat3": "Toni, jouw AI-local, onbeperkt om raad vragen",
-    "feat4": "Eenmalig betalen – geen abonnement, voor altijd",
+    "subtitle": "Zonder Pro blijft dit deel van de kaart dicht.",
+    "feat1": "Alle plekken die op slot staan",
+    "feat2": "Audiotours helemaal, niet alleen de eerste stops",
+    "feat3": "Toni zonder limiet vragen",
+    "feat4": "Eén keer betalen, blijft van jou",
     "oneTime": "eenmalig · geen abonnement",
-    "cta": "Nu Pro ontgrendelen",
+    "cta": "Pro ontgrendelen",
+    "spotTeaser": "Deze plek zie je met Pro. En alle andere plekken op slot erbij.",
     "redirecting": "Verder naar Stripe …",
     "securePay": "Veilig betalen via Stripe",
     "legalHint": "Met je aankoop ga je akkoord met de <terms>voorwaarden</terms>. Alles over het herroepingsrecht staat in de <cancel>herroepingsinstructie</cancel>.",
@@ -404,9 +399,9 @@
         "body": "Van het huis. Vanaf nu staan alle Pro-spots voor je open."
       }
     },
-    "heroTitle": "Het hele Salzburger Land ontgrendeld",
-    "heroSubtitle": "Alle geheime tips, audiotours en Toni zonder limiet. Gemaakt door locals – geen toeristenkitsch.",
-    "trustLocal": "Gemaakt door Salzburgers – echte geheime tips.",
+    "heroTitle": "De plekken waar je anders langsrijdt",
+    "heroSubtitle": "Op de kaart liggen plekken op slot. Met Pro gaan ze open.",
+    "heroLockedRounded": "{count}+ plekken liggen op slot op de kaart. Met Pro gaan ze open.",
     "exploreCta": "Nu ontdekken"
   },
   "Account": {

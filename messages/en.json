@@ -6,7 +6,7 @@
     "exploreTitle": "Explore",
     "exploreDescription": "Salzburg without the stress – the best spots, curated by locals.",
     "proTitle": "Pro",
-    "proDescription": "All secret spots, every audio walk and Toni without limits. One-time payment, no subscription."
+    "proDescription": "Every locked spot, every audio tour in full, Toni without a limit. Pay once, no subscription."
   },
   "Common": {
     "back": "Back",
@@ -44,9 +44,8 @@
     "prev": "Previous stop",
     "next": "Next stop",
     "seek": "Seek",
-    "lockedTitle": "Continue with SalzGuide Pro",
-    "lockedBody": "The first stops are free. Unlock the full audio tour with Pro.",
-    "unlock": "Unlock SalzGuide Pro",
+    "lockedTitle": "This is where Pro takes over",
+    "lockedBody": "The first stops are free. The rest of the tour sits behind Pro.",
     "noAudio": "There's no audio recording for this stop yet.",
     "readMore": "Read more",
     "readLess": "Less",
@@ -172,15 +171,12 @@
     "paywallGuestBody": "Sign up for free to ask Toni more often.",
     "paywallGuestCta": "Sign up free",
     "paywallProTitle": "Daily limit reached",
-    "paywallProBody": "With SalzGuide Pro you can ask Toni without limits – and unlock all the secret spots.",
-    "paywallProCta": "Discover SalzGuide Pro"
+    "paywallProBody": "With Pro you ask Toni without a limit. And the locked spots open too."
   },
   "Explore": {
     "summer": "Summer",
     "winter": "Winter",
     "lockedLabel": "🤫 Secret Spot",
-    "proTeaser": "This spot is part of SalzGuide Pro. Unlock all the hidden highlights.",
-    "unlock": "Unlock SalzGuide Pro",
     "more": "View more",
     "save": "Save",
     "saved": "Saved",
@@ -287,8 +283,6 @@
     "headFoodB": "Price level",
     "headLocation": "Location & access",
     "proTitle": "Pro spot",
-    "proTeaser": "This spot is part of SalzGuide Pro. Unlock all the hidden highlights.",
-    "unlock": "Unlock SalzGuide Pro",
     "lockedLabel": "🤫 Secret Spot",
     "openMap": "Open map",
     "elevation": {
@@ -361,13 +355,14 @@
   },
   "Pro": {
     "title": "SalzGuide",
-    "subtitle": "Unlock the secret spots and get the most out of the Salzburg region.",
-    "feat1": "All secret spots unlocked",
-    "feat2": "Full access to every audio walk (listen & read)",
-    "feat3": "Ask Toni, your AI local, without limits",
-    "feat4": "Pay once – no subscription, forever",
+    "subtitle": "Without Pro this part of the map stays shut.",
+    "feat1": "Every locked spot on the map",
+    "feat2": "Audio tours in full, not just the first stops",
+    "feat3": "Ask Toni without a limit",
+    "feat4": "Pay once, yours for good",
     "oneTime": "one-time · no subscription",
-    "cta": "Get Pro now",
+    "cta": "Unlock Pro",
+    "spotTeaser": "This spot opens with Pro. And every other locked one with it.",
     "redirecting": "Continuing to Stripe …",
     "securePay": "Secure payment via Stripe",
     "legalHint": "By buying you agree to our <terms>terms</terms>. Everything about the right of withdrawal is in the <cancel>withdrawal policy</cancel>.",
@@ -404,9 +399,9 @@
         "body": "On the house. Every Pro spot is open for you from now on."
       }
     },
-    "heroTitle": "Unlock all of Salzburg",
-    "heroSubtitle": "Every hidden gem, all audio tours and Toni without limits. Made by locals – no tourist kitsch.",
-    "trustLocal": "Made by locals in Salzburg – real insider tips.",
+    "heroTitle": "The spots you drive straight past",
+    "heroSubtitle": "Spots sit locked on the map. Pro opens them.",
+    "heroLockedRounded": "{count}+ spots sit locked on the map. Pro opens them.",
     "exploreCta": "Start exploring"
   },
   "Account": {

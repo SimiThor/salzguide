@@ -6,7 +6,7 @@
     "exploreTitle": "둘러보기",
     "exploreDescription": "스트레스 없는 잘츠부르크 – 로컬이 직접 고른 최고의 스팟.",
     "proTitle": "Pro",
-    "proDescription": "모든 비밀 스팟, 모든 오디오 코스, 무제한 Toni. 1회 결제, 구독 없음."
+    "proDescription": "잠긴 스팟 전부, 오디오 투어 전체, 무제한 토니. 한 번 결제, 구독 없음."
   },
   "Common": {
     "back": "뒤로",
@@ -44,9 +44,8 @@
     "prev": "이전 정거장",
     "next": "다음 정거장",
     "seek": "구간 이동",
-    "lockedTitle": "SalzGuide Pro로 계속하기",
-    "lockedBody": "처음 몇 정거장은 무료예요. Pro로 오디오 투어 전체를 잠금 해제하세요.",
-    "unlock": "SalzGuide Pro 잠금 해제",
+    "lockedTitle": "여기서부터는 Pro로 이어져요",
+    "lockedBody": "처음 몇 곳은 무료예요. 투어의 나머지는 Pro에 있어요.",
     "noAudio": "이 정거장에는 아직 오디오 녹음이 없어요.",
     "readMore": "더 읽기",
     "readLess": "접기",
@@ -172,15 +171,12 @@
     "paywallGuestBody": "무료로 가입하고 Toni에게 더 자주 물어보세요.",
     "paywallGuestCta": "무료 가입",
     "paywallProTitle": "하루 한도 도달",
-    "paywallProBody": "SalzGuide Pro로 Toni에게 무제한으로 물어보고 – 모든 비밀 스팟도 잠금 해제하세요.",
-    "paywallProCta": "SalzGuide Pro 살펴보기"
+    "paywallProBody": "Pro면 토니에게 무제한으로 물어볼 수 있어요. 잠긴 스팟도 함께 열려요."
   },
   "Explore": {
     "summer": "여름",
     "winter": "겨울",
     "lockedLabel": "🤫 비밀 스팟",
-    "proTeaser": "이 스팟은 SalzGuide Pro에 포함돼 있어요. 숨은 하이라이트를 모두 잠금 해제하세요.",
-    "unlock": "SalzGuide Pro 잠금 해제",
     "more": "더 보기",
     "save": "저장",
     "saved": "저장됨",
@@ -287,8 +283,6 @@
     "headFoodB": "가격대",
     "headLocation": "위치 & 접근성",
     "proTitle": "Pro 스팟",
-    "proTeaser": "이 스팟은 SalzGuide Pro에 포함돼 있어요. 숨은 하이라이트를 모두 잠금 해제하세요.",
-    "unlock": "SalzGuide Pro 잠금 해제",
     "lockedLabel": "🤫 비밀 스팟",
     "openMap": "지도 열기",
     "elevation": {
@@ -361,13 +355,14 @@
   },
   "Pro": {
     "title": "SalzGuide",
-    "subtitle": "비밀 스팟을 잠금 해제하고 잘츠부르크 지역을 제대로 즐기세요.",
-    "feat1": "모든 비밀 스팟 잠금 해제",
-    "feat2": "모든 오디오 코스 완전 이용 (듣기 & 읽기)",
-    "feat3": "AI 로컬 Toni에게 무제한 질문",
-    "feat4": "한 번 결제 – 구독 없이, 평생",
+    "subtitle": "Pro가 없으면 지도의 이 부분은 잠긴 채로 남아요.",
+    "feat1": "지도에 잠긴 스팟 전부",
+    "feat2": "오디오 투어를 처음 몇 곳이 아니라 끝까지",
+    "feat3": "토니에게 무제한으로 묻기",
+    "feat4": "한 번 결제, 계속 사용",
     "oneTime": "1회 결제 · 구독 없음",
-    "cta": "지금 Pro 시작하기",
+    "cta": "Pro 시작하기",
+    "spotTeaser": "이 스팟은 Pro로 열려요. 잠긴 다른 스팟도 함께요.",
     "redirecting": "Stripe로 이동 중 …",
     "securePay": "Stripe를 통한 안전한 결제",
     "legalHint": "구매하면 <terms>이용약관</terms>에 동의하게 돼요. 철회권에 관한 내용은 <cancel>철회 안내</cancel>에 있어요.",
@@ -404,9 +399,9 @@
         "body": "선물이에요. 이제 모든 Pro 스팟이 열려 있어요."
       }
     },
-    "heroTitle": "잘츠부르크 전체를 잠금 해제",
-    "heroSubtitle": "모든 숨은 명소, 모든 오디오 투어와 Toni를 무제한으로. 로컬이 직접 만든 – 관광지 키치 없이.",
-    "trustLocal": "잘츠부르크 로컬이 직접 만든 – 진짜 인사이더 팁.",
+    "heroTitle": "그냥 지나치게 되는 곳들",
+    "heroSubtitle": "지도에는 잠긴 스팟이 있어요. Pro면 다 열려요.",
+    "heroLockedRounded": "지도에 잠긴 스팟이 {count}곳 넘게 있어요. Pro면 다 열려요.",
     "exploreCta": "둘러보기 시작"
   },
   "Account": {

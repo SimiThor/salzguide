@@ -6,7 +6,7 @@
     "exploreTitle": "Explorer",
     "exploreDescription": "Salzburg sans stress – les meilleurs spots, sélectionnés par des locaux.",
     "proTitle": "Pro",
-    "proDescription": "Tous les spots secrets, tous les parcours audio et Toni sans limite. Paiement unique, sans abonnement."
+    "proDescription": "Tous les spots verrouillés, chaque parcours audio en entier, Toni sans limite. Tu paies une fois, sans abonnement."
   },
   "Common": {
     "back": "Retour",
@@ -44,9 +44,8 @@
     "prev": "Arrêt précédent",
     "next": "Arrêt suivant",
     "seek": "Choisir le moment",
-    "lockedTitle": "Continue avec SalzGuide Pro",
-    "lockedBody": "Les premiers arrêts sont gratuits. Débloque toute la visite audio avec Pro.",
-    "unlock": "Débloquer SalzGuide Pro",
+    "lockedTitle": "À partir d'ici, c'est Pro qui continue",
+    "lockedBody": "Les premières étapes sont gratuites. Le reste du parcours est derrière Pro.",
     "noAudio": "Il n'y a pas encore d'enregistrement audio pour cet arrêt.",
     "readMore": "Lire la suite",
     "readLess": "Réduire",
@@ -172,15 +171,12 @@
     "paywallGuestBody": "Inscris-toi gratuitement pour poser plus de questions à Toni.",
     "paywallGuestCta": "Inscription gratuite",
     "paywallProTitle": "Limite quotidienne atteinte",
-    "paywallProBody": "Avec SalzGuide Pro, tu poses des questions à Toni sans limite – et tu débloques tous les spots secrets.",
-    "paywallProCta": "Découvrir SalzGuide Pro"
+    "paywallProBody": "Avec Pro tu poses tes questions à Toni sans limite. Et les spots verrouillés s'ouvrent aussi."
   },
   "Explore": {
     "summer": "Été",
     "winter": "Hiver",
     "lockedLabel": "🤫 Spot secret",
-    "proTeaser": "Ce spot fait partie de SalzGuide Pro. Débloque tous les trésors cachés.",
-    "unlock": "Débloquer SalzGuide Pro",
     "more": "Voir plus",
     "save": "Enregistrer",
     "saved": "Enregistré",
@@ -287,8 +283,6 @@
     "headFoodB": "Niveau de prix",
     "headLocation": "Lieu & accès",
     "proTitle": "Spot Pro",
-    "proTeaser": "Ce spot fait partie de SalzGuide Pro. Débloque tous les trésors cachés.",
-    "unlock": "Débloquer SalzGuide Pro",
     "lockedLabel": "🤫 Spot secret",
     "openMap": "Ouvrir la carte",
     "elevation": {
@@ -361,13 +355,14 @@
   },
   "Pro": {
     "title": "SalzGuide",
-    "subtitle": "Débloque les spots secrets et profite à fond de la région de Salzburg.",
-    "feat1": "Tous les spots secrets débloqués",
-    "feat2": "Accès complet à tous les parcours audio (écoute & lecture)",
-    "feat3": "Pose des questions à Toni, ton local IA, sans limite",
-    "feat4": "Paie une fois – sans abonnement, à vie",
+    "subtitle": "Sans Pro, cette partie de la carte reste fermée.",
+    "feat1": "Tous les spots verrouillés de la carte",
+    "feat2": "Les parcours audio en entier, pas juste les premières étapes",
+    "feat3": "Toni sans limite",
+    "feat4": "Tu paies une fois, c'est à toi",
     "oneTime": "paiement unique · sans abonnement",
-    "cta": "Débloquer Pro maintenant",
+    "cta": "Débloquer Pro",
+    "spotTeaser": "Ce coin s'ouvre avec Pro. Et tous les autres verrouillés avec lui.",
     "redirecting": "Redirection vers Stripe …",
     "securePay": "Paiement sécurisé via Stripe",
     "legalHint": "En achetant, tu acceptes les <terms>CGV</terms>. Tout sur le droit de rétractation se trouve dans les <cancel>informations sur la rétractation</cancel>.",
@@ -404,9 +399,9 @@
         "body": "C'est cadeau. Tous les spots Pro sont ouverts pour toi désormais."
       }
     },
-    "heroTitle": "Tout Salzburg débloqué",
-    "heroSubtitle": "Toutes les pépites cachées, tous les parcours audio et Toni sans limite. Fait par des locaux – zéro kitsch touristique.",
-    "trustLocal": "Fait par des locaux de Salzburg – de vrais bons plans.",
+    "heroTitle": "Les coins devant lesquels tu passes sans le savoir",
+    "heroSubtitle": "Des spots sont verrouillés sur la carte. Pro les ouvre.",
+    "heroLockedRounded": "{count}+ spots sont verrouillés sur la carte. Pro les ouvre.",
     "exploreCta": "Commencer à explorer"
   },
   "Account": {
