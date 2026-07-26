@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { claimVerifiedLogin } from "@/lib/pro-purchase";
 
 // Magic-Link-Rücksprung: Code gegen Session tauschen, dann weiterleiten.
 export async function GET(
@@ -54,6 +55,26 @@ export async function GET(
             .eq("newsletter_opt_in", false);
         } catch (e) {
           console.error("newsletter opt-in:", e instanceof Error ? e.message : e);
+        }
+      }
+
+      // Geliehene Sitzungen aus einem Gast-Kauf kappen.
+      //
+      // Wer als Gast kauft, bekommt sofort eine Sitzung, ohne sein Postfach bewiesen zu
+      // haben — der Nachweis war das Cookie aus dem Checkout (siehe pro/aktivieren). Das ist
+      // der richtige Tausch, hat aber eine offene Kante: Wer an Stripes Kasse eine fremde
+      // Adresse eintippt, sitzt danach in einem Konto, das diese fremde Adresse trägt.
+      //
+      // HIER wird das Postfach bewiesen — anders kommt niemand durch diese Route. Ab jetzt
+      // gilt nur noch diese Sitzung, alle älteren fliegen raus. Für den Käufer selbst ist
+      // das unsichtbar: Seine neue Sitzung ist die, die bleibt.
+      if (data?.user && (await claimVerifiedLogin(data.user.id))) {
+        try {
+          // scope "others" lässt die gerade entstandene Sitzung ausdrücklich stehen.
+          await supabase.auth.signOut({ scope: "others" });
+        } catch (e) {
+          // Ein Login darf hieran nicht scheitern.
+          console.error("signOut(others):", e instanceof Error ? e.message : e);
         }
       }
 

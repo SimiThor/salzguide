@@ -40,6 +40,11 @@ export const CREAM = "#faf6ec";
 const WASH = "#fcf2f2";
 const WASH_LINE = "#f5d4d3";
 
+// Die neutrale Trennlinie für den Datenblock. Warmes Hellgrau, kein Reingrau: Der Grund ist
+// Creme, ein kaltes Grau darauf sieht schmutzig aus. Fester Hex-Wert, weil Outlook keine
+// Transparenz rechnet (siehe WASH).
+const LINE = "#ebe6dc";
+
 /**
  * „SalzGuide" in der Überschrift IST das Logo, also wird es auch so gesetzt: Akzentrot,
  * fett, eng. Genau so zeichnet es der Header der App (MobileHeader.tsx: text-accent,
@@ -131,6 +136,36 @@ export type MailContent = {
   tile?: { label: string; value: string } | null;
   /** Kleine graue Zeile darunter, z.B. der Hinweis aufs Antworten. */
   note?: string | null;
+  /**
+   * Der Datenblock: Angaben, die zusammengehören und nachgelesen werden (Leistung, Preis,
+   * Zeitpunkt, Vertragspartner). Steht zwischen Text und Knopf.
+   *
+   * WARUM NEUTRAL UND NICHT ALS ZWEITE BLUSH-KACHEL: Es darf nur eine hervorgehobene Sache
+   * pro Mail geben, sonst hebt sich nichts mehr hervor. Die Kachel ist die EINE Angabe, an
+   * der etwas hängt; dieser Block ist Nachschlagewerk. Deshalb bekommt er nur eine feine
+   * Linie und keine Farbe. Als Rahmen-Baustein und nicht als Fliesstext, weil „Preis: 19,90 €"
+   * in einem Absatz wie ein Tippfehler aussieht und in jeder Mail neu erfunden würde.
+   */
+  rows?: readonly { label: string; value: string }[] | null;
+  /**
+   * Das Kleingedruckte, ganz unten: Pflichtangaben, die dastehen müssen, aber nicht die
+   * Nachricht sind (z.B. die dokumentierte §-18-Zustimmung in der Kaufbestätigung).
+   *
+   * WARUM NICHT IM `body`: Als 16px-Fliesstext ganz oben wiegen zwei Absätze Gesetzestext
+   * schwerer als der Grund, aus dem die Mail kommt. Die Kaufbestätigung sah damit aus wie
+   * eine Rechtsbelehrung mit Dank obendrauf, während die anderen Mails aus drei kurzen
+   * Absätzen bestehen. Hier unten steht es leiser, ist aber vollständig da und auf demselben
+   * dauerhaften Datenträger. Leerzeile trennt Absätze, wie im `body`.
+   */
+  fineprint?: string | null;
+  /**
+   * Kleine Links am Fuss der Nachricht (z.B. AGB, Widerrufsbelehrung, Datenschutz).
+   *
+   * Muss ein Baustein sein und darf nicht im `body` stehen: Der Fliesstext läuft durch esc(),
+   * eine Adresse darin bleibt also blosser Text. In Gmail wird daraus vielleicht ein Link, in
+   * Outlook nicht. Eine Rechtsbelehrung, deren Verweise nicht anklickbar sind, ist keine.
+   */
+  links?: readonly { label: string; url: string }[] | null;
 };
 
 /**
@@ -177,10 +212,53 @@ export function renderMailShell(c: MailContent): string {
       </table>`
     : "";
 
+  // Der Datenblock. Eine Zeile pro Angabe, Bezeichnung links darüber, Wert darunter fett —
+  // nicht zweispaltig: In 320px-Breite bricht eine Tabelle mit zwei Spalten so um, dass
+  // Bezeichnung und Wert nicht mehr beieinanderstehen. Übereinander hält immer.
+  const rowsBlock = c.rows?.length
+    ? `
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid ${LINE};border-radius:14px;">
+        ${c.rows
+          .map(
+            (r, i) => `<tr><td style="padding:${i === 0 ? "14px" : "10px"} 16px ${
+              i === c.rows!.length - 1 ? "14px" : "10px"
+            };${i > 0 ? `border-top:1px solid ${LINE};` : ""}">
+          <p style="margin:0;font-size:12px;line-height:1.5;color:${MUTED};">${esc(r.label)}</p>
+          <p style="margin:3px 0 0;font-size:15px;line-height:1.5;font-weight:600;color:${INK};word-break:break-word;">${esc(r.value)}</p>
+        </td></tr>`,
+          )
+          .join("")}
+      </table>`
+    : "";
+
   const noteBlock = c.note
     ? `
       <p style="margin:${c.tile ? "18px" : "0"} 0 0;font-size:13px;line-height:1.6;color:${MUTED};">
         ${esc(c.note)}
+      </p>`
+    : "";
+
+  const fineprintBlock = c.fineprint
+    ? c.fineprint
+        .split(/\n{2,}/)
+        .map((p) => p.trim())
+        .filter(Boolean)
+        .map(
+          (p, i) =>
+            `<p style="margin:${i === 0 ? "18px" : "10px"} 0 0;font-size:13px;line-height:1.65;color:${MUTED};">${esc(p).replace(/\n/g, "<br>")}</p>`,
+        )
+        .join("")
+    : "";
+
+  const linksBlock = c.links?.length
+    ? `
+      <p style="margin:16px 0 0;font-size:13px;line-height:1.8;color:${MUTED};">
+        ${c.links
+          .map(
+            (l) =>
+              `<a href="${esc(l.url)}" style="color:${MUTED};text-decoration:underline;">${esc(l.label)}</a>`,
+          )
+          .join(' &nbsp;·&nbsp; ')}
       </p>`
     : "";
 
@@ -193,10 +271,10 @@ export function renderMailShell(c: MailContent): string {
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border-radius:22px;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,Helvetica,Arial,sans-serif;">
     <tr><td style="padding:36px 32px 8px;">
       <h1 style="margin:0 0 20px;font-size:28px;line-height:1.25;font-weight:800;letter-spacing:-0.02em;color:${INK};">${brandify(c.headline)}</h1>
-      ${paragraphs}
+      ${paragraphs}${rowsBlock}
     </td></tr>
 ${ctaRow}
-    <tr><td style="padding:16px 32px 32px;">${tileBlock}${noteBlock}
+    <tr><td style="padding:16px 32px 32px;">${tileBlock}${noteBlock}${fineprintBlock}${linksBlock}
       <p style="margin:22px 0 0;font-size:15px;line-height:1.7;color:${INK};">
         ${GREETING}<br>${SIGNOFF}
       </p>
@@ -214,9 +292,14 @@ export function renderMailShellText(c: MailContent): string {
   return [
     c.headline,
     c.body,
+    // Derselbe Datenblock, nur als „Bezeichnung: Wert"-Zeilen. Er trägt bei einer
+    // Kaufbestätigung die Pflichtangaben und darf in der Reintext-Fassung nicht fehlen.
+    c.rows?.length ? c.rows.map((r) => `${r.label}: ${r.value}`).join("\n") : null,
     c.cta ? `${c.cta.label}: ${c.cta.url}` : null,
     c.tile ? `${c.tile.label} ${c.tile.value}` : null,
     c.note,
+    c.fineprint,
+    c.links?.length ? c.links.map((l) => `${l.label}: ${l.url}`).join("\n") : null,
     `${GREETING}\n${SIGNOFF}`,
     // Dieselbe Fusszeile wie in der HTML-Fassung, nur als lesbare Adressen: In der
     // Reintext-Mail gibt es keinen verlinkten Namen, ein „Instagram" ohne URL wäre eine

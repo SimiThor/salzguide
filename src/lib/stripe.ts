@@ -18,6 +18,25 @@ export function proPriceId(): string | null {
   return id && id.startsWith("price_") ? id : null;
 }
 
+// Stripes Kasse in der Sprache des Käufers anzeigen.
+//
+// Unsere Sprachcodes (i18n/locales.ts) sind zufällig genau Stripes Sprachcodes — aber nur
+// zufällig. Deshalb steht hier Stripes Liste und nicht unsere: Kommt bei uns eine Sprache
+// dazu, die Stripe nicht kann (z.B. "sr"), fällt der Checkout auf "auto" zurück (Stripe
+// wählt dann nach Browser-Sprache) statt die Session mit einem Fehler abzulehnen. Ein
+// abgelehnter Checkout wäre eine verlorene Zahlung wegen einer Übersetzung.
+const STRIPE_LOCALES = new Set([
+  "bg", "cs", "da", "de", "el", "en", "en-GB", "es", "es-419", "et", "fi", "fil", "fr",
+  "fr-CA", "hr", "hu", "id", "it", "ja", "ko", "lt", "lv", "ms", "mt", "nb", "nl", "pl",
+  "pt", "pt-BR", "ro", "ru", "sk", "sl", "sv", "th", "tr", "vi", "zh", "zh-HK", "zh-TW",
+]);
+
+export function stripeLocale(locale: string): Stripe.Checkout.SessionCreateParams.Locale {
+  return STRIPE_LOCALES.has(locale)
+    ? (locale as Stripe.Checkout.SessionCreateParams.Locale)
+    : "auto";
+}
+
 // Produktions-Compliance (AT/EU): automatische Steuer + Rechnung + Pflicht-Adresse.
 // Per ENV schaltbar, da es im Stripe-Dashboard eingerichtet sein muss (Stripe Tax).
 export function stripeTaxEnabled(): boolean {

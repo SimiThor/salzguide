@@ -1,5 +1,34 @@
 # 35 — Rechtliche To-dos VOR dem Live-Gang (extern, nicht im Code lösbar)
 
+> **Neu am 26.07.2026 (Gast-Kauf).** Der Kauf läuft ohne Konto davor; das Konto entsteht aus
+> der bei Stripe angegebenen E-Mail. Rechtlich hat das drei Dinge ausgelöst, zwei davon sind
+> im Code erledigt, eines gehört dem Anwalt:
+>
+> - **Erledigt: Vertragsbestätigung nach § 7 Abs. 3 FAGG.** Sie ist die DRITTE Bedingung
+>   dafür, dass das Rücktrittsrecht bei digitalen Inhalten erlischt (§ 18 Abs. 1 Z 11 lit. c),
+>   und es gab sie nicht. Ohne sie blieb das Rücktrittsrecht trotz Häkchen bestehen, und für
+>   digitale Inhalte gibt es nicht einmal Wertersatz (§ 16 FAGG nimmt sie aus): voller Preis
+>   zurück, nachdem alles gelesen ist. Geht jetzt als E-Mail raus, bevor freigeschaltet wird
+>   (`src/lib/pro-purchase-mail.ts`). Braucht `RESEND_KEY` — siehe Punkt 4.
+> - **Erledigt: Vorvertragliche Angaben im Kaufweg.** Der Hinweis auf AGB und
+>   Widerrufsbelehrung hing vorher am Login-Screen, den es vor dem Kauf nicht mehr gibt. Steht
+>   jetzt unter dem Kauf-Knopf (`Pro.legalHint`).
+> - **Für den Anwalt: digitaler INHALT oder digitale DIENSTLEISTUNG?** Der EuGH hat am
+>   09.07.2026 (C-234/25, VKI gegen Sky Österreich) entschieden: Ein Angebot, das sich am
+>   Nutzerverhalten orientiert und laufend angepasst wird, ist eine digitale Dienstleistung.
+>   Dann greift § 18 Abs. 1 Z 11 nicht, sondern Z 1 (Recht erlischt erst bei VOLLSTÄNDIG
+>   erbrachter Leistung), und eine Klausel, in der der Kunde den Verlust bestätigt, kann den
+>   Verlust nicht herbeiführen. Pro ist ein Paket: Spots und Audio-Touren sind Inhalt, Toni
+>   und „wird laufend weiterentwickelt" sind eher Dienstleistung. AGB und Widerrufsbelehrung
+>   sind deshalb bereits auf die geteilte Sicht umgestellt (Inhalte: erlischt; laufende Teile:
+>   bleibt, mit Wertersatz nach § 16). **Der Anwalt muss die Einordnung bestätigen** und
+>   entscheiden, ob das Häkchen im Checkout in dieser Form bleiben kann.
+>
+> Kaufmännische Alternative, die die ganze Frage entschärft: freiwillig 14 Tage Geld zurück.
+> Dann muss § 18 gar nicht angerufen werden, das Häkchen könnte entfallen (ein Tipp weniger
+> bis zur Kasse) und ein Streit über die Einordnung wäre gegenstandslos. Anton hat sich
+> vorerst dagegen entschieden.
+
 Stand: 15. Juli 2026. Die Rechtstexte (Impressum, Datenschutz, AGB, Widerruf) sind im Code
 **vollständig und mit echten Firmendaten** angelegt (`src/lib/legal.ts`, `/rechtliches/*`).
 Die folgenden Punkte kann **nur Anton bzw. Anwalt/Steuerberater** erledigen — sie sind die
@@ -37,8 +66,17 @@ online akzeptierbar). Fehlt der AVV, droht ein DSGVO-Bußgeld **unabhängig** vo
 - [ ] Rechnungs-Pflichtangaben (§ 11 UStG) sicherstellen.
 
 ## 4) Keys & Config VOR Live (sonst rechtliche Lücken)
-- [ ] **`RESEND_KEY`** + verifizierte Absender-Domain (`EMAIL_FROM`) — sonst wird die
-      **gesetzlich vorgeschriebene Widerruf-Eingangsbestätigung** NICHT gesendet (Verstoß).
+- [x] **`RESEND_KEY`** + `EMAIL_FROM` — lokal gesetzt (`.env.local`, Absender
+      „SalzGuide &lt;no-reply@steinermedia.at&gt;", also eigene Domain statt Resends
+      Test-Absender). Darüber laufen bereits die Widerruf-Eingangsbestätigung und die
+      Pro-Geschenk-Mail.
+- [ ] **Dasselbe auf Vercel (Production) und Domain in Resend verifiziert?** Das ist der
+      eigentliche Punkt: Ohne gesetzten Key auf dem Server oder ohne verifizierte
+      Absender-Domain geht die **Kaufbestätigung nach § 7 Abs. 3 FAGG** nicht raus (bzw.
+      landet nirgends). Ohne sie erlischt das Rücktrittsrecht nicht (§ 18 Abs. 1 Z 11 lit. c),
+      und jeder Käufer könnte binnen 14 Tagen den vollen Preis zurückverlangen, obwohl im
+      Checkout etwas anderes stand. Prüfen: Vercel → Settings → Environment Variables
+      (Production) und Resend → Domains.
 - [ ] **`STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` / `STRIPE_PRO_PRICE_ID` / `STRIPE_TAX_ENABLED`**.
 - [ ] **`CRON_SECRET`** (Cron-Endpoint), **Turnstile-Keys** (bereits gesetzt).
 - [ ] Supabase Auth-Redirect-Allowlist eng auf `salzguide.com`.

@@ -18,7 +18,10 @@ export default async function WiderrufPage({
     <LegalShell locale={locale} title="Widerrufsbelehrung" updated={LEGAL.updated}>
       <p>
         Diese Belehrung gilt für Verbraucher:innen im Sinne des Fern- und Auswärtsgeschäfte-Gesetzes
-        (FAGG) beim kostenpflichtigen Kauf von „SalzGuide Pro“.
+        (FAGG) beim kostenpflichtigen Kauf von „SalzGuide Pro“. Das FAGG nennt dieses Recht
+        <strong> Rücktrittsrecht</strong>, die europäische Richtlinie und der Widerrufsbutton nennen
+        es <strong>Widerrufsrecht</strong>. Gemeint ist dasselbe Recht; wir verwenden beide Wörter
+        gleichbedeutend.
       </p>
 
       <h2>Online widerrufen</h2>
@@ -59,24 +62,50 @@ export default async function WiderrufPage({
         wir dasselbe Zahlungsmittel, das du beim ursprünglichen Vorgang eingesetzt hast; in keinem
         Fall werden dir wegen der Rückzahlung Entgelte berechnet.
       </p>
+      <p>
+        Hast du verlangt, dass wir mit der Leistung schon während der Frist beginnen, so hast du uns
+        für die bis zum Widerruf erbrachten Leistungen einen Betrag zu zahlen, der im Vergleich zum
+        Gesamtpreis verhältnismäßig ist (Wertersatz, § 16 FAGG). Für digitale Inhalte, die nicht auf
+        einem körperlichen Datenträger geliefert werden, ist kein Wertersatz zu leisten.
+      </p>
 
-      <h2>Vorzeitiges Erlöschen des Widerrufsrechts</h2>
+      <h2>Vorzeitiges Erlöschen des Rücktritts- bzw. Widerrufsrechts</h2>
+      {/* Die dritte Bedingung stand hier bis 07/2026 nicht, weil es sie in der Praxis nicht
+          gab: § 18 Abs. 1 Z 11 lit. c verlangt zusätzlich die Vertragsbestätigung nach
+          § 7 Abs. 3 auf einem dauerhaften Datenträger. Seit dem Umbau des Kaufs geht sie als
+          E-Mail raus (lib/pro-purchase-mail.ts), bevor freigeschaltet wird. Eine Belehrung,
+          die eine Bedingung verschweigt, die wir selbst erfüllen müssen, wäre unvollständig
+          und im Streitfall wertlos. */}
       <p>
         Bei digitalen Inhalten, die nicht auf einem körperlichen Datenträger geliefert werden
-        (Freischaltung von SalzGuide Pro), <strong>erlischt dein Widerrufsrecht</strong>, wenn wir
-        mit der Ausführung des Vertrags begonnen haben, nachdem du
+        (Freischaltung der Pro-Inhalte), <strong>erlischt dein Recht</strong>, wenn wir mit der
+        Ausführung des Vertrags begonnen haben, nachdem
       </p>
       <ol>
         <li>
-          ausdrücklich zugestimmt hast, dass wir mit der Ausführung vor Ablauf der Widerrufsfrist
-          beginnen, und
+          du ausdrücklich verlangt hast, dass wir mit der Ausführung vor Ablauf der Frist beginnen,
         </li>
         <li>
-          deine Kenntnis davon bestätigt hast, dass du durch diese Zustimmung mit Beginn der
-          Ausführung dein Widerrufsrecht verlierst (§ 18 Abs. 1 Z 11 FAGG).
+          du deine Kenntnis davon bestätigt hast, dass du dadurch dein Rücktritts- bzw.
+          Widerrufsrecht verlierst, und
+        </li>
+        <li>
+          wir dir eine Bestätigung des Vertrags auf einem dauerhaften Datenträger zur Verfügung
+          gestellt haben (§ 18 Abs. 1 Z 11 FAGG in Verbindung mit § 7 Abs. 3 FAGG).
         </li>
       </ol>
-      <p>Diese Zustimmung und Bestätigung holen wir im Bestellvorgang gesondert ein.</p>
+      <p>
+        Die ersten beiden Punkte holen wir im Bestellvorgang gesondert ein: mit einem Häkchen, das
+        du selbst setzen musst und das nicht vorausgewählt ist. Den dritten erfüllen wir mit der
+        Kaufbestätigung, die unmittelbar nach der Zahlung an die von dir angegebene E-Mail-Adresse
+        geht, bevor wir freischalten. Deine Zustimmung ist darin im Wortlaut und mit Zeitpunkt
+        festgehalten.
+      </p>
+      <p>
+        Soweit SalzGuide Pro laufend erbrachte Leistungen enthält, insbesondere den KI-Assistenten,
+        bleibt dein Recht bestehen, bis die Leistung vollständig erbracht ist. Für diesen Teil gilt
+        bei einem Rücktritt der Wertersatz nach § 16 FAGG (siehe „Folgen des Widerrufs“).
+      </p>
 
       <h2>Muster-Widerrufsformular</h2>
       <p>

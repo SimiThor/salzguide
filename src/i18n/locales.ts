@@ -39,6 +39,16 @@ export function localeMeta(code: string): LocaleMeta {
   return BY_CODE.get(code) ?? LOCALES[0];
 }
 
+/**
+ * Einen Sprachcode aus einer Adresse oder einem Formularfeld auf eine bekannte Sprache
+ * festnageln. MUSS überall passieren, wo der Wert von aussen kommt: Er landet in Pfaden,
+ * Rücksprung-Adressen und Übersetzungs-Schlüsseln — ein durchgereichter Fremdwert baut
+ * daraus Adressen, die niemandem gehören.
+ */
+export function safeLocale(code: string | undefined | null): string {
+  return code && BY_CODE.has(code) ? code : DEFAULT_LOCALE;
+}
+
 // BCP-47-Tag für Intl.DateTimeFormat / NumberFormat — ersetzt die verstreuten
 // `locale === "en" ? "en-GB" : "de-AT"`-Ternäre app-weit (skaliert auf N Sprachen).
 export function bcp47(code: string): string {
