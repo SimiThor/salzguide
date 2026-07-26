@@ -88,7 +88,7 @@ export default function ProLanding({
   const busy = pending;
 
   return (
-    <div className="mx-auto w-full max-w-[440px] px-4 pt-[calc(env(safe-area-inset-top)+4.5rem)] md:pt-8">
+    <div className="mx-auto w-full max-w-[440px] px-4 pt-[var(--sg-page-top)] md:pt-8">
       {canceled && !busy && (
         <div className="mb-4 rounded-[18px] bg-black/[0.04] p-4 text-center">
           <p className="text-[15px] font-semibold text-ink">{t("canceledTitle")}</p>

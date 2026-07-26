@@ -29,7 +29,7 @@ export default async function AccountDataPage({
     .maybeSingle();
 
   return (
-    <div className="mx-auto w-full max-w-[440px] px-4 pt-[calc(env(safe-area-inset-top)+4.5rem)] md:pt-6">
+    <div className="mx-auto w-full max-w-[440px] px-4 pt-[var(--sg-page-top)] md:pt-6">
       <BackButton fallbackHref="/profil" label={t("back")} />
 
       <h1 className="mt-4 text-2xl font-bold text-ink">{t("title")}</h1>

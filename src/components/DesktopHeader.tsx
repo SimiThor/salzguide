@@ -9,6 +9,7 @@ import AiSparkle from "./ai/AiSparkle";
 import { useAi } from "./ai/AiProvider";
 import { BookmarkFilled } from "./icons";
 import { NAV_ITEMS } from "@/lib/nav";
+import { LEGAL_LINKS } from "@/lib/legal-links";
 
 function ChevronDown({ open }: { open: boolean }) {
   return (
@@ -37,6 +38,8 @@ function ChevronDown({ open }: { open: boolean }) {
 // Wassertemperaturen) sitzt aufgeräumt in einem „Mehr"-Dropdown im Apple-Stil.
 export default function DesktopHeader() {
   const t = useTranslations();
+  const tLegal = useTranslations("Legal");
+  const tSupport = useTranslations("Support");
   const pathname = usePathname();
   const ai = useAi();
   const [moreOpen, setMoreOpen] = useState(false);
@@ -169,6 +172,36 @@ export default function DesktopHeader() {
                   </span>
                   <span className="flex-1 text-[15px] font-medium">{t("Menu.about")}</span>
                 </Link>
+
+                {/* Rechtliches, hinter einer Haarlinie und kleiner: dieselbe Liste wie in der
+                    Fußzeile und im iPhone-Burger (lib/legal-links.ts).
+                    WARUM hier oben, wo es die Fußzeile doch gibt: Die blendet sich auf den
+                    Vollbild-Karten (/explore, /wasser) aus — die Karte liegt darüber. Am PC
+                    gab es dort dann gar keinen Weg zum Impressum außer den Umweg über eine
+                    andere Seite. § 5 ECG will es „unmittelbar und leicht" erreichbar.
+                    Gestapelte Zeilen wie am Handy würden das Menü doppelt so hoch machen; am
+                    PC trifft die Maus aufs Pixel, deshalb die kompakte Zeile mit Trennpunkten
+                    (Aussehen der Fußzeile). Trefferflächen für den Finger braucht es hier
+                    nicht — siehe .sg-hit in globals.css. */}
+                <div className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 border-t border-black/[0.06] px-3 pb-1 pt-2.5 text-[12px]">
+                  {LEGAL_LINKS.map((l, i) => (
+                    <span key={l.key} className="flex items-center gap-1.5">
+                      <Link
+                        href={l.href}
+                        role="menuitem"
+                        onClick={() => setMoreOpen(false)}
+                        className="text-muted transition-colors hover:text-ink"
+                      >
+                        {l.ns === "Support" ? tSupport(l.key) : tLegal(l.key)}
+                      </Link>
+                      {i < LEGAL_LINKS.length - 1 && (
+                        <span className="text-muted/40" aria-hidden>
+                          ·
+                        </span>
+                      )}
+                    </span>
+                  ))}
+                </div>
               </motion.div>
             )}
           </AnimatePresence>

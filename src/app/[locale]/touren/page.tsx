@@ -45,7 +45,7 @@ export default async function ToursPage({
   const loggedIn = mine !== null;
 
   return (
-    <div className="mx-auto w-full max-w-[760px] px-4 pt-[calc(env(safe-area-inset-top)+4.5rem)] md:pt-6">
+    <div className="mx-auto w-full max-w-[760px] px-4 pt-[var(--sg-page-top)] md:pt-6">
       <h1 className="text-2xl font-bold text-ink">{t("title")}</h1>
       <p className="mt-1 text-[15px] leading-relaxed text-muted">{t("subtitle")}</p>
 

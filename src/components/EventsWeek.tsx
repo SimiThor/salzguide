@@ -67,7 +67,7 @@ export default function EventsWeek({
     ...presentCats.map((c) => ({ key: c as Filter, label: t(`cat.${c}`) })),
   ];
 
-  const PAD = "pt-[calc(env(safe-area-inset-top)+4.5rem)] md:pt-6";
+  const PAD = "pt-[var(--sg-page-top)] md:pt-6";
 
   return (
     <div className={`mx-auto w-full max-w-[640px] px-4 ${PAD}`}>

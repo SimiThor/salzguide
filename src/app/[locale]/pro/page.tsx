@@ -53,7 +53,7 @@ export default async function ProPage({
   // Erfolgsbestätigung nach Zahlung (Freischaltung läuft per Webhook, ggf. minimal verzögert).
   if (checkout === "success") {
     return (
-      <div className="mx-auto w-full max-w-[480px] px-4 pt-[calc(env(safe-area-inset-top)+4.5rem)] md:pt-8">
+      <div className="mx-auto w-full max-w-[480px] px-4 pt-[var(--sg-page-top)] md:pt-8">
         <div className="rounded-[28px] bg-gradient-to-b from-accent/[0.12] via-white to-white p-8 text-center shadow-[0_24px_60px_-28px_rgba(204,41,36,0.45)] ring-1 ring-black/[0.05]">
           <p className="text-5xl" aria-hidden>
             🎉
@@ -76,7 +76,7 @@ export default async function ProPage({
   // Schon Pro -> kein Kauf nötig.
   if (isPro) {
     return (
-      <div className="mx-auto w-full max-w-[480px] px-4 pt-[calc(env(safe-area-inset-top)+4.5rem)] md:pt-8">
+      <div className="mx-auto w-full max-w-[480px] px-4 pt-[var(--sg-page-top)] md:pt-8">
         <div className="rounded-[28px] bg-gradient-to-b from-accent/[0.12] via-white to-white p-8 text-center shadow-[0_24px_60px_-28px_rgba(204,41,36,0.45)] ring-1 ring-black/[0.05]">
           <ProWordmark name={t("title")} className="text-[15px]" />
           <p className="mt-4 text-[17px] font-semibold text-ink">{t("alreadyPro")}</p>

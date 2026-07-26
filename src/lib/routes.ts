@@ -13,3 +13,30 @@ const MARKETING_ROUTES: readonly string[] = ["/"];
 export function isMarketingRoute(pathname: string): boolean {
   return MARKETING_ROUTES.includes(pathname);
 }
+
+// Vollflächige Karten-Ansichten: Die Karte liegt als `fixed inset-0 z-0` über dem
+// Dokumentfluss. Alles, was normal im Fluss steht, malt der Browser DARUNTER (positioniert
+// schlägt statisch) — es ist unsichtbar, aber weiterhin mit Tab erreichbar, wird von der
+// Sprachausgabe vorgelesen und macht das Dokument um seine Höhe scrollbar: Am iPhone zieht
+// man dann die fixe Karte am Gummiband, ohne zu wissen, woran. Solche Inhalte (heute: die
+// Rechts-Fußzeile) gehören dort deshalb gar nicht gerendert.
+//
+// Die Prüfung stand vorher IN der Fußzeile und ist genau daran schon einmal gedriftet: Bis
+// 07/2026 war dort nur „/" gelistet (damals die Karte), /wasser hatte dieselbe Vollbild-Karte
+// und fehlte — die Fußzeile lag dort von Anfang an hinter der Karte. Hier steht sie neben
+// isMarketingRoute, wo Routen-Wissen hingehört, und mit dabei steht, WER sie erfüllt:
+//   /explore            -> components/Explore.tsx
+//   /wasser             -> components/WaterExplore.tsx
+//   /touren/<slug>      -> components/tours/TourView.tsx
+//   /touren/meine/<id>  -> components/tours/TourView.tsx
+// NICHT dabei: /touren (normale Liste) und /touren/bauen (TourBuilder läuft im Fluss, dort
+// gehört die Fußzeile sichtbar hin).
+//
+// Wer eine neue Vollbild-Karte baut, ändert diese Funktion — sonst hängt die nächste
+// unsichtbare Fußzeile hinter ihr.
+const FULLSCREEN_MAP_ROUTES: readonly string[] = ["/explore", "/wasser"];
+
+export function isFullscreenMapRoute(pathname: string): boolean {
+  if (FULLSCREEN_MAP_ROUTES.includes(pathname)) return true;
+  return pathname.startsWith("/touren/") && pathname !== "/touren/bauen";
+}

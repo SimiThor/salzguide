@@ -17,7 +17,7 @@ export default async function LegalShell({
   const t = await getTranslations("Legal");
 
   return (
-    <div className="mx-auto w-full max-w-[640px] px-4 pt-[calc(env(safe-area-inset-top)+4.5rem)] md:pt-8">
+    <div className="mx-auto w-full max-w-[640px] px-4 pt-[var(--sg-page-top)] md:pt-8">
       {/* „Zurück zur App" heisst die Karte, nicht die Verkaufs-Startseite. */}
       <Link
         href="/explore"

@@ -30,7 +30,7 @@ export default async function AdminLayout({
   const supportCount = await getOpenSupportCount();
 
   return (
-    <div className="mx-auto w-full max-w-[820px] px-4 pt-[calc(env(safe-area-inset-top)+4.5rem)] md:pt-6">
+    <div className="mx-auto w-full max-w-[820px] px-4 pt-[var(--sg-page-top)] md:pt-6">
       <div className="mb-4">
         <AdminNav supportCount={supportCount} />
       </div>

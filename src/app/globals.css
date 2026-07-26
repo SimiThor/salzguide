@@ -49,6 +49,17 @@ body {
    ein zu flacher Balken gedrängt. */
 :root {
   --sg-header-h: 60px;
+  /* Wo der Seiteninhalt am HANDY anfangen muss: unter der Kerbe, unter dem fixen App-Header,
+     plus 12px Luft. Der Header liegt `fixed` über dem Inhalt, also muss jede Seite mit
+     App-Header diesen Abstand selbst mitbringen — sonst steht ihre Überschrift dahinter.
+     Genau das war auf /support passiert: dort stand nur `pt-8`, die Überschrift „Wir helfen
+     dir" lag 29px hinter dem Balken (nachgemessen am 390x844-Viewport). Der Wert stand an
+     zehn Stellen als `calc(env(safe-area-inset-top)+4.5rem)` von Hand abgeschrieben, und die
+     elfte hatte ihn vergessen. Deshalb hier EINMAL, aus --sg-header-h abgeleitet: wächst der
+     Header, wächst der Abstand mit.
+     Ab md überschreiben die Seiten das mit ihrem eigenen `md:pt-*`; dort setzt schon
+     AppChrome den Header-Abstand am <main>. */
+  --sg-page-top: calc(env(safe-area-inset-top) + var(--sg-header-h) + 12px);
   --sg-panel: 27rem; /* md (>=768): ~432px */
   --sg-card: calc((var(--sg-panel) - 40px) / 2.5);
   /* Kantenlänge der Karten-Bedienknöpfe. Am FINGER gezeichnet 34, angefasst 44:
