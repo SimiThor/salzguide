@@ -20,7 +20,7 @@ export default function SheetDemo({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="rounded-full bg-accent px-5 py-3 text-sm font-semibold text-white shadow-sm active:scale-[0.98]"
+        className="cursor-pointer rounded-full bg-accent px-5 py-3 text-sm font-semibold text-white shadow-sm active:scale-[0.98]"
       >
         {buttonLabel}
       </button>

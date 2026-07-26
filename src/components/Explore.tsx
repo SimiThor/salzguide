@@ -253,7 +253,7 @@ export default function Explore({
                     key={s.slug}
                     type="button"
                     onClick={() => openSpot(s.slug)}
-                    className="sg-tap-card block text-left"
+                    className="cursor-pointer sg-tap-card block text-left"
                   >
                     <SpotCard
                       title={s.title}

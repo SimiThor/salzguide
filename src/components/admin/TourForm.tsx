@@ -426,7 +426,7 @@ export default function TourForm({
             <button
               type="button"
               onClick={() => set({ coverUrl: null })}
-              className="rounded-full bg-black/5 px-4 py-2 text-[13px] font-semibold text-muted transition active:scale-[0.98]"
+              className="cursor-pointer rounded-full bg-black/5 px-4 py-2 text-[13px] font-semibold text-muted transition active:scale-[0.98]"
             >
               Entfernen
             </button>
@@ -463,7 +463,7 @@ export default function TourForm({
                     onClick={() => moveStop(i, "up")}
                     disabled={i === 0}
                     aria-label="Nach oben"
-                    className="flex h-4 w-6 items-center justify-center text-muted disabled:opacity-25"
+                    className="cursor-pointer flex h-4 w-6 items-center justify-center text-muted disabled:opacity-25 disabled:cursor-not-allowed"
                   >
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M6 15l6-6 6 6" /></svg>
                   </button>
@@ -472,7 +472,7 @@ export default function TourForm({
                     onClick={() => moveStop(i, "down")}
                     disabled={i === form.stops.length - 1}
                     aria-label="Nach unten"
-                    className="flex h-4 w-6 items-center justify-center text-muted disabled:opacity-25"
+                    className="cursor-pointer flex h-4 w-6 items-center justify-center text-muted disabled:opacity-25 disabled:cursor-not-allowed"
                   >
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6" /></svg>
                   </button>
@@ -481,7 +481,7 @@ export default function TourForm({
                   type="button"
                   onClick={() => removeStop(i)}
                   aria-label="Entfernen"
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-black/5 text-muted transition active:scale-90"
+                  className="cursor-pointer flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-black/5 text-muted transition active:scale-90"
                 >
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
                 </button>
@@ -530,7 +530,7 @@ export default function TourForm({
         <button
           type="submit"
           disabled={pending || uploadingCover || translating || loadingPoints}
-          className="rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+          className="cursor-pointer rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60 disabled:cursor-not-allowed"
         >
           {pending
             ? <Busy>Speichern</Busy>
@@ -545,7 +545,7 @@ export default function TourForm({
             type="button"
             onClick={onDelete}
             disabled={pending}
-            className="rounded-full bg-black/5 px-5 py-2.5 text-sm font-semibold text-accent disabled:opacity-60"
+            className="cursor-pointer rounded-full bg-black/5 px-5 py-2.5 text-sm font-semibold text-accent disabled:opacity-60 disabled:cursor-not-allowed"
           >
             Löschen
           </button>

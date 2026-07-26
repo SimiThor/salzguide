@@ -48,7 +48,8 @@
 // ist damit der eingebürgerte Standard. Runde Icon-Knöpfe dürfen weiter kräftiger
 // zusammenzucken (0.95/0.90), die sind klein und brauchen mehr Weg, um die Rückmeldung zu
 // zeigen.
-const BTN = "rounded-full font-semibold transition active:scale-[0.98] disabled:opacity-50";
+const BTN =
+  "cursor-pointer rounded-full font-semibold transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50";
 
 /** Grösse für Fliesstext-Zusammenhänge (Profil, Formulare, Sheets). */
 const BTN_MD = `${BTN} px-5 py-3 text-sm`;

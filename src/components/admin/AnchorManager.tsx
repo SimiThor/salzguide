@@ -242,7 +242,7 @@ export default function AnchorManager({
         <button
           type="button"
           onClick={() => openDraft(emptyDraft())}
-          className="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-white active:scale-[0.98]"
+          className="cursor-pointer rounded-full bg-accent px-4 py-2 text-sm font-semibold text-white active:scale-[0.98]"
         >
           + Neuer Anker
         </button>
@@ -312,7 +312,7 @@ export default function AnchorManager({
                     key={c.key}
                     type="button"
                     onClick={() => set({ category: c.key })}
-                    className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                    className={`cursor-pointer rounded-full px-3 py-1.5 text-xs font-semibold transition ${
                       draft.category === c.key ? "bg-ink text-white" : "bg-black/5 text-ink"
                     }`}
                   >
@@ -348,7 +348,7 @@ export default function AnchorManager({
                     key={m}
                     type="button"
                     onClick={() => toggleMonth(n)}
-                    className={`w-11 rounded-full px-0 py-1.5 text-xs font-semibold transition ${
+                    className={`cursor-pointer w-11 rounded-full px-0 py-1.5 text-xs font-semibold transition ${
                       on ? "bg-accent text-white" : "bg-black/5 text-ink"
                     }`}
                   >
@@ -387,7 +387,7 @@ export default function AnchorManager({
                     key={f.key}
                     type="button"
                     onClick={() => set({ free: f.key })}
-                    className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                    className={`cursor-pointer rounded-full px-3 py-1.5 text-xs font-semibold transition ${
                       draft.free === f.key ? "bg-ink text-white" : "bg-black/5 text-ink"
                     }`}
                   >
@@ -424,7 +424,7 @@ export default function AnchorManager({
               type="button"
               onClick={onSave}
               disabled={pending}
-              className="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-white disabled:opacity-50 active:scale-[0.98]"
+              className="cursor-pointer rounded-full bg-accent px-4 py-2 text-sm font-semibold text-white disabled:opacity-50 active:scale-[0.98] disabled:cursor-not-allowed"
             >
               {pending ? <Busy>Speichere</Busy> : "Speichern"}
             </button>
@@ -435,7 +435,7 @@ export default function AnchorManager({
                 setDraftDirty(false);
                 setMsg(null);
               }}
-              className="rounded-full bg-black/5 px-4 py-2 text-sm font-semibold text-ink"
+              className="cursor-pointer rounded-full bg-black/5 px-4 py-2 text-sm font-semibold text-ink"
             >
               Abbrechen
             </button>
@@ -453,7 +453,7 @@ export default function AnchorManager({
             type="button"
             onClick={onSeed}
             disabled={pending}
-            className="mt-3 rounded-full bg-ink px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+            className="cursor-pointer mt-3 rounded-full bg-ink px-4 py-2 text-sm font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {pending ? <Busy>Lade</Busy> : `Standard-Anker laden (${defaultCount})`}
           </button>
@@ -494,14 +494,14 @@ export default function AnchorManager({
               <button
                 type="button"
                 onClick={() => openDraft(rowToDraft(a))}
-                className="shrink-0 rounded-full bg-black/5 px-3 py-1.5 text-xs font-semibold text-ink"
+                className="cursor-pointer shrink-0 rounded-full bg-black/5 px-3 py-1.5 text-xs font-semibold text-ink"
               >
                 Bearbeiten
               </button>
               <button
                 type="button"
                 onClick={() => onDelete(a)}
-                className="sg-hit shrink-0 rounded-full px-2 py-1.5 text-xs font-semibold text-accent"
+                className="cursor-pointer sg-hit shrink-0 rounded-full px-2 py-1.5 text-xs font-semibold text-accent"
                 title="Löschen"
               >
                 ✕

@@ -102,9 +102,9 @@ export default function AccountDataControls({
             aria-label={t("newsletterLabel")}
             onClick={onToggleNewsletter}
             disabled={newsletterBusy}
-            className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors disabled:opacity-60 ${
+            className={`cursor-pointer relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors disabled:opacity-60 ${
               newsletter ? "bg-accent" : "bg-black/20"
-            }`}
+            } disabled:cursor-not-allowed`}
           >
             <span
               className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition-transform ${
@@ -120,7 +120,7 @@ export default function AccountDataControls({
             type="button"
             onClick={onExport}
             disabled={busy}
-            className="w-full rounded-full bg-black/5 px-5 py-3 text-sm font-semibold text-ink transition active:scale-[0.98] disabled:opacity-50"
+            className="cursor-pointer w-full rounded-full bg-black/5 px-5 py-3 text-sm font-semibold text-ink transition active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {action === "export" ? t("exporting") : t("exportBtn")}
           </button>
@@ -135,7 +135,7 @@ export default function AccountDataControls({
             type="button"
             onClick={onDelete}
             disabled={busy}
-            className="w-full rounded-full bg-accent/10 px-5 py-3 text-sm font-semibold text-accent transition active:scale-[0.98] disabled:opacity-50"
+            className="cursor-pointer w-full rounded-full bg-accent/10 px-5 py-3 text-sm font-semibold text-accent transition active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {action === "delete" ? t("deleting") : t("deleteBtn")}
           </button>

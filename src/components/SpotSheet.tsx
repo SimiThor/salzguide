@@ -208,7 +208,7 @@ export default function SpotSheet({
   }
 
   const btn =
-    "flex h-8 w-8 items-center justify-center rounded-full bg-black/5 text-ink";
+    "cursor-pointer flex h-8 w-8 items-center justify-center rounded-full bg-black/5 text-ink";
 
   return (
     <motion.div

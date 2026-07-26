@@ -274,7 +274,7 @@ export default function AreaForm({ initial }: { initial?: AreaEditData }) {
                   key={l}
                   type="button"
                   onClick={() => setReviewLang(l)}
-                  className={`rounded-full px-2.5 py-1 text-[12px] font-medium transition ${
+                  className={`cursor-pointer rounded-full px-2.5 py-1 text-[12px] font-medium transition ${
                     reviewLang === l
                       ? "bg-ink text-white"
                       : done
@@ -363,7 +363,7 @@ export default function AreaForm({ initial }: { initial?: AreaEditData }) {
             <button
               type="button"
               onClick={() => set({ startLat: null, startLng: null })}
-              className="rounded-full bg-black/5 px-3 py-1 text-[12px] font-semibold text-muted transition active:scale-95"
+              className="cursor-pointer rounded-full bg-black/5 px-3 py-1 text-[12px] font-semibold text-muted transition active:scale-95"
             >
               Startpunkt entfernen
             </button>
@@ -398,7 +398,7 @@ export default function AreaForm({ initial }: { initial?: AreaEditData }) {
             <button
               type="button"
               onClick={() => set({ coverUrl: null })}
-              className="rounded-full bg-black/5 px-4 py-2 text-[13px] font-semibold text-muted transition active:scale-[0.98]"
+              className="cursor-pointer rounded-full bg-black/5 px-4 py-2 text-[13px] font-semibold text-muted transition active:scale-[0.98]"
             >
               Entfernen
             </button>
@@ -413,7 +413,7 @@ export default function AreaForm({ initial }: { initial?: AreaEditData }) {
         <button
           type="submit"
           disabled={pending || uploadingCover || translating}
-          className="rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+          className="cursor-pointer rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60 disabled:cursor-not-allowed"
         >
           {pending
             ? <Busy>Speichern</Busy>
@@ -428,7 +428,7 @@ export default function AreaForm({ initial }: { initial?: AreaEditData }) {
             type="button"
             onClick={onDelete}
             disabled={pending}
-            className="rounded-full bg-black/5 px-5 py-2.5 text-sm font-semibold text-accent disabled:opacity-60"
+            className="cursor-pointer rounded-full bg-black/5 px-5 py-2.5 text-sm font-semibold text-accent disabled:opacity-60 disabled:cursor-not-allowed"
           >
             Löschen
           </button>

@@ -92,7 +92,7 @@ function Row({ r }: { r: AdminSupportRequest }) {
             type="button"
             onClick={toggle}
             disabled={pending}
-            className="rounded-full bg-black/5 px-3 py-1.5 text-xs font-semibold text-ink disabled:opacity-50"
+            className="cursor-pointer rounded-full bg-black/5 px-3 py-1.5 text-xs font-semibold text-ink disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {done ? "Wieder öffnen" : "Erledigt"}
           </button>
@@ -102,14 +102,14 @@ function Row({ r }: { r: AdminSupportRequest }) {
                 type="button"
                 onClick={remove}
                 disabled={pending}
-                className="rounded-full bg-accent px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+                className="cursor-pointer rounded-full bg-accent px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Wirklich löschen
               </button>
               <button
                 type="button"
                 onClick={() => setConfirmDel(false)}
-                className="text-xs text-muted"
+                className="cursor-pointer text-xs text-muted"
               >
                 Abbrechen
               </button>
@@ -120,7 +120,7 @@ function Row({ r }: { r: AdminSupportRequest }) {
               type="button"
               onClick={() => setConfirmDel(true)}
               disabled={pending}
-              className="rounded-full px-2 py-1.5 text-xs text-muted disabled:opacity-50"
+              className="cursor-pointer rounded-full px-2 py-1.5 text-xs text-muted disabled:opacity-50 disabled:cursor-not-allowed"
               title="Löschen (Art. 17 DSGVO)"
             >
               ✕

@@ -123,7 +123,7 @@ export default function ToniLauncher({
                 type="button"
                 onClick={dismiss}
                 aria-label={t("launcherDismiss")}
-                className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-black/55 text-white transition hover:bg-black/70"
+                className="cursor-pointer absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-black/55 text-white transition hover:bg-black/70"
               >
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" aria-hidden>
                   <path d="M6 6l12 12M18 6L6 18" />
@@ -148,7 +148,7 @@ export default function ToniLauncher({
         }}
         whileHover={{ scale: 1.07 }}
         whileTap={{ scale: 0.92 }}
-        className="sg-launcher-glow relative flex h-14 w-14 items-center justify-center rounded-full ring-2 ring-white"
+        className="sg-launcher-glow relative flex h-14 w-14 cursor-pointer items-center justify-center rounded-full ring-2 ring-white"
       >
         <ToniAvatar size={56} />
       </motion.button>

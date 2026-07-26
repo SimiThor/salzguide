@@ -284,7 +284,7 @@ export default function StoryPhotoPanel({
         <button
           type="button"
           onClick={pick}
-          className="sg-native-tap flex w-full flex-col items-center gap-3 rounded-[22px] border border-black/[0.08] bg-black/[0.02] px-6 py-11 text-center transition active:scale-[0.99]"
+          className="cursor-pointer sg-native-tap flex w-full flex-col items-center gap-3 rounded-[22px] border border-black/[0.08] bg-black/[0.02] px-6 py-11 text-center transition active:scale-[0.99]"
         >
           <span className="flex h-14 w-14 items-center justify-center rounded-full bg-accent/10 text-2xl">
             📸
@@ -359,7 +359,7 @@ export default function StoryPhotoPanel({
               type="button"
               onClick={() => setPreset(p.key)}
               aria-pressed={preset === p.key}
-              className={`sg-native-tap flex-1 whitespace-nowrap rounded-full px-2 py-1.5 leading-5 transition-colors active:opacity-70 ${
+              className={`cursor-pointer sg-native-tap flex-1 whitespace-nowrap rounded-full px-2 py-1.5 leading-5 transition-colors active:opacity-70 ${
                 preset === p.key ? "bg-white text-ink shadow-sm" : "text-muted"
               }`}
             >
@@ -379,7 +379,7 @@ export default function StoryPhotoPanel({
               onClick={() => setColor(c)}
               aria-pressed={color === c}
               aria-label={c === "white" ? t("colorWhite") : t("colorRed")}
-              className={`sg-native-tap h-8 w-8 rounded-full transition active:scale-90 ${
+              className={`cursor-pointer sg-native-tap h-8 w-8 rounded-full transition active:scale-90 ${
                 color === c
                   ? "ring-2 ring-accent ring-offset-2 ring-offset-cream"
                   : "ring-1 ring-black/10"
@@ -407,7 +407,7 @@ export default function StoryPhotoPanel({
           {t("save")}
         </button>
       </div>
-      <button className="w-full py-1 text-[14px] text-muted underline" onClick={newPhoto}>
+      <button className="cursor-pointer w-full py-1 text-[14px] text-muted underline" onClick={newPhoto}>
         {t("again")}
       </button>
       {errorMsg && <p className="text-center text-[13px] text-accent">{errorMsg}</p>}

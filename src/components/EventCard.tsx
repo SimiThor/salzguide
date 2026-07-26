@@ -186,7 +186,7 @@ export default function EventCard({
             }}
             aria-label={saved ? t("saved") : t("save")}
             aria-pressed={saved}
-            className="-mr-1 -mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-ink/50 transition active:scale-90 active:bg-black/5"
+            className="cursor-pointer -mr-1 -mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-ink/50 transition active:scale-90 active:bg-black/5"
           >
             {saved ? (
               <BookmarkFilled className="h-[18px] w-[18px] text-accent" />

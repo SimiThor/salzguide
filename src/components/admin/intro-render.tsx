@@ -115,9 +115,9 @@ export function IntroRenderButton({
         type="button"
         onClick={start}
         disabled={busy || !configured || !!blockedReason}
-        className={`sg-hit shrink-0 rounded-full px-4 py-2 text-[13px] font-semibold transition active:scale-[0.97] disabled:opacity-40 ${
+        className={`cursor-pointer sg-hit shrink-0 rounded-full px-4 py-2 text-[13px] font-semibold transition active:scale-[0.97] disabled:opacity-40 ${
           item.due || item.status === "error" ? "bg-accent text-white" : "bg-black/5 text-ink"
-        }`}
+        } disabled:cursor-not-allowed`}
       >
         {b.busy ? <Busy>läuft</Busy> : pending ? <Busy>starte</Busy> : item.hasVideo ? "Neu rendern" : "Generieren"}
       </button>

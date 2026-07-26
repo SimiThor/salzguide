@@ -108,7 +108,7 @@ export default function EventsWeek({
                     type="button"
                     onClick={() => setFilter(p.key)}
                     aria-pressed={active}
-                    className={`shrink-0 rounded-full px-4 py-1.5 text-[13px] font-semibold transition-colors ${
+                    className={`cursor-pointer shrink-0 rounded-full px-4 py-1.5 text-[13px] font-semibold transition-colors ${
                       active
                         ? "bg-ink text-white"
                         : "bg-black/[0.06] text-ink/70 active:bg-black/[0.1]"

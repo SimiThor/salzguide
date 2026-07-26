@@ -65,7 +65,7 @@ export default function IntroRenderManager({
           type="button"
           onClick={onGenerateAll}
           disabled={!configured || anyBusy || pendingAll || due.length === 0}
-          className="sg-hit rounded-full bg-accent px-4 py-2 text-[13px] font-semibold text-white transition active:scale-[0.98] disabled:opacity-40"
+          className="cursor-pointer sg-hit rounded-full bg-accent px-4 py-2 text-[13px] font-semibold text-white transition active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {pendingAll ? <Busy>Wird gestartet</Busy> : `Alle fälligen rendern (${due.length})`}
         </button>

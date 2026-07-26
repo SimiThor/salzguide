@@ -88,7 +88,7 @@ function PhotoTile({
             onPointerDown={(e) => e.stopPropagation()}
             onClick={onMakeHero}
             title="Als Hero nach vorn"
-            className="flex h-5 w-5 items-center justify-center rounded-full bg-white/90 text-[11px] text-ink shadow"
+            className="cursor-pointer flex h-5 w-5 items-center justify-center rounded-full bg-white/90 text-[11px] text-ink shadow"
           >
             ★
           </button>
@@ -98,7 +98,7 @@ function PhotoTile({
           onPointerDown={(e) => e.stopPropagation()}
           onClick={onRemove}
           title="Entfernen"
-          className="flex h-5 w-5 items-center justify-center rounded-full bg-white/90 text-[11px] text-accent shadow"
+          className="cursor-pointer flex h-5 w-5 items-center justify-center rounded-full bg-white/90 text-[11px] text-accent shadow"
         >
           ✕
         </button>
@@ -286,7 +286,7 @@ export default function PhotoUploader({
           type="button"
           onClick={() => fileRef.current?.click()}
           disabled={busy}
-          className="rounded-full bg-black/5 px-3.5 py-1.5 text-xs font-semibold text-ink disabled:opacity-50"
+          className="cursor-pointer rounded-full bg-black/5 px-3.5 py-1.5 text-xs font-semibold text-ink disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {busy ? <Busy>lädt hoch</Busy> : "📷 Foto hinzufügen"}
         </button>

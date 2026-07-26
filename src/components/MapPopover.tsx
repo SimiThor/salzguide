@@ -50,7 +50,7 @@ export function MapPopoverClose({
       type="button"
       onClick={onClick}
       aria-label={label}
-      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-black/5 text-ink active:scale-90"
+      className="cursor-pointer flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-black/5 text-ink active:scale-90"
     >
       <svg
         width="14"

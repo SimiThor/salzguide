@@ -60,7 +60,7 @@ export default function GalleryImage({
       {...(zoomable
         ? { type: "button" as const, onClick: () => open(index) }
         : null)}
-      className={`relative ${className ?? ""} ${skeletonClassName}`}
+      className={`relative ${zoomable ? "cursor-pointer " : ""}${className ?? ""} ${skeletonClassName}`}
     >
       <Image
         ref={ref}

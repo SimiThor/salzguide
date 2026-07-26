@@ -49,7 +49,7 @@ export default function AiInsightsSummary({ query }: { query: AiInsightsQuery })
           type="button"
           onClick={run}
           disabled={busy}
-          className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-full bg-accent px-4 py-2 text-[13px] font-semibold text-white transition active:scale-95 disabled:opacity-50"
+          className="cursor-pointer inline-flex shrink-0 items-center justify-center gap-1.5 rounded-full bg-accent px-4 py-2 text-[13px] font-semibold text-white transition active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {busy ? (
             "Analysiere …"

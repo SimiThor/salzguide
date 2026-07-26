@@ -125,7 +125,7 @@ export default function ProNotice() {
               type="button"
               onClick={close}
               aria-label={tCommon("close")}
-              className="absolute right-1.5 top-1.5 flex h-11 w-11 items-center justify-center"
+              className="cursor-pointer absolute right-1.5 top-1.5 flex h-11 w-11 items-center justify-center"
             >
               <span className="flex h-7 w-7 items-center justify-center rounded-full bg-black/5 text-ink transition-transform active:scale-90">
                 <svg

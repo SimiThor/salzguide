@@ -33,7 +33,7 @@ export default function SeasonToggle({
           type="button"
           onClick={() => onChange(o.key)}
           aria-pressed={value === o.key}
-          className={`sg-native-tap whitespace-nowrap rounded-full px-4 py-1.5 leading-5 transition-colors active:opacity-70 ${
+          className={`cursor-pointer sg-native-tap whitespace-nowrap rounded-full px-4 py-1.5 leading-5 transition-colors active:opacity-70 ${
             value === o.key ? "bg-white text-ink shadow-sm" : "text-muted"
           }`}
         >

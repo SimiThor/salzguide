@@ -88,7 +88,7 @@ export default function AiSpotSuggestion({
         disabled={busy}
         aria-label={saved ? t("saved") : t("save")}
         aria-pressed={saved}
-        className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/35 text-white backdrop-blur-md transition active:scale-90"
+        className="cursor-pointer absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/35 text-white backdrop-blur-md transition active:scale-90 disabled:cursor-not-allowed"
       >
         {saved ? (
           <BookmarkFilled className="h-[17px] w-[17px] text-white" />

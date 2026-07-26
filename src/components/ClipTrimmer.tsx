@@ -330,7 +330,7 @@ export default function ClipTrimmer({
             type="button"
             onClick={togglePlay}
             aria-label={playing ? t("pause") : t("play")}
-            className="absolute inset-0 grid place-items-center"
+            className="cursor-pointer absolute inset-0 grid place-items-center"
           >
             <span
               className={`grid h-14 w-14 place-items-center rounded-full bg-black/45 text-white backdrop-blur-sm transition active:scale-95 ${

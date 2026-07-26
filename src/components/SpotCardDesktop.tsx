@@ -65,7 +65,7 @@ export default function SpotCardDesktop({
   }
 
   const btn =
-    "flex h-8 w-8 items-center justify-center rounded-full bg-white/90 shadow backdrop-blur text-ink";
+    "cursor-pointer flex h-8 w-8 items-center justify-center rounded-full bg-white/90 shadow backdrop-blur text-ink";
 
   return (
     <div

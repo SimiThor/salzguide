@@ -161,7 +161,7 @@ export default function StoryVideoPanel({
         <button
           type="button"
           onClick={pick}
-          className="sg-native-tap flex w-full flex-col items-center gap-3 rounded-[22px] border border-black/[0.08] bg-black/[0.02] px-6 py-11 text-center transition active:scale-[0.99]"
+          className="cursor-pointer sg-native-tap flex w-full flex-col items-center gap-3 rounded-[22px] border border-black/[0.08] bg-black/[0.02] px-6 py-11 text-center transition active:scale-[0.99]"
         >
           <span className="flex h-14 w-14 items-center justify-center rounded-full bg-accent/10 text-2xl">
             🎬
@@ -214,7 +214,7 @@ export default function StoryVideoPanel({
             </button>
           </div>
           <button
-            className="w-full py-1 text-[14px] text-muted underline"
+            className="cursor-pointer w-full py-1 text-[14px] text-muted underline"
             onClick={() => {
               reset();
               pick();

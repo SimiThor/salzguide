@@ -268,7 +268,7 @@ function LoginPanelForm({
         <button
           type="button"
           onClick={onRestart}
-          className="mt-5 rounded-full px-4 py-2 text-[13px] font-medium text-muted underline transition active:scale-[0.98]"
+          className="cursor-pointer mt-5 rounded-full px-4 py-2 text-[13px] font-medium text-muted underline transition active:scale-[0.98]"
         >
           {t("changeEmail")}
         </button>
@@ -324,7 +324,7 @@ function LoginPanelForm({
               {next && <input type="hidden" name="next" value={next} />}
               <button
                 type="submit"
-                className="flex w-full items-center justify-center gap-2.5 rounded-full border border-black/10 bg-white px-5 py-3.5 text-[15px] font-semibold text-ink shadow-sm transition active:scale-[0.98]"
+                className="cursor-pointer flex w-full items-center justify-center gap-2.5 rounded-full border border-black/10 bg-white px-5 py-3.5 text-[15px] font-semibold text-ink shadow-sm transition active:scale-[0.98]"
               >
                 <GoogleIcon className="h-[18px] w-[18px]" />
                 {t("googleCta")}

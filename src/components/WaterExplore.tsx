@@ -268,7 +268,7 @@ export default function WaterExplore({
             key={l.slug}
             type="button"
             onClick={() => setSelected(l.slug)}
-            className={`flex w-full items-center gap-3 px-4 py-3.5 text-left transition ${
+            className={`cursor-pointer flex w-full items-center gap-3 px-4 py-3.5 text-left transition ${
               selected === l.slug ? "bg-black/[0.03]" : "active:bg-black/[0.02] md:hover:bg-black/[0.02]"
             }`}
           >

@@ -296,7 +296,7 @@ export default function EventForm({
               type="button"
               onClick={onDelete}
               disabled={pending}
-              className="rounded-full bg-black/5 px-4 py-2 text-sm font-semibold text-accent disabled:opacity-60"
+              className="cursor-pointer rounded-full bg-black/5 px-4 py-2 text-sm font-semibold text-accent disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {formAction === "delete" ? <Busy>Lösche</Busy> : "Löschen"}
             </button>
@@ -304,7 +304,7 @@ export default function EventForm({
           <button
             type="submit"
             disabled={pending || mediaBusy}
-            className="rounded-full bg-accent px-5 py-2 text-sm font-semibold text-white disabled:opacity-60"
+            className="cursor-pointer rounded-full bg-accent px-5 py-2 text-sm font-semibold text-white disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {formAction === "save" ? <Busy>Speichern</Busy> : mediaBusy ? <Busy>Foto lädt</Busy> : "Speichern"}
           </button>
@@ -425,7 +425,7 @@ export default function EventForm({
                   key={em}
                   type="button"
                   onClick={() => set({ emoji: em })}
-                  className={`flex h-8 w-8 items-center justify-center rounded-lg text-lg ${
+                  className={`cursor-pointer flex h-8 w-8 items-center justify-center rounded-lg text-lg ${
                     form.emoji === em
                       ? "bg-accent/15 ring-1 ring-accent"
                       : "bg-black/5"
@@ -595,7 +595,7 @@ export default function EventForm({
                   key={code}
                   type="button"
                   onClick={() => setReviewLang(code)}
-                  className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
+                  className={`cursor-pointer flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
                     active ? "bg-accent text-white" : "bg-black/5 text-ink hover:bg-black/10"
                   }`}
                 >

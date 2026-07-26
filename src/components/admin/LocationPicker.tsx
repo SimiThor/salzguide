@@ -427,7 +427,7 @@ export default function LocationPicker({
                   <button
                     type="button"
                     onClick={() => goTo(r.center)}
-                    className="flex w-full items-start gap-2 px-3 py-2 text-left hover:bg-black/5"
+                    className="cursor-pointer flex w-full items-start gap-2 px-3 py-2 text-left hover:bg-black/5"
                   >
                     <span className="mt-0.5 shrink-0 text-xs">{r.poi ? "📍" : "🗺️"}</span>
                     <span className="min-w-0">

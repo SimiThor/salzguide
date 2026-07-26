@@ -329,7 +329,7 @@ export default function AiAssistant({
         disabled={!canReset && !input}
         aria-label={t("newChat")}
         title={t("newChat")}
-        className="sg-hit flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted transition hover:bg-black/5 active:scale-90 disabled:opacity-40"
+        className="cursor-pointer sg-hit flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted transition hover:bg-black/5 active:scale-90 disabled:opacity-40 disabled:cursor-not-allowed"
       >
         <NewChatIcon />
       </button>
@@ -340,7 +340,7 @@ export default function AiAssistant({
           aria-label={t("history")}
           title={t("history")}
           aria-pressed={showHistory}
-          className={`sg-hit flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition hover:bg-black/5 active:scale-90 ${
+          className={`cursor-pointer sg-hit flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition hover:bg-black/5 active:scale-90 ${
             showHistory ? "text-accent" : "text-muted"
           }`}
         >
@@ -388,7 +388,7 @@ export default function AiAssistant({
           onClick={() => void send(input)}
           disabled={!input.trim() || pending}
           aria-label={t("send")}
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-accent text-white transition active:scale-90 disabled:opacity-40"
+          className="cursor-pointer flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-accent text-white transition active:scale-90 disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <SendIcon />
         </button>
@@ -405,7 +405,7 @@ export default function AiAssistant({
         <button
           type="button"
           onClick={() => setShowHistory(false)}
-          className="rounded-full px-3 py-1 text-[13px] font-medium text-muted transition hover:bg-black/5"
+          className="cursor-pointer rounded-full px-3 py-1 text-[13px] font-medium text-muted transition hover:bg-black/5"
         >
           {t("back")}
         </button>
@@ -423,7 +423,7 @@ export default function AiAssistant({
               <button
                 type="button"
                 onClick={() => selectConversation(c.id)}
-                className="w-full rounded-[14px] bg-white px-3.5 py-3 text-left shadow-sm ring-1 ring-black/[0.04] transition active:scale-[0.99]"
+                className="cursor-pointer w-full rounded-[14px] bg-white px-3.5 py-3 text-left shadow-sm ring-1 ring-black/[0.04] transition active:scale-[0.99]"
               >
                 <p className="truncate text-[14px] font-medium text-ink">{c.title}</p>
                 <p className="mt-0.5 text-[11px] text-muted">
@@ -460,7 +460,7 @@ export default function AiAssistant({
                       key={p.key}
                       type="button"
                       onClick={() => void send(t(`pillMsg.${p.key}`))}
-                      className="rounded-full bg-white px-3 py-1.5 text-[13px] font-medium text-ink shadow-sm ring-1 ring-black/[0.05] transition active:scale-95"
+                      className="cursor-pointer rounded-full bg-white px-3 py-1.5 text-[13px] font-medium text-ink shadow-sm ring-1 ring-black/[0.05] transition active:scale-95"
                     >
                       <span aria-hidden>{p.emoji}</span> {t(`pill.${p.key}`)}
                     </button>

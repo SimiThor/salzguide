@@ -67,7 +67,7 @@ export default async function AdminUsersPage({
         />
         <button
           type="submit"
-          className="rounded-full bg-black/5 px-4 py-2 text-sm font-semibold text-ink active:scale-[0.98]"
+          className="cursor-pointer rounded-full bg-black/5 px-4 py-2 text-sm font-semibold text-ink active:scale-[0.98]"
         >
           Suchen
         </button>

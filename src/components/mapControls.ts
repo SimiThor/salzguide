@@ -44,6 +44,7 @@ export class RecenterControl implements mapboxgl.IControl {
     btn.style.display = "flex";
     btn.style.alignItems = "center";
     btn.style.justifyContent = "center";
+    btn.style.cursor = "pointer";
     btn.innerHTML =
       '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden><path d="M4.2 8.6V6.2a2 2 0 0 1 2-2h2.4"/><path d="M15.4 4.2h2.4a2 2 0 0 1 2 2v2.4"/><path d="M19.8 15.4v2.4a2 2 0 0 1-2 2h-2.4"/><path d="M8.6 19.8H6.2a2 2 0 0 1-2-2v-2.4"/><circle cx="12" cy="12" r="2.5" fill="currentColor" stroke="none"/></svg>';
     btn.addEventListener("click", this.onClick);

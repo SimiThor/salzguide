@@ -130,7 +130,7 @@ export default function StoryMaker({
   }, [introUrl, route]);
 
   const seg = (on: boolean) =>
-    `sg-native-tap whitespace-nowrap rounded-full px-5 py-1.5 leading-5 transition-colors active:opacity-70 ${
+    `cursor-pointer disabled:cursor-not-allowed sg-native-tap whitespace-nowrap rounded-full px-5 py-1.5 leading-5 transition-colors active:opacity-70 ${
       on ? "bg-white text-ink shadow-sm" : "text-muted"
     }`;
 

@@ -64,7 +64,7 @@ export default function LandingVideo({
             type="button"
             onClick={() => setPlaying(true)}
             aria-label={playLabel}
-            className="group relative h-full w-full"
+            className="cursor-pointer group relative h-full w-full"
           >
             {poster && (
               <Image

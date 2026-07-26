@@ -30,7 +30,7 @@ export default function BackButton({
       type="button"
       onClick={goBack}
       aria-label={label}
-      className={`flex h-10 w-10 items-center justify-center rounded-full bg-white/85 text-ink shadow-md backdrop-blur-md transition active:scale-95 ${className}`}
+      className={`cursor-pointer flex h-10 w-10 items-center justify-center rounded-full bg-white/85 text-ink shadow-md backdrop-blur-md transition active:scale-95 ${className}`}
     >
       <ChevronLeft className="h-5 w-5" />
     </button>

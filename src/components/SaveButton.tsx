@@ -39,7 +39,7 @@ export default function SaveButton({
       onClick={onClick}
       aria-label={label}
       aria-pressed={saved}
-      className="flex h-10 w-10 items-center justify-center rounded-full bg-white/85 text-ink shadow-md backdrop-blur-md transition-transform active:scale-95"
+      className="cursor-pointer flex h-10 w-10 items-center justify-center rounded-full bg-white/85 text-ink shadow-md backdrop-blur-md transition-transform active:scale-95"
     >
       {saved ? (
         <BookmarkFilled className="h-[18px] w-[18px] text-accent" />

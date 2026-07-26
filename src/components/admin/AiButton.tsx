@@ -35,9 +35,9 @@ export default function AiButton({
       disabled={disabled || loading}
       aria-busy={loading}
       title={title}
-      className={`relative isolate overflow-hidden transition ${
+      className={`cursor-pointer relative isolate overflow-hidden transition ${
         loading ? "sg-ai-btn" : ""
-      } ${disabled && !loading ? "opacity-60" : ""} ${className}`}
+      } ${disabled && !loading ? "opacity-60" : ""} ${className} disabled:cursor-not-allowed`}
     >
       <span className="relative z-10 inline-flex items-center justify-center gap-1.5">
         <AiSparkle className="h-[1.05em] w-[1.05em] shrink-0" />

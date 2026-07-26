@@ -114,7 +114,7 @@ export default function AnalyticsFilters({
                   setDraftTo("");
                   push({ range: r.key, from: null, to: null });
                 }}
-                className={`rounded-full px-3 py-1.5 text-[13px] font-semibold transition ${
+                className={`cursor-pointer rounded-full px-3 py-1.5 text-[13px] font-semibold transition ${
                   active ? "bg-white text-ink shadow-sm" : "text-muted"
                 }`}
               >
@@ -193,7 +193,7 @@ export default function AnalyticsFilters({
         <button
           type="button"
           onClick={() => router.push("/admin/settings/analytics")}
-          className="self-end rounded-lg px-3 py-1.5 text-[12px] font-medium text-accent transition hover:bg-accent/10"
+          className="cursor-pointer self-end rounded-lg px-3 py-1.5 text-[12px] font-medium text-accent transition hover:bg-accent/10"
         >
           Zurücksetzen
         </button>

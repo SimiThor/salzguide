@@ -179,7 +179,7 @@ export default function HomeContentManager({
             type="button"
             onClick={save}
             disabled={pending || !dirty}
-            className="rounded-full bg-accent px-5 py-2.5 text-[14px] font-semibold text-white transition active:scale-[0.98] disabled:opacity-40"
+            className="cursor-pointer rounded-full bg-accent px-5 py-2.5 text-[14px] font-semibold text-white transition active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {pending ? <Busy>Speichert</Busy> : "Speichern"}
           </button>

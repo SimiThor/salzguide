@@ -96,7 +96,7 @@ function CategoryForm({
                 key={s}
                 type="button"
                 onClick={() => setSeason(s)}
-                className={`rounded-full px-3 py-1 text-[13px] font-semibold transition ${
+                className={`cursor-pointer rounded-full px-3 py-1 text-[13px] font-semibold transition ${
                   season === s ? "bg-accent text-white" : "text-muted"
                 }`}
               >
@@ -147,7 +147,7 @@ function CategoryForm({
         <button
           type="button"
           onClick={onCancel}
-          className="rounded-full px-3 py-1.5 text-[13px] font-medium text-muted"
+          className="cursor-pointer rounded-full px-3 py-1.5 text-[13px] font-medium text-muted"
         >
           Abbrechen
         </button>
@@ -155,7 +155,7 @@ function CategoryForm({
           type="button"
           onClick={onSave}
           disabled={busy}
-          className="rounded-full bg-accent px-4 py-1.5 text-[13px] font-semibold text-white transition active:scale-95 disabled:opacity-50"
+          className="cursor-pointer rounded-full bg-accent px-4 py-1.5 text-[13px] font-semibold text-white transition active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {busy ? <Busy>Speichert</Busy> : "Speichern"}
         </button>
@@ -261,7 +261,7 @@ export default function CategoryManager({
                   setCreating(season);
                   setEditingId(null);
                 }}
-                className="rounded-full bg-black/5 px-3 py-1 text-[12px] font-semibold text-ink transition active:scale-95"
+                className="cursor-pointer rounded-full bg-black/5 px-3 py-1 text-[12px] font-semibold text-ink transition active:scale-95"
               >
                 + Neue Kategorie
               </button>
@@ -300,7 +300,7 @@ export default function CategoryManager({
                         onClick={() => move(season, i, "up")}
                         disabled={i === 0 || movingSeason === season || isPending}
                         aria-label="Nach oben"
-                        className="flex h-4 w-5 items-center justify-center text-muted transition hover:text-ink disabled:opacity-25"
+                        className="cursor-pointer flex h-4 w-5 items-center justify-center text-muted transition hover:text-ink disabled:opacity-25 disabled:cursor-not-allowed"
                       >
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                           <path d="M6 15l6-6 6 6" />
@@ -311,7 +311,7 @@ export default function CategoryManager({
                         onClick={() => move(season, i, "down")}
                         disabled={i === cats.length - 1 || movingSeason === season || isPending}
                         aria-label="Nach unten"
-                        className="flex h-4 w-5 items-center justify-center text-muted transition hover:text-ink disabled:opacity-25"
+                        className="cursor-pointer flex h-4 w-5 items-center justify-center text-muted transition hover:text-ink disabled:opacity-25 disabled:cursor-not-allowed"
                       >
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                           <path d="M6 9l6 6 6-6" />
@@ -336,14 +336,14 @@ export default function CategoryManager({
                             type="button"
                             onClick={() => onDelete(c.id)}
                             disabled={deletingId !== null}
-                            className="rounded-full bg-accent px-3 py-1 text-[12px] font-semibold text-white disabled:opacity-50"
+                            className="cursor-pointer rounded-full bg-accent px-3 py-1 text-[12px] font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             {deletingId === c.id ? <Busy>Löscht</Busy> : "Löschen"}
                           </button>
                           <button
                             type="button"
                             onClick={() => setConfirmDelete(null)}
-                            className="rounded-full px-2 py-1 text-[12px] font-medium text-muted"
+                            className="cursor-pointer rounded-full px-2 py-1 text-[12px] font-medium text-muted"
                           >
                             Abbrechen
                           </button>
@@ -356,7 +356,7 @@ export default function CategoryManager({
                               setEditingId(c.id);
                               setCreating(null);
                             }}
-                            className="rounded-full bg-black/5 px-3 py-1 text-[12px] font-semibold text-ink transition active:scale-95"
+                            className="cursor-pointer rounded-full bg-black/5 px-3 py-1 text-[12px] font-semibold text-ink transition active:scale-95"
                           >
                             Bearbeiten
                           </button>
@@ -364,7 +364,7 @@ export default function CategoryManager({
                             type="button"
                             onClick={() => setConfirmDelete(c.id)}
                             aria-label="Löschen"
-                            className="rounded-full px-2 py-1 text-[12px] font-medium text-muted transition hover:text-accent"
+                            className="cursor-pointer rounded-full px-2 py-1 text-[12px] font-medium text-muted transition hover:text-accent"
                           >
                             Löschen
                           </button>

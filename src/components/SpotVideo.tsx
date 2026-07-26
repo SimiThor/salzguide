@@ -65,7 +65,7 @@ export default function SpotVideo({
               type="button"
               onClick={() => setPlaying(true)}
               aria-label={label}
-              className="sg-skeleton group absolute inset-0 h-full w-full"
+              className="cursor-pointer sg-skeleton group absolute inset-0 h-full w-full"
             >
               {usablePoster ? (
                 <Image

@@ -139,7 +139,7 @@ export default function LanguageSwitcher({
         // die Liste eine Listbox ohne einzige Option und VoiceOver las nur Knöpfe vor.
         role="option"
         aria-selected={active}
-        className={`flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left transition-colors ${
+        className={`cursor-pointer flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left transition-colors ${
           active ? "bg-accent/10 text-accent" : "text-ink hover:bg-black/5 active:bg-black/5"
         }`}
       >
@@ -159,7 +159,7 @@ export default function LanguageSwitcher({
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-label={TITLE[locale] ?? "Language"}
-        className={`inline-flex items-center gap-1.5 rounded-full text-sm font-medium text-ink transition active:scale-[0.98] ${
+        className={`cursor-pointer inline-flex items-center gap-1.5 rounded-full text-sm font-medium text-ink transition active:scale-[0.98] ${
           variant === "overlay"
             ? "h-10 bg-white/85 px-3.5 shadow-md backdrop-blur-md hover:bg-white"
             : "bg-black/5 px-3 py-1.5 hover:bg-black/10"

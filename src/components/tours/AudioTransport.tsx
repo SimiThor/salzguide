@@ -52,7 +52,7 @@ export default function AudioTransport({
           onClick={() => audio.go(index - 1)}
           disabled={index === 0}
           aria-label={t("prev")}
-          className="text-ink transition active:scale-90 disabled:opacity-30"
+          className="cursor-pointer text-ink transition active:scale-90 disabled:opacity-30 disabled:cursor-not-allowed"
         >
           <ChevronLeft className="h-7 w-7" />
         </button>
@@ -61,7 +61,7 @@ export default function AudioTransport({
           onClick={audio.toggle}
           disabled={!canPlay}
           aria-label={audio.playing ? t("pause") : t("play")}
-          className="flex h-14 w-14 items-center justify-center rounded-full bg-accent text-white shadow-md transition active:scale-95 disabled:opacity-40"
+          className="cursor-pointer flex h-14 w-14 items-center justify-center rounded-full bg-accent text-white shadow-md transition active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {audio.playing ? <Pause className="h-6 w-6" /> : <Play className="h-6 w-6" />}
         </button>
@@ -70,7 +70,7 @@ export default function AudioTransport({
           onClick={() => audio.go(index + 1)}
           disabled={index === total - 1}
           aria-label={t("next")}
-          className="text-ink transition active:scale-90 disabled:opacity-30"
+          className="cursor-pointer text-ink transition active:scale-90 disabled:opacity-30 disabled:cursor-not-allowed"
         >
           <ChevronRight className="h-7 w-7" />
         </button>

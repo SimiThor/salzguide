@@ -457,7 +457,7 @@ export default function PointForm({
                   setTexts(lang, { audioUrl: null });
                   setPreview((p) => ({ ...p, [lang]: undefined }));
                 }}
-                className="text-[12px] text-muted underline"
+                className="cursor-pointer text-[12px] text-muted underline"
               >
                 entfernen
               </button>
@@ -522,7 +522,7 @@ export default function PointForm({
                   type="button"
                   onClick={() => toggleTag(k)}
                   aria-pressed={on}
-                  className={`rounded-full px-3 py-1 text-[13px] font-medium transition active:scale-95 ${
+                  className={`cursor-pointer rounded-full px-3 py-1 text-[13px] font-medium transition active:scale-95 ${
                     on ? "bg-ink text-white" : "bg-black/[0.06] text-ink/80 hover:bg-black/[0.1]"
                   }`}
                 >
@@ -597,7 +597,7 @@ export default function PointForm({
             <button
               type="button"
               onClick={() => set({ imageUrl: null })}
-              className="rounded-full bg-black/5 px-4 py-2 text-[13px] font-semibold text-muted transition active:scale-[0.98]"
+              className="cursor-pointer rounded-full bg-black/5 px-4 py-2 text-[13px] font-semibold text-muted transition active:scale-[0.98]"
             >
               Entfernen
             </button>
@@ -702,7 +702,7 @@ export default function PointForm({
                   key={l}
                   type="button"
                   onClick={() => setReviewLang(l)}
-                  className={`rounded-full px-2.5 py-1 text-[12px] font-medium transition ${
+                  className={`cursor-pointer rounded-full px-2.5 py-1 text-[12px] font-medium transition ${
                     reviewLang === l
                       ? "bg-ink text-white"
                       : done
@@ -729,7 +729,7 @@ export default function PointForm({
           disabled={
             pending || uploading.length > 0 || uploadingImage || filling || translating || ttsBusy.length > 0
           }
-          className="rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+          className="cursor-pointer rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60 disabled:cursor-not-allowed"
         >
           {pending
             ? <Busy>Speichern</Busy>
@@ -746,7 +746,7 @@ export default function PointForm({
             type="button"
             onClick={onDelete}
             disabled={pending}
-            className="rounded-full bg-black/5 px-5 py-2.5 text-sm font-semibold text-accent disabled:opacity-60"
+            className="cursor-pointer rounded-full bg-black/5 px-5 py-2.5 text-sm font-semibold text-accent disabled:opacity-60 disabled:cursor-not-allowed"
           >
             Löschen
           </button>

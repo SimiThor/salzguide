@@ -263,7 +263,7 @@ export default function VideoUploader({
           type="button"
           onClick={() => fileRef.current?.click()}
           disabled={busy}
-          className="rounded-full bg-black/5 px-3.5 py-1.5 text-xs font-semibold text-ink disabled:opacity-50"
+          className="cursor-pointer rounded-full bg-black/5 px-3.5 py-1.5 text-xs font-semibold text-ink disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {busy ? (stage || "verarbeitet …") : videoUrl ? "🎬 Video ersetzen" : "🎬 Video hochladen"}
         </button>
@@ -271,7 +271,7 @@ export default function VideoUploader({
           <button
             type="button"
             onClick={() => onChange(null, null)}
-            className="rounded-full bg-black/5 px-3.5 py-1.5 text-xs font-semibold text-accent"
+            className="cursor-pointer rounded-full bg-black/5 px-3.5 py-1.5 text-xs font-semibold text-accent"
           >
             Entfernen
           </button>

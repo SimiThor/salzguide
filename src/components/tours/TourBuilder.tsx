@@ -98,7 +98,7 @@ export default function TourBuilder({ areas }: { areas: PublicArea[] }) {
                     type="button"
                     onClick={() => toggle(k)}
                     aria-pressed={on}
-                    className={`rounded-full px-3.5 py-1.5 text-[14px] font-medium transition active:scale-95 ${
+                    className={`cursor-pointer rounded-full px-3.5 py-1.5 text-[14px] font-medium transition active:scale-95 ${
                       on ? "bg-ink text-white" : "bg-black/[0.06] text-ink/80 hover:bg-black/[0.1]"
                     }`}
                   >

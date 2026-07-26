@@ -43,7 +43,7 @@ export default function LockedSpotCard({
       type="button"
       onClick={() => gate.show({ previewUrl, emoji, label: lockedLabel })}
       aria-label={unlockLabel}
-      className="sg-tap-card block text-left"
+      className="cursor-pointer sg-tap-card block text-left"
     >
       <SpotCard
         title=""

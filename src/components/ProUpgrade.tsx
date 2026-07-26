@@ -115,7 +115,7 @@ export default function ProUpgrade({ price }: { price: string }) {
           type="button"
           onClick={onBuy}
           disabled={pending || !price}
-          className="mt-4 w-full rounded-full bg-accent px-5 py-4 text-[16px] font-semibold text-white shadow-[0_10px_24px_-8px_rgba(204,41,36,0.6)] transition active:scale-[0.98] disabled:opacity-50 disabled:shadow-none"
+          className="cursor-pointer mt-4 w-full rounded-full bg-accent px-5 py-4 text-[16px] font-semibold text-white shadow-[0_10px_24px_-8px_rgba(204,41,36,0.6)] transition active:scale-[0.98] disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed"
         >
           {pending ? t("redirecting") : t("cta")}
         </button>

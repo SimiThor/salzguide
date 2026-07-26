@@ -35,7 +35,8 @@ const fmt = (iso: string) => dtFmt.format(new Date(iso));
 const CARD = "space-y-3 rounded-[18px] bg-white p-5 shadow-sm";
 const FIELD =
   "w-full rounded-[12px] border border-black/10 bg-white px-3 py-2 text-[13px] text-ink outline-none focus:border-accent";
-const BTN = "rounded-full px-4 py-2 text-xs font-semibold transition disabled:opacity-50";
+const BTN =
+  "cursor-pointer rounded-full px-4 py-2 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-50";
 const BTN_SOFT = `${BTN} bg-black/5 text-ink`;
 const BTN_ACCENT = `${BTN} bg-accent text-white`;
 
@@ -388,7 +389,7 @@ export default function ProMigrationManager({
             >
               {pending ? <Busy>sendet</Busy> : "Ja, senden"}
             </button>
-            <button type="button" onClick={() => setConfirmSend(false)} className="text-xs text-muted">
+            <button type="button" onClick={() => setConfirmSend(false)} className="cursor-pointer text-xs text-muted">
               Abbrechen
             </button>
           </div>
@@ -428,7 +429,7 @@ export default function ProMigrationManager({
             }
             disabled={pending}
             aria-pressed={notice}
-            className={`shrink-0 rounded-full px-4 py-1.5 text-xs font-semibold transition disabled:opacity-50 ${
+            className={`shrink-0 cursor-pointer rounded-full px-4 py-1.5 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${
               notice ? "bg-accent text-white" : "bg-black/5 text-ink"
             }`}
           >
@@ -472,7 +473,7 @@ export default function ProMigrationManager({
                     })
                   }
                   disabled={pending}
-                  className="shrink-0 rounded-full px-2 py-1 text-[11px] text-muted disabled:opacity-50"
+                  className="cursor-pointer shrink-0 rounded-full px-2 py-1 text-[11px] text-muted disabled:cursor-not-allowed disabled:opacity-50"
                   title={`${r.email} von der Liste nehmen`}
                 >
                   ✕

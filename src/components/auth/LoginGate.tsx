@@ -138,7 +138,7 @@ function LoginGateSheet({
         <button
           type="button"
           onClick={goLogin}
-          className="mt-7 w-full rounded-full bg-accent px-5 py-4 text-[16px] font-semibold text-white shadow-[0_10px_24px_-10px_rgba(204,41,36,0.55)] transition active:scale-[0.98]"
+          className="cursor-pointer mt-7 w-full rounded-full bg-accent px-5 py-4 text-[16px] font-semibold text-white shadow-[0_10px_24px_-10px_rgba(204,41,36,0.55)] transition active:scale-[0.98]"
         >
           {t("cta")}
         </button>

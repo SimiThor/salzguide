@@ -91,7 +91,7 @@ export default function Lightbox({
   };
 
   const ctrl =
-    "flex items-center justify-center rounded-full bg-white/15 text-white backdrop-blur transition active:scale-95";
+    "cursor-pointer disabled:cursor-not-allowed flex items-center justify-center rounded-full bg-white/15 text-white backdrop-blur transition active:scale-95";
 
   return createPortal(
     <motion.div
@@ -102,7 +102,7 @@ export default function Lightbox({
       exit={{ opacity: 0 }}
       transition={{ duration: 0.2 }}
       onClick={onClose}
-      className="fixed inset-0 z-[100] flex flex-col bg-black/95"
+      className="fixed inset-0 z-[100] flex cursor-pointer flex-col bg-black/95"
     >
       {/* Kopf: Zähler + Schließen */}
       <div
@@ -211,7 +211,7 @@ export default function Lightbox({
               type="button"
               onClick={() => goTo(i)}
               aria-label={`${i + 1}`}
-              className={`relative h-14 w-14 shrink-0 overflow-hidden rounded-[8px] ring-2 transition ${
+              className={`cursor-pointer relative h-14 w-14 shrink-0 overflow-hidden rounded-[8px] ring-2 transition ${
                 i === index ? "ring-white" : "opacity-50 ring-transparent"
               }`}
             >

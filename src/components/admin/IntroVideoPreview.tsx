@@ -46,7 +46,7 @@ export default function IntroVideoPreview({
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
         aria-label={open ? `${title}: Video schliessen` : `${title}: Video ansehen`}
-        className="group relative shrink-0 rounded-[10px] transition active:scale-[0.97]"
+        className="cursor-pointer group relative shrink-0 rounded-[10px] transition active:scale-[0.97]"
       >
         {thumb}
         {/* Abspiel-Dreieck über dem Standbild, damit man sieht, dass hier etwas passiert. */}

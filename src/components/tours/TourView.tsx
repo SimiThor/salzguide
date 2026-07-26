@@ -145,7 +145,7 @@ export default function TourView({
     <button
       type="button"
       onClick={onRestart}
-      className="inline-flex items-center gap-1 rounded-full bg-white/85 px-3.5 py-2 text-[14px] font-semibold text-ink shadow-md backdrop-blur-md transition active:scale-95"
+      className="cursor-pointer inline-flex items-center gap-1 rounded-full bg-white/85 px-3.5 py-2 text-[14px] font-semibold text-ink shadow-md backdrop-blur-md transition active:scale-95"
     >
       ↺ {t("rebuild")}
     </button>
@@ -240,7 +240,7 @@ export default function TourView({
                 <button
                   type="button"
                   onClick={() => selectStop(i)}
-                  className={`flex w-full items-center gap-3 rounded-[14px] bg-white/80 px-3.5 py-3.5 text-left shadow-sm ring-1 transition ${
+                  className={`cursor-pointer flex w-full items-center gap-3 rounded-[14px] bg-white/80 px-3.5 py-3.5 text-left shadow-sm ring-1 transition ${
                     on ? "ring-2 ring-accent" : "ring-black/[0.04]"
                   }`}
                 >

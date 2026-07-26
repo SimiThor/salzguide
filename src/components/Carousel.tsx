@@ -153,7 +153,7 @@ export default function Carousel({
     "opacity-0 scale-90 group-hover/carousel:pointer-events-auto group-hover/carousel:translate-x-0 group-hover/carousel:scale-100 group-hover/carousel:opacity-100 group-focus-within/carousel:pointer-events-auto group-focus-within/carousel:translate-x-0 group-focus-within/carousel:scale-100 group-focus-within/carousel:opacity-100";
   const gone = "opacity-0 scale-90";
   const arrowBtn =
-    "flex h-9 w-9 items-center justify-center rounded-full bg-white/85 text-ink shadow-[0_6px_18px_-8px_rgba(0,0,0,0.45)] ring-1 ring-black/5 backdrop-blur-md transition-[scale,background-color] duration-200 ease-out hover:scale-105 hover:bg-white active:scale-95 motion-reduce:transition-none";
+    "cursor-pointer disabled:cursor-not-allowed flex h-9 w-9 items-center justify-center rounded-full bg-white/85 text-ink shadow-[0_6px_18px_-8px_rgba(0,0,0,0.45)] ring-1 ring-black/5 backdrop-blur-md transition-[scale,background-color] duration-200 ease-out hover:scale-105 hover:bg-white active:scale-95 motion-reduce:transition-none";
   const arrowStyle = measured ? { top: arrowTop } : undefined;
 
   return (

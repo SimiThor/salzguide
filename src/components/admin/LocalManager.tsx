@@ -137,7 +137,7 @@ function LocalForm({
               <button
                 type="button"
                 onClick={() => setAvatarUrl(null)}
-                className="rounded-full px-2 py-1 text-[12px] font-medium text-muted"
+                className="cursor-pointer rounded-full px-2 py-1 text-[12px] font-medium text-muted"
               >
                 entfernen
               </button>
@@ -189,7 +189,7 @@ function LocalForm({
           type="button"
           onClick={onCancel}
           disabled={uploading}
-          className="rounded-full px-3 py-1.5 text-[13px] font-medium text-muted disabled:opacity-50"
+          className="cursor-pointer rounded-full px-3 py-1.5 text-[13px] font-medium text-muted disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Abbrechen
         </button>
@@ -197,7 +197,7 @@ function LocalForm({
           type="button"
           onClick={onSave}
           disabled={busy || uploading}
-          className="rounded-full bg-accent px-4 py-1.5 text-[13px] font-semibold text-white transition active:scale-95 disabled:opacity-50"
+          className="cursor-pointer rounded-full bg-accent px-4 py-1.5 text-[13px] font-semibold text-white transition active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {busy ? <Busy>Speichert</Busy> : "Speichern"}
         </button>
@@ -252,7 +252,7 @@ export default function LocalManager({ locals }: { locals: AdminLocalFull[] }) {
             setCreating(true);
             setEditingId(null);
           }}
-          className="rounded-full bg-black/5 px-3 py-1 text-[12px] font-semibold text-ink transition active:scale-95"
+          className="cursor-pointer rounded-full bg-black/5 px-3 py-1 text-[12px] font-semibold text-ink transition active:scale-95"
         >
           + Neuer Local
         </button>
@@ -314,14 +314,14 @@ export default function LocalManager({ locals }: { locals: AdminLocalFull[] }) {
                       type="button"
                       onClick={() => onDelete(l.id)}
                       disabled={deletingId !== null}
-                      className="rounded-full bg-accent px-3 py-1 text-[12px] font-semibold text-white disabled:opacity-50"
+                      className="cursor-pointer rounded-full bg-accent px-3 py-1 text-[12px] font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {deletingId === l.id ? <Busy>Löscht</Busy> : "Löschen"}
                     </button>
                     <button
                       type="button"
                       onClick={() => setConfirmDelete(null)}
-                      className="rounded-full px-2 py-1 text-[12px] font-medium text-muted"
+                      className="cursor-pointer rounded-full px-2 py-1 text-[12px] font-medium text-muted"
                     >
                       Abbrechen
                     </button>
@@ -334,7 +334,7 @@ export default function LocalManager({ locals }: { locals: AdminLocalFull[] }) {
                         setEditingId(l.id);
                         setCreating(false);
                       }}
-                      className="rounded-full bg-black/5 px-3 py-1 text-[12px] font-semibold text-ink transition active:scale-95"
+                      className="cursor-pointer rounded-full bg-black/5 px-3 py-1 text-[12px] font-semibold text-ink transition active:scale-95"
                     >
                       Bearbeiten
                     </button>
@@ -345,7 +345,7 @@ export default function LocalManager({ locals }: { locals: AdminLocalFull[] }) {
                         setConfirmDelete(l.id);
                       }}
                       aria-label="Löschen"
-                      className="rounded-full px-2 py-1 text-[12px] font-medium text-muted transition hover:text-accent"
+                      className="cursor-pointer rounded-full px-2 py-1 text-[12px] font-medium text-muted transition hover:text-accent"
                     >
                       Löschen
                     </button>

@@ -147,7 +147,7 @@ export default async function ProfilPage({
           <input type="hidden" name="locale" value={locale} />
           <button
             type="submit"
-            className="w-full rounded-full bg-black/5 px-5 py-3 text-sm font-semibold text-ink active:scale-[0.98]"
+            className="cursor-pointer w-full rounded-full bg-black/5 px-5 py-3 text-sm font-semibold text-ink active:scale-[0.98]"
           >
             {t("logout")}
           </button>

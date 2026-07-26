@@ -34,7 +34,7 @@ export default function TranscriptView({ text }: { text: string }) {
         <button
           type="button"
           onClick={() => setExpanded((e) => !e)}
-          className="mt-1.5 text-[14px] font-semibold text-accent transition active:opacity-70"
+          className="cursor-pointer mt-1.5 text-[14px] font-semibold text-accent transition active:opacity-70"
         >
           {expanded ? t("readLess") : t("readMore")}
         </button>

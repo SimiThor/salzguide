@@ -48,7 +48,7 @@ function Segmented<T extends string>({
             type="button"
             aria-pressed={active}
             onClick={() => onChange(o.value)}
-            className={`shrink-0 whitespace-nowrap rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition active:scale-[0.98] ${
+            className={`cursor-pointer shrink-0 whitespace-nowrap rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition active:scale-[0.98] ${
               active ? "bg-white text-ink shadow-sm" : "text-muted"
             }`}
           >
@@ -173,7 +173,7 @@ export default function AdminSpotList({ spots }: { spots: AdminSpotRow[] }) {
             type="button"
             onClick={() => setQ("")}
             aria-label="Suche löschen"
-            className="absolute right-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full text-muted transition hover:bg-black/5 active:scale-90"
+            className="cursor-pointer absolute right-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full text-muted transition hover:bg-black/5 active:scale-90"
           >
             ✕
           </button>

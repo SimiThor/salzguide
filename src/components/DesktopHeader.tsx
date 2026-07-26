@@ -109,7 +109,7 @@ export default function DesktopHeader() {
             onClick={() => setMoreOpen((v) => !v)}
             aria-haspopup="menu"
             aria-expanded={moreOpen}
-            className={`inline-flex items-center gap-1 ${linkCls(moreActive)}`}
+            className={`cursor-pointer inline-flex items-center gap-1 ${linkCls(moreActive)}`}
           >
             {t("Menu.more")}
             <ChevronDown open={moreOpen} />
@@ -217,7 +217,7 @@ export default function DesktopHeader() {
         <button
           type="button"
           onClick={ai.open}
-          className="inline-flex items-center gap-1.5 rounded-full bg-black/5 px-3 py-1.5 text-sm font-medium text-muted transition hover:bg-black/10 active:scale-[0.98]"
+          className="cursor-pointer inline-flex items-center gap-1.5 rounded-full bg-black/5 px-3 py-1.5 text-sm font-medium text-muted transition hover:bg-black/10 active:scale-[0.98]"
         >
           <AiSparkle gradient className="h-[15px] w-[15px]" />
           <span className="leading-none">{t("Nav.ai")}</span>

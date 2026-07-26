@@ -76,7 +76,7 @@ export default function BottomNav() {
           // auf der Leiste schaltet nur den nativen Tap-Blitz ab; diese CSS-:active-Fläche
           // bleibt und gibt sofort Rückmeldung. Auf Touch erscheint sie sofort (globale
           // Regel setzt die Dauer bei :active auf 0) und blendet beim Loslassen sanft aus.
-          const cls = `flex w-full flex-col items-center justify-center gap-1 rounded-2xl px-3 py-1 transition-colors duration-150 active:bg-black/5 ${
+          const cls = `cursor-pointer flex w-full flex-col items-center justify-center gap-1 rounded-2xl px-3 py-1 transition-colors duration-150 active:bg-black/5 ${
             active ? "text-accent" : "text-muted"
           }`;
           const inner = (

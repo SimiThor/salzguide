@@ -718,7 +718,7 @@ export default function SpotForm({
               type="button"
               onClick={onDelete}
               disabled={pending}
-              className="rounded-full bg-black/5 px-4 py-2 text-sm font-semibold text-accent disabled:opacity-60"
+              className="cursor-pointer rounded-full bg-black/5 px-4 py-2 text-sm font-semibold text-accent disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {formAction === "delete" ? <Busy>Lösche</Busy> : "Löschen"}
             </button>
@@ -726,7 +726,7 @@ export default function SpotForm({
           <button
             type="submit"
             disabled={pending || mediaBusy > 0}
-            className="rounded-full bg-accent px-5 py-2 text-sm font-semibold text-white disabled:opacity-60"
+            className="cursor-pointer rounded-full bg-accent px-5 py-2 text-sm font-semibold text-white disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {formAction === "save" ? <Busy>Speichern</Busy> : mediaBusy > 0 ? <Busy>Upload läuft</Busy> : "Speichern"}
           </button>
@@ -804,7 +804,7 @@ export default function SpotForm({
                 key={em}
                 type="button"
                 onClick={() => set({ emoji: em })}
-                className={`flex h-8 w-8 items-center justify-center rounded-lg text-lg ${
+                className={`cursor-pointer flex h-8 w-8 items-center justify-center rounded-lg text-lg ${
                   form.emoji === em ? "bg-accent/15 ring-1 ring-accent" : "bg-black/5"
                 }`}
               >
@@ -882,7 +882,7 @@ export default function SpotForm({
                     type="button"
                     onClick={doPlaceSearch}
                     disabled={placeBusy}
-                    className="shrink-0 rounded-[12px] bg-ink px-4 text-sm font-medium text-white disabled:opacity-50"
+                    className="cursor-pointer shrink-0 rounded-[12px] bg-ink px-4 text-sm font-medium text-white disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {placeBusy ? "…" : "Suchen"}
                   </button>
@@ -899,7 +899,7 @@ export default function SpotForm({
                             setPlaceHits([]);
                             setPlaceMsg(`✓ Übernommen: ${h.name}`);
                           }}
-                          className="block w-full px-3 py-2 text-left hover:bg-black/[0.03]"
+                          className="cursor-pointer block w-full px-3 py-2 text-left hover:bg-black/[0.03]"
                         >
                           <span className="text-sm font-medium text-ink">{h.name}</span>
                           {h.address && (
@@ -960,12 +960,12 @@ export default function SpotForm({
                             <input type="time" className={timeCls} value={r1.open} onChange={(e) => setDayTime(i, 1, "open", e.target.value)} />
                             <span className="text-muted">–</span>
                             <input type="time" className={timeCls} value={r1.close} onChange={(e) => setDayTime(i, 1, "close", e.target.value)} />
-                            <button type="button" onClick={() => removeBreak(i)} className="ml-0.5 text-xs text-muted hover:text-accent">
+                            <button type="button" onClick={() => removeBreak(i)} className="cursor-pointer ml-0.5 text-xs text-muted hover:text-accent">
                               ✕ Pause
                             </button>
                           </>
                         ) : (
-                          <button type="button" onClick={() => addBreak(i)} className="ml-1 text-xs font-medium text-accent">
+                          <button type="button" onClick={() => addBreak(i)} className="cursor-pointer ml-1 text-xs font-medium text-accent">
                             + Mittagspause
                           </button>
                         )}
@@ -999,7 +999,7 @@ export default function SpotForm({
               key={opt.m}
               type="button"
               onClick={() => set({ locationMode: opt.m })}
-              className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition ${
+              className={`cursor-pointer rounded-full px-3.5 py-1.5 text-sm font-medium transition ${
                 form.locationMode === opt.m ? "bg-white text-ink shadow-sm" : "text-muted"
               }`}
             >
@@ -1046,7 +1046,7 @@ export default function SpotForm({
               <button
                 type="button"
                 onClick={addRoutePt}
-                className="rounded-full bg-black/5 px-3 py-1 text-xs font-medium text-ink"
+                className="cursor-pointer rounded-full bg-black/5 px-3 py-1 text-xs font-medium text-ink"
               >
                 + Punkt
               </button>
@@ -1082,9 +1082,9 @@ export default function SpotForm({
                   }
                 />
                 <span className="flex gap-1">
-                  <button type="button" onClick={() => moveRoutePt(i, -1)} className="rounded-md bg-black/5 px-2 py-1 text-xs text-ink">↑</button>
-                  <button type="button" onClick={() => moveRoutePt(i, 1)} className="rounded-md bg-black/5 px-2 py-1 text-xs text-ink">↓</button>
-                  <button type="button" onClick={() => removeRoutePt(i)} className="rounded-md bg-black/5 px-2 py-1 text-xs text-accent">✕</button>
+                  <button type="button" onClick={() => moveRoutePt(i, -1)} className="cursor-pointer rounded-md bg-black/5 px-2 py-1 text-xs text-ink">↑</button>
+                  <button type="button" onClick={() => moveRoutePt(i, 1)} className="cursor-pointer rounded-md bg-black/5 px-2 py-1 text-xs text-ink">↓</button>
+                  <button type="button" onClick={() => removeRoutePt(i)} className="cursor-pointer rounded-md bg-black/5 px-2 py-1 text-xs text-accent">✕</button>
                 </span>
               </div>
             ))}
@@ -1093,7 +1093,7 @@ export default function SpotForm({
                 type="button"
                 onClick={onSnap}
                 disabled={pending || form.routePoints.length < 2}
-                className="rounded-full bg-ink px-3.5 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+                className="cursor-pointer rounded-full bg-ink px-3.5 py-1.5 text-xs font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 🥾 An Wanderwege anpassen
               </button>
@@ -1105,7 +1105,7 @@ export default function SpotForm({
                   onClick={makeThereAndBack}
                   disabled={pending}
                   title="Hängt den Rückweg an (umgekehrter Hinweg) und snappt die ganze Tour"
-                  className="rounded-full bg-black/5 px-3.5 py-1.5 text-xs font-semibold text-ink disabled:opacity-50"
+                  className="cursor-pointer rounded-full bg-black/5 px-3.5 py-1.5 text-xs font-semibold text-ink disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {"↔ Hin & zurück"}
                 </button>
@@ -1115,7 +1115,7 @@ export default function SpotForm({
                   <button
                     type="button"
                     onClick={() => set({ routeSnapped: [], elevationProfile: null })}
-                    className="rounded-full bg-black/5 px-3 py-1.5 text-xs font-medium text-ink"
+                    className="cursor-pointer rounded-full bg-black/5 px-3 py-1.5 text-xs font-medium text-ink"
                   >
                     Anpassung verwerfen
                   </button>
@@ -1183,7 +1183,7 @@ export default function SpotForm({
             <button
               type="button"
               onClick={() => togglePlacing("parking")}
-              className={`rounded-full px-3.5 py-1.5 text-xs font-semibold ${
+              className={`cursor-pointer rounded-full px-3.5 py-1.5 text-xs font-semibold ${
                 placing === "parking" ? "bg-black/10 text-ink" : "bg-[#2563eb] text-white"
               }`}
             >
@@ -1200,7 +1200,7 @@ export default function SpotForm({
                   set({ parkingLat: null, parkingLng: null });
                   setPlacing((p) => (p === "parking" ? null : p));
                 }}
-                className="rounded-full bg-black/5 px-3 py-1.5 text-xs font-medium text-accent"
+                className="cursor-pointer rounded-full bg-black/5 px-3 py-1.5 text-xs font-medium text-accent"
               >
                 Entfernen
               </button>
@@ -1251,7 +1251,7 @@ export default function SpotForm({
                 <button
                   type="button"
                   onClick={() => togglePlacing(kind)}
-                  className="rounded-full px-3.5 py-1.5 text-xs font-semibold text-white"
+                  className="cursor-pointer rounded-full px-3.5 py-1.5 text-xs font-semibold text-white"
                   style={{ background: active ? "#374151" : style.color }}
                 >
                   {active ? "Fertig" : `${style.emoji} Auf der Karte setzen`}
@@ -1259,7 +1259,7 @@ export default function SpotForm({
                 <button
                   type="button"
                   onClick={() => addPoi(kind)}
-                  className="rounded-full bg-black/5 px-3 py-1.5 text-xs font-medium text-ink"
+                  className="cursor-pointer rounded-full bg-black/5 px-3 py-1.5 text-xs font-medium text-ink"
                 >
                   + manuell
                 </button>
@@ -1316,7 +1316,7 @@ export default function SpotForm({
                           type="button"
                           onClick={() => removePoi(kind, i)}
                           aria-label={`${plural}-Punkt entfernen`}
-                          className="flex h-8 w-8 items-center justify-center rounded-full bg-black/5 text-accent"
+                          className="cursor-pointer flex h-8 w-8 items-center justify-center rounded-full bg-black/5 text-accent"
                         >
                           ✕
                         </button>
@@ -1679,7 +1679,7 @@ export default function SpotForm({
                   key={code}
                   type="button"
                   onClick={() => setReviewLang(code)}
-                  className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
+                  className={`cursor-pointer flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
                     active ? "bg-accent text-white" : "bg-black/5 text-ink hover:bg-black/10"
                   }`}
                 >
@@ -1737,7 +1737,7 @@ export default function SpotForm({
         <button
           type="submit"
           disabled={pending || mediaBusy > 0}
-          className="rounded-full bg-accent px-5 py-2 text-sm font-semibold text-white disabled:opacity-60"
+          className="cursor-pointer rounded-full bg-accent px-5 py-2 text-sm font-semibold text-white disabled:opacity-60 disabled:cursor-not-allowed"
         >
           {formAction === "save" ? <Busy>Speichern</Busy> : mediaBusy > 0 ? <Busy>Upload läuft</Busy> : "Speichern"}
         </button>

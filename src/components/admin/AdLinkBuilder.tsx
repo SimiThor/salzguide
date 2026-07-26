@@ -67,7 +67,7 @@ export default function AdLinkBuilder({ baseUrl }: { baseUrl: string }) {
       {url ? (
         <div className="mt-3 flex items-center gap-2 rounded-lg bg-black/[0.04] p-2">
           <code
-            className="min-w-0 flex-1 truncate text-[12px] text-ink"
+            className="min-w-0 flex-1 cursor-pointer truncate text-[12px] text-ink"
             // Fallback fürs Handkopieren: Ein Tap markiert die ganze URL.
             onClick={(e) => {
               const sel = window.getSelection();
@@ -83,7 +83,7 @@ export default function AdLinkBuilder({ baseUrl }: { baseUrl: string }) {
           <button
             type="button"
             onClick={copy}
-            className="shrink-0 rounded-lg bg-accent px-3 py-1.5 text-[12px] font-semibold text-white active:scale-95"
+            className="cursor-pointer shrink-0 rounded-lg bg-accent px-3 py-1.5 text-[12px] font-semibold text-white active:scale-95"
           >
             {copied ? "Kopiert ✓" : "Kopieren"}
           </button>

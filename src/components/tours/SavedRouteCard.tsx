@@ -42,7 +42,7 @@ export default function SavedRouteCard({
         type="button"
         onClick={onRemove}
         aria-label={t("deleteRoute")}
-        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition active:scale-90 active:bg-black/5"
+        className="cursor-pointer flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition active:scale-90 active:bg-black/5"
       >
         <BookmarkFilled className="h-[18px] w-[18px] text-accent" />
       </button>

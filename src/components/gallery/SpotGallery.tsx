@@ -177,7 +177,7 @@ export default function SpotGallery({ images }: { images: string[] }) {
         type="button"
         aria-label={tc("back")}
         onClick={() => scrollByDir(-1)}
-        className={`${arrowBase} left-2 ${
+        className={`cursor-pointer ${arrowBase} left-2 ${
           atStart ? "pointer-events-none opacity-0" : "opacity-100"
         }`}
       >
@@ -191,7 +191,7 @@ export default function SpotGallery({ images }: { images: string[] }) {
         type="button"
         aria-label={tc("next")}
         onClick={() => scrollByDir(1)}
-        className={`${arrowBase} right-2 ${
+        className={`cursor-pointer ${arrowBase} right-2 ${
           atEnd ? "pointer-events-none opacity-0" : "opacity-100"
         }`}
       >

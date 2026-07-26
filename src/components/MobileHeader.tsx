@@ -112,7 +112,7 @@ export default function MobileHeader() {
           onClick={() => setOpen(true)}
           aria-label={t("Menu.open")}
           aria-expanded={open}
-          className="sg-hit flex h-10 w-10 items-center justify-center rounded-full text-ink active:bg-black/5"
+          className="cursor-pointer sg-hit flex h-10 w-10 items-center justify-center rounded-full text-ink active:bg-black/5"
         >
           <Burger />
         </button>
@@ -126,7 +126,7 @@ export default function MobileHeader() {
                 auf — unten blieb ein scharfer Streifen stehen. Dieselbe Zeile steht aus
                 demselben Grund am BottomSheet-Backdrop; hier fehlte sie. */}
             <motion.div
-              className="fixed inset-0 z-[60] min-h-[100lvh] bg-black/30 backdrop-blur-sm md:hidden"
+              className="fixed inset-0 z-[60] min-h-[100lvh] cursor-pointer bg-black/30 backdrop-blur-sm md:hidden"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -149,7 +149,7 @@ export default function MobileHeader() {
                   type="button"
                   onClick={close}
                   aria-label={t("Explore.close")}
-                  className="flex h-9 w-9 items-center justify-center rounded-full bg-black/5 text-ink"
+                  className="cursor-pointer flex h-9 w-9 items-center justify-center rounded-full bg-black/5 text-ink"
                 >
                   <X />
                 </button>

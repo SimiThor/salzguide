@@ -193,7 +193,7 @@ export default function HomeMediaManager({ media: saved }: { media: HomeMedia })
           type="button"
           onClick={save}
           disabled={pending || !dirty || busyCount > 0}
-          className="rounded-full bg-accent px-5 py-2.5 text-[14px] font-semibold text-white transition active:scale-[0.98] disabled:opacity-40"
+          className="cursor-pointer rounded-full bg-accent px-5 py-2.5 text-[14px] font-semibold text-white transition active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {pending ? <Busy>Speichert</Busy> : busyCount > 0 ? <Busy>Upload läuft</Busy> : "Speichern"}
         </button>
@@ -285,7 +285,7 @@ function ImageSlotRow({
               type="button"
               onClick={() => fileRef.current?.click()}
               disabled={busy}
-              className="rounded-full bg-black/[0.06] px-3.5 py-2 text-[13px] font-semibold text-ink transition hover:bg-black/10 active:scale-[0.98] disabled:opacity-40"
+              className="cursor-pointer rounded-full bg-black/[0.06] px-3.5 py-2 text-[13px] font-semibold text-ink transition hover:bg-black/10 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {busy ? <Busy>Lädt</Busy> : value ? "Ersetzen" : "Bild wählen"}
             </button>
@@ -294,7 +294,7 @@ function ImageSlotRow({
                 type="button"
                 onClick={() => onChange(null)}
                 disabled={busy}
-                className="rounded-full bg-black/[0.06] px-3.5 py-2 text-[13px] font-semibold text-accent transition hover:bg-black/10 active:scale-[0.98] disabled:opacity-40"
+                className="cursor-pointer rounded-full bg-black/[0.06] px-3.5 py-2 text-[13px] font-semibold text-accent transition hover:bg-black/10 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 Entfernen
               </button>

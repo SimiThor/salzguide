@@ -130,7 +130,7 @@ export default function HomeFeaturedManager({ spots, migrationMissing }: AdminHo
                         onClick={() => move(slug, -1)}
                         disabled={i === 0}
                         aria-label={`${s.title} nach oben`}
-                        className="grid h-8 w-8 place-items-center rounded-full bg-white text-ink ring-1 ring-black/10 disabled:opacity-30"
+                        className="cursor-pointer grid h-8 w-8 place-items-center rounded-full bg-white text-ink ring-1 ring-black/10 disabled:opacity-30 disabled:cursor-not-allowed"
                       >
                         ↑
                       </button>
@@ -139,7 +139,7 @@ export default function HomeFeaturedManager({ spots, migrationMissing }: AdminHo
                         onClick={() => move(slug, 1)}
                         disabled={i === chosen.length - 1}
                         aria-label={`${s.title} nach unten`}
-                        className="grid h-8 w-8 place-items-center rounded-full bg-white text-ink ring-1 ring-black/10 disabled:opacity-30"
+                        className="cursor-pointer grid h-8 w-8 place-items-center rounded-full bg-white text-ink ring-1 ring-black/10 disabled:opacity-30 disabled:cursor-not-allowed"
                       >
                         ↓
                       </button>
@@ -147,7 +147,7 @@ export default function HomeFeaturedManager({ spots, migrationMissing }: AdminHo
                         type="button"
                         onClick={() => toggle(slug)}
                         aria-label={`${s.title} entfernen`}
-                        className="grid h-8 w-8 place-items-center rounded-full bg-white text-accent ring-1 ring-black/10"
+                        className="cursor-pointer grid h-8 w-8 place-items-center rounded-full bg-white text-accent ring-1 ring-black/10"
                       >
                         ✕
                       </button>
@@ -173,13 +173,13 @@ export default function HomeFeaturedManager({ spots, migrationMissing }: AdminHo
                     onClick={() => toggle(s.slug)}
                     disabled={blocked}
                     aria-pressed={on}
-                    className={`flex w-full items-center gap-3 rounded-[12px] p-2 text-left ring-1 transition ${
+                    className={`cursor-pointer flex w-full items-center gap-3 rounded-[12px] p-2 text-left ring-1 transition ${
                       on
                         ? "bg-accent/[0.06] ring-accent/30"
                         : blocked
                           ? "bg-black/[0.02] ring-black/5 opacity-40"
                           : "bg-white ring-black/10 hover:ring-black/20"
-                    }`}
+                    } disabled:cursor-not-allowed`}
                   >
                     <span
                       className={`grid h-5 w-5 shrink-0 place-items-center rounded-[6px] text-[12px] font-bold ${
@@ -207,7 +207,7 @@ export default function HomeFeaturedManager({ spots, migrationMissing }: AdminHo
               type="button"
               onClick={save}
               disabled={pending || !dirty}
-              className="rounded-full bg-accent px-5 py-2.5 text-[14px] font-semibold text-white transition active:scale-[0.98] disabled:opacity-40"
+              className="cursor-pointer rounded-full bg-accent px-5 py-2.5 text-[14px] font-semibold text-white transition active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {pending ? <Busy>Speichert</Busy> : "Speichern"}
             </button>

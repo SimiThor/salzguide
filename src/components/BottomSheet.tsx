@@ -75,7 +75,7 @@ function CloseButton({ onClose }: { onClose: () => void }) {
       type="button"
       onClick={onClose}
       aria-label={tc("close")}
-      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-black/5 text-muted transition-colors hover:bg-black/10"
+      className="cursor-pointer flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-black/5 text-muted transition-colors hover:bg-black/10"
     >
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden>
         <path d="M6 6l12 12M18 6L6 18" />
@@ -276,7 +276,7 @@ export default function BottomSheet({
         <div
           onClick={onClose}
           aria-hidden={!open}
-          className={`fixed inset-0 ${zBackdrop} min-h-[100lvh] bg-black/30 backdrop-blur-sm transition-opacity duration-300 ${
+          className={`cursor-pointer fixed inset-0 ${zBackdrop} min-h-[100lvh] bg-black/30 backdrop-blur-sm transition-opacity duration-300 ${
             open ? "opacity-100" : "pointer-events-none opacity-0"
           }`}
         />

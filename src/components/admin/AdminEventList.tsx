@@ -182,7 +182,7 @@ export default function AdminEventList({
       onClick={() => reject(ev)}
       aria-label="Ablehnen"
       title="Ablehnen (löschen)"
-      className="sg-hit flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-muted transition hover:bg-accent/10 hover:text-accent active:scale-90"
+      className="cursor-pointer sg-hit flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-muted transition hover:bg-accent/10 hover:text-accent active:scale-90"
     >
       <RejectIcon />
     </button>
@@ -222,7 +222,7 @@ export default function AdminEventList({
               key={t.key}
               type="button"
               onClick={() => setStatusFilter(t.key)}
-              className={`rounded-full px-3 py-1.5 text-[13px] font-semibold transition ${
+              className={`cursor-pointer rounded-full px-3 py-1.5 text-[13px] font-semibold transition ${
                 statusFilter === t.key ? "bg-white text-ink shadow-sm" : "text-muted"
               }`}
             >
@@ -281,7 +281,7 @@ export default function AdminEventList({
           <button
             type="button"
             onClick={() => setShowPast((v) => !v)}
-            className="flex w-full items-center gap-2 px-1 py-1 text-[13px] font-medium text-muted"
+            className="cursor-pointer flex w-full items-center gap-2 px-1 py-1 text-[13px] font-medium text-muted"
           >
             <span className={`transition-transform ${showPast ? "rotate-90" : ""}`}>
               ›

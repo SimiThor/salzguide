@@ -74,7 +74,7 @@ export default function ToniAvatarSettings({ current }: { current: string | null
             type="button"
             onClick={() => fileRef.current?.click()}
             disabled={busy}
-            className="rounded-full bg-accent px-4 py-2 text-[13px] font-semibold text-white transition active:scale-95 disabled:opacity-50"
+            className="cursor-pointer rounded-full bg-accent px-4 py-2 text-[13px] font-semibold text-white transition active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {busy ? <Busy>Lädt</Busy> : url ? "Bild ersetzen" : "Bild wählen"}
           </button>
@@ -83,7 +83,7 @@ export default function ToniAvatarSettings({ current }: { current: string | null
               type="button"
               onClick={onRemove}
               disabled={busy}
-              className="rounded-full bg-black/5 px-4 py-2 text-[13px] font-semibold text-muted transition active:scale-95 disabled:opacity-50"
+              className="cursor-pointer rounded-full bg-black/5 px-4 py-2 text-[13px] font-semibold text-muted transition active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Entfernen
             </button>
