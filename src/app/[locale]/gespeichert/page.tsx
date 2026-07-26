@@ -5,7 +5,8 @@ import { getSavedEvents } from "@/lib/events";
 import { viennaDayKey } from "@/lib/events-format";
 import { googleLoginEnabled } from "@/lib/auth-providers";
 import { getRelaunchNotice } from "@/lib/settings";
-import LoginForm from "@/components/LoginForm";
+import LoginPanel from "@/components/auth/LoginPanel";
+import { BookmarkFilled } from "@/components/icons";
 import SavedSpots from "@/components/SavedSpots";
 import SavedEventsList from "@/components/SavedEventsList";
 
@@ -24,15 +25,15 @@ export default async function GespeichertPage({
     getSavedEvents(locale),
   ]);
 
-  // Nicht eingeloggt (beide liefern null)
+  // Nicht eingeloggt: derselbe Login-Screen wie überall, nur mit dem Anlass "saved"
+  // (Lesezeichen + "Deine Merkliste"). Die eigene Überschrift und der eigene Erklärsatz
+  // sind weg: Sie sagten dasselbe wie der Login-Kopf, nur anders formuliert.
   if (spots === null) {
     return (
-      <div className={`mx-auto w-full max-w-[440px] px-4 ${PAD}`}>
-        <h1 className="text-2xl font-bold text-ink">{t("title")}</h1>
-        <p className="mt-1.5 mb-5 text-[15px] leading-relaxed text-muted">
-          {t("loginNeeded")}
-        </p>
-        <LoginForm
+      <div className="mx-auto w-full max-w-[380px] px-5 pt-[calc(env(safe-area-inset-top)+5rem)] pb-10 md:pt-10">
+        <LoginPanel
+          reason="saved"
+          titleAs="h1"
           googleEnabled={await googleLoginEnabled()}
           relaunchNotice={await getRelaunchNotice()}
         />
@@ -50,10 +51,16 @@ export default async function GespeichertPage({
       <div className={`mx-auto w-full max-w-[640px] px-4 ${PAD}`}>
         <h1 className="text-2xl font-bold text-ink">{t("title")}</h1>
         <div className="mt-8 rounded-[18px] bg-white p-8 text-center shadow-sm">
-          <p className="text-4xl" aria-hidden>
-            🔖
-          </p>
-          <p className="mt-2 text-[15px] leading-relaxed text-muted">{t("empty")}</p>
+          {/* Dasselbe Lesezeichen wie auf dem Login-Screen, auf jedem Merken-Knopf und in
+              der unteren Leiste. Hier stand vorher das Emoji dazu: dieselbe Sache in einer
+              zweiten Form, und die passte weder zur Strichstärke noch zur Farbe daneben. */}
+          <span
+            className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-accent/10"
+            aria-hidden
+          >
+            <BookmarkFilled className="h-6 w-6 text-accent" />
+          </span>
+          <p className="mt-3 text-[15px] leading-relaxed text-muted">{t("empty")}</p>
           <Link
             href="/explore"
             className="mt-4 inline-block rounded-full bg-accent px-5 py-3 text-sm font-semibold text-white active:scale-[0.98]"

@@ -209,8 +209,15 @@
     },
     "save": "Bewaren",
     "back": "Terug naar de kaart",
-    "weather": { "title": "Weer", "today": "Vandaag" },
-    "water": { "title": "Watertemperatuur", "asOf": "Bijgewerkt op {date}", "source": "Bron" },
+    "weather": {
+      "title": "Weer",
+      "today": "Vandaag"
+    },
+    "water": {
+      "title": "Watertemperatuur",
+      "asOf": "Bijgewerkt op {date}",
+      "source": "Bron"
+    },
     "opening": {
       "title": "Openingstijden",
       "open": "Geopend",
@@ -311,7 +318,6 @@
   },
   "Saved": {
     "title": "Bewaard",
-    "loginNeeded": "Meld je aan om je bewaarde spots & events te zien.",
     "empty": "Nog niks bewaard. Tik bij spots of events op de bladwijzer om ze hier te verzamelen.",
     "eventsTitle": "Events",
     "spotsTitle": "Spots",
@@ -319,29 +325,42 @@
     "discover": "Ontdekken"
   },
   "Auth": {
-    "relaunchNotice": "✨ Het nieuwe SalzGuide is er. Je Pro van de oude site loopt door: zelfde e-mail, geen wachtwoord nodig.",
-    "joinTitle": "Aanmelden of account aanmaken",
-    "joinSubtitle": "Met je e-mail – helemaal zonder wachtwoord. Bewaar je favoriete spots en plan je trips.",
     "emailPlaceholder": "jouw@email.nl",
-    "newsletter": "Stuur me af en toe tips, nieuwe spots & updates per e-mail (altijd opzegbaar).",
-    "submit": "Login-link versturen",
+    "newsletter": "Ja, stuur me nieuwe spots en tips van SalzGuide per e-mail. Afmelden kan altijd.",
+    "submit": "Inloglink sturen",
     "googleCta": "Verder met Google",
     "or": "of",
     "sending": "Wordt verzonden …",
     "preparing": "Robotcheck … 🤖",
     "captchaUnavailable": "De beveiligingscheck werkt nu even niet. Laad de pagina opnieuw.",
     "captchaUnavailableGoogle": "De beveiligingscheck werkt nu even niet. Gebruik de Google-login hierboven of laad de pagina opnieuw.",
-    "error": "Lukte niet – controleer je e-mail en probeer het opnieuw.",
+    "error": "Dat lukte niet. Probeer het opnieuw.",
     "captchaError": "Bevestig even dat je geen robot bent en probeer het opnieuw.",
-    "sentTitle": "Kijk in je inbox!",
-    "sentBody": "We hebben je een login-link gestuurd. Tik erop om je aan te melden.",
+    "sentTitle": "Kijk in je inbox",
+    "sentBody": "We stuurden een link naar <mail>{email}</mail>. Tik erop en je bent binnen.",
     "legalHint": "Door aan te melden ga je akkoord met de <terms>Voorwaarden</terms> en de <privacy>Privacyverklaring</privacy>.",
     "profileTitle": "Profiel",
     "loggedInAs": "Aangemeld als",
     "proStatus": "SalzGuide Pro is actief",
     "freeStatus": "Gratis account",
     "free": "Free",
-    "logout": "Afmelden"
+    "logout": "Afmelden",
+    "reasonTitle": {
+      "default": "Inloggen",
+      "saveSpot": "Spot bewaren",
+      "saveEvent": "Event bewaren",
+      "buildTour": "Eigen route maken",
+      "saved": "Jouw lijst",
+      "pro": "Bijna klaar"
+    },
+    "subtitleFree": "Gratis, zonder wachtwoord.",
+    "subtitlePaid": "Alleen je e-mail, daarna de betaling.",
+    "relaunchTitle": "Al langer bij ons?",
+    "relaunchBody": "Je Pro van de oude site loopt door. Zelfde e-mail, geen wachtwoord.",
+    "emailLabel": "E-mailadres",
+    "emailError": "Dit e-mailadres klopt niet.",
+    "rateError": "Te veel pogingen. Probeer het over een paar minuten opnieuw.",
+    "changeEmail": "Adres wijzigen"
   },
   "Pro": {
     "title": "SalzGuide",
@@ -379,7 +398,6 @@
     },
     "heroTitle": "Het hele Salzburger Land ontgrendeld",
     "heroSubtitle": "Alle geheime tips, audiotours en Toni zonder limiet. Gemaakt door locals – geen toeristenkitsch.",
-    "loginNudge": "Alleen nog je e-mail: we sturen je een login-link, daarna ga je direct naar de betaling.",
     "trustLocal": "Gemaakt door Salzburgers – echte geheime tips.",
     "exploreCta": "Nu ontdekken"
   },
@@ -445,25 +463,6 @@
     "deOnly": "Deze juridische teksten zijn alleen in het Duits beschikbaar; juridisch bindend is de Duitse versie."
   },
   "LoginGate": {
-    "cta": "Gratis aanmelden",
-    "hint": "Met je e-mail, zonder wachtwoord.",
-    "reason": {
-      "default": {
-        "title": "Hiervoor heb je een account nodig",
-        "body": "Even aanmelden, daarna ga je hier verder."
-      },
-      "saveSpot": {
-        "title": "Spot bewaren",
-        "body": "Belandt in je lijst – zodat je hem terugvindt als je er echt heen wilt."
-      },
-      "saveEvent": {
-        "title": "Event bewaren",
-        "body": "Belandt in je lijst – zodat de datum je niet ontglipt."
-      },
-      "buildTour": {
-        "title": "Eigen route bouwen",
-        "body": "Zodat je route er nog is als je het tabblad sluit. Kant-en-klare routes werken ook zonder."
-      }
-    }
+    "cta": "Gratis aanmelden"
   }
 }

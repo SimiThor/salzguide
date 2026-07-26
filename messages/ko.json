@@ -209,8 +209,15 @@
     },
     "save": "저장",
     "back": "지도로 돌아가기",
-    "weather": { "title": "날씨", "today": "오늘" },
-    "water": { "title": "수온", "asOf": "{date} 기준", "source": "출처" },
+    "weather": {
+      "title": "날씨",
+      "today": "오늘"
+    },
+    "water": {
+      "title": "수온",
+      "asOf": "{date} 기준",
+      "source": "출처"
+    },
     "opening": {
       "title": "영업시간",
       "open": "영업 중",
@@ -311,7 +318,6 @@
   },
   "Saved": {
     "title": "저장됨",
-    "loginNeeded": "저장한 스팟 & 이벤트를 보려면 로그인하세요.",
     "empty": "아직 저장한 게 없어요. 스팟이나 이벤트의 북마크를 눌러 여기에 모아보세요.",
     "eventsTitle": "이벤트",
     "spotsTitle": "스팟",
@@ -319,29 +325,42 @@
     "discover": "둘러보기"
   },
   "Auth": {
-    "relaunchNotice": "✨ 새로운 SalzGuide가 나왔어요. 이전 사이트의 Pro는 그대로 유지돼요. 같은 이메일만 넣으면 되고, 비밀번호는 필요 없어요.",
-    "joinTitle": "로그인 또는 계정 만들기",
-    "joinSubtitle": "이메일만으로 – 비밀번호 없이. 좋아하는 스팟을 저장하고 여행을 계획하세요.",
     "emailPlaceholder": "you@email.com",
-    "newsletter": "가끔 팁, 새 스팟 & 업데이트를 이메일로 받아볼게요 (언제든 구독 해지 가능).",
-    "submit": "로그인 링크 보내기",
+    "newsletter": "네, SalzGuide의 새 스팟과 팁을 이메일로 받을게요. 언제든 수신을 해지할 수 있어요.",
+    "submit": "로그인 링크 받기",
     "googleCta": "Google로 계속하기",
     "or": "또는",
     "sending": "보내는 중 …",
     "preparing": "로봇 확인 중 … 🤖",
     "captchaUnavailable": "보안 확인이 지금 작동하지 않아요. 페이지를 새로고침해 주세요.",
     "captchaUnavailableGoogle": "보안 확인이 지금 작동하지 않아요. 위의 Google 로그인을 이용하거나 페이지를 새로고침해 주세요.",
-    "error": "문제가 발생했어요 – 이메일을 확인하고 다시 시도해 주세요.",
+    "error": "잘 안 됐어요. 다시 시도해 주세요.",
     "captchaError": "로봇이 아님을 확인하고 다시 시도해 주세요.",
-    "sentTitle": "메일함을 확인하세요!",
-    "sentBody": "로그인 링크를 보냈어요. 링크를 눌러 로그인하세요.",
+    "sentTitle": "메일함을 확인하세요",
+    "sentBody": "<mail>{email}</mail>로 링크를 보냈어요. 누르면 끝이에요.",
     "legalHint": "로그인하면 <terms>약관</terms> 및 <privacy>개인정보처리방침</privacy>에 동의하게 됩니다.",
     "profileTitle": "프로필",
     "loggedInAs": "로그인 계정",
     "proStatus": "SalzGuide Pro 사용 중",
     "freeStatus": "무료 계정",
     "free": "Free",
-    "logout": "로그아웃"
+    "logout": "로그아웃",
+    "reasonTitle": {
+      "default": "로그인",
+      "saveSpot": "스팟 저장",
+      "saveEvent": "이벤트 저장",
+      "buildTour": "나만의 코스 만들기",
+      "saved": "저장 목록",
+      "pro": "거의 다 됐어요"
+    },
+    "subtitleFree": "무료, 비밀번호 없이.",
+    "subtitlePaid": "이메일만 넣으면 결제로 넘어가요.",
+    "relaunchTitle": "예전부터 함께하셨나요?",
+    "relaunchBody": "이전 사이트의 Pro는 그대로 이어져요. 같은 이메일, 비밀번호는 없어요.",
+    "emailLabel": "이메일 주소",
+    "emailError": "이메일 주소가 올바르지 않은 것 같아요.",
+    "rateError": "시도가 너무 많아요. 몇 분 뒤에 다시 해보세요.",
+    "changeEmail": "주소 바꾸기"
   },
   "Pro": {
     "title": "SalzGuide",
@@ -379,7 +398,6 @@
     },
     "heroTitle": "잘츠부르크 전체를 잠금 해제",
     "heroSubtitle": "모든 숨은 명소, 모든 오디오 투어와 Toni를 무제한으로. 로컬이 직접 만든 – 관광지 키치 없이.",
-    "loginNudge": "이메일만 있으면 돼요: 로그인 링크를 보내드리고, 바로 결제로 이어져요.",
     "trustLocal": "잘츠부르크 로컬이 직접 만든 – 진짜 인사이더 팁.",
     "exploreCta": "둘러보기 시작"
   },
@@ -445,25 +463,6 @@
     "deOnly": "이 법적 텍스트는 독일어로만 제공되며, 법적으로는 독일어 버전이 유효합니다."
   },
   "LoginGate": {
-    "cta": "무료로 가입하기",
-    "hint": "이메일만 있으면 돼요. 비밀번호는 필요 없어요.",
-    "reason": {
-      "default": {
-        "title": "이 기능은 계정이 필요해요",
-        "body": "잠깐 로그인하면 여기서 바로 이어서 할 수 있어요."
-      },
-      "saveSpot": {
-        "title": "스팟 저장하기",
-        "body": "목록에 저장돼요. 진짜 가고 싶을 때 다시 찾을 수 있게요."
-      },
-      "saveEvent": {
-        "title": "이벤트 저장하기",
-        "body": "목록에 저장돼요. 날짜 놓치지 않게요."
-      },
-      "buildTour": {
-        "title": "나만의 코스 만들기",
-        "body": "페이지를 닫아도 코스가 남아 있게요. 이미 만들어진 코스는 계정 없이도 들을 수 있어요."
-      }
-    }
+    "cta": "무료로 가입하기"
   }
 }

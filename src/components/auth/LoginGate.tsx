@@ -4,6 +4,8 @@ import { createContext, useCallback, useContext, useState, type ReactNode } from
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import BottomSheet from "@/components/BottomSheet";
+import { LoginHeader } from "@/components/auth/LoginPanel";
+import type { LoginReason } from "@/components/auth/loginReasons";
 
 // Login-Gate: EIN Overlay für alle Aktionen, die ein Konto brauchen.
 //
@@ -16,23 +18,14 @@ import BottomSheet from "@/components/BottomSheet";
 // schon da. Ein eigenes Overlay müsste Drag, Spring, Scroll-Lock und Safe-Area erneut
 // bauen und wäre das vierte Overlay-System im Projekt.
 
-// Grund für die Sperre -> bestimmt Emoji und Text. "default" trägt jede Aktion, für die
-// es (noch) keinen eigenen Text gibt: Neue Login-pflichtige Stellen funktionieren damit
+// Grund für die Sperre -> bestimmt Emoji und Überschrift. "default" trägt jede Aktion, für
+// die es (noch) keinen eigenen Text gibt: Neue Login-pflichtige Stellen funktionieren damit
 // SOFORT, ohne dass neun Sprachdateien angefasst werden müssen.
-export type LoginReason = "default" | "saveSpot" | "saveEvent" | "buildTour";
-
-// Emoji gehört in den Code, nicht in messages/*.json: sprachneutral, sonst 9x pflegen.
 //
-// Bewusst die Emojis, die die App für DIESE Inhalte ohnehin schon nutzt: 📍 als
-// Spot-Platzhalter (SpotCard, LockedMedia), 📅 für Events (EventCard), 🎧 für
-// Audio-Runden (touren/bauen). Das Emoji zeigt also, worum es GEHT – der Titel sagt,
-// was passiert. Ein Lesezeichen-Symbol hätte stattdessen die Mechanik beschrieben.
-const EMOJI: Record<LoginReason, string> = {
-  default: "👋",
-  saveSpot: "📍",
-  saveEvent: "📅",
-  buildTour: "🎧",
-};
+// Die Liste selbst steht in loginReasons.ts, weil sie sich der Login-Screen mit dem Gate
+// TEILT: Wer hier "Spot merken" liest und weitertippt, liest auf der Loginseite dieselbe
+// Überschrift mit demselben Emoji. Ein Weg, nicht zwei Seiten, die dasselbe fragen.
+export type { LoginReason };
 
 // Alles, was ein Aufrufer optional mitgeben kann.
 type GateOptions = {
@@ -117,7 +110,12 @@ function LoginGateSheet({
         ? window.location.pathname + window.location.search
         : `/${locale}`);
     onClose();
-    router.push(`/profil?next=${encodeURIComponent(back)}`);
+    // `for` nimmt den Anlass mit auf die Loginseite. Ohne ihn stand dort wieder das
+    // allgemeine "Anmelden", und der eben gelesene Satz "Spot merken" war weg — es sah
+    // aus, als hätte man die Spur verloren. Fremde Werte fängt safeLoginReason() ab.
+    router.push(
+      `/profil?next=${encodeURIComponent(back)}&for=${encodeURIComponent(reason)}`,
+    );
   }
 
   return (
@@ -129,28 +127,21 @@ function LoginGateSheet({
     // layer="elevated": Das Gate kann über einem anderen Sheet liegen (Merken IM
     // KI-Chat). Ohne das teilen sich beide z-[70], der Backdrop bliebe darunter und zwei
     // cremefarbene Flächen lägen ununterscheidbar aufeinander.
-    <BottomSheet open={state != null} onClose={onClose} detents={[0.44]} layer="elevated">
-      <div className="mx-auto flex max-w-[22rem] flex-col items-center px-2 pb-2 text-center">
-        <span
-          className="grid h-16 w-16 place-items-center rounded-full bg-accent/10 text-[30px]"
-          aria-hidden
-        >
-          {EMOJI[reason]}
-        </span>
-        <h2 className="mt-4 text-[20px] font-bold leading-tight text-ink">
-          {t(`reason.${reason}.title`)}
-        </h2>
-        <p className="mt-2 text-[15px] leading-relaxed text-muted">
-          {t(`reason.${reason}.body`)}
-        </p>
+    <BottomSheet open={state != null} onClose={onClose} detents={[0.4]} layer="elevated">
+      {/* Derselbe Kopf wie auf der Loginseite (Zeichen, Überschrift, EIN Satz). Darunter nur
+          der Knopf – hier ist nichts zu erklären, was das Formular nicht selbst sagt.
+          Der frühere Erklärsatz ("Landet in deiner Liste, damit du ihn wiederfindest …")
+          ist weg: Wer gerade auf das Lesezeichen getippt hat, weiss, was ein Lesezeichen
+          tut. Das Sheet muss nur noch sagen, dass es dafür ein Konto braucht. */}
+      <div className="mx-auto flex max-w-[22rem] flex-col px-2 pb-2">
+        <LoginHeader reason={reason} />
         <button
           type="button"
           onClick={goLogin}
-          className="mt-6 w-full rounded-full bg-accent px-5 py-4 text-[16px] font-semibold text-white transition active:scale-[0.98]"
+          className="mt-7 w-full rounded-full bg-accent px-5 py-4 text-[16px] font-semibold text-white shadow-[0_10px_24px_-10px_rgba(204,41,36,0.55)] transition active:scale-[0.98]"
         >
           {t("cta")}
         </button>
-        <p className="mt-3 text-[13px] text-muted">{t("hint")}</p>
       </div>
     </BottomSheet>
   );

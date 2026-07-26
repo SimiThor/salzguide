@@ -44,51 +44,65 @@ export default async function DatenschutzPage({
       <p>
         Für Registrierung und Anmeldung verarbeiten wir deine E-Mail-Adresse. Die Anmeldung erfolgt
         passwortlos per Magic-Link oder über „Anmelden mit Google“. Bei Google-Login erhalten wir
-        von Google deine E-Mail-Adresse und die Bestätigung, dass sie verifiziert ist. Optional
-        speichern wir deine Einwilligung zum Newsletter samt Zeitpunkt. Die Angabe der E-Mail-Adresse
-        ist für Registrierung, Login und Kauf erforderlich; ohne sie können diese Funktionen nicht
-        bereitgestellt werden. Deine Newsletter-Einwilligung kannst du jederzeit über den Abmeldelink
-        in jeder E-Mail oder in deinem Profil widerrufen.
+        von Google deine E-Mail-Adresse und die Bestätigung, dass sie verifiziert ist. Die Angabe
+        der E-Mail-Adresse ist für Registrierung, Login und Kauf erforderlich; ohne sie können diese
+        Funktionen nicht bereitgestellt werden.
       </p>
-      <h3>b) Nutzung der App</h3>
+      <h3>b) Newsletter</h3>
+      {/* Muss beschreiben, was der Code WIRKLICH tut (Art. 13 DSGVO). Seit dem Umbau des
+          Logins ist das ein Double-Opt-in: Das Häkchen im Formular reist nur als Merker am
+          Bestätigungslink mit, gespeichert wird die Einwilligung erst im Auth-Callback,
+          also nachdem der Link im betreffenden Postfach geöffnet wurde. Wer eine fremde
+          Adresse einträgt, erzeugt damit keine Einwilligung. Siehe profil/actions.ts und
+          auth/callback/route.ts. */}
+      <p>
+        Der Newsletter ist freiwillig und vom Konto unabhängig: Du kannst dich anmelden, ohne ihn zu
+        abonnieren, und du bekommst ohne dein Häkchen keine Werbung von uns. Setzt du das Häkchen
+        beim Anmelden, speichern wir deine Einwilligung erst, wenn du den Link in der E-Mail an
+        diese Adresse geöffnet hast (Double-Opt-in) &ndash; zusammen mit dem Zeitpunkt, damit wir die
+        Einwilligung nachweisen können. Widerrufen kannst du jederzeit mit Wirkung für die Zukunft,
+        über den Abmeldelink in jeder E-Mail oder in deinem Profil unter „Daten &amp; Einwilligungen“.
+        Der Widerruf ist genauso einfach wie die Erteilung und kostet dich nichts.
+      </p>
+      <h3>c) Nutzung der App</h3>
       <p>
         Gespeicherte Spots/Events, selbst erstellte Touren und ähnliche Einstellungen werden deinem
         Konto zugeordnet, damit sie dir geräteübergreifend zur Verfügung stehen.
       </p>
-      <h3>c) KI-Assistent „Toni“</h3>
+      <h3>d) KI-Assistent „Toni“</h3>
       <p>
         Stellst du dem KI-Assistenten Fragen, wird dein Text zur Beantwortung an unseren
         KI-Dienstleister (Anthropic) übermittelt. Bitte gib dort keine sensiblen personenbezogenen
         Daten ein. Zur Verbesserung des Angebots speichern wir ausschließlich anonyme Auswertungen
         (z. B. Themen-Kategorien) ohne Bezug zu deiner Person, deinem Konto oder deiner IP.
       </p>
-      <h3>d) Kauf von SalzGuide Pro</h3>
+      <h3>e) Kauf von SalzGuide Pro</h3>
       <p>
         Die Zahlung wickelt unser Zahlungsdienstleister Stripe ab. Zahlungsdaten (z. B.
         Kartendaten) werden ausschließlich von Stripe verarbeitet und erreichen unsere Server nicht.
         Wir speichern deinen Pro-Status, den Zeitpunkt und eine Stripe-Kundenkennung, um die
         Freischaltung deinem Konto zuzuordnen.
       </p>
-      <h3>e) Bot-Schutz am Login</h3>
+      <h3>f) Bot-Schutz am Login</h3>
       <p>
         Zum Schutz vor automatisiertem Missbrauch (Bots, Massen-Mailversand) setzen wir Cloudflare
         Turnstile ein. Dabei werden technische Signale deines Browsers sowie deine IP-Adresse durch
         Cloudflare verarbeitet, um „Mensch oder Bot“ zu unterscheiden.
       </p>
-      <h3>f) Server-Logs &amp; Sicherheit</h3>
+      <h3>g) Server-Logs &amp; Sicherheit</h3>
       <p>
         Beim Aufruf fallen technisch notwendige Verbindungsdaten an (z. B. gekürzte/verarbeitete
         IP-Adresse, Zeitpunkt, aufgerufene Ressource), die der Auslieferung, Stabilität und
         Missbrauchsabwehr dienen.
       </p>
-      <h3>g) Reichweitenmessung (cookielos)</h3>
+      <h3>h) Reichweitenmessung (cookielos)</h3>
       <p>
         Wir messen die Nutzung datenschonend, <strong>ohne Cookies</strong> und ohne dich
         wiederzuerkennen. IP-Adressen werden nie gespeichert, sondern nur über einen täglich
         wechselnden Zufallswert kurzzeitig gehasht (danach anonym). Es entsteht kein Personenbezug;
         ein Cookie-Banner ist dafür nicht erforderlich (§ 165 TKG).
       </p>
-      <h3>h) Cookies</h3>
+      <h3>i) Cookies</h3>
       <p>
         Wir verwenden ausschließlich <strong>technisch notwendige Cookies</strong>, die für
         Anmeldung und Sitzung erforderlich sind (insbesondere das Login-/Session-Cookie von Supabase
@@ -96,7 +110,7 @@ export default async function DatenschutzPage({
         Einwilligung ist dafür nicht nötig (§ 165 Abs. 3 TKG). Marketing- oder Tracking-Cookies
         setzen wir nicht.
       </p>
-      <h3>i) Online-Widerruf</h3>
+      <h3>j) Online-Widerruf</h3>
       <p>
         Nutzt du das Online-Widerrufsformular, verarbeiten wir die angegebenen Daten (Name,
         E-Mail-Adresse, Vertrags-/Bestellkennung, ggf. Anschrift) zur Bearbeitung deines Widerrufs

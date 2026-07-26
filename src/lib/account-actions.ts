@@ -75,9 +75,20 @@ export async function setNewsletter(
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "auth" };
 
+  // Der Zeitstempel MUSS mitgeführt werden. Art. 7 Abs. 1 DSGVO verlangt, dass wir eine
+  // Einwilligung nachweisen können, und „ja" ohne „seit wann" ist kein Nachweis. Vorher
+  // schrieb dieser Schalter nur das Ja/Nein: Wer sich hier eintrug, stand danach mit
+  // newsletter_opt_in = true und newsletter_opt_in_at = null in der Tabelle — genau die
+  // Zeile, die im Streitfall nichts belegt.
+  //
+  // Beim Widerruf zurück auf null: Der Zeitpunkt gehört zu einer BESTEHENDEN Einwilligung.
+  // Bleibt er stehen, sieht ein Widerruf später aus wie eine gültige Zustimmung von damals.
   const { error } = await supabase
     .from("profiles")
-    .update({ newsletter_opt_in: optIn })
+    .update({
+      newsletter_opt_in: optIn,
+      newsletter_opt_in_at: optIn ? new Date().toISOString() : null,
+    })
     .eq("id", user.id);
   if (error) return { ok: false, error: error.message };
   return { ok: true };

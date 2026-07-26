@@ -4,7 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { getProPrice, formatProPrice } from "@/lib/pro";
 import { googleLoginEnabled } from "@/lib/auth-providers";
 import { getRelaunchNotice } from "@/lib/settings";
-import LoginForm from "@/components/LoginForm";
+import LoginPanel from "@/components/auth/LoginPanel";
+import { safeLoginReason } from "@/components/auth/loginReasons";
 import ProUpgrade from "@/components/ProUpgrade";
 import ProBadge from "@/components/ProBadge";
 import { signOut } from "./actions";
@@ -19,10 +20,19 @@ export default async function ProfilPage({
   // damit der Nutzer nach der Anmeldung dort landet, wo er unterbrochen wurde – statt
   // im Profil zu stranden. Ungeprüft durchreichen ist sicher: safeNext() in actions.ts
   // lässt serverseitig nur eigene relative Pfade zu.
-  searchParams: Promise<{ checkout?: string; auth_error?: string; next?: string }>;
+  // `for`: der Anlass, aus dem jemand hier gelandet ist (vom Login-Gate mitgegeben).
+  // Bestimmt Emoji und Überschrift, damit der Login den eben gelesenen Satz fortsetzt
+  // statt neu anzufangen. Ungeprüft durchreichen wäre falsch — safeLoginReason() nagelt
+  // den Wert auf die bekannte Liste fest (er wird als Übersetzungs-Schlüssel benutzt).
+  searchParams: Promise<{
+    checkout?: string;
+    auth_error?: string;
+    next?: string;
+    for?: string;
+  }>;
 }) {
   const { locale } = await params;
-  const { checkout, auth_error, next } = await searchParams;
+  const { checkout, auth_error, next, for: reasonParam } = await searchParams;
   setRequestLocale(locale);
   const t = await getTranslations("Auth");
   const tA = await getTranslations("Account");
@@ -33,15 +43,16 @@ export default async function ProfilPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Ausgeloggt -> Login/Join
+  // Ausgeloggt -> Login. Der Kopf (Emoji, Überschrift, ein Satz) gehört zum Login-Screen
+  // selbst, damit er auf allen vier Flächen gleich aussieht. Schmaler als das Profil
+  // darunter (380 statt 440): Ein Formular mit einem Feld darf nicht über die halbe
+  // Seite laufen, sonst wirkt es wie ein Antrag.
   if (!user) {
     return (
-      <div className="mx-auto w-full max-w-[440px] px-4 pt-[calc(env(safe-area-inset-top)+4.5rem)] md:pt-6">
-        <h1 className="text-2xl font-bold text-ink">{t("joinTitle")}</h1>
-        <p className="mt-1.5 mb-5 text-[15px] leading-relaxed text-muted">
-          {t("joinSubtitle")}
-        </p>
-        <LoginForm
+      <div className="mx-auto w-full max-w-[380px] px-5 pt-[calc(env(safe-area-inset-top)+5rem)] pb-10 md:pt-10">
+        <LoginPanel
+          reason={safeLoginReason(reasonParam)}
+          titleAs="h1"
           next={next}
           authError={auth_error === "1"}
           googleEnabled={await googleLoginEnabled()}

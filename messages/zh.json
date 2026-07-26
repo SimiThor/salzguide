@@ -209,8 +209,15 @@
     },
     "save": "收藏",
     "back": "返回地图",
-    "weather": { "title": "天气", "today": "今天" },
-    "water": { "title": "水温", "asOf": "更新于 {date}", "source": "来源" },
+    "weather": {
+      "title": "天气",
+      "today": "今天"
+    },
+    "water": {
+      "title": "水温",
+      "asOf": "更新于 {date}",
+      "source": "来源"
+    },
     "opening": {
       "title": "营业时间",
       "open": "营业中",
@@ -311,7 +318,6 @@
   },
   "Saved": {
     "title": "收藏",
-    "loginNeeded": "登录后即可查看你收藏的地点和活动。",
     "empty": "还没有收藏。点按地点或活动上的书签，把它们收集到这里。",
     "eventsTitle": "活动",
     "spotsTitle": "地点",
@@ -319,11 +325,8 @@
     "discover": "去发现"
   },
   "Auth": {
-    "relaunchNotice": "✨ 全新的 SalzGuide 来了。你在旧网站的 Pro 继续有效：用同一个邮箱就行，不用密码。",
-    "joinTitle": "登录或创建账号",
-    "joinSubtitle": "用你的邮箱——无需密码。收藏你喜欢的地点，规划你的旅程。",
     "emailPlaceholder": "you@email.com",
-    "newsletter": "偶尔给我发些贴士、新地点和更新（可随时退订）。",
+    "newsletter": "好，用邮件给我发 SalzGuide 的新地点和小贴士。随时可以退订。",
     "submit": "发送登录链接",
     "googleCta": "使用 Google 继续",
     "or": "或",
@@ -331,17 +334,33 @@
     "preparing": "机器人检测……🤖",
     "captchaUnavailable": "安全检测暂时无法使用。请刷新页面。",
     "captchaUnavailableGoogle": "安全检测暂时无法使用。请使用上方的 Google 登录，或刷新页面。",
-    "error": "出错了——请检查你的邮箱后再试一次。",
+    "error": "没成功。请再试一次。",
     "captchaError": "请先确认你不是机器人，然后再试一次。",
-    "sentTitle": "查收你的邮箱！",
-    "sentBody": "我们已给你发送了登录链接。点一下即可登录。",
+    "sentTitle": "去邮箱看看",
+    "sentBody": "我们把链接发到了 <mail>{email}</mail>。点一下就进去了。",
     "legalHint": "登录即表示你同意<terms>条款</terms>和<privacy>隐私政策</privacy>。",
     "profileTitle": "我的",
     "loggedInAs": "已登录为",
     "proStatus": "SalzGuide Pro 已激活",
     "freeStatus": "免费账号",
     "free": "免费",
-    "logout": "退出登录"
+    "logout": "退出登录",
+    "reasonTitle": {
+      "default": "登录",
+      "saveSpot": "收藏这个地点",
+      "saveEvent": "收藏这个活动",
+      "buildTour": "定制你的路线",
+      "saved": "你的收藏",
+      "pro": "就快好了"
+    },
+    "subtitleFree": "免费，无需密码。",
+    "subtitlePaid": "只要邮箱，接着就是付款。",
+    "relaunchTitle": "早就在用了？",
+    "relaunchBody": "你在旧网站的 Pro 继续有效。同一个邮箱，不用密码。",
+    "emailLabel": "邮箱地址",
+    "emailError": "这个邮箱地址好像不对。",
+    "rateError": "尝试次数太多了。过几分钟再试。",
+    "changeEmail": "换个邮箱"
   },
   "Pro": {
     "title": "SalzGuide",
@@ -379,7 +398,6 @@
     },
     "heroTitle": "解锁整个萨尔茨堡州",
     "heroSubtitle": "所有隐藏宝藏、全部语音导览，以及无限畅聊的 Toni。本地人打造——绝无游客俗套。",
-    "loginNudge": "只需你的邮箱：我们给你发一个登录链接，然后直接进入付款。",
     "trustLocal": "由萨尔茨堡本地人打造——真正的内行推荐。",
     "exploreCta": "开始探索"
   },
@@ -445,25 +463,6 @@
     "deOnly": "这些法律文本仅提供德语版本；具有法律约束力的是德语版本。"
   },
   "LoginGate": {
-    "cta": "免费注册",
-    "hint": "用邮箱就行，不需要密码。",
-    "reason": {
-      "default": {
-        "title": "这个功能需要账号",
-        "body": "快速登录一下，然后就能接着来。"
-      },
-      "saveSpot": {
-        "title": "收藏地点",
-        "body": "直接进你的清单，等你真想去的时候还找得到。"
-      },
-      "saveEvent": {
-        "title": "收藏活动",
-        "body": "直接进你的清单，别把日子给忘了。"
-      },
-      "buildTour": {
-        "title": "定制自己的路线",
-        "body": "关掉页面后你的路线还在。现成的路线不用账号也能听。"
-      }
-    }
+    "cta": "免费注册"
   }
 }

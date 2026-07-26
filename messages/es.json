@@ -209,8 +209,15 @@
     },
     "save": "Guardar",
     "back": "Volver al mapa",
-    "weather": { "title": "Tiempo", "today": "Hoy" },
-    "water": { "title": "Temperatura del agua", "asOf": "Actualizado {date}", "source": "Fuente" },
+    "weather": {
+      "title": "Tiempo",
+      "today": "Hoy"
+    },
+    "water": {
+      "title": "Temperatura del agua",
+      "asOf": "Actualizado {date}",
+      "source": "Fuente"
+    },
     "opening": {
       "title": "Horario",
       "open": "Abierto",
@@ -311,7 +318,6 @@
   },
   "Saved": {
     "title": "Guardados",
-    "loginNeeded": "Inicia sesión para ver tus lugares y eventos guardados.",
     "empty": "Aún no has guardado nada. Toca el marcador en lugares o eventos para reunirlos aquí.",
     "eventsTitle": "Eventos",
     "spotsTitle": "Lugares",
@@ -319,11 +325,8 @@
     "discover": "Explorar"
   },
   "Auth": {
-    "relaunchNotice": "✨ El nuevo SalzGuide ya está aquí. Tu Pro de la web anterior sigue activo: mismo correo, sin contraseña.",
-    "joinTitle": "Inicia sesión o crea una cuenta",
-    "joinSubtitle": "Con tu correo, sin contraseña. Guarda tus lugares favoritos y planifica tus viajes.",
     "emailPlaceholder": "tu@email.com",
-    "newsletter": "Envíame de vez en cuando consejos, lugares nuevos y novedades por correo (puedes darte de baja cuando quieras).",
+    "newsletter": "Sí, mándame nuevos lugares y consejos de SalzGuide por correo. Puedes darte de baja cuando quieras.",
     "submit": "Enviar enlace de acceso",
     "googleCta": "Continuar con Google",
     "or": "o",
@@ -331,17 +334,33 @@
     "preparing": "Comprobando que no eres un robot … 🤖",
     "captchaUnavailable": "La verificación de seguridad no funciona ahora mismo. Recarga la página.",
     "captchaUnavailableGoogle": "La verificación de seguridad no funciona ahora mismo. Usa el acceso con Google de arriba o recarga la página.",
-    "error": "Algo salió mal. Revisa tu correo e inténtalo de nuevo.",
+    "error": "No ha funcionado. Inténtalo otra vez.",
     "captchaError": "Confirma que no eres un robot e inténtalo de nuevo.",
-    "sentTitle": "¡Revisa tu bandeja de entrada!",
-    "sentBody": "Te hemos enviado un enlace de acceso. Tócalo para iniciar sesión.",
+    "sentTitle": "Revisa tu bandeja de entrada",
+    "sentBody": "Te enviamos un enlace a <mail>{email}</mail>. Tócalo y listo.",
     "legalHint": "Al iniciar sesión aceptas los <terms>Términos</terms> y la <privacy>Política de privacidad</privacy>.",
     "profileTitle": "Perfil",
     "loggedInAs": "Sesión iniciada como",
     "proStatus": "SalzGuide Pro está activo",
     "freeStatus": "Cuenta gratuita",
     "free": "Free",
-    "logout": "Cerrar sesión"
+    "logout": "Cerrar sesión",
+    "reasonTitle": {
+      "default": "Iniciar sesión",
+      "saveSpot": "Guardar el lugar",
+      "saveEvent": "Guardar el evento",
+      "buildTour": "Crea tu propia ruta",
+      "saved": "Tu lista",
+      "pro": "Ya casi"
+    },
+    "subtitleFree": "Gratis, sin contraseña.",
+    "subtitlePaid": "Solo tu correo y pasamos al pago.",
+    "relaunchTitle": "¿Ya nos conocías?",
+    "relaunchBody": "Tu Pro de la web anterior sigue activo. Mismo correo, sin contraseña.",
+    "emailLabel": "Correo electrónico",
+    "emailError": "Ese correo no parece correcto.",
+    "rateError": "Demasiados intentos. Inténtalo de nuevo en unos minutos.",
+    "changeEmail": "Cambiar correo"
   },
   "Pro": {
     "title": "SalzGuide",
@@ -379,7 +398,6 @@
     },
     "heroTitle": "Toda la región de Salzburgo desbloqueada",
     "heroSubtitle": "Todos los lugares secretos, todas las audioguías y Toni sin límites. Hecho por locales, sin postales para turistas.",
-    "loginNudge": "Solo tu correo: te enviamos un enlace de acceso y luego pasas directo al pago.",
     "trustLocal": "Hecho por salzburgueses: consejos de insider de verdad.",
     "exploreCta": "Explorar ahora"
   },
@@ -445,25 +463,6 @@
     "deOnly": "Estos textos legales solo están disponibles en alemán; la versión alemana es la jurídicamente vinculante."
   },
   "LoginGate": {
-    "cta": "Regístrate gratis",
-    "hint": "Con tu correo, sin contraseña.",
-    "reason": {
-      "default": {
-        "title": "Para esto necesitas una cuenta",
-        "body": "Inicia sesión rápido y sigues justo aquí."
-      },
-      "saveSpot": {
-        "title": "Guardar el spot",
-        "body": "Va directo a tu lista – para encontrarlo cuando de verdad quieras ir."
-      },
-      "saveEvent": {
-        "title": "Guardar el evento",
-        "body": "Va directo a tu lista – para que no se te pase la fecha."
-      },
-      "buildTour": {
-        "title": "Crea tu propia ruta",
-        "body": "Para que tu ruta siga ahí al cerrar la pestaña. Las rutas ya hechas funcionan sin cuenta."
-      }
-    }
+    "cta": "Regístrate gratis"
   }
 }

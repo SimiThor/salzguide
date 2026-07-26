@@ -209,8 +209,15 @@
     },
     "save": "Guardar",
     "back": "Voltar ao mapa",
-    "weather": { "title": "Tempo", "today": "Hoje" },
-    "water": { "title": "Temperatura da água", "asOf": "Atualizado a {date}", "source": "Fonte" },
+    "weather": {
+      "title": "Tempo",
+      "today": "Hoje"
+    },
+    "water": {
+      "title": "Temperatura da água",
+      "asOf": "Atualizado a {date}",
+      "source": "Fonte"
+    },
     "opening": {
       "title": "Horário",
       "open": "Aberto",
@@ -311,7 +318,6 @@
   },
   "Saved": {
     "title": "Guardados",
-    "loginNeeded": "Inicia sessão para veres os teus spots e eventos guardados.",
     "empty": "Ainda nada guardado. Toca no marcador em spots ou eventos para os reunires aqui.",
     "eventsTitle": "Eventos",
     "spotsTitle": "Spots",
@@ -319,11 +325,8 @@
     "discover": "Descobrir"
   },
   "Auth": {
-    "relaunchNotice": "✨ O novo SalzGuide chegou. O teu Pro do site antigo continua: mesmo e-mail, sem palavra-passe.",
-    "joinTitle": "Inicia sessão ou cria conta",
-    "joinSubtitle": "Com o teu email – sem palavra-passe. Guarda os teus spots favoritos e planeia as tuas viagens.",
     "emailPlaceholder": "tu@email.com",
-    "newsletter": "Envia-me de vez em quando dicas, novos spots e novidades por email (cancela quando quiseres).",
+    "newsletter": "Sim, envia-me novos spots e dicas do SalzGuide por email. Podes cancelar quando quiseres.",
     "submit": "Enviar link de acesso",
     "googleCta": "Continuar com o Google",
     "or": "ou",
@@ -331,17 +334,33 @@
     "preparing": "Verificação anti-robô … 🤖",
     "captchaUnavailable": "A verificação de segurança não está a funcionar. Recarrega a página.",
     "captchaUnavailableGoogle": "A verificação de segurança não está a funcionar. Usa o Google acima ou recarrega a página.",
-    "error": "Algo correu mal – verifica o email e tenta outra vez.",
+    "error": "Não resultou. Tenta outra vez.",
     "captchaError": "Confirma que não és um robô e tenta outra vez.",
-    "sentTitle": "Vê a tua caixa de entrada!",
-    "sentBody": "Enviámos-te um link de acesso. Toca nele para iniciar sessão.",
+    "sentTitle": "Vê a tua caixa de entrada",
+    "sentBody": "Enviámos um link para <mail>{email}</mail>. Toca nele e pronto.",
     "legalHint": "Ao iniciar sessão, aceitas os <terms>Termos</terms> e a <privacy>Política de Privacidade</privacy>.",
     "profileTitle": "Perfil",
     "loggedInAs": "Sessão iniciada como",
     "proStatus": "O SalzGuide Pro está ativo",
     "freeStatus": "Conta gratuita",
     "free": "Free",
-    "logout": "Terminar sessão"
+    "logout": "Terminar sessão",
+    "reasonTitle": {
+      "default": "Iniciar sessão",
+      "saveSpot": "Guardar o spot",
+      "saveEvent": "Guardar o evento",
+      "buildTour": "Criar o teu roteiro",
+      "saved": "A tua lista",
+      "pro": "Quase lá"
+    },
+    "subtitleFree": "Grátis, sem palavra-passe.",
+    "subtitlePaid": "Só o teu email, depois segue o pagamento.",
+    "relaunchTitle": "Já estavas connosco?",
+    "relaunchBody": "O teu Pro do site antigo continua. Mesmo email, sem palavra-passe.",
+    "emailLabel": "Endereço de email",
+    "emailError": "Este email não parece correto.",
+    "rateError": "Demasiadas tentativas. Tenta de novo daqui a uns minutos.",
+    "changeEmail": "Mudar endereço"
   },
   "Pro": {
     "title": "SalzGuide",
@@ -379,7 +398,6 @@
     },
     "heroTitle": "Toda a região de Salzburg desbloqueada",
     "heroSubtitle": "Todas as dicas secretas, todos os áudio-tours e o Toni sem limites. Feito por locais – sem kitsch turístico.",
-    "loginNudge": "Só o teu email: enviamos-te um link de acesso e depois vais direto para o pagamento.",
     "trustLocal": "Feito por gente de Salzburg – dicas de insider a sério.",
     "exploreCta": "Começar a explorar"
   },
@@ -445,25 +463,6 @@
     "deOnly": "Estes textos legais só estão disponíveis em alemão; a versão alemã é a juridicamente vinculativa."
   },
   "LoginGate": {
-    "cta": "Criar conta grátis",
-    "hint": "Com o teu e-mail, sem palavra-passe.",
-    "reason": {
-      "default": {
-        "title": "Para isto precisas de uma conta",
-        "body": "Entra rapidinho e continuas aqui mesmo."
-      },
-      "saveSpot": {
-        "title": "Guardar o spot",
-        "body": "Vai direto para a tua lista – para o encontrares quando quiseres mesmo ir."
-      },
-      "saveEvent": {
-        "title": "Guardar o evento",
-        "body": "Vai direto para a tua lista – para não te escapar a data."
-      },
-      "buildTour": {
-        "title": "Cria a tua volta",
-        "body": "Para a tua volta continuar lá depois de fechares a página. As voltas já feitas funcionam sem conta."
-      }
-    }
+    "cta": "Criar conta grátis"
   }
 }

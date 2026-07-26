@@ -30,8 +30,33 @@ export async function GET(
 
   if (code) {
     const supabase = await createClient();
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
+      // Newsletter-Einwilligung einlösen (`nl=1` hat der Login an diesen Link gehängt).
+      //
+      // WARUM ERST HIER: Das Häkchen im Formular ist eine Behauptung („mir gehört diese
+      // Adresse"), der Klick auf den Link in DIESEM Postfach ist der Beweis. Erst beide
+      // zusammen ergeben eine nachweisbare Einwilligung (Art. 7 Abs. 1 DSGVO, § 174 TKG).
+      // Wer eine fremde Adresse einträgt, kommt hier nie an — genau das ist der Sinn.
+      //
+      // Nur von „nein" auf „ja": Das `.eq("newsletter_opt_in", false)` ist die halbe Miete.
+      // Ohne das überschriebe jeder spätere Login den Zeitpunkt der Einwilligung, und der
+      // Nachweis „seit wann" wäre wertlos.
+      //
+      // Ein Fehler hier darf den Login NICHT aufhalten: Wer sich anmeldet, kommt herein,
+      // auch wenn das Häkchen verloren geht. Deshalb try/catch ohne Konsequenz.
+      if (searchParams.get("nl") === "1" && data?.user) {
+        try {
+          await supabase
+            .from("profiles")
+            .update({ newsletter_opt_in: true, newsletter_opt_in_at: new Date().toISOString() })
+            .eq("id", data.user.id)
+            .eq("newsletter_opt_in", false);
+        } catch (e) {
+          console.error("newsletter opt-in:", e instanceof Error ? e.message : e);
+        }
+      }
+
       // Der Login bringt den Menschen nur noch dorthin, wo er hinwollte.
       //
       // Die einmalige Begrüssung "dein Pro ist da" hing bis 0044 hier: Wer als Alt-Käufer

@@ -209,8 +209,15 @@
     },
     "save": "Salva",
     "back": "Torna alla mappa",
-    "weather": { "title": "Meteo", "today": "Oggi" },
-    "water": { "title": "Temperatura dell'acqua", "asOf": "Aggiornato al {date}", "source": "Fonte" },
+    "weather": {
+      "title": "Meteo",
+      "today": "Oggi"
+    },
+    "water": {
+      "title": "Temperatura dell'acqua",
+      "asOf": "Aggiornato al {date}",
+      "source": "Fonte"
+    },
     "opening": {
       "title": "Orari",
       "open": "Aperto",
@@ -311,7 +318,6 @@
   },
   "Saved": {
     "title": "Salvati",
-    "loginNeeded": "Accedi per vedere i tuoi spot ed eventi salvati.",
     "empty": "Ancora niente di salvato. Tocca il segnalibro su spot o eventi per raccoglierli qui.",
     "eventsTitle": "Eventi",
     "spotsTitle": "Spot",
@@ -319,11 +325,8 @@
     "discover": "Scopri"
   },
   "Auth": {
-    "relaunchNotice": "✨ Il nuovo SalzGuide è qui. Il tuo Pro dal vecchio sito continua: stessa e-mail, senza password.",
-    "joinTitle": "Accedi o crea un account",
-    "joinSubtitle": "Con la tua email – senza password. Salva i tuoi spot preferiti e pianifica i tuoi viaggi.",
     "emailPlaceholder": "tua@email.it",
-    "newsletter": "Mandami ogni tanto consigli, nuovi spot e novità via email (puoi disiscriverti quando vuoi).",
+    "newsletter": "Sì, mandami nuovi spot e consigli di SalzGuide via email. Puoi disiscriverti quando vuoi.",
     "submit": "Invia il link di accesso",
     "googleCta": "Continua con Google",
     "or": "oppure",
@@ -331,17 +334,33 @@
     "preparing": "Controllo anti-robot … 🤖",
     "captchaUnavailable": "Il controllo di sicurezza ora non funziona. Ricarica la pagina.",
     "captchaUnavailableGoogle": "Il controllo di sicurezza ora non funziona. Usa Google qui sopra o ricarica la pagina.",
-    "error": "Qualcosa è andato storto – controlla l'email e riprova.",
+    "error": "Non ha funzionato. Riprova.",
     "captchaError": "Conferma di non essere un robot e riprova.",
-    "sentTitle": "Controlla la tua casella!",
-    "sentBody": "Ti abbiamo mandato un link di accesso. Toccalo per entrare.",
+    "sentTitle": "Controlla la tua casella",
+    "sentBody": "Ti abbiamo mandato un link a <mail>{email}</mail>. Toccalo e sei dentro.",
     "legalHint": "Accedendo accetti i <terms>Termini</terms> e l’<privacy>Informativa sulla privacy</privacy>.",
     "profileTitle": "Profilo",
     "loggedInAs": "Connesso come",
     "proStatus": "SalzGuide Pro è attivo",
     "freeStatus": "Account gratuito",
     "free": "Free",
-    "logout": "Esci"
+    "logout": "Esci",
+    "reasonTitle": {
+      "default": "Accedi",
+      "saveSpot": "Salva lo spot",
+      "saveEvent": "Salva l’evento",
+      "buildTour": "Crea il tuo giro",
+      "saved": "La tua lista",
+      "pro": "Ci siamo quasi"
+    },
+    "subtitleFree": "Gratis, senza password.",
+    "subtitlePaid": "Solo la tua email, poi si passa al pagamento.",
+    "relaunchTitle": "Ci conosci già?",
+    "relaunchBody": "Il tuo Pro del vecchio sito resta attivo. Stessa email, niente password.",
+    "emailLabel": "Indirizzo email",
+    "emailError": "Questa email non sembra corretta.",
+    "rateError": "Troppi tentativi. Riprova tra qualche minuto.",
+    "changeEmail": "Cambia indirizzo"
   },
   "Pro": {
     "title": "SalzGuide",
@@ -379,7 +398,6 @@
     },
     "heroTitle": "Tutta Salisburgo sbloccata",
     "heroSubtitle": "Ogni chicca nascosta, tutti gli audio-tour e Toni senza limiti. Fatto dai local – niente kitsch da turisti.",
-    "loginNudge": "Basta la tua email: ti mandiamo un link di accesso, poi vai dritto al pagamento.",
     "trustLocal": "Fatto dai local a Salisburgo – veri consigli da insider.",
     "exploreCta": "Inizia a esplorare"
   },
@@ -445,25 +463,6 @@
     "deOnly": "Questi testi legali sono disponibili solo in tedesco; la versione tedesca è quella giuridicamente vincolante."
   },
   "LoginGate": {
-    "cta": "Iscriviti gratis",
-    "hint": "Con la tua e-mail, senza password.",
-    "reason": {
-      "default": {
-        "title": "Per questo ti serve un account",
-        "body": "Accedi un attimo, poi riprendi da qui."
-      },
-      "saveSpot": {
-        "title": "Salva lo spot",
-        "body": "Finisce nella tua lista – così lo ritrovi quando vorrai andarci davvero."
-      },
-      "saveEvent": {
-        "title": "Salva l'evento",
-        "body": "Finisce nella tua lista – così non ti scordi la data."
-      },
-      "buildTour": {
-        "title": "Crea il tuo giro",
-        "body": "Così il tuo giro c'è ancora dopo che chiudi la pagina. I giri già pronti li ascolti anche senza."
-      }
-    }
+    "cta": "Iscriviti gratis"
   }
 }
