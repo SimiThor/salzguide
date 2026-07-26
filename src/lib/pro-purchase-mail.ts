@@ -132,9 +132,8 @@ function content(r: ProPurchaseReceipt): MailContent {
       `✍️ Deine Zustimmung beim Kauf: Du hast am ${atDateTime(r.consentAt ?? r.paidAt)} ` +
       "ausdrücklich verlangt, dass wir schon vor Ablauf der Rücktrittsfrist mit der Ausführung " +
       "beginnen, also sofort freischalten. Und du hast bestätigt, zur Kenntnis genommen zu " +
-      "haben, dass du dadurch bei digitalen Inhalten dein Rücktrittsrecht (Widerrufsrecht) " +
-      "verlierst und bei laufenden Leistungen mit deren vollständiger Erbringung " +
-      "(§ 18 Abs. 1 Z 1 und 11 FAGG).\n\n" +
+      "haben, dass du dadurch dein Rücktrittsrecht (Widerrufsrecht) für die Inhalte verlierst " +
+      "(§ 18 Abs. 1 Z 11 FAGG).\n\n" +
       "↩️ Was das heisst: Für die freigeschalteten Inhalte ist dein 14-tägiges Rücktrittsrecht " +
       "mit der sofortigen Freischaltung erloschen. Der KI-Assistent ohne Begrenzung ist eine " +
       "unentgeltliche Zugabe und nicht Teil der bezahlten Leistung; auf ihn entfällt kein " +
