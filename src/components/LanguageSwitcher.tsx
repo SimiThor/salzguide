@@ -3,6 +3,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useLocale } from "next-intl";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import BottomSheet from "./BottomSheet";
 import { usePathname, useRouter } from "@/i18n/navigation";
 import { routing } from "@/i18n/routing";
@@ -189,19 +190,36 @@ export default function LanguageSwitcher({
 
           layer="top": Der Wähler steckt auch IM Burger-Menü (z-[70]) und muss darüber
           aufgehen, nicht dahinter. */}
-      {isPhone && (
-        <BottomSheet
-          open={open}
-          onClose={() => setOpen(false)}
-          detents={[SHEET_DETENT]}
-          title={TITLE[locale] ?? "Language"}
-          layer="top"
-        >
-          <div role="listbox" aria-label={TITLE[locale] ?? "Language"} className="flex flex-col">
-            {items}
-          </div>
-        </BottomSheet>
-      )}
+      {/* AN document.body, NICHT hierher: Das Sheet ist `position: fixed`, und fixed heisst
+          nur so lange „am Bildschirm", wie kein Vorfahre einen eigenen Bezugsrahmen
+          aufspannt. Genau das tun `backdrop-filter` und `transform` — und der Wähler steckt
+          in beidem:
+            - Startseiten-Kopfzeile: bekommt beim Scrollen `backdrop-blur-xl` (LandingNav).
+            - iPhone-Burger: die Schublade wird per transform eingefahren (MobileHeader).
+          Folge ohne Portal, am Handy nachgemessen: Sobald man die Startseite scrollte, sass
+          das GESCHLOSSENE Sheet (es steht per translateY um seine eigene Höhe nach unten
+          versetzt im DOM) plötzlich sichtbar bei y=60 unter der Leiste und legte sich über
+          die halbe Seite. Niemand hatte es geöffnet. Im Burger wäre es zusätzlich nur so
+          breit wie die Schublade geworden.
+          Ein Portal an body kann kein Vorfahre mehr umrechnen. `layer="top"` sorgt weiter
+          dafür, dass es über der Schublade liegt.
+          `isPhone` ist beim ersten Bild false (wird erst im Effekt gemessen), deshalb läuft
+          createPortal nie serverseitig. */}
+      {isPhone &&
+        createPortal(
+          <BottomSheet
+            open={open}
+            onClose={() => setOpen(false)}
+            detents={[SHEET_DETENT]}
+            title={TITLE[locale] ?? "Language"}
+            layer="top"
+          >
+            <div role="listbox" aria-label={TITLE[locale] ?? "Language"} className="flex flex-col">
+              {items}
+            </div>
+          </BottomSheet>,
+          document.body,
+        )}
 
       <AnimatePresence>
         {open && (
