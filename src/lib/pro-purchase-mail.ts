@@ -46,8 +46,19 @@ function atDateTime(iso: string | null): string {
 }
 
 export type ProPurchaseReceipt = {
-  /** Die Adresse, mit der bezahlt wurde. Sie ist auch der Zugang zum Konto. */
+  /** Die Adresse, mit der bezahlt wurde. Dorthin geht diese Mail. */
   email: string;
+  /**
+   * Die Adresse, unter der der Zugang liegt, also die des Kontos.
+   *
+   * MEISTENS DIESELBE wie oben, aber eben nicht immer: Wer eingeloggt kauft, bekommt Pro
+   * auf sein KONTO gutgeschrieben (über die User-ID, nicht über die E-Mail). Hat sein
+   * Stripe-Kunde keine Adresse hinterlegt, tippt er an der Kasse eine ein, und die kann eine
+   * andere sein. Stünde dann hier die Zahladresse, schickte die Bestätigung ihn an ein
+   * Postfach, unter dem sein Pro gar nicht liegt. Beim Gast-Kauf sind beide identisch, weil
+   * das Konto genau aus der Zahladresse entsteht.
+   */
+  accountEmail: string;
   /** Preis, wie bezahlt (z.B. „19,90 €"). Leer, wenn Stripe nichts geliefert hat. */
   price: string;
   /** Zeitpunkt des Vertragsabschlusses (ISO), der Moment der Zahlung. */
@@ -83,7 +94,13 @@ function content(r: ProPurchaseReceipt): MailContent {
           "eingeloggt bist, melde dich damit an, ohne Passwort, du bekommst einen Link zum " +
           "Antippen. Dein Pro liegt dort bereit.\n\n"
         : "🗺️ Alle Pro-Inhalte sind ab sofort für dich offen. Aufmachen, Karte anschauen, " +
-          "hinfahren. Mehr ist nicht zu tun."),
+          "hinfahren. Mehr ist nicht zu tun.") +
+      // Nur wenn die zwei Adressen auseinandergehen. Ein Satz, der in 99 von 100 Mails
+      // fehlt, aber im hundertsten die Verwirrung verhindert, die sonst als Anfrage kommt.
+      (r.accountEmail && r.accountEmail !== r.email
+        ? `\n\n📮 Bezahlt hast du mit ${r.email}. Dein Pro liegt aber auf deinem Konto ` +
+          `${r.accountEmail}, mit dieser Adresse meldest du dich an.`
+        : ""),
     rows: [
       {
         label: "Leistung",
@@ -106,7 +123,7 @@ function content(r: ProPurchaseReceipt): MailContent {
     // er Pro hat, und das weiss er nach dieser Mail bereits.
     cta: { label: "Pro-Spots anschauen", url: `${base}/de/explore` },
     // Die eine hervorgehobene Angabe: Mit dieser Adresse kommt er auf jedem Gerät herein.
-    tile: { label: "Dein Zugang läuft auf", value: r.email },
+    tile: { label: "Dein Zugang läuft auf", value: r.accountEmail || r.email },
     note: "Fragen zum Kauf? Antworte einfach auf diese Mail, wir lesen mit.",
     // Die zwei Angaben, die § 7 Abs. 3 FAGG verlangt: die Zustimmung wörtlich bestätigt und
     // mit Zeitpunkt, dazu die Belehrung, was das für das Rücktrittsrecht heisst. Leiser

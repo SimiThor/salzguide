@@ -151,12 +151,22 @@ export async function fulfillPaidCheckout(
 
   // ── Fall 1: eingeloggt gekauft ────────────────────────────────────────────────────────
   if (memberId) {
-    // Die Adresse steht auch hier in der Session (Stripe füllt sie aus dem Kunden). Fällt
-    // sie aus, kommt sie aus dem Profil: Der Rücksprung braucht sie, falls die Anmeldung
-    // zwischenzeitlich abgelaufen ist und der Käufer neu hereinkommen muss.
-    const memberEmail = emailOf(session) || (await profileEmail(svc, memberId));
+    // ZWEI Adressen, und sie sind nicht dasselbe.
+    //
+    // Die Kontoadresse ist die, unter der der Zugang liegt; Pro hängt an der User-ID aus den
+    // Metadaten, nicht an einer E-Mail. Die Zahladresse ist die, die Stripe erhoben hat.
+    // Normalerweise sind sie gleich: Wird ein Kunde mit gültiger E-Mail übergeben, zeigt
+    // Stripe das Feld nur noch an und lässt es nicht mehr ändern. Hat der Kunde bei Stripe
+    // aber keine Adresse hinterlegt, tippt der Käufer an der Kasse eine ein, und dann kann
+    // sie eine andere sein.
+    //
+    // Die Bestätigung geht an die ZAHLADRESSE (das ist die Adresse, die er für diesen Kauf
+    // angegeben hat) und nennt darin die KONTOADRESSE. Andersherum stünde in der Mail eine
+    // Adresse, unter der sein Pro gar nicht zu finden ist.
+    const accountEmail = await profileEmail(svc, memberId);
+    const payerEmail = emailOf(session) || accountEmail;
     const firstTime = await recordPurchase(svc, session, {
-      email: memberEmail,
+      email: payerEmail,
       userId: memberId,
       granted: true,
       accountCreated: false,
@@ -164,9 +174,11 @@ export async function fulfillPaidCheckout(
     });
     // Nur beim ersten Mal: Die Zeile ist neu, also hat noch niemand bestätigt. Beim zweiten
     // Weg (Webhook nach Rücksprung) wäre es dieselbe Mail ein zweites Mal.
-    if (firstTime) await sendPurchaseConfirmation(session, memberEmail, false);
+    if (firstTime) await sendPurchaseConfirmation(session, payerEmail, accountEmail, false);
     await grantPro(memberId, customerId);
-    return { ok: true, kind: "member", userId: memberId, email: memberEmail };
+    // Zurück geht die KONTOadresse: Der Rücksprung schickt damit im Notfall einen
+    // Anmeldelink, und der muss dorthin, wo das Konto ist.
+    return { ok: true, kind: "member", userId: memberId, email: accountEmail || payerEmail };
   }
 
   // ── Fall 2 & 3: als Gast gekauft ──────────────────────────────────────────────────────
@@ -208,7 +220,7 @@ export async function fulfillPaidCheckout(
   // Rücktrittsrecht nicht (§ 18 Abs. 1 Z 11 lit. c). Der Kauf hängt trotzdem nicht daran:
   // Geht die Mail nicht raus, wird trotzdem freigeschaltet und der Fehler steht im Log.
   // Bezahlte Leistung zurückzuhalten, weil ein Mailserver hustet, wäre die falsche Reihenfolge.
-  await sendPurchaseConfirmation(session, email, true);
+  await sendPurchaseConfirmation(session, email, email, true);
 
   // Konto anlegen. createUser IST die Prüfung „gibt es die Adresse schon?" — und zwar eine
   // ohne Wettlauf: Die Eindeutigkeit von auth.users entscheidet, nicht ein Blick davor, der
@@ -449,6 +461,9 @@ export async function claimVerifiedLogin(userId: string): Promise<boolean> {
  * Die Vertragsbestätigung verschicken (§ 7 Abs. 3 FAGG). Siehe pro-purchase-mail.ts, dort
  * steht, warum das eine Pflicht und keine Höflichkeit ist.
  *
+ * `email` = wohin die Mail geht (die Zahladresse), `accountEmail` = wo der Zugang liegt.
+ * Beim Gast-Kauf dasselbe, beim eingeloggten Kauf nicht zwingend (siehe oben).
+ *
  * `guest` = ohne Konto gekauft. Wer eingeloggt gekauft hat, soll in seiner Bestätigung nicht
  * lesen, wie er sich anmeldet.
  *
@@ -458,6 +473,7 @@ export async function claimVerifiedLogin(userId: string): Promise<boolean> {
 async function sendPurchaseConfirmation(
   session: Stripe.Checkout.Session,
   email: string,
+  accountEmail: string,
   guest: boolean,
 ): Promise<void> {
   if (!email) return;
@@ -471,6 +487,7 @@ async function sendPurchaseConfirmation(
         : "";
     const receipt = {
       email,
+      accountEmail: accountEmail || email,
       price,
       paidAt: new Date().toISOString(),
       consentAt: (session.metadata?.withdrawal_waiver_at as string | undefined) ?? null,
