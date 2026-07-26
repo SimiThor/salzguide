@@ -66,12 +66,17 @@ online akzeptierbar). Fehlt der AVV, droht ein DSGVO-Bußgeld **unabhängig** vo
 - [ ] Rechnungs-Pflichtangaben (§ 11 UStG) sicherstellen.
 
 ## 4) Keys & Config VOR Live (sonst rechtliche Lücken)
-- [ ] **`RESEND_KEY`** + verifizierte Absender-Domain (`EMAIL_FROM`) — sonst werden die
-      **gesetzlich vorgeschriebene Widerruf-Eingangsbestätigung** UND die
-      **Kaufbestätigung nach § 7 Abs. 3 FAGG** NICHT gesendet. Ohne die Kaufbestätigung
-      erlischt das Rücktrittsrecht nicht (§ 18 Abs. 1 Z 11 lit. c) — dann kann jeder Käufer
-      binnen 14 Tagen den vollen Preis zurückverlangen, obwohl im Checkout etwas anderes
-      stand. Das ist der teuerste offene Punkt dieser Liste.
+- [x] **`RESEND_KEY`** + `EMAIL_FROM` — lokal gesetzt (`.env.local`, Absender
+      „SalzGuide &lt;no-reply@steinermedia.at&gt;", also eigene Domain statt Resends
+      Test-Absender). Darüber laufen bereits die Widerruf-Eingangsbestätigung und die
+      Pro-Geschenk-Mail.
+- [ ] **Dasselbe auf Vercel (Production) und Domain in Resend verifiziert?** Das ist der
+      eigentliche Punkt: Ohne gesetzten Key auf dem Server oder ohne verifizierte
+      Absender-Domain geht die **Kaufbestätigung nach § 7 Abs. 3 FAGG** nicht raus (bzw.
+      landet nirgends). Ohne sie erlischt das Rücktrittsrecht nicht (§ 18 Abs. 1 Z 11 lit. c),
+      und jeder Käufer könnte binnen 14 Tagen den vollen Preis zurückverlangen, obwohl im
+      Checkout etwas anderes stand. Prüfen: Vercel → Settings → Environment Variables
+      (Production) und Resend → Domains.
 - [ ] **`STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` / `STRIPE_PRO_PRICE_ID` / `STRIPE_TAX_ENABLED`**.
 - [ ] **`CRON_SECRET`** (Cron-Endpoint), **Turnstile-Keys** (bereits gesetzt).
 - [ ] Supabase Auth-Redirect-Allowlist eng auf `salzguide.com`.
