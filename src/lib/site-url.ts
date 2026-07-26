@@ -6,6 +6,7 @@
 // Datei verhindern soll. Ein Import aus einer Client-Komponente bricht damit den Build,
 // statt eine falsche URL auszuliefern.
 import "server-only";
+import { headers } from "next/headers";
 
 // WARUM ES DIESE DATEI GIBT
 //
@@ -73,4 +74,35 @@ export function siteUrl(): string {
   }
 
   return (configured || "http://localhost:3000").replace(/\/+$/, "");
+}
+
+/**
+ * Die Basis-Adresse für alles, was Supabase anfassen soll: den Link im Anmeldemail und den
+ * OAuth-Rücksprung von Google.
+ *
+ * In Produktion IMMER siteUrl(), niemals ein Header des Aufrufers — sonst könnte ein
+ * gefälschter Host-Header Anmeldelinks auf eine fremde Adresse umbiegen (Host-Header-
+ * Injection). Zusätzlich muss die Supabase-Redirect-Allowlist eng bleiben (docs/34).
+ *
+ * In der Entwicklung darf es die Adresse sein, unter der die Seite gerade wirklich läuft:
+ * Sonst kann man den Login nicht am Handy im WLAN testen (http://192.168.x.x:3000), weil
+ * der Link auf localhost zeigt und dort nur der Rechner selbst hinkommt.
+ *
+ * `requestUrl` (die URL des laufenden Requests) ist dabei die bessere Quelle als der
+ * Origin-Header: Bei einem Rücksprung von einem fremden Dienst — Stripe schickt den Käufer
+ * per GET zurück — steht im Origin-Header entweder nichts oder dessen Domain. Diese Datei
+ * würde daraus in der Entwicklung klaglos Anmeldelinks auf checkout.stripe.com bauen.
+ *
+ * Steht hier eine Adresse dieser App, ist es immer die richtige.
+ */
+export async function authOrigin(requestUrl?: string): Promise<string> {
+  if (process.env.NODE_ENV === "production") return siteUrl();
+  if (requestUrl) {
+    try {
+      return new URL(requestUrl).origin;
+    } catch {
+      /* unparsbar -> weiter unten */
+    }
+  }
+  return (await headers()).get("origin") ?? siteUrl();
 }

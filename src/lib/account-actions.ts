@@ -20,7 +20,7 @@ export async function exportMyData(): Promise<MyDataExport> {
   if (!user) return { ok: false, error: "auth" };
 
   // Alles über den Session-Client -> RLS liefert ausschließlich die eigenen Daten.
-  const [profileRes, spotsRes, eventsRes, convRes] = await Promise.all([
+  const [profileRes, spotsRes, eventsRes, convRes, buyRes] = await Promise.all([
     supabase
       .from("profiles")
       .select(
@@ -34,6 +34,13 @@ export async function exportMyData(): Promise<MyDataExport> {
       .from("ai_conversations")
       .select("id, title, created_at, ai_messages(role, content, created_at)")
       .order("created_at", { ascending: true }),
+    // Der eigene Pro-Kauf. Gehört in den Export (Art. 15), und zwar über denselben
+    // Session-Client: Die RLS-Policy „pro_purchases_read_own" (Migration 0053) gibt genau
+    // eine Zeile frei, die eigene. Der Service-Client hätte hier alle gesehen.
+    supabase
+      .from("pro_purchases")
+      .select("paid_at, email, amount_minor, currency, stripe_session_id")
+      .order("paid_at", { ascending: true }),
   ]);
 
   const spotRow = (r: { created_at: string; spots: unknown }) => {
@@ -58,6 +65,7 @@ export async function exportMyData(): Promise<MyDataExport> {
     savedSpots: (spotsRes.data ?? []).map(spotRow),
     savedEvents: (eventsRes.data ?? []).map(eventRow),
     aiConversations: convRes.data ?? [],
+    purchases: buyRes.data ?? [],
   };
 
   return { ok: true, data };

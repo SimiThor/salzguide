@@ -11,7 +11,7 @@ import {
 import TurnstileWidget from "@/components/TurnstileWidget";
 import { Spinner } from "@/components/Busy";
 import { BookmarkFilled } from "@/components/icons";
-import { LOGIN_EMOJI, isPaidReason, type LoginReason } from "./loginReasons";
+import { LOGIN_EMOJI, type LoginReason } from "./loginReasons";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 //  DER Login-Screen. Einer. Für alle vier Stellen.
@@ -117,10 +117,10 @@ export function LoginHeader({
       </Tag>
       {/* Der eine Satz, der über die Anmeldung entscheidet. "Kostet das was?" und "muss
           ich mir wieder ein Passwort merken?" sind die zwei Gründe, aus denen Leute an
-          dieser Stelle abbrechen. Beide hier beantwortet, bevor sie gestellt werden. */}
-      <p className="mt-1.5 text-[15px] leading-relaxed text-muted">
-        {t(isPaidReason(reason) ? "subtitlePaid" : "subtitleFree")}
-      </p>
+          dieser Stelle abbrechen. Beide hier beantwortet, bevor sie gestellt werden.
+          Er gilt für JEDEN Anlass, den es gibt — hinter diesem Login liegt nie eine
+          Zahlung (siehe loginReasons.ts). */}
+      <p className="mt-1.5 text-[15px] leading-relaxed text-muted">{t("subtitleFree")}</p>
     </div>
   );
 }

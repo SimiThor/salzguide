@@ -77,11 +77,23 @@ export default async function DatenschutzPage({
         (z. B. Themen-Kategorien) ohne Bezug zu deiner Person, deinem Konto oder deiner IP.
       </p>
       <h3>e) Kauf von SalzGuide Pro</h3>
+      {/* Muss beschreiben, was der Code WIRKLICH tut (Art. 13 DSGVO). Seit dem Gast-Kauf ist
+          das mehr als vorher: Pro lässt sich ohne Konto kaufen, die E-Mail kommt aus Stripes
+          Kasse, und aus ihr entsteht danach das Konto. Gespeichert wird die Zeile in
+          pro_purchases (Migration 0053). Siehe lib/pro-purchase.ts. */}
       <p>
-        Die Zahlung wickelt unser Zahlungsdienstleister Stripe ab. Zahlungsdaten (z. B.
-        Kartendaten) werden ausschließlich von Stripe verarbeitet und erreichen unsere Server nicht.
-        Wir speichern deinen Pro-Status, den Zeitpunkt und eine Stripe-Kundenkennung, um die
-        Freischaltung deinem Konto zuzuordnen.
+        Du kannst Pro ohne Konto kaufen. Die Zahlung wickelt unser Zahlungsdienstleister Stripe
+        ab. Zahlungsdaten (z. B. Kartendaten) werden ausschließlich von Stripe verarbeitet und
+        erreichen unsere Server nicht. Von Stripe erhalten wir die E-Mail-Adresse, mit der du
+        bezahlt hast, den bezahlten Betrag und die Kennungen des Vorgangs (Checkout-Sitzung,
+        Kunden- und Zahlungskennung). Das speichern wir mit dem Zeitpunkt, um dir den Zugang zu
+        geben, die Freischaltung deinem Konto zuzuordnen und den Kauf im Rückerstattungs- oder
+        Streitfall belegen zu können. Hast du noch kein Konto, entsteht es aus genau dieser
+        Adresse; du bekommst den Zugang dazu passwortlos per Link an dieselbe Adresse.
+        Rechtsgrundlage ist die Erfüllung des Vertrags (Art. 6 Abs. 1 lit. b DSGVO), für die
+        Aufbewahrung des Zahlungsvorgangs zusätzlich unsere gesetzlichen Aufbewahrungspflichten
+        (Art. 6 Abs. 1 lit. c DSGVO). Löschst du dein Konto, bleibt der Zahlungsvorgang als
+        Nachweis bestehen, ohne Verknüpfung zu einem Konto.
       </p>
       <h3>f) Bot-Schutz am Login</h3>
       <p>
@@ -107,8 +119,9 @@ export default async function DatenschutzPage({
           EDPB-Leitlinien 2/2023 zu Art. 5 Abs. 3 ePrivacy) erfassen JEDE Speicherung im
           Endgerät und jeden Zugriff darauf, also auch localStorage und sessionStorage. Die
           Aufzählung unten ist die vollständige Liste dessen, was der Code wirklich ablegt:
-          supabase/server.ts (Session), api/ai/chat/route.ts (sg_aid), Explore.tsx
-          (sg-season), toni-chat-store.ts, ToniLauncher.tsx, plus mapbox-gl selbst.
+          supabase/server.ts (Session), api/ai/chat/route.ts (sg_aid), stripe-actions.ts
+          (sg_buy), Explore.tsx (sg-season), toni-chat-store.ts, ToniLauncher.tsx, plus
+          mapbox-gl selbst.
           Wer hier etwas hinzufügt, das nicht für eine aufgerufene Funktion nötig ist,
           braucht eine Einwilligung und damit einen Banner. Genau deshalb steht die Liste
           hier vollständig und nicht als „insbesondere". */}
@@ -128,6 +141,13 @@ export default async function DatenschutzPage({
           Gratis-Limit des KI-Assistenten (drei Fragen ohne Konto) überhaupt zählbar ist. Sie
           enthält keine Angaben über dich, ist für Skripte nicht auslesbar (httpOnly) und
           läuft nach 90 Tagen ab.
+        </li>
+        <li>
+          <strong>Kauf-Nachweis „sg_buy“ (Cookie):</strong> Eine Zufallszahl, die beim Start
+          des Bezahlvorgangs gesetzt wird. Sie belegt bei der Rückkehr von Stripe, dass es
+          derselbe Browser ist, der bezahlt hat &ndash; nur deshalb können wir dir den Zugang
+          sofort geben, ohne dass du erst eine E-Mail suchen musst. Sie enthält keine Angaben
+          über dich, ist für Skripte nicht auslesbar (httpOnly) und läuft nach zwei Stunden ab.
         </li>
         <li>
           <strong>Deine Einstellungen (lokaler Speicher):</strong> deine Wahl zwischen Sommer

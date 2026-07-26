@@ -10,8 +10,7 @@ export type LoginReason =
   | "saveSpot"
   | "saveEvent"
   | "buildTour"
-  | "saved"
-  | "pro";
+  | "saved";
 
 export const LOGIN_REASONS: readonly LoginReason[] = [
   "default",
@@ -19,8 +18,13 @@ export const LOGIN_REASONS: readonly LoginReason[] = [
   "saveEvent",
   "buildTour",
   "saved",
-  "pro",
 ] as const;
+
+// KEIN Anlass „pro": Vor dem Kauf wird niemand mehr angemeldet. Der Pro-Kauf läuft ohne
+// Konto (lib/pro-purchase.ts), das Konto entsteht danach aus der bezahlten E-Mail. Käme je
+// wieder eine kostenpflichtige Stelle hinter einen Login, muss mit dem Anlass auch der
+// Untertitel des Login-Screens zurückkommen: „Kostenlos, ohne Passwort" wäre dort eine
+// Lüge, und zwar an der teuersten Stelle des Wegs.
 
 // Emoji gehört in den Code, nicht in messages/*.json: sprachneutral, sonst 9x pflegen.
 //
@@ -45,7 +49,6 @@ export const LOGIN_EMOJI: Record<Exclude<LoginReason, "saved">, string> = {
   saveSpot: "📍",
   saveEvent: "📅",
   buildTour: "🎧",
-  pro: "🔓",
 };
 
 /**
@@ -58,16 +61,4 @@ export const LOGIN_EMOJI: Record<Exclude<LoginReason, "saved">, string> = {
  */
 export function safeLoginReason(v: string | undefined): LoginReason {
   return LOGIN_REASONS.includes(v as LoginReason) ? (v as LoginReason) : "default";
-}
-
-/**
- * Kostet der nächste Schritt Geld?
- *
- * Steuert den Untertitel des Login-Screens. Überall sonst steht dort "Kostenlos, ohne
- * Passwort" — genau das, was Leute vom Anmelden abhält. Beim Pro-Kauf wäre derselbe Satz
- * eine Lüge, direkt vor der Kasse. Deshalb hängt der Untertitel nicht am Zufall, sondern
- * an dieser einen Funktion.
- */
-export function isPaidReason(reason: LoginReason): boolean {
-  return reason === "pro";
 }

@@ -40,12 +40,29 @@ export default async function AgbPage({
         passwortlos (Magic-Link) oder über „Anmelden mit Google“. Du bist für die Sicherheit deines
         E-Mail- bzw. Google-Zugangs verantwortlich. Die Angaben müssen richtig und aktuell sein.
       </p>
+      {/* Muss beschreiben, was der Code WIRKLICH tut: Seit 07/2026 läuft der Kauf ohne Konto
+          davor, und das Konto entsteht aus der bei Stripe angegebenen Adresse (siehe
+          lib/pro-purchase.ts). Stand hier weiterhin nur „für den Kauf ist ein Konto nötig",
+          wären die AGB an der einzigen Stelle falsch, an der Geld fließt. */}
+      <p>
+        <strong>Für den Kauf von SalzGuide Pro brauchst du vorher kein Konto.</strong> Du bezahlst
+        zuerst; das Konto entsteht danach automatisch aus der E-Mail-Adresse, die du im Bezahlvorgang
+        angegeben hast. Den Zugang dazu erhältst du passwortlos per Link an genau diese Adresse. Gib
+        deshalb eine Adresse an, auf die du Zugriff hast: Sie ist dein Zugang zu Pro auf allen
+        Geräten. Hast du mit dieser Adresse schon ein Konto, wird Pro diesem Konto zugeordnet.
+      </p>
 
       <h2>4. Vertragsschluss über SalzGuide Pro</h2>
       <p>
         Die Darstellung von Pro in der App ist eine Einladung zur Bestellung. Mit Klick auf den
         Zahlungs-Button gibst du ein verbindliches Angebot ab. Der Vertrag kommt zustande, sobald wir
         die Zahlung bestätigen bzw. den Zugang freischalten. Vertragssprache ist Deutsch.
+      </p>
+      <p>
+        Unmittelbar nach dem Kauf senden wir dir die Bestätigung des Vertrags auf einem dauerhaften
+        Datenträger per E-Mail (§ 7 Abs. 3 FAGG). Sie enthält die Leistung, den bezahlten Preis, den
+        Zeitpunkt, die Bestellreferenz, unsere Kontaktdaten sowie deine im Bestellvorgang erteilte
+        Zustimmung samt Belehrung zum Rücktrittsrecht. Bewahre diese E-Mail auf.
       </p>
 
       <h2>5. Preise &amp; Zahlung</h2>
@@ -58,26 +75,44 @@ export default async function AgbPage({
 
       <h2>6. Bereitstellung digitaler Inhalte</h2>
       <p>
-        Der Pro-Zugang wird unmittelbar nach erfolgreicher Zahlung freigeschaltet und in deinem Konto
-        bereitgestellt. Für die Nutzung sind ein internetfähiges Gerät und eine aktive
-        Internetverbindung erforderlich.
+        Der Pro-Zugang wird unmittelbar nach erfolgreicher Zahlung freigeschaltet. Hast du kein Konto,
+        entsteht es dabei aus der von dir angegebenen E-Mail-Adresse (siehe Punkt 3); dein Zugang
+        steht ab diesem Moment bereit, auch wenn du dich erst später anmeldest. Für die Nutzung sind
+        ein internetfähiges Gerät und eine aktive Internetverbindung erforderlich.
       </p>
 
-      <h2>7. Widerrufsrecht bei digitalen Inhalten</h2>
+      <h2>7. Rücktritts- bzw. Widerrufsrecht</h2>
+      {/* Der Abschnitt trägt zwei Namen, weil das Gesetz und die Umgangssprache
+          auseinandergehen: Das FAGG spricht von „Rücktritt", die EU-Richtlinie und der
+          Widerrufsbutton aus dem VerbRÄG 2026 von „Widerruf". Beide Bezeichnungen sind
+          zulässig; die App verwendet sie gleichbedeutend, damit niemand zwei Rechte vermutet,
+          wo es eines gibt. Der Rest muss beschreiben, was der Code TUT: Die Bestätigung nach
+          § 7 Abs. 3 FAGG geht jetzt raus (lib/pro-purchase-mail.ts), und sie ist die dritte
+          Bedingung dafür, dass das Recht überhaupt erlischt. Ohne sie stünde hier eine
+          Behauptung, die nicht gilt. */}
       <p>
-        Als Verbraucher:in steht dir grundsätzlich ein 14-tägiges Widerrufsrecht zu (Details und
-        Muster-Widerrufsformular siehe <Link href="/rechtliches/widerruf">Widerrufsbelehrung</Link>
-        ).
+        Als Verbraucher:in steht dir ein 14-tägiges Rücktrittsrecht zu, das auch Widerrufsrecht
+        genannt wird; das FAGG spricht von Rücktritt, die europäische Richtlinie von Widerruf. Wir
+        verwenden beide Wörter gleichbedeutend. Details, Fristen und das Muster-Formular findest du in
+        der <Link href="/rechtliches/widerruf">Widerrufsbelehrung</Link>; erklären kannst du den
+        Rücktritt jederzeit login-frei über das dortige Formular.
       </p>
       <p>
         Bei digitalen Inhalten, die nicht auf einem körperlichen Datenträger geliefert werden,
         <strong>
           {" "}
-          erlischt das Widerrufsrecht, wenn du ausdrücklich zustimmst, dass wir vor Ablauf der
-          Widerrufsfrist mit der Ausführung beginnen, und du zur Kenntnis nimmst, dass du dadurch
-          dein Widerrufsrecht verlierst
+          erlischt dieses Recht, wenn du ausdrücklich verlangst, dass wir vor Ablauf der Frist mit
+          der Ausführung beginnen, du zur Kenntnis nimmst, dass du es dadurch verlierst, und wir dir
+          die Vertragsbestätigung auf einem dauerhaften Datenträger zur Verfügung gestellt haben
         </strong>{" "}
-        (§ 18 Abs. 1 Z 11 FAGG). Diese Zustimmung holen wir im Bestellvorgang gesondert ein.
+        (§ 18 Abs. 1 Z 11 FAGG). Zustimmung und Kenntnisnahme holen wir im Bestellvorgang gesondert
+        ein; die Bestätigung senden wir dir unmittelbar nach dem Kauf per E-Mail (siehe Punkt 4).
+      </p>
+      <p>
+        Soweit Pro laufend erbrachte Leistungen enthält, insbesondere den KI-Assistenten, bleibt dein
+        Rücktrittsrecht bestehen, bis die Leistung vollständig erbracht ist. Trittst du in diesem Fall
+        zurück, hast du für die bis dahin erbrachten Leistungen einen verhältnismäßigen Wertersatz zu
+        leisten (§ 16 FAGG); für die bereitgestellten digitalen Inhalte fällt kein Wertersatz an.
       </p>
 
       <h2>8. Nutzungsrechte &amp; Pflichten</h2>
