@@ -5,6 +5,8 @@ import { getHomeTexts, getHomeMedia, explainerVideoFor } from "@/lib/home-conten
 import { alternatesFor } from "@/lib/metadata";
 import LandingVideo from "@/components/landing/LandingVideo";
 import MediaSlot from "@/components/landing/MediaSlot";
+import SocialSection from "@/components/landing/SocialSection";
+import { getSocialPosts } from "@/lib/social-feed";
 import { CTA_PRIMARY } from "@/components/landing/cta";
 
 // „Über uns". Eine normale APP-Seite (App-Header + Burger + Tab-Leiste, wie Explore), KEINE
@@ -38,7 +40,11 @@ export default async function AboutPage({
   const { locale } = await params;
   setRequestLocale(locale);
 
-  const [texts, media] = await Promise.all([getHomeTexts(locale), getHomeMedia()]);
+  const [texts, media, socialPosts] = await Promise.all([
+    getHomeTexts(locale),
+    getHomeMedia(),
+    getSocialPosts(),
+  ]);
 
   const founders = [
     { name: texts.antonName, body: texts.antonBody, photo: media.antonPhoto },
@@ -100,6 +106,32 @@ export default async function AboutPage({
             ))}
           </div>
         </section>
+
+        {/* ── INSTAGRAM ─── Direkt nach den zwei Gesichtern, und hier ist das die richtige
+            Stelle (anders als auf der Startseite, wo Toni dazwischen steht): Wer gerade
+            gelesen hat, WER wir sind, will als nächstes sehen, WAS wir machen. Dasselbe
+            Bauteil und dieselbe Quelle wie dort.
+            Der -mx-5/-mx-8 hebt den Seitenrand dieser Seite auf, und die Section bekommt ihn
+            als padClass zurück: So schneidet die letzte Kachel am Bildschirmrand an (der
+            Hinweis zum Wischen), während Überschrift und erste Kachel exakt unter dem Text
+            darüber stehen. Ohne die zwei Props stünde die Section auf ihrem Startseiten-Rand
+            (px-6) und damit 4px daneben. */}
+        {/* Die Abfrage steht hier ein zweites Mal (die Section blendet sich auch selbst aus),
+            und zwar wegen des Abstands: Ein leerer Rahmen mit mt-6 würde den Abschluss um
+            genau diesen Betrag nach oben ziehen. So sitzt er richtig, ob mit Feed oder ohne. */}
+        {socialPosts.length > 0 && (
+          <div className="-mx-5 mt-20 md:-mx-8 md:mt-28">
+            <SocialSection
+              texts={texts}
+              posts={socialPosts}
+              padClass="px-5 md:px-8"
+              scrollPadClass="scroll-px-5 md:scroll-px-8"
+              // py-0: Den Abstand geben hier die Nachbarn (mt-20 md:mt-28), wie bei jedem
+              // anderen Block dieser Seite. Siehe yClass in SocialSection.
+              yClass="py-0"
+            />
+          </div>
+        )}
 
         {/* ── ABSCHLUSS ─── Nicht noch ein Argument, sondern der Weg zur Karte. Alles andere
             (Touren, Events, Profil …) erreicht man über Menü/Tab-Leiste dieser App-Seite. */}

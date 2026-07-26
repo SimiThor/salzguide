@@ -57,6 +57,8 @@
     "proEyebrow": "SalzGuide Pro",
     "proTitle": "Alles freischalten. Einmal zahlen.",
     "proCta": "Pro freischalten",
+    "socialEyebrow": "Instagram",
+    "socialCta": "Folgen",
     "finalTitle": "Wir waren dort. Jetzt du.",
     "videoPlay": "Video abspielen"
   },
@@ -501,6 +503,11 @@
     "tagline": "Dein digitaler Guide fürs Salzburger Land.",
     "rights": "Alle Rechte vorbehalten.",
     "deOnly": "Diese Rechtstexte sind nur auf Deutsch verfügbar; rechtlich verbindlich ist die deutsche Fassung."
+  },
+  "Social": {
+    "follow": "Folge uns",
+    "profileAria": "SalzGuide auf {platform}",
+    "postAlt": "Beitrag auf Instagram"
   },
   "LoginGate": {
     "cta": "Kostenlos anmelden"

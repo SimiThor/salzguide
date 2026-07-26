@@ -461,6 +461,11 @@
     "rights": "Alle rechten voorbehouden.",
     "deOnly": "Deze juridische teksten zijn alleen in het Duits beschikbaar; juridisch bindend is de Duitse versie."
   },
+  "Social": {
+    "follow": "Volg ons",
+    "profileAria": "SalzGuide op {platform}",
+    "postAlt": "Bericht op Instagram"
+  },
   "LoginGate": {
     "cta": "Gratis aanmelden"
   }

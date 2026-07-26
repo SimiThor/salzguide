@@ -2,7 +2,7 @@ import type { HomeTexts } from "@/lib/home-fields";
 import { Link } from "@/i18n/navigation";
 import ToniAvatar from "@/components/ai/ToniAvatar";
 import { CTA_PRIMARY } from "./cta";
-import { LANDING_CONTAINER } from "./layout";
+import { LANDING_CONTAINER, LANDING_SECTION_Y } from "./layout";
 
 // Toni, der KI-Local. Auf der Startseite als eigene Section statt als schwebende Blase
 // (die ist hier bewusst aus, siehe lib/routes.ts): hier ist er das Argument, nicht Chrome.
@@ -14,7 +14,7 @@ import { LANDING_CONTAINER } from "./layout";
 // Toni heisst nutzersichtbar Toni, nicht Anton, wie ältere Docs behaupten.
 export default function ToniSection({ texts }: { texts: HomeTexts }) {
   return (
-    <section className="py-16 md:py-24">
+    <section className={LANDING_SECTION_Y}>
       <div className={LANDING_CONTAINER}>
         <div className="mx-auto max-w-[900px] overflow-hidden rounded-[28px] bg-gradient-to-b from-accent/[0.10] via-white to-white p-8 shadow-[0_24px_60px_-28px_rgba(204,41,36,0.45)] ring-1 ring-black/[0.05] md:p-12">
           <div className="flex flex-col items-center gap-8 md:flex-row md:gap-12">

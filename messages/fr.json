@@ -461,6 +461,11 @@
     "rights": "Tous droits réservés.",
     "deOnly": "Ces textes juridiques ne sont disponibles qu'en allemand ; la version allemande fait foi."
   },
+  "Social": {
+    "follow": "Suis-nous",
+    "profileAria": "SalzGuide sur {platform}",
+    "postAlt": "Publication sur Instagram"
+  },
   "LoginGate": {
     "cta": "S'inscrire gratuitement"
   }

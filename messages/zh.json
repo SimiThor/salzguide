@@ -461,6 +461,11 @@
     "rights": "保留所有权利。",
     "deOnly": "这些法律文本仅提供德语版本；具有法律约束力的是德语版本。"
   },
+  "Social": {
+    "follow": "关注我们",
+    "profileAria": "{platform} 上的 SalzGuide",
+    "postAlt": "Instagram 帖子"
+  },
   "LoginGate": {
     "cta": "免费注册"
   }

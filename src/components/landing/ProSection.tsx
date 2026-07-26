@@ -5,6 +5,7 @@ import { PRO_FEATURES } from "@/components/proFeatures";
 import type { HomeTexts } from "@/lib/home-fields";
 import { ProWordmark } from "@/components/ProBadge";
 import { CTA_PRIMARY } from "./cta";
+import { LANDING_SECTION_Y } from "./layout";
 
 // Pro auf der Startseite: das Angebot benennen, aber NICHT hier verkaufen. Der Kauf lebt
 // auf /pro, wo die §-18-FAGG-Zustimmung, der Login-Fluss und der Stripe-Checkout
@@ -33,7 +34,7 @@ export default async function ProSection({
   const price = formatProPrice(await getProPrice(), locale);
 
   return (
-    <section className="px-4 py-16 md:py-24">
+    <section className={`px-4 ${LANDING_SECTION_Y}`}>
       <div className="mx-auto w-full max-w-[440px]">
         {/* EINE zusammenhängende Fläche: warmer Salzburg-Verlauf oben, fliessend nach unten
             zu Features und Kauf. Keine abgesetzten Einzel-Kacheln -> ruhig & Apple-artig.

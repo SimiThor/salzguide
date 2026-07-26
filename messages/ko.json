@@ -461,6 +461,11 @@
     "rights": "모든 권리 보유.",
     "deOnly": "이 법적 텍스트는 독일어로만 제공되며, 법적으로는 독일어 버전이 유효합니다."
   },
+  "Social": {
+    "follow": "팔로우하기",
+    "profileAria": "{platform}의 SalzGuide",
+    "postAlt": "인스타그램 게시물"
+  },
   "LoginGate": {
     "cta": "무료로 가입하기"
   }

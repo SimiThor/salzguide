@@ -1,5 +1,5 @@
 import type { HomeTexts } from "@/lib/home-fields";
-import { LANDING_CONTAINER } from "./layout";
+import { LANDING_CONTAINER, LANDING_SECTION_Y } from "./layout";
 
 // Warum es SalzGuide gibt, plus was drin ist.
 //
@@ -42,7 +42,7 @@ const FEATURES = [
 
 export default function Story({ texts }: { texts: HomeTexts }) {
   return (
-    <section id="how" className="scroll-mt-24 bg-white/60 py-16 md:py-24">
+    <section id="how" className={`scroll-mt-24 bg-white/60 ${LANDING_SECTION_Y}`}>
       <div className={LANDING_CONTAINER}>
         <div className="mx-auto max-w-[820px] text-center">
           <p className="text-[13px] font-semibold uppercase tracking-wider text-accent">

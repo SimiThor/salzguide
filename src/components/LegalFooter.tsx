@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { Link, usePathname } from "@/i18n/navigation";
 import { LEGAL_LINKS } from "@/lib/legal-links";
 import { isFullscreenMapRoute } from "@/lib/routes";
+import SocialLinks from "./SocialLinks";
 
 // Globaler Site-Footer (im Root-Layout, auf JEDER Seite). Enthält den Widerrufs-Zugang
 // (§ 13a FAGG / EU-RL 2023/2673, ab 01.10.2026 in Österreich): login-frei, global, leicht
@@ -31,7 +32,13 @@ export default function LegalFooter() {
 
   return (
     <footer className="mx-auto w-full max-w-[640px] px-4 pb-[calc(env(safe-area-inset-bottom)+5.5rem)] pt-16 text-center md:pb-12 md:pt-20">
-      <nav className="flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1 text-[13px]">
+      {/* Die Profile stehen ÜBER den Rechtslinks und ohne Beschriftung. Beides ist eine
+          Entscheidung: Folgen ist das, was wir hier wollen, die Rechtslinks sind Pflicht und
+          dürfen leiser sein. Ein „Folge uns" davor wäre ein Wort, das zwei Glyphen schon
+          sagen. Quelle der Profile: lib/social.ts. */}
+      <SocialLinks className="justify-center gap-1" />
+
+      <nav className="mt-4 flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1 text-[13px]">
         {LEGAL_LINKS.map((l, i) => (
           <span key={l.key} className="flex items-center gap-1.5">
             <Link href={l.href} className="text-muted transition-colors hover:text-ink">

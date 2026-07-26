@@ -22,8 +22,10 @@ export const LEGAL = {
   editorialLine:
     "SalzGuide ist ein unabhängiger digitaler Reise- und Freizeitführer für das Salzburger Land mit kuratierten Orten, Audio-Touren und einem KI-Assistenten.",
   // Muss mitwandern, sobald sich der Inhalt der Rechtstexte ändert: Ein "Stand" von gestern
-  // unter einer Erklärung von heute ist selbst eine falsche Angabe. Zuletzt: Newsletter als
-  // eigener Abschnitt mit Double-Opt-in (26.07.2026).
+  // unter einer Erklärung von heute ist selbst eine falsche Angabe. Zuletzt: Gerätespeicher
+  // vollständig aufgelistet (Cookies, localStorage, Karte), Social-Media-Profile und die
+  // Instagram-Kacheln als eigene Abschnitte; Meta ist KEIN Empfänger (die Bilder laden wir
+  // selbst hoch, es gibt keinen Abruf dort) (26.07.2026).
   updated: "26. Juli 2026",
 } as const;
 

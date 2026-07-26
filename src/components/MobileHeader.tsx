@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import { Link, usePathname } from "@/i18n/navigation";
 import LanguageSwitcher from "./LanguageSwitcher";
+import SocialLinks from "./SocialLinks";
 import { NAV_ITEMS } from "@/lib/nav";
 import { LEGAL_LINKS } from "@/lib/legal-links";
 
@@ -217,6 +218,15 @@ export default function MobileHeader() {
                     Reihe. Angefasst wird trotzdem in voller Zeilenbreite und dank sg-hit
                     44px hoch (Apples Mindestmaß), statt auf 13px Schrift zielen zu müssen. */}
                 <div className="mt-auto flex flex-col px-3 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-6">
+                  {/* Die Profile trennen die App-Seiten oben von der zweiten Reihe unten.
+                      Sie stehen bewusst HIER und nicht nur in der Fusszeile: Auf den
+                      Vollbild-Karten (/explore, /wasser) blendet sich die Fusszeile aus, und
+                      genau dort verbringen die meisten ihre Zeit. Dieselbe Begründung wie
+                      bei den Rechtslinks darunter, dieselbe Quelle-in-einer-Datei-Logik.
+                      Das Menü bleibt beim Antippen offen, weil das Profil in einem neuen
+                      Tab aufgeht: Wer zurückkommt, steht wieder da, wo er war. */}
+                  <SocialLinks className="gap-1 pb-3" />
+
                   {LEGAL_LINKS.map((l) => {
                     const active = l.href === pathname;
                     return (
