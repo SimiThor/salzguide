@@ -3,7 +3,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image, { getImageProps } from "next/image";
 import { createPortal } from "react-dom";
-import { AnimatePresence, motion, type PanInfo } from "framer-motion";
+import {
+  AnimatePresence,
+  motion,
+  useMotionValue,
+  useTransform,
+  type PanInfo,
+} from "framer-motion";
 import { useTranslations } from "next-intl";
 import { useIsMounted } from "@/lib/use-is-mounted";
 
@@ -26,7 +32,8 @@ function Icon({ d }: { d: string }) {
 }
 
 // Vollbild-Foto-Viewer im iOS-2026-Stil: wischen/klicken durch alle Fotos,
-// Tastatur, Thumbnails, Schließen per X/Backdrop/Esc/Runterwischen.
+// Tastatur, Thumbnails, Schließen per X/Backdrop/Esc/Runterziehen.
+// Gesten mit Achsen-Sperre: horizontal blättert, vertikal schließt – nie beides.
 export default function Lightbox({
   images,
   title,
@@ -43,6 +50,16 @@ export default function Lightbox({
   const [[index, dir], setState] = useState<[number, number]>([startIndex, 0]);
   const n = images.length;
   const stripRef = useRef<HTMLDivElement>(null);
+
+  // Achsen-Sperre: eine Geste ist entweder horizontal (blättern) oder
+  // vertikal (schließen) – nie beides gleichzeitig, wie in nativen Foto-Viewern.
+  const dragAxis = useRef<"x" | "y" | null>(null);
+
+  // Beim Runterziehen folgt das Foto dem Finger; Hintergrund und Bedien-
+  // elemente blenden aus, das Foto schrumpft leicht (iOS Pull-to-dismiss).
+  const dragY = useMotionValue(0);
+  const chromeOpacity = useTransform(dragY, [0, 240], [1, 0.25]);
+  const photoScale = useTransform(dragY, [0, 400], [1, 0.88]);
 
   const paginate = useCallback(
     (d: number) =>
@@ -79,13 +96,39 @@ export default function Lightbox({
     el?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
   }, [index]);
 
+  // Nachbarbilder vorladen, damit beim Wischen nie ein leeres Bild aufblitzt.
+  useEffect(() => {
+    for (const i of [index - 1, index + 1]) {
+      if (i < 0 || i >= n) continue;
+      const { props } = getImageProps({
+        src: images[i],
+        alt: "",
+        fill: true,
+        sizes: "94vw",
+        quality: 75,
+      });
+      const img = new window.Image();
+      if (props.sizes) img.sizes = props.sizes;
+      if (props.srcSet) img.srcset = props.srcSet;
+      img.src = props.src;
+    }
+  }, [index, images, n]);
+
   if (!mounted) return null;
 
+  // Nach der Geste entscheidet die gesperrte Achse: vertikal = schließen
+  // (weit genug oder ein schneller Flick nach unten), horizontal = blättern.
+  // Alles darunter federt zurück an seinen Platz.
   const onDragEnd = (_e: unknown, info: PanInfo) => {
-    if (info.offset.y > 120 && Math.abs(info.offset.y) > Math.abs(info.offset.x)) {
-      onClose();
+    const axis = dragAxis.current;
+    dragAxis.current = null;
+    if (axis === "y") {
+      if (info.offset.y > 120 || (info.offset.y > 40 && info.velocity.y > 600)) {
+        onClose();
+      }
       return;
     }
+    if (axis !== "x") return;
     if (info.offset.x < -80 || info.velocity.x < -500) paginate(1);
     else if (info.offset.x > 80 || info.velocity.x > 500) paginate(-1);
   };
@@ -102,12 +145,22 @@ export default function Lightbox({
       exit={{ opacity: 0 }}
       transition={{ duration: 0.2 }}
       onClick={onClose}
-      className="fixed inset-0 z-[100] flex cursor-pointer flex-col bg-black/95"
+      className="fixed inset-0 z-[100] flex cursor-pointer flex-col"
     >
+      {/* Hintergrund als eigene Ebene, damit er beim Runterziehen ausblendet */}
+      <motion.div
+        aria-hidden
+        style={{ opacity: chromeOpacity }}
+        className="absolute inset-0 bg-black/95"
+      />
+
       {/* Kopf: Zähler + Schließen */}
-      <div
+      <motion.div
         className="relative z-10 flex items-center justify-between px-4 pb-2"
-        style={{ paddingTop: "calc(env(safe-area-inset-top) + 12px)" }}
+        style={{
+          paddingTop: "calc(env(safe-area-inset-top) + 12px)",
+          opacity: chromeOpacity,
+        }}
       >
         {n > 1 ? (
           <span className="text-sm font-medium tabular-nums text-white/80">
@@ -127,7 +180,7 @@ export default function Lightbox({
         >
           <Icon d="M6 6l12 12M18 6L6 18" />
         </button>
-      </div>
+      </motion.div>
 
       {/* Bildbühne */}
       <div className="relative flex flex-1 items-center justify-center overflow-hidden">
@@ -157,8 +210,24 @@ export default function Lightbox({
             exit="exit"
             transition={{ duration: 0.25, ease: "easeOut" }}
             drag
+            dragDirectionLock
+            // Achtung Reihenfolge: onDirectionLock feuert VOR onDragStart –
+            // deshalb hier kein Reset beim Start, das onDragEnd räumt auf.
+            onDirectionLock={(axis) => {
+              dragAxis.current = axis;
+            }}
             dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
-            dragElastic={0.7}
+            // Runter = Finger folgen (schließen), rauf = straffer Widerstand,
+            // am Anfang/Ende der Galerie strafferes Gummiband als mittendrin.
+            dragElastic={{
+              top: 0.12,
+              bottom: 1,
+              left: index === n - 1 ? 0.25 : 0.7,
+              right: index === 0 ? 0.25 : 0.7,
+            }}
+            // Zurückfedern ohne Überschwingen (Apples Kurve).
+            dragTransition={{ bounceStiffness: 500, bounceDamping: 45 }}
+            style={{ y: dragY, scale: photoScale }}
             onDragEnd={onDragEnd}
             onClick={(e) => e.stopPropagation()}
             draggable={false}
@@ -199,11 +268,14 @@ export default function Lightbox({
 
       {/* Thumbnails */}
       {n > 1 && (
-        <div
+        <motion.div
           ref={stripRef}
           onClick={(e) => e.stopPropagation()}
           className="relative z-10 flex gap-2 overflow-x-auto px-4 pt-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-          style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 12px)" }}
+          style={{
+            paddingBottom: "calc(env(safe-area-inset-bottom) + 12px)",
+            opacity: chromeOpacity,
+          }}
         >
           {images.map((url, i) => (
             <button
@@ -218,7 +290,7 @@ export default function Lightbox({
               <Image src={url} alt="" fill sizes="56px" quality={50} className="object-cover" />
             </button>
           ))}
-        </div>
+        </motion.div>
       )}
     </motion.div>,
     document.body,
