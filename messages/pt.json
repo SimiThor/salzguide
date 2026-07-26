@@ -356,17 +356,18 @@
   "Pro": {
     "title": "SalzGuide",
     "subtitle": "Sem Pro, esta parte do mapa fica fechada.",
-    "feat1": "Todos os sítios bloqueados, com a dica de local",
+    "feat1": "Todos os sítios bloqueados, com as dicas de locais",
     "feat2": "Caminhadas com o traçado, feitas por nós",
-    "feat3": "Percursos áudio completos, não só as primeiras paragens",
+    "feat3": "Cada sítio visto por nós, recomendado de coração",
     "feat4": "Perguntar ao Toni as vezes que quiseres",
     "oneTime": "pagamento único · sem subscrição",
     "cta": "Ativar o Pro",
+    "buy": "Comprar agora",
     "spotTeaser": "Com o Pro vês este sítio, a dica que o acompanha e todos os outros bloqueados.",
     "redirecting": "A continuar para o Stripe …",
     "securePay": "Pagamento seguro através do Stripe",
     "legalHint": "Ao comprar aceitas os <terms>termos</terms>. Tudo sobre o direito de livre resolução está na <cancel>informação de resolução</cancel>.",
-    "consentLabel": "Solicito a ativação imediata e confirmo que, com isso, perco o meu <w>direito de livre resolução</w> (§ 18 FAGG).",
+    "consentLabel": "Solicito a ativação imediata e confirmo que, com isso, perco o meu <w>direito de livre resolução</w> (§ 18 Abs. 1 Z 11 FAGG).",
     "consentRequired": "Confirma a execução imediata para continuar.",
     "error": "Não deu. Tenta outra vez.",
     "tooMany": "Espera um momento e tenta outra vez.",
@@ -400,8 +401,6 @@
       }
     },
     "heroTitle": "Os sítios por onde passas sem saber",
-    "heroSubtitle": "Cada sítio visto por nós, cada recomendação de coração.",
-    "heroLockedRounded": "{count}+ estão bloqueados. Cada sítio visto por nós, cada recomendação de coração.",
     "exploreCta": "Começar a explorar"
   },
   "Account": {

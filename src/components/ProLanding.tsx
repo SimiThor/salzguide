@@ -25,19 +25,9 @@ import ProFeatureList from "@/components/ProFeatureList";
 export default function ProLanding({
   price,
   canceled,
-  lockedSpots,
 }: {
   price: string;
   canceled: boolean;
-  /**
-   * Wie viele Spots gerade hinter Pro liegen, live aus der Datenbank (getProSpotCount).
-   * null = unbekannt, dann steht der Satz ohne Zahl da.
-   *
-   * Die Zahl ist das eine Verkaufsargument, das sich nicht anfühlt wie Werbung: Sie sagt
-   * schlicht, was man nicht sieht. Sie darf deshalb NIE im Übersetzungstext stehen, sondern
-   * kommt immer aus der DB (siehe lib/spots.ts).
-   */
-  lockedSpots: { value: number; rounded: boolean } | null;
 }) {
   const t = useTranslations("Pro");
   const locale = useLocale();
@@ -97,23 +87,15 @@ export default function ProLanding({
           gestapelte Kärtchen wären vier Flächen für eine Aussage (iOS macht das in
           gruppierten Listen genauso). */}
       <div className="overflow-hidden rounded-[28px] bg-gradient-to-b from-accent/[0.12] via-white to-white shadow-[0_24px_60px_-28px_rgba(204,41,36,0.45)] ring-1 ring-black/[0.05]">
-        {/* 1. Was dir ohne Pro entgeht. Die Wortmarke steht klein darüber (das Produkt
-            nennt sich einmal), die Überschrift sagt die Sache selbst. */}
-        <div className="px-7 pt-7 pb-5 text-center">
+        {/* 1. Was dir ohne Pro entgeht. Wortmarke klein darüber, Überschrift sagt die
+            Sache selbst, und dann ist Schluss: Der erklärende Satz darunter ist weg. Er
+            sagte, was die vier Zeilen gleich darunter ohnehin sagen, nur in Prosa. Weniger
+            Text heisst hier auch, dass der Kauf-Knopf höher steht. */}
+        <div className="px-7 pt-7 pb-6 text-center">
           <ProWordmark name={t("title")} className="text-[14px]" />
           <h1 className="mt-3 text-[27px] font-bold leading-[1.12] tracking-tight text-ink">
             {t("heroTitle")}
           </h1>
-          {/* Die Zahl kommt aus der Datenbank, nie aus dem Text.
-              NUR AB ZEHN: getProSpotCount rundet erst ab zehn ab (`rounded`), darunter käme
-              die exakte Zahl. „1 Spot liegt gesperrt" ist grammatikalisch schief und als
-              Argument das Gegenteil von dem, was hier stehen soll. Unter zehn steht deshalb
-              derselbe Satz ohne Zahl: nichts behauptet, nichts kleingeredet. */}
-          <p className="mx-auto mt-2.5 max-w-[20rem] text-[15px] leading-snug text-muted">
-            {lockedSpots?.rounded
-              ? t("heroLockedRounded", { count: lockedSpots.value })
-              : t("heroSubtitle")}
-          </p>
         </div>
 
         {/* 2. Was drin ist. Vier Zeilen, überall dieselben (ProFeatureList). */}
@@ -179,6 +161,18 @@ export default function ProLanding({
             </label>
           )}
 
+          {/* „Jetzt kaufen" und nicht „Pro freischalten", und das ist keine Geschmacksfrage.
+              § 8 FAGG verlangt, dass der Knopf, mit dem bestellt wird, die Zahlungspflicht
+              ausdrückt; „freischalten" tut das nicht, ebensowenig wie „Anmelden" oder
+              „Weiter". Die Sanktion ist nicht kosmetisch: Der Vertrag wäre für den
+              Verbraucher schlicht nicht bindend. Und laut EuGH (C-249/21, Fuhrmann-2) zählt
+              AUSSCHLIESSLICH der Text im Knopf, nicht der Preis darüber und nicht das
+              Häkchen daneben.
+              Ob dieser Knopf oder Stripes Bezahl-Knopf der Bestellknopf im Rechtssinn ist,
+              lässt sich streiten. Deshalb trägt dieser hier die eindeutige Beschriftung:
+              Ist er es, passt sie; ist er es nicht, schadet sie nichts.
+              „Pro freischalten" (Pro.cta) bleibt auf den Knöpfen, die nur auf diese Seite
+              verlinken. Ein Knopf, der eine Seite öffnet, darf nicht „kaufen" heissen. */}
           <button
             type="button"
             onClick={onBuy}
@@ -187,7 +181,7 @@ export default function ProLanding({
             className="mt-3 flex w-full items-center justify-center gap-2 rounded-full bg-accent px-5 py-4 text-[16px] font-semibold text-white shadow-[0_10px_24px_-8px_rgba(204,41,36,0.6)] transition active:scale-[0.98] disabled:opacity-50 disabled:shadow-none"
           >
             {pending && <Spinner />}
-            {pending ? t("redirecting") : t("cta")}
+            {pending ? t("redirecting") : t("buy")}
           </button>
 
           {/* Unter dem Knopf steht nur noch das Vertrauens-Signal. Hier stand kurz „Kein

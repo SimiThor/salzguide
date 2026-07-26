@@ -150,7 +150,7 @@ export async function createCheckoutSession(
       custom_text: {
         submit: {
           message:
-            "Mit dem Kauf verlangst du die sofortige Bereitstellung von SalzGuide Pro und bestätigst, dass dein Widerrufsrecht damit erlischt (§ 18 FAGG).",
+            "Mit dem Kauf verlangst du die sofortige Bereitstellung von SalzGuide Pro und bestätigst, dass dein Rücktritts- bzw. Widerrufsrecht damit erlischt (§ 18 Abs. 1 Z 11 FAGG).",
         },
       },
       // Der Rücksprung geht auf eine Route, nicht auf die Seite: Nur ein Route-Handler darf

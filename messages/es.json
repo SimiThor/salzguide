@@ -356,17 +356,18 @@
   "Pro": {
     "title": "SalzGuide",
     "subtitle": "Sin Pro, esta parte del mapa sigue cerrada.",
-    "feat1": "Todos los sitios bloqueados, con el consejo de local",
+    "feat1": "Todos los sitios bloqueados, con los consejos de locales",
     "feat2": "Caminatas con su trazado, hechas por nosotros",
-    "feat3": "Las rutas de audio enteras, no solo las primeras paradas",
+    "feat3": "Cada sitio visto por nosotros, recomendado de corazón",
     "feat4": "Preguntar a Toni las veces que quieras",
     "oneTime": "pago único · sin suscripción",
     "cta": "Activar Pro",
+    "buy": "Comprar ahora",
     "spotTeaser": "Con Pro ves este sitio, el consejo que lo acompaña y todos los demás bloqueados.",
     "redirecting": "Continuando a Stripe …",
     "securePay": "Pago seguro con Stripe",
     "legalHint": "Al comprar aceptas las <terms>condiciones</terms>. Todo sobre el derecho de desistimiento está en la <cancel>información de desistimiento</cancel>.",
-    "consentLabel": "Solicito la activación inmediata y confirmo que con ello pierdo mi <w>derecho de desistimiento</w> (§ 18 FAGG).",
+    "consentLabel": "Solicito la activación inmediata y confirmo que con ello pierdo mi <w>derecho de desistimiento</w> (§ 18 Abs. 1 Z 11 FAGG).",
     "consentRequired": "Confirma la ejecución inmediata para continuar.",
     "error": "No ha funcionado. Inténtalo de nuevo.",
     "tooMany": "Espera un momento e inténtalo otra vez.",
@@ -400,8 +401,6 @@
       }
     },
     "heroTitle": "Los sitios por los que pasas de largo",
-    "heroSubtitle": "Cada sitio visto por nosotros, cada recomendación de corazón.",
-    "heroLockedRounded": "{count}+ están bloqueados. Cada sitio visto por nosotros, cada recomendación de corazón.",
     "exploreCta": "Explorar ahora"
   },
   "Account": {

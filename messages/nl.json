@@ -356,17 +356,18 @@
   "Pro": {
     "title": "SalzGuide",
     "subtitle": "Zonder Pro blijft dit deel van de kaart dicht.",
-    "feat1": "Alle plekken op slot, met de insidertip erbij",
+    "feat1": "Alle plekken op slot, met insidertips erbij",
     "feat2": "Wandelingen met route, zelf gelopen",
-    "feat3": "Audiotours helemaal, niet alleen de eerste stops",
+    "feat3": "Elke plek zelf gezien, uit het hart aanbevolen",
     "feat4": "Toni vragen zo vaak je wilt",
     "oneTime": "eenmalig · geen abonnement",
     "cta": "Pro ontgrendelen",
+    "buy": "Nu kopen",
     "spotTeaser": "Met Pro zie je deze plek, de tip erbij en alle andere die op slot staan.",
     "redirecting": "Verder naar Stripe …",
     "securePay": "Veilig betalen via Stripe",
     "legalHint": "Met je aankoop ga je akkoord met de <terms>voorwaarden</terms>. Alles over het herroepingsrecht staat in de <cancel>herroepingsinstructie</cancel>.",
-    "consentLabel": "Ik verlang de onmiddellijke vrijschakeling en bevestig dat ik daarmee mijn <w>herroepingsrecht</w> verlies (§ 18 FAGG).",
+    "consentLabel": "Ik verlang de onmiddellijke vrijschakeling en bevestig dat ik daarmee mijn <w>herroepingsrecht</w> verlies (§ 18 Abs. 1 Z 11 FAGG).",
     "consentRequired": "Bevestig de onmiddellijke uitvoering om verder te gaan.",
     "error": "Dat lukte niet. Probeer het opnieuw.",
     "tooMany": "Even wachten en het opnieuw proberen.",
@@ -400,8 +401,6 @@
       }
     },
     "heroTitle": "De plekken waar je anders langsrijdt",
-    "heroSubtitle": "Elke plek zelf gezien, elke tip uit het hart.",
-    "heroLockedRounded": "{count}+ daarvan staan op slot. Elke plek zelf gezien, elke tip uit het hart.",
     "exploreCta": "Nu ontdekken"
   },
   "Account": {

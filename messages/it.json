@@ -356,17 +356,18 @@
   "Pro": {
     "title": "SalzGuide",
     "subtitle": "Senza Pro questa parte della mappa resta chiusa.",
-    "feat1": "Tutti i posti bloccati, con il consiglio da insider",
+    "feat1": "Tutti i posti bloccati, con i consigli da insider",
     "feat2": "Escursioni con il percorso, fatte da noi",
-    "feat3": "Tour audio interi, non solo le prime tappe",
+    "feat3": "Ogni posto visto di persona, consigliato col cuore",
     "feat4": "Chiedi a Toni quante volte vuoi",
     "oneTime": "pagamento unico · nessun abbonamento",
     "cta": "Attiva Pro",
+    "buy": "Acquista ora",
     "spotTeaser": "Con Pro vedi questo posto, il consiglio che lo accompagna e tutti gli altri bloccati.",
     "redirecting": "Continua su Stripe …",
     "securePay": "Pagamento sicuro con Stripe",
     "legalHint": "Con l'acquisto accetti le <terms>condizioni</terms>. Tutto sul diritto di recesso è nell'<cancel>informativa sul recesso</cancel>.",
-    "consentLabel": "Richiedo l'attivazione immediata e confermo che così perdo il mio <w>diritto di recesso</w> (§ 18 FAGG).",
+    "consentLabel": "Richiedo l'attivazione immediata e confermo che così perdo il mio <w>diritto di recesso</w> (§ 18 Abs. 1 Z 11 FAGG).",
     "consentRequired": "Conferma l'attivazione immediata per continuare.",
     "error": "Non ha funzionato. Riprova.",
     "tooMany": "Aspetta un attimo e riprova.",
@@ -400,8 +401,6 @@
       }
     },
     "heroTitle": "I posti davanti a cui passi senza saperlo",
-    "heroSubtitle": "Ogni posto visto di persona, ogni consiglio col cuore.",
-    "heroLockedRounded": "{count}+ di questi sono bloccati. Ogni posto visto di persona, ogni consiglio col cuore.",
     "exploreCta": "Inizia a esplorare"
   },
   "Account": {
