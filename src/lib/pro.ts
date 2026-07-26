@@ -18,7 +18,7 @@ export const getProPrice = unstable_cache(
       return null;
     }
   },
-  ["pro-price-v1"],
+  ["pro-price-v2"],
   { revalidate: 3600, tags: ["pro-price"] },
 );
 
