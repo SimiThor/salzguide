@@ -3,6 +3,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useLocale } from "next-intl";
 import { useEffect, useRef, useState } from "react";
+import BottomSheet from "./BottomSheet";
 import { usePathname, useRouter } from "@/i18n/navigation";
 import { routing } from "@/i18n/routing";
 import { localeMeta } from "@/i18n/locales";
@@ -43,9 +44,24 @@ function ChevronUpDown({ className = "text-muted/70" }: { className?: string }) 
   );
 }
 
-// Mehrsprachiger Sprachwähler (iOS-2026): Flaggen-Button -> Dropdown (Desktop) bzw. ziehbares
-// Bottom-Sheet (Mobile). Alle Sprachen aus der zentralen Config -> neue Sprache erscheint
-// automatisch. Wechsel behält den aktuellen Pfad (SEO: eigene Unterseite je Sprache).
+// Am Handy ist die Liste ein ganz normales Sheet: EINE Stufe. Es gibt nichts aufzuziehen,
+// also macht BottomSheet daraus automatisch „Hochziehen unmöglich, Runterwischen schließt"
+// – dieselbe Bauart wie beim Login-Gate.
+//
+// Die Zahl ist der Anteil der Bildschirmhöhe und am Inhalt nachgemessen, nicht geschätzt:
+// Balken + Titel + neun Zeilen sind 495px. Auf einem iPhone 15 (844px) macht 0.66 daraus
+// ein 557px hohes Sheet – unter der letzten Zeile bleiben 60px, und davon sind auf einem
+// Gerät mit Home-Indicator 34px der Indicator selbst. Die Liste steht also ganz da, ohne
+// dass unten ein Streifen leere Fläche bleibt.
+//
+// Kommt eine Sprache dazu, bleibt das Sheet gleich hoch und die Liste scrollt darin (so
+// auch heute schon auf einem iPhone SE). Das ist Absicht: eine Stufe, die mit jeder neuen
+// Sprache wandert, stünde bei jedem Öffnen woanders.
+const SHEET_DETENT = 0.66;
+
+// Mehrsprachiger Sprachwähler (iOS-2026): Flaggen-Button -> Dropdown (Desktop) bzw. das
+// gemeinsame Bottom-Sheet (Mobile). Alle Sprachen aus der zentralen Config -> neue Sprache
+// erscheint automatisch. Wechsel behält den aktuellen Pfad (SEO: eigene Unterseite je Sprache).
 //
 // variant: "solid" (Standard) ist der flach gefüllte Plattform-Button (bg-black/5, KEIN Rand
 // -> siehe ui.ts: „Mit Rand heisst Zustand"), damit er in den App-Headern wie jeder andere
@@ -72,6 +88,20 @@ export default function LanguageSwitcher({
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const current = localeMeta(locale);
+
+  // Welche der beiden Ansichten offen geht, entscheidet hier ausnahmsweise JS und nicht
+  // CSS: Ein offenes BottomSheet WIRKT (es sperrt das Scrollen der Seite). Ein nur per
+  // `md:hidden` weggeblendetes Sheet würde am PC die Seite einfrieren, während oben das
+  // Dropdown steht. Aufblitzen kann dabei nichts – beim ersten Bild ist nichts offen,
+  // gemessen wird erst, wenn jemand tippt.
+  const [isPhone, setIsPhone] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    const update = () => setIsPhone(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
 
   // Klick außerhalb + Escape schließen (Desktop-Dropdown).
   useEffect(() => {
@@ -104,9 +134,13 @@ export default function LanguageSwitcher({
         type="button"
         onClick={() => choose(code)}
         lang={code}
-        aria-current={active ? "true" : undefined}
+        // In einer Liste mit role="listbox" heißt „das hier ist es gerade" aria-selected,
+        // nicht aria-current – und die Zeilen brauchen dafür role="option". Ohne das war
+        // die Liste eine Listbox ohne einzige Option und VoiceOver las nur Knöpfe vor.
+        role="option"
+        aria-selected={active}
         className={`flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left transition-colors ${
-          active ? "bg-accent/10 text-accent" : "text-ink hover:bg-black/5"
+          active ? "bg-accent/10 text-accent" : "text-ink hover:bg-black/5 active:bg-black/5"
         }`}
       >
         <span className="text-[20px] leading-none" aria-hidden>
@@ -144,32 +178,34 @@ export default function LanguageSwitcher({
         <ChevronUpDown className={variant === "overlay" ? "text-muted" : "text-muted/70"} />
       </button>
 
+      {/* ---- Mobile: das gemeinsame Bottom-Sheet ----
+          Nicht mehr von Hand nachgebaut: Vorher war das ein eigenes Sheet mit eigener
+          Feder, eigenem Balken und eigenen Innenmaßen (16px statt der 20px, die jedes
+          andere Sheet hat) – und mit zwei echten Fehlern. Der Balken sah ziehbar aus,
+          war es aber nicht (220px nach unten gezogen: das Sheet blieb stehen, während
+          das Spot-Sheet bei derselben Geste zugeht), und die Seite dahinter scrollte
+          weiter (gemessen: 269px, weil der Scroll-Riegel fehlte). Beides erledigt
+          BottomSheet, das ist genau seine Aufgabe.
+
+          layer="top": Der Wähler steckt auch IM Burger-Menü (z-[70]) und muss darüber
+          aufgehen, nicht dahinter. */}
+      {isPhone && (
+        <BottomSheet
+          open={open}
+          onClose={() => setOpen(false)}
+          detents={[SHEET_DETENT]}
+          title={TITLE[locale] ?? "Language"}
+          layer="top"
+        >
+          <div role="listbox" aria-label={TITLE[locale] ?? "Language"} className="flex flex-col">
+            {items}
+          </div>
+        </BottomSheet>
+      )}
+
       <AnimatePresence>
         {open && (
           <>
-            {/* ---- Mobile: Bottom-Sheet ---- */}
-            <motion.div
-              className="fixed inset-0 z-[80] bg-black/30 backdrop-blur-sm md:hidden"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setOpen(false)}
-            />
-            <motion.div
-              role="listbox"
-              className="fixed inset-x-0 bottom-0 z-[90] max-h-[75svh] overflow-y-auto rounded-t-[22px] bg-cream px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-2 shadow-2xl md:hidden"
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
-              transition={{ type: "spring", damping: 34, stiffness: 340 }}
-            >
-              <div className="mx-auto mb-2 h-1 w-9 rounded-full bg-black/15" aria-hidden />
-              <p className="px-3 pb-1 pt-1 text-[13px] font-semibold text-muted">
-                {TITLE[locale] ?? "Language"}
-              </p>
-              <div className="flex flex-col">{items}</div>
-            </motion.div>
-
             {/* ---- Desktop: Dropdown ---- */}
             <motion.div
               role="listbox"
