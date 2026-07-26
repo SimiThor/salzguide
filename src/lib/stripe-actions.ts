@@ -7,6 +7,7 @@ import { createClient } from "./supabase/server";
 import { createServiceClient } from "./supabase/service";
 import { stripe, proPriceId, stripeTaxEnabled, stripeLocale } from "./stripe";
 import { siteUrl } from "./site-url";
+import { safeLocale } from "@/i18n/locales";
 import {
   PRO_CLAIM_COOKIE,
   PRO_CLAIM_MAX_AGE,
@@ -96,8 +97,12 @@ export async function createCheckoutSession(
 
   try {
     // Alle Sprachen sind mit Präfix erreichbar (/de, /en, /it …) -> Rücksprung immer in der
-    // Sprache des Käufers.
-    const lp = `/${locale}`;
+    // Sprache des Käufers. Festgenagelt, weil `locale` aus dem Browser kommt: Der Wert baut
+    // hier die Adresse, auf die Stripe den Käufer zurückschickt, und ein „../" oder ein „?"
+    // darin ergäbe einen Rücksprung, der irgendwo hinter unserer Startseite landet statt auf
+    // der Freischaltung. Unbekannt -> Deutsch.
+    const lang = safeLocale(locale);
+    const lp = `/${lang}`;
     // NICHT der Origin-Header: Der kommt vom Client und bestimmt hier, wohin Stripe den
     // Käufer nach der Zahlung zurückschickt. Auf Vercel liefert siteUrl() denselben Wert,
     // nur eben aus einer Quelle, die niemand von aussen setzen kann.
@@ -115,7 +120,7 @@ export async function createCheckoutSession(
       allow_promotion_codes: true,
       // Stripes Kasse in der Sprache des Käufers. Vorher stand sie immer auf Englisch —
       // an der teuersten Stelle des Wegs.
-      locale: stripeLocale(locale),
+      locale: stripeLocale(lang),
       // §18-FAGG-Zustimmung als Nachweis in den Metadaten festhalten (Audit-Trail).
       metadata: {
         withdrawal_waiver_consent: "true",

@@ -546,6 +546,23 @@ export async function revokePro(customerId: string): Promise<void> {
     .update({ is_pro: false })
     .eq("stripe_customer_id", customerId)
     .eq("pro_source", "stripe");
+
+  // Und den ANSPRUCH abräumen, nicht nur das Profil.
+  //
+  // Das Profil ist die eine Quelle für Pro, pro_purchases ist die zweite: handle_new_user
+  // (Migration 0053) schaltet beim Anlegen eines Kontos frei, wenn dort ein bezahlter Kauf
+  // offen steht. Wurde das Konto nie angelegt — ein Aussetzer im richtigen Moment reicht —,
+  // findet die Zeile darüber niemanden, dem sie Pro entziehen könnte. Der Anspruch blieb
+  // dann liegen, und die nächste Anmeldung mit dieser Adresse machte daraus Pro. Bezahlt
+  // war da längst nichts mehr.
+  //
+  // Reihenfolge egal, beide Aufräumarbeiten sind unabhängig und wiederholbar.
+  const { error } = await svc
+    .from("pro_purchases")
+    .update({ refunded_at: new Date().toISOString() })
+    .eq("stripe_customer_id", customerId)
+    .is("refunded_at", null);
+  if (error) console.error("[pro] Anspruch nach Rückerstattung nicht abgeräumt", customerId, error.message);
 }
 
 async function findProfileByCustomer(
