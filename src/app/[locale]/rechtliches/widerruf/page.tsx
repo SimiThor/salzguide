@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { setRequestLocale } from "next-intl/server";
+import { Link } from "@/i18n/navigation";
 import LegalShell from "@/components/LegalShell";
 import WithdrawalForm from "@/components/WithdrawalForm";
 import { LEGAL, legalAddress, legalMetadata } from "@/lib/legal";
@@ -102,9 +103,12 @@ export default async function WiderrufPage({
         festgehalten.
       </p>
       <p>
-        Soweit SalzGuide Pro laufend erbrachte Leistungen enthält, insbesondere den KI-Assistenten,
-        bleibt dein Recht bestehen, bis die Leistung vollständig erbracht ist. Für diesen Teil gilt
-        bei einem Rücktritt der Wertersatz nach § 16 FAGG (siehe „Folgen des Widerrufs“).
+        Der KI-Assistent ohne Begrenzung ist eine unentgeltliche Zugabe und nicht Teil der
+        bezahlten Leistung; auf ihn entfällt kein Preisanteil (Punkt 2 und 5 der{" "}
+        <Link href="/rechtliches/agb">AGB</Link>). Für ihn gibt es daher nichts zurückzuzahlen.
+        Würde ein laufend erbrachter Teil dennoch als entgeltlich angesehen, bliebe dein Recht
+        insoweit bis zur vollständigen Erbringung bestehen (§ 18 Abs. 1 Z 1 FAGG) und ein
+        Wertersatz bemäße sich nach § 16 FAGG (siehe „Folgen des Widerrufs“).
       </p>
 
       <h2>Muster-Widerrufsformular</h2>

@@ -28,10 +28,29 @@ export default async function AgbPage({
       <p>
         Die App bietet einen digitalen Reise- und Freizeitführer für das Salzburger Land mit
         kuratierten Orten, Karten, Audio-Touren und einem KI-Assistenten. Ein Grundumfang ist
-        kostenlos. „SalzGuide Pro“ schaltet zusätzliche Inhalte und Funktionen frei (z. B.
-        Geheimtipp-Spots, vollständige Audio-Touren, unbegrenzte Nutzung des KI-Assistenten).
-        Inhalte werden laufend weiterentwickelt; ein Anspruch auf einen bestimmten Bestand einzelner
-        Inhalte besteht nicht.
+        kostenlos.
+      </p>
+      {/* WARUM DIESE TRENNUNG SO GENAU BESCHRIEBEN IST: Digitale INHALTE und laufend erbrachte
+          DIENSTLEISTUNGEN haben verschiedene Rücktrittsregeln (§ 18 Abs. 1 Z 11 gegenüber Z 1
+          FAGG), und der EuGH hat am 09.07.2026 (C-234/25) klargestellt, dass die Einordnung
+          objektiv erfolgt: Eine Klausel, in der der Kunde den Verlust seines Rechts bestätigt,
+          bewirkt nichts, wenn die Leistung in Wahrheit eine laufende ist. Deshalb ist hier
+          sauber getrennt, was bezahlt wird (Inhalte) und was dazukommt, ohne bezahlt zu werden
+          (der KI-Assistent ohne Limit). Wer das ändert, ändert die Rechtslage mit. */}
+      <p>
+        <strong>Gegenstand des Kaufs von „SalzGuide Pro“ sind digitale Inhalte:</strong> die
+        gesperrten Spots samt Insider-Tipp, Wanderungen mit Route sowie die vollständigen
+        Audio-Touren. Sie werden mit der Zahlung dauerhaft freigeschaltet. Inhalte werden laufend
+        weiterentwickelt; ein Anspruch auf einen bestimmten Bestand einzelner Inhalte besteht nicht.
+      </p>
+      <p>
+        Der KI-Assistent „Toni“ steht allen Nutzer:innen zur Verfügung, ohne Konto und ohne Kauf,
+        begrenzt auf eine Anzahl von Fragen. Für Pro-Käufer:innen heben wir diese Begrenzung auf.
+        <strong> Diese Aufhebung ist eine unentgeltliche Zugabe und nicht Teil der bezahlten
+        Leistung</strong> (siehe Punkt 5); wir können sie ändern oder einstellen, ohne dass der
+        Kauf davon berührt wird. Toni beantwortet Fragen anhand unserer eigenen Inhalte; er legt
+        kein Nutzerprofil an, wertet dein Verhalten nicht aus und richtet seine Antworten nicht
+        nach früheren Sitzungen.
       </p>
 
       <h2>3. Registrierung &amp; Konto</h2>
@@ -70,7 +89,9 @@ export default async function AgbPage({
       <h2>5. Preise &amp; Zahlung</h2>
       <p>
         Es gilt der jeweils im Bestellvorgang angezeigte Preis inkl. gesetzlicher Umsatzsteuer.
-        SalzGuide Pro ist eine <strong>einmalige Zahlung</strong> (kein Abo). Die Zahlungsabwicklung
+        SalzGuide Pro ist eine <strong>einmalige Zahlung</strong> (kein Abo). Der Kaufpreis
+        entfällt zur Gänze auf die digitalen Inhalte nach Punkt 2; auf die unentgeltliche Zugabe
+        (KI-Assistent ohne Begrenzung) entfällt kein Preisanteil. Die Zahlungsabwicklung
         erfolgt über unseren Zahlungsdienstleister Stripe. Es gelten die dort verfügbaren
         Zahlungsarten. Eine Rechnung wird – soweit vorgesehen – elektronisch bereitgestellt.
       </p>
@@ -111,10 +132,12 @@ export default async function AgbPage({
         ein; die Bestätigung senden wir dir unmittelbar nach dem Kauf per E-Mail (siehe Punkt 4).
       </p>
       <p>
-        Soweit Pro laufend erbrachte Leistungen enthält, insbesondere den KI-Assistenten, bleibt dein
-        Rücktrittsrecht bestehen, bis die Leistung vollständig erbracht ist. Trittst du in diesem Fall
-        zurück, hast du für die bis dahin erbrachten Leistungen einen verhältnismäßigen Wertersatz zu
-        leisten (§ 16 FAGG); für die bereitgestellten digitalen Inhalte fällt kein Wertersatz an.
+        Die unentgeltliche Zugabe (KI-Assistent ohne Begrenzung, Punkt 2) ist nicht Teil der
+        bezahlten Leistung. Auf sie entfällt kein Preisanteil, es gibt für sie also nichts
+        zurückzuzahlen. Würde ein laufend erbrachter Teil dennoch als entgeltlich angesehen, bliebe
+        das Rücktrittsrecht insoweit bis zur vollständigen Erbringung bestehen und ein Wertersatz
+        bemäße sich nach § 16 FAGG; für die bereitgestellten digitalen Inhalte fällt kein Wertersatz
+        an.
       </p>
 
       <h2>8. Nutzungsrechte &amp; Pflichten</h2>
