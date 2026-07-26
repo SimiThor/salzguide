@@ -2,7 +2,7 @@ import type { HomeTexts } from "@/lib/home-fields";
 import { explainerVideoFor, type HomeMedia } from "@/lib/home-content";
 import LandingVideo from "./LandingVideo";
 import MediaSlot from "./MediaSlot";
-import { LANDING_CONTAINER } from "./layout";
+import { LANDING_CONTAINER, LANDING_SECTION_Y } from "./layout";
 
 // Anton & Simon. Das stärkste Asset der Seite und laut Recherche der zentrale Trust-Hebel:
 // Leute zahlen für Tipps von jemandem, dessen Geschmack sie kennen. Zwei echte Gesichter
@@ -18,7 +18,7 @@ export default function FoundersSection({
   locale: string;
 }) {
   return (
-    <section className="bg-white/60 py-16 md:py-24">
+    <section className={`bg-white/60 ${LANDING_SECTION_Y}`}>
       <div className={LANDING_CONTAINER}>
         <div className="mx-auto grid max-w-[1000px] items-center gap-10 md:grid-cols-2 md:gap-16">
           {/* Video links am Desktop, oben am Handy */}

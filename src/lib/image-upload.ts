@@ -6,11 +6,11 @@
 //
 // Läuft im Browser (createImageBitmap, canvas): nur aus Client-Komponenten aufrufen.
 import { createClient } from "./supabase/client";
-import { IMMUTABLE_CACHE_SECONDS } from "./storage";
+import { IMMUTABLE_CACHE_SECONDS, MEDIA_BUCKET } from "./storage";
 import { loadOrientedBitmap } from "./image-orientation";
 
-/** Alle Admin-Medien liegen im selben Bucket, unter zufälligem Pfad. */
-const BUCKET = "spot-media";
+/** Alle Admin-Medien liegen im selben Bucket, unter zufälligem Pfad (Name: lib/storage). */
+const BUCKET = MEDIA_BUCKET;
 
 /**
  * Lange Kante der gespeicherten Fassung. 1600 deckt jedes Handy inklusive Retina ab;

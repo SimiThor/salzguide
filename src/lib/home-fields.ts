@@ -105,6 +105,14 @@ export const HOME_GROUPS: readonly HomeGroup[] = [
     ],
   },
   {
+    title: "Instagram",
+    note: "Zeigt die letzten sechs Beiträge. Sie kommen automatisch (Einstellungen -> Instagram-Feed); ist noch keiner da, blendet sich die ganze Section aus. Die Überschrift ist der Handle selbst (@salzguide) und kommt aus src/lib/social.ts, damit er beim Umbenennen nur an einer Stelle steht.",
+    fields: [
+      { key: "socialEyebrow", label: "Kleine Zeile darüber" },
+      { key: "socialCta", label: "Knopf" },
+    ],
+  },
+  {
     title: "Schluss",
     fields: [{ key: "finalTitle", label: "Überschrift" }],
   },

@@ -59,6 +59,17 @@ export async function collectStorageRefs(sel, patch, patchHome) {
     add(`tour_points[${p.id}]`, "photo", p.image_url, (u) => patch("tour_points", `id=eq.${p.id}`, { image_url: u }));
   for (const l of await sel("locals", "id,avatar_url"))
     add(`locals[${l.id}]`, "avatar", l.avatar_url, (u) => patch("locals", `id=eq.${l.id}`, { avatar_url: u }));
+  // Bilder der Instagram-Kacheln (Migration 0051/0052). MUSS hier stehen: Ohne diese Zeile
+  // findet der wöchentliche Waisen-Sweep die Bilder im Bucket, auf die "keine DB-Zeile
+  // zeigt", und löscht sie 48 Stunden nach dem Hochladen. Die Section wäre danach leer, und
+  // niemand käme auf die Idee, den Aufräumer zu verdächtigen. Genau der Fehler, vor dem der
+  // Kopf dieser Datei warnt.
+  //
+  // kind "video" heisst hier NICHT Video, sondern "nur schützen, nie anfassen" (siehe oben):
+  // Der Admin-Upload erzeugt bereits ein 1080px-WebP. Da ist nichts zu holen.
+  for (const p of await sel("social_posts", "id,image_url"))
+    add(`social_posts[${p.id}]`, "video", p.image_url, () => {});
+
   for (const s of await sel("app_settings", "key,value"))
     if (s.key === "toni_avatar_url")
       add("app_settings.toni", "avatar", s.value, (u) => patch("app_settings", `key=eq.${s.key}`, { value: u }));

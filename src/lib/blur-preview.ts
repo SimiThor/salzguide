@@ -9,7 +9,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 // Endung PFLICHT: scripts/backfill-blur.ts lädt diese Datei mit Nodes ESM-Loader, und der
 // rät keine Endungen (siehe tsconfig, allowImportingTsExtensions). Ohne ".ts" baut Next
 // weiterhin fehlerfrei – nur `npm run backfill:blur` stirbt beim Start.
-import { IMMUTABLE_CACHE_SECONDS } from "./storage.ts";
+import { IMMUTABLE_CACHE_SECONDS, MEDIA_BUCKET, storagePathFromUrl } from "./storage.ts";
 
 // Vorschaubild für gesperrte Pro-Spots ("Geheimtipps").
 //
@@ -35,7 +35,10 @@ import { IMMUTABLE_CACHE_SECONDS } from "./storage.ts";
 // werden NICHT automatisch neu gebaut -> `npm run backfill:blur -- --force`.
 const PREVIEW_WIDTH = 160;
 const PREVIEW_QUALITY = 72;
-const BUCKET = "spot-media";
+// Bucket-Name und URL-Zerlegung kommen aus lib/storage: Beides brauchte der Instagram-Feed
+// ein zweites Mal, und ein Bucket-Name in zwei Dateien ist ein Bucket-Name, der beim
+// Umbenennen an einer Stelle stehen bleibt.
+const BUCKET = MEDIA_BUCKET;
 const PREVIEW_DIR = "previews";
 // Schutz gegen absurd große Quellbilder (Speicher) – 25 MB reicht für jedes Hero-Foto.
 const MAX_SOURCE_BYTES = 25 * 1024 * 1024;
@@ -64,12 +67,9 @@ type StorageApi = {
 };
 
 // Pfad im Bucket aus einer öffentlichen Storage-URL zurückgewinnen (zum Aufräumen).
-// null, wenn die URL nicht aus unserem Bucket stammt.
-function pathFromPublicUrl(url: string): string | null {
-  const marker = `/${BUCKET}/`;
-  const i = url.indexOf(marker);
-  return i === -1 ? null : decodeURIComponent(url.slice(i + marker.length));
-}
+// null, wenn die URL nicht aus unserem Bucket stammt. Liegt seit dem Instagram-Feed in
+// lib/storage, weil dessen Aufräumlauf genau dieselbe Zerlegung braucht.
+const pathFromPublicUrl = storagePathFromUrl;
 
 // Bild laden und auf PREVIEW_WIDTH herunterrechnen. null bei jedem Problem – ein
 // fehlendes Vorschaubild darf nie das Speichern eines Spots kippen.

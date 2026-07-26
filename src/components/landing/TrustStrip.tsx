@@ -1,7 +1,7 @@
 import type { SpotCount } from "@/lib/spots";
 import type { HomeTexts } from "@/lib/home-fields";
 import { fill } from "@/lib/home-content";
-import { LANDING_CONTAINER } from "./layout";
+import { LANDING_CONTAINER, LANDING_SECTION_Y } from "./layout";
 
 // Vertrauen direkt unter dem Hero, bevor irgendetwas erklärt oder verkauft wird.
 // Jede Aussage hier ist belegbar — siehe die Kommentare an den einzelnen Kacheln.
@@ -53,7 +53,7 @@ export default function TrustStrip({
   ].filter((i) => i !== null);
 
   return (
-    <section className={`${LANDING_CONTAINER} py-14 md:py-20`}>
+    <section className={`${LANDING_CONTAINER} ${LANDING_SECTION_Y}`}>
       <ul className="grid gap-3 md:grid-cols-3 md:gap-4">
         {items.map((item) => (
           <li

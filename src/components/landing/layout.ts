@@ -16,3 +16,21 @@ export const LANDING_CONTAINER = "mx-auto w-full max-w-[1200px] px-6";
 // an ihre innere Schiene weiterreichen (railPadClass="px-6"). Dann beginnt die erste Karte
 // exakt unter der Überschrift und die letzte schneidet am Bildschirmrand an.
 export const LANDING_CONTAINER_BLEED = "mx-auto w-full max-w-[1200px]";
+
+/**
+ * Der senkrechte Abstand JEDER Section der Startseite. Dieselbe Begründung wie beim
+ * Seitenrand darüber, nur in der anderen Richtung.
+ *
+ * Nachgemessen war der Rhythmus vorher (Abstand von einem Block zum nächsten, am iPhone):
+ * 112, 120, 128, 128, 128, 120, 72. Drei Sections liefen auf py-14/py-20, vier auf
+ * py-16/py-24, und der Schluss-CTA hing mit pt-4 nur 72px unter seinem Vorgänger. Einzeln
+ * fällt keine dieser Zahlen auf, zusammen ist es der Unterschied zwischen einer Seite, die
+ * atmet, und einer, die stellenweise zusammenzuckt.
+ *
+ * 64px am Handy, 96px am Desktop, an jeder Naht. Zwei aneinandergrenzende Sections ergeben
+ * damit überall dieselben 128 bzw. 192px Luft.
+ *
+ * BEWUSSTE AUSNAHME: Der Hero bringt keinen eigenen Abstand mit. Er endet mit Bild und
+ * Knopf, und die erste Aussage darunter soll nah dran bleiben.
+ */
+export const LANDING_SECTION_Y = "py-16 md:py-24";

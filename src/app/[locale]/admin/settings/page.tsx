@@ -3,7 +3,9 @@ import { Link } from "@/i18n/navigation";
 import ToniAvatarSettings from "@/components/admin/ToniAvatarSettings";
 import CategoryManager from "@/components/admin/CategoryManager";
 import LocalManager from "@/components/admin/LocalManager";
+import SocialSettings from "@/components/admin/SocialSettings";
 import { getToniAvatarUrl } from "@/lib/settings";
+import { getSocialPostsAdmin } from "@/lib/social-feed";
 import { getCategoriesAdmin, getLocalsFull, getHomeStatus } from "@/lib/admin";
 import type { TranslationState } from "@/lib/spot-hash";
 import { STATUS_NEUTRAL } from "@/lib/ui";
@@ -18,11 +20,12 @@ export default async function AdminSettingsPage({
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const [toniAvatar, categories, locals, home] = await Promise.all([
+  const [toniAvatar, categories, locals, home, socialPosts] = await Promise.all([
     getToniAvatarUrl(),
     getCategoriesAdmin(),
     getLocalsFull(),
     getHomeStatus(),
+    getSocialPostsAdmin(),
   ]);
 
   return (
@@ -100,6 +103,11 @@ export default async function AdminSettingsPage({
           ›
         </span>
       </Link>
+
+      {/* Instagram-Kacheln: Bild hochladen, Link einfügen, fertig. Bewusst ohne Meta-App und
+          ohne Token — die Einrichtung dort war der Grund, den automatischen Abgleich wieder
+          auszubauen (siehe Migration 0052). */}
+      <SocialSettings posts={socialPosts} />
 
       <ToniAvatarSettings current={toniAvatar} />
       <LocalManager locals={locals} />

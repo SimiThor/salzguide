@@ -12,7 +12,10 @@ import Story from "@/components/landing/Story";
 import ToniSection from "@/components/landing/ToniSection";
 import FoundersSection from "@/components/landing/FoundersSection";
 import ProSection from "@/components/landing/ProSection";
+import SocialSection from "@/components/landing/SocialSection";
+import { getSocialPosts } from "@/lib/social-feed";
 import { CTA_PRIMARY } from "@/components/landing/cta";
+import { LANDING_SECTION_Y } from "@/components/landing/layout";
 
 // Die Startseite. Erklärt SalzGuide für Leute, die es noch nicht kennen, und führt sie auf
 // EINEN Weg: /explore. Bis 07/2026 lag hier die Karte, die konnte zwar bedient werden,
@@ -59,12 +62,16 @@ export default async function HomePage({
   // holt sie EINMAL und reicht sie durch, statt dass jede Section selbst fragt: So ist es
   // ein Lesevorgang statt acht, und die Sections bleiben dumme Darstellung.
   // Fällt die DB aus oder ist ein Feld leer, greift messages/de.json (siehe home-content.ts).
-  const [texts, media, spotCount] = await Promise.all([
+  const [texts, media, spotCount, socialPosts] = await Promise.all([
     getHomeTexts(locale),
     getHomeMedia(),
     // Live aus der DB: ab 10 Spots auf Zehner abgerundet („60+"), darunter exakt („8").
     // Wächst ohne manuelle Pflege mit, hier ist NIE eine Zahl einzutragen.
     getSpotCount(),
+    // Die Instagram-Kacheln. Eine Tabellen-Abfrage, kein Aufruf bei Meta: Die Bilder liegen
+    // in unserem eigenen Speicher (im Admin gepflegt), damit diese Seite vorgerendert werden
+    // kann und kein Besucher auf Instagram wartet.
+    getSocialPosts(),
   ]);
 
   return (
@@ -80,9 +87,21 @@ export default async function HomePage({
       <ToniSection texts={texts} />
       <ProSection texts={texts} locale={locale} />
 
+      {/* Instagram, bewusst NACH Pro und VOR dem Schluss: Wer bis hier gelesen hat, ist
+          entweder überzeugt (dann kommt gleich der Weg zur Karte) oder noch nicht (dann ist
+          Folgen der leichtere zweite Schritt, und wir sehen uns wieder). Der rote Faden
+          Gründer -> Toni bleibt dabei unangetastet: Tonis Glaubwürdigkeit kommt von den zwei
+          Gesichtern direkt davor, dazwischen gehört nichts.
+          Ohne gespiegelte Beiträge blendet sich die Section selbst aus. */}
+      <SocialSection texts={texts} posts={socialPosts} />
+
       {/* Schluss-CTA: wer bis hier gelesen hat, ist überzeugt — nicht noch ein Argument,
-          sondern der Weg raus. */}
-      <section className="px-6 pb-16 pt-4 text-center md:pb-20">
+          sondern der Weg raus.
+          Trägt denselben Abstand wie jede andere Section (LANDING_SECTION_Y). Hier stand
+          pt-4: Der Block hing damit nur 72px unter seinem Vorgänger, während jede andere
+          Naht der Seite 128px hatte. Das las sich nicht als „gehört zusammen", sondern als
+          Fehler, und zwar genau an der Stelle, an der die Seite ihre Wirkung hat. */}
+      <section className={`px-6 text-center ${LANDING_SECTION_Y}`}>
         <h2 className="mx-auto max-w-[18ch] text-balance text-[30px] font-bold leading-[1.15] tracking-tight text-ink md:text-[40px]">
           {texts.finalTitle}
         </h2>

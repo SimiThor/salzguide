@@ -4,7 +4,7 @@ import type { HomeTexts } from "@/lib/home-fields";
 import SpotCard from "@/components/SpotCard";
 import Carousel from "@/components/Carousel";
 import { CTA_PRIMARY } from "./cta";
-import { LANDING_CONTAINER_BLEED } from "./layout";
+import { LANDING_CONTAINER_BLEED, LANDING_SECTION_Y } from "./layout";
 
 // Echte Plätze auf der Startseite. Welche, entscheidet der Admin unter
 // Einstellungen -> „Spots auf der Startseite" (spots.home_rank).
@@ -40,7 +40,7 @@ export default async function FeaturedSpots({
   if (spots.length === 0) return null;
 
   return (
-    <section className="py-14 md:py-20">
+    <section className={LANDING_SECTION_Y}>
       <div className={LANDING_CONTAINER_BLEED}>
         <div className="px-6">
           <p className="text-[13px] font-semibold uppercase tracking-wider text-accent">
