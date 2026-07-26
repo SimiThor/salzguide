@@ -1,7 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { getProPrice, formatProPrice } from "@/lib/pro";
-import { PRO_FEATURES } from "@/components/proFeatures";
+import ProFeatureList from "@/components/ProFeatureList";
 import type { HomeTexts } from "@/lib/home-fields";
 import { ProWordmark } from "@/components/ProBadge";
 import { CTA_PRIMARY } from "./cta";
@@ -47,22 +47,10 @@ export default async function ProSection({
             </h2>
           </div>
 
-          {/* Features als warme iOS-Zeilen mit Emoji-Chips (identisch zu ProLanding). */}
-          <ul className="mt-7 space-y-1 px-5">
-            {PRO_FEATURES.map((f) => (
-              <li key={f.key} className="flex items-center gap-3.5 rounded-2xl px-2 py-2.5">
-                <span
-                  className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-accent/10 text-[19px]"
-                  aria-hidden
-                >
-                  {f.icon}
-                </span>
-                <span className="text-[15px] font-medium leading-snug text-ink">
-                  {tPro(f.key)}
-                </span>
-              </li>
-            ))}
-          </ul>
+          {/* Dieselben vier Zeilen wie auf /pro (ProFeatureList). */}
+          <div className="mt-7 border-t border-black/[0.06] px-6 py-4">
+            <ProFeatureList density="page" />
+          </div>
 
           <div className="mt-6 px-7 pb-8">
             {/* Ohne konfiguriertes Stripe gibt es keinen Preis, dann auch keine Preis-Zeile

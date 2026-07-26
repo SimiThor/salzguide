@@ -42,6 +42,7 @@ export default function SpotCardDesktop({
   panelOffset?: boolean;
 }) {
   const t = useTranslations("Explore");
+  const tPro = useTranslations("Pro"); // Pro-Texte: eine Quelle, siehe SpotSheet.tsx
   const locale = useLocale();
   const gate = useLoginGate();
   const [, startTransition] = useTransition();
@@ -134,12 +135,12 @@ export default function SpotCardDesktop({
           {spot.locked ? (
             <>
               <h3 className="text-[15px] font-semibold text-ink">{t("lockedLabel")}</h3>
-              <p className="mt-1 text-[13px] leading-snug text-muted">{t("proTeaser")}</p>
+              <p className="mt-1 text-[13px] leading-snug text-muted">{tPro("spotTeaser")}</p>
               <Link
                 href="/pro"
                 className="mt-3 inline-block rounded-full bg-accent px-4 py-2 text-sm font-semibold text-white active:scale-[0.98]"
               >
-                {t("unlock")}
+                {tPro("cta")}
               </Link>
             </>
           ) : (

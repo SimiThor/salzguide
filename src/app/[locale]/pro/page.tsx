@@ -4,6 +4,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getProPrice, formatProPrice } from "@/lib/pro";
+import { getProSpotCount } from "@/lib/spots";
 import { alternatesFor } from "@/lib/metadata";
 import ProLanding from "@/components/ProLanding";
 import { ProWordmark } from "@/components/ProBadge";
@@ -124,10 +125,17 @@ export default async function ProPage({
     );
   }
 
-  // Preis = Single Source of Truth aus Stripe (server-seitig).
-  const priceStr = formatProPrice(await getProPrice(), locale);
+  // Preis = Single Source of Truth aus Stripe (server-seitig), die Zahl der gesperrten
+  // Spots = Single Source of Truth aus der Datenbank. Beides parallel, beides nie im Text.
+  const [price, locked] = await Promise.all([getProPrice(), getProSpotCount()]);
 
-  return <ProLanding price={priceStr} canceled={checkout === "cancel"} />;
+  return (
+    <ProLanding
+      price={formatProPrice(price, locale)}
+      canceled={checkout === "cancel"}
+      lockedSpots={locked}
+    />
+  );
 }
 
 /**

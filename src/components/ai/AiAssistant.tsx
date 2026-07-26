@@ -74,6 +74,7 @@ export default function AiAssistant({
   onClose: () => void;
 }) {
   const t = useTranslations("Ai");
+  const tPro = useTranslations("Pro"); // Knopfbeschriftung: eine Quelle, siehe SpotSheet.tsx
   const locale = useLocale();
   const kb = useKeyboard(); // Tastatur offen? -> Sheet wird kürzer, siehe Scroll-Effekt
   const pathname = usePathname(); // locale-frei, z.B. "/spot/hochkeil" -> Seiten-Kontext für Toni
@@ -364,7 +365,7 @@ export default function AiAssistant({
         onClick={onClose}
         className="mt-3 inline-block rounded-full bg-accent px-5 py-2 text-[14px] font-semibold text-white active:scale-95"
       >
-        {t(paywall === "guest" ? "paywallGuestCta" : "paywallProCta")}
+        {paywall === "guest" ? t("paywallGuestCta") : tPro("cta")}
       </Link>
     </div>
   ) : (

@@ -97,6 +97,11 @@ export default function SpotSheet({
   onSavedChange?: (slug: string, saved: boolean) => void;
 }) {
   const t = useTranslations("Explore");
+  // Pro-Texte kommen aus dem Pro-Namensraum, auch hier: Der Satz über einen gesperrten Spot
+  // und die Beschriftung des Knopfs standen früher in JEDEM Namensraum nochmal (Explore,
+  // Detail, Tours, Ai) und liefen beim ersten Feinschliff auseinander. Eine Quelle, neun
+  // Sprachen, ein Wortlaut.
+  const tPro = useTranslations("Pro");
   const locale = useLocale();
   const gate = useLoginGate();
   // Stabile Viewport-Höhe: Vorher window.innerHeight an einem resize-Listener – und
@@ -308,10 +313,10 @@ export default function SpotSheet({
                 href="/pro"
                 className="mt-3 block shrink-0 rounded-full bg-accent px-5 py-3 text-center text-[15px] font-semibold text-white active:scale-[0.98]"
               >
-                {t("unlock")}
+                {tPro("cta")}
               </Link>
               <p className="mt-3 shrink-0 text-[14px] leading-snug text-muted">
-                {t("proTeaser")}
+                {tPro("spotTeaser")}
               </p>
             </>
           ) : (

@@ -6,7 +6,7 @@
     "exploreTitle": "Explorar",
     "exploreDescription": "Salzburgo sin estrés: los mejores lugares, seleccionados por locales.",
     "proTitle": "Pro",
-    "proDescription": "Todos los lugares secretos, todas las audioguías y Toni sin límites. Pago único, sin suscripción."
+    "proDescription": "Todos los sitios bloqueados, cada ruta de audio entera, Toni sin límite. Pagas una vez, sin suscripción."
   },
   "Common": {
     "back": "Atrás",
@@ -44,9 +44,8 @@
     "prev": "Parada anterior",
     "next": "Siguiente parada",
     "seek": "Buscar",
-    "lockedTitle": "Continúa con SalzGuide Pro",
-    "lockedBody": "Las primeras paradas son gratis. Desbloquea la audioguía completa con Pro.",
-    "unlock": "Desbloquear SalzGuide Pro",
+    "lockedTitle": "A partir de aquí sigue Pro",
+    "lockedBody": "Las primeras paradas son gratis. El resto de la ruta está detrás de Pro.",
     "noAudio": "Todavía no hay audio para esta parada.",
     "readMore": "Leer más",
     "readLess": "Menos",
@@ -172,15 +171,12 @@
     "paywallGuestBody": "Regístrate gratis y pregúntale a Toni más a menudo.",
     "paywallGuestCta": "Registrarse gratis",
     "paywallProTitle": "Límite diario alcanzado",
-    "paywallProBody": "Con SalzGuide Pro le preguntas a Toni sin límites y desbloqueas todos los lugares secretos.",
-    "paywallProCta": "Descubre SalzGuide Pro"
+    "paywallProBody": "Con Pro preguntas a Toni sin límite. Y los sitios bloqueados también se abren."
   },
   "Explore": {
     "summer": "Verano",
     "winter": "Invierno",
     "lockedLabel": "🤫 Secreto",
-    "proTeaser": "Este lugar forma parte de SalzGuide Pro. Desbloquea todos los destacados ocultos.",
-    "unlock": "Desbloquear SalzGuide Pro",
     "more": "Ver más",
     "save": "Guardar",
     "saved": "Guardado",
@@ -287,8 +283,6 @@
     "headFoodB": "Nivel de precios",
     "headLocation": "Ubicación y accesos",
     "proTitle": "Lugar Pro",
-    "proTeaser": "Este lugar forma parte de SalzGuide Pro. Desbloquea todos los destacados ocultos.",
-    "unlock": "Desbloquear SalzGuide Pro",
     "lockedLabel": "🤫 Secreto",
     "openMap": "Abrir mapa",
     "elevation": {
@@ -361,13 +355,14 @@
   },
   "Pro": {
     "title": "SalzGuide",
-    "subtitle": "Desbloquea los lugares secretos y saca el máximo partido a la región de Salzburgo.",
-    "feat1": "Todos los lugares secretos desbloqueados",
-    "feat2": "Acceso completo a todas las audioguías (escuchar y leer)",
-    "feat3": "Pregúntale a Toni, tu local con IA, sin límites",
-    "feat4": "Paga una vez, sin suscripción, para siempre",
+    "subtitle": "Sin Pro, esta parte del mapa sigue cerrada.",
+    "feat1": "Todos los sitios bloqueados del mapa",
+    "feat2": "Las rutas de audio enteras, no solo las primeras paradas",
+    "feat3": "Preguntar a Toni sin límite",
+    "feat4": "Pagas una vez y es tuyo",
     "oneTime": "pago único · sin suscripción",
-    "cta": "Consigue Pro ahora",
+    "cta": "Activar Pro",
+    "spotTeaser": "Este sitio se abre con Pro. Y con él todos los demás bloqueados.",
     "redirecting": "Continuando a Stripe …",
     "securePay": "Pago seguro con Stripe",
     "legalHint": "Al comprar aceptas las <terms>condiciones</terms>. Todo sobre el derecho de desistimiento está en la <cancel>información de desistimiento</cancel>.",
@@ -404,9 +399,9 @@
         "body": "Invita la casa. Desde ahora todos los spots Pro están abiertos para ti."
       }
     },
-    "heroTitle": "Toda la región de Salzburgo desbloqueada",
-    "heroSubtitle": "Todos los lugares secretos, todas las audioguías y Toni sin límites. Hecho por locales, sin postales para turistas.",
-    "trustLocal": "Hecho por salzburgueses: consejos de insider de verdad.",
+    "heroTitle": "Los sitios por los que pasas de largo",
+    "heroSubtitle": "En el mapa hay sitios bloqueados. Con Pro se abren.",
+    "heroLockedRounded": "{count}+ sitios están bloqueados en el mapa. Con Pro se abren.",
     "exploreCta": "Explorar ahora"
   },
   "Account": {

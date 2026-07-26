@@ -39,6 +39,7 @@ export default function TourView({
   topRight?: React.ReactNode;
 }) {
   const t = useTranslations("Tours");
+  const tPro = useTranslations("Pro"); // Knopfbeschriftung: eine Quelle, siehe SpotSheet.tsx
   const [active, setActive] = useState(0);
   const [focused, setFocused] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
@@ -208,7 +209,7 @@ export default function TourView({
             href="/pro"
             className="mt-3 inline-block rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white active:scale-[0.98]"
           >
-            {t("unlock")}
+            {tPro("cta")}
           </Link>
         </div>
       ) : !hasAudio && !hasText ? (
@@ -314,7 +315,7 @@ export default function TourView({
             href="/pro"
             className="rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white active:scale-[0.98]"
           >
-            {t("unlock")}
+            {tPro("cta")}
           </Link>
         </div>
       )}
