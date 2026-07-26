@@ -356,13 +356,13 @@
   "Pro": {
     "title": "SalzGuide",
     "subtitle": "Without Pro this part of the map stays shut.",
-    "feat1": "Every locked spot on the map",
+    "feat1": "Every locked spot, with the tip and the drive",
     "feat2": "Audio tours in full, not just the first stops",
-    "feat3": "Ask Toni without a limit",
-    "feat4": "Pay once, yours for good",
+    "feat3": "Ask Toni as often as you want",
+    "feat4": "Pay once, no subscription, stays yours",
     "oneTime": "one-time · no subscription",
     "cta": "Unlock Pro",
-    "spotTeaser": "This spot opens with Pro. And every other locked one with it.",
+    "spotTeaser": "Pro opens this spot, the tip that goes with it, and every other locked one.",
     "redirecting": "Continuing to Stripe …",
     "securePay": "Secure payment via Stripe",
     "legalHint": "By buying you agree to our <terms>terms</terms>. Everything about the right of withdrawal is in the <cancel>withdrawal policy</cancel>.",
@@ -400,8 +400,8 @@
       }
     },
     "heroTitle": "The spots you drive straight past",
-    "heroSubtitle": "Spots sit locked on the map. Pro opens them.",
-    "heroLockedRounded": "{count}+ spots sit locked on the map. Pro opens them.",
+    "heroSubtitle": "One tap instead of 30 tabs: the tip, opening hours and the drive come with it.",
+    "heroLockedRounded": "{count}+ of them are locked. One tap instead of 30 tabs, it all comes with it.",
     "exploreCta": "Start exploring"
   },
   "Account": {

@@ -356,13 +356,13 @@
   "Pro": {
     "title": "SalzGuide",
     "subtitle": "Pro가 없으면 지도의 이 부분은 잠긴 채로 남아요.",
-    "feat1": "지도에 잠긴 스팟 전부",
+    "feat1": "잠긴 스팟 전부, 팁과 가는 길까지",
     "feat2": "오디오 투어를 처음 몇 곳이 아니라 끝까지",
-    "feat3": "토니에게 무제한으로 묻기",
-    "feat4": "한 번 결제, 계속 사용",
+    "feat3": "토니에게 몇 번이든 물어보기",
+    "feat4": "한 번 결제, 구독 없음, 계속 사용",
     "oneTime": "1회 결제 · 구독 없음",
     "cta": "Pro 시작하기",
-    "spotTeaser": "이 스팟은 Pro로 열려요. 잠긴 다른 스팟도 함께요.",
+    "spotTeaser": "Pro면 이 스팟과 팁, 그리고 잠긴 다른 스팟까지 다 열려요.",
     "redirecting": "Stripe로 이동 중 …",
     "securePay": "Stripe를 통한 안전한 결제",
     "legalHint": "구매하면 <terms>이용약관</terms>에 동의하게 돼요. 철회권에 관한 내용은 <cancel>철회 안내</cancel>에 있어요.",
@@ -400,8 +400,8 @@
       }
     },
     "heroTitle": "그냥 지나치게 되는 곳들",
-    "heroSubtitle": "지도에는 잠긴 스팟이 있어요. Pro면 다 열려요.",
-    "heroLockedRounded": "지도에 잠긴 스팟이 {count}곳 넘게 있어요. Pro면 다 열려요.",
+    "heroSubtitle": "탭 30개 대신 한 번이면 돼요. 팁과 영업시간, 가는 길까지 함께 나와요.",
+    "heroLockedRounded": "그중 {count}곳 넘게 잠겨 있어요. 탭 30개 대신 한 번이면 다 나와요.",
     "exploreCta": "둘러보기 시작"
   },
   "Account": {

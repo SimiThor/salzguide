@@ -356,13 +356,13 @@
   "Pro": {
     "title": "SalzGuide",
     "subtitle": "没有 Pro，地图的这一部分一直锁着。",
-    "feat1": "地图上所有锁住的地点",
+    "feat1": "所有锁住的地点，连建议和路线一起",
     "feat2": "语音导览完整收听，不只是前几站",
-    "feat3": "无限次问 Toni",
-    "feat4": "一次付费，永久有效",
+    "feat3": "想问几次就问 Toni 几次",
+    "feat4": "一次付费，无订阅，永久有效",
     "oneTime": "一次性付费 · 非订阅",
     "cta": "开通 Pro",
-    "spotTeaser": "这个地点用 Pro 就能看。其他锁着的也一起打开。",
+    "spotTeaser": "开通 Pro 就能看到这个地点、配套的建议，以及其他锁住的地点。",
     "redirecting": "正在前往 Stripe……",
     "securePay": "通过 Stripe 安全付款",
     "legalHint": "购买即表示你同意我们的<terms>条款</terms>。关于撤销权的全部说明见<cancel>撤销权说明</cancel>。",
@@ -400,8 +400,8 @@
       }
     },
     "heroTitle": "那些你会直接开过去的地方",
-    "heroSubtitle": "地图上有些地点锁着。开通 Pro 就能打开。",
-    "heroLockedRounded": "地图上还有 {count}+ 个地点锁着。开通 Pro 就能打开。",
+    "heroSubtitle": "点一下就够，不用开 30 个标签页。建议、营业时间和路线都在里面。",
+    "heroLockedRounded": "其中 {count}+ 个还锁着。点一下代替 30 个标签页，需要的都在里面。",
     "exploreCta": "开始探索"
   },
   "Account": {
