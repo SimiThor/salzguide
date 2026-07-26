@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { createCheckoutSession } from "@/lib/stripe-actions";
-import LoginForm from "@/components/LoginForm";
+import LoginPanel from "@/components/auth/LoginPanel";
 import { ProWordmark } from "@/components/ProBadge";
 import { PRO_FEATURES } from "@/components/proFeatures";
 
@@ -176,13 +176,16 @@ export default function ProLanding({
             {busy ? t("redirecting") : t("cta")}
           </button>
 
-          {/* Gast: E-Mail-Abfrage erst nach Kauf-Klick (Progressive Disclosure). */}
+          {/* Gast: E-Mail-Abfrage erst nach Kauf-Klick (Progressive Disclosure). Derselbe
+              Login-Screen wie überall, nur mit dem Anlass "pro" — Emoji 🔓, Überschrift
+              "Fast geschafft". Der frühere Extra-Satz darüber ist weg; der Kopf sagt es
+              schon. Wichtig: der Untertitel wechselt hier auf die BEZAHLTE Variante
+              (siehe isPaidReason). "Kostenlos, ohne Passwort" direkt vor der Kasse wäre
+              eine Lüge, und zwar an der teuersten Stelle. */}
           {showLogin && !isLoggedIn && (
-            <div className="mt-4 border-t border-black/[0.06] pt-4">
-              <p className="mb-3 text-center text-[13px] leading-relaxed text-muted">
-                {t("loginNudge")}
-              </p>
-              <LoginForm
+            <div className="mt-5 border-t border-black/[0.06] pt-6">
+              <LoginPanel
+                reason="pro"
                 next={`/${locale}/pro?checkout=1`}
                 googleEnabled={googleEnabled}
                 relaunchNotice={relaunchNotice}

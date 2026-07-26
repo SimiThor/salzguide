@@ -359,7 +359,6 @@
   },
   "Saved": {
     "title": "Gespeichert",
-    "loginNeeded": "Melde dich an, um deine gespeicherten Spots & Events zu sehen.",
     "empty": "Noch nichts gespeichert. Tippe bei Spots oder Events auf das Lesezeichen, um sie hier zu sammeln.",
     "eventsTitle": "Events",
     "spotsTitle": "Spots",
@@ -367,29 +366,42 @@
     "discover": "Entdecken"
   },
   "Auth": {
-    "relaunchNotice": "✨ Der neue SalzGuide ist da. Dein Pro von der alten Seite läuft weiter: gleiche E-Mail rein, Passwort brauchst du keins.",
-    "joinTitle": "Anmelden oder Konto erstellen",
-    "joinSubtitle": "Mit deiner E-Mail – ganz ohne Passwort. Speichere deine Lieblings-Spots und plane deine Trips.",
     "emailPlaceholder": "deine@email.at",
-    "newsletter": "Schick mir gelegentlich Tipps, neue Spots & Updates per E-Mail (jederzeit abbestellbar).",
-    "submit": "Login-Link senden",
+    "newsletter": "Ja, schick mir neue Spots und Tipps von SalzGuide per E-Mail. Abmelden jederzeit.",
+    "submit": "Anmelde-Link schicken",
     "googleCta": "Weiter mit Google",
     "or": "oder",
     "sending": "Wird gesendet …",
     "preparing": "Roboter-Check … 🤖",
     "captchaUnavailable": "Der Sicherheitscheck klappt gerade nicht. Bitte lade die Seite neu.",
     "captchaUnavailableGoogle": "Der Sicherheitscheck klappt gerade nicht. Nutze bitte den Google-Login oben oder lade die Seite neu.",
-    "error": "Hat nicht geklappt – bitte E-Mail prüfen und nochmal versuchen.",
+    "error": "Hat nicht geklappt. Bitte versuch es nochmal.",
     "captchaError": "Bitte bestätige kurz, dass du kein Roboter bist, und versuch's nochmal.",
-    "sentTitle": "Schau in dein Postfach!",
-    "sentBody": "Wir haben dir einen Login-Link geschickt. Tippe darauf, um dich anzumelden.",
-    "legalHint": "Mit dem Login stimmst du den <terms>AGB</terms> und der <privacy>Datenschutzerklärung</privacy> zu.",
+    "sentTitle": "Schau in dein Postfach",
+    "sentBody": "Wir haben dir einen Link an <mail>{email}</mail> geschickt. Tippe darauf, fertig.",
+    "legalHint": "Mit dem Anmelden stimmst du den <terms>AGB</terms> und der <privacy>Datenschutzerklärung</privacy> zu.",
     "profileTitle": "Profil",
     "loggedInAs": "Angemeldet als",
     "proStatus": "SalzGuide Pro ist aktiv",
     "freeStatus": "Kostenloses Konto",
     "free": "Free",
-    "logout": "Abmelden"
+    "logout": "Abmelden",
+    "reasonTitle": {
+      "default": "Anmelden",
+      "saveSpot": "Spot merken",
+      "saveEvent": "Event merken",
+      "buildTour": "Eigene Runde bauen",
+      "saved": "Deine Merkliste",
+      "pro": "Fast geschafft"
+    },
+    "subtitleFree": "Kostenlos, ohne Passwort.",
+    "subtitlePaid": "Nur noch deine E-Mail, dann geht es zur Zahlung.",
+    "relaunchTitle": "Schon länger dabei?",
+    "relaunchBody": "Dein Pro von der alten Seite läuft weiter. Gleiche E-Mail, kein Passwort.",
+    "emailLabel": "E-Mail-Adresse",
+    "emailError": "Diese E-Mail-Adresse sieht nicht richtig aus.",
+    "rateError": "Zu viele Versuche. Probier es in ein paar Minuten nochmal.",
+    "changeEmail": "Adresse ändern"
   },
   "Pro": {
     "title": "SalzGuide",
@@ -427,7 +439,6 @@
     },
     "heroTitle": "Das ganze Salzburger Land freigeschaltet",
     "heroSubtitle": "Alle Geheimtipps, Audio-Touren und Toni ohne Limit. Von Locals gemacht – kein Touri-Kitsch.",
-    "loginNudge": "Nur noch deine E-Mail: Wir schicken dir einen Login-Link, danach geht's direkt zur Zahlung.",
     "trustLocal": "Von Salzburgern gemacht – echte Geheimtipps.",
     "exploreCta": "Jetzt entdecken"
   },
@@ -493,25 +504,6 @@
     "deOnly": "Diese Rechtstexte sind nur auf Deutsch verfügbar; rechtlich verbindlich ist die deutsche Fassung."
   },
   "LoginGate": {
-    "cta": "Kostenlos anmelden",
-    "hint": "Mit deiner E-Mail, ohne Passwort.",
-    "reason": {
-      "default": {
-        "title": "Dafür brauchst du ein Konto",
-        "body": "Kurz anmelden, dann machst du hier weiter."
-      },
-      "saveSpot": {
-        "title": "Spot merken",
-        "body": "Landet in deiner Liste – damit du ihn wiederfindest, wenn du wirklich hin willst."
-      },
-      "saveEvent": {
-        "title": "Event merken",
-        "body": "Landet in deiner Liste – damit du den Termin nicht verschwitzt."
-      },
-      "buildTour": {
-        "title": "Eigene Runde bauen",
-        "body": "Damit deine Runde nicht weg ist, sobald du die Seite zumachst. Fertige Runden hörst du auch ohne."
-      }
-    }
+    "cta": "Kostenlos anmelden"
   }
 }

@@ -60,7 +60,23 @@ function isValidEmail(email: string): boolean {
   );
 }
 
-export type MagicLinkState = { ok: boolean; error?: string } | null;
+/**
+ * Was der Login-Screen vom Server zurückbekommt.
+ *
+ * `error` ist eine feste, kurze Liste von Codes ("email" | "captcha" | "rate" | "send") und
+ * NIE die Original-Meldung von Supabase. Die stand hier vorher drin und ging damit an den
+ * Browser: Sätze wie „Email rate limit exceeded" verraten Fremden, wie unser Mail-Kontingent
+ * eingestellt ist und wo die Grenzen liegen — kostenlose Aufklärung für jeden, der die Seite
+ * abklopft. Die echte Meldung gehört ins Server-Log, der Mensch bekommt einen Satz, mit dem
+ * er etwas anfangen kann.
+ *
+ * `email` kommt bei Erfolg zurück, damit der Screen die Adresse zeigen kann, an die wirklich
+ * gesendet wurde (getrimmt und kleingeschrieben) — das deckt Tippfehler auf.
+ */
+export type MagicLinkState =
+  | { ok: true; email: string }
+  | { ok: false; error: string }
+  | null;
 
 // Magic-Link senden (Login/Signup ohne Passwort) + optionale Newsletter-Einwilligung
 export async function sendMagicLink(
@@ -91,20 +107,53 @@ export async function sendMagicLink(
   const nextPath = safeNext(formData.get("next"), locale);
   const origin = await authOrigin();
 
+  // ── Newsletter: die Einwilligung reist mit dem Link, sie wird hier NICHT gespeichert ──
+  //
+  // Vorher hing sie als `data: { newsletter_opt_in }` an signInWithOtp. Das hatte zwei
+  // Löcher, und beide sind rechtliche, nicht kosmetische:
+  //
+  //   1. Supabase wertet `data` NUR aus, wenn der Mensch neu ist. Wer schon ein Konto hatte
+  //      und beim nächsten Login das Häkchen setzte, hakte ins Leere: Der Trigger lief nicht
+  //      mehr, die Einwilligung fiel still unter den Tisch. Man bestellt etwas und bekommt
+  //      es nie.
+  //   2. GoTrue legt die Zeile in auth.users schon beim VERSENDEN an, nicht erst beim
+  //      Klicken. Der Trigger schrieb die Einwilligung also fest, bevor irgendwer bewiesen
+  //      hatte, dass ihm die Adresse gehört. Wer eine fremde Adresse eintippte und das
+  //      Häkchen setzte, meldete damit einen fremden Menschen zum Newsletter an.
+  //
+  // Jetzt hängt die Einwilligung als `nl=1` am Rücksprung-Link und wird erst im Callback
+  // gespeichert — also erst, nachdem jemand den Link in DIESEM Postfach geöffnet hat. Das
+  // ist ein echtes Double-Opt-in (§ 174 TKG / Art. 7 DSGVO: nachweisbare Einwilligung), und
+  // es kostet keinen zusätzlichen Schritt, weil der Link ohnehin geklickt werden muss.
+  const callback =
+    `${origin}/${locale}/auth/callback?next=${encodeURIComponent(nextPath)}` +
+    (newsletter ? "&nl=1" : "");
+
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithOtp({
     email,
-    options: {
-      emailRedirectTo: `${origin}/${locale}/auth/callback?next=${encodeURIComponent(nextPath)}`,
-      data: { newsletter_opt_in: newsletter },
-    },
+    options: { emailRedirectTo: callback },
   });
 
   if (error) {
-    console.error("signInWithOtp error:", error.message, "redirect:", `${origin}/${locale}/auth/callback`);
-    return { ok: false, error: error.message };
+    // Volle Meldung ins Log (dort gehört sie hin), knapper Code an den Browser.
+    console.error(
+      "signInWithOtp error:",
+      error.status,
+      error.code,
+      error.message,
+      "redirect:",
+      `${origin}/${locale}/auth/callback`,
+    );
+    // 429 = zu oft probiert. Das darf der Mensch erfahren: Es sagt ihm, dass Warten hilft,
+    // statt ihn dieselbe Adresse zehnmal neu eintippen zu lassen. Und es verrät nichts über
+    // fremde Konten — die Grenze hängt an Adresse und IP des Absenders, nicht daran, ob es
+    // das Konto gibt.
+    const rateLimited =
+      error.status === 429 || (error.code ?? "").includes("rate_limit");
+    return { ok: false, error: rateLimited ? "rate" : "send" };
   }
-  return { ok: true };
+  return { ok: true, email };
 }
 
 // Login/Signup via Google (OAuth, PKCE). Supabase generiert die Google-URL + legt den

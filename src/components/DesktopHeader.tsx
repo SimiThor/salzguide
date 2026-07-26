@@ -7,6 +7,7 @@ import { Link, usePathname } from "@/i18n/navigation";
 import LanguageSwitcher from "./LanguageSwitcher";
 import AiSparkle from "./ai/AiSparkle";
 import { useAi } from "./ai/AiProvider";
+import { BookmarkFilled } from "./icons";
 import { NAV_ITEMS } from "@/lib/nav";
 
 function ChevronDown({ open }: { open: boolean }) {
@@ -134,8 +135,14 @@ export default function DesktopHeader() {
                         active ? "bg-accent/10 text-accent" : "text-ink hover:bg-black/5"
                       }`}
                     >
-                      <span className="text-[18px] leading-none" aria-hidden>
-                        {item.emoji}
+                      {/* Ohne Emoji zeichnet der Punkt sein echtes Symbol (heute nur
+                          "Gespeichert" = Lesezeichen). Feste Breite, damit die Namen
+                          daneben in einer Flucht stehen, egal ob Emoji oder Zeichnung. */}
+                      <span
+                        className="grid w-[18px] shrink-0 place-items-center text-[18px] leading-none"
+                        aria-hidden
+                      >
+                        {item.emoji ?? <BookmarkFilled className="h-[17px] w-[17px]" />}
                       </span>
                       <span className="flex-1 text-[15px] font-medium">
                         {t(`Nav.${item.key}`)}

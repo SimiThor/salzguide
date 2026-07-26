@@ -23,8 +23,15 @@ export type NavItem = {
   /** Nav.<key> in den Übersetzungen. */
   key: string;
   href: NavHref;
-  /** Icon fürs PC-"Mehr"-Untermenü. */
-  emoji: string;
+  /**
+   * Icon fürs PC-"Mehr"-Untermenü.
+   *
+   * Optional, weil nicht jeder Punkt ein Emoji verträgt: "Gespeichert" trägt in der ganzen
+   * App ein gezeichnetes Lesezeichen (Merken-Knopf, untere Leiste, Login-Screen). Das
+   * Emoji-Lesezeichen wäre dieselbe Sache in einer zweiten Form. Fehlt das Emoji, zeichnet
+   * DesktopHeader das echte Symbol.
+   */
+  emoji?: string;
   /** Am PC sofort in der Leiste (true) oder im "Mehr"-Untermenü (false). */
   primary: boolean;
 };
@@ -34,6 +41,6 @@ export const NAV_ITEMS: NavItem[] = [
   { key: "tours", href: "/touren", emoji: "🎧", primary: false },
   { key: "water", href: "/wasser", emoji: "🌊", primary: false },
   { key: "events", href: "/events", emoji: "🎫", primary: true },
-  { key: "saved", href: "/gespeichert", emoji: "🔖", primary: true },
+  { key: "saved", href: "/gespeichert", primary: true },
   { key: "profile", href: "/profil", emoji: "👤", primary: true },
 ];
