@@ -146,8 +146,14 @@ async function signInBuyer(
       console.error("[pro] Anmeldelink nicht erzeugbar", error?.message);
       return false;
     }
+    // Die Token-Art kommt aus der Antwort und wird NICHT auf "magiclink" festgenagelt.
+    // Supabase legt bei `generateLink` ein Konto an, falls es die Adresse noch nicht gibt —
+    // und liefert dann ein Signup-Token. Wer das als Magic-Link einzulösen versucht, bekommt
+    // „otp_expired", und der frisch bezahlte Käufer landete ohne erkennbaren Grund auf dem
+    // Umweg über sein Postfach. Hier kann das eigentlich nicht passieren (das Konto haben wir
+    // eine Zeile vorher selbst angelegt), aber die Antwort weiss es besser als eine Annahme.
     const { error: verifyError } = await supabase.auth.verifyOtp({
-      type: "magiclink",
+      type: data.properties.verification_type ?? "magiclink",
       token_hash: tokenHash,
     });
     if (verifyError) {
