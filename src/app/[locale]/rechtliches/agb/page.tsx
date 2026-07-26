@@ -54,9 +54,11 @@ export default async function AgbPage({
 
       <h2>4. Vertragsschluss über SalzGuide Pro</h2>
       <p>
-        Die Darstellung von Pro in der App ist eine Einladung zur Bestellung. Mit Klick auf den
-        Zahlungs-Button gibst du ein verbindliches Angebot ab. Der Vertrag kommt zustande, sobald wir
-        die Zahlung bestätigen bzw. den Zugang freischalten. Vertragssprache ist Deutsch.
+        Die Darstellung von Pro in der App ist eine Einladung zur Bestellung. Mit Klick auf
+        „Jetzt kaufen“ gibst du eine verbindliche, zahlungspflichtige Bestellung ab; die Zahlung
+        selbst wickelst du anschließend bei unserem Zahlungsdienstleister ab. Der Vertrag kommt
+        zustande, sobald wir die Zahlung bestätigen bzw. den Zugang freischalten. Vertragssprache
+        ist Deutsch.
       </p>
       <p>
         Unmittelbar nach dem Kauf senden wir dir die Bestätigung des Vertrags auf einem dauerhaften

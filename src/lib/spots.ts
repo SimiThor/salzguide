@@ -150,38 +150,6 @@ export const getSpotCount = cache(async function getSpotCount(): Promise<SpotCou
     : { value: count, rounded: false };
 });
 
-// Wie viele Spots hinter Pro liegen. Dieselbe Zählung und dieselbe Rundung wie oben, nur
-// mit `is_pro = true`.
-//
-// WOFÜR: Der Satz auf /pro („so viele Spots siehst du noch nicht") ist das ehrlichste
-// Verkaufsargument, das wir haben — aber nur, solange die Zahl aus der Datenbank kommt.
-// Eine getippte Zahl in einem Übersetzungstext wäre am Tag nach dem nächsten neuen Spot
-// falsch, und die Zielgruppe riecht eine aufgeblasene Zahl zuerst (siehe BRAND_VOICE).
-// Deshalb steht sie nirgends im Text, sondern nur als Platzhalter.
-//
-// Abgerundet wie beim Gesamt-Count: „40+" muss bei 47 wahr sein. Unter 10 exakt, sonst
-// stünde dort „0+".
-export const getProSpotCount = cache(async function getProSpotCount(): Promise<SpotCount | null> {
-  // Service-Client, nicht anon: Die RLS aus 0017 versteckt Pro-Spots vor Ausgeloggten, und
-  // ausgerechnet die sollen hier gezählt werden. Eine Zahl verrät keine Titel und keine
-  // Koordinaten.
-  const supabase = createServiceClient();
-  const { count, error } = await supabase
-    .from("spots")
-    .select("id", { count: "exact", head: true })
-    .eq("status", "published")
-    .eq("is_pro", true);
-
-  if (error || count == null || count === 0) {
-    // Keine Pro-Spots (oder Zählung kaputt) -> die Aussage fällt weg, statt zu raten.
-    if (error) console.error("getProSpotCount:", error.message);
-    return null;
-  }
-  return count >= 10
-    ? { value: Math.floor(count / 10) * 10, rounded: true }
-    : { value: count, rounded: false };
-});
-
 // Die im Admin für die Startseite ausgewählten Spots (spots.home_rank), in ihrer
 // Reihenfolge. Eine Seite über schöne Orte muss ein paar davon zeigen.
 //

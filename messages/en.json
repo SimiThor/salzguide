@@ -356,17 +356,18 @@
   "Pro": {
     "title": "SalzGuide",
     "subtitle": "Without Pro this part of the map stays shut.",
-    "feat1": "Every locked spot, with the insider tip",
+    "feat1": "Every locked spot, with insider tips",
     "feat2": "Hikes with the route, each one walked ourselves",
-    "feat3": "Audio tours in full, not just the first stops",
+    "feat3": "Every spot seen ourselves, recommended from the heart",
     "feat4": "Ask Toni as often as you want",
     "oneTime": "one-time · no subscription",
     "cta": "Unlock Pro",
+    "buy": "Buy now",
     "spotTeaser": "Pro opens this spot, the tip that goes with it, and every other locked one.",
     "redirecting": "Continuing to Stripe …",
     "securePay": "Secure payment via Stripe",
     "legalHint": "By buying you agree to our <terms>terms</terms>. Everything about the right of withdrawal is in the <cancel>withdrawal policy</cancel>.",
-    "consentLabel": "I request immediate activation and confirm that I thereby lose my <w>right of withdrawal</w> (§ 18 FAGG).",
+    "consentLabel": "I request immediate activation and confirm that I thereby lose my <w>right of withdrawal</w> (§ 18 Abs. 1 Z 11 FAGG).",
     "consentRequired": "Please confirm immediate activation to continue.",
     "error": "That didn't work. Please try again.",
     "tooMany": "Give it a moment and try again.",
@@ -400,8 +401,6 @@
       }
     },
     "heroTitle": "The spots you drive straight past",
-    "heroSubtitle": "Every spot seen ourselves, every recommendation from the heart.",
-    "heroLockedRounded": "{count}+ of them are locked. Every spot seen ourselves, every recommendation from the heart.",
     "exploreCta": "Start exploring"
   },
   "Account": {

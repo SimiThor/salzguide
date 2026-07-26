@@ -356,17 +356,18 @@
   "Pro": {
     "title": "SalzGuide",
     "subtitle": "Sans Pro, cette partie de la carte reste fermée.",
-    "feat1": "Tous les spots verrouillés, avec le conseil de local",
+    "feat1": "Tous les spots verrouillés, avec les conseils de locaux",
     "feat2": "Des randos avec le tracé, faites par nous",
-    "feat3": "Les parcours audio en entier, pas juste le début",
+    "feat3": "Chaque spot vu par nous, conseillé du cœur",
     "feat4": "Demander à Toni sans limite",
     "oneTime": "paiement unique · sans abonnement",
     "cta": "Débloquer Pro",
+    "buy": "Acheter maintenant",
     "spotTeaser": "Avec Pro tu vois ce coin, le conseil qui va avec et tous les autres verrouillés.",
     "redirecting": "Redirection vers Stripe …",
     "securePay": "Paiement sécurisé via Stripe",
     "legalHint": "En achetant, tu acceptes les <terms>CGV</terms>. Tout sur le droit de rétractation se trouve dans les <cancel>informations sur la rétractation</cancel>.",
-    "consentLabel": "Je demande l'activation immédiate et je confirme que je perds ainsi mon <w>droit de rétractation</w> (§ 18 FAGG).",
+    "consentLabel": "Je demande l'activation immédiate et je confirme que je perds ainsi mon <w>droit de rétractation</w> (§ 18 Abs. 1 Z 11 FAGG).",
     "consentRequired": "Confirme l'activation immédiate pour continuer.",
     "error": "Ça n'a pas marché. Réessaie.",
     "tooMany": "Attends un instant et réessaie.",
@@ -400,8 +401,6 @@
       }
     },
     "heroTitle": "Les spots que tu rates sans le savoir",
-    "heroSubtitle": "Chaque spot vu par nous, chaque conseil qui vient du cœur.",
-    "heroLockedRounded": "{count}+ sont verrouillés. Chaque spot vu par nous, chaque conseil qui vient du cœur.",
     "exploreCta": "Commencer à explorer"
   },
   "Account": {
