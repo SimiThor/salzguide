@@ -6,7 +6,7 @@
     "exploreTitle": "探索",
     "exploreDescription": "萨尔茨堡，轻松游——由本地人精选的最棒去处。",
     "proTitle": "Pro",
-    "proDescription": "所有锁住的地点、完整的语音导览、无限次的 Toni。一次付费，无订阅。"
+    "proDescription": "附带本地人建议的锁住地点、带路线的徒步、完整语音导览和无限次的 Toni。一次付费，无订阅。"
   },
   "Common": {
     "back": "返回",
@@ -356,10 +356,10 @@
   "Pro": {
     "title": "SalzGuide",
     "subtitle": "没有 Pro，地图的这一部分一直锁着。",
-    "feat1": "所有锁住的地点，连建议和路线一起",
-    "feat2": "语音导览完整收听，不只是前几站",
-    "feat3": "想问几次就问 Toni 几次",
-    "feat4": "一次付费，无订阅，永久有效",
+    "feat1": "所有锁住的地点，附带本地人的建议",
+    "feat2": "徒步路线，我们都亲自走过",
+    "feat3": "语音导览完整收听，不只是前几站",
+    "feat4": "想问几次就问 Toni 几次",
     "oneTime": "一次性付费 · 非订阅",
     "cta": "开通 Pro",
     "spotTeaser": "开通 Pro 就能看到这个地点、配套的建议，以及其他锁住的地点。",
@@ -400,8 +400,8 @@
       }
     },
     "heroTitle": "那些你会直接开过去的地方",
-    "heroSubtitle": "点一下就够，不用开 30 个标签页。建议、营业时间和路线都在里面。",
-    "heroLockedRounded": "其中 {count}+ 个还锁着。点一下代替 30 个标签页，需要的都在里面。",
+    "heroSubtitle": "每条路线我们都亲自走过，每个地点都亲自去过。",
+    "heroLockedRounded": "其中 {count}+ 个还锁着。每条路线我们都亲自走过，每个地点都亲自去过。",
     "exploreCta": "开始探索"
   },
   "Account": {

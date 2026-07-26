@@ -6,7 +6,7 @@
     "exploreTitle": "Explorer",
     "exploreDescription": "Salzburg sans stress – les meilleurs spots, sélectionnés par des locaux.",
     "proTitle": "Pro",
-    "proDescription": "Tous les spots verrouillés, chaque parcours audio en entier, Toni sans limite. Tu paies une fois, sans abonnement."
+    "proDescription": "Spots verrouillés avec le conseil de local, randos avec le tracé, parcours audio en entier et Toni sans limite. Un paiement, sans abonnement."
   },
   "Common": {
     "back": "Retour",
@@ -356,10 +356,10 @@
   "Pro": {
     "title": "SalzGuide",
     "subtitle": "Sans Pro, cette partie de la carte reste fermée.",
-    "feat1": "Tous les spots verrouillés, conseil et trajet inclus",
-    "feat2": "Les parcours audio en entier, pas juste le début",
-    "feat3": "Demander à Toni sans limite",
-    "feat4": "Un paiement, sans abonnement, c'est à toi",
+    "feat1": "Tous les spots verrouillés, avec le conseil de local",
+    "feat2": "Des randos avec le tracé, faites par nous",
+    "feat3": "Les parcours audio en entier, pas juste le début",
+    "feat4": "Demander à Toni sans limite",
     "oneTime": "paiement unique · sans abonnement",
     "cta": "Débloquer Pro",
     "spotTeaser": "Avec Pro tu vois ce coin, le conseil qui va avec et tous les autres verrouillés.",
@@ -400,8 +400,8 @@
       }
     },
     "heroTitle": "Les spots que tu rates sans le savoir",
-    "heroSubtitle": "Un tap au lieu de 30 onglets : conseil, horaires et trajet inclus.",
-    "heroLockedRounded": "{count}+ sont verrouillés. Un tap au lieu de 30 onglets, tout est là.",
+    "heroSubtitle": "Chaque rando faite par nous, chaque spot vu par nous.",
+    "heroLockedRounded": "{count}+ sont verrouillés. Chaque rando faite par nous, chaque spot vu par nous.",
     "exploreCta": "Commencer à explorer"
   },
   "Account": {
