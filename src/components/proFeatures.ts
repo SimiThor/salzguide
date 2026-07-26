@@ -10,6 +10,12 @@
 // genau die Sorte Satz, die diese Marke nicht machen darf. Sobald die erste Tour live ist,
 // gehört sie zurück.
 //
+// Die vierte Zeile nennt Toni ohne Zusatz wie „gratis dazu". Das ist Absicht und trotzdem
+// sauber: Die Rechtswirkung kommt aus der Preiszuordnung in den AGB (Punkt 2 und 5) und aus
+// dem Kleingedruckten unter dem Kauf-Knopf (Pro.legalHint), nicht aus einem Wort in einer
+// Vorteils-Zeile. Eine Verkaufsseite, die sich selbst kleinredet, hilft niemandem, und eine
+// Zuordnung gehört ohnehin dorthin, wo man sie sucht.
+//
 // „Einmal zahlen, kein Abo" stand hier als fünfte Zeile und ist weg: Der Satz steht auf
 // jeder dieser Flächen ohnehin direkt am Preis. Zweimal auf einem Bildschirm ist keine
 // Betonung, sondern eine Wiederholung, und sie kostete den Platz, den die Wanderungen
