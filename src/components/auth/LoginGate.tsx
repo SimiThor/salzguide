@@ -126,10 +126,10 @@ function LoginGateSheet({
     // Wegwischen schließt". Modal (nicht floating), weil das Gate über dem bereits
     // offenen Spot-Sheet liegen muss – floating läge auf derselben Ebene.
     //
-    // elevated: Das Gate kann über einem anderen Sheet liegen (Merken IM KI-Chat).
-    // Ohne das teilen sich beide z-[70], der Backdrop bliebe darunter und zwei
+    // layer="elevated": Das Gate kann über einem anderen Sheet liegen (Merken IM
+    // KI-Chat). Ohne das teilen sich beide z-[70], der Backdrop bliebe darunter und zwei
     // cremefarbene Flächen lägen ununterscheidbar aufeinander.
-    <BottomSheet open={state != null} onClose={onClose} detents={[0.44]} elevated>
+    <BottomSheet open={state != null} onClose={onClose} detents={[0.44]} layer="elevated">
       <div className="mx-auto flex max-w-[22rem] flex-col items-center px-2 pb-2 text-center">
         <span
           className="grid h-16 w-16 place-items-center rounded-full bg-accent/10 text-[30px]"

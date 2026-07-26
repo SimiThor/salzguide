@@ -26,6 +26,22 @@ import { useKeyboard, useViewportHeight } from "@/lib/viewport";
 //   darunter durch.
 const SPRING = { type: "spring" as const, damping: 36, stiffness: 380 };
 
+// Die Ebenen-Leiter, an EINER Stelle. Backdrop und Fläche stehen immer als Paar da: Der
+// Backdrop muss direkt unter der eigenen Fläche liegen, sonst dimmt er das falsche.
+const LAYERS = {
+  // Normales Sheet über der Seite.
+  base: { backdrop: "z-[60]", sheet: "z-[70]" },
+  // Über einem anderen BottomSheet (z.B. das Login-Gate über dem offenen KI-Chat).
+  // Ohne das teilen sich beide z-[70] und der Backdrop (z-[60]) bleibt UNTER dem Sheet
+  // darunter: Der dimmt dann nur die Seite, nicht das Sheet – zwei cremefarbene Flächen
+  // liegen ununterscheidbar aufeinander.
+  elevated: { backdrop: "z-[75]", sheet: "z-[78]" },
+  // Über allem, was die Seite selbst aufmacht – auch über dem Burger-Menü (z-[70]).
+  // Der Sprachwähler steckt IM Burger-Menü und muss darüber aufgehen. Nur die Lightbox
+  // (z-[100]) liegt noch höher.
+  top: { backdrop: "z-[80]", sheet: "z-[90]" },
+} as const;
+
 // Luft über einem Sheet, das von der Tastatur zusammengedrückt wird. Ohne sie klebte der
 // Kopf am oberen Rand und das Sheet sähe aus wie eine Vollbild-Seite statt wie ein Sheet.
 const KEYBOARD_TOP_GAP = 24;
@@ -47,13 +63,9 @@ type BottomSheetProps = {
   //   die Karte bleibt scharf & bedienbar; Desktop schwebt als Karte im Kartenbereich.
   // "modal" (Default) = klassisches zentriertes Modal mit Backdrop (z. B. Demo).
   variant?: "modal" | "floating";
-  // Dieses Sheet liegt ÜBER einem anderen BottomSheet (z.B. das Login-Gate über dem
-  // offenen KI-Chat). Ohne das teilen sich beide z-[70] und der Backdrop (z-[60])
-  // bleibt UNTER dem Sheet darunter: Der dimmt dann nur die Seite, nicht das Sheet –
-  // zwei cremefarbene Flächen liegen ununterscheidbar aufeinander.
-  // Hebt Backdrop und Fläche auf 75/78 – über das normale Sheet (70), aber unter
-  // Sprachwähler (80/90) und Lightbox (100).
-  elevated?: boolean;
+  // Auf welcher Ebene das Sheet liegt – siehe LAYERS oben. Standard ist "base"; höher
+  // nur, wenn das Sheet über einem anderen aufgehen muss.
+  layer?: keyof typeof LAYERS;
 };
 
 function CloseButton({ onClose }: { onClose: () => void }) {
@@ -83,13 +95,10 @@ export default function BottomSheet({
   footer,
   children,
   variant = "modal",
-  elevated = false,
+  layer = "base",
 }: BottomSheetProps) {
   const floating = variant === "floating";
-  // Ebenen als ein Paar: Der Backdrop muss IMMER direkt unter der eigenen Fläche
-  // liegen, sonst dimmt er das falsche. Siehe Kommentar bei `elevated`.
-  const zBackdrop = elevated ? "z-[75]" : "z-[60]";
-  const zSheet = elevated ? "z-[78]" : "z-[70]";
+  const { backdrop: zBackdrop, sheet: zSheet } = LAYERS[layer];
   const vh = useViewportHeight();
   // Die Tastatur ist das einzige, was weniger Platz lässt als svh – siehe useKeyboard.
   // Beide Zahlen sind 0, solange keine offen ist: dann ändert sich hier gar nichts.
