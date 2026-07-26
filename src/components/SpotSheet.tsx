@@ -7,7 +7,7 @@ import {
   useMotionValue,
   type PanInfo,
 } from "framer-motion";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useTransition } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import type { SpotCardData } from "@/lib/spots";
@@ -19,7 +19,6 @@ import { useLoginGate } from "./auth/LoginGate";
 import SheetGrabber from "./SheetGrabber";
 import { useBodyDrag } from "./useBodyDrag";
 import { useViewportHeight } from "@/lib/viewport";
-import { NAV_H_VAR, readCssLength } from "@/lib/sheet-metrics";
 
 // Dieselbe Bewegung wie beim Explore-Sheet (siehe MobileSheet / --sg-ease-sheet in
 // globals.css): Apples Sheet-Kurve, 0.5s, ohne Überschwingen. Beide Sheets liegen
@@ -31,16 +30,18 @@ const TRANSITION = { duration: 0.5, ease: EASE_IOS };
 // (eine Quelle der Wahrheit -> bleibt synchron).
 export const SPOT_SHEET_PEEK = 0.55;
 
-// Die obere Stufe ist KEINE feste Zahl, sondern „so hoch wie der Inhalt".
+// EINE Stufe, keine zweite.
 //
-// Vorher stand hier 0.92. Ein Spot hat aber selten 92vh Inhalt: Titel, ein kurzer Text,
-// ein Knopf und ein 16:10-Bild sind auf einem iPhone 15 zusammen rund 560px. Aufgezogen
-// blieben darunter also ~220px leere Creme-Fläche stehen, und das Bild klebte in der
-// Mitte des Bildschirms. Apple lässt ein Sheet nie höher werden, als sein Inhalt braucht
-// (Karten, Musik, Fotos-Info) – man zieht es hoch, es hält am Inhalt an, fertig.
+// Vorher hatte das Sheet über dem Peek eine zweite, am Inhalt gemessene Stufe: Das Bild
+// lief unten aus dem Bild heraus, und man musste das Sheet hochziehen, um es ganz zu
+// sehen. Zwei Bewegungen für eine Vorschau, und bis man gezogen hat, sieht man ein
+// angeschnittenes Foto. Jetzt passt die ganze Karte in die Ruheposition (siehe
+// PEEK_CONTENT_MAX), also gibt es nichts mehr aufzuziehen: runterziehen schließt, mehr
+// kann das Sheet nicht. Wer mehr will, tippt "Mehr ansehen" und ist auf der Detailseite.
 //
-// MAX bleibt trotzdem: Es begrenzt lange Inhalte (großer Schriftgrad, langer Text) und
-// ist zugleich die Höhe des Sheet-Elements selbst (siehe sheetH unten).
+// SPOT_SHEET_MAX ist deshalb nur noch die Höhe des Sheet-ELEMENTS: die Creme-Fläche muss
+// unter der Ruheposition weiterlaufen, damit beim Runterziehen (dragElastic) keine Karte
+// unter dem Sheet durchblitzt.
 const SPOT_SHEET_MAX = 0.92;
 // Höhe des Griffstreifens über dem Inhalt: py-3 (12+12) plus 6px Balken. Eine Konstante
 // dieses Sheets, keine Messung wert – dieselbe Rechnung wie beim Explore-Sheet, das seine
@@ -54,11 +55,10 @@ const PEEK_AIR = 16;
 // dem Sheet), minus Griffstreifen, minus Luft. Reines CSS und trotzdem aus SPOT_SHEET_PEEK
 // abgeleitet: 100svh ist genau die Basis, die useViewportHeight() als Zahl liest
 // (--sg-vh = 100svh), Zahl und Länge können also nicht auseinanderlaufen.
+//
+// DAS IST DER DECKEL FÜR DIE GANZE KARTE, gesperrt wie freigeschaltet: So hoch darf der
+// Inhalt sein, damit im Ruhezustand nichts hinter der Tab-Leiste liegt.
 const PEEK_CONTENT_MAX = `calc(${SPOT_SHEET_PEEK} * 100svh - var(--sg-nav-h) - ${GRAB_H + PEEK_AIR}px)`;
-// Auf dem Server gibt es kein Layout, useLayoutEffect warnt dort. Auf dem Client MUSS es
-// useLayoutEffect sein: die Höhe muss VOR dem ersten Paint stehen, sonst sieht man das
-// Sheet einrasten.
-const useIsoLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
 function X() {
   return (
@@ -68,8 +68,8 @@ function X() {
   );
 }
 
-// Echtes ziehbares Spot-Bottom-Sheet (Apple Karten / Google Maps Stil):
-// Peek/Halb/Voll, runterziehen schließt, kein Backdrop. Liegt über dem Explore-Sheet.
+// Spot-Bottom-Sheet (Apple Karten / Google Maps Stil): fährt auf Tippen herein, steht auf
+// EINER Position, runterziehen schließt, kein Backdrop. Liegt über dem Explore-Sheet.
 export default function SpotSheet({
   spot,
   onClose,
@@ -104,18 +104,14 @@ export default function SpotSheet({
   const vh = useViewportHeight();
   const y = useMotionValue(2000);
   const dragControls = useDragControls();
-  const idxRef = useRef(0);
   // Schließen darf nur EINMAL anlaufen: ✕, Esc, Runterziehen und der Karten-Klick
   // greifen alle in dismiss(), und zwei parallele Animationen auf dasselbe y kämpfen.
   const dismissed = useRef(false);
-  const [atFull, setAtFull] = useState(false);
   const bodyRef = useRef<HTMLDivElement>(null);
-  const contentRef = useRef<HTMLDivElement>(null);
-  const bodyDrag = useBodyDrag(dragControls, bodyRef, atFull);
-  // Bis zur ersten Messung gilt MAX. Das ist der ehrliche Rückfall („noch nichts
-  // gemessen, also alles erlauben") und nicht bloß ein Platzhalter: Läge er zu niedrig,
-  // ließe sich das Sheet für einen Wimpernschlag nicht weit genug aufziehen.
-  const [fullDetent, setFullDetent] = useState(SPOT_SHEET_MAX);
+  // false = der Körper scrollt nie. Er kann es auch nicht: Die Karte ist auf die sichtbare
+  // Höhe gedeckelt, es gibt nichts, was unter der Kante läge. Damit zieht JEDE senkrechte
+  // Geste auf der Karte das Sheet – am iPhone erwartet man genau das.
+  const bodyDrag = useBodyDrag(dragControls, bodyRef, false);
   const [, startTransition] = useTransition();
 
   function onSave() {
@@ -140,87 +136,33 @@ export default function SpotSheet({
   }
 
   const base = vh || 800;
-  // Das Sheet-ELEMENT ist immer MAX hoch, nur die Stufe, an der es anhält, folgt dem
-  // Inhalt. Beides zu koppeln wäre eine Rückkopplung: Die Messung säße im Element,
-  // dessen Höhe sie gerade bestimmt. So misst sie in einem Kasten, der sich nicht rührt.
+  // Das Sheet-ELEMENT ist MAX hoch, seine Ruheposition zeigt davon den Peek. Der Rest
+  // hängt unter dem Bildschirm und ist genau die Fläche, die beim Runterziehen
+  // nachkommt.
   const sheetH = base * SPOT_SHEET_MAX;
-  const snapY = (d: number) => (SPOT_SHEET_MAX - d) * base;
   const closedY = sheetH;
-  const detents = [SPOT_SHEET_PEEK, fullDetent];
-  const fullY = snapY(fullDetent);
+  // Die eine Position, an der das Sheet steht. y ist der Weg nach unten aus der
+  // Elementkante heraus: MAX minus Peek ist der Teil, der unten hinausragt.
+  const restY = (SPOT_SHEET_MAX - SPOT_SHEET_PEEK) * base;
 
-  // Misst, wie hoch das Sheet sein müsste, damit alles ganz drinsteht, und macht daraus
-  // die obere Stufe. Gemessen statt gerechnet, weil sich der Inhalt nicht in Pixel
-  // schreiben lässt: Der Kurztext bricht je nach Sprache auf ein bis vier Zeilen um, das
-  // Bild ist 16:10 der Bildschirmbreite, und wer im System größere Schrift eingestellt
-  // hat, bekommt mit jeder festen Zahl irgendwann wieder eine leere Fläche oder eine
-  // Kante mitten im Text.
-  const measure = useCallback(() => {
-    const body = bodyRef.current;
-    const content = contentRef.current;
-    if (!body || !content || !base) return;
-    // offsetTop des Körpers = Höhe des Griffstreifens darüber (das Sheet ist fixed und
-    // damit offsetParent). offsetHeight des Inhalts schließt seine Polsterung unten mit
-    // ein – genau der Weißraum, der unter dem Bild stehen bleiben soll.
-    //
-    // Die Tab-Leiste zählt mit: Sie liegt ÜBER dem Sheet und deckt dessen unterste ~72px
-    // zu. Ohne sie stimmte die Rechnung auf dem Papier und das Bild wäre trotzdem von
-    // "Entdecken/KI/Gespeichert/Profil" angeschnitten – am Viewport nachgemessen, genau
-    // so ist es passiert. Dieselbe Korrektur wie bei den Stufen im MobileSheet.
-    const needed =
-      body.offsetTop + content.offsetHeight + readCssLength(NAV_H_VAR, body);
-    // Nie unter den Peek (sonst stünden die Stufen verkehrt herum) und nie über MAX.
-    const next = Math.min(SPOT_SHEET_MAX, Math.max(SPOT_SHEET_PEEK, needed / base));
-    setFullDetent((cur) => (Math.abs(cur - next) < 0.005 ? cur : next));
-  }, [base]);
-
-  // Der Inhalt wächst noch nach dem ersten Paint: Schriften tauschen, `line-clamp` greift
-  // erst mit der echten Schrift, und ein fehlendes Bild fällt auf den Emoji-Kasten
-  // zurück. Ein ResizeObserver nimmt all das mit, ohne dass jede Quelle einzeln Bescheid
-  // geben muss.
-  useIsoLayoutEffect(() => {
-    measure();
-    const content = contentRef.current;
-    if (!content) return;
-    const ro = new ResizeObserver(measure);
-    ro.observe(content);
-    return () => ro.disconnect();
-  }, [measure, spot.slug]);
-
-  // Steht das Sheet schon oben und der Inhalt ändert sich, wandert die Stufe unter ihm
-  // weg. Nachziehen ohne Animation: Das ist eine Korrektur, keine Bewegung, die jemand
-  // ausgelöst hat.
-  useEffect(() => {
-    if (idxRef.current === detents.length - 1) y.jump(fullY);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fullY]);
-
-  // Beim Öffnen / Spot-Wechsel auf Peek einfahren. Das ist die EINE gewollte Animation
-  // dieses Sheets: Es kommt auf Tippen hin von unten herein.
+  // Beim Öffnen / Spot-Wechsel einfahren. Das ist die EINE Animation dieses Sheets:
+  // Es kommt auf Tippen hin von unten herein.
   // Absichtlich an `measured` statt an `vh`: sonst liefe sie bei jeder Höhenänderung
-  // erneut und das aufgezogene Sheet klappte mitten im Lesen auf Peek zurück. Seit die
-  // Höhe aus useViewportHeight() kommt, ändert sie sich nur noch bei Drehung – der
-  // Riegel bleibt trotzdem, denn auch eine Drehung darf das Sheet nicht zuklappen.
+  // erneut. Seit die Höhe aus useViewportHeight() kommt, ändert sie sich nur noch bei
+  // Drehung – der Riegel bleibt trotzdem, denn auch eine Drehung darf das Sheet nicht
+  // neu einfahren lassen.
   const measured = vh > 0;
   useEffect(() => {
     if (!measured) return;
-    idxRef.current = 0;
-    // Bewusste Ausnahme von set-state-in-effect: Das hier IST der imperative Ablauf
-    // "neues Sheet fährt herein" — Stufe, Scroll-Zustand und Schließ-Riegel zurücksetzen
-    // und dann animieren. atFull ist echter Zustand (der Drag setzt ihn weiter unten),
-    // also nicht ableitbar. Die zweite Render-Runde kostet hier nichts, ein Umbau würde
-    // dagegen die fein abgestimmte Öffnen-Animation gefährden.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setAtFull(false);
     // Ein neuer Spot ist ein neues Sheet: Der Schließ-Riegel muss auf, sonst ließe
     // sich ein Sheet, das man mitten im Rausfahren durch einen Marker-Tipp wieder
     // hochgeholt hat, nie mehr schließen.
     dismissed.current = false;
-    animate(y, snapY(SPOT_SHEET_PEEK), TRANSITION);
+    animate(y, restY, TRANSITION);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [spot.slug, measured]);
 
-  // resize/Drehung: nur neu rechnen, nie animieren und nie die Stufe zurücksetzen.
+  // resize/Drehung: nur neu setzen, nie animieren.
   const settled = useRef(false);
   useEffect(() => {
     if (!vh) return;
@@ -228,7 +170,7 @@ export default function SpotSheet({
       settled.current = true; // erster Messwert -> gehört der Öffnen-Animation oben
       return;
     }
-    y.jump(snapY(detents[idxRef.current]));
+    y.jump(restY);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vh]);
 
@@ -254,30 +196,15 @@ export default function SpotSheet({
     if (closing) dismiss();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [closing]);
-  function snapToIndex(i: number) {
-    const c = Math.max(0, Math.min(detents.length - 1, i));
-    idxRef.current = c;
-    setAtFull(c === detents.length - 1);
-    animate(y, snapY(detents[c]), TRANSITION);
-  }
+  // Loslassen: weit genug ODER schnell genug nach unten schließt, alles andere federt in
+  // die Ruheposition zurück. Dieselben Schwellen wie vorher – nur gibt es kein Ziel mehr
+  // außer diesen beiden.
   function handleDragEnd(_e: unknown, info: PanInfo) {
-    const cur = y.get();
-    const points = detents.map(snapY);
-    const lowest = Math.max(...points);
-    if (cur > lowest + 80 || info.velocity.y > 900) {
+    if (y.get() > restY + 80 || info.velocity.y > 900) {
       dismiss();
       return;
     }
-    let best = 0;
-    for (let i = 0; i < points.length; i++) {
-      if (Math.abs(points[i] - cur) < Math.abs(points[best] - cur)) best = i;
-    }
-    if (info.velocity.y < -400 && best < detents.length - 1) best++;
-    if (info.velocity.y > 400 && best > 0) best--;
-    snapToIndex(best);
-  }
-  function onGrabberTap() {
-    snapToIndex(idxRef.current + 1); // snapToIndex klemmt oben, bleibt also auf Voll stehen
+    animate(y, restY, TRANSITION);
   }
 
   const btn =
@@ -290,45 +217,38 @@ export default function SpotSheet({
       drag="y"
       dragListener={false}
       dragControls={dragControls}
-      // Oben endet der Zug an der Inhaltsstufe, nicht an der Elementkante: Weiter
-      // hochziehen würde nur leere Fläche aufdecken. dragElastic lässt es dabei kurz
-      // nachgeben und zurückfedern – das gummiartige Anschlagen, das iOS am obersten
-      // Detent macht.
-      dragConstraints={{ top: fullY, bottom: closedY }}
+      // Nach oben ist die Ruheposition schon das Ende: Es gibt nichts aufzudecken, die
+      // Karte steht ganz da. dragElastic lässt es trotzdem kurz nachgeben und
+      // zurückfedern – das gummiartige Anschlagen, das iOS an seinem obersten Detent
+      // macht, und die Rückmeldung "hier ist Schluss" statt eines toten Fingers.
+      dragConstraints={{ top: restY, bottom: closedY }}
       dragElastic={0.06}
       onDragEnd={handleDragEnd}
       className="fixed inset-x-0 bottom-0 z-[55] flex w-full flex-col rounded-t-[22px] bg-cream shadow-[0_-10px_44px_-12px_rgba(0,0,0,0.4)]"
     >
-      <SheetGrabber dragControls={dragControls} onTap={onGrabberTap} className="py-3" />
+      {/* Ohne onTap: Der Balken ist hier nur noch der Griff zum Runterziehen. Ein Tipp
+          hatte das Sheet aufgezogen – es gibt keine Stufe mehr, auf die er zöge. */}
+      <SheetGrabber dragControls={dragControls} className="py-3" />
 
       <div
         ref={bodyRef}
         {...bodyDrag}
-        style={{ touchAction: atFull ? "auto" : "pan-x" }}
-        className={`flex-1 overscroll-contain px-5 ${
-          atFull ? "overflow-y-auto" : "overflow-y-hidden"
-        }`}
+        style={{ touchAction: "pan-x" }}
+        className="flex-1 overflow-y-hidden overscroll-contain px-5"
       >
-        {/* Der gemessene Kasten. Die Polsterung unten sitzt HIER und nicht am scrollenden
-            Körper darüber: Sie ist der Weißraum unter dem Bild, und offsetHeight zählt
-            sie nur mit, wenn sie am gemessenen Element hängt. Sie ist damit die eine
-            Stellschraube für die Luft unten – wer sie ändert, verschiebt zugleich die
-            obere Stufe, ohne dass irgendwo eine zweite Zahl nachgezogen werden muss.
-            2.5rem statt 2rem, weil ohne Home-Indicator (iPhone SE) sonst nur 32px
-            Weißraum unter dem Bild stünden und die Kante wie abgeschnitten wirkte.
+        {/* DER DECKEL – die eine Stellschraube dieses Sheets.
+            So hoch, wie im Ruhezustand sichtbar ist (PEEK_CONTENT_MAX): Peek minus
+            Tab-Leiste minus Griffstreifen minus 16px Luft. Was hier hineinpasst, steht
+            ohne eine einzige Geste ganz da; das Foto ist in beiden Fällen das, was
+            schrumpft. Gilt gesperrt wie freigeschaltet, damit sich die zwei Karten
+            gleich anfühlen.
 
-            GESPERRT: dann keine Polsterung, sondern ein DECKEL. Die Pro-Karte ist alles,
-            was es zu diesem Spot zu sehen gibt – sie wird nicht gescrollt, sie steht im
-            Ruhezustand da. Also darf sie auch nur so hoch sein, wie im Ruhezustand
-            sichtbar ist (PEEK_CONTENT_MAX), und das Foto ist das einzige, was schrumpft.
-            Ohne den Deckel schnitt die Tab-Leiste am iPhone SE den Schlusssatz mitten
-            durch (am 375x667-Viewport nachgemessen). */}
+            Vorher hing hier eine Polsterung von 2.5rem und der Inhalt durfte beliebig
+            hoch werden. Das Bild lief dann unten aus dem Bildschirm, und erst das
+            Hochziehen brachte es ganz ins Bild. */}
         <div
-          ref={contentRef}
-          style={spot.locked ? { maxHeight: PEEK_CONTENT_MAX } : undefined}
-          className={
-            spot.locked ? "flex flex-col" : "pb-[calc(env(safe-area-inset-bottom)+2.5rem)]"
-          }
+          style={{ maxHeight: PEEK_CONTENT_MAX }}
+          className="flex flex-col"
         >
           <div className="flex shrink-0 items-start justify-between gap-3">
             {/* Gesperrt: "🤫 Geheimtipp" ist der EINZIGE Sperr-Hinweis. Das Bild trägt
@@ -395,50 +315,50 @@ export default function SpotSheet({
               </p>
             </>
           ) : (
+            // Dieselbe Regel wie bei der Pro-Karte: Titel, Kurztext und Knopf nehmen
+            // sich, was ihre Schrift braucht (shrink-0), das FOTO bekommt den Rest.
+            //
+            // Das Foto steht bewusst zuletzt und ist das einzige, was schrumpft: Wird der
+            // Platz eng (lange Kurzbeschreibung, große Systemschrift), verliert das Bild
+            // Höhe – nie der Text. Es wird dabei nicht gestaucht, sondern beschnitten
+            // (object-cover), aus 16:10 wird ein breiterer Ausschnitt.
+            //
+            // min-h und die 12px Abstände sind dieselben wie bei der Pro-Karte: Die zwei
+            // Karten stehen im selben Sheet und sollen denselben Rhythmus haben. Am
+            // iPhone SE hing es genau daran – mit 16px Abständen stieß das Foto an seinen
+            // Mindestwert und die Luft unten schrumpfte auf 6px.
             <>
               {spot.shortDesc && (
-                <p className="mt-1.5 text-[15px] leading-relaxed text-muted">
+                <p className="mt-1.5 shrink-0 text-[15px] leading-relaxed text-muted">
                   {spot.shortDesc}
                 </p>
               )}
+              {/* self-start: In der Flex-Spalte würde der Knopf sonst auf die volle
+                  Breite gezogen. Er soll so breit sein wie seine Schrift. */}
               <Link
                 href={`/spot/${spot.slug}`}
-                className="mt-4 inline-block rounded-full bg-accent px-5 py-3 text-sm font-semibold text-white active:scale-[0.98]"
+                className="mt-3 inline-block shrink-0 self-start rounded-full bg-accent px-5 py-3 text-sm font-semibold text-white active:scale-[0.98]"
               >
                 {t("more")}
               </Link>
 
-              {/* Bild (sichtbar beim Hochziehen) */}
-              <div className="mt-5">
-                {spot.imageUrl ? (
-                  <SmoothImage
-                    src={spot.imageUrl}
-                    alt={spot.title}
-                    sizes="(min-width: 768px) 27rem, 100vw"
-                    className="aspect-[16/10] w-full rounded-[16px]"
-                  />
-                ) : (
-                  <div className="flex aspect-[16/10] items-center justify-center overflow-hidden rounded-[16px] bg-gradient-to-br from-accent/20 to-muted/20">
-                    <span className="text-6xl" aria-hidden>
-                      {spot.emoji ?? "📍"}
-                    </span>
-                  </div>
-                )}
-              </div>
+              {spot.imageUrl ? (
+                <SmoothImage
+                  src={spot.imageUrl}
+                  alt={spot.title}
+                  sizes="(min-width: 768px) 27rem, 100vw"
+                  className="mt-3 aspect-[16/10] min-h-[88px] w-full shrink rounded-[16px]"
+                />
+              ) : (
+                <div className="mt-3 flex aspect-[16/10] min-h-[88px] w-full shrink items-center justify-center overflow-hidden rounded-[16px] bg-gradient-to-br from-accent/20 to-muted/20">
+                  <span className="text-6xl" aria-hidden>
+                    {spot.emoji ?? "📍"}
+                  </span>
+                </div>
+              )}
             </>
           )}
         </div>
-        {/* Nur für den gedeckelten Fall: Ist der Inhalt höher als MAX, endet das Sheet
-            nicht mehr am Inhalt, und seine untersten ~72px liegen hinter der Tab-Leiste.
-            Ohne diesen Streifen ließe sich der letzte Absatz nicht darüber hinausscrollen
-            – er stünde dauerhaft hinter "Entdecken/KI/Gespeichert/Profil".
-
-            Bewusst ein eigenes Element NEBEN dem gemessenen Kasten und nicht dessen
-            Polsterung: Die Leiste steckt schon in der Messung (siehe measure). Läge sie
-            auch im Kasten, zählte sie doppelt und die Stufe stünde 72px zu hoch. Passt
-            der Inhalt ohnehin, kostet der Streifen nichts – dann wird gar nicht
-            gescrollt. */}
-        <div className="h-[var(--sg-nav-h)] shrink-0" aria-hidden />
       </div>
     </motion.div>
   );
