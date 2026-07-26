@@ -105,7 +105,7 @@ function content(r: ProPurchaseReceipt): MailContent {
       {
         label: "Leistung",
         value:
-          "SalzGuide Pro, dauerhafte Freischaltung: Geheimtipp-Spots, vollständige Audio-Touren, KI-Assistent ohne Limit",
+          "SalzGuide Pro, dauerhafte Freischaltung der digitalen Inhalte: Geheimtipp-Spots mit Insider-Tipp, Wanderungen mit Route, vollständige Audio-Touren. Zugabe ohne Preisanteil: KI-Assistent ohne Limit.",
       },
       {
         label: "Preis",
@@ -133,12 +133,12 @@ function content(r: ProPurchaseReceipt): MailContent {
       "ausdrücklich verlangt, dass wir schon vor Ablauf der Rücktrittsfrist mit der Ausführung " +
       "beginnen, also sofort freischalten. Und du hast bestätigt, zur Kenntnis genommen zu " +
       "haben, dass du dadurch bei digitalen Inhalten dein Rücktrittsrecht (Widerrufsrecht) " +
-      "verlierst (§ 18 Abs. 1 Z 11 FAGG).\n\n" +
+      "verlierst und bei laufenden Leistungen mit deren vollständiger Erbringung " +
+      "(§ 18 Abs. 1 Z 1 und 11 FAGG).\n\n" +
       "↩️ Was das heisst: Für die freigeschalteten Inhalte ist dein 14-tägiges Rücktrittsrecht " +
-      "mit der sofortigen Freischaltung erloschen. Für laufend erbrachte Teile von Pro, etwa " +
-      "den KI-Assistenten, bleibt es bestehen, bis die Leistung vollständig erbracht ist; " +
-      "trittst du davon zurück, zahlst du anteilig für die Zeit, in der du sie genutzt hast " +
-      "(§ 16 FAGG). Erklären kannst du den Rücktritt jederzeit und ohne Begründung über das " +
+      "mit der sofortigen Freischaltung erloschen. Der KI-Assistent ohne Begrenzung ist eine " +
+      "unentgeltliche Zugabe und nicht Teil der bezahlten Leistung; auf ihn entfällt kein " +
+      "Preisanteil. Erklären kannst du einen Rücktritt jederzeit und ohne Begründung über das " +
       "Formular in der Widerrufsbelehrung, wir bestätigen den Eingang unverzüglich per E-Mail.",
     // Anklickbar und nicht als Adresse im Fliesstext, siehe `links` in mail-layout.ts.
     links: [
