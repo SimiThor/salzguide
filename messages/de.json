@@ -399,13 +399,13 @@
   "Pro": {
     "title": "SalzGuide",
     "subtitle": "Ohne Pro bleibt dieser Teil der Karte zu.",
-    "feat1": "Alle gesperrten Spots auf der Karte",
+    "feat1": "Alle gesperrten Spots, mit Tipp und Anfahrt",
     "feat2": "Audio-Touren ganz, nicht nur die ersten Stationen",
-    "feat3": "Toni ohne Limit fragen",
-    "feat4": "Einmal zahlen, bleibt für immer",
+    "feat3": "Toni fragen, so oft du willst",
+    "feat4": "Einmal zahlen, kein Abo, bleibt für immer",
     "oneTime": "einmalig · kein Abo",
     "cta": "Pro freischalten",
-    "spotTeaser": "Diesen Spot siehst du mit Pro. Und alle anderen gesperrten dazu.",
+    "spotTeaser": "Mit Pro siehst du diesen Spot, den Tipp dazu und alle anderen gesperrten.",
     "redirecting": "Weiter zu Stripe …",
     "securePay": "Sichere Zahlung über Stripe",
     "legalHint": "Mit dem Kauf stimmst du den <terms>AGB</terms> zu. Alles zum Rücktrittsrecht steht in der <cancel>Widerrufsbelehrung</cancel>.",
@@ -443,8 +443,8 @@
       }
     },
     "heroTitle": "Die Spots, an denen du sonst vorbeifährst",
-    "heroSubtitle": "Auf der Karte liegen Spots gesperrt. Mit Pro gehen sie auf.",
-    "heroLockedRounded": "{count}+ Spots liegen gesperrt auf der Karte. Mit Pro gehen sie auf.",
+    "heroSubtitle": "Antippen statt 30 Tabs: Tipp, Öffnungszeiten und Anfahrt stehen dabei.",
+    "heroLockedRounded": "{count}+ davon sind gesperrt. Antippen statt 30 Tabs, alles steht dabei.",
     "exploreCta": "Jetzt entdecken"
   },
   "Account": {

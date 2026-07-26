@@ -27,20 +27,20 @@ export default function ProUpgrade({ price }: { price: string }) {
     }
     setErr("");
     start(async () => {
+      // Erfolg = Weiterleitung durch den Server, die Aktion kehrt dann nie zurück.
+      // Was hier ankommt, ist ein Fehler (identisch zu ProLanding).
       const r = await createCheckoutSession(locale, true);
-      if (r.ok && r.url) {
-        window.location.href = r.url; // Weiterleitung zur gehosteten Stripe-Checkout
-      } else {
-        setErr(
-          r.error === "unconfigured" || r.error === "no_price"
-            ? t("unavailable")
-            : r.error === "already_pro"
-              ? t("alreadyPro")
-              : r.error === "consent"
-                ? t("consentRequired")
+      setErr(
+        r.error === "unconfigured" || r.error === "no_price"
+          ? t("unavailable")
+          : r.error === "already_pro"
+            ? t("alreadyPro")
+            : r.error === "consent"
+              ? t("consentRequired")
+              : r.error === "rate"
+                ? t("tooMany")
                 : t("error"),
-        );
-      }
+      );
     });
   }
 

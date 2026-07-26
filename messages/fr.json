@@ -356,13 +356,13 @@
   "Pro": {
     "title": "SalzGuide",
     "subtitle": "Sans Pro, cette partie de la carte reste fermée.",
-    "feat1": "Tous les spots verrouillés de la carte",
-    "feat2": "Les parcours audio en entier, pas juste les premières étapes",
-    "feat3": "Toni sans limite",
-    "feat4": "Tu paies une fois, c'est à toi",
+    "feat1": "Tous les spots verrouillés, conseil et trajet inclus",
+    "feat2": "Les parcours audio en entier, pas juste le début",
+    "feat3": "Demander à Toni sans limite",
+    "feat4": "Un paiement, sans abonnement, c'est à toi",
     "oneTime": "paiement unique · sans abonnement",
     "cta": "Débloquer Pro",
-    "spotTeaser": "Ce coin s'ouvre avec Pro. Et tous les autres verrouillés avec lui.",
+    "spotTeaser": "Avec Pro tu vois ce coin, le conseil qui va avec et tous les autres verrouillés.",
     "redirecting": "Redirection vers Stripe …",
     "securePay": "Paiement sécurisé via Stripe",
     "legalHint": "En achetant, tu acceptes les <terms>CGV</terms>. Tout sur le droit de rétractation se trouve dans les <cancel>informations sur la rétractation</cancel>.",
@@ -399,9 +399,9 @@
         "body": "C'est cadeau. Tous les spots Pro sont ouverts pour toi désormais."
       }
     },
-    "heroTitle": "Les coins devant lesquels tu passes sans le savoir",
-    "heroSubtitle": "Des spots sont verrouillés sur la carte. Pro les ouvre.",
-    "heroLockedRounded": "{count}+ spots sont verrouillés sur la carte. Pro les ouvre.",
+    "heroTitle": "Les spots que tu rates sans le savoir",
+    "heroSubtitle": "Un tap au lieu de 30 onglets : conseil, horaires et trajet inclus.",
+    "heroLockedRounded": "{count}+ sont verrouillés. Un tap au lieu de 30 onglets, tout est là.",
     "exploreCta": "Commencer à explorer"
   },
   "Account": {

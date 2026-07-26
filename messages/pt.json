@@ -356,13 +356,13 @@
   "Pro": {
     "title": "SalzGuide",
     "subtitle": "Sem Pro, esta parte do mapa fica fechada.",
-    "feat1": "Todos os sítios bloqueados do mapa",
+    "feat1": "Todos os sítios bloqueados, com a dica e como chegar",
     "feat2": "Percursos áudio completos, não só as primeiras paragens",
-    "feat3": "Perguntar ao Toni sem limite",
-    "feat4": "Pagas uma vez, fica teu",
+    "feat3": "Perguntar ao Toni as vezes que quiseres",
+    "feat4": "Pagas uma vez, sem subscrição, fica teu",
     "oneTime": "pagamento único · sem subscrição",
     "cta": "Ativar o Pro",
-    "spotTeaser": "Este sítio abre com o Pro. E todos os outros bloqueados com ele.",
+    "spotTeaser": "Com o Pro vês este sítio, a dica que o acompanha e todos os outros bloqueados.",
     "redirecting": "A continuar para o Stripe …",
     "securePay": "Pagamento seguro através do Stripe",
     "legalHint": "Ao comprar aceitas os <terms>termos</terms>. Tudo sobre o direito de livre resolução está na <cancel>informação de resolução</cancel>.",
@@ -400,8 +400,8 @@
       }
     },
     "heroTitle": "Os sítios por onde passas sem saber",
-    "heroSubtitle": "No mapa há sítios bloqueados. Com o Pro abrem.",
-    "heroLockedRounded": "{count}+ sítios estão bloqueados no mapa. Com o Pro abrem.",
+    "heroSubtitle": "Um toque em vez de 30 separadores: dica, horários e como chegar já estão lá.",
+    "heroLockedRounded": "{count}+ deles estão bloqueados. Um toque em vez de 30 separadores, está tudo lá.",
     "exploreCta": "Começar a explorar"
   },
   "Account": {

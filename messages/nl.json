@@ -356,13 +356,13 @@
   "Pro": {
     "title": "SalzGuide",
     "subtitle": "Zonder Pro blijft dit deel van de kaart dicht.",
-    "feat1": "Alle plekken die op slot staan",
+    "feat1": "Alle plekken op slot, met de tip en de route",
     "feat2": "Audiotours helemaal, niet alleen de eerste stops",
-    "feat3": "Toni zonder limiet vragen",
-    "feat4": "Eén keer betalen, blijft van jou",
+    "feat3": "Toni vragen zo vaak je wilt",
+    "feat4": "Eén keer betalen, geen abonnement, blijft van jou",
     "oneTime": "eenmalig · geen abonnement",
     "cta": "Pro ontgrendelen",
-    "spotTeaser": "Deze plek zie je met Pro. En alle andere plekken op slot erbij.",
+    "spotTeaser": "Met Pro zie je deze plek, de tip erbij en alle andere die op slot staan.",
     "redirecting": "Verder naar Stripe …",
     "securePay": "Veilig betalen via Stripe",
     "legalHint": "Met je aankoop ga je akkoord met de <terms>voorwaarden</terms>. Alles over het herroepingsrecht staat in de <cancel>herroepingsinstructie</cancel>.",
@@ -400,8 +400,8 @@
       }
     },
     "heroTitle": "De plekken waar je anders langsrijdt",
-    "heroSubtitle": "Op de kaart liggen plekken op slot. Met Pro gaan ze open.",
-    "heroLockedRounded": "{count}+ plekken liggen op slot op de kaart. Met Pro gaan ze open.",
+    "heroSubtitle": "Tikken in plaats van 30 tabbladen: tip, openingstijden en route staan erbij.",
+    "heroLockedRounded": "{count}+ daarvan staan op slot. Tikken in plaats van 30 tabbladen, alles staat erbij.",
     "exploreCta": "Nu ontdekken"
   },
   "Account": {
