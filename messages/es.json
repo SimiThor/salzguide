@@ -400,8 +400,8 @@
       }
     },
     "heroTitle": "Los sitios por los que pasas de largo",
-    "heroSubtitle": "Cada caminata la hemos hecho, cada sitio lo hemos visto.",
-    "heroLockedRounded": "{count}+ están bloqueados. Cada caminata la hemos hecho, cada sitio lo hemos visto.",
+    "heroSubtitle": "Cada sitio visto por nosotros, cada recomendación de corazón.",
+    "heroLockedRounded": "{count}+ están bloqueados. Cada sitio visto por nosotros, cada recomendación de corazón.",
     "exploreCta": "Explorar ahora"
   },
   "Account": {

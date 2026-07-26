@@ -400,8 +400,8 @@
       }
     },
     "heroTitle": "Os sítios por onde passas sem saber",
-    "heroSubtitle": "Cada caminhada fizemos nós, cada sítio vimos nós.",
-    "heroLockedRounded": "{count}+ estão bloqueados. Cada caminhada fizemos nós, cada sítio vimos nós.",
+    "heroSubtitle": "Cada sítio visto por nós, cada recomendação de coração.",
+    "heroLockedRounded": "{count}+ estão bloqueados. Cada sítio visto por nós, cada recomendação de coração.",
     "exploreCta": "Começar a explorar"
   },
   "Account": {

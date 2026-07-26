@@ -400,8 +400,8 @@
       }
     },
     "heroTitle": "De plekken waar je anders langsrijdt",
-    "heroSubtitle": "Elke wandeling zelf gelopen, elke plek zelf gezien.",
-    "heroLockedRounded": "{count}+ daarvan staan op slot. Elke wandeling zelf gelopen, elke plek zelf gezien.",
+    "heroSubtitle": "Elke plek zelf gezien, elke tip uit het hart.",
+    "heroLockedRounded": "{count}+ daarvan staan op slot. Elke plek zelf gezien, elke tip uit het hart.",
     "exploreCta": "Nu ontdekken"
   },
   "Account": {

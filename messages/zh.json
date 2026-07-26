@@ -400,8 +400,8 @@
       }
     },
     "heroTitle": "那些你会直接开过去的地方",
-    "heroSubtitle": "每条路线我们都亲自走过，每个地点都亲自去过。",
-    "heroLockedRounded": "其中 {count}+ 个还锁着。每条路线我们都亲自走过，每个地点都亲自去过。",
+    "heroSubtitle": "每个地点都亲自去过，每个推荐都发自真心。",
+    "heroLockedRounded": "其中 {count}+ 个还锁着。每个地点都亲自去过，每个推荐都发自真心。",
     "exploreCta": "开始探索"
   },
   "Account": {

@@ -443,8 +443,8 @@
       }
     },
     "heroTitle": "Die Spots, an denen du sonst vorbeifährst",
-    "heroSubtitle": "Jede Wanderung selbst gegangen, jeden Spot selbst gesehen.",
-    "heroLockedRounded": "{count}+ davon sind gesperrt. Jede Wanderung selbst gegangen, jeden Spot selbst gesehen.",
+    "heroSubtitle": "Jeden Spot selbst gesehen, jede Empfehlung von Herzen.",
+    "heroLockedRounded": "{count}+ davon sind gesperrt. Jeden Spot selbst gesehen, jede Empfehlung von Herzen.",
     "exploreCta": "Jetzt entdecken"
   },
   "Account": {

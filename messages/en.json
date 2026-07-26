@@ -400,8 +400,8 @@
       }
     },
     "heroTitle": "The spots you drive straight past",
-    "heroSubtitle": "Every hike walked ourselves, every spot seen ourselves.",
-    "heroLockedRounded": "{count}+ of them are locked. Every hike walked ourselves, every spot seen ourselves.",
+    "heroSubtitle": "Every spot seen ourselves, every recommendation from the heart.",
+    "heroLockedRounded": "{count}+ of them are locked. Every spot seen ourselves, every recommendation from the heart.",
     "exploreCta": "Start exploring"
   },
   "Account": {
