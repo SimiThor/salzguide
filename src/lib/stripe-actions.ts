@@ -1,6 +1,7 @@
 "use server";
 
 import { cookies, headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { createHash } from "node:crypto";
 import type Stripe from "stripe";
 import { createClient } from "./supabase/server";
@@ -46,10 +47,26 @@ import {
 const CHECKOUT_WINDOW_SECONDS = 600;
 const CHECKOUT_MAX_PER_WINDOW = 8;
 
+/**
+ * Ergebnis des Kauf-Knopfs. Es gibt nur EINEN Rückgabewert, und der ist ein Fehler:
+ * Klappt es, verlässt diese Funktion die Seite per redirect() und kehrt nie zurück.
+ *
+ * WARUM DER SERVER WEITERLEITET UND NICHT DER BROWSER: Vorher gab die Aktion die Stripe-
+ * Adresse zurück und der Client setzte `window.location.href`. Dazwischen lag knapp eine
+ * Sekunde, in der unsere Seite noch stand, die Aktion aber schon fertig war, und in genau
+ * diesem Fenster tauchte bei Anton für einen Wimpernschlag eine 404-Seite auf. Es ist ein
+ * Fenster, in dem der Router noch etwas tun kann, während der Mensch schon unterwegs ist:
+ * Der Kauf-Klick löst eine Server Action mit Cookie aus, Next frischt danach die aktuelle
+ * Route auf, und wer in dieser Sekunde etwas zwischen Antwort und Navigation schiebt (ein
+ * neuer Deploy mit anderen Bundle-Adressen, ein abgebrochener RSC-Abruf), bekommt es zu
+ * sehen. Mit redirect() gibt es dieses Fenster nicht mehr: Die Antwort auf den Klick IST
+ * die Weiterleitung, Next führt sie selbst aus, und das Set-Cookie reist auf derselben
+ * Antwort mit.
+ */
 export async function createCheckoutSession(
   locale: string,
   consent: boolean,
-): Promise<{ ok: boolean; url?: string; error?: string }> {
+): Promise<{ ok: false; error: string }> {
   if (!stripe) return { ok: false, error: "unconfigured" };
   const priceId = proPriceId();
   if (!priceId) return { ok: false, error: "no_price" };
@@ -95,6 +112,7 @@ export async function createCheckoutSession(
     return { ok: false, error: "rate" };
   }
 
+  let checkoutUrl: string;
   try {
     // Alle Sprachen sind mit Präfix erreichbar (/de, /en, /it …) -> Rücksprung immer in der
     // Sprache des Käufers. Festgenagelt, weil `locale` aus dem Browser kommt: Der Wert baut
@@ -174,11 +192,15 @@ export async function createCheckoutSession(
         maxAge: PRO_CLAIM_MAX_AGE,
       });
     }
-
-    return { ok: true, url: session.url };
+    checkoutUrl = session.url;
   } catch {
     return { ok: false, error: "stripe_error" };
   }
+
+  // AUSSERHALB des try/catch, und das ist Pflicht: redirect() arbeitet, indem es wirft
+  // (NEXT_REDIRECT). Stünde der Aufruf im try, finge das catch die Weiterleitung ab und
+  // meldete dem Käufer einen Stripe-Fehler, der keiner ist.
+  redirect(checkoutUrl);
 }
 
 /**

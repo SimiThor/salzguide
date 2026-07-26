@@ -55,23 +55,21 @@ export default function ProLanding({
     started.current = true;
     setErr("");
     start(async () => {
+      // Klappt es, kehrt die Aktion NIE zurück: Sie leitet serverseitig zu Stripe weiter
+      // (siehe stripe-actions.ts). Alles, was hier ankommt, ist ein Fehler.
       const r = await createCheckoutSession(locale, true);
-      if (r.ok && r.url) {
-        window.location.href = r.url;
-      } else {
-        started.current = false;
-        setErr(
-          r.error === "unconfigured" || r.error === "no_price"
-            ? t("unavailable")
-            : r.error === "already_pro"
-              ? t("alreadyPro")
-              : r.error === "consent"
-                ? t("consentRequired")
-                : r.error === "rate"
-                  ? t("tooMany")
-                  : t("error"),
-        );
-      }
+      started.current = false;
+      setErr(
+        r.error === "unconfigured" || r.error === "no_price"
+          ? t("unavailable")
+          : r.error === "already_pro"
+            ? t("alreadyPro")
+            : r.error === "consent"
+              ? t("consentRequired")
+              : r.error === "rate"
+                ? t("tooMany")
+                : t("error"),
+      );
     });
   }, [locale, t]);
 
@@ -101,9 +99,9 @@ export default function ProLanding({
       <div className="overflow-hidden rounded-[28px] bg-gradient-to-b from-accent/[0.12] via-white to-white shadow-[0_24px_60px_-28px_rgba(204,41,36,0.45)] ring-1 ring-black/[0.05]">
         {/* 1. Was dir ohne Pro entgeht. Die Wortmarke steht klein darüber (das Produkt
             nennt sich einmal), die Überschrift sagt die Sache selbst. */}
-        <div className="px-7 pt-7 pb-6 text-center">
+        <div className="px-7 pt-7 pb-5 text-center">
           <ProWordmark name={t("title")} className="text-[14px]" />
-          <h1 className="mt-3 text-[28px] font-bold leading-[1.12] tracking-tight text-ink">
+          <h1 className="mt-3 text-[27px] font-bold leading-[1.12] tracking-tight text-ink">
             {t("heroTitle")}
           </h1>
           {/* Die Zahl kommt aus der Datenbank, nie aus dem Text.
@@ -111,7 +109,7 @@ export default function ProLanding({
               die exakte Zahl. „1 Spot liegt gesperrt" ist grammatikalisch schief und als
               Argument das Gegenteil von dem, was hier stehen soll. Unter zehn steht deshalb
               derselbe Satz ohne Zahl: nichts behauptet, nichts kleingeredet. */}
-          <p className="mx-auto mt-2.5 max-w-[19rem] text-[15px] leading-relaxed text-muted">
+          <p className="mx-auto mt-2.5 max-w-[20rem] text-[15px] leading-snug text-muted">
             {lockedSpots?.rounded
               ? t("heroLockedRounded", { count: lockedSpots.value })
               : t("heroSubtitle")}
@@ -129,7 +127,7 @@ export default function ProLanding({
             genau so weit zusammengezogen, dass sein unterer Rand über der Tab-Leiste bleibt
             (gemessen, 390x844). Die Zustimmungs-Zeile bleibt davon ausgenommen, die ist eine
             Trefferfläche und darf die 44pt nicht unterschreiten. */}
-        <div className="border-t border-black/[0.06] px-7 pt-6 pb-8">
+        <div className="border-t border-black/[0.06] px-7 pt-5 pb-8">
           <div className="flex items-baseline justify-center gap-2">
             {price ? (
               <>
