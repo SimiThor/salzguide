@@ -12,6 +12,7 @@ import type { Metadata } from "next";
 import ActionTile from "@/components/ActionTile";
 import Carousel from "@/components/Carousel";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import LockedSpotCard from "@/components/LockedSpotCard";
 import QuickFacts, { type Fact } from "@/components/QuickFacts";
 import SaveButton from "@/components/SaveButton";
 import SpotCard from "@/components/SpotCard";
@@ -535,21 +536,21 @@ export default async function SpotPage({
           </h2>
           <Carousel railPadClass="px-0" scrollPadClass="scroll-px-0">
             {/* An `locked` hängen, nicht an `isPro`: Für einen zahlenden Pro-Kunden
-                (oder Admin) sind Pro-Spots normale, anklickbare Karten. */}
+                (oder Admin) sind Pro-Spots normale, anklickbare Karten.
+                Gesperrt heißt NICHT tot: Hier stand ein <div> ohne Handler, und der Tipp
+                auf einen Geheimtipp – die deutlichste Kaufabsicht der App – lief ins
+                Leere. Er öffnet jetzt den Pro-Hinweis (ProGate), dasselbe Sheet, das
+                jede gesperrte Stelle der App öffnet. Ein Link ginge hier ohnehin nicht:
+                gesperrte Spots haben serverseitig keinen echten Slug. */}
             {related.map((s) =>
               s.locked ? (
-                <div key={s.slug}>
-                  <SpotCard
-                    title={s.title}
-                    shortDesc={s.shortDesc}
-                    emoji={s.emoji}
-                    imageUrl={s.imageUrl}
-                    previewUrl={s.previewUrl}
-                    isPro
-                    locked
-                    lockedLabel={t("lockedLabel")}
-                  />
-                </div>
+                <LockedSpotCard
+                  key={s.slug}
+                  previewUrl={s.previewUrl}
+                  emoji={s.emoji}
+                  lockedLabel={t("lockedLabel")}
+                  unlockLabel={t("unlock")}
+                />
               ) : (
                 <Link key={s.slug} href={`/spot/${s.slug}`} className="block">
                   <SpotCard

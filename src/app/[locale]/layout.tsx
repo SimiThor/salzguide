@@ -8,6 +8,7 @@ import { localeDir } from "@/i18n/locales";
 import AppChrome from "@/components/AppChrome";
 import AiProvider from "@/components/ai/AiProvider";
 import LoginGateProvider from "@/components/auth/LoginGate";
+import ProGateProvider from "@/components/ProGate";
 import { APPLE_SPLASH_LINKS } from "@/lib/apple-splash";
 import { siteUrl } from "@/lib/site-url";
 import "../globals.css";
@@ -99,11 +100,16 @@ export default async function LocaleLayout({
               als Geschwister von {children}. Laege das Gate innen, haetten die
               Spot-/Event-Karten IM Chat keinen Provider -> Absturz beim Merken. */}
           <LoginGateProvider>
-            <AiProvider>
-              {/* Kopf-/Fusszeile, Tab-Leiste und Analytics: AppChrome entscheidet an EINER
-                  Stelle, ob eine Route App-Navigation trägt oder Marketing ist. */}
-              <AppChrome>{children}</AppChrome>
-            </AiProvider>
+            {/* Pro-Gate wie das Login-Gate: EIN Hinweis-Sheet für alles, was einen
+                gesperrten Pro-Inhalt antippt. Innerhalb des Login-Gates und ausserhalb
+                des Chats, damit auch die Karten IM Chat es später aufrufen können. */}
+            <ProGateProvider>
+              <AiProvider>
+                {/* Kopf-/Fusszeile, Tab-Leiste und Analytics: AppChrome entscheidet an EINER
+                    Stelle, ob eine Route App-Navigation trägt oder Marketing ist. */}
+                <AppChrome>{children}</AppChrome>
+              </AiProvider>
+            </ProGateProvider>
           </LoginGateProvider>
         </NextIntlClientProvider>
       </body>
