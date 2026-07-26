@@ -2,10 +2,11 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { useTranslations } from "next-intl";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, usePathname } from "@/i18n/navigation";
 import LanguageSwitcher from "./LanguageSwitcher";
 import { NAV_ITEMS } from "@/lib/nav";
+import { LEGAL_LINKS } from "@/lib/legal-links";
 
 function Burger() {
   return (
@@ -26,16 +27,65 @@ function X() {
 // Auf Detailseiten ausgeblendet (eigener Hero mit Zurück).
 export default function MobileHeader() {
   const t = useTranslations();
+  const tLegal = useTranslations("Legal");
+  const tSupport = useTranslations("Support");
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
+  // Scroll-Riegel + Escape, während das Menü offen ist — dieselbe Kombination wie im
+  // BottomSheet, damit sich jede Überlagerung der App gleich verhält.
   useEffect(() => {
     if (!open) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
     return () => {
       document.body.style.overflow = prev;
+      window.removeEventListener("keydown", onKey);
     };
+  }, [open]);
+
+  // Beim Seitenwechsel zu. Die Links im Menü schließen es selbst (onClick), aber nicht jeder
+  // Wechsel kommt von einem Link: Zurück-Wischen und Zurück-Taste tun es nicht. Ohne das
+  // stand das Menü nach dem Zurückgehen wieder offen über der neuen Seite.
+  //
+  // Der Vergleich steht im RENDER und nicht in einem Effekt — „State an eine geänderte
+  // Eingabe anpassen" ist genau der Fall, für den React das empfiehlt (dieselbe Form wie im
+  // BottomSheet). Aus einem Effekt heraus wäre es eine zweite Render-Runde, und in der
+  // ersten stünde das Menü noch einen Frame lang offen über der neuen Seite.
+  //
+  // Ein Sprachwechsel fällt hier bewusst NICHT drunter: `usePathname()` aus
+  // @/i18n/navigation liefert den Pfad ohne Sprach-Präfix, /de/explore und /en/explore sind
+  // beide „/explore". Das Menü bleibt dabei also offen — genau richtig, man sieht die neue
+  // Sprache sofort an den Menüpunkten.
+  const [lastPath, setLastPath] = useState(pathname);
+  if (pathname !== lastPath) {
+    setLastPath(pathname);
+    if (open) setOpen(false);
+  }
+
+  // Fokus hinein und wieder zurück. Gehört zu role="dialog" aria-modal dazu: Ohne das steht
+  // der Tastatur-/VoiceOver-Fokus beim Öffnen weiter auf der Seite HINTER dem Menü, und beim
+  // Schließen verliert er sich ins Nichts, weil das Element unter ihm verschwindet.
+  // wasOpen als Ref, nicht als State: Ohne die Merkhilfe würde der Effekt beim ersten
+  // Aufbau der Seite (open = false) sofort den Burger fokussieren und ihn ungefragt
+  // hervorheben, obwohl niemand ihn angefasst hat.
+  const burgerRef = useRef<HTMLButtonElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const wasOpen = useRef(false);
+  useEffect(() => {
+    if (open) {
+      wasOpen.current = true;
+      closeRef.current?.focus();
+      return;
+    }
+    if (wasOpen.current) {
+      wasOpen.current = false;
+      burgerRef.current?.focus();
+    }
   }, [open]);
 
   // Detail-/Vollbild-Ansichten haben ihren eigenen Zurück-Button (Spot, Audio-Tour-
@@ -57,9 +107,11 @@ export default function MobileHeader() {
           SalzGuide
         </Link>
         <button
+          ref={burgerRef}
           type="button"
           onClick={() => setOpen(true)}
           aria-label={t("Menu.open")}
+          aria-expanded={open}
           className="sg-hit flex h-10 w-10 items-center justify-center rounded-full text-ink active:bg-black/5"
         >
           <Burger />
@@ -69,23 +121,31 @@ export default function MobileHeader() {
       <AnimatePresence>
         {open && (
           <>
+            {/* min-h-[100lvh] NICHT entfernen: Ein fixes Element MIT backdrop-filter spannt
+                sich in Chromium über inset-0 nicht zuverlässig auf die volle Viewport-Höhe
+                auf — unten blieb ein scharfer Streifen stehen. Dieselbe Zeile steht aus
+                demselben Grund am BottomSheet-Backdrop; hier fehlte sie. */}
             <motion.div
-              className="fixed inset-0 z-[60] bg-black/30 backdrop-blur-sm md:hidden"
+              className="fixed inset-0 z-[60] min-h-[100lvh] bg-black/30 backdrop-blur-sm md:hidden"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={close}
             />
             <motion.div
+              role="dialog"
+              aria-modal="true"
+              aria-label={t("Menu.open")}
               className="fixed inset-y-0 right-0 z-[70] flex w-[82%] max-w-[340px] flex-col bg-cream pt-safe shadow-2xl md:hidden"
               initial={{ x: "100%" }}
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "spring", damping: 32, stiffness: 320 }}
             >
-              <div className="flex h-14 items-center justify-between px-5">
+              <div className="flex h-14 shrink-0 items-center justify-between px-5">
                 <span className="text-xl font-bold text-accent">SalzGuide</span>
                 <button
+                  ref={closeRef}
                   type="button"
                   onClick={close}
                   aria-label={t("Explore.close")}
@@ -95,48 +155,85 @@ export default function MobileHeader() {
                 </button>
               </div>
 
-              <div className="px-5 pb-2 pt-1">
-                <LanguageSwitcher />
-              </div>
+              {/* Ein Scroll-Bereich für alles unter der Kopfzeile — min-h-0, sonst wächst ein
+                  Flex-Kind über seinen Container hinaus statt zu scrollen.
+                  Er ist Pflicht, nicht Vorsicht: Bei sieben Menüpunkten plus fünf Rechtslinks
+                  reicht die Höhe eines quer gehaltenen iPhones nicht. Ohne ihn stünde das
+                  Untere davon außerhalb der (fixen) Schublade — sichtbar nicht erreichbar,
+                  genau der Fehler, den wir hier gerade beheben.
+                  overscroll-contain hält die iOS-Gummiband-Geste in der Schublade, statt sie
+                  an die Seite dahinter weiterzugeben. */}
+              <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain">
+                <div className="px-5 pb-2 pt-1">
+                  <LanguageSwitcher />
+                </div>
 
-              <nav className="mt-2 flex flex-col px-3">
-                {ready.map((i) => {
-                  // Aktive Seite rot markieren, exakt wie im DesktopHeader: gleicher
-                  // Vergleich (href === pathname, beide ohne Locale-Präfix aus
-                  // @/i18n/navigation), gleiche Farbe (text-accent) und gleiches
-                  // aria-current. active:bg-black/5 bleibt das Tipp-Feedback und hat mit
-                  // der aktiven Seite nichts zu tun.
-                  const active = i.href === pathname;
-                  return (
-                    <Link
-                      key={i.key}
-                      href={i.href}
-                      onClick={close}
-                      aria-current={active ? "page" : undefined}
-                      className={`rounded-xl px-3 py-3 text-[17px] font-medium active:bg-black/5 ${
-                        active ? "text-accent" : "text-ink"
-                      }`}
-                    >
-                      {t(`Nav.${i.key}`)}
-                    </Link>
-                  );
-                })}
-                {/* Über uns: jetzt eine echte Seite (Marketing-Route), aus denselben
-                    Startseiten-Texten. Steht bewusst unter den App-Seiten. */}
-                <Link
-                  href="/ueber-uns"
-                  onClick={close}
-                  aria-current={pathname === "/ueber-uns" ? "page" : undefined}
-                  className={`rounded-xl px-3 py-3 text-[17px] font-medium active:bg-black/5 ${
-                    pathname === "/ueber-uns" ? "text-accent" : "text-ink"
-                  }`}
-                >
-                  {t("Menu.about")}
-                </Link>
-              </nav>
+                <nav className="mt-2 flex flex-col px-3">
+                  {ready.map((i) => {
+                    // Aktive Seite rot markieren, exakt wie im DesktopHeader: gleicher
+                    // Vergleich (href === pathname, beide ohne Locale-Präfix aus
+                    // @/i18n/navigation), gleiche Farbe (text-accent) und gleiches
+                    // aria-current. active:bg-black/5 bleibt das Tipp-Feedback und hat mit
+                    // der aktiven Seite nichts zu tun.
+                    const active = i.href === pathname;
+                    return (
+                      <Link
+                        key={i.key}
+                        href={i.href}
+                        onClick={close}
+                        aria-current={active ? "page" : undefined}
+                        className={`rounded-xl px-3 py-3 text-[17px] font-medium active:bg-black/5 ${
+                          active ? "text-accent" : "text-ink"
+                        }`}
+                      >
+                        {t(`Nav.${i.key}`)}
+                      </Link>
+                    );
+                  })}
+                  {/* Über uns: jetzt eine echte Seite (Marketing-Route), aus denselben
+                      Startseiten-Texten. Steht bewusst unter den App-Seiten. */}
+                  <Link
+                    href="/ueber-uns"
+                    onClick={close}
+                    aria-current={pathname === "/ueber-uns" ? "page" : undefined}
+                    className={`rounded-xl px-3 py-3 text-[17px] font-medium active:bg-black/5 ${
+                      pathname === "/ueber-uns" ? "text-accent" : "text-ink"
+                    }`}
+                  >
+                    {t("Menu.about")}
+                  </Link>
+                </nav>
 
-              <div className="mt-auto px-5 pb-[calc(env(safe-area-inset-bottom)+1.25rem)] text-xs text-muted">
-                {t("Menu.legal")}
+                {/* Rechtliches: ECHTE Links, aus derselben Liste wie die Fußzeile
+                    (lib/legal-links.ts). Hier stand bis 07/2026 der fertige Satz
+                    „Impressum · Datenschutz · AGB" als ein Stück Text — er sah wie drei
+                    Links aus und war keiner. Auf der Vollbild-Karte, wo sich die Fußzeile
+                    selbst ausblendet, kam man am Handy damit gar nicht ans Impressum.
+
+                    mt-auto: unten angeheftet, solange Platz ist; wird es eng, scrollt der
+                    Block einfach mit (margin:auto wird zu 0, sobald kein freier Raum bleibt).
+
+                    Kleiner und ruhiger als die Menüpunkte darüber — es bleibt die zweite
+                    Reihe. Angefasst wird trotzdem in voller Zeilenbreite und dank sg-hit
+                    44px hoch (Apples Mindestmaß), statt auf 13px Schrift zielen zu müssen. */}
+                <div className="mt-auto flex flex-col px-3 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-6">
+                  {LEGAL_LINKS.map((l) => {
+                    const active = l.href === pathname;
+                    return (
+                      <Link
+                        key={l.key}
+                        href={l.href}
+                        onClick={close}
+                        aria-current={active ? "page" : undefined}
+                        className={`sg-hit rounded-xl px-3 py-3 text-[13px] active:bg-black/5 ${
+                          active ? "text-accent" : "text-muted"
+                        }`}
+                      >
+                        {l.ns === "Support" ? tSupport(l.key) : tLegal(l.key)}
+                      </Link>
+                    );
+                  })}
+                </div>
               </div>
             </motion.div>
           </>
