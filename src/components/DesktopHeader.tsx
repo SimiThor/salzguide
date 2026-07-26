@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import { Link, usePathname } from "@/i18n/navigation";
 import LanguageSwitcher from "./LanguageSwitcher";
+import SocialLinks from "./SocialLinks";
 import AiSparkle from "./ai/AiSparkle";
 import { useAi } from "./ai/AiProvider";
 import { BookmarkFilled } from "./icons";
@@ -183,7 +184,17 @@ export default function DesktopHeader() {
                     PC trifft die Maus aufs Pixel, deshalb die kompakte Zeile mit Trennpunkten
                     (Aussehen der Fußzeile). Trefferflächen für den Finger braucht es hier
                     nicht — siehe .sg-hit in globals.css. */}
-                <div className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 border-t border-black/[0.06] px-3 pb-1 pt-2.5 text-[12px]">
+                {/* Die Profile, aus derselben Quelle wie Fusszeile und iPhone-Burger
+                    (lib/social.ts). Sie stehen hier aus demselben Grund wie die Rechtslinks
+                    darunter: Auf den Vollbild-Karten gibt es keine Fusszeile.
+                    dense: kleinere Fläche als am Handy, weil die Maus aufs Pixel trifft.
+                    -mx-1: hebt das Innenpolster der runden Flächen auf, damit das erste
+                    Glyph mit den Namen darüber in einer Flucht steht. */}
+                <div className="mt-1 flex items-center border-t border-black/[0.06] px-3 pb-0.5 pt-2">
+                  <SocialLinks className="-mx-1 gap-0.5" iconClassName="h-[19px] w-[19px]" dense />
+                </div>
+
+                <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 px-3 pb-1 pt-1.5 text-[12px]">
                   {LEGAL_LINKS.map((l, i) => (
                     <span key={l.key} className="flex items-center gap-1.5">
                       <Link

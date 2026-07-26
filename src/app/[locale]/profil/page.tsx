@@ -8,6 +8,7 @@ import LoginPanel from "@/components/auth/LoginPanel";
 import { safeLoginReason } from "@/components/auth/loginReasons";
 import ProUpgrade from "@/components/ProUpgrade";
 import ProBadge from "@/components/ProBadge";
+import SocialLinks from "@/components/SocialLinks";
 import { signOut } from "./actions";
 import { STATUS_NEUTRAL } from "@/lib/ui";
 
@@ -37,6 +38,7 @@ export default async function ProfilPage({
   const t = await getTranslations("Auth");
   const tA = await getTranslations("Account");
   const tPro = await getTranslations("Pro");
+  const tS = await getTranslations("Social");
 
   const supabase = await createClient();
   const {
@@ -119,6 +121,29 @@ export default async function ProfilPage({
 
         {/* Pro-Upgrade (nur für Nicht-Pro). Preis + Zahlung laufen über Stripe. */}
         {!isPro && <ProUpgrade price={priceStr} />}
+
+        {/* Folgen. Steht ÜBER „Deine Daten & Datenschutz" und damit direkt unter dem, was
+            das Konto betrifft (Adresse, Status, Pro): erst das Konto, dann das Angebot, dann
+            das Rechtliche. Auf dem Login-Screen erscheint es NICHT, dort will man rein und
+            sonst nichts.
+            Bewusst eine normale Einstellungs-Zeile im iOS-Stil (Text links, Aktion rechts),
+            kein Werbekasten.
+            DIE ZWEI ZAHLEN SIND GEMESSEN, nicht geschätzt (390px-Viewport, echter Build):
+            - `p-5` wie jede Nachbarzeile, plus `-my-2` an der Icon-Reihe: Die 44px-Fläche
+              der Icons ragt 8px oben und unten ins Polster, dadurch ist die Karte 68px hoch,
+              also EXAKT so hoch wie die Daten-Zeile darunter. Ohne das -my-2 wären es 72px,
+              und eine von fünf Zeilen wäre 4px höher als der Rest.
+            - `-mr-2.5` hebt das Innenpolster der letzten runden Fläche auf, damit das Glyph
+              rechts mit dem Kartenrand fluchtet wie der Text links.
+            Apples 44pt Trefferfläche bleiben dabei erhalten (nachgemessen: 44x44). */}
+        <div className="flex items-center justify-between rounded-[18px] bg-white p-5 shadow-sm">
+          <span className="text-[15px] font-medium text-ink">{tS("follow")}</span>
+          <SocialLinks
+            className="-my-2 -mr-2.5 gap-0"
+            tone="ink"
+            iconClassName="h-[21px] w-[21px]"
+          />
+        </div>
 
         {/* DSGVO-Selbstbedienung auf eigener Seite (Widerruf/Auskunft/Löschung, Art. 7(3)/15/17) */}
         <Link

@@ -461,6 +461,11 @@
     "rights": "All rights reserved.",
     "deOnly": "These legal texts are only available in German; the German version is legally binding."
   },
+  "Social": {
+    "follow": "Follow us",
+    "profileAria": "SalzGuide on {platform}",
+    "postAlt": "Post on Instagram"
+  },
   "LoginGate": {
     "cta": "Sign up for free"
   }

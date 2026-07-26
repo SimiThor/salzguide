@@ -1,4 +1,5 @@
 import "server-only";
+import { SOCIAL_PROFILES } from "./social";
 
 // Der Rahmen für ALLE SalzGuide-Mails: Farben, Typografie, Knopf, Unterschrift.
 //
@@ -87,6 +88,35 @@ export const SIGNOFF = "Anton von SalzGuide";
  */
 export const GREETING = "Liebe Grüße aus Salzburg";
 
+/**
+ * Die Profile am Fuss jeder Mail. Zwei Text-Links, aus derselben Quelle wie Fusszeile und
+ * Menüs (lib/social.ts).
+ *
+ * WARUM TEXT UND KEINE ICONS: Ein Icon in einer Mail ist ein Bild von einem Server, und die
+ * meisten Clients laden Bilder erst nach dem Antippen von „Bilder anzeigen". Eine Fusszeile,
+ * die im Standardfall aus zwei leeren Kästchen besteht, ist schlechter als eine, die immer
+ * lesbar ist. Ausserdem müsste jedes Icon als Datei gehostet und beim Umzug mitgenommen
+ * werden. Text kostet nichts und kommt überall an.
+ *
+ * Aufzählung mit Trennzeichen statt „Instagram und TikTok": Kommt ein dritter Kanal dazu,
+ * ändert sich hier nichts.
+ *
+ * Deutsch, wie der ganze Mail-Rahmen (siehe GREETING/SIGNOFF): Unsere System-Mails gehen
+ * auf Deutsch raus, sie laufen nicht über next-intl.
+ */
+function socialFooterHtml(): string {
+  const links = SOCIAL_PROFILES.map(
+    (p) =>
+      `<a href="${esc(p.url)}" style="color:${MUTED};text-decoration:underline;">${esc(p.label)}</a>`,
+  ).join(` <span style="color:#bbb;">·</span> `);
+  return `
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;">
+    <tr><td align="center" style="padding:16px 24px 4px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,Helvetica,Arial,sans-serif;">
+      <p style="margin:0;font-size:13px;line-height:1.6;color:${MUTED};">Folge uns: ${links}</p>
+    </td></tr>
+  </table>`;
+}
+
 /** Was eine Mail an den Rahmen übergibt. Alles ausser `subject`/`headline` ist optional. */
 export type MailContent = {
   /** Steht im <title> und sollte dem Betreff der Mail entsprechen. */
@@ -172,6 +202,9 @@ ${ctaRow}
       </p>
     </td></tr>
   </table>
+  <!-- Die Profile stehen UNTER der weissen Karte, auf dem Creme-Grund: Sie gehören zur
+       Fusszeile, nicht zur Nachricht. Genau so sitzt die Icon-Reihe auch in der App. -->
+  ${socialFooterHtml()}
 </td></tr></table>
 </body></html>`;
 }
@@ -185,6 +218,10 @@ export function renderMailShellText(c: MailContent): string {
     c.tile ? `${c.tile.label} ${c.tile.value}` : null,
     c.note,
     `${GREETING}\n${SIGNOFF}`,
+    // Dieselbe Fusszeile wie in der HTML-Fassung, nur als lesbare Adressen: In der
+    // Reintext-Mail gibt es keinen verlinkten Namen, ein „Instagram" ohne URL wäre eine
+    // Sackgasse.
+    SOCIAL_PROFILES.map((p) => `${p.label}: ${p.url}`).join("\n"),
   ]
     .filter(Boolean)
     .join("\n\n");
