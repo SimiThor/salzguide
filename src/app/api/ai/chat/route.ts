@@ -416,7 +416,13 @@ function attachGuestCookie(res: NextResponse, aid: string) {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
-    maxAge: 60 * 60 * 24 * 365, // 1 Jahr
+    // 90 Tage, vorher ein Jahr. Datensparsamkeit (Art. 5 Abs. 1 lit. c DSGVO): Das Cookie
+    // trägt ein Limit von DREI Fragen durch. Wer nach drei Monaten wiederkommt, hat mit
+    // grosser Wahrscheinlichkeit ohnehin ein neues Gerät, einen neuen Browser oder längst
+    // ein Konto. Ein Jahr war länger als der Zweck, und genau das muss eine Speicherdauer
+    // nicht sein. Steht so auch in der Datenschutzerklärung (Punkt 3i) — beide Zahlen
+    // gehören zusammen geändert.
+    maxAge: 60 * 60 * 24 * 90,
     path: "/",
   });
 }

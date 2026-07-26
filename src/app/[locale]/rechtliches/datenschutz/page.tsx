@@ -102,13 +102,47 @@ export default async function DatenschutzPage({
         wechselnden Zufallswert kurzzeitig gehasht (danach anonym). Es entsteht kein Personenbezug;
         ein Cookie-Banner ist dafür nicht erforderlich (§ 165 TKG).
       </p>
-      <h3>i) Cookies</h3>
+      <h3>i) Cookies und ähnliche Technologien</h3>
+      {/* Hieß bis 07/2026 nur „Cookies" und nannte nur Cookies. § 165 Abs. 3 TKG (und die
+          EDPB-Leitlinien 2/2023 zu Art. 5 Abs. 3 ePrivacy) erfassen JEDE Speicherung im
+          Endgerät und jeden Zugriff darauf, also auch localStorage und sessionStorage. Die
+          Aufzählung unten ist die vollständige Liste dessen, was der Code wirklich ablegt:
+          supabase/server.ts (Session), api/ai/chat/route.ts (sg_aid), Explore.tsx
+          (sg-season), toni-chat-store.ts, ToniLauncher.tsx, plus mapbox-gl selbst.
+          Wer hier etwas hinzufügt, das nicht für eine aufgerufene Funktion nötig ist,
+          braucht eine Einwilligung und damit einen Banner. Genau deshalb steht die Liste
+          hier vollständig und nicht als „insbesondere". */}
       <p>
-        Wir verwenden ausschließlich <strong>technisch notwendige Cookies</strong>, die für
-        Anmeldung und Sitzung erforderlich sind (insbesondere das Login-/Session-Cookie von Supabase
-        sowie eine zufällige Gast-Kennung). Diese sind für den Betrieb unbedingt erforderlich; eine
-        Einwilligung ist dafür nicht nötig (§ 165 Abs. 3 TKG). Marketing- oder Tracking-Cookies
-        setzen wir nicht.
+        Wir setzen ausschließlich <strong>technisch notwendige</strong> Cookies und
+        vergleichbare Speicher ein. Es gibt bei uns keine Marketing-, Werbe- oder
+        Tracking-Cookies und keine Dienste, die dich über Websites hinweg wiedererkennen.
+        Deshalb musst du bei uns auch keinen Cookie-Hinweis wegklicken. Im Einzelnen:
+      </p>
+      <ul>
+        <li>
+          <strong>Anmeldung (Cookie):</strong> Das Session-Cookie von Supabase hält dich
+          angemeldet. Ohne es müsstest du auf jeder Seite neu einsteigen.
+        </li>
+        <li>
+          <strong>Gast-Kennung „sg_aid“ (Cookie):</strong> Eine Zufallszahl, damit das
+          Gratis-Limit des KI-Assistenten (drei Fragen ohne Konto) überhaupt zählbar ist. Sie
+          enthält keine Angaben über dich, ist für Skripte nicht auslesbar (httpOnly) und
+          läuft nach 90 Tagen ab.
+        </li>
+        <li>
+          <strong>Deine Einstellungen (lokaler Speicher):</strong> deine Wahl zwischen Sommer
+          und Winter, dein laufender Chat mit Toni (damit er da ist, wenn du zurückkommst)
+          und ein Merker, dass der Hinweis auf Toni in dieser Sitzung schon erschienen ist.
+          Das bleibt auf deinem Gerät und wird nicht an uns übertragen.
+        </li>
+        <li>
+          <strong>Karte (lokaler Speicher):</strong> siehe Punkt k).
+        </li>
+      </ul>
+      <p>
+        All das ist für die Funktionen erforderlich, die du aufrufst; eine Einwilligung ist
+        dafür nicht nötig (§ 165 Abs. 3 TKG). Löschen kannst du es jederzeit über die
+        Einstellungen deines Browsers.
       </p>
       <h3>j) Online-Widerruf</h3>
       <p>
@@ -116,6 +150,62 @@ export default async function DatenschutzPage({
         E-Mail-Adresse, Vertrags-/Bestellkennung, ggf. Anschrift) zur Bearbeitung deines Widerrufs
         und für die gesetzlich vorgeschriebene Eingangsbestätigung. Rechtsgrundlage ist die Erfüllung
         einer rechtlichen Verpflichtung sowie die Vertragsabwicklung.
+      </p>
+
+      <h3>k) Karte</h3>
+      {/* Der einzige Grenzfall der ganzen Liste, deshalb steht er offen da: mapbox-gl (3.25)
+          legt „mapbox.eventData" im localStorage ab und meldet Kartenaufrufe an
+          events.mapbox.com. Das ist Mapbox' eigene Sitzungszählung, über die unser Vertrag
+          abgerechnet wird. Abschalten wäre technisch möglich, würde aber genau diese
+          Abrechnung umgehen. Einordnung: erforderlich für den Kartendienst, den der Nutzer
+          mit dem Öffnen der Karte ausdrücklich aufruft. Wer das anders sieht, braucht eine
+          Einwilligung VOR dem ersten Kartenaufruf – bei einer Karten-App also einen Banner
+          vor der Hauptfunktion. */}
+      <p>
+        Die Karten kommen von Mapbox (auf Basis von OpenStreetMap). Beim Laden einer Karte
+        legt Mapbox eine anonyme Kennung im lokalen Speicher deines Browsers ab und meldet den
+        Kartenaufruf an Mapbox. Das dient der Nutzungsmessung, über die unser Kartenvertrag
+        abgerechnet wird, nicht der Werbung und nicht der Wiedererkennung über andere
+        Websites. Dabei wird auch deine IP-Adresse an Mapbox übermittelt (Sitz in den USA,
+        siehe Punkt 6). Nutzt du die Standortanzeige, wertet dein Gerät den Standort aus; wir
+        speichern ihn nicht.
+      </p>
+
+      <h3>l) Unsere Profile auf Instagram und TikTok</h3>
+      <p>
+        Wir betreiben Profile auf Instagram (Meta) und TikTok. Rufst du eines auf, verarbeiten
+        diese Plattformen deine Daten nach ihren eigenen Bestimmungen, auf die wir keinen
+        Einfluss haben. Für die Nutzungsstatistiken, die uns die Plattformen zu unseren
+        Profilen bereitstellen, sind wir gemeinsam mit ihnen verantwortlich (Art. 26 DSGVO);
+        wir sehen daraus nur zusammengefasste Zahlen, keine einzelnen Personen. Bestimmungen
+        der Plattformen:{" "}
+        <a href="https://privacycenter.instagram.com/policy" target="_blank" rel="noopener noreferrer">
+          Meta
+        </a>{" "}
+        und{" "}
+        <a href="https://www.tiktok.com/legal/privacy-policy-eea" target="_blank" rel="noopener noreferrer">
+          TikTok
+        </a>
+        . Rechtsgrundlage für unsere Präsenz ist unser berechtigtes Interesse an
+        Öffentlichkeitsarbeit (Art. 6 Abs. 1 lit. f DSGVO).
+      </p>
+
+      <h3>m) Instagram-Beiträge auf unserer Seite</h3>
+      {/* Das ist der Grund, warum diese Seite keinen Cookie-Banner braucht, obwohl
+          Instagram-Beiträge darauf zu sehen sind: Es sind unsere eigenen Bilder aus unserem
+          eigenen Speicher (Supabase, EU), im Admin hochgeladen. Es gibt weder im Browser noch
+          auf unserem Server einen Kontakt zu Meta. Wer diesen Abschnitt ändert, weil er auf
+          ein Embed, ein Widget oder einen automatischen Abruf umbaut, macht aus der Aussage
+          unten eine Falschangabe UND braucht dann eine Einwilligung samt Banner. */}
+      <p>
+        Auf der Startseite und unter „Über uns“ zeigen wir eine Auswahl unserer
+        Instagram-Beiträge. Die Bilder dafür laden wir selbst in unseren Speicher in der EU
+        und liefern sie von dort aus.{" "}
+        <strong>Dein Browser nimmt dabei keine Verbindung zu Instagram oder Meta auf</strong>
+        , es werden keine Cookies gesetzt und keine Daten über dich an Meta übertragen. Es gibt
+        auch keinen automatischen Abruf bei Meta. Erst wenn du einen Beitrag antippst,
+        wechselst du zu Instagram; wir geben dabei nicht mit, von welcher unserer Seiten du
+        kommst.
       </p>
 
       <h2>4. Rechtsgrundlagen</h2>
@@ -131,7 +221,8 @@ export default async function DatenschutzPage({
         <li>
           <strong>Berechtigtes Interesse (Art. 6 Abs. 1 lit. f DSGVO):</strong> Sicherheit und
           Missbrauchsabwehr (Turnstile, Rate-Limits), stabiler Betrieb, cookielose
-          Reichweitenmessung.
+          Reichweitenmessung, unsere Profile auf Instagram und TikTok samt Anzeige unserer
+          eigenen Beiträge.
         </li>
         <li>
           <strong>Rechtliche Verpflichtung (Art. 6 Abs. 1 lit. c DSGVO):</strong> Aufbewahrung von
@@ -161,7 +252,7 @@ export default async function DatenschutzPage({
           <strong>Google</strong> – „Anmelden mit Google“ sowie Öffnungszeiten (Google Places).
         </li>
         <li>
-          <strong>Mapbox</strong> (mit OpenStreetMap) – Kartendarstellung.
+          <strong>Mapbox</strong> (mit OpenStreetMap) – Kartendarstellung (siehe Punkt 3k).
         </li>
         <li>
           <strong>Cloudflare</strong> – Bot-Schutz (Turnstile).
