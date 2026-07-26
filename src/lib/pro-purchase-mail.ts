@@ -105,7 +105,7 @@ function content(r: ProPurchaseReceipt): MailContent {
       {
         label: "Leistung",
         value:
-          "SalzGuide Pro, dauerhafte Freischaltung der digitalen Inhalte: Geheimtipp-Spots mit Insider-Tipp, Wanderungen mit Route, vollständige Audio-Touren. Gratis dazu: KI-Assistent ohne Limit (unentgeltliche Zugabe, kein Preisanteil).",
+          "SalzGuide Pro, dauerhafte Freischaltung der digitalen Inhalte: Geheimtipp-Spots mit Insider-Tipp, Wanderungen mit Route, vollständige Audio-Touren. Zugabe ohne Preisanteil: KI-Assistent ohne Limit.",
       },
       {
         label: "Preis",
