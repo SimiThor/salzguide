@@ -18,5 +18,4 @@ export const PRO_FEATURES = [
   { key: "feat1", icon: "🤫" },
   { key: "feat2", icon: "🥾" },
   { key: "feat3", icon: "💛" },
-  { key: "feat4", icon: "💬" },
 ] as const;
