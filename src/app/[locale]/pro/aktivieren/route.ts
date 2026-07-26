@@ -177,13 +177,20 @@ async function signInBuyer(
  *
  * Kein Turnstile davor: Die Adresse kommt nicht aus einem Formular, sondern von Stripe, und
  * es gibt sie nur, weil jemand bezahlt hat. Ein Bot müsste erst zahlen.
+ *
+ * GIBT ZURÜCK, OB DIE MAIL RAUSGING, und das ist kein Detail: Der Aufrufer entscheidet
+ * daran, ob der Käufer „schau in dein Postfach" liest oder an einen Menschen verwiesen wird.
+ * Stand hier `Promise<void>`, war das Ergebnis immer `undefined` — also immer falsch — und
+ * jeder Gast, dessen Adresse schon ein Konto hatte, sah nach dem Bezahlen „da hat etwas
+ * gehakt", obwohl sein Link längst unterwegs war. TypeScript liess es durch, weil der
+ * Ausdruck `void | false` ergibt und nicht blankes `void`.
  */
 async function sendAccessLink(
   supabase: Awaited<ReturnType<typeof createClient>>,
   email: string,
   locale: string,
   requestUrl: string,
-): Promise<void> {
+): Promise<boolean> {
   try {
     const next = `/${locale}/pro?checkout=success`;
     const origin = await authOrigin(requestUrl);
@@ -193,8 +200,13 @@ async function sendAccessLink(
         emailRedirectTo: `${origin}/${locale}/auth/callback?next=${encodeURIComponent(next)}`,
       },
     });
-    if (error) console.error("[pro] Zugangs-Mail nicht versendet", error.status, error.message);
+    if (error) {
+      console.error("[pro] Zugangs-Mail nicht versendet", error.status, error.message);
+      return false;
+    }
+    return true;
   } catch (e) {
     console.error("[pro] Zugangs-Mail nicht versendet", e);
+    return false;
   }
 }
