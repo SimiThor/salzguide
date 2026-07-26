@@ -400,8 +400,8 @@
       }
     },
     "heroTitle": "那些你会直接开过去的地方",
-    "heroSubtitle": "点一下就够，不用开 30 个标签页。建议、营业时间和路线都在里面。",
-    "heroLockedRounded": "其中 {count}+ 个还锁着。点一下代替 30 个标签页，需要的都在里面。",
+    "heroSubtitle": "每个地点都写着我们的建议、是否开门、怎么过去。",
+    "heroLockedRounded": "其中 {count}+ 个还锁着。每个都写着我们的建议、营业时间和怎么过去。",
     "exploreCta": "开始探索"
   },
   "Account": {

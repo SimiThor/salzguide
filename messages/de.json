@@ -443,8 +443,8 @@
       }
     },
     "heroTitle": "Die Spots, an denen du sonst vorbeifährst",
-    "heroSubtitle": "Antippen statt 30 Tabs: Tipp, Öffnungszeiten und Anfahrt stehen dabei.",
-    "heroLockedRounded": "{count}+ davon sind gesperrt. Antippen statt 30 Tabs, alles steht dabei.",
+    "heroSubtitle": "Bei jedem steht unser Tipp, ob offen ist und wie du hinfährst.",
+    "heroLockedRounded": "{count}+ davon sind gesperrt. Bei jedem steht unser Tipp, ob offen ist und wie du hinfährst.",
     "exploreCta": "Jetzt entdecken"
   },
   "Account": {

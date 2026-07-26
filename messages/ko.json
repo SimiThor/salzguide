@@ -400,8 +400,8 @@
       }
     },
     "heroTitle": "그냥 지나치게 되는 곳들",
-    "heroSubtitle": "탭 30개 대신 한 번이면 돼요. 팁과 영업시간, 가는 길까지 함께 나와요.",
-    "heroLockedRounded": "그중 {count}곳 넘게 잠겨 있어요. 탭 30개 대신 한 번이면 다 나와요.",
+    "heroSubtitle": "각 스팟마다 우리 팁과 영업 여부, 가는 길이 적혀 있어요.",
+    "heroLockedRounded": "그중 {count}곳 넘게 잠겨 있어요. 각 스팟마다 팁과 영업시간, 가는 길이 있어요.",
     "exploreCta": "둘러보기 시작"
   },
   "Account": {

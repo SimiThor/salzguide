@@ -400,8 +400,8 @@
       }
     },
     "heroTitle": "Os sítios por onde passas sem saber",
-    "heroSubtitle": "Um toque em vez de 30 separadores: dica, horários e como chegar já estão lá.",
-    "heroLockedRounded": "{count}+ deles estão bloqueados. Um toque em vez de 30 separadores, está tudo lá.",
+    "heroSubtitle": "Em cada um está a nossa dica, se está aberto e como chegar.",
+    "heroLockedRounded": "{count}+ estão bloqueados. Em cada um está a nossa dica, os horários e como chegar.",
     "exploreCta": "Começar a explorar"
   },
   "Account": {

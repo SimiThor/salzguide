@@ -400,8 +400,8 @@
       }
     },
     "heroTitle": "Les spots que tu rates sans le savoir",
-    "heroSubtitle": "Un tap au lieu de 30 onglets : conseil, horaires et trajet inclus.",
-    "heroLockedRounded": "{count}+ sont verrouillés. Un tap au lieu de 30 onglets, tout est là.",
+    "heroSubtitle": "Pour chaque spot tu as notre conseil, les horaires et le trajet.",
+    "heroLockedRounded": "{count}+ sont verrouillés. Pour chacun tu as notre conseil, les horaires et le trajet.",
     "exploreCta": "Commencer à explorer"
   },
   "Account": {

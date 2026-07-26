@@ -400,8 +400,8 @@
       }
     },
     "heroTitle": "The spots you drive straight past",
-    "heroSubtitle": "One tap instead of 30 tabs: the tip, opening hours and the drive come with it.",
-    "heroLockedRounded": "{count}+ of them are locked. One tap instead of 30 tabs, it all comes with it.",
+    "heroSubtitle": "Each one comes with our tip, whether it's open and how to get there.",
+    "heroLockedRounded": "{count}+ of them are locked. Each comes with our tip, the opening hours and the way there.",
     "exploreCta": "Start exploring"
   },
   "Account": {

@@ -400,8 +400,8 @@
       }
     },
     "heroTitle": "De plekken waar je anders langsrijdt",
-    "heroSubtitle": "Tikken in plaats van 30 tabbladen: tip, openingstijden en route staan erbij.",
-    "heroLockedRounded": "{count}+ daarvan staan op slot. Tikken in plaats van 30 tabbladen, alles staat erbij.",
+    "heroSubtitle": "Bij elke plek staat onze tip, of het open is en hoe je er komt.",
+    "heroLockedRounded": "{count}+ daarvan staan op slot. Bij elke staat onze tip, de openingstijden en de route.",
     "exploreCta": "Nu ontdekken"
   },
   "Account": {

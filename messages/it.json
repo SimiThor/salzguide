@@ -400,8 +400,8 @@
       }
     },
     "heroTitle": "I posti davanti a cui passi senza saperlo",
-    "heroSubtitle": "Un tocco invece di 30 schede: consiglio, orari e come arrivarci sono già lì.",
-    "heroLockedRounded": "{count}+ di questi sono bloccati. Un tocco invece di 30 schede, c'è già tutto.",
+    "heroSubtitle": "Su ognuno trovi il nostro consiglio, se è aperto e come ci arrivi.",
+    "heroLockedRounded": "{count}+ di questi sono bloccati. Su ognuno trovi il consiglio, gli orari e come arrivarci.",
     "exploreCta": "Inizia a esplorare"
   },
   "Account": {

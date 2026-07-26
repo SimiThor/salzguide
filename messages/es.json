@@ -400,8 +400,8 @@
       }
     },
     "heroTitle": "Los sitios por los que pasas de largo",
-    "heroSubtitle": "Un toque en vez de 30 pestañas: consejo, horarios y cómo llegar ya están ahí.",
-    "heroLockedRounded": "{count}+ de ellos están bloqueados. Un toque en vez de 30 pestañas, está todo ahí.",
+    "heroSubtitle": "En cada uno está nuestro consejo, si está abierto y cómo llegar.",
+    "heroLockedRounded": "{count}+ están bloqueados. En cada uno está nuestro consejo, los horarios y cómo llegar.",
     "exploreCta": "Explorar ahora"
   },
   "Account": {
