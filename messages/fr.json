@@ -400,8 +400,8 @@
       }
     },
     "heroTitle": "Les spots que tu rates sans le savoir",
-    "heroSubtitle": "Chaque rando faite par nous, chaque spot vu par nous.",
-    "heroLockedRounded": "{count}+ sont verrouillés. Chaque rando faite par nous, chaque spot vu par nous.",
+    "heroSubtitle": "Chaque spot vu par nous, chaque conseil qui vient du cœur.",
+    "heroLockedRounded": "{count}+ sont verrouillés. Chaque spot vu par nous, chaque conseil qui vient du cœur.",
     "exploreCta": "Commencer à explorer"
   },
   "Account": {

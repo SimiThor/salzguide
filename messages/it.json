@@ -400,8 +400,8 @@
       }
     },
     "heroTitle": "I posti davanti a cui passi senza saperlo",
-    "heroSubtitle": "Ogni escursione l'abbiamo fatta, ogni posto l'abbiamo visto.",
-    "heroLockedRounded": "{count}+ di questi sono bloccati. Ogni escursione l'abbiamo fatta, ogni posto l'abbiamo visto.",
+    "heroSubtitle": "Ogni posto visto di persona, ogni consiglio col cuore.",
+    "heroLockedRounded": "{count}+ di questi sono bloccati. Ogni posto visto di persona, ogni consiglio col cuore.",
     "exploreCta": "Inizia a esplorare"
   },
   "Account": {

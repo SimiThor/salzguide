@@ -400,8 +400,8 @@
       }
     },
     "heroTitle": "그냥 지나치게 되는 곳들",
-    "heroSubtitle": "모든 코스는 우리가 직접 걸었고, 모든 스팟은 직접 봤어요.",
-    "heroLockedRounded": "그중 {count}곳 넘게 잠겨 있어요. 모든 코스는 직접 걸었고, 모든 스팟은 직접 봤어요.",
+    "heroSubtitle": "모든 스팟을 직접 봤고, 추천은 전부 진심이에요.",
+    "heroLockedRounded": "그중 {count}곳 넘게 잠겨 있어요. 모든 스팟을 직접 봤고, 추천은 전부 진심이에요.",
     "exploreCta": "둘러보기 시작"
   },
   "Account": {
