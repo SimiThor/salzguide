@@ -136,8 +136,10 @@ export default function AreaForm({ initial }: { initial?: AreaEditData }) {
     try {
       const { blob } = await compressImage(file);
       set({ coverUrl: await uploadImage(blob, "tours") });
-    } catch {
-      setErr("Cover-Upload hat nicht geklappt.");
+    } catch (e) {
+      // Den echten Grund zeigen (zu gross, kein Bild, HEIC): "hat nicht geklappt" sagt
+      // niemandem, was zu tun ist - und compressImage formuliert die Meldungen bereits.
+      setErr(e instanceof Error ? e.message : "Cover-Upload hat nicht geklappt.");
     } finally {
       setUploadingCover(false);
     }

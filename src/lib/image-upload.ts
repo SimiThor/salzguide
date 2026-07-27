@@ -26,6 +26,19 @@ export const AVATAR_DIM = 512;
 const QUALITY = 0.82;
 const AVATAR_QUALITY = 0.85;
 
+/**
+ * Grösster Rohupload, den wir überhaupt anfassen.
+ *
+ * Der Story-Maker (StoryPhotoPanel) hat diesen Riegel seit jeher, der Admin hatte ihn
+ * nirgends: Eine versehentlich gewählte 300-MB-TIFF lief dort in den Dekoder, bis der Tab
+ * starb - ohne Meldung, die irgendjemandem etwas sagt. 40 MB deckt jedes Handy- und
+ * Kamerafoto ab (RAW gehört nicht ins Web und kann der Browser ohnehin nicht lesen).
+ *
+ * Der Riegel steht HIER und nicht in den Formularen: Sechs Formulare rufen diese Datei auf,
+ * und ein Limit, das man sechsmal eintragen muss, steht irgendwann in fünf davon.
+ */
+export const MAX_IMAGE_BYTES = 40 * 1024 * 1024;
+
 /** Nur was der Browser wirklich kodieren kann. Der Wert landet 1:1 als MIME im Storage. */
 const EXTENSION: Record<string, string> = {
   "image/webp": "webp",
@@ -38,6 +51,16 @@ const EXTENSION: Record<string, string> = {
  * Admin landete. Die Meldung sagt jetzt, was zu tun ist.
  */
 async function decodeOriented(file: File): Promise<ImageBitmap> {
+  // VOR dem try prüfen: Der catch unten übersetzt jeden Fehler in die HEIC-Meldung, und
+  // "Bitte als JPG exportieren" ist bei einer 300-MB-Datei der falsche Rat.
+  if (file.type && !file.type.startsWith("image/")) {
+    throw new Error("Das ist keine Bilddatei. Bitte ein Foto (JPG, PNG oder WebP) wählen.");
+  }
+  if (file.size > MAX_IMAGE_BYTES) {
+    throw new Error(
+      `Bild ist zu groß (${Math.round(file.size / 1048576)} MB, max. ${Math.round(MAX_IMAGE_BYTES / 1048576)} MB). Bitte kleiner exportieren.`,
+    );
+  }
   try {
     return await loadOrientedBitmap(file);
   } catch {
@@ -98,6 +121,9 @@ function canvasOf(width: number, height: number): [HTMLCanvasElement, CanvasRend
   canvas.height = height;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Canvas nicht verfügbar");
+  // Hier wird auf die Zielgrösse heruntergerechnet - der Schritt, bei dem Chrome ohne diese
+  // Zeile grob filtert und feine Strukturen (Geäst, Wasser, Schrift) ausfransen.
+  ctx.imageSmoothingQuality = "high";
   return [canvas, ctx];
 }
 

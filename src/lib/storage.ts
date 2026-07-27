@@ -34,5 +34,11 @@ export const MEDIA_BUCKET = "spot-media";
 export function storagePathFromUrl(url: string): string | null {
   const marker = `/${MEDIA_BUCKET}/`;
   const i = url.indexOf(marker);
-  return i === -1 ? null : decodeURIComponent(url.slice(i + marker.length));
+  if (i === -1) return null;
+  // Query und Anker abschneiden. Der Waisen-Sweep (storage-orphans.ts) tut das seit jeher,
+  // diese Funktion nicht - und ein `?t=123` an einer URL hätte hier zu einem Pfad geführt,
+  // den es im Bucket nicht gibt. `remove()` meldet darauf KEINEN Fehler, es löscht nur
+  // nichts: Die Datei bliebe still liegen, und im Log stünde nichts.
+  const path = url.slice(i + marker.length).split(/[?#]/)[0];
+  return path ? decodeURIComponent(path) : null;
 }
