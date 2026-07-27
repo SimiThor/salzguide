@@ -15,6 +15,7 @@
 import { readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { classifyPath, classifyLocalePath, isBotUserAgent } from "../src/lib/analytics.ts";
+import { KIND_LABELS } from "../src/lib/analytics-labels.ts";
 import { viennaDayStart, bucketRange, bucketStart, dayCount, shiftDay } from "../src/lib/vienna-day.ts";
 
 let failed = 0;
@@ -91,6 +92,21 @@ if (unclassified.length === 0) {
   bad("Routen ohne eigene Einordnung", unclassified, []);
   console.log('        -> in classifyPath() (src/lib/analytics.ts) ergänzen, sonst wächst "other".');
 }
+
+// Jede Seitenart, die entstehen KANN, braucht auch einen Namen fürs Dashboard. Sonst steht
+// dort der Rohwert („tours" statt „Touren (Liste)"): kein Absturz, keine Logzeile, sieht nur
+// nach Programmierfehler aus. Die Prüfung geht von den ECHTEN Routen aus, nicht von einer
+// Liste, die jemand hier pflegen müsste.
+const kinds = new Set(
+  [...routes, "/", "/spot/x", "/touren/x"]
+    .map((r) => classifyPath(r)?.kind)
+    .filter((k): k is string => Boolean(k)),
+);
+eq(
+  `alle ${kinds.size} Seitenarten haben eine deutsche Beschriftung`,
+  [...kinds].filter((k) => !KIND_LABELS[k]),
+  [],
+);
 
 // ── 2. Maschinen aussortieren ───────────────────────────────────────────────
 console.log("\n2. Bot-Erkennung");

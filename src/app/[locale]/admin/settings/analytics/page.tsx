@@ -4,6 +4,7 @@ import AnalyticsFilters from "@/components/admin/AnalyticsFilters";
 import AdLinkBuilder from "@/components/admin/AdLinkBuilder";
 import AiInsights from "@/components/admin/AiInsights";
 import AiInsightsSummary from "@/components/admin/AiInsightsSummary";
+import AnalyticsChart from "@/components/admin/AnalyticsChart";
 import {
   getAnalyticsData,
   type AnalyticsDashboard,
@@ -13,25 +14,79 @@ import {
   type RangeKey,
   type TimePoint,
 } from "@/lib/analytics-queries";
-import { bucketRange, dayCount, type Bucket } from "@/lib/vienna-day";
+import { bucketRange, dayCount, shiftDay, type Bucket } from "@/lib/vienna-day";
 import { getAiInsights, type AiInsightsData } from "@/lib/ai-insights";
 import { siteUrl } from "@/lib/site-url";
 import { routing } from "@/i18n/routing";
 import { localeMeta } from "@/i18n/locales";
+// Beschriftungen aus lib: scripts/analytics-check.ts prueft sie gegen classifyPath.
+import { KIND_LABELS, SOURCE_LABELS, DEVICE_LABELS, EVENT_CAT_LABELS } from "@/lib/analytics-labels";
 
 // Analytics v3 (docs/34 §H) — cookieless, nur Aggregate, mit Filtern, Ad-Link-Builder
 // und KI-Auswertung. Ohne echte Daten: klar gekennzeichnete Beispieldaten-Vorschau.
 export const dynamic = "force-dynamic";
 
-const SOURCE_LABELS: Record<string, string> = { direct: "Direkt", search: "Suche", social: "Social Media" };
-const DEVICE_LABELS: Record<string, string> = { mobile: "Mobil", desktop: "Desktop", tablet: "Tablet", other: "Sonstige" };
 // Alle Sprachen aus der zentralen Config (Endonym) -> neue Sprache erscheint automatisch.
 const LOCALE_LABELS: Record<string, string> = Object.fromEntries(
   routing.locales.map((l) => [l, localeMeta(l).name]),
 );
-const EVENT_CAT_LABELS: Record<string, string> = { party: "Party", tradition: "Tradition", kultur: "Kultur", sport: "Sport", kids: "Kids" };
 
 const fmtDuration = (sec: number) => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")} min`;
+
+const de = (n: number) => n.toLocaleString("de-AT");
+// Quoten mit einer Nachkommastelle. Braucht es, weil `${o.saveRate}` in einer Vorlage die
+// JS-Schreibweise nimmt: Im Dashboard stand „Merkrate 6.1", „2.9 je 100 Besuche" und
+// „1.4 %" mit Punkt, während jede Ganzzahl daneben brav „5 130" mit Tausenderpunkt zeigte.
+// Zwei Zahlensysteme auf einer Seite, und der Punkt bedeutet in beiden etwas anderes.
+const de1 = (n: number) => n.toLocaleString("de-AT", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+
+/** Eine Überschrift, die die FRAGE stellt, die der Block darunter beantwortet. */
+function Section({ title, hint }: { title: string; hint: string }) {
+  return (
+    <div className="mt-2 border-t border-black/[0.06] pt-5">
+      <h2 className="text-xl font-bold text-ink">{title}</h2>
+      <p className="mt-1 text-[13px] leading-relaxed text-muted">{hint}</p>
+    </div>
+  );
+}
+
+/**
+ * Die Veränderung zum gleich langen Zeitraum davor.
+ *
+ * WARUM DAS AN JEDE KACHEL GEHÖRT: „1.240 Aufrufe" ist keine Information, aus der eine
+ * Handlung folgt — man weiss nicht, ob das viel ist. Erst die Richtung macht daraus eine
+ * Entscheidung. Es ist die billigste Ergänzung im ganzen Dashboard (ein zusätzlicher
+ * RPC-Aufruf, parallel zu den anderen) und die einzige, die JEDE Zahl darüber aufwertet.
+ *
+ * `goodWhenUp={false}` für die Bounce-Rate: Dort ist weniger besser, und eine grüne Zahl
+ * neben einer steigenden Absprungrate wäre schlimmer als gar keine Farbe.
+ */
+function Delta({
+  now,
+  before,
+  goodWhenUp = true,
+}: {
+  now: number;
+  before: number | undefined;
+  goodWhenUp?: boolean;
+}) {
+  if (before === undefined) return null;
+  if (before === 0) {
+    return now > 0 ? <span className="text-[12px] font-semibold text-emerald-600">neu</span> : null;
+  }
+  const pct = Math.round(((now - before) / before) * 100);
+  if (pct === 0) return <span className="text-[12px] font-medium text-muted">unverändert</span>;
+  const up = pct > 0;
+  const good = up === goodWhenUp;
+  return (
+    <span
+      className={`text-[12px] font-semibold ${good ? "text-emerald-600" : "text-rose-600"}`}
+      title={`Vorher: ${de(before)}`}
+    >
+      {up ? "▲" : "▼"} {Math.abs(pct)} %
+    </span>
+  );
+}
 
 /**
  * Eine Kennzahl-Kachel. `answerable={false}` heisst NICHT „null", sondern „diese Frage
@@ -45,6 +100,8 @@ function StatCard({
   sub,
   answerable = true,
   reason,
+  before,
+  goodWhenUp = true,
 }: {
   label: string;
   value?: number;
@@ -52,16 +109,23 @@ function StatCard({
   sub?: string;
   answerable?: boolean;
   reason?: string | null;
+  before?: number;
+  goodWhenUp?: boolean;
 }) {
   return (
     <div className="rounded-[16px] bg-white p-4 shadow-sm ring-1 ring-black/[0.04]">
       <p className="text-[12px] font-medium uppercase tracking-wide text-muted">{label}</p>
-      <p
-        className={`mt-1 text-[22px] font-bold leading-none ${answerable ? "text-ink" : "text-black/25"}`}
-        title={answerable ? undefined : (reason ?? undefined)}
-      >
-        {answerable ? (display ?? (value ?? 0).toLocaleString("de-AT")) : "–"}
-      </p>
+      <div className="mt-1 flex flex-wrap items-baseline gap-x-2">
+        <p
+          className={`text-[22px] font-bold leading-none ${answerable ? "text-ink" : "text-black/25"}`}
+          title={answerable ? undefined : (reason ?? undefined)}
+        >
+          {answerable ? (display ?? de(value ?? 0)) : "–"}
+        </p>
+        {answerable && value !== undefined && (
+          <Delta now={value} before={before} goodWhenUp={goodWhenUp} />
+        )}
+      </div>
       {(answerable ? sub : true) && (
         <p className="mt-1 text-[12px] text-muted">
           {answerable ? sub : "nicht nach diesem Filter auswertbar"}
@@ -106,35 +170,153 @@ function BarList({ title, subtitle, items, labelMap, empty, answerable = true, r
   );
 }
 
-const BUCKET_LABEL: Record<Bucket, string> = { day: "je Tag", week: "je Woche", month: "je Monat" };
+// Das Balkenbild ohne eine einzige Ziffer ist raus. Es steckt jetzt in
+// components/admin/AnalyticsChart.tsx, mit Achse, Werten und den drei Zahlen, die man
+// aus einer Kurve ohnehin ablesen will. Warum das kein Schönheitsfehler war, steht dort.
 
-function TimeBars({ points, bucket }: { points: TimePoint[]; bucket: Bucket }) {
-  const max = Math.max(1, ...points.map((p) => p.pageviews));
+/**
+ * Der Weg zu Pro.
+ *
+ * Bis hierher gab es eine einzelne Kachel „Conversions" ohne Nenner. Zwei Käufe sind ein
+ * Erfolg, wenn zwanzig Leute die Verkaufsseite gesehen haben, und ein Alarm, wenn es
+ * zweitausend waren — dieselbe Zahl, zwei entgegengesetzte Schlüsse. Erst die beiden
+ * Verhältnisse sagen, WO es klemmt:
+ *
+ *   wenige /pro-Aufrufe je Besuch -> die Leute finden das Angebot nicht (Platzierung)
+ *   viele Aufrufe, wenige Käufe   -> sie finden es und wollen es nicht (Angebot, Preis, Text)
+ *
+ * KEIN echter Trichter: Wir verfolgen niemanden über Tage oder Geräte, das ist der Kern der
+ * cookielosen Messung. Es sind drei Zahlen mit drei Einheiten. Genau so steht es auch da,
+ * weil „Conversion-Rate" hier eine Genauigkeit behaupten würde, die die Daten nicht haben.
+ */
+function ProPathCard({
+  path,
+  answerable,
+  reason,
+}: {
+  path: { sessions: number; proViews: number; conversions: number };
+  answerable: boolean;
+  reason?: string | null;
+}) {
+  const perVisit = path.sessions ? Math.round((path.proViews / path.sessions) * 1000) / 10 : 0;
+  const perView = path.proViews ? Math.round((path.conversions / path.proViews) * 1000) / 10 : 0;
+  const steps = [
+    { label: "Besuche", value: de(path.sessions), note: "Sitzungen im Zeitraum" },
+    { label: "Pro-Seite angesehen", value: de(path.proViews), note: `${de1(perVisit)} je 100 Besuche` },
+    {
+      label: "Käufe",
+      value: answerable ? de(path.conversions) : "–",
+      note: answerable ? `${de1(perView)} je 100 Pro-Aufrufe` : "nicht nach diesem Filter auswertbar",
+    },
+  ];
   return (
     <div className="rounded-[16px] bg-white p-4 shadow-sm ring-1 ring-black/[0.04]">
-      <h2 className="text-[15px] font-semibold text-ink">Seitenaufrufe im Zeitverlauf</h2>
+      <h2 className="text-[15px] font-semibold text-ink">Weg zu Pro</h2>
       <p className="text-[11px] text-muted">
-        {BUCKET_LABEL[bucket]} · der letzte Balken läuft noch
+        Drei eigene Zahlen, kein verfolgter Trichter: Wir erkennen niemanden über Tage hinweg.
       </p>
-      <div className="mt-3 flex h-28 items-end gap-[3px]">
-        {points.map((p) => (
-          <div
-            key={p.bucket}
-            // „Besucher-Tage" und nicht „Besucher": Der Besucher-Hash wechselt jede Nacht
-            // (das ist der Grund, warum diese Messung ohne Cookie auskommt). Über einen
-            // Wochen- oder Monatsbalken zählt „eindeutig" deshalb jeden Tag neu mit. Wer
-            // hier „Besucher" liest, liest bei einem Monatsbalken eine bis zu 30-fach zu
-            // grosse Zahl — die Kachel oben sagt aus demselben Grund „eindeutig / Tag".
-            title={`${p.bucket}: ${p.pageviews} Aufrufe · ${p.visitors} Besucher-Tage`}
-            className={`flex-1 rounded-t ${p.pageviews ? "bg-accent/80" : "bg-black/[0.06]"}`}
-            style={{ height: `${Math.max(2, Math.round((p.pageviews / max) * 100))}%` }}
-          />
+      <ol className="mt-3 space-y-2">
+        {steps.map((s, i) => (
+          <li key={s.label} className="flex items-baseline gap-3">
+            <span className="w-5 shrink-0 text-[12px] font-bold text-accent">{i + 1}</span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[13px] text-ink">{s.label}</span>
+              <span className="block text-[11px] text-muted" title={reason ?? undefined}>
+                {s.note}
+              </span>
+            </span>
+            <span className="shrink-0 text-[17px] font-bold text-ink">{s.value}</span>
+          </li>
         ))}
-      </div>
-      <div className="mt-1.5 flex justify-between text-[11px] text-muted">
-        <span>{points[0]?.bucket.slice(5)}</span>
-        <span>{points[points.length - 1]?.bucket.slice(5)}</span>
-      </div>
+      </ol>
+    </div>
+  );
+}
+
+/**
+ * Die Inhalts-To-do-Liste: Aufrufe UND Merkungen je Spot in einer Zeile.
+ *
+ * Aufrufe und Merkungen gab es schon, aber als zwei getrennte Balkenlisten — und die
+ * Aussage steht nicht in einer der beiden, sondern zwischen ihnen. Viele Aufrufe bei wenigen
+ * Merkungen heisst: Der Spot wird gefunden und überzeugt nicht (Bild, Text, fehlende
+ * Angaben). Wenige Aufrufe bei hoher Merk-Quote heisst das Gegenteil: Der Inhalt sitzt, nur
+ * findet ihn niemand.
+ *
+ * Die Quote wird erst ab genug Aufrufen bewertet. Aus drei Aufrufen und einer Merkung
+ * „33 %" zu machen und den Spot nach oben zu sortieren, wäre die klassische Art, mit einer
+ * richtig gerechneten Zahl eine falsche Entscheidung zu erzeugen.
+ */
+const RATE_MIN_VIEWS = 25;
+
+function SpotPerformanceTable({
+  rows,
+  answerable,
+  reason,
+}: {
+  rows: { slug: string; title: string; views: number; saves: number; rate: number }[];
+  answerable: boolean;
+  reason?: string | null;
+}) {
+  const rated = rows.filter((r) => r.views >= RATE_MIN_VIEWS);
+  const avgRate = rated.length
+    ? rated.reduce((s, r) => s + r.rate, 0) / rated.length
+    : 0;
+
+  return (
+    <div className="rounded-[16px] bg-white p-4 shadow-sm ring-1 ring-black/[0.04]">
+      <h2 className="text-[15px] font-semibold text-ink">Spots: Aufrufe → Merkungen</h2>
+      <p className="text-[11px] text-muted">
+        Wird gefunden, überzeugt aber nicht? Dann fehlt am Spot etwas.
+      </p>
+      {!answerable ? (
+        <p className="mt-3 text-[13px] text-muted">{reason ?? "Nicht nach diesem Filter auswertbar."}</p>
+      ) : rows.length === 0 ? (
+        <p className="mt-3 text-[13px] text-muted">Noch keine Spot-Aufrufe im Zeitraum.</p>
+      ) : (
+        <div className="mt-3 overflow-x-auto">
+          <table className="w-full text-[13px]">
+            <thead>
+              <tr className="text-left text-[11px] uppercase tracking-wide text-muted">
+                <th className="pb-1 font-medium">Spot</th>
+                <th className="pb-1 text-right font-medium">Aufrufe</th>
+                <th className="pb-1 text-right font-medium">Merkungen</th>
+                <th className="pb-1 text-right font-medium">Quote</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => {
+                const rateable = r.views >= RATE_MIN_VIEWS;
+                // Deutlich unter dem eigenen Schnitt = der Fall, der Arbeit bedeutet.
+                const weak = rateable && avgRate > 0 && r.rate < avgRate * 0.5;
+                const strong = rateable && avgRate > 0 && r.rate > avgRate * 1.5;
+                return (
+                  <tr key={r.slug} className="border-t border-black/5">
+                    <td className="py-1.5 pr-2 font-medium text-ink">
+                      <span className="line-clamp-1">{r.title}</span>
+                    </td>
+                    <td className="py-1.5 text-right text-ink">{de(r.views)}</td>
+                    <td className="py-1.5 text-right text-muted">{de(r.saves)}</td>
+                    <td
+                      className={`py-1.5 text-right font-semibold ${
+                        !rateable ? "text-black/25" : weak ? "text-rose-600" : strong ? "text-emerald-600" : "text-muted"
+                      }`}
+                      title={rateable ? undefined : `Erst ab ${RATE_MIN_VIEWS} Aufrufen aussagekräftig`}
+                    >
+                      {rateable ? `${de1(r.rate)} %` : "–"}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          <p className="mt-2 text-[11px] text-muted">
+            Quote = Merkungen je 100 Aufrufe, ab {RATE_MIN_VIEWS} Aufrufen.{" "}
+            <span className="text-rose-600">Rot</span> = deutlich unter dem Schnitt dieser Liste
+            ({de1(avgRate)} %), also überarbeiten.{" "}
+            <span className="text-emerald-600">Grün</span> = überzeugt, mehr davon zeigen.
+          </p>
+        </div>
+      )}
     </div>
   );
 }
@@ -161,8 +343,8 @@ function CampaignTable({ campaigns }: { campaigns: Campaign[] }) {
                 <tr key={c.campaign} className="border-t border-black/5">
                   <td className="py-1.5 pr-2 font-medium text-ink">{c.campaign}</td>
                   <td className="py-1.5 text-right text-ink">{c.sessions.toLocaleString("de-AT")}</td>
-                  <td className="py-1.5 text-right text-muted">{c.avgPages}</td>
-                  <td className="py-1.5 text-right text-muted">{c.bounceRate}%</td>
+                  <td className="py-1.5 text-right text-muted">{de1(c.avgPages)}</td>
+                  <td className="py-1.5 text-right text-muted">{de1(c.bounceRate)} %</td>
                 </tr>
               ))}
             </tbody>
@@ -187,17 +369,57 @@ function demoDashboard(from: string, to: string, bucket: Bucket): AnalyticsDashb
     const pv = Math.round((150 + Math.sin(i / 2.5) * 28 + (i % 7 > 4 ? 60 : 0)) * perBucket * 0.9);
     return { bucket: b, pageviews: pv, visitors: Math.round(pv * 0.62) };
   });
+  // Die Kopfzahlen kommen AUS der Zeitreihe, nicht aus einer zweiten Erfindung.
+  //
+  // Vorher standen oben „5 130 Seitenaufrufe" und im Diagramm darunter „Summe 4 498" — zwei
+  // frei gewählte Zahlenreihen, die dieselbe Sache beschreiben sollten. Bei echten Daten
+  // kann das nicht passieren (beides zählt dieselben Ereignisse), in der Vorschau schon.
+  // Und eine Vorschau, die sich selbst widerspricht, bringt genau das bei, was das ganze
+  // Dashboard vermeiden soll: dass man den Zahlen nicht trauen kann.
+  const pageviews = timeseries.reduce((s, t) => s + t.pageviews, 0);
+  const visitors = timeseries.reduce((s, t) => s + t.visitors, 0);
+  const sessions = Math.round(visitors * 1.15);
+  const saves = Math.round(pageviews * 0.061);
+  // Ein sichtbar ANDERER Vorzeitraum, damit die Vorschau zeigt, wozu der Vergleich da ist.
+  const before = (n: number) => Math.round(n * 0.87);
   return {
     from,
     to,
     bucket,
     answerable: { saves: true, aiQueries: true, eventLinks: true, conversions: true, note: null },
     overview: {
-      pageviews: scale(5130), visitors: scale(2840), sessions: scale(3260), saves: scale(312),
+      pageviews, visitors, sessions, saves,
       eventLinks: scale(148), aiQueries: scale(221), conversions: scale(18),
-      bounceRate: 51, avgDurationSec: 96, saveRate: 6.1,
+      bounceRate: 51, avgDurationSec: 96,
+      saveRate: Math.round((saves / pageviews) * 1000) / 10,
     },
+    previous: {
+      pageviews: before(pageviews), visitors: before(visitors), sessions: before(sessions),
+      saves: before(saves), eventLinks: before(scale(148)), aiQueries: before(scale(221)),
+      conversions: before(scale(18)), bounceRate: 55, avgDurationSec: 88, saveRate: 5.6,
+    },
+    previousFrom: shiftDay(from, -spanDays),
+    previousTo: shiftDay(from, -1),
     timeseries,
+    pageKinds: [
+      { label: "spot", value: scale(2260) }, { label: "explore", value: scale(1180) },
+      { label: "landing", value: scale(690) }, { label: "events", value: scale(410) },
+      { label: "tour", value: scale(260) }, { label: "water", value: scale(160) },
+      { label: "pro", value: scale(95) }, { label: "saved", value: scale(75) },
+    ],
+    spotPerformance: [
+      { slug: "gaisberg", title: "Gaisberg", views: scale(720), saves: scale(46), rate: 6.4 },
+      { slug: "koenigssee", title: "Königssee", views: scale(610), saves: scale(39), rate: 6.4 },
+      { slug: "untersberg", title: "Untersberg", views: scale(430), saves: scale(6), rate: 1.4 },
+      { slug: "almbachklamm", title: "Almbachklamm", views: scale(360), saves: scale(31), rate: 8.6 },
+      { slug: "wolfgangsee", title: "Wolfgangsee", views: scale(290), saves: scale(20), rate: 6.9 },
+      { slug: "moenchsberg", title: "Mönchsberg", views: scale(240), saves: scale(4), rate: 1.7 },
+      { slug: "hintersee", title: "Hintersee", views: scale(130), saves: scale(15), rate: 11.5 },
+      { slug: "kapuzinerberg", title: "Kapuzinerberg", views: 18, saves: 2, rate: 11.1 },
+    ],
+    // Dieselben Zahlen wie oben, nicht daneben erfundene: Der Kachel-Wert „Besuche" und der
+    // erste Schritt des Wegs zu Pro sind dieselbe Sache.
+    proPath: { sessions, proViews: scale(95), conversions: scale(18) },
     topSpotsSaved: [
       { label: "Gaisberg", value: scale(46) }, { label: "Königssee", value: scale(39) },
       { label: "Almbachklamm", value: scale(31) }, { label: "Untersberg", value: scale(24) },
@@ -353,6 +575,7 @@ export default async function AnalyticsPage({
   // Diagramm mit einem Zeitraum, den es nicht zeigte.
   const data = isDemo ? demoDashboard(real.from, real.to, real.bucket) : real;
   const o = data.overview;
+  const p = data.previous; // Vorzeitraum, oder null wenn es davor nichts zu messen gab
   const a = data.answerable;
   const baseUrl = siteUrl();
 
@@ -391,7 +614,8 @@ export default async function AnalyticsPage({
 
       {isDemo && (
         <div className="rounded-[16px] border border-amber-400/50 bg-amber-50 p-4 text-[13px] leading-relaxed text-amber-900">
-          <strong>Vorschau mit Beispieldaten.</strong> So sieht dein Dashboard aus und das wird
+          <strong>Vorschau mit Beispieldaten.</strong>{" "}
+          So sieht dein Dashboard aus und das wird
           erfasst. Echte Zahlen &amp; die KI-Auswertung erscheinen automatisch, sobald die Seite
           live ist. In der Entwicklung wird bewusst nicht getrackt (Datenschutz).
         </div>
@@ -399,67 +623,108 @@ export default async function AnalyticsPage({
 
       {!isDemo && <AiInsights query={query} />}
 
+      {/* ══ 1. Läuft es besser als vorher? ═══════════════════════════════════
+          Die Reihenfolge der Seite folgt jetzt den FRAGEN, nicht mehr den Tabellen, aus
+          denen die Zahlen kommen. Vorher standen achtzehn gleich aussehende Kärtchen
+          untereinander, jedes für sich richtig, und man musste selbst wissen, welche zwei
+          man nebeneinanderhalten muss, damit etwas daraus folgt. */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <StatCard label="Seitenaufrufe" value={o.pageviews} />
-        <StatCard label="Besuche" value={o.sessions} sub="Sessions" />
-        <StatCard label="Besucher" value={o.visitors} sub="eindeutig / Tag" />
-        <StatCard label="Bounce-Rate" display={`${o.bounceRate}%`} />
-        <StatCard label="Ø Verweildauer" display={fmtDuration(o.avgDurationSec)} />
+        <StatCard label="Seitenaufrufe" value={o.pageviews} before={p?.pageviews} />
+        <StatCard label="Besuche" value={o.sessions} sub="Sessions" before={p?.sessions} />
+        <StatCard label="Besucher" value={o.visitors} sub="eindeutig / Tag" before={p?.visitors} />
         <StatCard
-          label="Merkungen" value={o.saves} sub={`Merkrate ${o.saveRate}/100`}
-          answerable={a.saves} reason={a.note}
+          label="Bounce-Rate" value={o.bounceRate} display={`${o.bounceRate} %`}
+          sub="nur eine Seite gesehen" before={p?.bounceRate} goodWhenUp={false}
+        />
+        <StatCard
+          label="Ø Verweildauer" value={o.avgDurationSec} display={fmtDuration(o.avgDurationSec)}
+          before={p?.avgDurationSec}
+        />
+        <StatCard
+          label="Merkungen" value={o.saves} sub={`Merkrate ${de1(o.saveRate)} je 100 Aufrufe`}
+          answerable={a.saves} reason={a.note} before={p?.saves}
         />
         <StatCard
           label="KI-Anfragen" value={o.aiQueries}
-          sub={a.eventLinks ? `Event-Klicks: ${o.eventLinks}` : undefined}
-          answerable={a.aiQueries} reason={a.note}
+          sub={a.eventLinks ? `Event-Klicks: ${de(o.eventLinks)}` : undefined}
+          answerable={a.aiQueries} reason={a.note} before={p?.aiQueries}
         />
         <StatCard
-          label="Conversions" value={o.conversions} sub="Free → Pro"
-          answerable={a.conversions} reason={a.note}
+          label="Käufe" value={o.conversions} sub="Free → Pro"
+          answerable={a.conversions} reason={a.note} before={p?.conversions}
         />
       </div>
 
-      {a.note && (
-        <p className="px-1 text-[12px] leading-relaxed text-muted">{a.note}</p>
-      )}
+      <p className="px-1 text-[12px] leading-relaxed text-muted">
+        {data.previous
+          ? `Vergleich jeweils mit ${data.previousFrom} bis ${data.previousTo} (gleich lang, gleiche Filter).`
+          : "Kein Vergleich: Im gleich langen Zeitraum davor wurde noch nichts gemessen."}
+        {a.note ? ` ${a.note}` : ""}
+      </p>
 
-      <TimeBars points={data.timeseries} bucket={data.bucket} />
+      <AnalyticsChart points={data.timeseries} bucket={data.bucket} />
+
+      {/* ══ 2. Verkauft Pro? ═══════════════════════════════════════════════ */}
+      <Section
+        title="Verkauft Pro?"
+        hint="Zwei Käufe sind ein Erfolg, wenn zwanzig Leute die Pro-Seite gesehen haben, und ein Alarm, wenn es zweitausend waren. Deshalb steht der Nenner daneben."
+      />
+      <div className="grid gap-4 lg:grid-cols-2">
+        <ProPathCard path={data.proPath} answerable={a.conversions} reason={a.note} />
+        <BarList
+          title="Wohin die Aufmerksamkeit geht" subtitle="Aufrufe je Seitenart"
+          items={data.pageKinds} labelMap={KIND_LABELS}
+          empty="Noch keine Aufrufe."
+        />
+      </div>
+
+      {/* ══ 3. Was sollen wir als Nächstes bauen? ══════════════════════════
+          Die beiden stärksten Produkt-Signale, die es gibt: was Toni nicht beantworten
+          konnte (also fehlender Inhalt) und welcher vorhandene Inhalt nicht überzeugt.
+          Die Content-Lücken standen bisher ganz unten am Seitenende. */}
+      <Section
+        title="Was fehlt und was ist zu schwach?"
+        hint="Links: Wünsche, die Toni nicht erfüllen konnte, also fehlender Inhalt. Rechts: Spots, die gefunden werden und trotzdem niemand merkt, also vorhandener Inhalt, der nicht überzeugt."
+      />
+      <div className="grid gap-4 lg:grid-cols-2">
+        <GapList gaps={insights.gaps} />
+        <SpotPerformanceTable
+          rows={data.spotPerformance} answerable={a.saves} reason={a.note}
+        />
+      </div>
 
       <div className="grid gap-4 md:grid-cols-2">
         <BarList title="Top-Spots" subtitle="nach Merkungen" items={data.topSpotsSaved} empty="Noch keine gemerkten Spots." answerable={a.saves} reason={a.note} />
-        <BarList title="Top-Spots" subtitle="nach Aufrufen" items={data.topSpotsViewed} empty="Noch keine Aufrufe." />
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        <BarList title="Top-Events" subtitle="nach Merkungen" items={data.topEventsSaved} empty="Noch keine gemerkten Events." answerable={a.saves} reason={a.note} />
         <BarList title="Spot-Kategorien" subtitle="nach Aufrufen" items={data.spotCategories} empty="Keine Daten." />
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
+        <BarList title="Top-Events" subtitle="nach Merkungen" items={data.topEventsSaved} empty="Noch keine gemerkten Events." answerable={a.saves} reason={a.note} />
         <BarList title="Event-Kategorien" subtitle="nach Merkungen" items={data.eventCategories} labelMap={EVENT_CAT_LABELS} empty="Keine Daten." answerable={a.saves} reason={a.note} />
-        <BarList title="Länder" subtitle="nach Aufrufen" items={data.countries} empty="Keine Daten." />
       </div>
 
+      {/* ══ 4. Woher kommen die Leute? ════════════════════════════════════ */}
+      <Section
+        title="Woher kommen sie?"
+        hint="Welcher Kanal bringt Leute, die bleiben. Seiten/Besuch und Bounce sagen mehr über eine Anzeige als die Zahl der Klicks."
+      />
       <div className="grid gap-4 lg:grid-cols-2">
         <CampaignTable campaigns={data.campaigns} />
         <AdLinkBuilder baseUrl={baseUrl} />
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <BarList title="Quellen" subtitle="nach Aufrufen" items={data.sources} labelMap={SOURCE_LABELS} empty="Keine Daten." />
-        <BarList title="Geräte" subtitle="nach Aufrufen" items={data.devices} labelMap={DEVICE_LABELS} empty="Keine Daten." />
+        <BarList title="Länder" subtitle="nach Aufrufen" items={data.countries} empty="Keine Daten." />
         <BarList title="Sprache" subtitle="nach Aufrufen" items={data.locales} labelMap={LOCALE_LABELS} empty="Keine Daten." />
+        <BarList title="Geräte" subtitle="nach Aufrufen" items={data.devices} labelMap={DEVICE_LABELS} empty="Keine Daten." />
       </div>
 
-      {/* ── KI-Insights: anonyme Auswertung der Chatbot-Nachfrage (docs/34 §I) ── */}
-      <div className="mt-2 border-t border-black/[0.06] pt-5">
-        <h2 className="text-xl font-bold text-ink">KI-Insights</h2>
-        <p className="mt-1 text-[13px] text-muted">
-          Anonyme Auswertung der Chatbot-Anfragen · nur feste Codes, kein Text, kein
-          Personenbezug · {insights.from} bis {insights.to}
-        </p>
-      </div>
+      {/* ══ 5. Was fragen die Leute Toni? (docs/34 §I) ════════════════════ */}
+      <Section
+        title="Was fragen die Leute Toni?"
+        hint={`Anonyme Auswertung der Chatbot-Anfragen, nur feste Codes, kein Text, kein Personenbezug · ${insights.from} bis ${insights.to}`}
+      />
 
       {!isDemo && <AiInsightsSummary query={insightsQuery} />}
 
@@ -481,12 +746,13 @@ export default async function AnalyticsPage({
         <BarList title="Top-Themen" subtitle="Kategorien der Anfragen" items={insights.categories} empty="Noch keine Daten." />
       </div>
 
+      {/* Die Content-Lücken stehen jetzt oben bei „Was fehlt und was ist zu schwach?" —
+          sie sind laut docs/34 §I das wertvollste Produkt-Signal und standen ausgerechnet
+          ganz unten am Seitenende. Hier bleiben die Zahlen, die die Lücken einordnen. */}
       <div className="grid gap-4 md:grid-cols-2">
-        <GapList gaps={insights.gaps} />
         <BarList title="Regionen" subtitle="wonach gefragt wird" items={insights.regions} empty="Noch keine Daten." />
+        <BarList title="Sprache der Anfragen" items={insights.locales} empty="Noch keine Daten." />
       </div>
-
-      <BarList title="Sprache der Anfragen" items={insights.locales} empty="Noch keine Daten." />
     </div>
   );
 }

@@ -46,6 +46,31 @@ export type Overview = {
 };
 export type LabeledValue = { label: string; value: number };
 export type TimePoint = { bucket: string; pageviews: number; visitors: number };
+
+/**
+ * Wie ein Spot sich schlägt. Die beiden Zahlen ZUSAMMEN sind die Aussage:
+ * Aufrufe = er wird gefunden, Merkungen = die Seite überzeugt.
+ */
+export type SpotPerformance = {
+  slug: string;
+  title: string;
+  views: number;
+  saves: number;
+  /** Merkungen je 100 Aufrufe. */
+  rate: number;
+};
+
+/**
+ * Der Weg zu Pro. BEWUSST keine „Conversion-Rate" über eine Kette: Wir verfolgen niemanden
+ * über Tage oder Geräte (das ist der Kern der cookielosen Messung), also sind das drei
+ * Zahlen mit drei Einheiten und zwei Verhältnissen daraus, nicht ein Trichter durch
+ * dieselben Menschen. Genau so steht es auch im Dashboard.
+ */
+export type ProPath = {
+  sessions: number;
+  proViews: number;
+  conversions: number;
+};
 export type Campaign = {
   campaign: string;
   sessions: number;
@@ -82,7 +107,24 @@ export type AnalyticsDashboard = {
   bucket: Bucket;
   answerable: Answerable;
   overview: Overview;
+  /**
+   * Derselbe Zeitraum davor, gleich lang und gleich gefiltert.
+   *
+   * Eine Zahl ohne Richtung ist keine Entscheidung. „1.240 Aufrufe" sagt niemandem, ob
+   * etwas zu tun ist; „1.240, ein Fünftel mehr als in den 30 Tagen davor" schon. Kostet
+   * einen zusätzlichen RPC-Aufruf, der parallel zu den anderen läuft.
+   *
+   * null, wenn davor gar nichts gemessen wurde (frisch gestartet) — dann ist jeder
+   * Vergleich mit „unendlich viel mehr" irreführend und es wird keiner gezeigt.
+   */
+  previous: Overview | null;
+  previousFrom: string;
+  previousTo: string;
   timeseries: TimePoint[];
+  /** Wohin die Aufmerksamkeit geht: Aufrufe je Seitenart (Karte, Spot, Events, Pro …). */
+  pageKinds: LabeledValue[];
+  spotPerformance: SpotPerformance[];
+  proPath: ProPath;
   topSpotsSaved: LabeledValue[];
   topSpotsViewed: LabeledValue[];
   topEventsSaved: LabeledValue[];
@@ -222,12 +264,22 @@ export async function getAnalyticsData(q: AnalyticsQuery = {}): Promise<Analytic
   };
   const Frange = { p_from: fromIso, p_to: toIso };
 
+  // Der gleich lange Zeitraum DAVOR, lückenlos anschliessend: endet dort, wo dieser beginnt.
+  const spanDays = dayCount(fromDay, toDay);
+  const prevToDay = shiftDay(fromDay, -1);
+  const prevFromDay = shiftDay(prevToDay, -(spanDays - 1));
+  const Fprev = {
+    p_from: viennaDayStart(prevFromDay).toISOString(),
+    p_to: viennaDayEnd(prevToDay).toISOString(),
+  };
+
   const [
-    ov, tsRes, spotSaveRes, spotViewRes, eventSaveRes, spotCat, eventCat,
-    sources, devices, countries, locales, campRes,
+    ov, prevOv, tsRes, spotSaveRes, spotViewRes, eventSaveRes, spotCat, eventCat,
+    sources, devices, countries, locales, campRes, kinds, spotPerfRes,
     optCountries, optCampaigns,
   ] = await Promise.all([
     svc.rpc("analytics_overview", { ...Frange, ...F }),
+    svc.rpc("analytics_overview", { ...Fprev, ...F }),
     svc.rpc("analytics_timeseries", { ...Frange, p_bucket: bucket, ...F }),
     svc.rpc("analytics_top", { p_kind: "spot", p_metric: "save", ...Frange, p_limit: 8, ...F }),
     svc.rpc("analytics_top", { p_kind: "spot", p_metric: "view", ...Frange, p_limit: 8, ...F }),
@@ -247,6 +299,16 @@ export async function getAnalyticsData(q: AnalyticsQuery = {}): Promise<Analytic
     svc.rpc("analytics_campaigns", {
       ...Frange, p_locale: F.p_locale, p_country: F.p_country, p_device: F.p_device,
     }),
+    // Seitenarten: so viele wie es kinds gibt (classifyPath kennt derzeit 14) — die Liste
+    // soll vollständig sein, nicht Top-N, sonst fehlt ausgerechnet der kleine Bereich, um
+    // den es geht.
+    labeled(svc, "analytics_breakdown", { p_column: "kind", ...Frange, p_limit: 30, ...F }),
+    // Aufrufe UND Merkungen je Spot. Ohne Quelle/Kampagne (siehe Migration 0058): Diese
+    // Filter gibt es an Merkungen nicht, sie würden die Spalte auf null zwingen.
+    svc.rpc("analytics_spot_performance", {
+      ...Frange, p_limit: 12,
+      p_locale: F.p_locale, p_country: F.p_country, p_device: F.p_device,
+    }),
     // Filter-Optionen (ungefiltert, damit die Dropdowns alle Werte zeigen). Die
     // Filter-Keys explizit auf null -> eindeutiger Match der 9-Arg-RPC (kein Overload-Konflikt).
     labeled(svc, "analytics_breakdown", {
@@ -256,28 +318,39 @@ export async function getAnalyticsData(q: AnalyticsQuery = {}): Promise<Analytic
     svc.rpc("analytics_campaigns", Frange),
   ]);
 
-  const o = (ov.data?.[0] ?? {}) as Record<string, unknown>;
-  const sessions = num(o.sessions);
-  const pageviews = num(o.pageviews);
-  const saves = num(o.saves);
-  const overview: Overview = {
-    pageviews,
-    visitors: num(o.visitors),
-    sessions,
-    saves,
-    eventLinks: num(o.event_links),
-    aiQueries: num(o.ai_queries),
-    conversions: num(o.conversions),
-    bounceRate: sessions ? Math.round((num(o.bounces) / sessions) * 100) : 0,
-    avgDurationSec: sessions ? Math.round(num(o.duration_sum) / sessions) : 0,
-    saveRate: pageviews ? Math.round((saves / pageviews) * 1000) / 10 : 0,
+  // EINE Auslese für beide Zeiträume: Der Vergleich wäre wertlos, wenn „Bounce-Rate" hier
+  // anders gerechnet würde als dort.
+  const readOverview = (row: unknown): Overview => {
+    const o = (row ?? {}) as Record<string, unknown>;
+    const sessions = num(o.sessions);
+    const pageviews = num(o.pageviews);
+    const saves = num(o.saves);
+    return {
+      pageviews,
+      visitors: num(o.visitors),
+      sessions,
+      saves,
+      eventLinks: num(o.event_links),
+      aiQueries: num(o.ai_queries),
+      conversions: num(o.conversions),
+      bounceRate: sessions ? Math.round((num(o.bounces) / sessions) * 100) : 0,
+      avgDurationSec: sessions ? Math.round(num(o.duration_sum) / sessions) : 0,
+      saveRate: pageviews ? Math.round((saves / pageviews) * 1000) / 10 : 0,
+    };
   };
+  const overview = readOverview(ov.data?.[0]);
+  const prev = readOverview(prevOv.data?.[0]);
+  // Kein Vergleich gegen einen leeren Vorzeitraum: „unendlich mehr" ist keine Aussage, und
+  // in den ersten Wochen nach dem Start wäre das JEDE Kachel.
+  const previous = prev.pageviews > 0 ? prev : null;
 
   const spotSaveRows = (spotSaveRes.data ?? []) as { target: string; cnt: number }[];
   const spotViewRows = (spotViewRes.data ?? []) as { target: string; cnt: number }[];
   const eventRows = (eventSaveRes.data ?? []) as { target: string; cnt: number }[];
+  const perfRows = (spotPerfRes.data ?? []) as { target: string; views: number; saves: number }[];
   const [sTitles, eTitles] = await Promise.all([
-    spotTitles(svc, [...spotSaveRows, ...spotViewRows].map((r) => r.target)),
+    // Ein Titel-Nachschlag für alle drei Spot-Listen statt drei einzelne.
+    spotTitles(svc, [...spotSaveRows, ...spotViewRows, ...perfRows].map((r) => r.target)),
     eventTitles(svc, eventRows.map((r) => r.target)),
   ]);
 
@@ -308,13 +381,28 @@ export async function getAnalyticsData(q: AnalyticsQuery = {}): Promise<Analytic
     visitors: counted.get(b)?.visitors ?? 0,
   }));
 
+  const kindRows = kinds.filter((k) => k.label !== "(unbekannt)");
+  const proViews = kindRows.find((k) => k.label === "pro")?.value ?? 0;
+
   return {
     from: fromDay,
     to: toDay,
     bucket,
     answerable,
     overview,
+    previous,
+    previousFrom: prevFromDay,
+    previousTo: prevToDay,
     timeseries,
+    pageKinds: kindRows,
+    spotPerformance: perfRows.map((r) => ({
+      slug: r.target,
+      title: sTitles.get(r.target) ?? r.target,
+      views: num(r.views),
+      saves: num(r.saves),
+      rate: num(r.views) ? Math.round((num(r.saves) / num(r.views)) * 1000) / 10 : 0,
+    })),
+    proPath: { sessions: overview.sessions, proViews, conversions: overview.conversions },
     topSpotsSaved: spotSaveRows.map((r) => ({ label: sTitles.get(r.target) ?? r.target, value: num(r.cnt) })),
     topSpotsViewed: spotViewRows.map((r) => ({ label: sTitles.get(r.target) ?? r.target, value: num(r.cnt) })),
     topEventsSaved: eventRows.map((r) => ({ label: eTitles.get(r.target) ?? "Event", value: num(r.cnt) })),

@@ -365,8 +365,42 @@ die dort fehlten. Fristen und Texte hängen an `lib/data-retention.ts` — wer e
 
 **Regressionsschutz:** `npm run analytics:check` (scripts/analytics-check.ts) prüft die echten
 Funktionen — Einordnung **jeder** Route der App (schlägt an, sobald eine neue in „other"
-fällt), Bot-Liste gegen echte Browser- und Crawler-Kennungen, 800 Wiener Kalendertage inkl.
-beider Umstellungen, Balkenraster gegen Postgres' `date_trunc`.
+fällt), deutsche Beschriftung für jede Seitenart, Bot-Liste gegen echte Browser- und
+Crawler-Kennungen, 800 Wiener Kalendertage inkl. beider Umstellungen, Balkenraster gegen
+Postgres' `date_trunc`.
+
+**v4 — Dashboard nach Entscheidungen statt nach Tabellen (27.07.2026, Migration 0058):**
+
+Die Seite zeigte achtzehn gleich aussehende Kärtchen untereinander, jedes für sich richtig.
+Man musste selbst wissen, welche zwei man nebeneinanderhalten muss, damit etwas daraus folgt.
+Jetzt folgt die Gliederung den Fragen: *Läuft es besser als vorher? · Verkauft Pro? · Was
+fehlt und was ist zu schwach? · Woher kommen sie? · Was fragen sie Toni?*
+
+- **Diagramm mit Werten.** Vorher rote Balken ohne eine einzige Ziffer: Man sah, welcher
+  höher ist, aber nicht, ob „mehr" acht oder achthundert Aufrufe sind. Jetzt Achse mit
+  0/Mitte/Höchstwert, beschriftete Zeitachse und darüber Summe, Ø je Balken und der
+  Höchstwert **mit Datum**. Besucher liegen IM Balken statt daneben, der Rest darüber sind
+  weitere Aufrufe derselben Leute. **In HTML/CSS, nicht SVG:** Die erste Fassung war ein SVG
+  mit viewBox — am iPhone-Viewport nachgemessen 6 px Achsenschrift, also unlesbar, weil eine
+  viewBox die Schrift mitskaliert. Jetzt 16,5 px auf beiden Viewports.
+- **Vergleich zum Vorzeitraum an jeder Kachel.** Die billigste Ergänzung (ein RPC-Aufruf,
+  parallel) und die einzige, die jede Zahl darüber aufwertet: „1.240 Aufrufe" ist keine
+  Entscheidung, „+18 % zu den 30 Tagen davor" schon. Bounce-Rate zählt umgekehrt. Kein
+  Vergleich gegen einen leeren Vorzeitraum („unendlich mehr" ist keine Aussage).
+- **Weg zu Pro** statt einer nackten Conversion-Kachel: Besuche → /pro-Aufrufe → Käufe, mit
+  beiden Verhältnissen. Wenige Pro-Aufrufe = das Angebot wird nicht gefunden; viele Aufrufe
+  und wenige Käufe = es überzeugt nicht. Bewusst **kein** verfolgter Trichter, das gäbe die
+  cookielose Messung nicht her, und genau so steht es auch auf der Kachel.
+- **Spots: Aufrufe → Merkungen** (neue RPC `analytics_spot_performance`). Beides gab es
+  schon, aber als zwei getrennte Top-8-Listen — die Aussage steht zwischen ihnen. Quote erst
+  ab 25 Aufrufen, sonst wäre „33 % aus drei Aufrufen" der oberste Eintrag.
+- **Seitenarten** (`kind` in der Breakdown-Whitelist): wohin die Aufmerksamkeit wirklich
+  geht. Lohnt sich erst, seit `classifyPath` die Bereiche trennt.
+- **Content-Lücken nach oben**, sie sind laut §I das wertvollste Produkt-Signal und standen
+  am Seitenende.
+- Nebenbei: Quoten in deutscher Schreibweise (stand „6.1" neben „5 130"), und die
+  Beispieldaten-Vorschau widerspricht sich nicht mehr selbst (Kachel 5 130 vs. Diagramm
+  4 498 für dieselbe Sache).
 
 ## §I — Anonyme KI-Chatbot-Auswertung (Anton-Insights)
 
