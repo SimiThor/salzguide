@@ -269,6 +269,25 @@ function classifyFact(value: string, hint: string | null): { field: string; cano
   return { field: "unbekannt", canonical: null };
 }
 
+// Telefonnummer aus einem Anruf-Link. Drei Tücken, alle drei sind hier zugeschnappt:
+//
+//   1. Nach „tel:" steht ein LEERZEICHEN („tel: 0043662879379") …
+//   2. … und im Rohtext ist es URL-kodiert („tel:%200043662879379").
+//      Ein Muster, das direkt eine Ziffer erwartet, findet 4 von 17 Nummern.
+//   3. Die Nummer im Link ist gewählt („0043662879379"), der Text DANEBEN ist lesbar
+//      („📞 +43 662 879379"). Aus der gewählten Form die Gruppierung zu erraten geht
+//      schief, weil österreichische Vorwahlen unterschiedlich lang sind. Also wird die
+//      lesbare Fassung bevorzugt und die gewählte nur als Rückfall normalisiert.
+function extractPhone(hay: string): string | null {
+  const link = /tel:(?:%20|\s)*(\+?[0-9][0-9 ()/-]{5,})/.exec(hay);
+  if (!link) return null;
+  // Der Anzeigetext steht kurz VOR dem Link (Elementor: "text":"… +43 …","link":{"url":"tel:…).
+  const before = hay.slice(Math.max(0, link.index - 120), link.index);
+  const pretty = /(\+\d{1,3}[ /-]?\d[\d ()/-]{5,})/.exec(before);
+  if (pretty) return pretty[1].replace(/\s+/g, " ").trim();
+  return link[1].replace(/\s+/g, "").replace(/^00/, "+");
+}
+
 // ── Karte: Koordinaten und Wanderlinie aus _elementor_data ──────────────────
 
 // _elementor_data ist ein JSON-String, in dem das Karten-Skript nochmal als String steckt.
@@ -497,6 +516,19 @@ export function parseSpot(post: WpPost): WpSource {
     : labels.has("Anreise")
       ? "b"
       : "unbekannt";
+
+  // Öffnungszeiten und Telefon gibt es in ZWEI Bauformen, und die zweite hätte ich fast
+  // übersehen. Die ältere Generation nutzt Shortcodes ([sg_oeffnungszeiten place="…"],
+  // [sg_anrufen tel="…"]), das sind 4 bzw. 5 Spots. Die neuere baut stattdessen ein
+  // HTML-Widget mit `data-place="ChIJ…"` und einem `tel:`-Link — nochmal 23 bzw. 13 Spots.
+  //
+  // Nach dem Shortcode allein zu suchen hätte also fünf Sechstel der Place-IDs liegen
+  // lassen, und zwar unauffällig: Ein Spot ohne Öffnungszeiten sieht nicht kaputt aus, er
+  // sieht nur nach einem Spot ohne Öffnungszeiten aus. Aufgefallen ist es nur, weil Anton
+  // gesagt hat, das müssten mehr sein.
+  const both = raw + "\n" + js;
+  if (!googlePlaceId) googlePlaceId = /data-place=\\?"(ChIJ[A-Za-z0-9_-]+)/.exec(both)?.[1] ?? null;
+  if (!phone) phone = extractPhone(both);
 
   const point = extractPoint(js);
   const route = extractRoute(js);

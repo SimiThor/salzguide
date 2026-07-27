@@ -54,6 +54,21 @@ const TOO_LONG = 2.0;
  * verdoppelt sich die Strecke, und Auf- und Abstieg tauschen die Plätze und addieren sich.
  * Das ist exakt, nicht geschätzt.
  */
+/**
+ * Routen, die NIE verdoppelt werden dürfen, egal was die alte Dauer nahelegt.
+ *
+ * Die Schmittenhöhe geht man rauf und fährt mit der Seilbahn runter, das steht wörtlich im
+ * eigenen Insider-Tipp („dass du rechtzeitig die letzte Talfahrt der Seilbahn erreichst").
+ * Die Automatik hat sie trotzdem verdoppelt: Schiedsrichter ist die alte Dauer-Angabe, und
+ * die stand hier auf 8 Stunden — selbst schon eine „plane so viel ein"-Zahl und keine
+ * Gehzeit. 628 Minuten lagen damit näher als die richtigen 314.
+ *
+ * Von 25 verdoppelten Routen ist das die einzige. Der Eintrag steht hier und nicht als
+ * korrigierter Wert in routes.json, weil eine von Hand geänderte Datei beim nächsten Lauf
+ * still überschrieben wird.
+ */
+const NEVER_DOUBLE = new Set(["schmittenhohe"]);
+
 function doubled(km: number, ascent: number, descent: number) {
   return { km: km * 2, ascent: ascent + descent, descent: ascent + descent };
 }
@@ -209,7 +224,8 @@ async function main() {
         const d = doubled(km, ad.ascent, ad.descent);
         const bothMin = hikingTimeMinutes(d.km, d.ascent, d.descent);
         const off = (m: number) => (stated ? Math.abs(Math.log(m / stated)) : Infinity);
-        const useBoth = !closed && stated != null && off(bothMin) < off(oneWayMin);
+        const useBoth =
+          !closed && !NEVER_DOUBLE.has(src.slug) && stated != null && off(bothMin) < off(oneWayMin);
 
         const shape: RouteResult["shape"] = closed ? "loop" : useBoth ? "there-and-back" : "one-way";
         const finalKm = useBoth ? d.km : km;

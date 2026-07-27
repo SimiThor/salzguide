@@ -16,6 +16,8 @@
     "wp:extract": "node --experimental-strip-types --disable-warning=ExperimentalWarning --import ./scripts/lib/alias-hook.mjs scripts/wp-import/extract.ts",
     "wp:reset": "node --experimental-strip-types --disable-warning=ExperimentalWarning --env-file=.env.local --import ./scripts/lib/alias-hook.mjs scripts/wp-import/reset-spots.ts",
     "wp:media": "node --experimental-strip-types --disable-warning=ExperimentalWarning --env-file=.env.local --import ./scripts/lib/alias-hook.mjs scripts/wp-import/media.ts",
+    "wp:brief": "node --experimental-strip-types --disable-warning=ExperimentalWarning --import ./scripts/lib/alias-hook.mjs scripts/wp-import/brief.ts",
+    "wp:check": "node --experimental-strip-types --disable-warning=ExperimentalWarning --import ./scripts/lib/alias-hook.mjs scripts/wp-import/check-drafts.ts",
     "wp:routes": "node --experimental-strip-types --disable-warning=ExperimentalWarning --env-file=.env.local --import ./scripts/lib/alias-hook.mjs scripts/wp-import/routes.ts",
     "wp:import": "node --experimental-strip-types --disable-warning=ExperimentalWarning --env-file=.env.local --import ./scripts/lib/alias-hook.mjs scripts/wp-import/import.ts"
   },
