@@ -260,6 +260,55 @@ Hintersee Pinzgau, Jägersee, Ritzensee). Sie trugen sie nur, weil die alte Anga
 Winterausflug". Winterfotos hat keiner der fünf. Das ist dieselbe Regel wie bei der
 Gastein-Karte, nur andersherum.
 
+## Feld gegen Fliesstext prüfen (`wp:consistency`, `wp:facts`)
+
+```bash
+npm run wp:consistency              # stellt Feld und Text nebeneinander
+npm run wp:consistency -- --only dauer
+npm run wp:facts                    # zeigt die Korrekturen
+npm run wp:facts -- --go            # schreibt sie
+```
+
+Die Felder kommen aus den Quick-Facts der alten Seite, die Texte sind neu geschrieben. Wo
+die alte Seite danebenlag, steht es danach doppelt auf derselben Bildschirmseite. `wp:consistency`
+zieht deshalb aus jedem Text die Stellen heraus, die eine Zeit, eine Schwierigkeit, eine
+Jahreszeit oder eine Anreise nennen, und stellt sie neben das Feld.
+
+**Es vergleicht bewusst NICHT automatisch.** Die Texte sagen „knapp vier Stunden", „eine
+Stunde zwanzig", „ein bis zwei Stunden, wenn du dir Zeit lässt". Ein Parser, der daraus
+Zahlen macht, liegt bei jeder dritten Formulierung daneben und meldet dann entweder
+Fehlalarme, die man wegzuschauen lernt, oder er schweigt genau dort, wo es zählt. Die
+Extraktion ist mechanisch, das Urteil steht in `facts.ts` — je Zeile mit dem Satz aus dem
+Text, der sie trägt.
+
+Gefunden wurden dabei: zwei Wanderungen, die als „mittel" ausgezeichnet waren und deren
+eigener Text „kaum Höhenmeter" bzw. „20 Höhenmeter, sonst harmlos" sagt; drei Spots mit
+„nur Auto", deren Text einen Bus nennt (Gaisberg: „Der Bus 151 fährt direkt rauf"); und die
+Festung mit der Rohform `1h gesamt`, wo überall sonst `1 Std` steht. Dazu 26 leere Felder,
+die der Text klar benennt — 13 Winter-Spots hatten weder Schwierigkeit noch Jahreszeit,
+weil die alte Seite dort `vibe` statt `difficulty` führte.
+
+**Die Anreise-Prüfung ist absichtlich grob und produziert Fehlalarme.** „Parken in der
+Altstadt ist teuer" enthält das Wort Parken, meint aber das Gegenteil. Zwanzig Treffer, drei
+davon echt: Das ist die richtige Richtung für eine Prüfung, deren Ergebnis ein Mensch liest.
+
+## Die zwei Wander-Reihen
+
+Der Import trennte nur nach dem Schwierigkeits-Feld der alten Seite („schwer" -> die andere
+Reihe). Dort stand genau EIN Spot auf „schwer", also lagen 29 Touren in „Leicht & Mittel"
+und eine allein in „Anspruchsvoll" — darunter der Gamskarkogel mit 1.600 Höhenmetern und
+acht Stunden.
+
+`wp:categories` trennt jetzt nach dem, was wir selbst gerechnet haben: **ab dreieinhalb
+Stunden Gehzeit ODER ab 600 Höhenmetern.** Zwei Kriterien, weil keins allein reicht. Die
+Gehzeit trennt Touren gleichen Aufwands an willkürlicher Stelle (Ellmautal 3:05,
+Schuhflickersee 3:00), der Aufstieg übersieht den Tristkogel, der mit 925 Höhenmetern auf
+12,8 Kilometern siebeneinhalb Stunden braucht. Ergebnis: 12 zu 18 statt 1 zu 29.
+
+Das Schwierigkeits-Feld bleibt davon unberührt. Es sagt etwas über das GELÄNDE, die Reihe
+über den AUFWAND. Ein Weg kann technisch harmlos und trotzdem ein ganzer Tag sein, und beim
+Gamskarkogel steht genau das im Text.
+
 ## Was der Import NICHT entscheidet
 
 **Subtyp**, wo die alte Seite keinen Marker hatte, die **Kategorien ohne Gegenstück**

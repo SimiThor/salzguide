@@ -120,6 +120,39 @@ const DROP_WINTER = [
   "ritzensee",
 ];
 
+/**
+ * Ab wann ist eine Wanderung „anspruchsvoll"?
+ *
+ * Der Import hat nur nach dem Schwierigkeits-Feld der alten Seite getrennt („schwer" -> die
+ * andere Reihe), und weil dort genau EIN Spot „schwer" stand, lagen 29 Touren in „Leicht &
+ * Mittel" und eine allein in „Anspruchsvoll". Darunter der Gamskarkogel mit 1.600
+ * Höhenmetern und acht Stunden und der Schafberg mit zehn.
+ *
+ * Getrennt wird deshalb nach dem, was wir selbst gerechnet haben: Gehzeit und Aufstieg aus
+ * der gesnappten Route. Beides steht in der Datenbank, die alte Etikette wird nicht mehr
+ * gebraucht.
+ *
+ * ZWEI KRITERIEN, KEIN EINZELNES. Die Gehzeit allein trennt Touren mit gleichem Aufwand an
+ * willkürlicher Stelle: Ellmautal 3:03 und Schuhflickersee 2:59 sind dieselbe Wanderung,
+ * eine Zeitgrenze legt sie in verschiedene Reihen. Der Aufstieg allein übersieht den
+ * Tristkogel, der mit 900 Höhenmetern auf 12,8 Kilometern siebeneinhalb Stunden braucht.
+ * „Lang ODER steil" trifft beides und lässt sich in einem Satz erklären.
+ *
+ * Das Schwierigkeits-Feld bleibt, was es ist: eine Aussage über das GELÄNDE. Ein Weg kann
+ * technisch harmlos und trotzdem ein ganzer Tag sein, genau das steht beim Gamskarkogel
+ * auch im Text.
+ */
+const HARD_MINUTES = 210; // dreieinhalb Stunden
+const HARD_ASCENT = 600; // Höhenmeter
+
+/** „3 Std 50 min" -> 230. Das Feld ist die einzige Zeitangabe, die der Besucher sieht;
+ *  danach zu trennen heisst, dass Reihe und Kärtchen dasselbe sagen. */
+function minutesOf(duration: string): number {
+  const h = /(\d+)\s*(?:Std|h)\b/.exec(duration);
+  const m = /(\d+)\s*min\b/.exec(duration);
+  return (h ? Number(h[1]) * 60 : 0) + (m ? Number(m[1]) : 0);
+}
+
 async function main() {
   const go = process.argv.includes("--go");
 
@@ -205,9 +238,57 @@ async function main() {
     console.log(`  ${go ? "ok   " : "würde"} ${slug.padEnd(30)} -> Saison ${JSON.stringify(seasons)}`);
   }
 
+  // Wander-Reihen neu aufteilen.
+  const ezId = catId.get("summer/hike-ez");
+  const hardId = catId.get("summer/hike-hard");
+  if (!ezId || !hardId) throw new Error("Wander-Reihen fehlen");
+  const { data: hikeSpots } = await db
+    .from("spots")
+    .select("id, slug, duration, elevation_profile")
+    .in(
+      "id",
+      links.filter((l) => l.category_id === ezId || l.category_id === hardId).map((l) => l.spot_id),
+    );
+  const move: { id: string; slug: string; von: string; nach: string; warum: string }[] = [];
+  for (const s of hikeSpots ?? []) {
+    const min = minutesOf(String(s.duration ?? ""));
+    const asc = (s.elevation_profile as { ascent?: number } | null)?.ascent ?? 0;
+    const soll = min >= HARD_MINUTES || asc >= HARD_ASCENT ? hardId : ezId;
+    const ist = links.find(
+      (l) => l.spot_id === s.id && (l.category_id === ezId || l.category_id === hardId),
+    );
+    if (!ist || ist.category_id === soll) continue;
+    move.push({
+      id: s.id,
+      slug: s.slug,
+      von: ist.category_id === ezId ? "hike-ez" : "hike-hard",
+      nach: soll === ezId ? "hike-ez" : "hike-hard",
+      warum: `${min} min, ${asc} hm`,
+    });
+    console.log(
+      `  ${go ? "ok   " : "würde"} ${s.slug.padEnd(30)} ${ist.category_id === ezId ? "hike-ez" : "hike-hard"} -> ${soll === ezId ? "hike-ez" : "hike-hard"}   (${min} min, ${asc} hm)`,
+    );
+  }
+  if (go) {
+    for (const m of move) {
+      const alt = m.von === "hike-ez" ? ezId : hardId;
+      const neu = m.nach === "hike-ez" ? ezId : hardId;
+      const { error: dErr } = await db
+        .from("spot_categories")
+        .delete()
+        .eq("spot_id", m.id)
+        .eq("category_id", alt);
+      if (dErr) throw dErr;
+      const { error: iErr } = await db
+        .from("spot_categories")
+        .insert({ spot_id: m.id, category_id: neu });
+      if (iErr) throw iErr;
+    }
+  }
+
   console.log(
     `\n${rows.length} Zuordnungen${go ? " geschrieben" : ""}, ${skipped} gab es schon.` +
-      ` ${seasonFix.length} Saison-Korrekturen.`,
+      ` ${seasonFix.length} Saison-Korrekturen, ${move.length} Wanderungen umgehängt.`,
   );
   if (!go) {
     console.log("TROCKENLAUF. Nichts geschrieben. Wirklich setzen: npm run wp:categories -- --go");
