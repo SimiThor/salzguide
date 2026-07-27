@@ -3,11 +3,11 @@ import { imagesFromMedia } from "./spots";
 import { routing } from "@/i18n/routing";
 import { translationStatus, type TranslationState } from "./spot-hash";
 import { HOME_KEYS, type HomeTexts } from "./home-fields";
-import { homeSourceHash, type HomeMedia } from "./home-content";
+import { homeSourceHash, homeSourceTexts } from "./home-source";
+import { type HomeMedia } from "./home-content";
 import { parseLandingImage, parseLandingVideo } from "./landing-media";
 import type { ProSource } from "./pro-source";
 import { introSourceHash, introNeedsRender } from "./intro-hash";
-import deMessages from "../../messages/de.json";
 
 export type AdminCategory = { id: string; key: string; season: string; title: string };
 export type AdminLocal = { id: string; name: string };
@@ -722,9 +722,12 @@ export async function getHomeContentAdmin(): Promise<AdminHomeContent> {
     .eq("id", 1)
     .maybeSingle();
 
-  const fileTexts: HomeTexts = Object.fromEntries(
-    HOME_KEYS.map((k) => [k, (deMessages as { Home?: Record<string, string> }).Home?.[k] ?? ""]),
-  );
+  // Das Formular zeigt genau die pflegbaren Felder, in fester Reihenfolge — auch die, die
+  // in der DB (noch) fehlen. Was dort steht, ist der deutsche Stand der Seite.
+  const formTexts = (db: HomeTexts | null | undefined): HomeTexts => {
+    const source = homeSourceTexts(db);
+    return Object.fromEntries(HOME_KEYS.map((k) => [k, source[k] ?? ""]));
+  };
 
   if (error) {
     console.error("getHomeContentAdmin:", error.message);
@@ -732,7 +735,7 @@ export async function getHomeContentAdmin(): Promise<AdminHomeContent> {
     const missing =
       error.code === "42P01" || error.code === "42703" || /home_content/.test(error.message);
     return {
-      texts: fileTexts,
+      texts: formTexts(null),
       fromDb: false,
       translated: [],
       stale: false,
@@ -744,7 +747,7 @@ export async function getHomeContentAdmin(): Promise<AdminHomeContent> {
 
   const dbTexts = (data?.texts ?? {}) as HomeTexts;
   const fromDb = Object.values(dbTexts).some((v) => typeof v === "string" && v.trim());
-  const texts = fromDb ? { ...fileTexts, ...dbTexts } : fileTexts;
+  const texts = formTexts(dbTexts);
 
   const translations = (data?.translations ?? {}) as Record<string, HomeTexts>;
   const targets = routing.locales.filter((l) => l !== "de");
@@ -752,8 +755,12 @@ export async function getHomeContentAdmin(): Promise<AdminHomeContent> {
 
   // Veraltet: Es gibt Übersetzungen, aber sie wurden zu einem ANDEREN deutschen Stand
   // gemacht. Gleiche Mechanik wie bei Spots und Events (spot-hash.ts).
+  //
+  // homeSourceHash bekommt die ROHE DB-Zeile, genau wie beim Übersetzen. Hier stand einmal
+  // ein selbst zusammengemischter Stand, und weil das Übersetzen anders mischte, konnte der
+  // Hinweis nie mehr verschwinden (siehe home-source.ts).
   const stale =
-    translated.length > 0 && !!data?.source_hash && data.source_hash !== homeSourceHash(texts);
+    translated.length > 0 && !!data?.source_hash && data.source_hash !== homeSourceHash(dbTexts);
 
   const state: TranslationState =
     translated.length === 0
