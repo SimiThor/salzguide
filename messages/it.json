@@ -431,7 +431,7 @@
   "Support": {
     "linkLabel": "Aiuto",
     "title": "Ti aiutiamo",
-    "subtitle": "Qualcosa non funziona, uno spot è sbagliato, o hai una domanda? Scrivici. Siamo in due e leggiamo ogni messaggio di persona.",
+    "subtitle": "Qualcosa non funziona, uno spot è sbagliato, o hai una domanda? Scrivici.",
     "name": "Nome",
     "email": "E-mail",
     "message": "Il tuo messaggio",
@@ -475,26 +475,26 @@
     "greeting": "Un saluto da Salisburgo",
     "signoff": "Anton di SalzGuide",
     "follow": "Seguici:",
-    "reply": "Qualcosa non funziona? Rispondi a questa mail, la leggiamo noi.",
+    "reply": "Qualcosa non funziona? Scrivici.",
     "login": {
       "subject": "Il tuo link di accesso a SalzGuide",
       "headline": "Il tuo link di accesso a SalzGuide",
-      "body": "👇 Tocca il pulsante e sei dentro. La password non serve.\n\n🔒 Il link vale solo per questo indirizzo e funziona una volta sola.",
+      "body": "👇 Tocca il pulsante e sei dentro. Password non serve.\n\n🔒 Il link vale solo per questo indirizzo e funziona una volta sola.",
       "cta": "Accedi ora",
       "tileLabel": "Accedi con",
-      "note": "Non l’hai chiesto tu? Ignora questa mail, non succede niente."
+      "note": "Non l’hai chiesto tu? Cancella la mail."
     },
     "gift": {
       "subject": "Hai SalzGuide Pro",
       "headline": "SalzGuide Pro sbloccato",
-      "body": "Offre la casa, non devi pagare niente e non devi riscattare niente.\n\n🔓 Da adesso vedi tutti gli spot Pro, anche quelli di solito bloccati.\n\n🗺️ Apri, guarda la mappa, vai. Non c’è altro da fare.",
+      "body": "Offre la casa. Niente da pagare, niente da riscattare.\n\n🔓 Da adesso vedi tutti gli spot Pro, anche quelli di solito bloccati.\n\n🗺️ Apri, guarda la mappa, vai. Non c’è altro da fare.",
       "cta": "Guarda gli spot Pro"
     },
     "purchase": {
       "subject": "La tua conferma d’acquisto: SalzGuide Pro",
       "headline": "La tua conferma per SalzGuide Pro",
-      "intro": "Grazie. Qui c’è nero su bianco cosa hai comprato. Conserva questa mail, è la tua conferma di contratto.",
-      "guest": "📩 Il tuo accesso è collegato all’indirizzo qui sotto. Se non sei già dentro l’app, accedi con quello, senza password, ricevi un link da toccare. Il tuo Pro ti aspetta lì.",
+      "intro": "Grazie. Conserva questa mail, è la tua conferma di contratto.",
+      "guest": "📩 Il tuo accesso è collegato all’indirizzo qui sotto. Senza password: metti la mail, tocchi il link, sei dentro.",
       "member": "🗺️ Da adesso tutti i contenuti Pro sono aperti per te. Apri, guarda la mappa, vai. Non c’è altro da fare.",
       "otherAddress": "📮 Hai pagato con {paid}. Ma il tuo Pro è sull’account {account}, ed è con quell’indirizzo che accedi.",
       "rowService": "Prestazione",
@@ -509,8 +509,8 @@
       "rowLanguageValue": "Tedesco",
       "cta": "Guarda gli spot Pro",
       "tileLabel": "Il tuo accesso è collegato a",
-      "note": "Domande sull’acquisto? Rispondi a questa mail, la leggiamo noi.",
-      "legalDe": "Le note qui sotto sono giuridicamente vincolanti e per questo sono in tedesco, come i nostri termini e le informazioni sul recesso.",
+      "note": "Domande sull’acquisto? Scrivici.",
+      "legalDe": "Le note in calce sono in tedesco: la versione tedesca è quella giuridicamente vincolante.",
       "linkWithdrawal": "Recesso",
       "linkTerms": "Termini",
       "linkPrivacy": "Privacy"
@@ -518,7 +518,7 @@
     "withdrawal": {
       "subject": "Conferma di ricezione del tuo recesso",
       "headline": "Il tuo recesso è arrivato",
-      "body": "Ciao {name}, confermiamo di aver ricevuto il tuo recesso il {receivedAt}.\n\n⏱️ Lo stiamo trattando e ti facciamo sapere. L’eventuale rimborso parte senza indugio, al più tardi 14 giorni dalla ricezione, con lo stesso mezzo di pagamento.\n\n📄 I tuoi dati sono qui sotto, esattamente come li hai inviati. Se qualcosa non torna, rispondi a questa mail.",
+      "body": "Ciao {name}, confermiamo di aver ricevuto il tuo recesso il {receivedAt}.\n\n⏱️ Lo stiamo trattando e ti facciamo sapere. L’eventuale rimborso parte senza indugio, al più tardi 14 giorni dalla ricezione, con lo stesso mezzo di pagamento.",
       "rowReceived": "Ricezione",
       "rowName": "Nome",
       "rowEmail": "E-mail",
@@ -526,7 +526,8 @@
       "rowContract": "Contratto / ordine",
       "rowOrderDate": "Ordinato / ricevuto il",
       "rowNote": "Il tuo messaggio",
-      "legalDe": "Il testo della tua dichiarazione e la nota legale sono in tedesco, perché la versione tedesca è quella vincolante."
+      "legalDe": "Il testo qui sotto è in tedesco: la versione tedesca è quella giuridicamente vincolante.",
+      "note": "Qualcosa non torna? Scrivici."
     }
   }
 }

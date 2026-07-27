@@ -431,7 +431,7 @@
   "Support": {
     "linkLabel": "Help",
     "title": "We're here to help",
-    "subtitle": "Something not working, a spot that's wrong, or a question? Write to us. There are two of us and we read every message ourselves.",
+    "subtitle": "Something not working, a spot that's wrong, or a question? Write to us.",
     "name": "Name",
     "email": "Email",
     "message": "Your message",
@@ -475,26 +475,26 @@
     "greeting": "Warm regards from Salzburg",
     "signoff": "Anton from SalzGuide",
     "follow": "Follow us:",
-    "reply": "Something not working? Just reply to this email, we read them ourselves.",
+    "reply": "Something not working? Write back.",
     "login": {
       "subject": "Your login link for SalzGuide",
       "headline": "Your login link for SalzGuide",
-      "body": "👇 Tap the button and you’re in. No password needed.\n\n🔒 The link belongs to this address and works once.",
+      "body": "👇 Tap the button and you’re in. No password needed.\n\n🔒 The link is only for this address and works once.",
       "cta": "Log in now",
       "tileLabel": "You’re logging in as",
-      "note": "Didn’t ask for this? Just ignore the email, nothing happens."
+      "note": "Didn’t ask for this? Delete the email."
     },
     "gift": {
       "subject": "You’ve got SalzGuide Pro",
       "headline": "SalzGuide Pro unlocked",
-      "body": "It’s on us, nothing to pay and nothing to redeem.\n\n🔓 Every Pro spot is visible for you from now on, including the ones that are usually locked.\n\n🗺️ Open it, look at the map, go. That’s all there is to it.",
+      "body": "It’s on us. Nothing to pay, nothing to redeem.\n\n🔓 Every Pro spot is visible for you from now on, including the ones that are usually locked.\n\n🗺️ Open it, look at the map, go. That’s all there is to it.",
       "cta": "See the Pro spots"
     },
     "purchase": {
       "subject": "Your purchase confirmation: SalzGuide Pro",
       "headline": "Your confirmation for SalzGuide Pro",
-      "intro": "Thank you. Here’s what you bought, in black and white. Keep this email, it’s your contract confirmation.",
-      "guest": "📩 Your access runs on the address below. If you’re not already logged in to the app, sign in with it, no password, you get a link to tap. Your Pro is waiting there.",
+      "intro": "Thank you. Keep this email, it’s your contract confirmation.",
+      "guest": "📩 Your access runs on the address below. No password: email in, tap the link, you’re in.",
       "member": "🗺️ All Pro content is open for you from now on. Open it, look at the map, go. That’s all there is to it.",
       "otherAddress": "📮 You paid with {paid}. But your Pro sits on your account {account}, and that’s the address you log in with.",
       "rowService": "Service",
@@ -509,8 +509,8 @@
       "rowLanguageValue": "German",
       "cta": "See the Pro spots",
       "tileLabel": "Your access runs on",
-      "note": "Questions about your purchase? Just reply to this email, we read them ourselves.",
-      "legalDe": "The small print below is legally binding and is therefore in German, just like our terms and the withdrawal policy.",
+      "note": "Questions about your purchase? Write back.",
+      "legalDe": "The small print is in German: the German version is the legally binding one.",
       "linkWithdrawal": "Withdrawal",
       "linkTerms": "Terms",
       "linkPrivacy": "Privacy"
@@ -518,7 +518,7 @@
     "withdrawal": {
       "subject": "We received your withdrawal",
       "headline": "Your withdrawal reached us",
-      "body": "Hi {name}, we confirm that your withdrawal reached us on {receivedAt}.\n\n⏱️ We’re processing it and will get back to you. Any refund goes out without delay, at the latest 14 days after receipt, via the same payment method.\n\n📄 Your details are below, exactly as you sent them. If something’s wrong, just reply to this email.",
+      "body": "Hi {name}, we confirm that your withdrawal reached us on {receivedAt}.\n\n⏱️ We’re processing it and will get back to you. Any refund goes out without delay, at the latest 14 days after receipt, via the same payment method.",
       "rowReceived": "Received",
       "rowName": "Name",
       "rowEmail": "Email",
@@ -526,7 +526,8 @@
       "rowContract": "Contract / order",
       "rowOrderDate": "Ordered / received on",
       "rowNote": "Your message",
-      "legalDe": "The wording of your declaration and the legal note are in German, because the German version is the binding one."
+      "legalDe": "The wording below is in German: the German version is the legally binding one.",
+      "note": "Something not right? Write back."
     }
   }
 }

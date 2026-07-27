@@ -431,7 +431,7 @@
   "Support": {
     "linkLabel": "Hulp",
     "title": "We helpen je",
-    "subtitle": "Werkt iets niet, klopt een spot niet, of heb je een vraag? Schrijf ons. We zijn met z'n tweeën en lezen elk bericht zelf.",
+    "subtitle": "Werkt iets niet, klopt een spot niet, of heb je een vraag? Schrijf ons.",
     "name": "Naam",
     "email": "E-mail",
     "message": "Je bericht",
@@ -475,26 +475,26 @@
     "greeting": "Hartelijke groeten uit Salzburg",
     "signoff": "Anton van SalzGuide",
     "follow": "Volg ons:",
-    "reply": "Werkt iets niet? Antwoord gewoon op deze mail, we lezen mee.",
+    "reply": "Werkt iets niet? Mail terug.",
     "login": {
       "subject": "Je inloglink voor SalzGuide",
       "headline": "Je inloglink voor SalzGuide",
-      "body": "👇 Tik op de knop en je bent binnen. Een wachtwoord heb je niet nodig.\n\n🔒 De link hoort bij dit adres en werkt één keer.",
+      "body": "👇 Tik op de knop en je bent binnen. Wachtwoord heb je niet nodig.\n\n🔒 De link geldt alleen voor dit adres en werkt één keer.",
       "cta": "Nu inloggen",
       "tileLabel": "Je logt in met",
-      "note": "Heb je dit niet aangevraagd? Negeer de mail dan gewoon, er gebeurt niets."
+      "note": "Heb je dit niet aangevraagd? Verwijder de mail."
     },
     "gift": {
       "subject": "Je hebt SalzGuide Pro",
       "headline": "SalzGuide Pro vrijgeschakeld",
-      "body": "Van het huis, je hoeft niets te betalen en niets in te wisselen.\n\n🔓 Alle Pro-spots zijn vanaf nu zichtbaar voor je, ook die anders op slot zitten.\n\n🗺️ Openen, kaart bekijken, ernaartoe. Meer is het niet.",
+      "body": "Van het huis. Niets te betalen, niets in te wisselen.\n\n🔓 Alle Pro-spots zijn vanaf nu zichtbaar voor je, ook die anders op slot zitten.\n\n🗺️ Openen, kaart bekijken, ernaartoe. Meer is het niet.",
       "cta": "Bekijk de Pro-spots"
     },
     "purchase": {
       "subject": "Je aankoopbevestiging: SalzGuide Pro",
       "headline": "Je bevestiging voor SalzGuide Pro",
-      "intro": "Dank je. Hier staat zwart op wit wat je gekocht hebt. Bewaar deze mail, het is je contractbevestiging.",
-      "guest": "📩 Je toegang staat op het adres hieronder. Als je nog niet in de app ingelogd bent, log er dan mee in, zonder wachtwoord, je krijgt een link om op te tikken. Je Pro ligt daar klaar.",
+      "intro": "Dank je. Bewaar deze mail, het is je contractbevestiging.",
+      "guest": "📩 Je toegang staat op het adres hieronder. Zonder wachtwoord: mail invullen, op de link tikken, binnen.",
       "member": "🗺️ Alle Pro-inhoud is vanaf nu open voor je. Openen, kaart bekijken, ernaartoe. Meer is het niet.",
       "otherAddress": "📮 Je hebt betaald met {paid}. Maar je Pro staat op je account {account}, en met dat adres log je in.",
       "rowService": "Dienst",
@@ -509,8 +509,8 @@
       "rowLanguageValue": "Duits",
       "cta": "Bekijk de Pro-spots",
       "tileLabel": "Je toegang staat op",
-      "note": "Vragen over je aankoop? Antwoord gewoon op deze mail, we lezen mee.",
-      "legalDe": "De kleine lettertjes hieronder zijn juridisch bindend en staan daarom in het Duits, net als onze voorwaarden en de herroepingsinstructie.",
+      "note": "Vragen over je aankoop? Mail terug.",
+      "legalDe": "De kleine lettertjes staan in het Duits: de Duitse versie is de juridisch bindende.",
       "linkWithdrawal": "Herroeping",
       "linkTerms": "Voorwaarden",
       "linkPrivacy": "Privacy"
@@ -518,7 +518,7 @@
     "withdrawal": {
       "subject": "Ontvangstbevestiging van je herroeping",
       "headline": "Je herroeping is binnen",
-      "body": "Hallo {name}, we bevestigen dat je herroeping op {receivedAt} bij ons is binnengekomen.\n\n⏱️ We handelen hem af en laten van ons horen. Een terugbetaling gaat onverwijld de deur uit, uiterlijk 14 dagen na ontvangst, via hetzelfde betaalmiddel.\n\n📄 Je gegevens staan hieronder, precies zoals je ze gestuurd hebt. Klopt er iets niet, antwoord dan gewoon op deze mail.",
+      "body": "Hallo {name}, we bevestigen dat je herroeping op {receivedAt} bij ons is binnengekomen.\n\n⏱️ We handelen hem af en laten van ons horen. Een terugbetaling gaat onverwijld de deur uit, uiterlijk 14 dagen na ontvangst, via hetzelfde betaalmiddel.",
       "rowReceived": "Ontvangen",
       "rowName": "Naam",
       "rowEmail": "E-mail",
@@ -526,7 +526,8 @@
       "rowContract": "Contract / bestelling",
       "rowOrderDate": "Besteld / ontvangen op",
       "rowNote": "Je bericht",
-      "legalDe": "De tekst van je verklaring en de juridische opmerking staan in het Duits, omdat de Duitse versie bindend is."
+      "legalDe": "De tekst hieronder staat in het Duits: de Duitse versie is de juridisch bindende.",
+      "note": "Klopt er iets niet? Mail terug."
     }
   }
 }
