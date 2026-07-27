@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "@/i18n/navigation";
 import ProBadge from "@/components/ProBadge";
+import ScrollStrip from "@/components/ScrollStrip";
 import { normalizeText } from "@/lib/normalize-text";
 import type { AdminSpotRow } from "@/lib/admin";
 
@@ -180,18 +181,23 @@ export default function AdminSpotList({ spots }: { spots: AdminSpotRow[] }) {
         )}
       </div>
 
-      {/* Schnellfilter in einem eigenen Scroll-Streifen: Auf dem Handy sind Typ + Status
-          zusammen breiter als der Bildschirm. Ohne den Streifen schöben sie das ganze
-          Dokument breiter (siehe AdminNav). -mx-4/px-4 spiegelt das px-4 des Admin-Rahmens. */}
-      <div className="-mx-4 flex items-center gap-2 overflow-x-auto px-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <Segmented label="Nach Typ filtern" value={type} onChange={setType} options={TYPE_OPTIONS} />
-        <Segmented
-          label="Nach Status filtern"
-          value={status}
-          onChange={setStatus}
-          options={STATUS_OPTIONS}
-        />
-      </div>
+      {/* Schnellfilter im gemeinsamen Scroll-Streifen (siehe ScrollStrip.tsx): Auf dem Handy
+          sind Typ + Status zusammen breiter als der Bildschirm, ohne Streifen schöben sie das
+          ganze Dokument breiter.
+          w-max ist neu und war der stille Fehler hier: Ohne das rechnete Flex die beiden
+          Segment-Leisten schmal, statt den Streifen scrollen zu lassen — sie quetschten sich
+          also, anstatt über den Rand zu laufen. */}
+      <ScrollStrip>
+        <div className="flex w-max items-center gap-2">
+          <Segmented label="Nach Typ filtern" value={type} onChange={setType} options={TYPE_OPTIONS} />
+          <Segmented
+            label="Nach Status filtern"
+            value={status}
+            onChange={setStatus}
+            options={STATUS_OPTIONS}
+          />
+        </div>
+      </ScrollStrip>
 
       {/* Trefferzahl nur beim Filtern: sonst ist es Rauschen, die Zahl steht schon im Reiter. */}
       {filtering && (
