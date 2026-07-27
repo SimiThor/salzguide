@@ -142,9 +142,19 @@ rechnete aus 30 km Grossglockner-Hochalpenstrasse 16 Stunden Fussmarsch.
 **„0 min" ist keine Dauer, sondern das leere Feld der alten Seite.** 17 Spots tragen den
 Wert, darunter der Dom und der Mirabellgarten. Unverändert übernommen stünde auf der
 Detailseite „0 min", und das liest sich nicht wie eine fehlende Angabe, sondern wie ein
-kaputtes Feld. Der Import wirft es weg (`durationFact` in `import.ts`); echte Zahlen für
+kaputtes Feld. Der Import wirft es weg (`durationForField` in `parse.ts`); echte Zahlen für
 Punkt-Spots trägt Anton einzeln in `DURATION_BY_HAND` ein. Aufgefallen ist es erst, als der
 Trockenlauf die Dauer für JEDEN Spot druckt und nicht mehr nur für die mit Route.
+
+**Die Arbeitsvorlage sagt dieselbe Zahl wie der Import, weil sie dieselben Regeln benutzt.**
+Vorher hatte `brief.ts` eine eigene Kopie der „wird gefahren"-Liste und verglich Subtyp-Namen
+mit dem TYP-MARKER der alten Seite (`Panoramastraße` gegen `panoramastrasse`). Der Vergleich
+traf nie zu, und deshalb sagte die Vorlage für die Grossglockner-Hochalpenstrasse „DAUER FÜRS
+FELD: 16 Std 5 min" — die DAV-Gehzeit für 30 km Bergstrasse. Der Import lag richtig; falsch
+war die Ansage an den, der den Text schreibt, und der hätte die 16 Stunden hingeschrieben.
+`SUBTYPE_FROM_MARKER`, `notWalkedReason`, `MIN_ROUTE_KM` und `durationForField` stehen deshalb
+in `parse.ts`, und beide hängen sich dort an. Ohne Route druckt die Vorlage jetzt die ALTE
+Angabe als Feld-Wert, weil genau die im Feld landet.
 
 **Die gerechnete Dauer gewinnt** über die alte Angabe, wo eine Route übrig bleibt: Die
 alten Werte sind grob überschlagen, und 35 von 60 sind gar keine Gehzeit, sondern ein
@@ -205,7 +215,7 @@ selben Ort erwähnt.
 **Der Insider-Tipp steht in der Ich-Form des Locals**, und der steht in der Vorlage. Ohne
 Namen ist es Anton. Toni ist die KI und nie ein Local.
 
-Stand: 33 von 95 geschrieben.
+Stand: 41 von 95 geschrieben.
 
 ## Was der Import NICHT entscheidet
 

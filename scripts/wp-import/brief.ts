@@ -13,7 +13,13 @@
 // nicht hinterher nachschlagen.
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
-import type { WpSource } from "./parse.ts";
+import {
+  MIN_ROUTE_KM,
+  SUBTYPE_FROM_MARKER,
+  durationForField,
+  notWalkedReason,
+  type WpSource,
+} from "./parse.ts";
 
 const CACHE = ".wp-cache";
 const SOURCE = join(CACHE, "source");
@@ -40,8 +46,14 @@ function formatDuration(min: number): string {
   return m ? `${h} Std ${m} min` : `${h} Std`;
 }
 
-const NOT_WALKED = new Set(["Panoramastraße", "Schifffahrt", "Skigebiet", "Bergbahn"]);
-const MIN_ROUTE_KM = 0.5;
+// Ob der Spot gefahren statt gegangen wird, entscheidet der SUBTYP, nicht der Typ-Marker
+// der alten Seite. Hier stand vorher eine eigene Liste mit Subtyp-Namen, verglichen mit dem
+// Marker („panoramastrasse" gegen „Panoramastraße") — sie traf nie zu. Die Vorlage sagte
+// deshalb für die Grossglockner-Hochalpenstrasse „DAUER FÜRS FELD: 16 Std 5 min", also die
+// DAV-Gehzeit für 30 km Bergstrasse. Der Import macht es richtig; falsch war die Ansage an
+// den, der den Text schreibt.
+const drivenReason = (src: WpSource) =>
+  notWalkedReason(src.slug, SUBTYPE_FROM_MARKER[(src.typeMarker ?? "").toLowerCase()] ?? null);
 
 function main() {
   const args = process.argv.slice(2);
@@ -81,19 +93,27 @@ function main() {
     if (facts) console.log(`Facts: ${facts}`);
 
     // Die Zeile, auf die es beim Schreiben ankommt.
-    if (r?.minutes != null) {
-      const subtypeLooksDriven = NOT_WALKED.has(s.typeMarker ?? "");
-      const tooShort = (r.snappedKm ?? 0) < MIN_ROUTE_KM;
-      if (subtypeLooksDriven || tooShort) {
-        console.log(`ROUTE: wird NICHT importiert (${tooShort ? "unter 500 m" : "wird gefahren"}) -> nur Punkt`);
-      } else {
-        console.log(
-          `>>> DAUER FÜRS FELD: ${formatDuration(r.minutes)}   (${r.snappedKm} km, ${r.ascent} hm, ${r.shape})`,
-        );
+    const driven = drivenReason(s);
+    const tooShort = r ? (r.snappedKm ?? 0) < MIN_ROUTE_KM : false;
+    const isRoute = r?.minutes != null && !driven && !tooShort;
+
+    if (isRoute && r) {
+      console.log(
+        `>>> DAUER FÜRS FELD: ${formatDuration(r.minutes!)}   (${r.snappedKm} km, ${r.ascent} hm, ${r.shape})`,
+      );
+      console.log(`    Der Fliesstext MUSS dieselbe Zahl nennen.`);
+    } else {
+      // Ohne Route steht die alte Angabe im Feld — dieselbe Regel, dieselbe Zahl.
+      if (r) console.log(`ROUTE: wird NICHT importiert (${driven ?? "unter 500 m"}) -> nur Punkt`);
+      const old = durationForField(s);
+      if (old) {
+        console.log(`>>> DAUER FÜRS FELD: ${old}   (alte Angabe, keine Route)`);
         console.log(`    Der Fliesstext MUSS dieselbe Zahl nennen.`);
+      } else {
+        console.log(`Dauer: kein Feld (die alte Seite hatte keine Angabe)`);
       }
-      if (r.verdict !== "stimmig") console.log(`    Achtung: ${r.verdict}`);
     }
+    if (r && r.verdict !== "stimmig") console.log(`    Achtung: ${r.verdict}`);
 
     if (s.googlePlaceId) console.log(`Öffnungszeiten: ja (Place-ID vorhanden)`);
     if (s.phone) console.log(`Telefon: ${s.phone}`);
