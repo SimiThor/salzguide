@@ -9,6 +9,26 @@
 // dass jede Seitenart, die entstehen kann, auch einen Namen hat. Aus einer Konvention wird
 // eine Prüfung.
 
+/**
+ * Seitenarten, die `classifyPath` NICHT MEHR vergibt, die aber in der Tabelle stehen.
+ *
+ * Reichweitendaten bleiben 14 Monate liegen. Eine Auswertung sieht also immer auch Kennungen,
+ * die der heutige Code gar nicht mehr erzeugen kann — und die brauchen genauso einen Namen,
+ * denn im Dashboard steht sonst der Rohwert.
+ *
+ * `home` ist der Grund, warum diese Liste existiert, und ein besonders unangenehmer Fall:
+ * Bis 07/2026 war die Wurzel der App die KARTE. „home" heisst in Altdaten also
+ * Karten-Aufruf, nicht Startseiten-Aufruf. Unbeschriftet stünde dort „home", und jeder
+ * würde es als Startseite lesen — eine Zahl, die stimmt, unter einem Namen, der lügt.
+ * Deshalb steht das Datum im Label.
+ *
+ * Beim Anlegen einer neuen Kennung in `classifyPath` gehört die alte HIER hinein, nicht
+ * gelöscht. scripts/analytics-check.ts prüft beide Listen.
+ */
+export const LEGACY_KINDS: Record<string, string> = {
+  home: "Karte (bis 07/2026)",
+};
+
 export const KIND_LABELS: Record<string, string> = {
   landing: "Startseite",
   explore: "Karte",
@@ -24,7 +44,12 @@ export const KIND_LABELS: Record<string, string> = {
   support: "Hilfe",
   legal: "Rechtliches",
   demo: "Demo",
-  other: "Sonstige",
+  // „Sonstige" ist KEIN Sammelbecken für vergessene Routen mehr (dafür sorgt der Check),
+  // sondern das, was übrig bleibt: aufgerufene Adressen, die es in der App nicht gibt —
+  // alte Links von der WordPress-Seite, Tippfehler, Scanner. Dass der Posten gross ist,
+  // ist deshalb selbst eine Information und kein Messfehler.
+  other: "Sonstige Adressen",
+  ...LEGACY_KINDS,
 };
 
 export const SOURCE_LABELS: Record<string, string> = {
