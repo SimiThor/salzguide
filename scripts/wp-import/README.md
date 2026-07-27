@@ -218,11 +218,34 @@ Namen ist es Anton. Toni ist die KI und nie ein Local.
 Stand: 95 von 95 geschrieben, `wp:check` läuft sauber durch. Der Trockenlauf bereitet alle
 95 Spots vor und überspringt keinen mehr. Was jetzt noch fehlt, ist `wp:import -- --go`.
 
+## Kategorien nachziehen (`wp:categories`)
+
+```bash
+npm run wp:categories          # zeigt, was passieren würde
+npm run wp:categories -- --go  # schreibt
+```
+
+Der Import ordnet nur zu, wo die alte WordPress-Kategorie die neue Reihe wirklich trifft.
+Für „burgen", „parks", „sonstige" und „aussichtspunkte" gibt es kein Gegenstück, und eine
+mechanische Zuordnung hätte die Hälfte falsch einsortiert. Die Liste in `categories.ts` ist
+deshalb je Spot entschieden, nicht abgeleitet.
+
+**Kategorien hängen an der SAISON, nicht am Spot.** Ein Spot mit `seasons =
+["summer","winter"]` braucht in beiden Saisonen eine Reihe. Fehlt eine, verschwindet er im
+Explore der anderen Saison, ohne dass irgendwo etwas kaputt aussieht: Dom, Mönchsberg und
+Nonnberggasse waren nach dem Import nur im Winter sichtbar, weil der Winter-Marker griff
+und die Sommer-Kategorie nicht. Der Trockenlauf zählt am Ende auf, wer in welcher Saison
+noch ohne Reihe dasteht, und genau diese Zeile hat die Lücke gefunden.
+
+**„City & Nearby Hills" war leer.** Die Reihe existierte von Anfang an, aber der Import
+konnte nichts hineinlegen, weil die alte Seite dafür keine Kategorie hatte. 16 Stadt-Spots
+lagen deshalb in keiner einzigen Reihe.
+
 ## Was der Import NICHT entscheidet
 
-**Subtyp**, wo die alte Seite keinen Marker hatte, die **24 Spots ohne zuordenbare
-Kategorie** (Burgen, Parks, Stadt-Sehenswürdigkeiten — dafür gibt es keine Reihe), die
-**Routen-Stummel**, und das **Veröffentlichen**. Alles landet als Entwurf; das Publish-Gate
+**Subtyp**, wo die alte Seite keinen Marker hatte, die **Kategorien ohne Gegenstück**
+(siehe oben, `wp:categories` zieht sie nach), die **Routen-Stummel**, und das
+**Veröffentlichen**. Alles landet als Entwurf; das Publish-Gate
 in `saveSpot` verlangt ohnehin Ort und vollständige Übersetzungen.
 
 Übernommen sind dagegen: Koordinaten, Parkplätze, Pro-Flag, Emoji, Quick-Facts,
