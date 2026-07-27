@@ -139,6 +139,52 @@ const factValue = (src: Source, field: string): string | null => {
   return f ? (f.canonical ?? f.value) : null;
 };
 
+// ── Wird der Spot überhaupt gegangen? ───────────────────────────────────────
+
+// Subtypen, die man fährt statt geht. Eine Wanderlinie wäre hier eine Lüge, und die
+// DAV-Gehzeit rechnet aus 30 km Grossglockner-Hochalpenstrasse 16 Stunden Fussmarsch.
+// Solche Spots bekommen nur einen Punkt auf der Karte, genau wie ein Café.
+const NOT_WALKED_SUBTYPES = new Set(["Panoramastraße", "Schifffahrt", "Skigebiet", "Bergbahn"]);
+
+// Einzelfälle, die kein Subtyp verrät. Die Hellbrunner Allee IST ein Weg, aber der Text
+// beschreibt sie durchgehend als Fahrradtour („Die Fahrradtour … dauert 20 bis 30 Minuten").
+// Eine Wander-Gehzeit von 63 Minuten daneben zu stellen, widerspricht dem eigenen Text.
+const NOT_WALKED_SLUGS = new Set(["hellbrunner-allee", "wolfgangsee-schifffahrt"]);
+
+/**
+ * Ab welcher Länge ist eine Linie eine Route und kein Kringel?
+ *
+ * 500 Meter, und das ist ein ABSOLUTES Mass, kein Vergleich mit der alten Dauer. Genau
+ * dieser Vergleich hat mich vorher zweimal in die Irre geführt: Beim Goldegger See und
+ * bei der Innersbachklamm sah die Linie „zu kurz" aus, dabei war sie richtig und die alte
+ * Zeitangabe falsch. Die Länge weiss man dagegen sicher.
+ *
+ * In den Daten liegt dort ein klarer Bruch. Darunter: Hangar-7 mit 80 Metern, Blick auf
+ * Hohenwerfen mit 30, Mirabellgarten mit 230. Das sind Markierungen, die jemand um einen
+ * Ort gezogen hat, keine Wege. Darüber beginnen die echten Runden.
+ */
+const MIN_ROUTE_KM = 0.5;
+
+type RouteInfo = {
+  slug: string;
+  snappedKm: number | null;
+  ascent: number | null;
+  descent: number | null;
+  minutes: number | null;
+  shape: string | null;
+  coords?: [number, number][];
+  elevations?: number[];
+};
+
+function pointOnly(src: Source, subtype: string | null, route: RouteInfo | undefined): string | null {
+  if (!route?.coords || route.coords.length < 2) return "keine brauchbare Linie";
+  if (subtype && NOT_WALKED_SUBTYPES.has(subtype)) return `wird gefahren (${subtype})`;
+  if (NOT_WALKED_SLUGS.has(src.slug)) return "wird gefahren/geradelt laut Text";
+  if ((route.snappedKm ?? 0) < MIN_ROUTE_KM)
+    return `Linie nur ${Math.round((route.snappedKm ?? 0) * 1000)} m — kein Weg, sondern eine Markierung`;
+  return null;
+}
+
 // ── Route ───────────────────────────────────────────────────────────────────
 
 function downsample<T>(arr: T[], n: number): T[] {
@@ -197,18 +243,32 @@ function elevationProfile(coords: [number, number][], el: number[]) {
 
 // ── Ein Spot ────────────────────────────────────────────────────────────────
 
-async function importSpot(src: Source, draft: Draft, mediaMap: Record<string, MapEntry>, localId: string, dry: boolean) {
+async function importSpot(
+  src: Source,
+  draft: Draft,
+  mediaMap: Record<string, MapEntry>,
+  routes: Record<string, RouteInfo>,
+  localId: string,
+  dry: boolean,
+) {
   const type = spotType(src);
   const notes: string[] = [];
+  const subtype = subtypeOf(src, draft);
 
   const bestSeason = factValue(src, "season");
-  const route = src.route;
-  const coords = route?.coords ?? [];
+  const snapped = routes[src.slug];
+  const reason = pointOnly(src, subtype, snapped);
+  if (reason && snapped?.coords) notes.push(`nur Punkt statt Route: ${reason}`);
+
+  // Die Linie kommt GESNAPPT aus wp:routes, nicht roh von der alten Seite: an echten
+  // Wanderwegen ausgerichtet, und wo der Rückweg fehlte, um ihn ergänzt.
+  const coords = !reason && snapped?.coords ? snapped.coords : [];
   const isRoute = coords.length >= 2;
-  const el = route?.elevations ?? null;
+  const el = !reason ? (snapped?.elevations ?? null) : null;
   const profile = isRoute && el ? elevationProfile(coords, el) : null;
 
   // Bei einer Route ist der Startpunkt der Haupt-/Anreisepunkt, genau wie in saveSpot.
+  // Ohne Route bleibt der Spot-Punkt der alten Seite stehen.
   const lat = isRoute ? coords[0][1] : src.lat;
   const lng = isRoute ? coords[0][0] : src.lng;
 
@@ -246,7 +306,7 @@ async function importSpot(src: Source, draft: Draft, mediaMap: Record<string, Ma
   const row = {
     slug: slugify(src.slug),
     type,
-    subtype: subtypeOf(src, draft),
+    subtype,
     emoji: draft.emoji ?? src.emoji,
     seasons: seasonsOf(bestSeason, src.mapSeason),
     is_pro: src.isPro,
@@ -264,19 +324,25 @@ async function importSpot(src: Source, draft: Draft, mediaMap: Record<string, Ma
     difficulty: factCanonical("difficulty", factValue(src, "difficulty") ?? "") ?? null,
     best_season: bestSeason,
     access: factValue(src, "access"),
-    // Dauer IMMER aus der alten Angabe, nie aus der importierten Linie gerechnet.
+    // Dauer: die GERECHNETE gewinnt, wo es eine gibt.
     //
-    // Ich hatte es zuerst andersherum: DAV-Gehzeit aus der Linie, weil die App das beim
-    // Snappen auch so macht. Der Vergleich mit den alten Angaben hat das widerlegt. Bei 16
-    // von 45 vergleichbaren Routen ist die hinterlegte Linie weit kürzer als der
-    // beschriebene Weg — die Seisenbergklamm hat 160 Meter bei angegebenen zwei Stunden.
-    // Die Linien sind unvollständig gezeichnet, nicht falsch gemessen.
+    // Erst hatte ich es andersherum, weil die rohen Linien unvollständig waren und daraus
+    // gerechnete Zeiten Unsinn ergaben („27 min" für den Gaisberg). Nach dem Snappen und
+    // dem Ergänzen der Rückwege gilt das nicht mehr, und Anton sagt dazu das Entscheidende:
+    // Die alten Werte sind grob überschlagen, keiner ist mit der Stoppuhr geprüft. 35 von
+    // 60 sind ausserdem gar keine Gehzeit, sondern ein „plane insgesamt X ein" inklusive
+    // Bergbahn, Pausen und Baden.
     //
-    // Aus einer halben Linie eine Gehzeit zu rechnen ergibt eine Zahl, die stimmig aussieht
-    // und falsch ist: „27 min" für den Gaisberg. Die alte Angabe ist dagegen Antons eigenes
-    // Wissen. Sobald er eine Route im Admin nachzieht und neu snappt, rechnet die App die
-    // Gehzeit ohnehin selbst und überschreibt sie richtig.
-    duration: factValue(src, "duration"),
+    // Wo KEINE Route bleibt (Punkt-Spots), gibt es nichts zu rechnen: Dort steht die alte
+    // Angabe weiter, bis die Route nachgezogen ist.
+    //
+    // WICHTIG für die Texte: Die Zahl im Feld und die Zahl im Fliesstext müssen dieselbe
+    // sein. Ein Spot, der „2 Stunden" anzeigt und „gut drei Stunden" schreibt, ist schlimmer
+    // als einer ohne Angabe.
+    duration:
+      isRoute && snapped?.minutes != null
+        ? formatDuration(snapped.minutes)
+        : factValue(src, "duration"),
     price_level: factPrice(factValue(src, "priceLevel") ?? ""),
     area: factCanonical("area", factValue(src, "area") ?? "") ?? factValue(src, "area"),
     fame: factCanonical("fame", factValue(src, "fame") ?? "") ?? null,
@@ -290,15 +356,30 @@ async function importSpot(src: Source, draft: Draft, mediaMap: Record<string, Ma
 
   if (dry) return { row, images, texts, notes };
 
-  const { data: spot, error } = await db.from("spots").insert(row).select("id").single();
-  if (error) throw new Error(`spots: ${error.message}`);
-  const spotId = spot.id as string;
+  // Anlegen ODER aktualisieren. Ein Import, der beim zweiten Lauf am eindeutigen Slug
+  // scheitert, ist bei 95 Spots unbrauchbar: Man bessert einen Text nach und müsste den
+  // Spot vorher von Hand löschen — mitsamt seinen Medien-Zeilen. Der Slug ist der
+  // Schlüssel, der Spot gehört also sich selbst, egal wie oft der Import läuft.
+  const { data: existing } = await db.from("spots").select("id").eq("slug", row.slug).maybeSingle();
+  let spotId: string;
+  if (existing) {
+    const { error } = await db.from("spots").update(row).eq("id", existing.id);
+    if (error) throw new Error(`spots aktualisieren: ${error.message}`);
+    spotId = existing.id as string;
+    // Medien neu setzen statt anhängen, sonst sammelt jeder Lauf dieselben Fotos erneut ein.
+    // Die DATEIEN bleiben liegen, sie werden gleich wieder eingetragen (media-map ist stabil).
+    await db.from("media").delete().eq("spot_id", spotId);
+  } else {
+    const { data: spot, error } = await db.from("spots").insert(row).select("id").single();
+    if (error) throw new Error(`spots: ${error.message}`);
+    spotId = spot.id as string;
+  }
 
   // source_hash steht auf spot_translations (Migration 0031), NICHT auf spots. Er hält
   // fest, aus welchem deutschen Text eine Übersetzung entstand; weicht er ab, meldet der
   // Admin „veraltet". Beim deutschen Datensatz ist er der Hash seiner selbst. Fehlt er,
   // gilt die spätere Übersetzung sofort als veraltet, obwohl sie frisch ist.
-  const { error: tErr } = await db.from("spot_translations").insert({
+  const { error: tErr } = await db.from("spot_translations").upsert({
     spot_id: spotId,
     lang: "de",
     title: texts.title,
@@ -309,7 +390,7 @@ async function importSpot(src: Source, draft: Draft, mediaMap: Record<string, Ma
     section_b: texts.sectionB,
     location_text: texts.locationText,
     source_hash: hashSpotTexts(texts),
-  });
+  }, { onConflict: "spot_id,lang" });
   if (tErr) throw new Error(`spot_translations: ${tErr.message}`);
 
   if (images.length) {
@@ -329,6 +410,16 @@ async function importSpot(src: Source, draft: Draft, mediaMap: Record<string, Ma
   return { row, images, texts, notes, spotId };
 }
 
+// „5 h 47" wäre für eine Wanderung falsche Genauigkeit: Die DAV-Formel ist eine Schätzung,
+// keine Messung. Auf fünf Minuten gerundet, und ab einer Stunde in Stunden.
+function formatDuration(min: number): string {
+  const r = Math.round(min / 5) * 5;
+  if (r < 60) return `${r} min`;
+  const h = Math.floor(r / 60);
+  const m = r % 60;
+  return m ? `${h} Std ${m} min` : `${h} Std`;
+}
+
 // ── Lauf ────────────────────────────────────────────────────────────────────
 
 async function main() {
@@ -339,6 +430,12 @@ async function main() {
 
   if (!existsSync(MAP_FILE)) throw new Error(`${MAP_FILE} fehlt — bitte zuerst "npm run wp:media"`);
   const mediaMap = JSON.parse(readFileSync(MAP_FILE, "utf8")) as Record<string, MapEntry>;
+
+  const routesFile = join(CACHE_DIR, "routes.json");
+  if (!existsSync(routesFile)) throw new Error(`${routesFile} fehlt — bitte zuerst "npm run wp:routes"`);
+  const routes = Object.fromEntries(
+    (JSON.parse(readFileSync(routesFile, "utf8")) as RouteInfo[]).map((r) => [r.slug, r]),
+  );
 
   const { data: locals } = await db.from("locals").select("id, name");
   const localId = (locals ?? []).find((l) => l.name === DEFAULT_LOCAL)?.id as string | undefined;
@@ -363,7 +460,7 @@ async function main() {
     const draft = JSON.parse(readFileSync(draftFile, "utf8")) as Draft;
 
     try {
-      const r = await importSpot(src, draft, mediaMap, localId, dry);
+      const r = await importSpot(src, draft, mediaMap, routes, localId, dry);
       done++;
       console.log(
         `  ${dry ? "würde" : "ok   "} ${slug.padEnd(34)} ${r.row.type.padEnd(8)} ${r.images.length} Fotos${r.row.video_url ? " +Video" : ""}${r.row.route_geojson ? ` Route ${r.row.duration}` : ""}${src.isPro ? "  PRO" : ""}`,
