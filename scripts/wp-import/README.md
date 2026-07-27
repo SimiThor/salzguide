@@ -241,6 +241,25 @@ noch ohne Reihe dasteht, und genau diese Zeile hat die Lücke gefunden.
 konnte nichts hineinlegen, weil die alte Seite dafür keine Kategorie hatte. 16 Stadt-Spots
 lagen deshalb in keiner einzigen Reihe.
 
+**Eine Reihe kommt neu dazu: „Aussicht & Kultur" (`summer/sights`).** Die alte Seite hatte
+neun Reihen, drei davon haben in der neuen App kein Gegenstück: Burgen (2), Parks (2) und
+Sonstige (4). Parks und die Stadt-Sehenswürdigkeiten passen in „City & Nearby Hills"; übrig
+blieben eine Burg über dem Salzachtal, ein Aussichtspunkt daneben, eine Höhle im Saalachtal
+und der Ortskern von Bad Gastein. Der Winter hat mit „Aussicht & Erholung" längst so eine
+Reihe, dem Sommer fehlte sie. Das Skript legt sie an, schiebt die drei Reihen dahinter um
+eine Position nach hinten und trägt die Titel in allen neun Sprachen ein.
+
+**Die Sommerrodelbahn Abtenau bleibt bewusst ohne Reihe.** Sie stand unter „Sonstige" und
+ist weder Aussicht noch Kultur. Sie in die neue Reihe zu legen, wäre genau der Griff, den
+die Reihe verhindern soll. Sie ist über Karte und Suche auffindbar und wartet auf eine
+Familien- oder Action-Reihe.
+
+**Fünf Spots haben die Winter-Saison wieder verloren** (Goldegger See, Grosser Barmstein,
+Hintersee Pinzgau, Jägersee, Ritzensee). Sie trugen sie nur, weil die alte Angabe
+„Ganzjährig" hiess; gemeint war „hier ist im Winter nichts gesperrt", nicht „das ist ein
+Winterausflug". Winterfotos hat keiner der fünf. Das ist dieselbe Regel wie bei der
+Gastein-Karte, nur andersherum.
+
 ## Was der Import NICHT entscheidet
 
 **Subtyp**, wo die alte Seite keinen Marker hatte, die **Kategorien ohne Gegenstück**

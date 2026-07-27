@@ -12,7 +12,6 @@
 // Saisonen eine Reihe, sonst fehlt er im Explore der anderen Saison, ohne dass etwas
 // kaputt aussieht. Genau so waren Dom, Mönchsberg und Nonnberggasse bisher nur im Winter
 // sichtbar.
-import { readFileSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
 
 const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -59,10 +58,47 @@ const WINTER_VIEW = [
   "sound-of-music-trail",
 ];
 
+/**
+ * Sommer: „Aussicht & Kultur", die einzige Reihe, die neu dazukommt.
+ *
+ * Die alte Seite hatte drei kleine Reihen, für die es in der neuen App kein Gegenstück
+ * gibt: Burgen (2), Parks (2) und Sonstige (4), dazu den nicht-städtischen Teil von
+ * Aussichtspunkte (18). Parks und die Stadt-Sehenswürdigkeiten sind in „City & Nearby
+ * Hills" untergekommen. Was übrig blieb, ist eine Burg über dem Salzachtal, ein
+ * Aussichtspunkt daneben, eine Höhle im Saalachtal und der Ortskern von Bad Gastein: alles
+ * sehenswert, nichts davon Stadt und nichts davon ein Hausberg.
+ *
+ * Der Winter hat mit „Aussicht & Erholung" längst so eine Reihe, dem Sommer fehlte sie.
+ * Damit sind beide Startseiten gleich gebaut, und „City & Nearby Hills" bleibt, was der
+ * Name sagt, statt zur Restekiste zu werden.
+ *
+ * Die Sommerrodelbahn Abtenau bleibt bewusst draußen. Sie stand auf der alten Seite unter
+ * „Sonstige" und ist weder Aussicht noch Kultur; sie in diese Reihe zu legen, wäre genau
+ * der Griff, den die Reihe verhindern soll.
+ */
+const NEW_CATEGORY = {
+  key: "sights",
+  season: "summer" as const,
+  sortOrder: 6, // direkt hinter „City & Nearby Hills"
+  titles: {
+    de: "Aussicht & Kultur",
+    en: "Views & Culture",
+    es: "Vistas & Cultura",
+    fr: "Panoramas & Culture",
+    it: "Panorami & Cultura",
+    ko: "전망 & 문화",
+    nl: "Uitzicht & Cultuur",
+    pt: "Vistas e Cultura",
+    zh: "美景与文化",
+  },
+  slugs: ["bad-gastein", "blick-auf-hohenwerfen", "burg-hohenwerfen", "lamprechtshohle"],
+};
+
 const PLAN: { key: string; season: "summer" | "winter"; slugs: string[] }[] = [
   { key: "hills", season: "summer", slugs: SUMMER_HILLS },
   { key: "lakes", season: "summer", slugs: SUMMER_LAKES },
   { key: "view", season: "winter", slugs: WINTER_VIEW },
+  { key: NEW_CATEGORY.key, season: NEW_CATEGORY.season, slugs: NEW_CATEGORY.slugs },
 ];
 
 /**
@@ -87,10 +123,39 @@ const DROP_WINTER = [
 async function main() {
   const go = process.argv.includes("--go");
 
-  const { data: cats } = await db.from("categories").select("id, key, season");
+  let { data: cats } = await db.from("categories").select("id, key, season, sort_order");
   const { data: spots } = await db.from("spots").select("id, slug, seasons");
   const { data: links } = await db.from("spot_categories").select("spot_id, category_id");
   if (!cats || !spots || !links) throw new Error("Lesen fehlgeschlagen");
+
+  // Die neue Reihe anlegen, falls sie noch fehlt. Sie schiebt sich zwischen zwei
+  // bestehende, deshalb rücken die dahinter um eins nach hinten. Erst schieben, dann
+  // einlegen: andersherum gäbe es kurz zwei Reihen mit derselben Position.
+  if (!cats.some((c) => c.key === NEW_CATEGORY.key && c.season === NEW_CATEGORY.season)) {
+    const behind = cats
+      .filter((c) => c.season === NEW_CATEGORY.season && c.sort_order >= NEW_CATEGORY.sortOrder)
+      .sort((a, b) => b.sort_order - a.sort_order);
+    console.log(
+      `  ${go ? "ok   " : "würde"} Reihe „${NEW_CATEGORY.titles.de}" anlegen (${NEW_CATEGORY.season}/${NEW_CATEGORY.key}, Position ${NEW_CATEGORY.sortOrder}), ${behind.length} Reihen rücken nach`,
+    );
+    if (go) {
+      for (const c of behind) {
+        const { error } = await db
+          .from("categories")
+          .update({ sort_order: c.sort_order + 1 })
+          .eq("id", c.id);
+        if (error) throw error;
+      }
+      const { error } = await db.from("categories").insert({
+        key: NEW_CATEGORY.key,
+        season: NEW_CATEGORY.season,
+        sort_order: NEW_CATEGORY.sortOrder,
+        title_translations: NEW_CATEGORY.titles,
+      });
+      if (error) throw error;
+      cats = (await db.from("categories").select("id, key, season, sort_order")).data!;
+    }
+  }
 
   const catId = new Map(cats.map((c) => [`${c.season}/${c.key}`, c.id]));
   const spotBySlug = new Map(spots.map((s) => [s.slug, s]));
@@ -100,8 +165,12 @@ async function main() {
   let skipped = 0;
 
   for (const { key, season, slugs } of PLAN) {
+    // Im Trockenlauf gibt es die neue Reihe noch nicht. Das ist kein Fehler, sondern der
+    // ganze Sinn des Trockenlaufs: Er soll zeigen, was danach drin läge.
     const cid = catId.get(`${season}/${key}`);
-    if (!cid) throw new Error(`Kategorie ${season}/${key} gibt es nicht`);
+    if (!cid && go) throw new Error(`Kategorie ${season}/${key} gibt es nicht`);
+    if (!cid && !(key === NEW_CATEGORY.key && season === NEW_CATEGORY.season))
+      throw new Error(`Kategorie ${season}/${key} gibt es nicht`);
     for (const slug of slugs) {
       const spot = spotBySlug.get(slug);
       if (!spot) throw new Error(`Spot ${slug} gibt es nicht`);
@@ -109,11 +178,11 @@ async function main() {
       // nie zeigt. Lieber laut scheitern als still danebenliegen.
       if (!(spot.seasons ?? []).includes(season))
         throw new Error(`${slug} hat keine Saison ${season}, gehört also nicht in ${key}`);
-      if (existing.has(`${spot.id}/${cid}`)) {
+      if (cid && existing.has(`${spot.id}/${cid}`)) {
         skipped++;
         continue;
       }
-      rows.push({ spot_id: spot.id, category_id: cid });
+      if (cid) rows.push({ spot_id: spot.id, category_id: cid });
       console.log(`  ${go ? "ok   " : "würde"} ${slug.padEnd(30)} -> ${season}/${key}`);
     }
   }
