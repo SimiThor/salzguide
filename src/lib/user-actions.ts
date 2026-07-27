@@ -1,6 +1,7 @@
 "use server";
 
 import { requireAdmin } from "./admin-guard";
+import { logAdminAction, opsSubject } from "./ops";
 import { createServiceClient } from "./supabase/service";
 import { emailEnabled, sendEmail } from "./email";
 import { LEGAL } from "./legal";
@@ -91,6 +92,15 @@ export async function setUserPro(
   }
   // Die Funktion gibt ihren Grund als Text zurück: ok | forbidden | not_found | stripe_pro.
   if (data !== "ok") return { ok: false, error: String(data) };
+
+  // In die Spur: Das ist eine RECHTE-ÄNDERUNG an einem fremden Konto, also genau das, was
+  // OWASP A09 nachvollziehbar haben will. Ohne diese Zeile liesse sich später nicht mehr
+  // beantworten, warum jemand Pro hat oder verloren hat (siehe logAdminAction).
+  await logAdminAction(gate.userId, pro ? "Pro geschenkt" : "Pro entzogen", {
+    // Pseudonym, weil das eine FREMDE Kennung ist. Die eigene steht als `subject` daneben.
+    ziel: opsSubject("user", userId),
+    mitMail: pro && sendMail,
+  });
 
   // Nur beim Schenken, nie beim Entziehen. Und nur, wenn der Haken gesetzt war: Testkonten
   // bekommen sonst Post, und die erste Mail, die man bereut, ist die an sich selbst.

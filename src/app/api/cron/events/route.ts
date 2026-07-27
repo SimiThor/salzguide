@@ -3,6 +3,8 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { prunePreviews } from "@/lib/blur-preview";
 import { sweepOrphanMedia, type OrphanSweepResult } from "@/lib/storage-orphans";
 import { pruneExpiredData } from "@/lib/data-retention";
+import { guardCron, finishCron } from "@/lib/cron-guard";
+import { logOps } from "@/lib/ops";
 
 // Das Aufräumen alter Daten steckte hier und läuft jetzt TÄGLICH in einer eigenen Route
 // (api/cron/cleanup). Grund: Die in der Datenschutzerklärung genannten Fristen (2 bzw. 90
@@ -19,11 +21,8 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 300; // Web-Recherche kann dauern (Vercel Pro: bis 300s)
 
 export async function GET(req: Request): Promise<Response> {
-  const secret = process.env.CRON_SECRET;
-  const auth = req.headers.get("authorization");
-  if (!secret || auth !== `Bearer ${secret}`) {
-    return new Response("Unauthorized", { status: 401 });
-  }
+  const gate = await guardCron(req, "events");
+  if (!gate.ok) return gate.response;
 
   const result = await runAutoWeeklyResearch();
   const purgedAiUsage = (await pruneExpiredData()).aiUsage;
@@ -41,6 +40,14 @@ export async function GET(req: Request): Promise<Response> {
     prunedPreviews = await prunePreviews(service, service.storage);
   } catch (e) {
     console.error("[cron] prunePreviews:", e instanceof Error ? e.message : e);
+    // Gemeldet, aber NICHT als gescheiterter Lauf gewertet (siehe unten): ein paar Kilobyte,
+    // die länger liegen bleiben, sind kein Grund für einen Alarm um drei Uhr nachts.
+    await logOps("cron_failed", {
+      message: "Aufräumen der Bild-Vorschauen fehlgeschlagen.",
+      error: e,
+      group: "job:events:previews",
+      path: "/api/cron/events",
+    });
   }
 
   // Waisen-Sweep über beide Buckets (storage-orphans.ts): Uploads passieren im Browser
@@ -52,7 +59,23 @@ export async function GET(req: Request): Promise<Response> {
     orphanSweep = await sweepOrphanMedia(createServiceClient());
   } catch (e) {
     console.error("[cron] orphanSweep:", e instanceof Error ? e.message : e);
+    await logOps("cron_failed", {
+      message: "Waisen-Sweep über die Medien-Buckets fehlgeschlagen.",
+      error: e,
+      group: "job:events:orphans",
+      path: "/api/cron/events",
+    });
   }
+
+  // `result.ok` und NICHT „alles hat geklappt": Das Lebenszeichen soll die Kernaufgabe des
+  // Laufs bewerten (die Recherche), nicht die Nebenarbeiten. Sonst stünde der Job wochenlang
+  // auf Rot, weil ein Aufräumschritt hakt, den niemand vermisst — und man würde die Farbe
+  // ignorieren lernen, genau dann, wenn sie einmal zählt.
+  await finishCron("events", result.ok, {
+    geloeschteKiZaehler: purgedAiUsage,
+    vorschauen: prunedPreviews.deleted,
+    waisen: orphanSweep?.deleted ?? 0,
+  });
 
   return Response.json(
     { ...result, purgedAiUsage, prunedPreviews, orphanSweep },

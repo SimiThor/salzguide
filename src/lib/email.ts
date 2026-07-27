@@ -1,5 +1,6 @@
 import "server-only";
 import { fetchWithRetry } from "./ai-fetch";
+import { scrubText } from "./ops-scrub";
 
 // Transaktionaler E-Mail-Versand über Resend. SERVER-ONLY (Key nie im Client). Degradiert
 // sauber: ohne RESEND_KEY wird nichts gesendet (return false), der Aufrufer entscheidet.
@@ -76,6 +77,16 @@ export async function sendEmail(mail: {
   /** Optionale HTML-Fassung. Wer beides schickt, überlässt dem Programm die Wahl. */
   html?: string;
   replyTo?: string;
+  /**
+   * Diesen Versand NICHT ans Meldewesen weitergeben. Genau ein Aufrufer setzt das: die
+   * Alarm-Mail selbst (lib/ops-mail.ts).
+   *
+   * Ohne diesen Riegel gäbe es eine Schleife, und zwar ausgerechnet im schlimmsten Fall:
+   * Resend ist down -> Versand scheitert -> `mail_send_failed` wird gemeldet -> das Meldewesen
+   * schickt eine Alarm-Mail -> die scheitert auch -> nächste Meldung. Bei einem Ausfall des
+   * Mail-Anbieters würde die App sich selbst beschäftigen, bis etwas nachgibt.
+   */
+  quiet?: boolean;
 }): Promise<boolean> {
   const key = process.env.RESEND_KEY?.trim();
   if (!key) {
@@ -105,12 +116,50 @@ export async function sendEmail(mail: {
     );
     if (!res.ok) {
       // Die Adresse NICHT mitloggen: Logs sind kein Ort für Empfänger-Adressen.
-      console.error("[email] Resend-Fehler", res.status, await res.text().catch(() => ""));
+      //
+      // Der Vorsatz stand hier schon, die Antwort von Resend unterlief ihn trotzdem: Bei
+      // einer abgelehnten Zustellung nennt sie die Adresse im Klartext („Invalid `to`
+      // field: …"), und die ging bis hierher ungefiltert in die Konsole. Jetzt läuft sie
+      // durch denselben Schwärzer wie alles andere.
+      const body = scrubText(await res.text().catch(() => ""), 300);
+      console.error("[email] Resend-Fehler", res.status, body);
+      await report(mail, `Resend antwortet mit ${res.status}`, { status: res.status, body });
       return false;
     }
     return true;
   } catch (e) {
     console.error("[email] Versand fehlgeschlagen", e);
+    await report(mail, "Versand fehlgeschlagen", { fehler: e instanceof Error ? e.message : "" });
     return false;
+  }
+}
+
+/**
+ * Einen gescheiterten Versand ans Meldewesen geben.
+ *
+ * Dynamisch importiert, damit die Ladereihenfolge sauber bleibt: lib/ops-mail.ts holt
+ * `sendEmail` von HIER, ein fester Import in die Gegenrichtung wäre ein Ringschluss. Der
+ * Import passiert ausserdem nur im Fehlerfall, kostet im Normalbetrieb also nichts.
+ *
+ * Was gemeldet wird, ist bewusst dünn: Betreff und Statuscode, NIE der Empfänger und nie der
+ * Inhalt. Eine Mail ist ihrem Wesen nach personenbezogen, ein Fehler beim Verschicken nicht.
+ */
+async function report(
+  mail: { subject: string; quiet?: boolean },
+  what: string,
+  detail: Record<string, unknown>,
+): Promise<void> {
+  if (mail.quiet) return;
+  try {
+    const { logOps } = await import("./ops");
+    await logOps("mail_send_failed", {
+      message: `${what} (Betreff: ${mail.subject})`,
+      // Nach Betreff gruppieren: Ein Ausfall beim Anmeldelink ist etwas anderes als einer
+      // bei der Umzugs-Ankündigung, und beide sollen sich nicht gegenseitig stumm schalten.
+      group: `mail:${mail.subject}`,
+      detail,
+    });
+  } catch {
+    /* Meldewesen nicht erreichbar: Die Konsolenzeile oben steht ja bereits. */
   }
 }

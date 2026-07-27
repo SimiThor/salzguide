@@ -528,5 +528,12 @@
       "legalDe": "Le texte ci-dessous est en allemand : c’est la version allemande qui fait foi.",
       "note": "Quelque chose ne colle pas ? Écris-nous."
     }
+  },
+  "Error": {
+    "title": "Quelque chose a mal tourné",
+    "body": "L'erreur est enregistrée chez nous. Un deuxième essai suffit en général.",
+    "retry": "Réessayer",
+    "home": "Retour à l'accueil",
+    "code": "Code d’erreur"
   }
 }

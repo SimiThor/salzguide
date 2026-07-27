@@ -1,6 +1,7 @@
 import type Stripe from "stripe";
 import { stripe } from "@/lib/stripe";
 import { fulfillPaidCheckout, revokePro } from "@/lib/pro-purchase";
+import { logOps, subjectFromRequest } from "@/lib/ops";
 
 // Stripe-Webhook: der verlässliche Weg zur Freischaltung. Sicherheit:
 // - SIGNATUR wird gegen STRIPE_WEBHOOK_SECRET geprüft (nur echte Stripe-Events).
@@ -15,9 +16,20 @@ export const runtime = "nodejs"; // Stripe-SDK braucht Node-Runtime (kein Edge)
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request): Promise<Response> {
-  if (!stripe) return new Response("stripe not configured", { status: 503 });
+  // Fehlt hier etwas, kann NIEMAND kaufen — und weil ein Käufer, der nicht kaufen kann,
+  // sich selten meldet, ist das ein Ausfall, der sich totstellt. Deshalb gemeldet, statt
+  // still ein 503 zurückzugeben.
+  if (!stripe || !process.env.STRIPE_WEBHOOK_SECRET) {
+    await logOps("stripe_not_configured", {
+      message: !stripe
+        ? "STRIPE_SECRET_KEY fehlt. Käufe können nicht verarbeitet werden."
+        : "STRIPE_WEBHOOK_SECRET fehlt. Bezahlte Käufe werden nicht freigeschaltet.",
+      group: "stripe:config",
+      path: "/api/stripe/webhook",
+    });
+    return new Response("stripe not configured", { status: 503 });
+  }
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
-  if (!secret) return new Response("no webhook secret", { status: 503 });
 
   const sig = req.headers.get("stripe-signature");
   if (!sig) return new Response("missing signature", { status: 400 });
@@ -26,7 +38,18 @@ export async function POST(req: Request): Promise<Response> {
   let event: Stripe.Event;
   try {
     event = await stripe.webhooks.constructEventAsync(raw, sig, secret);
-  } catch {
+  } catch (e) {
+    // Einzelne sind harmlos (ein alter Endpunkt in Stripe, ein Testereignis). Erst eine
+    // Häufung ist ein Signal — entweder passt unser Secret nicht mehr zum Endpunkt, oder
+    // jemand schickt uns selbstgebaute Zahlungsereignisse. Die Schwelle dafür steht im
+    // Katalog, nicht hier.
+    await logOps("stripe_bad_signature", {
+      message: "Webhook mit ungültiger Signatur abgewiesen.",
+      error: e,
+      path: "/api/stripe/webhook",
+      subject: subjectFromRequest(req),
+      group: "stripe:bad_signature",
+    });
     return new Response("invalid signature", { status: 400 });
   }
 
@@ -37,9 +60,22 @@ export async function POST(req: Request): Promise<Response> {
     ) {
       // NUR bei tatsächlich BEZAHLT freischalten — die Prüfung sitzt in fulfillPaidCheckout.
       // Ein unbezahltes Event ist hier kein Fehler, sondern schlicht nichts zu tun.
-      const result = await fulfillPaidCheckout(event.data.object as Stripe.Checkout.Session);
+      const session = event.data.object as Stripe.Checkout.Session;
+      const result = await fulfillPaidCheckout(session);
       if (!result.ok && result.reason === "error") {
         // 500 -> Stripe stellt erneut zu. Genau dafür sind die Wiederholungen da.
+        //
+        // Trotzdem gemeldet, und nicht erst nach dem letzten Versuch: Wir sehen Stripes
+        // Wiederholungen nicht (die laufen bei Stripe, nicht bei uns), wir sehen nur den
+        // einzelnen Fehlschlag. Wer auf „den letzten" warten wollte, wartet ewig. Löst es
+        // sich beim zweiten Versuch von selbst, war es eine Mail zu viel — das ist der
+        // richtige Preis dafür, dass ein liegengebliebener Kauf niemals unbemerkt bleibt.
+        await logOps("stripe_webhook_failed", {
+          message: "Freischaltung nach dem Webhook fehlgeschlagen. Stripe stellt erneut zu.",
+          detail: { stripeSession: session.id, ereignis: event.type },
+          group: "stripe:fulfillment",
+          path: "/api/stripe/webhook",
+        });
         return new Response("fulfillment failed", { status: 500 });
       }
     } else if (event.type === "charge.refunded") {
@@ -51,8 +87,15 @@ export async function POST(req: Request): Promise<Response> {
         if (customerId) await revokePro(customerId);
       }
     }
-  } catch {
+  } catch (e) {
     // Fehler -> 500, damit Stripe das Event automatisch erneut zustellt.
+    await logOps("stripe_webhook_failed", {
+      message: `Unbehandelter Fehler beim Verarbeiten von „${event.type}".`,
+      error: e,
+      detail: { ereignis: event.type },
+      group: "stripe:handler",
+      path: "/api/stripe/webhook",
+    });
     return new Response("handler error", { status: 500 });
   }
 

@@ -528,5 +528,12 @@
       "legalDe": "Il testo qui sotto è in tedesco: la versione tedesca è quella giuridicamente vincolante.",
       "note": "Qualcosa non torna? Scrivici."
     }
+  },
+  "Error": {
+    "title": "Qualcosa è andato storto",
+    "body": "Abbiamo registrato l’errore. Di solito basta riprovare.",
+    "retry": "Riprova",
+    "home": "Vai alla home",
+    "code": "Codice errore"
   }
 }

@@ -528,5 +528,12 @@
       "legalDe": "De tekst hieronder staat in het Duits: de Duitse versie is de juridisch bindende.",
       "note": "Klopt er iets niet? Mail terug."
     }
+  },
+  "Error": {
+    "title": "Er ging iets mis",
+    "body": "De fout is bij ons genoteerd. Meestal helpt een tweede poging.",
+    "retry": "Opnieuw proberen",
+    "home": "Naar de startpagina",
+    "code": "Foutcode"
   }
 }

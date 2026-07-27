@@ -6,6 +6,7 @@ import { emailEnabled, sendEmail } from "./email";
 import { LEGAL } from "./legal";
 import { mailTexts } from "./mail-i18n";
 import { renderMailShell, renderMailShellText, type MailContent } from "./mail-layout";
+import { logOps, opsSubject } from "./ops";
 import { safeLocale } from "@/i18n/locales";
 
 // ═══════════════════════════════════════════════════════════════════════════════════════
@@ -142,7 +143,22 @@ export async function sendLoginLink(opts: {
   const locale = safeLocale(opts.locale);
   const email = opts.email;
 
-  if (!(await withinLimit(email, opts.ip ?? null))) return "rate";
+  if (!(await withinLimit(email, opts.ip ?? null))) {
+    // Dass die Bremse greift, ist ein ERFOLG und deshalb keine Fehlermeldung. Interessant
+    // wird sie erst als Welle: Wer massenhaft Anmeldelinks anfordert, will ein fremdes
+    // Postfach zuschütten und nebenbei unser Resend-Kontingent verbrennen. Die Schwelle
+    // dafür (zwanzig im Fenster) steht im Katalog.
+    //
+    // Ein Fingerabdruck für ALLE Treffer: Es geht um die Menge, nicht um den Einzelfall.
+    // Nach Adresse zu gruppieren hiesse, dass ein Angreifer mit tausend Adressen tausend
+    // Fingerabdrücke erzeugt und keiner davon je eine Schwelle erreicht.
+    await logOps("login_rate_limited", {
+      message: "Die Bremse für Anmeldelinks hat gegriffen.",
+      subject: opts.ip ? opsSubject("ip", opts.ip) : null,
+      group: "login:rate",
+    });
+    return "rate";
+  }
 
   // Ohne Resend-Schlüssel (lokal, frischer Klon) gibt es keinen eigenen Versand. Dann sofort
   // den Supabase-Weg gehen, statt erst ein Token zu erzeugen, das niemand je zu sehen bekommt.
@@ -166,7 +182,19 @@ export async function sendLoginLink(opts: {
     }
   }
 
-  return (await sendViaSupabase(opts, locale)) ? "sent" : "failed";
+  // Der Notausgang. Klappt AUCH der nicht, kommt niemand mehr ohne Google in sein Konto —
+  // der einzige Ausfall dieser App, der zahlende Kunden buchstäblich aussperrt. Deshalb ist
+  // das die einzige Meldestelle im Auth-Bereich, die sofort eine Mail auslöst (Schwelle 1).
+  //
+  // Gemeldet wird NUR hier, nicht schon beim gescheiterten Eigenversand darüber: Solange
+  // der Notausgang trägt, ist nichts passiert, was jemanden wecken müsste.
+  if (await sendViaSupabase(opts, locale)) return "sent";
+
+  await logOps("login_mail_failed", {
+    message: "Weder der eigene Versand noch Supabase konnten den Anmeldelink zustellen.",
+    group: "login:failed",
+  });
+  return "failed";
 }
 
 /**

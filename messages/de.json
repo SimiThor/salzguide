@@ -571,5 +571,12 @@
       "legalDe": "Der Wortlaut unten steht auf Deutsch: Die deutsche Fassung ist die rechtlich verbindliche.",
       "note": "Stimmt was nicht? Schreib zurück."
     }
+  },
+  "Error": {
+    "title": "Da ist etwas schiefgelaufen",
+    "body": "Der Fehler ist bei uns notiert. Meistens hilft ein zweiter Versuch.",
+    "retry": "Nochmal versuchen",
+    "home": "Zur Startseite",
+    "code": "Fehlercode"
   }
 }

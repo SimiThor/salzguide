@@ -528,5 +528,12 @@
       "legalDe": "The wording below is in German: the German version is the legally binding one.",
       "note": "Something not right? Write back."
     }
+  },
+  "Error": {
+    "title": "Something went wrong",
+    "body": "We've logged the error. A second try usually does it.",
+    "retry": "Try again",
+    "home": "Back to start",
+    "code": "Error code"
   }
 }
