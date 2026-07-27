@@ -1,6 +1,11 @@
 import { useTranslations } from "next-intl";
 import type { HomeTexts } from "@/lib/home-fields";
-import { socialProfile, EXTERNAL_LINK_ATTRS, type SocialPost } from "@/lib/social";
+import {
+  socialProfile,
+  EXTERNAL_LINK_ATTRS,
+  SOCIAL_TILE_ASPECT,
+  type SocialPost,
+} from "@/lib/social";
 import SmoothImage from "@/components/SmoothImage";
 import Carousel from "@/components/Carousel";
 import { Play } from "@/components/icons";
@@ -125,10 +130,11 @@ export default function SocialSection({
                     // ist für einen Screenreader ein Link ohne Text.
                     alt={p.alt || t("postAlt")}
                     sizes="(min-width: 768px) 182px, 44vw"
-                    // 4:5 ist Instagrams Hochformat. Was quadratisch oder quer gepostet
-                    // wurde, füllt die Kachel mittig (object-cover) — so bleibt die Reihe
-                    // ruhig, egal welche Formate im Feed liegen.
-                    className="aspect-[4/5] w-full overflow-hidden rounded-[16px] bg-black/[0.04] shadow-[0_1px_2px_rgba(0,0,0,0.04),0_12px_28px_-20px_rgba(0,0,0,0.45)]"
+                    // 4:5 ist Instagrams Hochformat (SOCIAL_TILE_ASPECT, dieselbe Zeile
+                    // benutzt der Admin für Vorschau und Liste). Was quadratisch oder quer
+                    // gepostet wurde, füllt die Kachel mittig (object-cover) — so bleibt die
+                    // Reihe ruhig, egal welche Formate im Feed liegen.
+                    className={`${SOCIAL_TILE_ASPECT} w-full overflow-hidden rounded-[16px] bg-black/[0.04] shadow-[0_1px_2px_rgba(0,0,0,0.04),0_12px_28px_-20px_rgba(0,0,0,0.45)]`}
                   />
 
                   {/* Reel: Standbild plus Play-Zeichen. Ob es eines ist, verrät der Link
