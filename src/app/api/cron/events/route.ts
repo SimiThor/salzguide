@@ -72,6 +72,9 @@ export async function GET(req: Request): Promise<Response> {
   // auf Rot, weil ein Aufräumschritt hakt, den niemand vermisst — und man würde die Farbe
   // ignorieren lernen, genau dann, wenn sie einmal zählt.
   await finishCron("events", result.ok, {
+    wochen: result.weeks.length,
+    neueEvents: result.weeks.reduce((n, w) => n + w.inserted, 0),
+    ...(result.error ? { grund: result.error } : {}),
     geloeschteKiZaehler: purgedAiUsage,
     vorschauen: prunedPreviews.deleted,
     waisen: orphanSweep?.deleted ?? 0,

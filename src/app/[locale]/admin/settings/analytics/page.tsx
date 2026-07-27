@@ -1,5 +1,5 @@
 import { setRequestLocale } from "next-intl/server";
-import { Link } from "@/i18n/navigation";
+import BackButton from "@/components/BackButton";
 import AnalyticsFilters from "@/components/admin/AnalyticsFilters";
 import AdLinkBuilder from "@/components/admin/AdLinkBuilder";
 import AiInsights from "@/components/admin/AiInsights";
@@ -317,14 +317,9 @@ export default async function AnalyticsPage({
 
   return (
     <div className="space-y-4 pb-12">
+      <BackButton fallbackHref="/admin/settings" label="Einstellungen" />
       <div>
-        <Link
-          href="/admin/settings"
-          className="text-[13px] font-semibold text-muted transition hover:text-ink"
-        >
-          ← Einstellungen
-        </Link>
-        <h1 className="mt-1 text-2xl font-bold text-ink">Analytics</h1>
+        <h1 className="text-2xl font-bold text-ink">Analytics</h1>
         <p className="mt-1 text-[13px] text-muted">
           Datenschutzkonform &amp; cookieless · {data.from} bis {data.to}
         </p>

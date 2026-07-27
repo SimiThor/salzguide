@@ -1,6 +1,8 @@
 import { setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
+import BackButton from "@/components/BackButton";
 import ScrollStrip from "@/components/ScrollStrip";
+import AutoRefresh from "@/components/admin/AutoRefresh";
 import TestAlertButton from "@/components/admin/TestAlertButton";
 import { getJobStatus } from "@/lib/ops";
 import { getOpsEvents, getOpsSummary } from "@/lib/ops-read";
@@ -61,11 +63,17 @@ export default async function AdminSystemPage({
 
   return (
     <div className="space-y-4 pb-12">
+      <BackButton fallbackHref="/admin/settings" label="Einstellungen" />
       <div>
         <h1 className="text-2xl font-bold text-ink">System</h1>
         <p className="mt-1 text-[13px] text-muted">
           Fehler, Missbrauchsversuche und Hintergrund-Läufe. Alarme kommen zusätzlich per Mail.
         </p>
+        {/* Steht oben und nicht unten: Wer hier hereinkommt, muss als Erstes wissen, ob die
+            Zahlen darunter von jetzt sind. Eine alte Zahl sieht genauso aus wie eine frische. */}
+        <div className="mt-2">
+          <AutoRefresh />
+        </div>
       </div>
 
       {/* ── Der erste Blick: geht es der Plattform gut? ────────────────────────────
@@ -117,10 +125,19 @@ export default async function AdminSystemPage({
           {jobs.map((j) => (
             <li key={j.job} className="flex flex-wrap items-center gap-x-3 gap-y-1">
               <span className="text-[15px] font-semibold text-ink">{j.label}</span>
+              {/* Reihenfolge = Dringlichkeit. „überfällig" schlägt alles andere, weil ein
+                  ausbleibender Lauf schwerer wiegt als ein fehlgeschlagener: Beim
+                  fehlgeschlagenen weiss man wenigstens, dass es ihn gibt.
+                  „noch nie erfolgreich" ist der Zustand, den es vor Migration 0057 gar nicht
+                  zu sehen gab — die Saat setzt zwar last_run_at, aber last_ok_at bleibt leer,
+                  bis der Job wirklich einmal durchgelaufen ist. Ein grünes „läuft" wäre hier
+                  gelogen. */}
               {j.lastRunAt === null ? (
                 <span className={STATUS_NEUTRAL}>noch nie gelaufen</span>
               ) : j.overdue ? (
                 <span className={STATUS_ACCENT}>überfällig</span>
+              ) : j.lastOkAt === null ? (
+                <span className={STATUS_ACCENT}>noch nie erfolgreich</span>
               ) : j.ok ? (
                 <span className={STATUS_GOOD}>läuft</span>
               ) : (
@@ -157,6 +174,15 @@ export default async function AdminSystemPage({
                   <Link
                     key={f.key || "all"}
                     href={f.key ? `/admin/settings/system?ab=${f.key}` : "/admin/settings/system"}
+                    // `replace`, damit der Zurück-Pfeil oben die SEITE verlässt und nicht
+                    // erst durch die zuletzt geklickten Filter zurückstolpert. Ein Filter ist
+                    // kein Ort, an den man zurückkehrt.
+                    replace
+                    // `scroll={false}`: Der Filter sitzt weit unten. Ohne das springt die
+                    // Seite bei jedem Klick nach oben und man muss sich seine Liste wieder
+                    // suchen. Dieselbe Entscheidung wie bei den Sprachpillen der
+                    // Mail-Vorschau.
+                    scroll={false}
                     className={`shrink-0 whitespace-nowrap rounded-full px-4 py-1.5 text-[13px] font-semibold transition ${
                       active ? "bg-ink text-white" : "bg-black/5 text-muted"
                     }`}

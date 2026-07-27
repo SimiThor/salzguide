@@ -1,5 +1,6 @@
 import { setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
+import BackButton from "@/components/BackButton";
 import { LOCALES, safeLocale } from "@/i18n/locales";
 import ScrollStrip from "@/components/ScrollStrip";
 import { renderProGift } from "@/lib/pro-gift-mail";
@@ -94,14 +95,9 @@ export default async function AdminMailsPage({
 
   return (
     <div className="space-y-4 pb-12">
+      <BackButton fallbackHref="/admin/settings" label="Einstellungen" />
       <div>
-        <Link
-          href="/admin/settings"
-          className="text-[13px] font-semibold text-muted transition hover:text-ink"
-        >
-          ← Einstellungen
-        </Link>
-        <h1 className="mt-1 text-2xl font-bold text-ink">Mails</h1>
+        <h1 className="text-2xl font-bold text-ink">Mails</h1>
         <p className="mt-1 text-[13px] leading-relaxed text-muted">
           Genau das, was bei den Leuten ankommt. Hier wird nichts verschickt.
         </p>

@@ -1,5 +1,5 @@
 import { setRequestLocale } from "next-intl/server";
-import { Link } from "@/i18n/navigation";
+import BackButton from "@/components/BackButton";
 import { getIntroVideos, getIntroRenderList } from "@/lib/admin";
 import IntroRenderManager from "@/components/admin/IntroRenderManager";
 import IntroVideoPreview from "@/components/admin/IntroVideoPreview";
@@ -23,14 +23,9 @@ export default async function IntroVideosPage({
 
   return (
     <div className="space-y-4 pb-12">
+      <BackButton fallbackHref="/admin/settings" label="Einstellungen" />
       <div>
-        <Link
-          href="/admin/settings"
-          className="text-[13px] font-medium text-muted transition hover:text-ink"
-        >
-          ‹ Einstellungen
-        </Link>
-        <h1 className="mt-1 text-2xl font-bold text-ink">Intro-Videos</h1>
+        <h1 className="text-2xl font-bold text-ink">Intro-Videos</h1>
         <p className="mt-1 text-[13px] leading-relaxed text-muted">
           Oben erzeugst du die Intros per Button. Unten liegt die saubere Variante ohne
           Text-Overlay (nur Karte, Route und Attribution) zum Download für die eigene

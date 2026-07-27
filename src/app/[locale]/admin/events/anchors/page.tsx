@@ -1,4 +1,4 @@
-import { Link } from "@/i18n/navigation";
+import BackButton from "@/components/BackButton";
 import { getAdminAnchors, defaultAnchorCount } from "@/lib/anchors";
 import AnchorManager from "@/components/admin/AnchorManager";
 
@@ -12,14 +12,9 @@ export default async function AdminAnchorsPage() {
   const anchors = await getAdminAnchors();
   return (
     <div className="space-y-4 pb-12">
+      <BackButton fallbackHref="/admin/events" label="Events" />
       <div>
-        <Link
-          href="/admin/events"
-          className="text-[13px] font-semibold text-muted transition hover:text-ink"
-        >
-          ← Events
-        </Link>
-        <h1 className="mt-1 text-2xl font-bold text-ink">Jahres-Events (Anker)</h1>
+        <h1 className="text-2xl font-bold text-ink">Jahres-Events (Anker)</h1>
         <p className="mt-1 text-sm text-muted">
           Bekannte jährliche Highlights, an die die KI bei JEDER Wochenrecherche
           erinnert wird – damit kein wichtiges Event übersehen wird. Du brauchst
