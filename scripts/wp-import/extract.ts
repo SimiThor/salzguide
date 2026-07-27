@@ -12,7 +12,8 @@ import { mkdirSync, writeFileSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseSpot, type WpPost, type WpSource } from "./parse.ts";
 import { readCache, POSTS_FILE, MEDIA_FILE, PRO_FILE, MAPS_FILE, CACHE_DIR } from "./fetch.ts";
-import { routeLengthKm, hikingTimeMinutes } from "../../src/lib/geo.ts";
+import { routeLengthKm, hikingTimeMinutes, haversineMeters } from "../../src/lib/geo.ts";
+import { LAKES } from "../../src/lib/lakes.ts";
 
 const SOURCE_DIR = join(CACHE_DIR, "source");
 
@@ -169,6 +170,41 @@ function main() {
     });
   }
 
+  // ── Wassertemperatur: welcher See gehört zum Spot ─────────────────────────
+  //
+  // Die Wassertemperatur-Kachel hängt an `lake_name`. Auf der alten Seite hat den nur
+  // gesetzt, wer den Shortcode [sg_seetemp see="…"] eingebaut hat: fünf Spots. Gemeint
+  // sind aber alle, die an einem See liegen, für den es überhaupt eine Messung gibt.
+  //
+  // Die Zuordnung läuft über die ENTFERNUNG, nicht über Wörter im Text. LAKES aus
+  // src/lib/lakes.ts trägt zu jedem See die Koordinate der offiziellen Messstelle, und die
+  // Spot-Koordinaten haben wir für alle 95.
+  //
+  // Automatisch nur unter 400 Metern, und das ist mit Absicht streng. Darüber wird es
+  // Zufall: Die Bad-Gastein-Spots liegen alle rund 3 km vom „Badesee Gastein", die Cafés in
+  // der Altstadt 4 km vom Lieferinger Badesee. Eine Wassertemperatur an einem Café ist
+  // nicht bloss nutzlos, sie behauptet etwas Falsches über den Ort. Was dazwischen liegt,
+  // steht im Report und entscheidet ein Mensch.
+  //
+  // Ein bereits gesetzter Wert gewinnt immer: Falkensteinwand liegt 1,7 km vom Messpunkt
+  // entfernt, ist aber die Felswand AM Wolfgangsee, und das wusste Anton besser.
+  const LAKE_AUTO_M = 400;
+  const LAKE_ASK_M = 3000;
+  const lakeCandidates: string[] = [];
+  for (const r of rows) {
+    if (r.src.lat == null || r.src.lng == null) continue;
+    let best: { name: string; m: number } | null = null;
+    for (const l of LAKES) {
+      const m = haversineMeters([r.src.lng, r.src.lat], [l.lng, l.lat]);
+      if (!best || m < best.m) best = { name: l.name, m };
+    }
+    if (!best) continue;
+    if (r.src.lakeName) continue;
+    if (best.m <= LAKE_AUTO_M) r.src.lakeName = best.name;
+    else if (best.m <= LAKE_ASK_M)
+      lakeCandidates.push(`${r.src.slug}: ${best.name}, ${Math.round(best.m)} m entfernt`);
+  }
+
   // ── Was gehört NICHT in die Galerie ────────────────────────────────────────
   //
   // Zwei Sorten Bilder liegen im Elementor-Datensatz und sehen für den Sammler aus wie
@@ -226,9 +262,11 @@ function main() {
     const data = JSON.parse(readFileSync(file, "utf8")) as {
       media: { images: unknown[] };
       warnings: string[];
+      lakeName: string | null;
     };
     data.media.images = r.images;
     data.warnings = r.src.warnings;
+    data.lakeName = r.src.lakeName;
     writeFileSync(file, JSON.stringify(data, null, 1));
   }
 
@@ -316,6 +354,13 @@ function main() {
     L.push("<details><summary>Liste</summary>", "");
     for (const d of droppedCard) L.push(`- ${d}`);
     L.push("", "</details>", "");
+  }
+
+  if (lakeCandidates.length) {
+    L.push("## Wassertemperatur: See von Hand entscheiden", "");
+    L.push("Diese Spots liegen zwischen 400 m und 3 km von einer Messstelle. Zu weit für eine", "automatische Zuordnung, zu nah, um sie nicht zu erwähnen.", "");
+    for (const c of lakeCandidates) L.push(`- ${c}`);
+    L.push("");
   }
 
   const reportFile = join(CACHE_DIR, "report.md");
