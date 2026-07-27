@@ -8,6 +8,7 @@ import BottomSheet from "./BottomSheet";
 import { usePathname, useRouter } from "@/i18n/navigation";
 import { routing } from "@/i18n/routing";
 import { localeMeta } from "@/i18n/locales";
+import { rememberLocale } from "@/lib/locale-actions";
 
 // Kurzer „Sprache"-Titel je Sprache (kein i18n-Key nötig -> keine Parität-Abhängigkeit).
 const TITLE: Record<string, string> = {
@@ -123,7 +124,12 @@ export default function LanguageSwitcher({
 
   function choose(code: string) {
     setOpen(false);
-    if (code !== locale) router.replace(pathname, { locale: code });
+    if (code === locale) return;
+    // Erst merken, dann wechseln. Der Vermerk entscheidet, in welcher Sprache unsere Mails
+    // ankommen (siehe lib/locale-actions.ts); er läuft nebenher und hält den Wechsel nicht
+    // auf. Scheitert er, ist die Seite trotzdem umgestellt — das Sichtbare hat Vorrang.
+    void rememberLocale(code).catch(() => {});
+    router.replace(pathname, { locale: code });
   }
 
   const items = routing.locales.map((code) => {

@@ -159,8 +159,8 @@ export async function sendMigrationAnnouncement(): Promise<AnnounceResult> {
       to: row.email,
       subject: texts.subject,
       replyTo: LEGAL.email,
-      text: renderRelaunchText(texts, row.email, login),
-      html: renderRelaunchMail(texts, row.email, login),
+      text: await renderRelaunchText(texts, row.email, login),
+      html: await renderRelaunchMail(texts, row.email, login),
     });
 
     if (!ok) {
@@ -256,7 +256,7 @@ export async function previewRelaunchMail(
     ok: true,
     subject: shown.subject,
     // Die eigene Adresse als Beispiel: So sieht man, wo sie in der Mail steht.
-    html: renderRelaunchMail(shown, "du@example.at", `${siteUrl()}/de/profil`),
+    html: await renderRelaunchMail(shown, "du@example.at", `${siteUrl()}/de/profil`),
   };
 }
 
@@ -303,8 +303,8 @@ export async function sendTestAnnouncement(): Promise<AnnounceResult> {
     to,
     subject: `[Test] ${texts.subject}`,
     replyTo: LEGAL.email,
-    text: renderRelaunchText(texts, to, login),
-    html: renderRelaunchMail(texts, to, login),
+    text: await renderRelaunchText(texts, to, login),
+    html: await renderRelaunchMail(texts, to, login),
   });
   return ok ? { ok: true, sent: 1, failed: 0 } : { ok: false, error: "send_failed" };
 }

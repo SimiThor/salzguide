@@ -166,18 +166,34 @@ export async function resolveTokens(texts: RelaunchMailTexts): Promise<RelaunchM
  * Rahmen, Farben und Unterschrift kommen aus mail-layout.ts. Hier stehen nur noch die
  * Worte dieser einen Mail.
  */
-export function renderRelaunchMail(texts: RelaunchMailTexts, email: string, loginUrl: string): string {
+export function renderRelaunchMail(
+  texts: RelaunchMailTexts,
+  email: string,
+  loginUrl: string,
+): Promise<string> {
   return renderMailShell(mailContent(texts, email, loginUrl));
 }
 
 /** Die Reintext-Fassung. Kein Abklatsch: Sie muss für sich allein funktionieren. */
-export function renderRelaunchText(texts: RelaunchMailTexts, email: string, loginUrl: string): string {
+export function renderRelaunchText(
+  texts: RelaunchMailTexts,
+  email: string,
+  loginUrl: string,
+): Promise<string> {
   return renderMailShellText(mailContent(texts, email, loginUrl));
 }
 
 /** Beide Fassungen aus derselben Quelle, damit HTML und Reintext nie auseinanderlaufen. */
 function mailContent(texts: RelaunchMailTexts, email: string, loginUrl: string): MailContent {
   return {
+    // DIE EINE MAIL, DIE DEUTSCH BLEIBT, und zwar mit Absicht: Ihre Worte tippt Anton im
+    // Admin, in einer Sprache. Den Rahmen (Gruss, Unterschrift, Fusszeile) trotzdem zu
+    // übersetzen, ergäbe eine koreanische Verabschiedung unter einem deutschen Brief — also
+    // genau das Durcheinander, gegen das der ganze Umbau hier gebaut ist. Entweder eine Mail
+    // ganz oder gar nicht in einer Sprache.
+    //
+    // Sie geht ohnehin einmalig an die Alt-Käufer der WordPress-Seite, und die sind deutsch.
+    locale: "de",
     subject: texts.subject,
     headline: texts.headline,
     body: texts.body,

@@ -4,6 +4,8 @@ import { headers } from "next/headers";
 import { verifyTurnstile } from "@/lib/turnstile";
 import { sendEmail } from "@/lib/email";
 import { LEGAL } from "@/lib/legal";
+import { renderWithdrawal } from "@/lib/withdrawal-mail";
+import { safeLocale } from "@/i18n/locales";
 
 export type WithdrawalState = { ok: boolean; error?: string } | null;
 
@@ -30,6 +32,10 @@ export async function submitWithdrawal(
   const contract = field(formData.get("contract"), 200);
   const orderDate = field(formData.get("orderDate"), 60);
   const note = field(formData.get("note"), 1000);
+  // Die Sprache kommt aus dem Formular und damit von aussen. safeLocale() nagelt sie fest:
+  // Sie wählt die Sprachdatei der Bestätigungsmail aus, ein Fremdwert läge sonst als
+  // Dateiname im dynamischen Import.
+  const locale = safeLocale(field(formData.get("locale"), 8));
 
   // Pflichtfelder für eine gültige, zuordenbare Erklärung + Bestätigungsweg.
   if (name.length < 2) return { ok: false, error: "name" };
@@ -46,13 +52,14 @@ export async function submitWithdrawal(
   const captchaToken = String(formData.get("cf-turnstile-response") ?? "");
   if (!(await verifyTurnstile(captchaToken, remoteip))) return { ok: false, error: "captcha" };
 
-  // Eingangszeitpunkt (Pflichtinhalt der Bestätigung) in österreichischer Zeit.
-  const now = new Date();
-  const receivedAt = new Intl.DateTimeFormat("de-AT", {
+  // Eingangszeitpunkt (Pflichtinhalt der Bestätigung). Als ISO durchgereicht, geschrieben
+  // wird er erst in der Mail, in der Schreibweise des Empfängers.
+  const receivedAt = new Date().toISOString();
+  const receivedAtDe = new Intl.DateTimeFormat("de-AT", {
     dateStyle: "long",
     timeStyle: "short",
     timeZone: "Europe/Vienna",
-  }).format(now);
+  }).format(new Date(receivedAt));
 
   const details =
     `Name: ${name}\n` +
@@ -63,30 +70,35 @@ export async function submitWithdrawal(
     (note ? `Nachricht: ${note}\n` : "");
 
   // 1) Eingangsbestätigung an die/den Verbraucher:in (dauerhafter Datenträger, Pflicht).
+  //    In der Sprache der Seite, auf der das Formular stand, und in unserem Mail-Rahmen
+  //    (siehe lib/withdrawal-mail.ts).
+  const mail = await renderWithdrawal({
+    name,
+    email,
+    address,
+    contract,
+    orderDate,
+    note,
+    receivedAt,
+    locale,
+  });
   const confirmation = await sendEmail({
     to: email,
-    subject: "Eingangsbestätigung deines Widerrufs – SalzGuide",
+    subject: mail.subject,
     replyTo: LEGAL.email,
-    text:
-      `Hallo ${name},\n\n` +
-      `wir bestätigen den Eingang deines Widerrufs am ${receivedAt} (Eingangszeitpunkt).\n\n` +
-      `Deine Widerrufserklärung im Wortlaut:\n` +
-      `— Hiermit widerrufe ich den abgeschlossenen Vertrag über die Erbringung der folgenden ` +
-      `Dienstleistung: Freischaltung von SalzGuide Pro.\n\n` +
-      `Deine Angaben:\n${details}\n` +
-      `Wir bearbeiten deinen Widerruf und melden uns zeitnah. Etwaige Rückzahlungen erfolgen ` +
-      `unverzüglich, spätestens binnen 14 Tagen ab Eingang, über dasselbe Zahlungsmittel.\n\n` +
-      `Hinweis: Bei digitalen Inhalten, deren Ausführung mit deiner ausdrücklichen Zustimmung ` +
-      `bereits begonnen hat, kann das Widerrufsrecht erloschen sein (§ 18 FAGG).\n\n` +
-      `${LEGAL.company}\n${LEGAL.email}`,
+    text: mail.text,
+    html: mail.html,
   });
 
   // 2) Benachrichtigung an den Unternehmer zur Bearbeitung (Antwort geht an den Kunden).
+  //    Bleibt nackter Text und bleibt deutsch: Sie geht an uns, nicht an einen Kunden. Eine
+  //    Meldung an den eigenen Schreibtisch braucht kein Design und keine neun Sprachen, sie
+  //    muss vollständig und schnell lesbar sein.
   await sendEmail({
     to: LEGAL.email,
     subject: `Neuer Widerruf eingegangen – ${name}`,
     replyTo: email,
-    text: `Eingang: ${receivedAt}\n\n${details}`,
+    text: `Eingang: ${receivedAtDe}\nSprache: ${locale}\n\n${details}`,
   });
 
   // Die Widerrufserklärung ist mit der Absendung wirksam – auch wenn unsere

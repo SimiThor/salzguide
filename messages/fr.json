@@ -470,5 +470,63 @@
   },
   "LoginGate": {
     "cta": "S'inscrire gratuitement"
+  },
+  "Mail": {
+    "greeting": "Amitiés de Salzbourg",
+    "signoff": "Anton de SalzGuide",
+    "follow": "Suis-nous :",
+    "reply": "Quelque chose coince ? Réponds simplement à ce mail, on lit tout nous-mêmes.",
+    "login": {
+      "subject": "Ton lien de connexion pour SalzGuide",
+      "headline": "Ton lien de connexion pour SalzGuide",
+      "body": "👇 Clique sur le bouton et c’est fait. Pas besoin de mot de passe.\n\n🔒 Le lien vaut pour cette adresse et fonctionne une seule fois.",
+      "cta": "Se connecter",
+      "tileLabel": "Tu te connectes avec",
+      "note": "Tu n’as rien demandé ? Ignore ce mail, il ne se passe rien."
+    },
+    "gift": {
+      "subject": "Tu as SalzGuide Pro",
+      "headline": "SalzGuide Pro débloqué",
+      "body": "C’est la maison qui offre, rien à payer et rien à activer.\n\n🔓 Tous les spots Pro sont visibles pour toi dès maintenant, même ceux qui sont normalement verrouillés.\n\n🗺️ Tu ouvres, tu regardes la carte, tu y vas. C’est tout.",
+      "cta": "Voir les spots Pro"
+    },
+    "purchase": {
+      "subject": "Ta confirmation d’achat : SalzGuide Pro",
+      "headline": "Ta confirmation pour SalzGuide Pro",
+      "intro": "Merci à toi. Voilà noir sur blanc ce que tu as acheté. Garde ce mail, c’est ta confirmation de contrat.",
+      "guest": "📩 Ton accès est lié à l’adresse ci-dessous. Si tu n’es pas déjà connecté dans l’app, connecte-toi avec elle, sans mot de passe, tu reçois un lien à toucher. Ton Pro t’y attend.",
+      "member": "🗺️ Tout le contenu Pro est ouvert pour toi dès maintenant. Tu ouvres, tu regardes la carte, tu y vas. C’est tout.",
+      "otherAddress": "📮 Tu as payé avec {paid}. Mais ton Pro se trouve sur ton compte {account}, et c’est avec cette adresse que tu te connectes.",
+      "rowService": "Prestation",
+      "rowServiceValue": "SalzGuide Pro, accès permanent aux contenus numériques : spots secrets avec le conseil d’initié, randonnées avec l’itinéraire, audioguides complets. En prime, sans part de prix : l’assistant IA sans limite.",
+      "rowPrice": "Prix",
+      "rowPriceValue": "{price} TVA comprise, paiement unique, sans abonnement",
+      "rowPriceUnknown": "paiement unique, sans abonnement",
+      "rowContract": "Conclusion du contrat",
+      "rowReference": "Référence de commande",
+      "rowPartner": "Partie contractante",
+      "rowLanguage": "Langue du contrat",
+      "rowLanguageValue": "Allemand",
+      "cta": "Voir les spots Pro",
+      "tileLabel": "Ton accès est lié à",
+      "note": "Une question sur ton achat ? Réponds simplement à ce mail, on lit tout nous-mêmes.",
+      "legalDe": "Les mentions ci-dessous ont valeur juridique et sont donc en allemand, comme nos CGU et l’information sur la rétractation.",
+      "linkWithdrawal": "Rétractation",
+      "linkTerms": "CGU",
+      "linkPrivacy": "Confidentialité"
+    },
+    "withdrawal": {
+      "subject": "Accusé de réception de ta rétractation",
+      "headline": "Ta rétractation nous est parvenue",
+      "body": "Salut {name}, on confirme la réception de ta rétractation le {receivedAt}.\n\n⏱️ On la traite et on revient vers toi. Un remboursement part sans délai, au plus tard 14 jours après réception, par le même moyen de paiement.\n\n📄 Tes informations sont ci-dessous, exactement comme tu les as envoyées. Si quelque chose ne va pas, réponds simplement à ce mail.",
+      "rowReceived": "Réception",
+      "rowName": "Nom",
+      "rowEmail": "E-mail",
+      "rowAddress": "Adresse",
+      "rowContract": "Contrat / commande",
+      "rowOrderDate": "Commandé / reçu le",
+      "rowNote": "Ton message",
+      "legalDe": "Le texte de ta déclaration et la mention légale sont en allemand, car c’est la version allemande qui fait foi."
+    }
   }
 }

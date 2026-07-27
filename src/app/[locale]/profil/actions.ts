@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { verifyTurnstile } from "@/lib/turnstile";
+import { sendLoginLink } from "@/lib/login-link";
 import { authOrigin } from "@/lib/site-url";
 import { routing } from "@/i18n/routing";
 
@@ -109,34 +110,24 @@ export async function sendMagicLink(
   // gespeichert — also erst, nachdem jemand den Link in DIESEM Postfach geöffnet hat. Das
   // ist ein echtes Double-Opt-in (§ 174 TKG / Art. 7 DSGVO: nachweisbare Einwilligung), und
   // es kostet keinen zusätzlichen Schritt, weil der Link ohnehin geklickt werden muss.
-  const callback =
-    `${origin}/${locale}/auth/callback?next=${encodeURIComponent(nextPath)}` +
-    (newsletter ? "&nl=1" : "");
-
-  const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithOtp({
+  //
+  // Die Mail baut und verschickt lib/login-link.ts: unser Rahmen, unsere Worte, in der
+  // Sprache, in der dieses Formular gerade dasteht. `locale` ist oben schon festgenagelt.
+  const result = await sendLoginLink({
     email,
-    options: { emailRedirectTo: callback },
+    locale,
+    next: nextPath,
+    origin,
+    newsletter,
+    ip: remoteip,
   });
 
-  if (error) {
-    // Volle Meldung ins Log (dort gehört sie hin), knapper Code an den Browser.
-    console.error(
-      "signInWithOtp error:",
-      error.status,
-      error.code,
-      error.message,
-      "redirect:",
-      `${origin}/${locale}/auth/callback`,
-    );
-    // 429 = zu oft probiert. Das darf der Mensch erfahren: Es sagt ihm, dass Warten hilft,
-    // statt ihn dieselbe Adresse zehnmal neu eintippen zu lassen. Und es verrät nichts über
-    // fremde Konten — die Grenze hängt an Adresse und IP des Absenders, nicht daran, ob es
-    // das Konto gibt.
-    const rateLimited =
-      error.status === 429 || (error.code ?? "").includes("rate_limit");
-    return { ok: false, error: rateLimited ? "rate" : "send" };
-  }
+  // "zu oft probiert" darf der Mensch erfahren: Es sagt ihm, dass Warten hilft, statt ihn
+  // dieselbe Adresse zehnmal neu eintippen zu lassen. Und es verrät nichts über fremde
+  // Konten — die Grenze hängt an Adresse und IP des Absenders, nicht daran, ob es das Konto
+  // gibt. Alles andere ist "send": ein Fehler, den der Mensch nicht beheben kann.
+  if (result === "rate") return { ok: false, error: "rate" };
+  if (result === "failed") return { ok: false, error: "send" };
   return { ok: true, email };
 }
 

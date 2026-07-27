@@ -470,5 +470,63 @@
   },
   "LoginGate": {
     "cta": "免费注册"
+  },
+  "Mail": {
+    "greeting": "萨尔茨堡的问候",
+    "signoff": "SalzGuide 的 Anton",
+    "follow": "关注我们：",
+    "reply": "有什么用不了？直接回这封邮件就行，我们自己看。",
+    "login": {
+      "subject": "你的 SalzGuide 登录链接",
+      "headline": "你的 SalzGuide 登录链接",
+      "body": "👇 点一下按钮就进去了。不用密码。\n\n🔒 这个链接只对这个邮箱有效，而且只能用一次。",
+      "cta": "现在登录",
+      "tileLabel": "你用这个邮箱登录",
+      "note": "不是你申请的？直接忽略这封邮件就好，什么都不会发生。"
+    },
+    "gift": {
+      "subject": "你有 SalzGuide Pro 了",
+      "headline": "SalzGuide Pro 已开通",
+      "body": "算我们请客，不用付钱，也不用兑换。\n\n🔓 从现在起所有 Pro 地点都对你开放，包括平时锁着的那些。\n\n🗺️ 打开、看地图、出发。就这么简单。",
+      "cta": "看看 Pro 地点"
+    },
+    "purchase": {
+      "subject": "你的购买确认：SalzGuide Pro",
+      "headline": "你的 SalzGuide Pro 购买确认",
+      "intro": "谢谢你。你买了什么，这里白纸黑字写着。请保留这封邮件，它是你的合同确认书。",
+      "guest": "📩 你的权限绑定在下面这个邮箱上。如果你还没在 App 里登录，就用它登录，不用密码，我们会给你一个点一下就行的链接。你的 Pro 在那里等着。",
+      "member": "🗺️ 从现在起所有 Pro 内容都对你开放。打开、看地图、出发。就这么简单。",
+      "otherAddress": "📮 你是用 {paid} 付的款。但你的 Pro 在账号 {account} 上，登录要用这个邮箱。",
+      "rowService": "服务内容",
+      "rowServiceValue": "SalzGuide Pro，数字内容永久开通：带内行提示的秘密地点、带路线的徒步、完整语音导览。附赠、不计入价格：无限次使用的 AI 助手。",
+      "rowPrice": "价格",
+      "rowPriceValue": "{price}（含增值税），一次性付款，非订阅",
+      "rowPriceUnknown": "一次性付款，非订阅",
+      "rowContract": "合同订立时间",
+      "rowReference": "订单编号",
+      "rowPartner": "合同相对方",
+      "rowLanguage": "合同语言",
+      "rowLanguageValue": "德语",
+      "cta": "看看 Pro 地点",
+      "tileLabel": "你的权限绑定在",
+      "note": "关于这笔购买有疑问？直接回这封邮件就行，我们自己看。",
+      "legalDe": "下面的细则具有法律效力，所以用德语写，和我们的条款、撤销说明一样。",
+      "linkWithdrawal": "撤销",
+      "linkTerms": "条款",
+      "linkPrivacy": "隐私"
+    },
+    "withdrawal": {
+      "subject": "你的撤销已收到",
+      "headline": "你的撤销到我们这里了",
+      "body": "{name}，我们确认在 {receivedAt} 收到了你的撤销声明。\n\n⏱️ 我们正在处理，会再联系你。退款会立即办理，最晚在收到后 14 天内，按原支付方式退回。\n\n📄 你填的内容在下面，和你发过来的一样。如果有不对的地方，直接回这封邮件。",
+      "rowReceived": "收到时间",
+      "rowName": "姓名",
+      "rowEmail": "邮箱",
+      "rowAddress": "地址",
+      "rowContract": "合同 / 订单",
+      "rowOrderDate": "下单 / 收到日期",
+      "rowNote": "你的留言",
+      "legalDe": "你的声明原文和法律提示是德语，因为以德语版本为准。"
+    }
   }
 }

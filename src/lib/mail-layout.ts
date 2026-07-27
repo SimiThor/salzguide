@@ -1,5 +1,7 @@
 import "server-only";
 import { SOCIAL_PROFILES } from "./social";
+import { mailTexts } from "./mail-i18n";
+import { localeDir } from "@/i18n/locales";
 
 // Der Rahmen für ALLE SalzGuide-Mails: Farben, Typografie, Knopf, Unterschrift.
 //
@@ -65,33 +67,23 @@ export function brandify(headline: string): string {
     .join(`<span style="color:${ACCENT};">SalzGuide</span>`);
 }
 
-/**
- * Die Verabschiedung. Ein Mensch, kein Absender-Block.
- *
- * Hier stand zuerst LEGAL.company ("Anton Steiner"), also die Zeile aus dem Impressum, und
- * genau so las sie sich auch: als Rechtstext am Ende einer Mail, die vorher wie ein Kumpel
- * klingt. Bei einer Marke, die auf "zwei echte Locals" gebaut ist, unterschreibt ein
- * Mensch, keine Firma.
- *
- * Danach stand hier "Anton von SalzGuide", aber mit dem Wort SalzGuide wieder als Logo
- * gesetzt: rot, fett, verlinkt. Damit war es keine Verabschiedung mehr, sondern eine
- * Absenderzeile mit einem Vornamen davor. Eine Unterschrift wird nicht gebrandet. Also:
- * schlichter Text, ein Zug mit der Feder, fertig.
- *
- * Der Absender bleibt trotzdem erkennbar: Die Mail kommt von EMAIL_FROM, geht mit replyTo
- * an LEGAL.email zurück, und der Knopf darüber verlinkt auf die Seite.
- */
-export const SIGNOFF = "Anton von SalzGuide";
-
-/**
- * Der Gruß darüber. Ohne ihn endete die Mail mit einer Hilfe-Zeile und dann dem Namen:
- * ein Brief ohne Verabschiedung.
- *
- * "aus Salzburg" statt nur "Liebe Grüße": Der Ort ist der ganze Punkt der Marke, und es
- * kostet drei Wörter. "Servus" wäre österreichischer, liest sich aber für die Deutschen
- * unter den Empfängern eher als Begrüßung denn als Abschied.
- */
-export const GREETING = "Liebe Grüße aus Salzburg";
+// GRUSS UND UNTERSCHRIFT stehen jetzt in messages/*.json unter `Mail.greeting` und
+// `Mail.signoff`, in allen neun Sprachen (siehe mail-i18n.ts). Die Begründungen dahinter
+// gelten unverändert und deshalb hier, wo der Rahmen sie benutzt:
+//
+// UNTERSCHRIFT: Ein Mensch, kein Absender-Block. Hier stand zuerst LEGAL.company ("Anton
+// Steiner"), also die Zeile aus dem Impressum, und genau so las sie sich auch: als Rechtstext
+// am Ende einer Mail, die vorher wie ein Kumpel klingt. Bei einer Marke, die auf "zwei echte
+// Locals" gebaut ist, unterschreibt ein Mensch, keine Firma. Danach stand da "Anton von
+// SalzGuide" mit dem Wort SalzGuide als Logo gesetzt: rot, fett, verlinkt. Damit war es keine
+// Verabschiedung mehr, sondern eine Absenderzeile mit einem Vornamen davor. Eine Unterschrift
+// wird nicht gebrandet, deshalb läuft sie NICHT durch brandify(). Der Absender bleibt trotzdem
+// erkennbar: Die Mail kommt von EMAIL_FROM, geht mit replyTo an LEGAL.email zurück, und der
+// Knopf darüber verlinkt auf die Seite.
+//
+// GRUSS: Ohne ihn endete die Mail mit einer Hilfe-Zeile und dann dem Namen, also ein Brief
+// ohne Verabschiedung. "aus Salzburg" statt nur "Liebe Grüße": Der Ort ist der ganze Punkt
+// der Marke, und es kostet drei Wörter.
 
 /**
  * Die Profile am Fuss jeder Mail. Zwei Text-Links, aus derselben Quelle wie Fusszeile und
@@ -106,10 +98,10 @@ export const GREETING = "Liebe Grüße aus Salzburg";
  * Aufzählung mit Trennzeichen statt „Instagram und TikTok": Kommt ein dritter Kanal dazu,
  * ändert sich hier nichts.
  *
- * Deutsch, wie der ganze Mail-Rahmen (siehe GREETING/SIGNOFF): Unsere System-Mails gehen
- * auf Deutsch raus, sie laufen nicht über next-intl.
+ * `follow` kommt aus der Sprache des Empfängers (Mail.follow). Die Namen der Kanäle sind
+ * Eigennamen und bleiben, wie sie sind.
  */
-function socialFooterHtml(): string {
+function socialFooterHtml(follow: string): string {
   const links = SOCIAL_PROFILES.map(
     (p) =>
       `<a href="${esc(p.url)}" style="color:${MUTED};text-decoration:underline;">${esc(p.label)}</a>`,
@@ -117,13 +109,23 @@ function socialFooterHtml(): string {
   return `
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;">
     <tr><td align="center" style="padding:16px 24px 4px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,Helvetica,Arial,sans-serif;">
-      <p style="margin:0;font-size:13px;line-height:1.6;color:${MUTED};">Folge uns: ${links}</p>
+      <p style="margin:0;font-size:13px;line-height:1.6;color:${MUTED};">${esc(follow)} ${links}</p>
     </td></tr>
   </table>`;
 }
 
-/** Was eine Mail an den Rahmen übergibt. Alles ausser `subject`/`headline` ist optional. */
+/** Was eine Mail an den Rahmen übergibt. Alles ausser `locale`/`subject`/`headline` ist optional. */
 export type MailContent = {
+  /**
+   * Die Sprache des EMPFÄNGERS, nicht die des Absenders und nicht die der gerade offenen
+   * Seite. Steuert Gruss, Unterschrift, Fusszeile und das `lang`-Attribut.
+   *
+   * PFLICHTFELD, obwohl "de" ein bequemer Standard wäre: Ein Standard hätte genau den Fehler
+   * gemacht, den es hier zu verhindern gilt. Wer eine neue Mail baut und die Sprache nicht
+   * durchreicht, bekommt keinen deutschen Brief an einen Koreaner, sondern einen
+   * TypeScript-Fehler.
+   */
+  locale: string;
   /** Steht im <title> und sollte dem Betreff der Mail entsprechen. */
   subject: string;
   /** Trägt die Marke selbst, "SalzGuide" darin wird automatisch rot gesetzt. */
@@ -181,7 +183,8 @@ export type MailContent = {
  * hier KEIN Kommentar, sondern Text, der in der Mail landet. Kommentare gehören hier
  * herauf oder in ein <!-- -->.
  */
-export function renderMailShell(c: MailContent): string {
+export async function renderMailShell(c: MailContent): Promise<string> {
+  const t = await mailTexts(c.locale);
   const paragraphs = c.body
     .split(/\n{2,}/)
     .map((p) => p.trim())
@@ -262,8 +265,11 @@ export function renderMailShell(c: MailContent): string {
       </p>`
     : "";
 
+  // `lang` und `dir` sind kein Beiwerk: Sie sagen dem Vorleser, in welcher Sprache er die
+  // Mail spricht, und Gmail entscheidet daran, ob es eine Übersetzung anbietet. Stand hier
+  // fest "de", bot Gmail einem Koreaner an, seine koreanische Mail zu übersetzen.
   return `<!doctype html>
-<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<html lang="${esc(c.locale)}" dir="${localeDir(c.locale)}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${esc(c.subject)}</title></head>
 <body style="margin:0;padding:0;background:${CREAM};">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${CREAM};padding:24px 12px;">
@@ -276,19 +282,20 @@ export function renderMailShell(c: MailContent): string {
 ${ctaRow}
     <tr><td style="padding:16px 32px 32px;">${tileBlock}${noteBlock}${fineprintBlock}${linksBlock}
       <p style="margin:22px 0 0;font-size:15px;line-height:1.7;color:${INK};">
-        ${GREETING}<br>${SIGNOFF}
+        ${esc(t.greeting)}<br>${esc(t.signoff)}
       </p>
     </td></tr>
   </table>
   <!-- Die Profile stehen UNTER der weissen Karte, auf dem Creme-Grund: Sie gehören zur
        Fusszeile, nicht zur Nachricht. Genau so sitzt die Icon-Reihe auch in der App. -->
-  ${socialFooterHtml()}
+  ${socialFooterHtml(t.follow)}
 </td></tr></table>
 </body></html>`;
 }
 
 /** Die Reintext-Fassung. Kein Abklatsch: Sie muss für sich allein funktionieren. */
-export function renderMailShellText(c: MailContent): string {
+export async function renderMailShellText(c: MailContent): Promise<string> {
+  const t = await mailTexts(c.locale);
   return [
     c.headline,
     c.body,
@@ -300,7 +307,7 @@ export function renderMailShellText(c: MailContent): string {
     c.note,
     c.fineprint,
     c.links?.length ? c.links.map((l) => `${l.label}: ${l.url}`).join("\n") : null,
-    `${GREETING}\n${SIGNOFF}`,
+    `${t.greeting}\n${t.signoff}`,
     // Dieselbe Fusszeile wie in der HTML-Fassung, nur als lesbare Adressen: In der
     // Reintext-Mail gibt es keinen verlinkten Namen, ein „Instagram" ohne URL wäre eine
     // Sackgasse.

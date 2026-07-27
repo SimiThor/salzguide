@@ -56,6 +56,21 @@ const isDashPlaceholder = (s) => /^[\s—–-]+$/.test(s);
 const BASE_ONLY_NAMESPACES = new Set(["Home"]);
 const isBaseOnly = (key) => BASE_ONLY_NAMESPACES.has(key.split(".")[0]);
 
+// Namensräume, die NICHT über useTranslations/getTranslations gelesen werden.
+//
+// Das betrifft nur den Toten-Keys-Hinweis ganz unten, nicht die Parität-Prüfung: Für
+// „vollständig in allen neun Sprachen" gelten sie wie jeder andere Namensraum, genau
+// deswegen stehen ihre Texte ja hier.
+//
+// `Mail` sind die Texte aller E-Mails. src/lib/mail-i18n.ts lädt die Sprachdatei selbst und
+// greift danach als OBJEKT zu (`t.purchase.rowPrice`), weil Mails auch dort entstehen, wo es
+// gar keine Anfrage mit einer Sprache gibt: Der Stripe-Webhook kommt von Stripes Servern.
+// Ein Key-NAME als String taucht dabei nirgends auf, die Suche unten findet also keinen
+// Leser und meldete alle 48 Mail-Keys als tot. So viele Fehlalarme wären das Ende dieses
+// Checks (siehe die Begründung ganz oben).
+const NO_STRING_READER = new Set(["Mail"]);
+const hasObjectReader = (key) => NO_STRING_READER.has(key.split(".")[0]);
+
 // {name} — greift NICHT bei {count, plural, ...}: dort ist der erste Teil der Name.
 const placeholders = (s) =>
   new Set([...String(s).matchAll(/\{\s*(\w+)/g)].map((m) => m[1]));
@@ -335,7 +350,9 @@ const hasReader = (key) => {
   return false;
 };
 
-const unread = [...base.keys()].filter((k) => !isBaseOnly(k) && !hasReader(k));
+const unread = [...base.keys()].filter(
+  (k) => !isBaseOnly(k) && !hasObjectReader(k) && !hasReader(k),
+);
 if (unread.length) {
   console.warn(`\n⚠ ${unread.length} Key(s) ohne erkennbaren Leser — bitte einzeln prüfen, nicht blind löschen:`);
   for (const k of unread) console.warn(`  ${k}`);

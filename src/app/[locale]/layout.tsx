@@ -77,7 +77,15 @@ export default async function LocaleLayout({
   // Statisches Rendering der Locale-Routen ermöglichen.
   setRequestLocale(locale);
 
-  const messages = await getMessages();
+  // `Mail` fliegt raus, bevor die Texte in den Browser gehen.
+  //
+  // Der Provider schickt ALLES, was in messages/<locale>.json steht, an jeden Besucher. Die
+  // Mail-Texte stehen dort, weil `npm run i18n:check` sie dann mitprüft (siehe mail-i18n.ts),
+  // gerendert werden sie aber ausschliesslich auf dem Server. Im Browser wären sie totes
+  // Gewicht in jedem einzelnen Seitenaufruf.
+  const messages = Object.fromEntries(
+    Object.entries(await getMessages()).filter(([namespace]) => namespace !== "Mail"),
+  );
 
   // min-h-viewport (= var(--sg-vh) = 100svh) am body, NICHT min-h-dvh: Auf kurzen Seiten
   // bestimmt diese Zahl, wo die Fusszeile sitzt. Mit dvh wandert sie beim Scrollen mit

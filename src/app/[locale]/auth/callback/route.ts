@@ -1,14 +1,40 @@
 import { NextResponse } from "next/server";
+import type { EmailOtpType } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { claimVerifiedLogin } from "@/lib/pro-purchase";
+import { safeLocale } from "@/i18n/locales";
 
-// Magic-Link-Rücksprung: Code gegen Session tauschen, dann weiterleiten.
+// Magic-Link-Rücksprung: Nachweis gegen Sitzung tauschen, dann weiterleiten.
+//
+// ZWEI SORTEN LINK KOMMEN HIER AN, und beide müssen funktionieren:
+//
+//   `token_hash` + `type` — unsere eigene Anmelde-Mail (lib/login-link.ts). Der Nachweis
+//       steht direkt in der Adresse und wird mit verifyOtp eingelöst. Das ist der Weg, den
+//       Supabase für selbstgebaute Anmeldemails vorsieht.
+//   `code` — der PKCE-Weg. Den benutzt Supabases eigene Mail, also der Notausgang, wenn
+//       unser Versand nicht klappt, und der Google-Login.
+//
+// Der Rest (Newsletter, Sprache merken, geliehene Sitzungen kappen) ist für beide gleich und
+// steht deshalb NACH der Verzweigung, nicht doppelt darin.
+const OTP_TYPES: readonly EmailOtpType[] = [
+  "magiclink",
+  "signup",
+  "invite",
+  "recovery",
+  "email_change",
+];
+
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ locale: string }> },
 ) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
+  const tokenHash = searchParams.get("token_hash");
+  // Die Art kommt aus der Adresse und ist damit von aussen setzbar. Gegen die bekannte Liste
+  // prüfen, statt sie durchzureichen: Ein Fremdwert ginge sonst roh an die Auth-API.
+  const rawType = searchParams.get("type") ?? "";
+  const otpType = OTP_TYPES.find((t) => t === rawType);
   const { locale } = await params;
   // Wohin, wenn `next` fehlt oder unbrauchbar ist: auf die Karte, nicht auf „/" — dort
   // liegt seit 07/2026 die Verkaufs-Startseite, und wer sich gerade eingeloggt hat, ist
@@ -29,10 +55,36 @@ export async function GET(
     /* ungültig -> fallback */
   }
 
-  if (code) {
+  if (code || (tokenHash && otpType)) {
     const supabase = await createClient();
-    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+    const { data, error } =
+      tokenHash && otpType
+        ? await supabase.auth.verifyOtp({ type: otpType, token_hash: tokenHash })
+        : await supabase.auth.exchangeCodeForSession(code!);
     if (!error) {
+      // Die Sprache merken, in der sich dieser Mensch anmeldet.
+      //
+      // WOZU: Es ist der einzige verlässliche Zeitpunkt, an dem wir Konto UND Sprache
+      // gleichzeitig in der Hand haben. Jede spätere Mail (Kaufbestätigung, geschenktes Pro)
+      // entsteht ohne offene Seite und ohne Sprache in der Adresse — der Stripe-Webhook
+      // kommt von Stripes Servern, der Admin-Klick vom Schreibtisch in Salzburg. Ohne diesen
+      // Vermerk stünde `profiles.locale` für immer auf dem Standard 'de', und ein Koreaner
+      // bekäme deutsche Post.
+      //
+      // Ein Fehler hier darf den Login NICHT aufhalten: Wer sich anmeldet, kommt herein, auch
+      // wenn der Vermerk danebengeht. Dann ist die nächste Mail in der falschen Sprache, und
+      // das ist deutlich billiger als eine gescheiterte Anmeldung.
+      if (data?.user) {
+        try {
+          await supabase
+            .from("profiles")
+            .update({ locale: safeLocale(locale) })
+            .eq("id", data.user.id);
+        } catch (e) {
+          console.error("locale merken:", e instanceof Error ? e.message : e);
+        }
+      }
+
       // Newsletter-Einwilligung einlösen (`nl=1` hat der Login an diesen Link gehängt).
       //
       // WARUM ERST HIER: Das Häkchen im Formular ist eine Behauptung („mir gehört diese

@@ -4,6 +4,7 @@ import type Stripe from "stripe";
 import { stripe } from "@/lib/stripe";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
+import { sendLoginLink } from "@/lib/login-link";
 import { authOrigin } from "@/lib/site-url";
 import { safeLocale } from "@/i18n/locales";
 import {
@@ -112,7 +113,7 @@ export async function GET(
   //
   // Wenn die Mail NICHT rausgeht, darf hier nicht „schau in dein Postfach" stehen: Dann
   // wartet jemand auf etwas, das nie kommt. Dieser Fall gehört zu einem Menschen (help).
-  const sent = result.email ? await sendAccessLink(supabase, result.email, locale, request.url) : false;
+  const sent = result.email ? await sendAccessLink(result.email, locale, request.url) : false;
   return done(sent ? "mail" : "help");
 }
 
@@ -170,13 +171,16 @@ async function signInBuyer(
 /**
  * Den Anmeldelink an die bezahlte Adresse schicken.
  *
- * Bewusst Supabases Standard-Anmeldemail und keine eigene: Es ist derselbe Vorgang wie eine
- * Anmeldung, also soll auch dieselbe Mail kommen. Eine zweite, eigene Vorlage wäre eine
- * zweite Stelle, an der Absender, Zustellbarkeit und neun Übersetzungen gepflegt werden
- * müssten.
+ * Genau dieselbe Mail wie bei jeder Anmeldung, weil es derselbe Vorgang ist: lib/login-link.ts
+ * ist die eine Stelle, die Anmeldelinks verschickt. (Hier stand einmal, das sei bewusst
+ * Supabases Standardmail, weil eine eigene Vorlage eine zweite Stelle zum Pflegen wäre. Das
+ * Argument stimmt weiter, nur zeigt es inzwischen in die andere Richtung: Es GIBT jetzt genau
+ * eine eigene Stelle, und die kennt auch die Sprache des Käufers.)
  *
  * Kein Turnstile davor: Die Adresse kommt nicht aus einem Formular, sondern von Stripe, und
- * es gibt sie nur, weil jemand bezahlt hat. Ein Bot müsste erst zahlen.
+ * es gibt sie nur, weil jemand bezahlt hat. Ein Bot müsste erst zahlen. Das Limit aus
+ * login-link.ts greift trotzdem, und das ist hier auch gut so: Wer die Rücksprung-Adresse
+ * neu lädt, löst sonst jedes Mal eine weitere Mail aus.
  *
  * GIBT ZURÜCK, OB DIE MAIL RAUSGING, und das ist kein Detail: Der Aufrufer entscheidet
  * daran, ob der Käufer „schau in dein Postfach" liest oder an einen Menschen verwiesen wird.
@@ -186,22 +190,19 @@ async function signInBuyer(
  * Ausdruck `void | false` ergibt und nicht blankes `void`.
  */
 async function sendAccessLink(
-  supabase: Awaited<ReturnType<typeof createClient>>,
   email: string,
   locale: string,
   requestUrl: string,
 ): Promise<boolean> {
   try {
-    const next = `/${locale}/pro?checkout=success`;
-    const origin = await authOrigin(requestUrl);
-    const { error } = await supabase.auth.signInWithOtp({
+    const result = await sendLoginLink({
       email,
-      options: {
-        emailRedirectTo: `${origin}/${locale}/auth/callback?next=${encodeURIComponent(next)}`,
-      },
+      locale,
+      next: `/${locale}/pro?checkout=success`,
+      origin: await authOrigin(requestUrl),
     });
-    if (error) {
-      console.error("[pro] Zugangs-Mail nicht versendet", error.status, error.message);
+    if (result !== "sent") {
+      console.error("[pro] Zugangs-Mail nicht versendet:", result);
       return false;
     }
     return true;
