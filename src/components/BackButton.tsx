@@ -97,11 +97,17 @@ export default function BackButton({
     else router.push(fallbackHref);
   }
   return (
+    // `sg-hit`: gezeichnet 40px, am Finger 44px (Apples Mindestmass). Der Knopf sass als
+    // einziger der schwebenden Glas-Knöpfe unter dem Mass — MapCard und SpotDetailMap tragen
+    // `sg-hit absolute` in genau dieser Form schon lange. Am Mauszeiger passiert nichts
+    // (`@media (hover: none)`), und das `position: relative` daraus nimmt den Aufrufern ihr
+    // `absolute` NICHT weg: Die Regel steht in `@layer components` und verliert damit gegen
+    // jede Tailwind-Positions-Utility. Beides steht bei `.sg-hit` in globals.css.
     <button
       type="button"
       onClick={goBack}
       aria-label={label}
-      className={`cursor-pointer flex h-10 w-10 items-center justify-center rounded-full bg-white/85 text-ink shadow-md backdrop-blur-md transition active:scale-95 ${className}`}
+      className={`sg-hit cursor-pointer flex h-10 w-10 items-center justify-center rounded-full bg-white/85 text-ink shadow-md backdrop-blur-md transition active:scale-95 ${className}`}
     >
       <ChevronLeft className="h-5 w-5" />
     </button>
