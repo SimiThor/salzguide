@@ -13,7 +13,11 @@
     "backfill:blur": "node --experimental-strip-types scripts/backfill-blur.ts",
     "render:intro": "node --experimental-strip-types scripts/render-intro.ts",
     "wp:fetch": "node --experimental-strip-types --disable-warning=ExperimentalWarning --env-file=.env.local --import ./scripts/lib/alias-hook.mjs scripts/wp-import/fetch.ts",
-    "wp:extract": "node --experimental-strip-types --disable-warning=ExperimentalWarning --import ./scripts/lib/alias-hook.mjs scripts/wp-import/extract.ts"
+    "wp:extract": "node --experimental-strip-types --disable-warning=ExperimentalWarning --import ./scripts/lib/alias-hook.mjs scripts/wp-import/extract.ts",
+    "wp:reset": "node --experimental-strip-types --disable-warning=ExperimentalWarning --env-file=.env.local --import ./scripts/lib/alias-hook.mjs scripts/wp-import/reset-spots.ts",
+    "wp:media": "node --experimental-strip-types --disable-warning=ExperimentalWarning --env-file=.env.local --import ./scripts/lib/alias-hook.mjs scripts/wp-import/media.ts",
+    "wp:routes": "node --experimental-strip-types --disable-warning=ExperimentalWarning --env-file=.env.local --import ./scripts/lib/alias-hook.mjs scripts/wp-import/routes.ts",
+    "wp:import": "node --experimental-strip-types --disable-warning=ExperimentalWarning --env-file=.env.local --import ./scripts/lib/alias-hook.mjs scripts/wp-import/import.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
