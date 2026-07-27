@@ -47,8 +47,18 @@ export type WpSource = {
   route: WpRoute | null;
   /** Shortcodes der alten Seite, unverändert. Zeigen an, was der Spot alles konnte. */
   shortcodes: string[];
+  /** Google-Place-ID aus [sg_oeffnungszeiten place="…"]. Treibt die Öffnungszeiten. */
+  googlePlaceId: string | null;
+  phone: string | null;
+  ticketUrl: string | null;
+  ticketPartner: string | null;
+  ticketLabel: string | null;
+  /** Seename aus [sg_seetemp see="…"], für die Wassertemperatur-Kachel. */
+  lakeName: string | null;
   /** Mediathek-IDs der auf der Seite verwendeten Bilder und Videos (Originale). */
   mediaIds: number[];
+  /** WordPress-Kategorie-IDs des alten Beitrags. Quelle für die Karussell-Reihen. */
+  wpCategories: number[];
   /** Saison laut der Karte, auf der der Spot stand (Gastein = Winter). Sonst null. */
   mapSeason?: "summer" | "winter" | null;
   /** Was beim Zerlegen auffiel. Landet im Lücken-Report, nichts wird still verschluckt. */
@@ -350,6 +360,7 @@ export type WpPost = {
   title: { raw?: string; rendered: string };
   excerpt: { raw?: string; rendered: string };
   content: { raw?: string; rendered: string };
+  categories?: number[];
   meta?: Record<string, unknown>;
 };
 
@@ -374,6 +385,12 @@ export function parseSpot(post: WpPost): WpSource {
   let parkingLng: number | null = null;
   let shortcodeLat: number | null = null;
   let shortcodeLng: number | null = null;
+  let googlePlaceId: string | null = null;
+  let phone: string | null = null;
+  let ticketUrl: string | null = null;
+  let ticketPartner: string | null = null;
+  let ticketLabel: string | null = null;
+  let lakeName: string | null = null;
 
   const titleText = norm(decodeEntities(post.title.raw ?? post.title.rendered));
   let pending: string | null = null;
@@ -385,6 +402,19 @@ export function parseSpot(post: WpPost): WpSource {
   for (const b of bs) {
     if (b.kind === "shortcode") {
       shortcodes.push(b.raw);
+      // Die alte Seite trug ihre Integrationen als Shortcode-Attribute. Das sind keine
+      // Textschnipsel, sondern genau die Werte, die in der neuen App eigene Spalten haben:
+      // Öffnungszeiten laufen über die Google-Place-ID, die Wassertemperatur über den
+      // Seenamen, die Ticket-Kachel über Partner und Adresse.
+      const attr = (k: string) => new RegExp(`${k}\\s*=\\s*"([^"]*)"`).exec(b.attrs)?.[1]?.trim() || null;
+      if (b.name === "sg_oeffnungszeiten") googlePlaceId = attr("place");
+      if (b.name === "sg_anrufen") phone = attr("tel");
+      if (b.name === "sg_seetemp" || b.name === "sg_wassertemp") lakeName = attr("see");
+      if (b.name === "sg_tickets") {
+        ticketUrl = attr("url");
+        ticketPartner = attr("partner");
+        ticketLabel = attr("label");
+      }
       if (b.name === "sg_anfahrt") {
         const num = (k: string) => {
           const m = new RegExp(`${k}\\s*=\\s*"(-?[\\d.]+)"`).exec(b.attrs);
@@ -505,9 +535,16 @@ export function parseSpot(post: WpPost): WpSource {
     parkingLng,
     route,
     shortcodes,
+    googlePlaceId,
+    phone,
+    ticketUrl,
+    ticketPartner,
+    ticketLabel,
+    lakeName,
     // Die IDs stehen im UNveränderten Elementor-Datensatz: Das Entschachteln oben ersetzt
     // \/ durch /, und danach passt das Muster "url":"…","id":N nicht mehr zuverlässig.
     mediaIds: extractMediaIds(String(post.meta?._elementor_data ?? "")),
+    wpCategories: post.categories ?? [],
     warnings,
   };
 }

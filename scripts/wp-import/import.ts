@@ -139,6 +139,62 @@ const factValue = (src: Source, field: string): string | null => {
   return f ? (f.canonical ?? f.value) : null;
 };
 
+// ── Kategorien ──────────────────────────────────────────────────────────────
+
+// Die alten WordPress-Kategorien auf die Karussell-Reihen der neuen App. Zugeordnet wird
+// NUR, wo der neue Name den alten wirklich enthält — bei allem anderen bleibt der Spot ohne
+// Kategorie und steht im Report. Eine falsche Reihe sortiert den Spot an eine Stelle, an der
+// ihn niemand sucht, und das fällt keinem auf, weil ja etwas dasteht.
+//
+// „aussichtspunkte" (18 Spots) ist bewusst NICHT dabei. Die neue Reihe heisst „City &
+// Nearby Hills", und die alte Kategorie mischt Mönchsberg und Kapuzinerberg mit Schafberg,
+// Maria Plain und der Wolfgangsee-Schifffahrt. Die Hälfte läge falsch.
+// „burgen", „parks" und „sonstige" haben in der neuen Einteilung schlicht kein Gegenstück.
+const WP_CATEGORY_IDS: Record<number, string> = {
+  17: "lakes", // seen -> Seen & Stege
+  16: "roads", // panoramastrassen -> Panoramastraßen
+  18: "gorges", // wasserfaelle -> Klammen & Wasserfälle
+  19: "gorges", // klammen -> dieselbe Reihe
+};
+
+/** Wanderungen (13) teilen sich nach Schwierigkeit auf zwei Reihen auf. */
+const HIKE_CATEGORY = 13;
+
+// Die Winter-Reihen sagen selbst, was hineingehört: „Action & Bahnen" und „Aussicht &
+// Erholung". Die 19 Gastein-Spots haben keine alte Kategorie, aber einen Typ-Marker, und
+// der trifft die zwei Reihen ohne Auslegung: Bahnen und Karts sind Action, Aussichtspunkte
+// und Thermen sind Aussicht und Erholung. Food läuft über den Typ, wie im Sommer.
+const WINTER_FROM_MARKER: Record<string, string> = {
+  ski: "action",
+  action: "action",
+  rodeln: "action",
+  viewpoint: "view",
+  aussichtspunkt: "view",
+  therme: "view",
+};
+
+function categoryKeysFor(
+  wpCategories: number[],
+  type: "food" | "activity",
+  difficulty: string | null,
+  typeMarker: string | null,
+  winter: boolean,
+): string[] {
+  const keys = new Set<string>();
+  if (winter) {
+    const k = WINTER_FROM_MARKER[(typeMarker ?? "").toLowerCase()];
+    if (k) keys.add(k);
+  }
+  for (const id of wpCategories) {
+    if (WP_CATEGORY_IDS[id]) keys.add(WP_CATEGORY_IDS[id]);
+    if (id === HIKE_CATEGORY) keys.add(difficulty === "schwer" ? "hike-hard" : "hike-ez");
+  }
+  // Food braucht keine alte Kategorie: Der Typ sagt es schon, und die Reihe heisst im
+  // Sommer „Food Spots" und im Winter „Skihütten & Cafés" — dieselbe Rolle, ein Schlüssel.
+  if (type === "food") keys.add("food");
+  return [...keys];
+}
+
 // ── Wird der Spot überhaupt gegangen? ───────────────────────────────────────
 
 // Subtypen, die man fährt statt geht. Eine Wanderlinie wäre hier eine Lüge, und die
@@ -248,6 +304,7 @@ async function importSpot(
   draft: Draft,
   mediaMap: Record<string, MapEntry>,
   routes: Record<string, RouteInfo>,
+  categories: { id: string; key: string; season: string }[],
   localId: string,
   dry: boolean,
 ) {
@@ -351,7 +408,15 @@ async function importSpot(
     video_poster_url: posterUrl.url,
     // Öffnungszeiten brauchen eine Google-Place-ID, die die alte Seite nicht hat.
     // Bewusst aus, damit kein Spot mit leerem Öffnungszeiten-Block dasteht.
-    has_opening_hours: false,
+    // Öffnungszeiten NUR, wo die alte Seite wirklich eine Place-ID hinterlegt hat. Ohne
+    // sie lehnt saveSpot das Flag ohnehin ab ("place_id_required"), und ein leerer
+    // Öffnungszeiten-Block auf der Detailseite sähe nach kaputt aus.
+    google_place_id: src.googlePlaceId,
+    has_opening_hours: Boolean(src.googlePlaceId),
+    phone: src.phone,
+    ticket_url: src.ticketUrl,
+    ticket_partner: src.ticketPartner,
+    lake_name: src.lakeName,
   };
 
   if (dry) return { row, images, texts, notes };
@@ -392,6 +457,28 @@ async function importSpot(
     source_hash: hashSpotTexts(texts),
   }, { onConflict: "spot_id,lang" });
   if (tErr) throw new Error(`spot_translations: ${tErr.message}`);
+
+  // Kategorien neu setzen (delete + insert), damit ein zweiter Lauf nicht doppelt einträgt.
+  const catKeys = categoryKeysFor(src.wpCategories ?? [], type, row.difficulty, src.typeMarker, row.seasons.includes("winter"));
+  await db.from("spot_categories").delete().eq("spot_id", spotId);
+  if (catKeys.length) {
+    const season = row.seasons[0];
+    const ids = categories
+      .filter((c) => catKeys.includes(c.key as string) && row.seasons.includes(c.season as string))
+      .map((c) => c.id as string);
+    if (ids.length) {
+      const { error: cErr } = await db
+        .from("spot_categories")
+        .insert(ids.map((category_id) => ({ spot_id: spotId, category_id })));
+      if (cErr) throw new Error(`spot_categories: ${cErr.message}`);
+    }
+    const missing = catKeys.filter(
+      (k) => !categories.some((c) => c.key === k && row.seasons.includes(c.season as string)),
+    );
+    for (const m of missing) notes.push(`Kategorie „${m}" gibt es für ${season} nicht`);
+  } else {
+    notes.push("keine Kategorie zuordenbar");
+  }
 
   if (images.length) {
     const { error: mErr } = await db.from("media").insert(
@@ -437,6 +524,8 @@ async function main() {
     (JSON.parse(readFileSync(routesFile, "utf8")) as RouteInfo[]).map((r) => [r.slug, r]),
   );
 
+  const { data: categoryRows } = await db.from("categories").select("id, key, season");
+  const categories = (categoryRows ?? []) as { id: string; key: string; season: string }[];
   const { data: locals } = await db.from("locals").select("id, name");
   const localId = (locals ?? []).find((l) => l.name === DEFAULT_LOCAL)?.id as string | undefined;
   if (!localId) throw new Error(`Local "${DEFAULT_LOCAL}" fehlt in der Tabelle locals`);
@@ -460,7 +549,7 @@ async function main() {
     const draft = JSON.parse(readFileSync(draftFile, "utf8")) as Draft;
 
     try {
-      const r = await importSpot(src, draft, mediaMap, routes, localId, dry);
+      const r = await importSpot(src, draft, mediaMap, routes, categories, localId, dry);
       done++;
       console.log(
         `  ${dry ? "würde" : "ok   "} ${slug.padEnd(34)} ${r.row.type.padEnd(8)} ${r.images.length} Fotos${r.row.video_url ? " +Video" : ""}${r.row.route_geojson ? ` Route ${r.row.duration}` : ""}${src.isPro ? "  PRO" : ""}`,
