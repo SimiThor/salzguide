@@ -24,7 +24,7 @@ const TEXT_FIELDS = ["general", "insider_tip", "section_a", "section_b", "locati
 /** Zahlwörter, wie sie in den Texten wirklich vorkommen, plus Ziffern. */
 const NUM =
   "(?:ein(?:e|er|en)?|zwei|drei|vier|fünf|sechs|sieben|acht|neun|zehn|elf|zwölf|zwanzig|dreißig|vierzig|fünfzig|sechzig|" +
-  "anderthalb|eineinhalb|zweieinhalb|dreieinhalb|viereinhalb|fünfeinhalb|sechseinhalb|siebeneinhalb|" +
+  "anderthalb|\\w*einhalb|" + // eineinhalb, zweieinhalb … dreizehneinhalb
   "fünfzehn|fünfundzwanzig|fünfunddreißig|fünfundvierzig|fünfundfünfzig|halbe|\\d+[.,]?\\d*)";
 
 const RE = {

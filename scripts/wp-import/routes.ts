@@ -20,6 +20,7 @@ import { readFileSync, writeFileSync, existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { routeLengthKm, hikingTimeMinutes, isClosedRoute } from "../../src/lib/geo.ts";
 import type { WpSource } from "./parse.ts";
+import { ascentDescent, doubled, downsample } from "./route-math.ts";
 
 const ORS_KEY = process.env.ORS_KEY;
 if (!ORS_KEY) throw new Error("ORS_KEY fehlt (.env.local)");
@@ -69,9 +70,27 @@ const TOO_LONG = 2.0;
  */
 const NEVER_DOUBLE = new Set(["schmittenhohe"]);
 
-function doubled(km: number, ascent: number, descent: number) {
-  return { km: km * 2, ascent: ascent + descent, descent: ascent + descent };
-}
+/**
+ * Routen, die IMMER verdoppelt werden, egal was die alte Dauer nahelegt.
+ *
+ * Der Schiedsrichter oben ist ein Zahlenvergleich, und der liest keine Wörter. Beim
+ * Gamskarkogel stand als alte Dauer „8 h gesamt": Der reine Aufstieg rechnet sich zu 7:55,
+ * hin und zurück zu 13:35 — also gewann der Aufstieg, obwohl das Wort „gesamt" wörtlich das
+ * Gegenteil sagt. Auf der Karte lag danach eine Linie, die am Gipfel aufhört, und im Feld
+ * eine Zeit für den halben Ausflug.
+ *
+ * Gemeinsam haben die sechs: kein Lift, kein Übergang, das Ziel ist ein Stichweg. Wer oben
+ * ist, geht denselben Weg zurück. Die Liste steht hier und nicht in routes.json, weil eine
+ * von Hand geänderte Datei beim nächsten Lauf still überschrieben wird.
+ */
+const ALWAYS_DOUBLE = new Set([
+  "gamskarkogel",
+  "gollinger-wasserfall",
+  "lackenkogel",
+  "nockstein",
+  "oberhutte",
+  "tappenkarsee",
+]);
 
 type Source = WpSource & { computed: { routeKm: number | null } };
 
@@ -97,14 +116,6 @@ export type RouteResult = {
   error?: string;
 };
 
-function downsample<T>(arr: T[], n: number): T[] {
-  if (arr.length <= n) return arr;
-  const out: T[] = [];
-  const step = (arr.length - 1) / (n - 1);
-  for (let i = 0; i < n; i++) out.push(arr[Math.round(i * step)]);
-  return out;
-}
-
 // „2 h", „30 min", „8 h gesamt", „1–2 Std" -> Minuten. Bei einer Spanne die UNTERE Grenze,
 // weil die alte Seite dort meist die reine Gehzeit meinte.
 function parseStated(v: string | null): number | null {
@@ -116,20 +127,6 @@ function parseStated(v: string | null): number | null {
   // „0 min" steht im Altbestand für „nicht ausgefüllt", nicht für eine Dauer von null.
   // Ohne diese Zeile wäre es eine Angabe, gegen die sich jede Route vergleichen liesse.
   return min > 0 ? min : null;
-}
-
-function ascentDescent(el: number[]): { ascent: number; descent: number } {
-  let ascent = 0;
-  let descent = 0;
-  let ref = el[0];
-  for (const e of el.slice(1)) {
-    const d = e - ref;
-    if (Math.abs(d) < 3) continue;
-    if (d > 0) ascent += d;
-    else descent -= d;
-    ref = e;
-  }
-  return { ascent: Math.round(ascent), descent: Math.round(descent) };
 }
 
 // Wörtlich der Aufruf aus snapRoute (admin-actions.ts): foot-hiking mit Höhe. ORS nimmt
@@ -225,7 +222,10 @@ async function main() {
         const bothMin = hikingTimeMinutes(d.km, d.ascent, d.descent);
         const off = (m: number) => (stated ? Math.abs(Math.log(m / stated)) : Infinity);
         const useBoth =
-          !closed && !NEVER_DOUBLE.has(src.slug) && stated != null && off(bothMin) < off(oneWayMin);
+          !closed &&
+          !NEVER_DOUBLE.has(src.slug) &&
+          (ALWAYS_DOUBLE.has(src.slug) ||
+            (stated != null && off(bothMin) < off(oneWayMin)));
 
         const shape: RouteResult["shape"] = closed ? "loop" : useBoth ? "there-and-back" : "one-way";
         const finalKm = useBoth ? d.km : km;

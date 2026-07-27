@@ -23,7 +23,11 @@ import { slugify } from "../../src/lib/slug.ts";
 import { guardStorageUrl } from "../../src/lib/storage-guard.ts";
 import { hashSpotTexts } from "../../src/lib/spot-hash.ts";
 import { stripEmDashFields } from "../../src/lib/em-dash.ts";
-import { routeLengthKm, haversineMeters } from "../../src/lib/geo.ts";
+import {
+  elevationProfile,
+  formatDuration,
+  waypointsFor,
+} from "./route-math.ts";
 import {
   MIN_ROUTE_KM,
   SUBTYPE_FROM_MARKER,
@@ -197,60 +201,7 @@ function pointOnly(src: Source, subtype: string | null, route: RouteInfo | undef
 }
 
 // ── Route ───────────────────────────────────────────────────────────────────
-
-function downsample<T>(arr: T[], n: number): T[] {
-  if (arr.length <= n) return arr;
-  const out: T[] = [];
-  const step = (arr.length - 1) / (n - 1);
-  for (let i = 0; i < n; i++) out.push(arr[Math.round(i * step)]);
-  return out;
-}
-
-// Kontrollpunkte für das Admin-Formular. Die Rohlinie hat bis zu 1447 Punkte; das Formular
-// fällt ohne route_waypoints auf die gezeichnete Linie zurück und zeigte dann 1447 einzeln
-// ziehbare Punkte an. Handgezeichnete Routen im Altbestand hatten 3 bis 21, also wird auf
-// diese Grössenordnung eingedampft: einer alle ~400 m, mindestens 4, höchstens 20.
-function waypointsFor(coords: [number, number][]): [number, number][] {
-  const km = routeLengthKm(coords);
-  const target = Math.max(4, Math.min(20, Math.round((km * 1000) / 400)));
-  return downsample(coords, target);
-}
-
-// Auf- und Abstieg aus den Höhenwerten. Zacken unter 3 m werden verschluckt, sonst
-// summiert sich das Rauschen der Höhendaten zu Höhenmetern, die niemand geht.
-function ascentDescent(el: number[]): { ascent: number; descent: number } {
-  let ascent = 0;
-  let descent = 0;
-  let ref = el[0];
-  for (const e of el.slice(1)) {
-    const d = e - ref;
-    if (Math.abs(d) < 3) continue;
-    if (d > 0) ascent += d;
-    else descent -= d;
-    ref = e;
-  }
-  return { ascent: Math.round(ascent), descent: Math.round(descent) };
-}
-
-// Format wie Migration 0006 und wie snapRoute es schreibt:
-// { points:[{d(km), e(m)}], ascent, descent, min, max, distanceKm }, Punkte bei 100 gedeckelt.
-function elevationProfile(coords: [number, number][], el: number[]) {
-  const pts: { d: number; e: number }[] = [];
-  let cum = 0;
-  for (let i = 0; i < coords.length; i++) {
-    if (i > 0) cum += haversineMeters(coords[i - 1], coords[i]);
-    pts.push({ d: cum / 1000, e: el[i] });
-  }
-  const { ascent, descent } = ascentDescent(el);
-  return {
-    points: downsample(pts, 100).map((p) => ({ d: Math.round(p.d * 100) / 100, e: Math.round(p.e) })),
-    ascent,
-    descent,
-    min: Math.round(Math.min(...el)),
-    max: Math.round(Math.max(...el)),
-    distanceKm: cum / 1000,
-  };
-}
+// Die Rechnerei steht in route-math.ts, weil routes.ts dieselben Formeln braucht.
 
 // ── Ein Spot ────────────────────────────────────────────────────────────────
 
@@ -448,16 +399,6 @@ async function importSpot(
   }
 
   return { row, images, texts, notes, spotId };
-}
-
-// „5 h 47" wäre für eine Wanderung falsche Genauigkeit: Die DAV-Formel ist eine Schätzung,
-// keine Messung. Auf fünf Minuten gerundet, und ab einer Stunde in Stunden.
-function formatDuration(min: number): string {
-  const r = Math.round(min / 5) * 5;
-  if (r < 60) return `${r} min`;
-  const h = Math.floor(r / 60);
-  const m = r % 60;
-  return m ? `${h} Std ${m} min` : `${h} Std`;
 }
 
 // ── Lauf ────────────────────────────────────────────────────────────────────

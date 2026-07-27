@@ -124,6 +124,29 @@ nicht blind: Auf der Schmittenhöhe geht man rauf und fährt mit der Seilbahn ru
 wäre Verdoppeln gelogen. Welche Lesart gilt, entscheidet die alte Dauer-Angabe. Das
 Verdoppeln braucht keine zweite ORS-Anfrage, weil der Rückweg der Hinweg rückwärts ist.
 
+**Ein Zahlenvergleich liest keine Wörter — sechs Routen endeten am Gipfel.** Beim
+Gamskarkogel stand als alte Dauer „8 h **gesamt**". Der reine Aufstieg rechnet sich zu 7:55,
+hin und zurück zu 13:35; der Schiedsrichter nahm also den Aufstieg, obwohl das Wort
+„gesamt" wörtlich das Gegenteil sagt. Auf der Karte lag danach eine Linie, die oben aufhört,
+und im Feld die Zeit für den halben Ausflug. Wer die Karte nicht daneben legt, merkt davon
+nichts.
+
+`npm run wp:there-and-back` zieht die sechs nach (Gamskarkogel, Lackenkogel, Tappenkarsee,
+Oberhütte, Nockstein, Gollinger Wasserfall). Gemeinsam haben sie: kein Lift, kein Übergang,
+das Ziel ist ein Stichweg. Damit ein neuer `wp:routes`-Lauf dieselbe Entscheidung trifft,
+stehen die Slugs als `ALWAYS_DOUBLE` in `routes.ts` — die Gegenliste zu `NEVER_DOUBLE`.
+Das Skript schreibt Datenbank UND `routes.json`, sonst dreht der nächste Import die
+Verdoppelung wieder zurück.
+
+**Nicht verdoppelt** werden Schmittenhöhe, Almenwelt Lofer, Spinnerin und Prinzensee (Bahn,
+steht auch in den Texten), Kapuzinerberg, Bad Gastein und die Halleiner Altstadt
+(Überschreitungen, die woanders herauskommen) und der Wiestalstausee (Uferstrasse, kein
+Wanderziel).
+
+**Die Rechnerei steht in `route-math.ts`.** `downsample` und `ascentDescent` standen vorher
+wortgleich in `routes.ts` UND `import.ts`; zwei Kopien derselben Formel laufen auseinander,
+sobald jemand nur eine anfasst.
+
 **Snapping erfindet keine fehlende Strecke.** Ein Teil der alten Linien ist nicht ungenau,
 sondern ein Stummel: Die Seisenbergklamm hat 16 Punkte im Abstand von zehn Metern, die
 ganze Linie passt in eine Box von 130 Metern, angegeben sind zwei Stunden. Da hilft kein
@@ -303,7 +326,10 @@ acht Stunden.
 Stunden Gehzeit ODER ab 600 Höhenmetern.** Zwei Kriterien, weil keins allein reicht. Die
 Gehzeit trennt Touren gleichen Aufwands an willkürlicher Stelle (Ellmautal 3:05,
 Schuhflickersee 3:00), der Aufstieg übersieht den Tristkogel, der mit 925 Höhenmetern auf
-12,8 Kilometern siebeneinhalb Stunden braucht. Ergebnis: 12 zu 18 statt 1 zu 29.
+12,8 Kilometern siebeneinhalb Stunden braucht. Ergebnis: 13 zu 17 statt 1 zu 29.
+
+Die Reihen hängen an der Gehzeit, also gehört `wp:categories` nach jedem `wp:there-and-back`
+noch einmal gelaufen. Die Oberhütte ist genau so hinübergerutscht.
 
 Das Schwierigkeits-Feld bleibt davon unberührt. Es sagt etwas über das GELÄNDE, die Reihe
 über den AUFWAND. Ein Weg kann technisch harmlos und trotzdem ein ganzer Tag sein, und beim
