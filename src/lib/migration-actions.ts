@@ -1,6 +1,7 @@
 "use server";
 
 import { requireAdmin } from "./admin-guard";
+import { logAdminAction } from "./ops";
 import { createServiceClient } from "./supabase/service";
 import { RELAUNCH_NOTICE_KEY } from "./settings";
 import { sendEmail } from "./email";
@@ -234,6 +235,15 @@ export async function sendMigrationAnnouncement(): Promise<AnnounceResult> {
       .is("announced_at", null);
     remaining = count ?? 0;
   }
+
+  // In die Spur: Das ist die einzige Aktion der App, die auf einen Klick hin bis zu hundert
+  // Menschen anschreibt. Wenn jemand fragt „wann ging die Ankündigung raus und an wie
+  // viele?", ist das hier die Antwort — Adressen stehen bewusst KEINE dabei.
+  await logAdminAction(gate.userId, "Umzugs-Ankündigung verschickt", {
+    verschickt: sent,
+    gescheitert: failed,
+    offen: remaining,
+  });
 
   return { ok: true, sent, failed, remaining };
 }

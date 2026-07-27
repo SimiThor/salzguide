@@ -8,6 +8,7 @@ import MobileHeader from "@/components/MobileHeader";
 import LegalFooter from "@/components/LegalFooter";
 import ProNotice from "@/components/ProNotice";
 import Analytics from "@/components/Analytics";
+import ClientErrorWatch from "@/components/ClientErrorWatch";
 import { useTouchActiveState } from "@/components/useTouchActiveState";
 
 // App-Chrome (Header, Tab-Leiste, Footer, Analytics) an EINER Stelle. Ob eine Route
@@ -42,6 +43,9 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
           es hängt. In der App sieht er ihn beim nächsten Schritt. */}
       {!marketing && <ProNotice />}
       <Analytics />
+      {/* Fehler-Mitschnitt. Bewusst OHNE `!marketing`: Ein Fehler auf der Startseite ist der
+          teuerste von allen, dort kommen die Besucher zuerst an. */}
+      <ClientErrorWatch />
     </>
   );
 }

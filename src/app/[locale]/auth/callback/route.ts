@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { claimVerifiedLogin } from "@/lib/pro-purchase";
+import { logOps, subjectFromRequest } from "@/lib/ops";
 import { safeLocale } from "@/i18n/locales";
 
 // Magic-Link-Rücksprung: Nachweis gegen Sitzung tauschen, dann weiterleiten.
@@ -55,12 +56,19 @@ export async function GET(
     /* ungültig -> fallback */
   }
 
+  // Warum der Fehler hier gemerkt und erst unten gemeldet wird: Der Ablauf hat zwei Ausgänge
+  // („kein Nachweis dabei" und „Nachweis abgelehnt"), aber nur EINE Fehlerweiche ganz unten.
+  // Eine Meldung an beiden Stellen wäre doppelt; ohne diese Variable liesse sich unten nicht
+  // mehr unterscheiden, ob überhaupt jemand einen Nachweis mitgebracht hat.
+  let verifyError: string | null = null;
+
   if (code || (tokenHash && otpType)) {
     const supabase = await createClient();
     const { data, error } =
       tokenHash && otpType
         ? await supabase.auth.verifyOtp({ type: otpType, token_hash: tokenHash })
         : await supabase.auth.exchangeCodeForSession(code!);
+    verifyError = error?.message ?? null;
     if (!error) {
       // Die Sprache merken, in der sich dieser Mensch anmeldet.
       //
@@ -144,6 +152,29 @@ export async function GET(
       return NextResponse.redirect(new URL(nextPath, origin));
     }
   }
+
+  // Hier landet jeder, dessen Anmeldung nicht durchging.
+  //
+  // EINZELN IST DAS ALLTAG und kein Fehler: ein Link von gestern, ein zweiter Klick auf
+  // denselben Link (Supabase löst ihn nur einmal ein), ein Mail-Programm, das Links zur
+  // Sicherheit vorab öffnet. Deshalb steht die Schwelle im Katalog bei fünf, nicht bei eins.
+  //
+  // ALS WELLE ist es der Ausfall, den man am spätesten bemerkt und am teuersten bezahlt:
+  // Niemand kommt mehr herein, und niemand beschwert sich, weil man sich beim Anbieter, bei
+  // dem man nicht einloggen kann, auch nicht beschweren kann. Genau dieses Muster meint
+  // OWASP A09 mit „alert on auth failure spikes".
+  //
+  // Der Nachweis selbst (token_hash/code) darf NICHT ins Log: Wer ihn dort findet, ist
+  // eingeloggt. Gemeldet wird nur, WELCHE Art Link es war und WAS Supabase gesagt hat.
+  await logOps("auth_callback_failed", {
+    message: verifyError
+      ? `Anmeldung abgelehnt: ${verifyError}`
+      : "Rücksprung ohne verwertbaren Nachweis.",
+    path: `/${locale}/auth/callback`,
+    subject: subjectFromRequest(request),
+    group: `auth:callback:${verifyError ?? "kein_nachweis"}`,
+    detail: { linkart: tokenHash ? (otpType ?? "unbekannt") : code ? "pkce" : "keiner" },
+  });
 
   const errUrl = new URL(nextPath, origin);
   errUrl.searchParams.set("auth_error", "1");

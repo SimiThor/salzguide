@@ -84,6 +84,28 @@ export default async function AdminSettingsPage({
         </span>
       </Link>
 
+      {/* Das Logbuch. Steht bewusst WEIT OBEN, direkt nach Startseite und Analytics: Wer
+          eine Alarm-Mail bekommen hat, klickt zwar den Link darin — aber wer ohne Anlass
+          nachsehen will, ob alles läuft, soll nicht scrollen müssen. Es ist die einzige
+          Kachel hier, die eine Frage beantwortet statt eine Einstellung anzubieten. */}
+      <Link
+        href="/admin/settings/system"
+        className="flex items-center gap-4 rounded-[18px] bg-white p-5 shadow-sm ring-1 ring-black/5 transition hover:ring-black/15 active:scale-[0.995]"
+      >
+        <span className="text-[22px]" aria-hidden>
+          🩺
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="text-[17px] font-bold text-ink">System</span>
+          <span className="mt-1 block text-[13px] leading-relaxed text-muted">
+            Fehler, Missbrauchsversuche und die Hintergrund-Läufe.
+          </span>
+        </span>
+        <span className="shrink-0 text-[18px] text-muted" aria-hidden>
+          ›
+        </span>
+      </Link>
+
       {/* Vorschau aller Mails, in allen neun Sprachen. Steht hier und nicht unter Nutzer,
           weil man sie nicht bei einer bestimmten Person braucht, sondern beim Nachschauen,
           was eigentlich rausgeht. Verschickt nichts. */}

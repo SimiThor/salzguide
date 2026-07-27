@@ -85,7 +85,7 @@ export async function sendMagicLink(
     reqHeaders.get("x-forwarded-for")?.split(",")[0]?.trim() ??
     null;
   const captchaToken = String(formData.get("cf-turnstile-response") ?? "");
-  if (!(await verifyTurnstile(captchaToken, remoteip))) {
+  if (!(await verifyTurnstile(captchaToken, remoteip, "login"))) {
     return { ok: false, error: "captcha" };
   }
 

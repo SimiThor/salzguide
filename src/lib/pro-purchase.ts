@@ -5,6 +5,7 @@ import { createServiceClient } from "./supabase/service";
 import { formatProPrice } from "./pro";
 import { LEGAL } from "./legal";
 import { sendEmail } from "./email";
+import { logOps } from "./ops";
 import { renderProPurchase } from "./pro-purchase-mail";
 import { safeLocale } from "@/i18n/locales";
 
@@ -202,6 +203,14 @@ export async function fulfillPaidCheckout(
     // Darf nicht vorkommen (Stripe erhebt die Adresse im Checkout), wäre aber ein bezahlter
     // Kauf ohne jede Zuordnung -> laut ins Log, damit es jemand von Hand klären kann.
     console.error("[pro] bezahlter Checkout ohne E-Mail", session.id);
+    // „laut ins Log" hiess bis hier: eine graue Zeile, die niemand liest. Jetzt kommt eine
+    // Mail, denn dieser Fall lässt sich NUR von Hand lösen und nur, wenn jemand davon weiss.
+    // Die Sitzungs-ID gehört mit hinein, sie ist der Schlüssel im Stripe-Dashboard.
+    await logOps("stripe_fulfillment_failed", {
+      message: "Bezahlter Kauf ohne E-Mail-Adresse. Ohne Adresse gibt es niemanden freizuschalten.",
+      detail: { stripeSession: session.id },
+      group: "pro:no_email",
+    });
     return { ok: false, reason: "no_email" };
   }
 
@@ -363,9 +372,16 @@ async function recordPurchase(
     claim_hash: opts.claimHash ?? null,
   });
   if (!error) return true;
-  // 23505 = unique_violation -> schon verbucht.
+  // 23505 = unique_violation -> schon verbucht. Das ist der NORMALFALL, wenn Webhook und
+  // Rücksprung gleichzeitig ankommen, und kein Fehler: Es wird nicht gemeldet.
   if ((error as { code?: string }).code !== "23505") {
     console.error("[pro] Kauf konnte nicht verbucht werden", session.id, error.message);
+    await logOps("stripe_fulfillment_failed", {
+      message: "Ein bezahlter Kauf konnte nicht in die Datenbank geschrieben werden.",
+      error,
+      detail: { stripeSession: session.id },
+      group: "pro:record_failed",
+    });
   }
   return false;
 }
@@ -552,6 +568,13 @@ export async function grantPro(
   const id = userId ?? (customerId ? await findProfileByCustomer(svc, customerId) : null);
   if (!id) {
     console.error("[pro] bezahlt, aber kein passendes Profil", { userId, customerId });
+    // Der Fall, um den es bei diesem ganzen Meldewesen eigentlich geht: Jemand hat gezahlt
+    // und bekommt nichts. Ohne Mail merkt man es erst, wenn er sich beschwert.
+    await logOps("stripe_fulfillment_failed", {
+      message: "Bezahlt, aber es gibt kein Profil zum Freischalten.",
+      detail: { stripeCustomer: customerId, userId },
+      group: "pro:no_profile",
+    });
     return;
   }
   const { data: cur } = await svc

@@ -1,5 +1,6 @@
 import "server-only";
 import { createServiceClient } from "./supabase/service";
+import { logOps } from "./ops";
 
 // ═══════════════════════════════════════════════════════════════════════════════════════
 //  Das Aufräumen alter Daten. EINE Quelle, TÄGLICH gefahren.
@@ -30,6 +31,26 @@ export const RETENTION_DAYS = {
   analyticsSalt: 2,
   /** Reichweiten-Ereignisse (ohne Personenbezug, sobald der Salt weg ist). */
   analyticsEvents: 425, // ~14 Monate, damit ein Jahresvergleich möglich bleibt
+  /**
+   * Betriebs-Logbuch (Fehler, Missbrauchsversuche, Admin-Spur).
+   *
+   * 90 Tage, und die Zahl ist nicht geraten: Sie ist die übliche Mindest-Vorhaltung für
+   * Sicherheitsprotokolle (OWASP A09) und deckt genau den Fall ab, für den man sie braucht —
+   * einen Zwischenfall, der erst Wochen später auffällt, im Nachhinein nachzuvollziehen.
+   *
+   * Länger geht nicht ohne Not: In der Tabelle stehen zwar nur pseudonyme Kennungen und
+   * geschwärzte Texte, aber Datensparsamkeit gilt auch für Betriebsdaten. Kürzer geht auch
+   * nicht: Bei dreissig Tagen wäre die Spur beim ersten Quartalsblick schon weg.
+   */
+  opsEvents: 90,
+  /**
+   * Der Zustand der Alarm-Bremse. Reine Zähler, kein Inhalt.
+   *
+   * 30 Tage nach dem letzten Vorfall: Ein Fingerabdruck, der einen Monat lang ruhig war,
+   * soll beim nächsten Auftreten wie neu behandelt werden — inklusive sofortiger Mail.
+   * Ohne dieses Aufräumen wüchse die Tabelle mit jeder je aufgetretenen Fehlerform.
+   */
+  opsAlerts: 30,
 } as const;
 
 export type RetentionResult = { aiUsage: number; ok: boolean };
@@ -58,10 +79,32 @@ export async function pruneExpiredData(): Promise<RetentionResult> {
         .from("analytics_events")
         .delete()
         .lt("created_at", daysAgo(RETENTION_DAYS.analyticsEvents).toISOString()),
+      // Das Betriebs-Logbuch räumt sich selbst mit auf. Es steht bewusst in DERSELBEN Liste
+      // wie alles andere: Ein Aufräum-Job, den man für die neue Tabelle vergisst, ist genau
+      // der Fehler, den diese Tabelle eigentlich melden soll.
+      service
+        .from("ops_events")
+        .delete()
+        .lt("created_at", daysAgo(RETENTION_DAYS.opsEvents).toISOString()),
+      service
+        .from("ops_alerts")
+        .delete()
+        .lt("window_start", daysAgo(RETENTION_DAYS.opsAlerts).toISOString()),
     ]);
     return { aiUsage: usage.count ?? 0, ok: true };
   } catch (e) {
     console.error("[retention] Aufräumen fehlgeschlagen", e);
+    // Als „kritisch" eingestuft, und zwar aus RECHTLICHEN Gründen, nicht aus technischen:
+    // Ein ausgefallener Lauf ist technisch harmlos (der von morgen holt es nach). Er wird
+    // erst dann teuer, wenn er sich wiederholt — dann stehen die Fristen in der
+    // Datenschutzerklärung nur noch auf dem Papier, und das ist eine falsche Angabe nach
+    // Art. 13 DSGVO. Genau deshalb ist das Ruhefenster im Katalog auf zwölf Stunden gesetzt:
+    // Ein einzelner Aussetzer meldet sich einmal, ein anhaltender jeden Tag wieder.
+    await logOps("retention_failed", {
+      message: "Das tägliche Löschen abgelaufener Daten ist fehlgeschlagen.",
+      error: e,
+      group: "retention",
+    });
     return { aiUsage: 0, ok: false };
   }
 }

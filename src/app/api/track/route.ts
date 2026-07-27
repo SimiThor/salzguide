@@ -25,6 +25,7 @@ import { NextResponse, after } from "next/server";
 import { createHash } from "node:crypto";
 import { LOCALE_CODES } from "@/i18n/locales";
 import { createServiceClient } from "@/lib/supabase/service";
+import { logOps, subjectFromRequest } from "@/lib/ops";
 import {
   trackEvent,
   visitorHash,
@@ -95,6 +96,17 @@ export async function POST(req: Request) {
       /* ungültig */
     }
     if (oh !== req.headers.get("host")) {
+      // Gemeldet, aber ohne Wartezeit: Der Riegel hält ohnehin, die Meldung ist nur das
+      // Signal „jemand schickt uns von aussen Daten". Der Fingerabdruck ist bewusst fest,
+      // damit tausend verschiedene fremde Adressen EINE Meldung ergeben und nicht tausend.
+      after(() =>
+        logOps("suspicious_request", {
+          message: `Beacon von fremder Herkunft (${oh || "unlesbar"}) abgewiesen.`,
+          path: "/api/track",
+          subject: subjectFromRequest(req),
+          group: "origin:track",
+        }),
+      );
       return new NextResponse(null, { status: 403 });
     }
   }

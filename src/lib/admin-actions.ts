@@ -27,6 +27,7 @@ import { parseLandingImage, parseLandingVideo } from "./landing-media";
 import type { HomeMedia } from "./home-content";
 import { MAX_HOME_FEATURED } from "./home-featured";
 import { requireAdmin } from "./admin-guard";
+import { logAdminAction } from "./ops";
 import { factCanonical, factPrice, type FactField } from "./facts-i18n";
 import { slugify, slugifyKey } from "./slug";
 import { getIntroRenderList, getIntroRenderItem, type IntroRenderItem } from "./admin";
@@ -992,6 +993,11 @@ export async function deleteSpot(id: string): Promise<SaveResult> {
 
   const { error } = await supabase.from("spots").delete().eq("id", id);
   if (error) return { ok: false, error: logDb("deleteSpot", error.message) };
+
+  // In die Spur. Ein gelöschter Spot ist unwiederbringlich weg (die media-Zeilen und die
+  // Dateien im Bucket gehen gleich mit), und danach gibt es keinen Ort mehr, an dem stünde,
+  // dass es ihn je gab. Genau das ist der Fall, für den die Spur da ist.
+  await logAdminAction(gate.userId, "Spot gelöscht", { spot: id });
 
   // Erst NACH dem erfolgreichen DB-Delete aufräumen (best-effort, loggt nur):
   // Scheitert das Löschen der Zeile, bleiben die Dateien korrekt referenziert stehen.

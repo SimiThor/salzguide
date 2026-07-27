@@ -63,7 +63,7 @@ export async function submitSupportRequest(
     reqHeaders.get("x-forwarded-for")?.split(",")[0]?.trim() ??
     null;
   const captchaToken = String(formData.get("cf-turnstile-response") ?? "");
-  if (!(await verifyTurnstile(captchaToken, remoteip))) return { ok: false, error: "captcha" };
+  if (!(await verifyTurnstile(captchaToken, remoteip, "support"))) return { ok: false, error: "captcha" };
 
   // Angemeldet? Dann die ID mitschreiben, damit im Admin sofort klar ist, wer schreibt.
   // Der Absender bestimmt das NICHT selbst — sonst hängte sich jeder an ein fremdes Konto.

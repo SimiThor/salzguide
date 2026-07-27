@@ -528,5 +528,12 @@
       "legalDe": "El texto de abajo está en alemán: la versión alemana es la vinculante.",
       "note": "¿Algo no cuadra? Escríbenos."
     }
+  },
+  "Error": {
+    "title": "Algo ha salido mal",
+    "body": "Ya hemos registrado el error. Normalmente basta con intentarlo otra vez.",
+    "retry": "Intentar de nuevo",
+    "home": "Ir al inicio",
+    "code": "Código de error"
   }
 }

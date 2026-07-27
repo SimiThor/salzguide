@@ -12,6 +12,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { runAssistant } from "@/lib/ai-assistant";
 import type { AiChatMessage } from "@/lib/ai-types";
 import { recordAiInsight } from "@/lib/ai-insights";
+import { logOps, subjectFromRequest } from "@/lib/ops";
 import {
   trackEvent,
   visitorHash as analyticsVisitorHash,
@@ -132,6 +133,14 @@ export async function POST(req: Request) {
       /* ungültiger Origin */
     }
     if (originHost !== req.headers.get("host")) {
+      // Hier wiegt der Riegel schwerer als bei der Reichweitenmessung: Wer von aussen auf
+      // diesen Endpunkt schreibt, verbraucht unser Claude-Kontingent, also echtes Geld.
+      await logOps("suspicious_request", {
+        message: `KI-Anfrage von fremder Herkunft (${originHost || "unlesbar"}) abgewiesen.`,
+        path: "/api/ai/chat",
+        subject: subjectFromRequest(req),
+        group: "origin:ai",
+      });
       return NextResponse.json({ error: "forbidden" }, { status: 403 });
     }
   }
@@ -272,6 +281,18 @@ export async function POST(req: Request) {
           p_subject: ipSubject,
         });
         if (typeof ipCount === "number" && ipCount > IP_GUEST_CAP) {
+          // Denial of Wallet: Genau hier läuft jemand auf, der unser Claude-Kontingent
+          // verbrennen will (OWASP LLM, docs/34 §G). Dass die Grenze hält, ist kein Fehler
+          // und deshalb keine Fehlermeldung — aber wenn sie oft hält, wird gerade
+          // automatisiert gefahren, und das will man wissen, BEVOR die Rechnung kommt.
+          // Die Schwelle dafür steht im Katalog, nicht hier.
+          await logOps("ai_ip_cap_hit", {
+            message: "Tageslimit einer Adresse am KI-Chat ausgeschöpft.",
+            path: "/api/ai/chat",
+            subject: ipSubject,
+            group: "ai:ip_cap",
+            detail: { grenze: IP_GUEST_CAP, stand: ipCount },
+          });
           const res = NextResponse.json({ error: "rate_limited" }, { status: 429 });
           if (setGuestCookie) attachGuestCookie(res, setGuestCookie);
           return res;
@@ -359,6 +380,19 @@ export async function POST(req: Request) {
   });
 
   if ("error" in result) {
+    // Toni antwortet nicht. Für den Besucher ist das ein „gerade nicht erreichbar", für uns
+    // die Frage, ob Anthropic hakt, das Guthaben leer ist oder der Schlüssel fehlt — alle
+    // drei sehen von aussen gleich aus. `result.error` ist eine von uns formulierte kurze
+    // Meldung (siehe ai-assistant.ts), kein roher Anbieter-Text, und trägt genau diesen
+    // Unterschied.
+    //
+    // Nach der Meldung gruppiert, nicht pauschal: „ANTHROPIC_API_KEY fehlt" ist ein anderer
+    // Vorfall als „KI-Fehler (529)", und der eine soll den anderen nicht stumm schalten.
+    await logOps("ai_provider_error", {
+      message: `Toni konnte nicht antworten: ${result.error}`,
+      path: "/api/ai/chat",
+      group: `ai:${result.error}`,
+    });
     const res = NextResponse.json({ error: "ai" }, { status: 502 });
     if (setGuestCookie) attachGuestCookie(res, setGuestCookie);
     return res;

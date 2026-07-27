@@ -50,7 +50,7 @@ export async function submitWithdrawal(
     reqHeaders.get("x-forwarded-for")?.split(",")[0]?.trim() ??
     null;
   const captchaToken = String(formData.get("cf-turnstile-response") ?? "");
-  if (!(await verifyTurnstile(captchaToken, remoteip))) return { ok: false, error: "captcha" };
+  if (!(await verifyTurnstile(captchaToken, remoteip, "widerruf"))) return { ok: false, error: "captcha" };
 
   // Eingangszeitpunkt (Pflichtinhalt der Bestätigung). Als ISO durchgereicht, geschrieben
   // wird er erst in der Mail, in der Schreibweise des Empfängers.
