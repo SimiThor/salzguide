@@ -1,7 +1,7 @@
 import { getTranslations } from "next-intl/server";
-import { Link } from "@/i18n/navigation";
+import BackButton from "@/components/BackButton";
 
-// Einheitlicher Rahmen für alle Rechtstexte: iOS-2026-Typografie, „Zurück zur App",
+// Einheitlicher Rahmen für alle Rechtstexte: iOS-2026-Typografie, Zurück-Knopf,
 // Stand-Datum, dezenter Deutsch-Hinweis auf /en und der Footer mit den Rechts-Links.
 export default async function LegalShell({
   locale,
@@ -18,13 +18,18 @@ export default async function LegalShell({
 
   return (
     <div className="mx-auto w-full max-w-[640px] px-4 pt-[var(--sg-page-top)] md:pt-8">
-      {/* „Zurück zur App" heisst die Karte, nicht die Verkaufs-Startseite. */}
-      <Link
-        href="/explore"
-        className="inline-flex items-center gap-1 text-[13px] font-medium text-muted transition-colors hover:text-ink"
-      >
-        <span aria-hidden>‹</span> {t("backToApp")}
-      </Link>
+      {/* Der EINE Zurück-Knopf (components/BackButton.tsx), genau wie auf /profil/daten und
+          im Admin: derselbe Container, derselbe Knopf, `mt-4` an der Überschrift.
+
+          Hier stand vorher ein selbstgebauter Text-Link „‹ Zurück zur App" mit einem eigenen
+          Pfeil-Zeichen, eigener Schriftgrösse und nur einer Textzeile als Trefferfläche. Er
+          ging ausserdem IMMER fest auf /explore, statt eine Ebene zurück: Wer aus dem
+          Kauf-Ablauf kurz in die AGB sah, kam nicht dorthin zurück, wo er war.
+
+          `fallbackHref="/explore"`, weil die App die Karte ist und nicht die
+          Verkaufs-Startseite. Das greift nur beim Direktaufruf (geteilter Link, Fussnote in
+          einer Mail), wo es keine eigene Historie gibt. */}
+      <BackButton fallbackHref="/explore" label={t("backToApp")} />
 
       <h1 className="mt-4 text-[26px] font-bold leading-tight tracking-tight text-ink">
         {title}
