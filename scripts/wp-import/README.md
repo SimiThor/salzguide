@@ -21,12 +21,26 @@ Anwendungspasswörter*. Es ist kein Kontopasswort und jederzeit einzeln widerruf
 ## Ablauf
 
 ```bash
-npm run wp:fetch     # alte Seite -> .wp-cache/  (102 Beiträge + 775 Mediendateien)
-npm run wp:extract   # .wp-cache/ -> .wp-cache/source/*.json + report.md
+npm run wp:fetch          # alte Seite -> .wp-cache/  (102 Beiträge + 775 Mediendateien)
+npm run wp:extract        # .wp-cache/ -> .wp-cache/source/*.json + report.md
+npm run wp:reset          # zeigt, was gelöscht würde (Trockenlauf)
+npm run wp:reset -- --go  # leert den Spot-Bestand der NEUEN App
 ```
 
-Beide Schritte sind wiederholbar und schreiben nur in `.wp-cache/` (gitignoriert).
-An der alten Seite ändert nichts etwas: Es wird ausschliesslich gelesen.
+`wp:fetch` und `wp:extract` sind wiederholbar und schreiben nur in `.wp-cache/`
+(gitignoriert). An der alten Seite ändert nichts etwas: Es wird ausschliesslich gelesen.
+
+`wp:reset` ist das einzige Skript hier, das etwas kaputt machen kann. Es schreibt deshalb
+IMMER zuerst `.wp-cache/spots-backup.json` (Spot-Zeilen, alle Übersetzungen, alle
+media-Zeilen), auch im Trockenlauf. Die Dateien im Bucket räumt es über
+`removeSpotMediaFiles` weg, also über dieselbe Funktion wie `deleteSpot` — ein eigener
+Nachbau würde die Intro-Videos vergessen, und die lägen dann für immer öffentlich
+erreichbar herum. Kategorien und Locals bleiben stehen, die sind kuratiert und kein
+Spot-Inhalt.
+
+Gegenprobe nach dem Leeren: `collectStorageRefs` aus `scripts/lib/storage-refs.mjs` sagt,
+welche Dateien im Bucket noch eine DB-Zeile hinter sich haben. Was dort fehlt, ist eine
+Waise.
 
 ## Warum es so gebaut ist, wie es gebaut ist
 
