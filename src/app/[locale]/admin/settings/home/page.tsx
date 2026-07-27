@@ -1,5 +1,5 @@
 import { setRequestLocale } from "next-intl/server";
-import { Link } from "@/i18n/navigation";
+import BackButton from "@/components/BackButton";
 import HomeContentManager from "@/components/admin/HomeContentManager";
 import HomeMediaManager from "@/components/admin/HomeMediaManager";
 import HomeFeaturedManager from "@/components/admin/HomeFeaturedManager";
@@ -30,14 +30,9 @@ export default async function AdminHomePage({
 
   return (
     <div className="space-y-4 pb-12">
+      <BackButton fallbackHref="/admin/settings" label="Einstellungen" />
       <div>
-        <Link
-          href="/admin/settings"
-          className="text-[13px] font-semibold text-muted transition hover:text-ink"
-        >
-          ← Einstellungen
-        </Link>
-        <h1 className="mt-1 text-2xl font-bold text-ink">Startseite</h1>
+        <h1 className="text-2xl font-bold text-ink">Startseite</h1>
         <p className="mt-1 text-[13px] text-muted">
           Texte, Bilder und Spots auf salzguide.com. Deutsch ist die Quelle, der Rest wird
           daraus übersetzt.

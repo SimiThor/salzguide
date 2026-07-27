@@ -1,5 +1,6 @@
 import { setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
+import BackButton from "@/components/BackButton";
 import ScrollStrip from "@/components/ScrollStrip";
 import TestAlertButton from "@/components/admin/TestAlertButton";
 import { getJobStatus } from "@/lib/ops";
@@ -61,6 +62,7 @@ export default async function AdminSystemPage({
 
   return (
     <div className="space-y-4 pb-12">
+      <BackButton fallbackHref="/admin/settings" label="Einstellungen" />
       <div>
         <h1 className="text-2xl font-bold text-ink">System</h1>
         <p className="mt-1 text-[13px] text-muted">
@@ -166,6 +168,15 @@ export default async function AdminSystemPage({
                   <Link
                     key={f.key || "all"}
                     href={f.key ? `/admin/settings/system?ab=${f.key}` : "/admin/settings/system"}
+                    // `replace`, damit der Zurück-Pfeil oben die SEITE verlässt und nicht
+                    // erst durch die zuletzt geklickten Filter zurückstolpert. Ein Filter ist
+                    // kein Ort, an den man zurückkehrt.
+                    replace
+                    // `scroll={false}`: Der Filter sitzt weit unten. Ohne das springt die
+                    // Seite bei jedem Klick nach oben und man muss sich seine Liste wieder
+                    // suchen. Dieselbe Entscheidung wie bei den Sprachpillen der
+                    // Mail-Vorschau.
+                    scroll={false}
                     className={`shrink-0 whitespace-nowrap rounded-full px-4 py-1.5 text-[13px] font-semibold transition ${
                       active ? "bg-ink text-white" : "bg-black/5 text-muted"
                     }`}

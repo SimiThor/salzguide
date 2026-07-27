@@ -1,5 +1,5 @@
 import { setRequestLocale } from "next-intl/server";
-import { Link } from "@/i18n/navigation";
+import BackButton from "@/components/BackButton";
 import { getProMigrations } from "@/lib/admin";
 import { getRelaunchNotice } from "@/lib/settings";
 import { getRelaunchMailTexts } from "@/lib/relaunch-mail";
@@ -35,14 +35,9 @@ export default async function ProMigrationPage({
 
   return (
     <div className="space-y-4 pb-12">
+      <BackButton fallbackHref="/admin/users" label="Nutzer" />
       <div>
-        <Link
-          href="/admin/users"
-          className="text-[13px] font-semibold text-muted transition hover:text-ink"
-        >
-          ← Nutzer
-        </Link>
-        <h1 className="mt-1 text-2xl font-bold text-ink">Alt-Käufer freischalten</h1>
+        <h1 className="text-2xl font-bold text-ink">Alt-Käufer freischalten</h1>
         {/* Kurz halten. Die Begründungen (warum keine Konten vorab, warum der Hinweis für
             alle gilt) stehen bei den Funktionen, die sie umsetzen — hier kosten sie nur den
             Blick auf die Knöpfe. */}
