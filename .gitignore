@@ -56,3 +56,7 @@ yarn-error.log*
 
 # Lokale Render-Ausgaben des Intro-Skripts
 /intro-*.mp4
+
+# Lokaler Cache des einmaligen WordPress-Imports (Rohinhalt der alten Seite,
+# enthält auch Pro-Inhalte). Wird per "npm run wp:fetch" jederzeit neu geholt.
+/.wp-cache/
