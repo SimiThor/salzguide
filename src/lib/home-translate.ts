@@ -7,10 +7,10 @@
 // Siehe keepsPlaceholders() unten.
 import { fetchWithRetry } from "./ai-fetch";
 import { stripEmDash } from "./em-dash";
-import { hashTexts } from "./spot-hash";
 import { localeMeta } from "@/i18n/locales";
 import { routing } from "@/i18n/routing";
-import { HOME_GROUPS, HOME_KEYS, homeTextParts, type HomeTexts } from "./home-fields";
+import { HOME_GROUPS, HOME_KEYS, type HomeTexts } from "./home-fields";
+import { homeSourceHash, homeSourceTexts } from "./home-source";
 
 export type HomeTranslateResult = {
   ok: boolean;
@@ -168,11 +168,17 @@ async function translateHomeTo(
 /**
  * Übersetzt die deutschen Startseiten-Texte in ALLE Ziel-Locales.
  * Nicht gegatet: Der Aufrufer stellt sicher, dass er darf (Admin-Action).
+ *
+ * Erwartet die ROHE `home_content.texts`-Zeile und löst den deutschen Stand selbst auf
+ * (home-source.ts). Übersetzt wird also, was auf der Seite steht, nicht nur, was in der DB
+ * liegt: Ein Feld, das noch aus messages/de.json kommt, war sonst in keiner Sprache
+ * übersetzt und der Hash passte nie zu dem, den der Admin vergleicht.
  */
 export async function translateHomeTextsWith(
-  de: HomeTexts,
+  dbTexts: HomeTexts | null | undefined,
   key: string,
 ): Promise<HomeTranslateResult> {
+  const de = homeSourceTexts(dbTexts);
   if (!Object.values(de).some((v) => (v ?? "").trim())) return { ok: false, error: "empty" };
 
   const targets = routing.locales.filter((l) => l !== "de");
@@ -197,8 +203,9 @@ export async function translateHomeTextsWith(
     ok: true,
     translations,
     // Der Hash gehört zu GENAU diesem deutschen Stand. Ändert Anton danach ein Wort,
-    // weicht er ab und der Admin zeigt „veraltet".
-    sourceHash: hashTexts(homeTextParts(de)),
+    // weicht er ab und der Admin zeigt „veraltet". Dieselbe Funktion wie im Admin, und sie
+    // ist idempotent — der schon aufgelöste Stand ergibt denselben Hash wie die DB-Zeile.
+    sourceHash: homeSourceHash(de),
     failed: failed.length ? failed : undefined,
     rejected: rejected.length ? rejected : undefined,
   };

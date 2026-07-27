@@ -1846,11 +1846,13 @@ export async function fillHomeTranslations(): Promise<{
     .maybeSingle();
   if (error) return { ok: false, error: logDb("fillHomeTranslations: lesen", error.message) };
 
-  const de = (data?.texts ?? {}) as Record<string, string>;
-  if (!Object.values(de).some((v) => (v ?? "").trim()))
+  const dbTexts = (data?.texts ?? {}) as Record<string, string>;
+  if (!Object.values(dbTexts).some((v) => (v ?? "").trim()))
     return { ok: false, error: "Erst die deutschen Texte speichern." };
 
-  const res = await translateHomeTextsWith(de, apiKey);
+  // Die rohe Zeile weitergeben: Welche Felder den deutschen Stand ausmachen (DB über Datei),
+  // entscheidet home-source.ts — dieselbe Stelle, gegen die der Veraltet-Hinweis rechnet.
+  const res = await translateHomeTextsWith(dbTexts, apiKey);
   if (!res.ok || !res.translations)
     return { ok: false, error: res.error === "empty" ? "Keine Texte." : "Übersetzung fehlgeschlagen." };
 

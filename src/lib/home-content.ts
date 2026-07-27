@@ -1,15 +1,14 @@
 import "server-only";
 import { cache } from "react";
 import { createServiceClient } from "./supabase/service";
-import { hashTexts } from "./spot-hash";
-import { homeTextParts, type HomeTexts } from "./home-fields";
+import { type HomeTexts } from "./home-fields";
+import { homeSourceTexts } from "./home-source";
 import {
   parseLandingImage,
   parseLandingVideo,
   type LandingImage,
   type LandingVideo,
 } from "./landing-media";
-import deMessages from "../../messages/de.json";
 
 // Texte und Medien der Startseite aus der DB (home_content, Migration 0036), mit
 // messages/de.json als Auffangnetz.
@@ -51,13 +50,9 @@ type Row = {
   media: Partial<HomeMedia> | null;
 };
 
-// Die Datei-Texte als unterste Stufe. Nicht `as HomeTexts`, sondern geprüft: Was in der
-// JSON kein String ist, ist kein Text.
-const FILE_TEXTS: HomeTexts = Object.fromEntries(
-  Object.entries((deMessages as { Home?: Record<string, unknown> }).Home ?? {}).filter(
-    (e): e is [string, string] => typeof e[1] === "string",
-  ),
-);
+// Stufe 2 und 3 (DB-Deutsch über Datei) stehen in home-source.ts, weil das Admin-Formular,
+// die Übersetzung und der Veraltet-Hinweis exakt denselben Stand brauchen. Hier wird nur
+// noch Stufe 1 daraufgelegt.
 
 // Ein Request liest die Zeile höchstens einmal, egal wie viele Sections danach fragen.
 //
@@ -91,13 +86,12 @@ const readRow = cache(async function readRow(): Promise<Row | null> {
 /** Die Texte der Startseite in der gewünschten Sprache, mit Fallback auf Deutsch und Datei. */
 export async function getHomeTexts(locale: string): Promise<HomeTexts> {
   const row = await readRow();
-  const dbDe = row?.texts ?? {};
   const dbLoc = locale === "de" ? {} : (row?.translations?.[locale] ?? {});
 
-  const out: HomeTexts = { ...FILE_TEXTS };
-  // Leere Strings zählen NICHT als gepflegt: Ein leeres Feld im Admin soll auf die Stufe
-  // darunter zurückfallen, statt die Seite auszuradieren.
-  for (const [k, v] of Object.entries(dbDe)) if (typeof v === "string" && v.trim()) out[k] = v;
+  // Stufe 2 + 3 aus einer Hand, dann Stufe 1 darüber. Leere Strings zählen NICHT als
+  // gepflegt: Ein leeres Feld soll auf die Stufe darunter zurückfallen, statt die Seite
+  // auszuradieren.
+  const out = homeSourceTexts(row?.texts);
   for (const [k, v] of Object.entries(dbLoc)) if (typeof v === "string" && v.trim()) out[k] = v;
   return out;
 }
@@ -126,11 +120,6 @@ export async function getHomeMedia(): Promise<HomeMedia> {
 export function explainerVideoFor(media: HomeMedia, locale: string): LandingVideo | null {
   if (locale === "de") return media.explainerVideo;
   return media.explainerVideoEn ?? media.explainerVideo;
-}
-
-/** Versionsmarke der deutschen Texte. Weicht sie ab, sind die Übersetzungen veraltet. */
-export function homeSourceHash(texts: HomeTexts): string {
-  return hashTexts(homeTextParts(texts));
 }
 
 // Setzt {count} & Co. ein. Ersetzt bewusst next-intls ICU, denn die Startseiten-Texte
