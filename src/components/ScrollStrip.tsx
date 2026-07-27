@@ -34,8 +34,17 @@ import { useDragScroll } from "@/lib/use-drag-scroll";
 //   schneidet der Streifen auch oben und unten ab, und zwar genau an der Kante des
 //   Inhalts-Kastens. Die Pillen tragen shadow-sm und einen Ring, beides lag also auf der
 //   Schnittkante (nachgemessen: 0px Luft). Geclippt wird am PADDING-Kasten, deshalb schafft
-//   py-1 die Luft. -my-1 nimmt die 8px vom Layout wieder weg, damit die Abstände auf allen
-//   vier Seiten so bleiben, wie sie eingestellt waren.
+//   py-1 die Luft.
+//
+//   UND KEIN NEGATIVES MARGIN DAZU, auch wenn es verlockend ist. Hier stand `-my-1`, um die
+//   8px vom Layout wieder wegzunehmen. Das hat den Abstand nach unten AUFGEFRESSEN: Tailwind
+//   v4 baut `space-y-4` als `margin-bottom` auf jedes Kind, und `-my-1` überschreibt genau
+//   diese Eigenschaft. Aus 16px Abstand wurden also -4px, und die Pillen klebten an der Karte
+//   darunter (nachgemessen: 0px sichtbar). Ein Streifen darf nicht am Abstand seines Aufrufers
+//   drehen — er kennt dessen Spacing-Utility nicht, und `space-y`, `gap` und `mt-*` verhalten
+//   sich alle drei anders. Die 8px kosten also 4px mehr Luft ober- und unterhalb als bei einem
+//   normalen Element. Das ist der Preis, und er ist billiger als eine Leiste, die je nach
+//   Elternteil klebt oder springt.
 //
 //   VERLAUF AN DEN SCROLL-RÄNDERN. Am breiten Fenster endet der Streifen mitten auf der Seite
 //   (der Admin-Rahmen ist max-w-[820px]), und eine Pille wurde dort mittendurch geschnitten:
@@ -116,7 +125,7 @@ export default function ScrollStrip({
       {...dragProps}
       // select-none: Wer zieht, soll nicht die Pillen-Beschriftung markieren.
       // cursor-grab erst ab md: Am Handy gibt es keinen Zeiger, den man ändern könnte.
-      className={`-mx-4 -my-1 overflow-x-auto px-4 py-1 select-none [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:cursor-grab md:active:cursor-grabbing ${className}`}
+      className={`-mx-4 overflow-x-auto px-4 py-1 select-none [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:cursor-grab md:active:cursor-grabbing ${className}`}
       // WebkitMaskImage mit: Safari kennt mask-image erst ab 15.4 unprefixed, und ein Handy,
       // das zwei Jahre kein Update gesehen hat, zeigt sonst gar keine Maske. Das ist kein
       // Beinbruch (dann ist der Rand hart wie vorher), kostet aber nichts.
