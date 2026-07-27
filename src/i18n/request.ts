@@ -30,19 +30,33 @@ function deepMerge(base: Messages, override: Messages): Messages {
   return out;
 }
 
+// Das Ergebnis des Merges pro Sprache behalten.
+//
+// Beide Seiten des Merges sind Dateien, die zur Bauzeit feststehen — das Ergebnis kann sich
+// zur Laufzeit gar nicht ändern. Trotzdem lief der rekursive Durchlauf über den ganzen
+// Nachrichtenbaum (477 Schlüssel) bei JEDEM Seitenaufruf in jeder Nicht-Standard-Sprache
+// neu, um jedes Mal exakt dasselbe Objekt zu bauen. Einmal pro Sprache und Instanz reicht;
+// höchstens neun Einträge, also auch kein Speicherproblem.
+const merged = new Map<string, Messages>();
+
+function messagesFor(locale: string, translated: Messages): Messages {
+  let m = merged.get(locale);
+  if (!m) {
+    m = deepMerge(de as Messages, translated);
+    merged.set(locale, m);
+  }
+  return m;
+}
+
 export default getRequestConfig(async ({ requestLocale }) => {
   const requested = await requestLocale;
   const locale = hasLocale(routing.locales, requested)
     ? requested
     : routing.defaultLocale;
 
-  const messages =
-    locale === routing.defaultLocale
-      ? (de as Messages)
-      : deepMerge(
-          de as Messages,
-          (await import(`../../messages/${locale}.json`)).default as Messages,
-        );
+  if (locale === routing.defaultLocale) return { locale, messages: de as Messages };
 
-  return { locale, messages };
+  // Das dynamische import() ist selbst gecacht (Modul-Registry) — teuer war nur der Merge.
+  const translated = (await import(`../../messages/${locale}.json`)).default as Messages;
+  return { locale, messages: messagesFor(locale, translated) };
 });

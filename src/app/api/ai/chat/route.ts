@@ -22,6 +22,13 @@ import {
 
 export const runtime = "nodejs";
 
+// Zeitlimit der Route. Ohne diese Zeile galt der knappe Standardwert der Plattform, während
+// runAssistant sich intern bis zu neun Minuten nehmen durfte (6 Tool-Runden × 2 Versuche ×
+// 45 s) — die beiden Zahlen kannten einander nicht. Jetzt gilt: Die KI hört nach 50 s von
+// selbst auf (AI_TOTAL_BUDGET_MS in lib/ai-assistant.ts), die Route lässt ihr 60 s Luft zum
+// Antworten. Wer nach einer Minute noch auf einen Chat wartet, hat die App längst zugemacht.
+export const maxDuration = 60;
+
 // Zentrale Stellschrauben (Gast 3 · eingeloggt-gratis 15 · Admin 200 · Pro unbegrenzt).
 const GUEST_LIMIT = 3;
 const FREE_LIMIT = 15;
@@ -359,14 +366,23 @@ export async function POST(req: Request) {
 
   // Analytics (cookieless, best effort): eine erfolgreiche KI-Anfrage.
   // Nur echte Nutzer zählen — der eingeloggte Betreiber (Admin) wird ausgenommen.
+  //
+  // Via after() wie die Auswertung darunter: Der Nutzer hat gerade zwanzig Sekunden auf
+  // Toni gewartet, er soll nicht noch auf zwei Datenbank-Schreibvorgänge warten, die mit
+  // seiner Antwort nichts zu tun haben. Header JETZT auslesen — in after() ist das
+  // Request-Objekt nicht mehr garantiert lesbar.
   if (!isOperator) {
     const ua = req.headers.get("user-agent");
-    await trackEvent({
-      type: "ai_query",
-      device: classifyDevice(ua),
-      locale,
-      country: clientCountry(req),
-      visitorHash: await analyticsVisitorHash(clientIp(req), ua),
+    const ip = clientIp(req);
+    const country = clientCountry(req);
+    after(async () => {
+      await trackEvent({
+        type: "ai_query",
+        device: classifyDevice(ua),
+        locale,
+        country,
+        visitorHash: await analyticsVisitorHash(ip, ua),
+      });
     });
   }
 

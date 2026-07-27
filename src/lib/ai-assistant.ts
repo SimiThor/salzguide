@@ -51,6 +51,18 @@ const AI_HEADERS = (key: string) => ({
   "content-type": "application/json",
 });
 
+// ── Zeitbudget (siehe die lange Begründung an der Uhr in runAssistant) ───────
+/**
+ * Wie lange EIN Chat-Zug insgesamt arbeiten darf, über alle Tool-Runden hinweg.
+ * Muss unter dem `maxDuration` der Route liegen (api/ai/chat: 60 s), damit der Lauf
+ * selbst aufhört und noch antworten kann, statt von der Plattform gekappt zu werden.
+ */
+const AI_TOTAL_BUDGET_MS = 50_000;
+/** Zeitlimit eines einzelnen Aufrufs bei Anthropic (gedeckelt vom Restbudget). */
+const AI_CALL_TIMEOUT_MS = 30_000;
+/** Unter so viel Restzeit lohnt kein neuer Aufruf mehr — er liefe garantiert in die Wand. */
+const AI_MIN_CALL_MS = 6_000;
+
 // ── Sicherheits-/Regel-Engine (docs/16 §4, docs/17 §3) ───────────────────────
 // Deterministischer Schutz, BEVOR die KI Spots sieht: bei Bade-Wünschen die Seen
 // rausfiltern, an denen Baden verboten/ungeeignet ist (Haftung!). Greift für
@@ -445,8 +457,27 @@ export async function runAssistant(
 
   let finalText = "";
 
+  // Harte Uhr über den GANZEN Lauf, nicht nur über den einzelnen Aufruf.
+  //
+  // Die Schleife darf sechsmal durchlaufen, jeder Durchlauf holte sich über fetchWithRetry
+  // bis zu zwei Versuche à 45 Sekunden. Rechnerisch waren das über neun Minuten, in denen
+  // eine Funktion offen bleibt und Geld kostet — für einen Chat, dessen Nutzer nach dreissig
+  // Sekunden längst weitergewischt hat. Die Route deckelt sich seit 07/2026 selbst
+  // (maxDuration in api/ai/chat), aber ein Zeitlimit, das die Plattform durchsetzt, bricht
+  // MITTEN im Satz ab: kein Text, keine Karten, ein Spinner, der stehen bleibt.
+  //
+  // Deshalb hier eine eigene, frühere Grenze. Läuft sie ab, bricht die Schleife ab und
+  // liefert das, was schon dasteht — im schlimmsten Fall eine ehrliche Fehlermeldung statt
+  // einer abgeschnittenen Verbindung.
+  const deadline = Date.now() + AI_TOTAL_BUDGET_MS;
+
   try {
     for (let guard = 0; guard < 6; guard++) {
+      const left = deadline - Date.now();
+      if (left < AI_MIN_CALL_MS) {
+        console.warn("[ai] Zeitbudget aufgebraucht nach", guard, "Runden");
+        break;
+      }
       const res = await fetchWithRetry(
         "https://api.anthropic.com/v1/messages",
         {
@@ -461,7 +492,9 @@ export async function runAssistant(
           }),
         },
         1,
-        45000,
+        // Nie länger warten, als vom Gesamtbudget übrig ist: Ein einzelner Aufruf darf das
+        // Budget nicht überziehen, sonst wäre die Uhr oben nur Dekoration.
+        Math.min(AI_CALL_TIMEOUT_MS, left),
       );
       if (!res.ok) return { error: `KI-Fehler (${res.status})` };
 
