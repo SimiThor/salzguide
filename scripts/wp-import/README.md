@@ -335,6 +335,28 @@ Das Schwierigkeits-Feld bleibt davon unberührt. Es sagt etwas über das GELÄND
 über den AUFWAND. Ein Weg kann technisch harmlos und trotzdem ein ganzer Tag sein, und beim
 Gamskarkogel steht genau das im Text.
 
+## Besuchsdauer für Spots ohne Route (`wp:visit-time`)
+
+Bei einer Wanderung rechnet `geo.ts` die Dauer aus der Linie. Ein Museum, eine Therme oder
+ein Platz hat keine Linie, und der Import liess das Feld deshalb leer: 24 Spots ohne jede
+Zeitangabe, obwohl fast jeder Text eine nennt.
+
+**Die Zahl kommt aus dem eigenen Fliesstext, nicht aus dem Gefühl.** In `visit-time.ts` steht
+je Zeile das Zitat, das sie trägt. Wo der Text eine Spanne nennt, gilt die OBERE Zahl:
+Gefragt ist, wie lange man braucht, um den Spot anzusehen und zu geniessen, nicht wie
+schnell man durchkommt. „Ein halber Tag" zählt dabei nicht als obere Grenze, sondern als der
+Ausnahmefall, den der Text danebenstellt (Mirabellgarten: „Eine Stunde reicht für einen
+Rundgang" -> 1 Std).
+
+**Drei Badeplätze hatten gar keine Zahl im Text.** Almkanal, Böndlsee und Hintersee: Wie
+lange man dort bleibt, sagt kein Text. Sie bekommen zwei Stunden als Planungswert, und der
+Satz dazu steht im ENTWURF, nicht im Skript. Text gehört in `.wp-cache/drafts`, sonst
+überschreibt ihn der nächste Import.
+
+**Schreibweise vereinheitlicht.** Sechs Punkt-Spots trugen die Rohform der alten Seite
+(`2 h`, `1 h`). Es gibt jetzt nur noch die drei Formen, die `formatDuration` schreibt:
+`N min`, `N Std`, `N Std N min`.
+
 ## Was der Import NICHT entscheidet
 
 **Subtyp**, wo die alte Seite keinen Marker hatte, die **Kategorien ohne Gegenstück**

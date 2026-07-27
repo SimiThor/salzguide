@@ -24,6 +24,7 @@
     "wp:consistency": "node --experimental-strip-types --disable-warning=ExperimentalWarning --env-file=.env.local --import ./scripts/lib/alias-hook.mjs scripts/wp-import/consistency.ts",
     "wp:facts": "node --experimental-strip-types --disable-warning=ExperimentalWarning --env-file=.env.local --import ./scripts/lib/alias-hook.mjs scripts/wp-import/facts.ts",
     "wp:fill": "node --experimental-strip-types --disable-warning=ExperimentalWarning --env-file=.env.local --import ./scripts/lib/alias-hook.mjs scripts/wp-import/fill.ts",
+    "wp:visit-time": "node --experimental-strip-types --disable-warning=ExperimentalWarning --env-file=.env.local --import ./scripts/lib/alias-hook.mjs scripts/wp-import/visit-time.ts",
     "wp:there-and-back": "node --experimental-strip-types --disable-warning=ExperimentalWarning --env-file=.env.local --import ./scripts/lib/alias-hook.mjs scripts/wp-import/there-and-back.ts"
   },
   "dependencies": {
