@@ -49,6 +49,8 @@ export type WpSource = {
   shortcodes: string[];
   /** Mediathek-IDs der auf der Seite verwendeten Bilder und Videos (Originale). */
   mediaIds: number[];
+  /** Saison laut der Karte, auf der der Spot stand (Gastein = Winter). Sonst null. */
+  mapSeason?: "summer" | "winter" | null;
   /** Was beim Zerlegen auffiel. Landet im Lücken-Report, nichts wird still verschluckt. */
   warnings: string[];
 };

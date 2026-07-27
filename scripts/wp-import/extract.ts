@@ -11,18 +11,22 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseSpot, type WpPost, type WpSource } from "./parse.ts";
-import { readCache, POSTS_FILE, MEDIA_FILE, CACHE_DIR } from "./fetch.ts";
+import { readCache, POSTS_FILE, MEDIA_FILE, PRO_FILE, MAPS_FILE, CACHE_DIR } from "./fetch.ts";
 import { routeLengthKm, hikingTimeMinutes } from "../../src/lib/geo.ts";
 
 const SOURCE_DIR = join(CACHE_DIR, "source");
 
-/** Slugs, die auf der alten Seite nur Vorlage oder Test waren. Nicht importieren. */
-const SKIP = new Set([
-  "outdoor-spot-template",
-  "food-spot-template",
-  "werbung-anzeige-template",
-  "video-maker-test",
-]);
+// WAS IST ÜBERHAUPT EIN SPOT: Er steht auf einer der beiden Frontend-Karten der alten
+// Seite. Sonst nicht.
+//
+// Die Kategorie „alle" enthält 102 Beiträge, aber sieben davon sind keine Spots: vier
+// Vorlagen („Outdoor Spot Template", „Werbung Anzeige Template") und drei Entwürfe, die es
+// nie auf die Karte geschafft haben. Zuerst stand hier eine Ausschlussliste mit vier Slugs,
+// die ich beim Draufschauen für Müll hielt. Die hätte die drei Entwürfe durchgelassen, und
+// sie hätte jeden künftigen Test durchgelassen, dessen Titel ich nicht errate.
+//
+// Die Karte weiss es besser, weil sie die Antwort schon enthält: Was SalzGuide seinen
+// Besuchern als Spot zeigt, ist ein Spot. Kein Pflege-Aufwand, keine Rate-Regel.
 
 type WpMedia = {
   id: number;
@@ -55,6 +59,18 @@ function main() {
   const media = readCache<WpMedia[]>(MEDIA_FILE);
   mkdirSync(SOURCE_DIR, { recursive: true });
 
+  // Pro-Flag: NUR aus dem anonymen Abruf. Im angemeldeten Rohinhalt steht der Kauf-Hinweis
+  // nicht, deshalb erkennt der Parser die Sperre dort grundsätzlich nicht.
+  const proSlugs = new Set(readCache<string[]>(PRO_FILE));
+
+  // Die zwei Frontend-Karten der alten Seite liefern Emoji, Pro-Flag und (bei Gastein) die
+  // Saison. Sie decken 95 der 98 Spots ab, taugen also nicht als alleinige Pro-Quelle —
+  // aber auf diesen 95 stimmt ihr Flag zu 100 % mit dem unabhängig ermittelten anonymen
+  // Abruf überein. Zwei Quellen, die sich nirgends widersprechen, sind ein Beleg; eine
+  // wäre nur eine Annahme.
+  const maps = readCache<Record<string, { isPro: boolean; emoji: string | null; season: "summer" | "winter" | null }>>(MAPS_FILE);
+  const proConflicts: string[] = [];
+
   const byId = new Map<number, WpMedia>(media.map((m) => [m.id, m]));
   const byParent = new Map<number, WpMedia[]>();
   for (const m of media) {
@@ -73,9 +89,25 @@ function main() {
     minutes: number | null;
   }[] = [];
 
+  const skipped: string[] = [];
   for (const post of posts) {
-    if (SKIP.has(post.slug)) continue;
+    if (!maps[post.slug]) {
+      skipped.push(`${post.slug} (${post.title.raw ?? post.title.rendered})`);
+      continue;
+    }
     const src = parseSpot(post);
+
+    // Pro und Emoji werden dem geparsten Objekt NACHTRÄGLICH aufgeprägt: Beides steht
+    // nicht im Inhalt, den parse.ts sieht, sondern kommt aus den zwei Nebenquellen.
+    src.isPro = proSlugs.has(post.slug);
+    const onMap = maps[post.slug];
+    if (onMap) {
+      if (onMap.isPro !== src.isPro) proConflicts.push(post.slug);
+      // Das Emoji der Karte STICHT das aus dem Seitenquelltext: Dort steht bei den älteren
+      // Spots der erste Routenpunkt-Marker, und Loipe wie Rodelbahn kamen so zu einem 📸.
+      if (onMap.emoji) src.emoji = onMap.emoji;
+      if (onMap.season) src.mapSeason = onMap.season;
+    }
     // Zwei Quellen, weil keine allein reicht: Die Elementor-IDs decken praktisch alles ab,
     // das Eltern-Feld fängt zusätzlich Dateien, die im Beitrag liegen, aber im Layout
     // nicht mehr verlinkt sind. Zusammenführen und über die ID entdoppeln.
@@ -133,7 +165,10 @@ function main() {
   const pct = (k: number) => `${k}/${n}`;
 
   L.push("# Lücken-Report: Inhalts-Übernahme von der alten WordPress-Seite", "");
-  L.push(`Erzeugt aus \`.wp-cache/\`. ${n} Spots (4 Vorlagen/Tests übersprungen).`, "");
+  L.push(`Erzeugt aus \`.wp-cache/\`. ${n} Spots.`, "");
+  L.push(`${skipped.length} Beiträge übersprungen, weil sie auf keiner Karte der alten Seite`, "stehen und damit keine Spots sind:", "");
+  for (const s of skipped) L.push(`- ${s}`);
+  L.push("");
   L.push("## Was der Extraktor mitbringt", "");
   L.push("| Feld | vollständig | fehlt |", "|---|---|---|");
   const line = (label: string, ok: number) => L.push(`| ${label} | ${pct(ok)} | ${n - ok} |`);
@@ -183,6 +218,16 @@ function main() {
   for (const [value, slugs] of [...unknown].sort((a, b) => b[1].length - a[1].length))
     L.push(`- \`${value}\` (${slugs.length}×): ${slugs.slice(0, 6).join(", ")}${slugs.length > 6 ? " …" : ""}`);
   L.push("");
+
+  // Widersprechen sich die zwei unabhängigen Pro-Quellen, ist eine davon falsch, und man
+  // weiss nicht welche. Ein Pro-Spot, der frei ausgeliefert wird, ist ein verschenktes
+  // Produkt; ein freier Spot hinter der Schranke vertreibt Leute. Also laut werden.
+  if (proConflicts.length) {
+    L.push("## WIDERSPRUCH beim Pro-Flag", "");
+    L.push("Anonymer Abruf und Startseiten-Karte sind sich uneinig. Vor dem Import klären.", "");
+    for (const s of proConflicts) L.push(`- ${s}`);
+    L.push("");
+  }
 
   const reportFile = join(CACHE_DIR, "report.md");
   writeFileSync(reportFile, L.join("\n"));
