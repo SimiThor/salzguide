@@ -94,10 +94,39 @@ export async function addProMigrations(
 
 // ── Ankündigung ──────────────────────────────────────────────────────────────
 
-export type AnnounceResult = { ok: boolean; error?: string; sent?: number; failed?: number };
+export type AnnounceResult = {
+  ok: boolean;
+  error?: string;
+  sent?: number;
+  failed?: number;
+  /** Noch offene Zeilen nach diesem Lauf. > 0 heisst: nochmal drücken. */
+  remaining?: number;
+};
 
 /** Wie viele Mails ein Klick höchstens verschickt. Schützt vor einem Timeout mitten im Lauf. */
 const ANNOUNCE_BATCH = 100;
+
+/**
+ * Wie lange ein Lauf höchstens arbeitet, bevor er von sich aus aufhört.
+ *
+ * WARUM DAS NICHT OPTIONAL IST: Der Versand ist seit 07/2026 auf Resends Limit von zwei
+ * Mails pro Sekunde gebremst (lib/email.ts). 100 Mails brauchen damit mindestens 55
+ * Sekunden, mit Claim-Abfragen und Rendern eher zwei Minuten. Die Plattform bricht eine
+ * Server-Action nach `maxDuration` hart ab — mitten im Satz, ohne Rückgabe.
+ *
+ * Und ein Abbruch GENAU zwischen Claim und Versand ist der eine Fall, den das Muster unten
+ * nicht heilen kann: Die Zeile gilt dann als verschickt, die Mail kam nie an. Ein Budget,
+ * das deutlich unter dem Zeitlimit der Seite (maxDuration = 300 in der migration/page.tsx)
+ * liegt, sorgt dafür, dass der Lauf immer selbst entscheidet, wann er aufhört — an einer
+ * Stelle, an der nichts halb erledigt ist.
+ *
+ * Was übrig bleibt, bleibt unmarkiert und geht beim nächsten Klick raus. `remaining` sagt
+ * dem Admin, dass noch etwas offen ist.
+ */
+const ANNOUNCE_BUDGET_MS = 240_000;
+
+/** Reicht die verbleibende Zeit sicher für noch eine Mail (Pause + Versand + Claim)? */
+const PER_MAIL_RESERVE_MS = 15_000;
 
 /**
  * Die Umzugs-Ankündigung an alle verschicken, die sie noch nicht haben.
@@ -137,9 +166,22 @@ export async function sendMigrationAnnouncement(): Promise<AnnounceResult> {
   // Admin-Session unterwegs abläuft — sonst wären Mails raus und nicht vermerkt.
   const svc = createServiceClient();
 
+  const deadline = Date.now() + ANNOUNCE_BUDGET_MS;
+
   let sent = 0;
   let failed = 0;
+  let stoppedEarly = false;
   for (const row of rows) {
+    // Vor JEDER Mail prüfen, ob die Zeit noch reicht — und zwar VOR dem Claim, damit keine
+    // Zeile markiert zurückbleibt, deren Mail nie losging.
+    if (Date.now() + PER_MAIL_RESERVE_MS > deadline) {
+      stoppedEarly = true;
+      console.warn(
+        `[migration] Zeitbudget aufgebraucht nach ${sent} Mails – Rest bleibt offen für den nächsten Lauf.`,
+      );
+      break;
+    }
+
     // Claim: Zeile bedingt markieren. Kommt nichts zurück, hat ein paralleler Lauf sie
     // schon – überspringen statt doppelt mailen (Muster wie mailProGift).
     const { data: claimed, error: claimErr } = await svc
@@ -182,7 +224,18 @@ export async function sendMigrationAnnouncement(): Promise<AnnounceResult> {
     sent++;
   }
 
-  return { ok: true, sent, failed };
+  // Wie viel ist noch offen? Head-Zählung (überträgt keine Zeilen). Nur nötig, wenn der
+  // Lauf abgebrochen hat oder die Liste voll war — sonst ist der Rest per Definition leer.
+  let remaining = 0;
+  if (stoppedEarly || rows.length === ANNOUNCE_BATCH) {
+    const { count } = await svc
+      .from("pro_migrations")
+      .select("email", { count: "exact", head: true })
+      .is("announced_at", null);
+    remaining = count ?? 0;
+  }
+
+  return { ok: true, sent, failed, remaining };
 }
 
 // ── Login-Hinweis ────────────────────────────────────────────────────────────

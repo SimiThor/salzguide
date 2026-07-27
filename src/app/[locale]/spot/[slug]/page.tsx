@@ -3,7 +3,7 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
-import { getExploreData, getSpotDetail, type ExploreSpot } from "@/lib/spots";
+import { getRelatedSpots, getSpotDetail } from "@/lib/spots";
 import { getSavedSlugs } from "@/lib/saved";
 import LockedMedia from "@/components/LockedMedia";
 import { createClient } from "@/lib/supabase/server";
@@ -45,25 +45,6 @@ import { routeLengthKm } from "@/lib/geo";
 // Einheitlicher Karten-Look (Apple iOS 2026): weiß, weiche Schatten, 18px-Radius.
 const CARD =
   "rounded-[18px] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04),0_12px_32px_-20px_rgba(0,0,0,0.28)]";
-
-// Ähnlichkeits-Score für „Ähnliche Spots": gleiche Art (Aktivität/Essen) + geteilte
-// Kategorien + geografische Nähe + Saison-Überlappung. Höher = passender.
-function similarityScore(self: ExploreSpot | null, c: ExploreSpot): number {
-  if (!self) return 0;
-  let s = 0;
-  if (c.type === self.type) s += 4;
-  const selfCats = new Set(self.categoryKeys.map((k) => k.key));
-  s += c.categoryKeys.filter((k) => selfCats.has(k.key)).length * 3;
-  const selfSeasons = new Set(self.seasons);
-  if (c.seasons.some((x) => selfSeasons.has(x))) s += 1;
-  if (self.lat != null && self.lng != null && c.lat != null && c.lng != null) {
-    const dx = self.lng - c.lng;
-    const dy = self.lat - c.lat;
-    const dist = Math.sqrt(dx * dx + dy * dy); // grobe Grad-Distanz
-    s += Math.max(0, 4 - dist * 20); // Nähe (~<20 km) gibt Bonus
-  }
-  return s;
-}
 
 export async function generateMetadata({
   params,
@@ -319,16 +300,11 @@ export default async function SpotPage({
   if (spot.locationText)
     blocks.push({ heading: t("headLocation"), text: spot.locationText });
 
-  const { spots: all } = await getExploreData(locale);
-  // Ähnliche Spots: nach Ähnlichkeit zum aktuellen Spot sortieren (echte Vorschläge
-  // statt „erste 8"). Der aktuelle Spot steckt selbst in `all` -> als Referenz nutzen.
-  const self = all.find((s) => s.slug === spot.slug) ?? null;
-  const related = all
-    .filter((s) => s.slug !== spot.slug)
-    .map((s) => ({ s, score: similarityScore(self, s) }))
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 8)
-    .map((x) => x.s);
+  // Ähnliche Spots: echte Vorschläge (gleiche Art, geteilte Kategorien, Nähe, Saison)
+  // statt „die ersten 8". Das Rechnen und die zwei schlanken Abfragen stehen in
+  // lib/spots.ts — hier stand vorher ein getExploreData(), das für acht Karten den
+  // kompletten Katalog samt aller Bilder und Übersetzungen geladen hat.
+  const related = await getRelatedSpots(spot.slug, locale);
 
   return (
     <SpotGalleryProvider images={spot.images} title={spot.title}>

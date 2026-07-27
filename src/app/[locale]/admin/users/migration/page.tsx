@@ -12,6 +12,14 @@ import ProMigrationManager from "@/components/admin/ProMigrationManager";
 // Unterpunkt und kein Reiter.
 export const dynamic = "force-dynamic";
 
+// Die Ankündigungs-Mail (Server-Action von hier) verschickt bis zu 100 Mails am Stück und
+// hält dabei Resends Limit von zwei pro Sekunde ein -> mindestens 55 Sekunden, real eher
+// zwei Minuten. Ohne dieses Limit bräche die Plattform den Lauf nach ihrem Standardwert
+// (wenige Sekunden) mitten im Versand ab. Gleiche Zahl wie beim Recherche-Lauf im
+// Event-Admin; das Budget in migration-actions.ts liegt bewusst darunter (240 s), damit
+// der Lauf immer SELBST aufhört statt abgeschnitten zu werden.
+export const maxDuration = 300;
+
 export default async function ProMigrationPage({
   params,
 }: {

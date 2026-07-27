@@ -375,11 +375,18 @@ export default function ProMigrationManager({
                     return;
                   }
                   setMsg(
-                    r.sent === 0 && r.failed === 0
+                    r.sent === 0 && r.failed === 0 && !r.remaining
                       ? "Alle haben sie schon."
                       : `${r.sent} verschickt${
                           r.failed ? `, ${r.failed} fehlgeschlagen (der nächste Klick versucht es nochmal)` : ""
-                        }.`,
+                        }.${
+                          // Ein Lauf schickt höchstens 100 Mails und hört nach vier Minuten
+                          // von selbst auf. Ohne diesen Satz sähe der Admin „100 verschickt"
+                          // und hielte den Umzug für erledigt, obwohl noch Leute warten.
+                          r.remaining
+                            ? ` Noch ${r.remaining} offen – nochmal drücken.`
+                            : ""
+                        }`,
                   );
                   router.refresh();
                 })

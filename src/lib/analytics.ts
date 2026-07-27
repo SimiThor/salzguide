@@ -119,6 +119,11 @@ export function classifySource(
 // landeten also allesamt unerkannt in kind:"other".
 const LOCALE_PREFIX = new RegExp(`^/(${LOCALE_CODES.join("|")})(?=/|$)`);
 
+/** Sprach-Präfix eines Pfads, oder null. Eine Quelle für classifyPath und serverEventContext. */
+export function classifyLocalePath(path: string): string | null {
+  return (path || "").match(LOCALE_PREFIX)?.[1] ?? null;
+}
+
 // Pfad (mit optionalem /{locale}-Präfix) -> { kind, target }. /admin wird NICHT
 // getrackt (Betreiber-eigene Nutzung).
 export function classifyPath(
@@ -203,20 +208,45 @@ export async function serverEventContext(): Promise<{
   try {
     const h = await headers();
     const country = (h.get("x-vercel-ip-country") ?? "").toUpperCase();
+    // Sprache aus der ZENTRALEN Config, nicht handgepflegt — derselbe Fehler wie oben bei
+    // classifyPath: Hier stand /(de|en)/, die sieben anderen Sprachen aus locales.ts
+    // fehlten. Jede Merkung eines Italieners oder Koreaners wurde also ohne Sprache
+    // gezählt, und der Sprach-Filter im Dashboard zeigte für sie nichts an.
     const ref = h.get("referer") ?? "";
-    const m = ref.match(/\/(de|en)(?:\/|$|\?)/);
+    let locale: string | null = null;
+    try {
+      locale = classifyLocalePath(new URL(ref).pathname);
+    } catch {
+      locale = classifyLocalePath(ref); // relativer Referrer -> direkt versuchen
+    }
     return {
       device: classifyDevice(h.get("user-agent")),
       country: /^[A-Z]{2}$/.test(country) ? country : null,
-      locale: m ? m[1] : null,
+      locale,
     };
   } catch {
     return { device: "other", country: null, locale: null };
   }
 }
 
-// Spot-subtype (Kategorie-Snapshot) für Pageview-Kategorien. Indizierte Einzelabfrage.
+// Spot-subtype (Kategorie-Snapshot) für Pageview-Kategorien.
+//
+// GECACHT, weil diese Abfrage sonst an jedem einzelnen Aufruf einer Spot-Seite hängt — und
+// Spot-Seiten sind die Seiten, auf denen Leute aus Google landen. Der subtype eines Spots
+// ändert sich vielleicht einmal im Jahr; ihn pro Seitenaufruf frisch zu holen, ist eine
+// Abfrage, die zu 99,99 % dieselbe Antwort bekommt.
+//
+// Bewusst ein einfacher Speicher im Prozess und kein `api_cache`: Der wäre selbst wieder
+// eine Datenbank-Abfrage, also genau das, was hier eingespart werden soll. Der Preis ist,
+// dass jede Instanz ihren eigenen Stand hat und eine Änderung bis zu TTL_MS später in der
+// Statistik ankommt. Für einen Kategorie-Schnappschuss ist das ohne Belang.
+const SUBTYPE_TTL_MS = 10 * 60 * 1000;
+const SUBTYPE_MAX = 500; // Deckel gegen unbegrenztes Wachsen bei erfundenen Slugs.
+const subtypeCache = new Map<string, { value: string | null; at: number }>();
+
 export async function spotSubtype(slug: string): Promise<string | null> {
+  const hit = subtypeCache.get(slug);
+  if (hit && Date.now() - hit.at < SUBTYPE_TTL_MS) return hit.value;
   try {
     const { data } = await createServiceClient()
       .from("spots")
@@ -224,7 +254,16 @@ export async function spotSubtype(slug: string): Promise<string | null> {
       .eq("slug", slug)
       .maybeSingle();
     const v = (data?.subtype as string | null) ?? null;
-    return v && v.trim() ? v : null;
+    const value = v && v.trim() ? v : null;
+    // Ältesten Eintrag verwerfen, wenn der Deckel erreicht ist (Map merkt sich die
+    // Einfüge-Reihenfolge). Auch ein `null` wird gemerkt: Sonst wäre ein erfundener Slug
+    // in einer Schleife wieder eine Abfrage pro Aufruf.
+    if (subtypeCache.size >= SUBTYPE_MAX) {
+      const oldest = subtypeCache.keys().next().value;
+      if (oldest !== undefined) subtypeCache.delete(oldest);
+    }
+    subtypeCache.set(slug, { value, at: Date.now() });
+    return value;
   } catch {
     return null;
   }

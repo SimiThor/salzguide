@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { getExploreData } from "@/lib/spots";
 import { getSavedSlugs } from "@/lib/saved";
-import { createClient } from "@/lib/supabase/server";
+import { isLoggedIn } from "@/lib/viewer";
 import { alternatesFor } from "@/lib/metadata";
 import Explore from "@/components/Explore";
 
@@ -29,20 +29,25 @@ export default async function ExplorePage({
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const { spots, categories } = await getExploreData(locale);
-
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const savedSlugs = user ? [...(await getSavedSlugs())] : [];
+  // Katalog und Merkliste parallel: Die Merkliste hing vorher HINTER der Karten-Abfrage,
+  // obwohl sie nichts von ihr braucht — die beiden Wartezeiten addierten sich.
+  //
+  // getSavedSlugs() prüft selbst, ob jemand angemeldet ist (und gibt sonst eine leere Menge
+  // zurück), deshalb steht hier keine eigene Auth-Abfrage mehr. currentUserId() ist per
+  // React-cache() ohnehin dieselbe Antwort wie die in getSavedSlugs und viewerCanSeePro:
+  // ein Aufruf pro Request statt drei Netz-Roundtrips (siehe lib/viewer.ts).
+  const [{ spots, categories }, saved, loggedIn] = await Promise.all([
+    getExploreData(locale),
+    getSavedSlugs(),
+    isLoggedIn(),
+  ]);
 
   return (
     <Explore
       spots={spots}
       categories={categories}
-      savedSlugs={savedSlugs}
-      loggedIn={!!user}
+      savedSlugs={[...saved]}
+      loggedIn={loggedIn}
     />
   );
 }
