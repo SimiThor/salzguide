@@ -29,10 +29,13 @@ const db = createClient(SUPA_URL, SUPA_KEY, { auth: { persistSession: false } })
 type Eintrag = { slug: string; dauer: string; beleg: string };
 
 const DAUER: Eintrag[] = [
-  // Thermen und Museum: der Text nennt zwei bis drei Stunden, gefragt ist die obere.
+  // Thermen: der Text nennt zwei bis drei Stunden, gefragt ist die obere.
   { slug: "alpentherme", dauer: "3 Std", beleg: "„Zwei bis drei Stunden gehen leicht drauf“" },
   { slug: "felsentherme", dauer: "3 Std", beleg: "„Zwei bis drei Stunden gehen leicht drauf“" },
-  { slug: "hangar-7", dauer: "3 Std", beleg: "„Zwei bis drei Stunden, wenn du die Ausstellung in Ruhe anschaust“" },
+
+  // Ausnahme von der Oberkante-Regel: Beim Hangar-7 hat Anton widersprochen. Die Halle ist
+  // in zwei Stunden gesehen, drei wären eine Einladung zum Langweilen.
+  { slug: "hangar-7", dauer: "2 Std", beleg: "Anton: zwei Stunden reichen; der Text sagt es doppelt („geht nach zwei Stunden wieder“)" },
 
   // Stadt und Kultur
   { slug: "mirabellgarten", dauer: "1 Std", beleg: "„Eine Stunde reicht für einen Rundgang“" },
