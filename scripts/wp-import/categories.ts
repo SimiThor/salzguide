@@ -65,6 +65,25 @@ const PLAN: { key: string; season: "summer" | "winter"; slugs: string[] }[] = [
   { key: "view", season: "winter", slugs: WINTER_VIEW },
 ];
 
+/**
+ * Spots, denen der Winter wieder weggenommen wird.
+ *
+ * Sie tragen ihn nur, weil die alte Seite bei der Jahreszeit „Ganzjährig" stehen hatte und
+ * `seasonsOf` daraus beide Saisonen macht. Gemeint war damit aber „im Winter gesperrt ist
+ * hier nichts", nicht „das ist ein Winterausflug": Ein Bergsee auf 1.300 Metern und ein
+ * Felsgipfel sind im Winter kein Ziel, und Winterfotos hat keiner der fünf.
+ *
+ * Es ist dieselbe Regel wie bei der Gastein-Karte, nur andersherum: Ein Spot ohne Foto der
+ * passenden Saison sieht auf dieser Karte falscher aus, als wenn er dort fehlt.
+ */
+const DROP_WINTER = [
+  "goldegger-see",
+  "groser-barmstein",
+  "hintersee-pinzgau",
+  "jagersee",
+  "ritzensee",
+];
+
 async function main() {
   const go = process.argv.includes("--go");
 
@@ -99,8 +118,27 @@ async function main() {
     }
   }
 
+  // Saison wegnehmen. Vorher prüfen, ob der Spot in dieser Saison noch in einer Reihe
+  // hängt: Eine Zuordnung zu einer Winter-Reihe bei einem Spot ohne Winter wäre eine
+  // Karteileiche, die niemand sieht und die beim nächsten Lauf niemandem auffällt.
+  const seasonFix: { id: string; slug: string; seasons: string[] }[] = [];
+  for (const slug of DROP_WINTER) {
+    const spot = spotBySlug.get(slug);
+    if (!spot) throw new Error(`Spot ${slug} gibt es nicht`);
+    const seasons = (spot.seasons ?? []).filter((s: string) => s !== "winter");
+    if (seasons.length === (spot.seasons ?? []).length) continue;
+    if (!seasons.length) throw new Error(`${slug} hätte danach gar keine Saison mehr`);
+    const stale = links.filter(
+      (l) => l.spot_id === spot.id && cats.find((c) => c.id === l.category_id)?.season === "winter",
+    );
+    if (stale.length) throw new Error(`${slug} hängt noch in einer Winter-Reihe`);
+    seasonFix.push({ id: spot.id, slug, seasons });
+    console.log(`  ${go ? "ok   " : "würde"} ${slug.padEnd(30)} -> Saison ${JSON.stringify(seasons)}`);
+  }
+
   console.log(
-    `\n${rows.length} Zuordnungen${go ? " geschrieben" : ""}, ${skipped} gab es schon.`,
+    `\n${rows.length} Zuordnungen${go ? " geschrieben" : ""}, ${skipped} gab es schon.` +
+      ` ${seasonFix.length} Saison-Korrekturen.`,
   );
   if (!go) {
     console.log("TROCKENLAUF. Nichts geschrieben. Wirklich setzen: npm run wp:categories -- --go");
@@ -108,6 +146,10 @@ async function main() {
   }
   if (rows.length) {
     const { error } = await db.from("spot_categories").insert(rows);
+    if (error) throw error;
+  }
+  for (const f of seasonFix) {
+    const { error } = await db.from("spots").update({ seasons: f.seasons }).eq("id", f.id);
     if (error) throw error;
   }
 
