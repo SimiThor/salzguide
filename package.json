@@ -11,7 +11,9 @@
     "analytics:check": "node --experimental-strip-types --disable-warning=ExperimentalWarning --import ./scripts/lib/alias-hook.mjs scripts/analytics-check.ts",
     "icons": "node --experimental-strip-types scripts/make-icons.ts",
     "backfill:blur": "node --experimental-strip-types scripts/backfill-blur.ts",
-    "render:intro": "node --experimental-strip-types scripts/render-intro.ts"
+    "render:intro": "node --experimental-strip-types scripts/render-intro.ts",
+    "wp:fetch": "node --experimental-strip-types --disable-warning=ExperimentalWarning --env-file=.env.local --import ./scripts/lib/alias-hook.mjs scripts/wp-import/fetch.ts",
+    "wp:extract": "node --experimental-strip-types --disable-warning=ExperimentalWarning --import ./scripts/lib/alias-hook.mjs scripts/wp-import/extract.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
