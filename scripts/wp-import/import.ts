@@ -23,8 +23,18 @@ import { slugify } from "../../src/lib/slug.ts";
 import { guardStorageUrl } from "../../src/lib/storage-guard.ts";
 import { hashSpotTexts } from "../../src/lib/spot-hash.ts";
 import { stripEmDashFields } from "../../src/lib/em-dash.ts";
-import { routeLengthKm, haversineMeters } from "../../src/lib/geo.ts";
-import type { WpSource } from "./parse.ts";
+import {
+  elevationProfile,
+  formatDuration,
+  waypointsFor,
+} from "./route-math.ts";
+import {
+  MIN_ROUTE_KM,
+  SUBTYPE_FROM_MARKER,
+  durationForField,
+  notWalkedReason,
+  type WpSource,
+} from "./parse.ts";
 
 const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPA_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -69,34 +79,6 @@ function spotType(src: Source): "food" | "activity" {
   const hasSection = src.sections.some((s) => s.label === "Küche & Stil");
   return hasCuisine || hasSection ? "food" : "activity";
 }
-
-// Typ-Marker der alten Seite -> kanonischer Subtyp der neuen Auswahlliste. Was hier fehlt,
-// bleibt leer statt zu raten: Ein falscher Subtyp sortiert den Spot in die falsche Reihe
-// und fällt niemandem auf.
-const SUBTYPE_FROM_MARKER: Record<string, string> = {
-  wanderung: "Wanderung",
-  winterwanderung: "Winterwanderung",
-  aussichtspunkt: "Aussichtspunkt",
-  viewpoint: "Aussichtspunkt",
-  wasserfall: "Wasserfall",
-  klamm: "Klamm",
-  see: "See & Baden",
-  abkühlung: "See & Baden",
-  burg: "Burg & Schloss",
-  park: "Park & Garten",
-  therme: "Therme",
-  panoramastrasse: "Panoramastraße",
-  panoramastraße: "Panoramastraße",
-  rodeln: "Rodelbahn",
-  langlaufen: "Langlaufloipe",
-  ski: "Skigebiet",
-  action: "Action & Fun",
-  café: "Café",
-  cafe: "Café",
-  restaurant: "Restaurant",
-  streetfood: "Streetfood",
-  hütte: "Berghütte",
-};
 
 // Küchen-Angabe der alten Seite -> Subtyp, wo es einen passenden gibt. „österreichisch"
 // ist eine Küche und kein Subtyp; solche Werte bleiben bewusst ohne Zuordnung und leben
@@ -196,30 +178,7 @@ function categoryKeysFor(
 }
 
 // ── Wird der Spot überhaupt gegangen? ───────────────────────────────────────
-
-// Subtypen, die man fährt statt geht. Eine Wanderlinie wäre hier eine Lüge, und die
-// DAV-Gehzeit rechnet aus 30 km Grossglockner-Hochalpenstrasse 16 Stunden Fussmarsch.
-// Solche Spots bekommen nur einen Punkt auf der Karte, genau wie ein Café.
-const NOT_WALKED_SUBTYPES = new Set(["Panoramastraße", "Schifffahrt", "Skigebiet", "Bergbahn"]);
-
-// Einzelfälle, die kein Subtyp verrät. Die Hellbrunner Allee IST ein Weg, aber der Text
-// beschreibt sie durchgehend als Fahrradtour („Die Fahrradtour … dauert 20 bis 30 Minuten").
-// Eine Wander-Gehzeit von 63 Minuten daneben zu stellen, widerspricht dem eigenen Text.
-const NOT_WALKED_SLUGS = new Set(["hellbrunner-allee", "wolfgangsee-schifffahrt"]);
-
-/**
- * Ab welcher Länge ist eine Linie eine Route und kein Kringel?
- *
- * 500 Meter, und das ist ein ABSOLUTES Mass, kein Vergleich mit der alten Dauer. Genau
- * dieser Vergleich hat mich vorher zweimal in die Irre geführt: Beim Goldegger See und
- * bei der Innersbachklamm sah die Linie „zu kurz" aus, dabei war sie richtig und die alte
- * Zeitangabe falsch. Die Länge weiss man dagegen sicher.
- *
- * In den Daten liegt dort ein klarer Bruch. Darunter: Hangar-7 mit 80 Metern, Blick auf
- * Hohenwerfen mit 30, Mirabellgarten mit 230. Das sind Markierungen, die jemand um einen
- * Ort gezogen hat, keine Wege. Darüber beginnen die echten Runden.
- */
-const MIN_ROUTE_KM = 0.5;
+// Die Regeln stehen in parse.ts, weil die Arbeitsvorlage dieselbe Antwort braucht.
 
 type RouteInfo = {
   slug: string;
@@ -234,68 +193,15 @@ type RouteInfo = {
 
 function pointOnly(src: Source, subtype: string | null, route: RouteInfo | undefined): string | null {
   if (!route?.coords || route.coords.length < 2) return "keine brauchbare Linie";
-  if (subtype && NOT_WALKED_SUBTYPES.has(subtype)) return `wird gefahren (${subtype})`;
-  if (NOT_WALKED_SLUGS.has(src.slug)) return "wird gefahren/geradelt laut Text";
+  const driven = notWalkedReason(src.slug, subtype);
+  if (driven) return driven;
   if ((route.snappedKm ?? 0) < MIN_ROUTE_KM)
     return `Linie nur ${Math.round((route.snappedKm ?? 0) * 1000)} m — kein Weg, sondern eine Markierung`;
   return null;
 }
 
 // ── Route ───────────────────────────────────────────────────────────────────
-
-function downsample<T>(arr: T[], n: number): T[] {
-  if (arr.length <= n) return arr;
-  const out: T[] = [];
-  const step = (arr.length - 1) / (n - 1);
-  for (let i = 0; i < n; i++) out.push(arr[Math.round(i * step)]);
-  return out;
-}
-
-// Kontrollpunkte für das Admin-Formular. Die Rohlinie hat bis zu 1447 Punkte; das Formular
-// fällt ohne route_waypoints auf die gezeichnete Linie zurück und zeigte dann 1447 einzeln
-// ziehbare Punkte an. Handgezeichnete Routen im Altbestand hatten 3 bis 21, also wird auf
-// diese Grössenordnung eingedampft: einer alle ~400 m, mindestens 4, höchstens 20.
-function waypointsFor(coords: [number, number][]): [number, number][] {
-  const km = routeLengthKm(coords);
-  const target = Math.max(4, Math.min(20, Math.round((km * 1000) / 400)));
-  return downsample(coords, target);
-}
-
-// Auf- und Abstieg aus den Höhenwerten. Zacken unter 3 m werden verschluckt, sonst
-// summiert sich das Rauschen der Höhendaten zu Höhenmetern, die niemand geht.
-function ascentDescent(el: number[]): { ascent: number; descent: number } {
-  let ascent = 0;
-  let descent = 0;
-  let ref = el[0];
-  for (const e of el.slice(1)) {
-    const d = e - ref;
-    if (Math.abs(d) < 3) continue;
-    if (d > 0) ascent += d;
-    else descent -= d;
-    ref = e;
-  }
-  return { ascent: Math.round(ascent), descent: Math.round(descent) };
-}
-
-// Format wie Migration 0006 und wie snapRoute es schreibt:
-// { points:[{d(km), e(m)}], ascent, descent, min, max, distanceKm }, Punkte bei 100 gedeckelt.
-function elevationProfile(coords: [number, number][], el: number[]) {
-  const pts: { d: number; e: number }[] = [];
-  let cum = 0;
-  for (let i = 0; i < coords.length; i++) {
-    if (i > 0) cum += haversineMeters(coords[i - 1], coords[i]);
-    pts.push({ d: cum / 1000, e: el[i] });
-  }
-  const { ascent, descent } = ascentDescent(el);
-  return {
-    points: downsample(pts, 100).map((p) => ({ d: Math.round(p.d * 100) / 100, e: Math.round(p.e) })),
-    ascent,
-    descent,
-    min: Math.round(Math.min(...el)),
-    max: Math.round(Math.max(...el)),
-    distanceKm: cum / 1000,
-  };
-}
+// Die Rechnerei steht in route-math.ts, weil routes.ts dieselben Formeln braucht.
 
 // ── Ein Spot ────────────────────────────────────────────────────────────────
 
@@ -397,9 +303,7 @@ async function importSpot(
     // sein. Ein Spot, der „2 Stunden" anzeigt und „gut drei Stunden" schreibt, ist schlimmer
     // als einer ohne Angabe.
     duration:
-      isRoute && snapped?.minutes != null
-        ? formatDuration(snapped.minutes)
-        : factValue(src, "duration"),
+      isRoute && snapped?.minutes != null ? formatDuration(snapped.minutes) : durationForField(src),
     price_level: factPrice(factValue(src, "priceLevel") ?? ""),
     area: factCanonical("area", factValue(src, "area") ?? "") ?? factValue(src, "area"),
     fame: factCanonical("fame", factValue(src, "fame") ?? "") ?? null,
@@ -497,16 +401,6 @@ async function importSpot(
   return { row, images, texts, notes, spotId };
 }
 
-// „5 h 47" wäre für eine Wanderung falsche Genauigkeit: Die DAV-Formel ist eine Schätzung,
-// keine Messung. Auf fünf Minuten gerundet, und ab einer Stunde in Stunden.
-function formatDuration(min: number): string {
-  const r = Math.round(min / 5) * 5;
-  if (r < 60) return `${r} min`;
-  const h = Math.floor(r / 60);
-  const m = r % 60;
-  return m ? `${h} Std ${m} min` : `${h} Std`;
-}
-
 // ── Lauf ────────────────────────────────────────────────────────────────────
 
 async function main() {
@@ -552,7 +446,9 @@ async function main() {
       const r = await importSpot(src, draft, mediaMap, routes, categories, localId, dry);
       done++;
       console.log(
-        `  ${dry ? "würde" : "ok   "} ${slug.padEnd(34)} ${r.row.type.padEnd(8)} ${r.images.length} Fotos${r.row.video_url ? " +Video" : ""}${r.row.route_geojson ? ` Route ${r.row.duration}` : ""}${src.isPro ? "  PRO" : ""}`,
+        // Die Dauer steht für JEDEN Spot da, nicht nur für die mit Route. Genau so ist der
+        // Dom mit „0 min" aufgefallen: Bei Punkt-Spots blieb die Zahl vorher unsichtbar.
+        `  ${dry ? "würde" : "ok   "} ${slug.padEnd(34)} ${r.row.type.padEnd(8)} ${r.images.length} Fotos${r.row.video_url ? " +Video" : ""}${r.row.route_geojson ? " Route" : ""} ${(r.row.duration ?? "-").padEnd(11)}${src.isPro ? " PRO" : ""}`,
       );
       for (const n of r.notes) allNotes.push(`${slug}: ${n}`);
     } catch (err) {

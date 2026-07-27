@@ -124,6 +124,29 @@ nicht blind: Auf der Schmittenhöhe geht man rauf und fährt mit der Seilbahn ru
 wäre Verdoppeln gelogen. Welche Lesart gilt, entscheidet die alte Dauer-Angabe. Das
 Verdoppeln braucht keine zweite ORS-Anfrage, weil der Rückweg der Hinweg rückwärts ist.
 
+**Ein Zahlenvergleich liest keine Wörter — sechs Routen endeten am Gipfel.** Beim
+Gamskarkogel stand als alte Dauer „8 h **gesamt**". Der reine Aufstieg rechnet sich zu 7:55,
+hin und zurück zu 13:35; der Schiedsrichter nahm also den Aufstieg, obwohl das Wort
+„gesamt" wörtlich das Gegenteil sagt. Auf der Karte lag danach eine Linie, die oben aufhört,
+und im Feld die Zeit für den halben Ausflug. Wer die Karte nicht daneben legt, merkt davon
+nichts.
+
+`npm run wp:there-and-back` zieht die sechs nach (Gamskarkogel, Lackenkogel, Tappenkarsee,
+Oberhütte, Nockstein, Gollinger Wasserfall). Gemeinsam haben sie: kein Lift, kein Übergang,
+das Ziel ist ein Stichweg. Damit ein neuer `wp:routes`-Lauf dieselbe Entscheidung trifft,
+stehen die Slugs als `ALWAYS_DOUBLE` in `routes.ts` — die Gegenliste zu `NEVER_DOUBLE`.
+Das Skript schreibt Datenbank UND `routes.json`, sonst dreht der nächste Import die
+Verdoppelung wieder zurück.
+
+**Nicht verdoppelt** werden Schmittenhöhe, Almenwelt Lofer, Spinnerin und Prinzensee (Bahn,
+steht auch in den Texten), Kapuzinerberg, Bad Gastein und die Halleiner Altstadt
+(Überschreitungen, die woanders herauskommen) und der Wiestalstausee (Uferstrasse, kein
+Wanderziel).
+
+**Die Rechnerei steht in `route-math.ts`.** `downsample` und `ascentDescent` standen vorher
+wortgleich in `routes.ts` UND `import.ts`; zwei Kopien derselben Formel laufen auseinander,
+sobald jemand nur eine anfasst.
+
 **Snapping erfindet keine fehlende Strecke.** Ein Teil der alten Linien ist nicht ungenau,
 sondern ein Stummel: Die Seisenbergklamm hat 16 Punkte im Abstand von zehn Metern, die
 ganze Linie passt in eine Box von 130 Metern, angegeben sind zwei Stunden. Da hilft kein
@@ -138,6 +161,23 @@ einen Ort, keine Wege. Solche Spots bekommen nur einen Punkt.
 **Was man fährt, bekommt keine Wanderlinie.** Panoramastraße, Schifffahrt, Bergbahn, und
 die Hellbrunner Allee, die im eigenen Text durchgehend eine Fahrradtour ist. Die DAV-Formel
 rechnete aus 30 km Grossglockner-Hochalpenstrasse 16 Stunden Fussmarsch.
+
+**„0 min" ist keine Dauer, sondern das leere Feld der alten Seite.** 17 Spots tragen den
+Wert, darunter der Dom und der Mirabellgarten. Unverändert übernommen stünde auf der
+Detailseite „0 min", und das liest sich nicht wie eine fehlende Angabe, sondern wie ein
+kaputtes Feld. Der Import wirft es weg (`durationForField` in `parse.ts`); echte Zahlen für
+Punkt-Spots trägt Anton einzeln in `DURATION_BY_HAND` ein. Aufgefallen ist es erst, als der
+Trockenlauf die Dauer für JEDEN Spot druckt und nicht mehr nur für die mit Route.
+
+**Die Arbeitsvorlage sagt dieselbe Zahl wie der Import, weil sie dieselben Regeln benutzt.**
+Vorher hatte `brief.ts` eine eigene Kopie der „wird gefahren"-Liste und verglich Subtyp-Namen
+mit dem TYP-MARKER der alten Seite (`Panoramastraße` gegen `panoramastrasse`). Der Vergleich
+traf nie zu, und deshalb sagte die Vorlage für die Grossglockner-Hochalpenstrasse „DAUER FÜRS
+FELD: 16 Std 5 min" — die DAV-Gehzeit für 30 km Bergstrasse. Der Import lag richtig; falsch
+war die Ansage an den, der den Text schreibt, und der hätte die 16 Stunden hingeschrieben.
+`SUBTYPE_FROM_MARKER`, `notWalkedReason`, `MIN_ROUTE_KM` und `durationForField` stehen deshalb
+in `parse.ts`, und beide hängen sich dort an. Ohne Route druckt die Vorlage jetzt die ALTE
+Angabe als Feld-Wert, weil genau die im Feld landet.
 
 **Die gerechnete Dauer gewinnt** über die alte Angabe, wo eine Route übrig bleibt: Die
 alten Werte sind grob überschlagen, und 35 von 60 sind gar keine Gehzeit, sondern ein
@@ -198,13 +238,130 @@ selben Ort erwähnt.
 **Der Insider-Tipp steht in der Ich-Form des Locals**, und der steht in der Vorlage. Ohne
 Namen ist es Anton. Toni ist die KI und nie ein Local.
 
-Stand: 17 von 95 geschrieben.
+Stand: 95 von 95 geschrieben, `wp:check` läuft sauber durch. Der Trockenlauf bereitet alle
+95 Spots vor und überspringt keinen mehr. Was jetzt noch fehlt, ist `wp:import -- --go`.
+
+## Kategorien nachziehen (`wp:categories`)
+
+```bash
+npm run wp:categories          # zeigt, was passieren würde
+npm run wp:categories -- --go  # schreibt
+```
+
+Der Import ordnet nur zu, wo die alte WordPress-Kategorie die neue Reihe wirklich trifft.
+Für „burgen", „parks", „sonstige" und „aussichtspunkte" gibt es kein Gegenstück, und eine
+mechanische Zuordnung hätte die Hälfte falsch einsortiert. Die Liste in `categories.ts` ist
+deshalb je Spot entschieden, nicht abgeleitet.
+
+**Kategorien hängen an der SAISON, nicht am Spot.** Ein Spot mit `seasons =
+["summer","winter"]` braucht in beiden Saisonen eine Reihe. Fehlt eine, verschwindet er im
+Explore der anderen Saison, ohne dass irgendwo etwas kaputt aussieht: Dom, Mönchsberg und
+Nonnberggasse waren nach dem Import nur im Winter sichtbar, weil der Winter-Marker griff
+und die Sommer-Kategorie nicht. Der Trockenlauf zählt am Ende auf, wer in welcher Saison
+noch ohne Reihe dasteht, und genau diese Zeile hat die Lücke gefunden.
+
+**„City & Nearby Hills" war leer.** Die Reihe existierte von Anfang an, aber der Import
+konnte nichts hineinlegen, weil die alte Seite dafür keine Kategorie hatte. 16 Stadt-Spots
+lagen deshalb in keiner einzigen Reihe.
+
+**Eine Reihe kommt neu dazu: „Aussicht & Kultur" (`summer/sights`).** Die alte Seite hatte
+neun Reihen, drei davon haben in der neuen App kein Gegenstück: Burgen (2), Parks (2) und
+Sonstige (4). Parks und die Stadt-Sehenswürdigkeiten passen in „City & Nearby Hills"; übrig
+blieben eine Burg über dem Salzachtal, ein Aussichtspunkt daneben, eine Höhle im Saalachtal
+und der Ortskern von Bad Gastein. Der Winter hat mit „Aussicht & Erholung" längst so eine
+Reihe, dem Sommer fehlte sie. Das Skript legt sie an, schiebt die drei Reihen dahinter um
+eine Position nach hinten und trägt die Titel in allen neun Sprachen ein.
+
+**Die Sommerrodelbahn Abtenau bleibt bewusst ohne Reihe.** Sie stand unter „Sonstige" und
+ist weder Aussicht noch Kultur. Sie in die neue Reihe zu legen, wäre genau der Griff, den
+die Reihe verhindern soll. Sie ist über Karte und Suche auffindbar und wartet auf eine
+Familien- oder Action-Reihe.
+
+**Fünf Spots haben die Winter-Saison wieder verloren** (Goldegger See, Grosser Barmstein,
+Hintersee Pinzgau, Jägersee, Ritzensee). Sie trugen sie nur, weil die alte Angabe
+„Ganzjährig" hiess; gemeint war „hier ist im Winter nichts gesperrt", nicht „das ist ein
+Winterausflug". Winterfotos hat keiner der fünf. Das ist dieselbe Regel wie bei der
+Gastein-Karte, nur andersherum.
+
+## Feld gegen Fliesstext prüfen (`wp:consistency`, `wp:facts`)
+
+```bash
+npm run wp:consistency              # stellt Feld und Text nebeneinander
+npm run wp:consistency -- --only dauer
+npm run wp:facts                    # zeigt die Korrekturen
+npm run wp:facts -- --go            # schreibt sie
+```
+
+Die Felder kommen aus den Quick-Facts der alten Seite, die Texte sind neu geschrieben. Wo
+die alte Seite danebenlag, steht es danach doppelt auf derselben Bildschirmseite. `wp:consistency`
+zieht deshalb aus jedem Text die Stellen heraus, die eine Zeit, eine Schwierigkeit, eine
+Jahreszeit oder eine Anreise nennen, und stellt sie neben das Feld.
+
+**Es vergleicht bewusst NICHT automatisch.** Die Texte sagen „knapp vier Stunden", „eine
+Stunde zwanzig", „ein bis zwei Stunden, wenn du dir Zeit lässt". Ein Parser, der daraus
+Zahlen macht, liegt bei jeder dritten Formulierung daneben und meldet dann entweder
+Fehlalarme, die man wegzuschauen lernt, oder er schweigt genau dort, wo es zählt. Die
+Extraktion ist mechanisch, das Urteil steht in `facts.ts` — je Zeile mit dem Satz aus dem
+Text, der sie trägt.
+
+Gefunden wurden dabei: zwei Wanderungen, die als „mittel" ausgezeichnet waren und deren
+eigener Text „kaum Höhenmeter" bzw. „20 Höhenmeter, sonst harmlos" sagt; drei Spots mit
+„nur Auto", deren Text einen Bus nennt (Gaisberg: „Der Bus 151 fährt direkt rauf"); und die
+Festung mit der Rohform `1h gesamt`, wo überall sonst `1 Std` steht. Dazu 26 leere Felder,
+die der Text klar benennt — 13 Winter-Spots hatten weder Schwierigkeit noch Jahreszeit,
+weil die alte Seite dort `vibe` statt `difficulty` führte.
+
+**Die Anreise-Prüfung ist absichtlich grob und produziert Fehlalarme.** „Parken in der
+Altstadt ist teuer" enthält das Wort Parken, meint aber das Gegenteil. Zwanzig Treffer, drei
+davon echt: Das ist die richtige Richtung für eine Prüfung, deren Ergebnis ein Mensch liest.
+
+## Die zwei Wander-Reihen
+
+Der Import trennte nur nach dem Schwierigkeits-Feld der alten Seite („schwer" -> die andere
+Reihe). Dort stand genau EIN Spot auf „schwer", also lagen 29 Touren in „Leicht & Mittel"
+und eine allein in „Anspruchsvoll" — darunter der Gamskarkogel mit 1.600 Höhenmetern und
+acht Stunden.
+
+`wp:categories` trennt jetzt nach dem, was wir selbst gerechnet haben: **ab dreieinhalb
+Stunden Gehzeit ODER ab 600 Höhenmetern.** Zwei Kriterien, weil keins allein reicht. Die
+Gehzeit trennt Touren gleichen Aufwands an willkürlicher Stelle (Ellmautal 3:05,
+Schuhflickersee 3:00), der Aufstieg übersieht den Tristkogel, der mit 925 Höhenmetern auf
+12,8 Kilometern siebeneinhalb Stunden braucht. Ergebnis: 13 zu 17 statt 1 zu 29.
+
+Die Reihen hängen an der Gehzeit, also gehört `wp:categories` nach jedem `wp:there-and-back`
+noch einmal gelaufen. Die Oberhütte ist genau so hinübergerutscht.
+
+Das Schwierigkeits-Feld bleibt davon unberührt. Es sagt etwas über das GELÄNDE, die Reihe
+über den AUFWAND. Ein Weg kann technisch harmlos und trotzdem ein ganzer Tag sein, und beim
+Gamskarkogel steht genau das im Text.
+
+## Besuchsdauer für Spots ohne Route (`wp:visit-time`)
+
+Bei einer Wanderung rechnet `geo.ts` die Dauer aus der Linie. Ein Museum, eine Therme oder
+ein Platz hat keine Linie, und der Import liess das Feld deshalb leer: 24 Spots ohne jede
+Zeitangabe, obwohl fast jeder Text eine nennt.
+
+**Die Zahl kommt aus dem eigenen Fliesstext, nicht aus dem Gefühl.** In `visit-time.ts` steht
+je Zeile das Zitat, das sie trägt. Wo der Text eine Spanne nennt, gilt die OBERE Zahl:
+Gefragt ist, wie lange man braucht, um den Spot anzusehen und zu geniessen, nicht wie
+schnell man durchkommt. „Ein halber Tag" zählt dabei nicht als obere Grenze, sondern als der
+Ausnahmefall, den der Text danebenstellt (Mirabellgarten: „Eine Stunde reicht für einen
+Rundgang" -> 1 Std).
+
+**Drei Badeplätze hatten gar keine Zahl im Text.** Almkanal, Böndlsee und Hintersee: Wie
+lange man dort bleibt, sagt kein Text. Sie bekommen zwei Stunden als Planungswert, und der
+Satz dazu steht im ENTWURF, nicht im Skript. Text gehört in `.wp-cache/drafts`, sonst
+überschreibt ihn der nächste Import.
+
+**Schreibweise vereinheitlicht.** Sechs Punkt-Spots trugen die Rohform der alten Seite
+(`2 h`, `1 h`). Es gibt jetzt nur noch die drei Formen, die `formatDuration` schreibt:
+`N min`, `N Std`, `N Std N min`.
 
 ## Was der Import NICHT entscheidet
 
-**Subtyp**, wo die alte Seite keinen Marker hatte, die **24 Spots ohne zuordenbare
-Kategorie** (Burgen, Parks, Stadt-Sehenswürdigkeiten — dafür gibt es keine Reihe), die
-**Routen-Stummel**, und das **Veröffentlichen**. Alles landet als Entwurf; das Publish-Gate
+**Subtyp**, wo die alte Seite keinen Marker hatte, die **Kategorien ohne Gegenstück**
+(siehe oben, `wp:categories` zieht sie nach), die **Routen-Stummel**, und das
+**Veröffentlichen**. Alles landet als Entwurf; das Publish-Gate
 in `saveSpot` verlangt ohnehin Ort und vollständige Übersetzungen.
 
 Übernommen sind dagegen: Koordinaten, Parkplätze, Pro-Flag, Emoji, Quick-Facts,

@@ -580,3 +580,101 @@ export function parseSpot(post: WpPost): WpSource {
     warnings,
   };
 }
+
+// ── Wird der Spot gegangen oder gefahren? ───────────────────────────────────
+//
+// Steht hier und nicht in import.ts, weil die Arbeitsvorlage (brief.ts) dieselbe Antwort
+// braucht: Sie druckt die Dauer, die im Feld landen wird, und danach schreibt jemand seinen
+// Text. Vorher hatte brief.ts eine eigene Liste und verglich sie mit dem TYP-MARKER der
+// alten Seite („panoramastrasse") statt mit dem Subtyp („Panoramastraße"). Das traf nie zu,
+// und deshalb sagte die Vorlage für die Grossglockner-Hochalpenstrasse „DAUER FÜRS FELD:
+// 16 Std 5 min" — die DAV-Gehzeit für 30 km Bergstrasse. Wer das nicht kennt, schreibt es
+// hin. Eine Kopie, die im entscheidenden Moment das Gegenteil sagt, ist schlimmer als keine.
+// import.ts hängt sich an dieselben Konstanten.
+
+/** Typ-Marker der alten Seite -> kanonischer Subtyp der neuen Auswahlliste. Was hier fehlt,
+ *  bleibt leer statt zu raten: Ein falscher Subtyp sortiert den Spot in die falsche Reihe
+ *  und fällt niemandem auf. */
+export const SUBTYPE_FROM_MARKER: Record<string, string> = {
+  wanderung: "Wanderung",
+  winterwanderung: "Winterwanderung",
+  aussichtspunkt: "Aussichtspunkt",
+  viewpoint: "Aussichtspunkt",
+  wasserfall: "Wasserfall",
+  klamm: "Klamm",
+  see: "See & Baden",
+  abkühlung: "See & Baden",
+  burg: "Burg & Schloss",
+  park: "Park & Garten",
+  therme: "Therme",
+  panoramastrasse: "Panoramastraße",
+  panoramastraße: "Panoramastraße",
+  rodeln: "Rodelbahn",
+  langlaufen: "Langlaufloipe",
+  ski: "Skigebiet",
+  action: "Action & Fun",
+  café: "Café",
+  cafe: "Café",
+  restaurant: "Restaurant",
+  streetfood: "Streetfood",
+  hütte: "Berghütte",
+};
+
+/** Subtypen, die man fährt statt geht. Eine Wanderlinie wäre hier eine Lüge, und die
+ *  DAV-Gehzeit rechnet aus 30 km Grossglockner-Hochalpenstrasse 16 Stunden Fussmarsch.
+ *  Solche Spots bekommen nur einen Punkt auf der Karte, genau wie ein Café. */
+export const NOT_WALKED_SUBTYPES = new Set([
+  "Panoramastraße",
+  "Schifffahrt",
+  "Skigebiet",
+  "Bergbahn",
+]);
+
+/** Einzelfälle, die kein Subtyp verrät. Die Hellbrunner Allee IST ein Weg, aber der Text
+ *  beschreibt sie durchgehend als Fahrradtour („Die Fahrradtour … dauert 20 bis 30 Minuten").
+ *  Eine Wander-Gehzeit von 63 Minuten daneben zu stellen, widerspricht dem eigenen Text. */
+export const NOT_WALKED_SLUGS = new Set(["hellbrunner-allee", "wolfgangsee-schifffahrt"]);
+
+/**
+ * Ab welcher Länge ist eine Linie eine Route und kein Kringel?
+ *
+ * 500 Meter, und das ist ein ABSOLUTES Mass, kein Vergleich mit der alten Dauer. Genau
+ * dieser Vergleich hat mich vorher zweimal in die Irre geführt: Beim Goldegger See und
+ * bei der Innersbachklamm sah die Linie „zu kurz" aus, dabei war sie richtig und die alte
+ * Zeitangabe falsch. Die Länge weiss man dagegen sicher.
+ *
+ * In den Daten liegt dort ein klarer Bruch. Darunter: Hangar-7 mit 80 Metern, Blick auf
+ * Hohenwerfen mit 30, Mirabellgarten mit 230. Das sind Markierungen, die jemand um einen
+ * Ort gezogen hat, keine Wege. Darüber beginnen die echten Runden.
+ */
+export const MIN_ROUTE_KM = 0.5;
+
+/** Warum dieser Spot nur einen Punkt bekommt, oder null für „ist eine Route". */
+export function notWalkedReason(slug: string, subtype: string | null): string | null {
+  if (subtype && NOT_WALKED_SUBTYPES.has(subtype)) return `wird gefahren (${subtype})`;
+  if (NOT_WALKED_SLUGS.has(slug)) return "wird gefahren/geradelt laut Text";
+  return null;
+}
+
+/** Echte Dauern für Punkt-Spots, die Anton von Hand kennt. Bewusst eine Liste und keine
+ *  Schätzformel: Eine gerechnete „Besichtigungsdauer" wäre geraten, und Geraten fällt
+ *  hier still aus. */
+export const DURATION_BY_HAND: Record<string, string> = {
+  "dom-zu-salzburg": "30 min", // Anton: einmal durchgehen, Krypta inklusive
+};
+
+/**
+ * Die Dauer, die ohne Route im Feld landet.
+ *
+ * „0 min" ist keine Dauer, sondern das leere Feld der alten Seite. 17 Spots tragen den
+ * Wert, darunter der Dom und der Mirabellgarten. Unverändert übernommen stünde auf der
+ * Detailseite „0 min", und das liest sich nicht wie eine fehlende Angabe, sondern wie ein
+ * kaputtes Feld. Keine Angabe ist ehrlicher als eine falsche.
+ */
+export function durationForField(src: WpSource): string | null {
+  const byHand = DURATION_BY_HAND[src.slug];
+  if (byHand) return byHand;
+  const f = src.facts.find((x) => x.field === "duration");
+  const v = f ? (f.canonical ?? f.value) : null;
+  return v && /^0\s*min$/i.test(v) ? null : v;
+}

@@ -19,7 +19,13 @@
     "wp:brief": "node --experimental-strip-types --disable-warning=ExperimentalWarning --import ./scripts/lib/alias-hook.mjs scripts/wp-import/brief.ts",
     "wp:check": "node --experimental-strip-types --disable-warning=ExperimentalWarning --import ./scripts/lib/alias-hook.mjs scripts/wp-import/check-drafts.ts",
     "wp:routes": "node --experimental-strip-types --disable-warning=ExperimentalWarning --env-file=.env.local --import ./scripts/lib/alias-hook.mjs scripts/wp-import/routes.ts",
-    "wp:import": "node --experimental-strip-types --disable-warning=ExperimentalWarning --env-file=.env.local --import ./scripts/lib/alias-hook.mjs scripts/wp-import/import.ts"
+    "wp:import": "node --experimental-strip-types --disable-warning=ExperimentalWarning --env-file=.env.local --import ./scripts/lib/alias-hook.mjs scripts/wp-import/import.ts",
+    "wp:categories": "node --experimental-strip-types --disable-warning=ExperimentalWarning --env-file=.env.local --import ./scripts/lib/alias-hook.mjs scripts/wp-import/categories.ts",
+    "wp:consistency": "node --experimental-strip-types --disable-warning=ExperimentalWarning --env-file=.env.local --import ./scripts/lib/alias-hook.mjs scripts/wp-import/consistency.ts",
+    "wp:facts": "node --experimental-strip-types --disable-warning=ExperimentalWarning --env-file=.env.local --import ./scripts/lib/alias-hook.mjs scripts/wp-import/facts.ts",
+    "wp:fill": "node --experimental-strip-types --disable-warning=ExperimentalWarning --env-file=.env.local --import ./scripts/lib/alias-hook.mjs scripts/wp-import/fill.ts",
+    "wp:visit-time": "node --experimental-strip-types --disable-warning=ExperimentalWarning --env-file=.env.local --import ./scripts/lib/alias-hook.mjs scripts/wp-import/visit-time.ts",
+    "wp:there-and-back": "node --experimental-strip-types --disable-warning=ExperimentalWarning --env-file=.env.local --import ./scripts/lib/alias-hook.mjs scripts/wp-import/there-and-back.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
