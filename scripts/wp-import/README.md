@@ -139,6 +139,13 @@ einen Ort, keine Wege. Solche Spots bekommen nur einen Punkt.
 die Hellbrunner Allee, die im eigenen Text durchgehend eine Fahrradtour ist. Die DAV-Formel
 rechnete aus 30 km Grossglockner-Hochalpenstrasse 16 Stunden Fussmarsch.
 
+**„0 min" ist keine Dauer, sondern das leere Feld der alten Seite.** 17 Spots tragen den
+Wert, darunter der Dom und der Mirabellgarten. Unverändert übernommen stünde auf der
+Detailseite „0 min", und das liest sich nicht wie eine fehlende Angabe, sondern wie ein
+kaputtes Feld. Der Import wirft es weg (`durationFact` in `import.ts`); echte Zahlen für
+Punkt-Spots trägt Anton einzeln in `DURATION_BY_HAND` ein. Aufgefallen ist es erst, als der
+Trockenlauf die Dauer für JEDEN Spot druckt und nicht mehr nur für die mit Route.
+
 **Die gerechnete Dauer gewinnt** über die alte Angabe, wo eine Route übrig bleibt: Die
 alten Werte sind grob überschlagen, und 35 von 60 sind gar keine Gehzeit, sondern ein
 „plane insgesamt X ein" inklusive Bergbahn, Pausen und Baden. Gerundet auf fünf Minuten,
@@ -198,7 +205,7 @@ selben Ort erwähnt.
 **Der Insider-Tipp steht in der Ich-Form des Locals**, und der steht in der Vorlage. Ohne
 Namen ist es Anton. Toni ist die KI und nie ein Local.
 
-Stand: 25 von 95 geschrieben.
+Stand: 33 von 95 geschrieben.
 
 ## Was der Import NICHT entscheidet
 

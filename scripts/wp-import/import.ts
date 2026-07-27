@@ -139,6 +139,26 @@ const factValue = (src: Source, field: string): string | null => {
   return f ? (f.canonical ?? f.value) : null;
 };
 
+// „0 min" ist keine Dauer, sondern das leere Feld der alten Seite. 17 Spots tragen den
+// Wert, darunter der Dom, der Mirabellgarten und die Postalm. Unverändert übernommen
+// stünde auf der Detailseite „0 min", und das liest sich nicht wie eine fehlende Angabe,
+// sondern wie ein kaputtes Feld. Also weg damit: keine Angabe ist ehrlicher als eine
+// falsche. Wo eine Route bleibt, rechnet der Import die Dauer ohnehin selbst.
+//
+// Ausnahmen trägt Anton hier einzeln ein, wenn er die Zahl wirklich kennt. Das steht
+// bewusst als Liste da und nicht als Schätzformel: Eine gerechnete „Besichtigungsdauer"
+// wäre geraten, und Geraten fällt hier still aus.
+const DURATION_BY_HAND: Record<string, string> = {
+  "dom-zu-salzburg": "30 min", // Anton: einmal durchgehen, Krypta inklusive
+};
+
+function durationFact(src: Source): string | null {
+  const byHand = DURATION_BY_HAND[src.slug];
+  if (byHand) return byHand;
+  const v = factValue(src, "duration");
+  return v && /^0\s*min$/i.test(v) ? null : v;
+}
+
 // ── Kategorien ──────────────────────────────────────────────────────────────
 
 // Die alten WordPress-Kategorien auf die Karussell-Reihen der neuen App. Zugeordnet wird
@@ -397,9 +417,7 @@ async function importSpot(
     // sein. Ein Spot, der „2 Stunden" anzeigt und „gut drei Stunden" schreibt, ist schlimmer
     // als einer ohne Angabe.
     duration:
-      isRoute && snapped?.minutes != null
-        ? formatDuration(snapped.minutes)
-        : factValue(src, "duration"),
+      isRoute && snapped?.minutes != null ? formatDuration(snapped.minutes) : durationFact(src),
     price_level: factPrice(factValue(src, "priceLevel") ?? ""),
     area: factCanonical("area", factValue(src, "area") ?? "") ?? factValue(src, "area"),
     fame: factCanonical("fame", factValue(src, "fame") ?? "") ?? null,
@@ -552,7 +570,9 @@ async function main() {
       const r = await importSpot(src, draft, mediaMap, routes, categories, localId, dry);
       done++;
       console.log(
-        `  ${dry ? "würde" : "ok   "} ${slug.padEnd(34)} ${r.row.type.padEnd(8)} ${r.images.length} Fotos${r.row.video_url ? " +Video" : ""}${r.row.route_geojson ? ` Route ${r.row.duration}` : ""}${src.isPro ? "  PRO" : ""}`,
+        // Die Dauer steht für JEDEN Spot da, nicht nur für die mit Route. Genau so ist der
+        // Dom mit „0 min" aufgefallen: Bei Punkt-Spots blieb die Zahl vorher unsichtbar.
+        `  ${dry ? "würde" : "ok   "} ${slug.padEnd(34)} ${r.row.type.padEnd(8)} ${r.images.length} Fotos${r.row.video_url ? " +Video" : ""}${r.row.route_geojson ? " Route" : ""} ${(r.row.duration ?? "-").padEnd(11)}${src.isPro ? " PRO" : ""}`,
       );
       for (const n of r.notes) allNotes.push(`${slug}: ${n}`);
     } catch (err) {
