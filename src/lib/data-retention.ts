@@ -27,6 +27,30 @@ export const RETENTION_DAYS = {
   aiUsage: 90,
   /** Kurzzeit-Zähler gegen Hämmern. Nach einem Tag ohne Bedeutung. */
   burst: 1,
+  /**
+   * Die allgemeinen Missbrauchs-Bremsen aus Migration 0055 (`rate_limits`).
+   *
+   * DIESE ZEILE HAT BIS 07/2026 GEFEHLT, und sie hat am meisten gefehlt. Die Tabelle hält
+   * EINE Zeile je Subjekt und aktualisiert sie an Ort und Stelle — sie läuft also nicht
+   * voll, und genau deshalb ist niemandem aufgefallen, dass sie nie geleert wurde.
+   *
+   * Das Problem ist nicht die Grösse, sondern was drinsteht: /api/track legt für JEDEN
+   * Besucher ein Subjekt `track-ip:sha256(ip + Server-Secret)` an. Dieser Hash rotiert
+   * NICHT (anders als der Besucher-Hash der Reichweitenmessung, der jede Nacht wechselt) —
+   * er ist ein dauerhaftes Pseudonym der IP-Adresse, und daneben stand mit `window_start`
+   * der Zeitpunkt des letzten Aufrufs. Aus einer Bremse war so, ungewollt, eine Liste
+   * „welche Anschlussadresse war wann zuletzt da" geworden, unbefristet.
+   *
+   * Damit stand die Tabelle quer zur Datenschutzerklärung („IP-Adressen werden nie
+   * gespeichert") und zu Art. 5 Abs. 1 lit. e DSGVO. Sie wächst obendrein mit jedem je
+   * gesehenen Besucher, und das an der meistaufgerufenen Route der App.
+   *
+   * EIN TAG, und die Zahl ist nachgerechnet, nicht gegriffen: Das längste Fenster, das
+   * irgendwo genutzt wird, ist eine Stunde (lib/ops-mail.ts); Anmeldelink und Tracking
+   * nehmen 15 Minuten. Eine Zeile, die einen Tag lang nicht angefasst wurde, kann kein
+   * laufendes Fenster mehr sein — ihr Löschen setzt nichts zurück, was noch zählt.
+   */
+  rateLimits: 1,
   /** Tages-Salt der Reichweitenmessung. Danach ist der Besucher-Hash endgültig anonym. */
   analyticsSalt: 2,
   /** Reichweiten-Ereignisse (ohne Personenbezug, sobald der Salt weg ist). */
@@ -71,6 +95,10 @@ export async function pruneExpiredData(): Promise<RetentionResult> {
         .delete({ count: "exact" })
         .lt("day", daysAgo(RETENTION_DAYS.aiUsage).toISOString().slice(0, 10)),
       service.from("ai_burst").delete().lt("window_start", daysAgo(RETENTION_DAYS.burst).toISOString()),
+      service
+        .from("rate_limits")
+        .delete()
+        .lt("window_start", daysAgo(RETENTION_DAYS.rateLimits).toISOString()),
       service
         .from("analytics_salt")
         .delete()

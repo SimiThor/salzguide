@@ -92,6 +92,54 @@ export function classifyDevice(ua: string | null): string {
   return "desktop";
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════════════
+//  MASCHINEN ZÄHLEN NICHT MIT
+// ═══════════════════════════════════════════════════════════════════════════════════════
+//
+// Bis 07/2026 gab es diese Prüfung nicht, und das war der grösste stille Fehler in der
+// ganzen Messung. Googlebot, Bingbot und die Vorschau-Roboter von WhatsApp, Slack, Discord
+// oder Facebook führen JavaScript aus — sie laden also die Seite, mounten <Analytics> und
+// schicken den Beacon wie ein Mensch. Jeder Crawl-Lauf über 200 Spot-Seiten waren 200
+// Seitenaufrufe, und weil ein Bot eine feste IP und einen festen User-Agent hat, war er
+// obendrein EIN eindeutiger Besucher mit einer sehr langen Sitzung und null Absprüngen.
+// Genau die Kennzahlen also, an denen man ablesen will, ob die Seite ankommt.
+//
+// Bewusst eine simple Liste am User-Agent und keine Verhaltenserkennung: Wer sich als
+// Browser ausgibt, ist ohnehin nicht daran zu erkennen, und für die Reichweitenmessung
+// muss das auch nicht sein. Was zählt, sind die grossen, ehrlichen Crawler — die machen
+// den Löwenanteil aus und nennen sich alle selbst beim Namen.
+//
+// Die Prüfung läuft auf dem SERVER und nicht im Beacon: Der Server sieht den User-Agent
+// ohnehin, und eine Regel, die an einer Stelle steht, kann nicht an der zweiten veralten.
+// Die Liste ist bewusst KURZ und eng. Beim Aussortieren ist der teure Fehler der
+// umgekehrte: Ein durchgerutschter Crawler fällt als komischer Ausschlag auf, ein
+// fälschlich verworfener Mensch fällt nie auf — er fehlt einfach.
+//
+// Deshalb steht hier weder „yandex" (Yandex Browser ist ein echter Browser, nur der
+// YandexBot ist einer) noch „duckduckgo" (deren Browser trägt den Namen, deren Crawler
+// heisst DuckDuckBot) noch ein nacktes „preview" oder „feed". Alles, was sich selbst
+// „...bot" nennt — GPTBot, ClaudeBot, AhrefsBot, PetalBot, Applebot — fängt die erste
+// Regel ohnehin ein, ohne dass jemand die Liste pflegen muss.
+const BOT_UA = new RegExp(
+  [
+    "bot\\b", "bot/", "crawl", "spider", "slurp", // nennen sich selbst so
+    "headlesschrome", "phantomjs", "puppeteer", "playwright", // Automatisierung
+    "lighthouse", "pagespeed", "gtmetrix", // Messwerkzeuge
+    "pingdom", "statuscake", "site24x7", "monitoring", // Verfügbarkeitswächter
+    "curl/", "wget", "python-requests", "python-urllib", "go-http-client", // Skripte
+    "java/", "okhttp", "libwww", "scrapy", "axios/", "node-fetch", "got/",
+    "facebookexternalhit", "ia_archiver", "quora link preview", // benannte Abholer
+  ].join("|"),
+  "i",
+);
+
+/** Kommt dieser Aufruf von einer Maschine? Dann NICHT zählen. Eine Quelle für alle Beacons. */
+export function isBotUserAgent(ua: string | null): boolean {
+  // Kein User-Agent = kein Browser. Menschen kommen nie ohne.
+  if (!ua || !ua.trim()) return true;
+  return BOT_UA.test(ua);
+}
+
 const SEARCH_HOSTS = /(google|bing|duckduckgo|ecosia|yahoo|startpage|qwant|brave)\./;
 const SOCIAL_HOSTS =
   /(instagram|facebook|fb\.com|fb\.me|tiktok|twitter|x\.com|t\.co|reddit|youtube|youtu\.be|linkedin|pinterest|whatsapp|telegram|threads)\./;
@@ -144,6 +192,33 @@ export function classifyPath(
   if (p.startsWith("/wasser")) return { kind: "water", target: null };
   if (p.startsWith("/gespeichert")) return { kind: "saved", target: null };
   if (p.startsWith("/profil")) return { kind: "profile", target: null };
+  // Ab hier: Seiten, die bis 07/2026 allesamt als kind:"other" in einem Topf lagen.
+  //
+  // Das war kein Schönheitsfehler. „other" war damit der zweitgrösste Eintrag der
+  // Auswertung, und niemand konnte sagen, woraus er bestand: Darin steckten die
+  // VERKAUFSSEITE /pro (die eine Seite, deren Aufrufe man neben den Conversions sehen
+  // will, um zu wissen, ob das Angebot oder der Weg dorthin klemmt) und der ganze
+  // Touren-Bereich, also ein komplettes Produkt.
+  //
+  // Eigene Touren (/touren/meine/...) bekommen bewusst KEINE Kennung mit: Das ist die
+  // private Tour eines einzelnen Menschen; ihre ID in der Reichweitenmessung wäre ein
+  // Personenbezug, den die Erklärung nicht zusagt. Der Bereich zählt, der Inhalt nicht.
+  const tour = p.match(/^\/touren\/([a-z0-9-]+)\/?$/i);
+  if (tour && tour[1] !== "bauen" && tour[1] !== "meine") {
+    return { kind: "tour", target: tour[1] };
+  }
+  if (p.startsWith("/touren")) return { kind: "tours", target: null };
+  if (p.startsWith("/pro")) return { kind: "pro", target: null };
+  if (p.startsWith("/ueber-uns")) return { kind: "about", target: null };
+  if (p.startsWith("/support")) return { kind: "support", target: null };
+  if (p.startsWith("/rechtliches")) return { kind: "legal", target: null };
+  // Übrig gebliebene Entwickler-Seite (Karussell + Sheet-Probe). Sie ist öffentlich
+  // erreichbar, gehört aber nicht zum Produkt: eigene Kennung, damit ihre Aufrufe sichtbar
+  // sind und nicht unter "other" die Auswertung verwässern. Fällt die Seite weg, fällt
+  // diese Zeile mit weg.
+  if (p.startsWith("/demo")) return { kind: "demo", target: null };
+  // Bleibt "other" dauerhaft gross, fehlt oben eine Zeile. scripts/analytics-check.ts
+  // schlägt Alarm, sobald eine neue Route hier landet.
   return { kind: "other", target: null };
 }
 

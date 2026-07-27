@@ -325,16 +325,48 @@ akzeptiert**; Rechtsgrundlage = berechtigtes Interesse (Art. 6(1)(f)), aggregat-
   (droppt die alte Signatur, saubere Endform). Demo-Vorschau greift jetzt bei `pageviews===0`
   (nicht mehr durch einzelne Server-Events wie KI-Anfragen gestört).
 
-**Datenschutzerklärung — Baustein (bitte übernehmen):**
-> *„Reichweitenmessung: Wir werten die Nutzung unserer App anonymisiert und ausschließlich
-> mit eigenen Mitteln aus (kein Google Analytics, keine Cookies, keine Weitergabe an Dritte).
-> Zur Schätzung eindeutiger Besucher bilden wir einen täglich wechselnden, nicht rückführbaren
-> Hashwert aus IP-Adresse und Browserkennung; die IP-Adresse wird dabei nicht gespeichert.
-> Erfasst werden zudem anonym: aufgerufene Seiten, gemerkte Inhalte, Herkunft (Referrer/Kampagne
-> aus dem aufgerufenen Link), grobes Land (nur Länderkürzel), Gerätetyp und Sprache. Es findet
-> keine seiten- oder geräteübergreifende Wiedererkennung statt. Rechtsgrundlage ist unser
-> berechtigtes Interesse an einer datensparsamen Reichweitenmessung (Art. 6 Abs. 1 lit. f DSGVO).
-> Sie können der Verarbeitung jederzeit widersprechen: [Kontakt]."*
+**Datenschutzerklärung:** ✅ **übernommen** (27.07.2026), ausführlicher als der ursprüngliche
+Baustein hier. `rechtliches/datenschutz` §3h nennt jetzt jedes erhobene Merkmal einzeln (Zeile
+für Zeile die Spalten von `analytics_events`), benennt die Tages-Wiedererkennung offen statt sie
+mit „ohne dich wiederzuerkennen" zu bestreiten, und nennt die 14 Monate für die Ereignisse.
+§3g beschreibt zusätzlich die Missbrauchs-Zähler und das Betriebs-Logbuch, §7 die drei Fristen,
+die dort fehlten. Fristen und Texte hängen an `lib/data-retention.ts` — wer eine Zahl ändert,
+ändert beide Stellen.
+
+**Prüfung 27.07.2026 (Genauigkeit) — 8 Funde, alle behoben:**
+1. **Conversions wurden nie gezählt.** `trackConversion()` war „vorbereitet für Stripe" und
+   hatte keine Aufrufstelle → die Kachel stand dauerhaft auf 0 und die KI-Auswertung bekam
+   diese 0 als Tatsache. Jetzt am Unique-Index in `recordPurchase()` (lib/pro-purchase.ts),
+   dem einzigen Punkt, der pro Kauf genau einmal „neu" sagt (Webhook + Rücksprung sind
+   absichtlich mehrfach durchlaufbar).
+2. **Zeitraum in UTC, Auswertung in Wiener Zeit.** `${von}T00:00:00.000Z` = 02:00 Wiener Zeit
+   im Sommer → jeder Bericht begann und endete zwei Stunden daneben, der erste Balken war
+   systematisch zu niedrig. Neu: `lib/vienna-day.ts` (Zwei-Pass-Auflösung, an beiden
+   Umstellungstagen geprüft) als einzige Quelle für Tagesgrenzen und Balken.
+3. **Zeitreihe mit Löchern.** Balken ohne Ereignis fehlten in der Antwort, das Diagramm malte
+   die verbliebenen gleich breit über die volle Breite → frei erfundene Kurve bei korrekten
+   Einzelzahlen. Jetzt wird über `bucketRange()` lückenlos aufgefüllt.
+4. **Ganze Bereiche in `kind:"other"`:** /touren (ein komplettes Produkt), /pro (die
+   Verkaufsseite), /ueber-uns, /support, /rechtliches, /demo. Jetzt eigene kinds; private
+   Touren (/touren/meine/…) bewusst **ohne** Kennung.
+5. **Keine Bot-Erkennung.** Googlebot & Co. führen JS aus, feuerten also den Beacon: je Crawl
+   hunderte Aufrufe, dazu ein „eindeutiger Besucher" mit langer Sitzung und null Absprüngen.
+   `isBotUserAgent()` sortiert sie **vor** jeder DB-Arbeit aus (spart obendrein Roundtrips).
+6. **Filter, die eine Kennzahl nicht beantworten kann, zeigten 0** statt „nicht auswertbar":
+   Quelle/Kampagne hängen nur an Pageviews, ein Kauf kennt nur die Sprache. Neu: `Answerable`
+   → Kachel zeigt „–", die KI bekommt „nicht erhoben" statt einer Null.
+7. **`rate_limits` wurde nie aufgeräumt** (fehlte in `data-retention.ts`). /api/track legt je
+   Besucher-IP ein **nicht rotierendes** Pseudonym mit Zeitstempel an → unbefristete Liste
+   „welcher Anschluss war wann zuletzt da", quer zur Erklärung und zu Art. 5 Abs. 1 lit. e.
+   Jetzt 1 Tag (längstes genutztes Fenster: 1 h).
+8. **Zwei Kacheln „KI-Anfragen"** auf einer Seite mit verschiedenen Fenstern und verschiedenen
+   Quellen (`analytics_events` vs. `ai_insights`). Fenster angeglichen, untere Kachel als
+   „davon eingeordnet" benannt.
+
+**Regressionsschutz:** `npm run analytics:check` (scripts/analytics-check.ts) prüft die echten
+Funktionen — Einordnung **jeder** Route der App (schlägt an, sobald eine neue in „other"
+fällt), Bot-Liste gegen echte Browser- und Crawler-Kennungen, 800 Wiener Kalendertage inkl.
+beider Umstellungen, Balkenraster gegen Postgres' `date_trunc`.
 
 ## §I — Anonyme KI-Chatbot-Auswertung (Anton-Insights)
 

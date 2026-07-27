@@ -106,17 +106,93 @@ export default async function DatenschutzPage({
         durch Cloudflare verarbeitet, um „Mensch oder Bot“ zu unterscheiden.
       </p>
       <h3>g) Server-Logs &amp; Sicherheit</h3>
+      {/* Nannte bis 07/2026 nur die Verbindungsdaten des Hosters und verschwieg, dass wir
+          selbst zwei Dinge schreiben: die Zähler gegen Missbrauch (Migration 0055,
+          lib/login-link.ts + api/track) und das Betriebs-Logbuch (Migration 0056, lib/ops.ts).
+          In beiden steht ein aus der IP-Adresse gebildetes Pseudonym. Eine Verarbeitung, die
+          in der Erklärung nicht vorkommt, ist ein Verstoß gegen Art. 13 DSGVO, auch wenn in
+          der Tabelle nur Hashwerte stehen. */}
       <p>
         Beim Aufruf fallen technisch notwendige Verbindungsdaten an (z. B. gekürzte/verarbeitete
         IP-Adresse, Zeitpunkt, aufgerufene Ressource), die der Auslieferung, Stabilität und
-        Missbrauchsabwehr dienen.
+        Missbrauchsabwehr dienen. Zusätzlich führen wir selbst zwei Aufzeichnungen:
       </p>
-      <h3>h) Reichweitenmessung (cookielos)</h3>
+      <ul>
+        <li>
+          <strong>Zähler gegen Missbrauch:</strong> Damit niemand ein fremdes Postfach mit
+          Anmeldelinks zuschütten oder unsere Messung vollschreiben kann, zählen wir
+          kurzzeitig, wie oft von derselben Stelle etwas kommt. Als Schlüssel dient nie die
+          Adresse selbst, sondern ein daraus errechneter Hashwert. Diese Zähler löschen wir
+          täglich, sobald sie älter als einen Tag sind.
+        </li>
+        <li>
+          <strong>Betriebs-Logbuch:</strong> Fehler, abgewiesene Zugriffe und Änderungen im
+          Verwaltungsbereich halten wir fest, um Störungen und Angriffe nachvollziehen zu
+          können. Freitexte werden dabei geschwärzt, Personen erscheinen nur als Hashwert.
+          Nach 90 Tagen wird gelöscht.
+        </li>
+      </ul>
       <p>
-        Wir messen die Nutzung datenschonend, <strong>ohne Cookies</strong> und ohne dich
-        wiederzuerkennen. IP-Adressen werden nie gespeichert, sondern nur über einen täglich
-        wechselnden Zufallswert kurzzeitig gehasht (danach anonym). Es entsteht kein Personenbezug;
-        ein Cookie-Banner ist dafür nicht erforderlich (§ 165 TKG).
+        Rechtsgrundlage für beides ist unser berechtigtes Interesse an einem sicheren,
+        funktionierenden Betrieb (Art. 6 Abs. 1 lit. f DSGVO).
+      </p>
+
+      <h3>h) Reichweitenmessung (cookielos)</h3>
+      {/* Muss beschreiben, was der Code WIRKLICH tut (Art. 13 DSGVO). Hier standen bis
+          07/2026 vier Zeilen, die WENIGER sagten, als passiert: Sie nannten kein einziges
+          erhobenes Merkmal, keine Speicherdauer der Ereignisse und behaupteten „ohne dich
+          wiederzuerkennen" — obwohl der Tages-Hash genau dazu da ist, Aufrufe EINES Tages
+          zusammenzuführen (sonst gäbe es weder Besucher- noch Sitzungszahlen). Der
+          vollständige Baustein lag seit der Umsetzung in docs/34 §H unter „bitte übernehmen".
+
+          Die Liste unten ist abschliessend und entspricht Zeile für Zeile den Spalten von
+          `analytics_events` (Migrationen 0019-0021) samt den Aufrufstellen von trackEvent().
+          Wer ein Feld ergänzt, ergänzt diese Liste. */}
+      <p>
+        Wir messen selbst und mit eigenen Mitteln, wie unsere Seiten genutzt werden. Kein
+        Google Analytics, keine Werbenetzwerke, keine Weitergabe an Dritte. Auf deinem Gerät
+        wird dafür <strong>nichts gespeichert und nichts ausgelesen</strong>; ein
+        Cookie-Hinweis ist dafür nicht erforderlich (§ 165 Abs. 3 TKG).
+      </p>
+      <p>Zu einem Aufruf halten wir fest:</p>
+      <ul>
+        <li>
+          welche Seite aufgerufen wurde (bei einem Spot oder einer Tour deren Kürzel, sonst
+          nur die Art der Seite),
+        </li>
+        <li>
+          woher du gekommen bist: die Art der Quelle (direkt, Suchmaschine, soziales Netzwerk)
+          oder die Domain der verweisenden Seite, und die Kampagne aus dem angeklickten Link,
+        </li>
+        <li>
+          das Land als Länderkürzel (z. B. „AT“, nie ein genauerer Ort), die Geräteart (Handy,
+          Tablet, Computer) und die eingestellte Sprache,
+        </li>
+        <li>
+          welche Spots und Events gemerkt, welche Event-Links angeklickt, wie viele Fragen an
+          den KI-Assistenten gestellt und wie viele Käufe abgeschlossen wurden, jeweils nur
+          als Anzahl.
+        </li>
+      </ul>
+      <p>
+        Um abschätzen zu können, wie viele verschiedene Menschen an einem Tag da waren, bilden
+        wir aus deiner IP-Adresse, deiner Browserkennung und einem Zufallswert, der jede Nacht
+        wechselt, einen Hashwert. <strong>Die IP-Adresse selbst speichern wir nicht.</strong>{" "}
+        Innerhalb eines Tages erkennen wir daran, dass mehrere Aufrufe zusammengehören &ndash;
+        nur so entstehen überhaupt Besuchs- und Besucherzahlen. Über den Tag hinaus, auf ein
+        anderes Gerät oder auf andere Websites ist keine Wiedererkennung möglich und auch nicht
+        gewollt. Den Zufallswert löschen wir nach spätestens zwei Tagen; danach lässt sich der
+        Hashwert niemandem mehr zuordnen. Die anonymen Ereignisse selbst bewahren wir rund
+        14 Monate auf, damit ein Vergleich mit dem Vorjahr möglich bleibt.
+      </p>
+      <p>
+        Nicht mitgezählt werden Aufrufe aus unserem eigenen Betrieb und die von Suchmaschinen-
+        und Vorschau-Robotern. Rechtsgrundlage ist unser berechtigtes Interesse an einer
+        datensparsamen Reichweitenmessung (Art. 6 Abs. 1 lit. f DSGVO). Du kannst dieser
+        Verarbeitung jederzeit widersprechen (Art. 21 DSGVO), formlos an{" "}
+        <a href={`mailto:${LEGAL.email}`}>{LEGAL.email}</a>. Wir werten ausschließlich
+        zusammengefasste Zahlen aus; eine Ansicht einzelner Personen gibt es nicht und ist mit
+        diesen Daten auch nicht herstellbar.
       </p>
       <h3>i) Cookies und ähnliche Technologien</h3>
       {/* Hieß bis 07/2026 nur „Cookies" und nannte nur Cookies. § 165 Abs. 3 TKG (und die
@@ -320,10 +396,24 @@ export default async function DatenschutzPage({
       </p>
 
       <h2>7. Speicherdauer</h2>
+      {/* DIESE LISTE IST EIN VERSPRECHEN, KEINE ABSICHT. Jede Zahl hier steht als Konstante in
+          lib/data-retention.ts und wird nachts um 03:30 vom Cron durchgesetzt; wer eine ändert,
+          ändert beide. Eine Frist, die in der Erklärung steht und im Betrieb nicht eingehalten
+          wird, ist eine falsche Angabe nach Art. 13 DSGVO.
+
+          Bis 07/2026 fehlten hier drei Zeilen, obwohl der Code sie schon löschte (Reichweiten-
+          Ereignisse, Betriebs-Logbuch) bzw. NICHT löschte (Missbrauchs-Zähler, die deshalb
+          unbefristet lagen). */}
       <ul>
         <li>Kontodaten: bis zur Löschung deines Kontos durch dich oder auf deine Anfrage.</li>
         <li>Anonyme KI-Auswertungen: ohne Personenbezug; Roh-Nutzungsdaten der KI max. 90 Tage.</li>
-        <li>Reichweitenmessung: nach spätestens 2 Tagen anonym, danach ohne Personenbezug.</li>
+        <li>
+          Reichweitenmessung: der Zufallswert nach spätestens 2 Tagen gelöscht, die Ereignisse
+          danach ohne Personenbezug und nach rund 14 Monaten gelöscht.
+        </li>
+        <li>Zähler gegen Missbrauch: 1 Tag.</li>
+        <li>Betriebs-Logbuch (Fehler, abgewiesene Zugriffe, Verwaltungsspur): 90 Tage.</li>
+        <li>Support-Anfragen: solange die Bearbeitung und mögliche Rückfragen es erfordern.</li>
         <li>Rechnungs-/Zahlungsdaten: gesetzliche Aufbewahrungsfrist (i. d. R. 7 Jahre, § 132 BAO).</li>
       </ul>
 

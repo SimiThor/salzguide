@@ -35,6 +35,7 @@ import {
   classifySource,
   classifyPath,
   spotSubtype,
+  isBotUserAgent,
 } from "@/lib/analytics";
 
 export const runtime = "nodejs";
@@ -114,6 +115,13 @@ export async function POST(req: Request) {
     return new NextResponse(null, { status: 413 });
   }
 
+  // Maschinen zählen nicht mit — und zwar VOR allem anderen. Der Bot-Anteil ist bei einer
+  // öffentlichen Seite der grösste Einzelposten im Verkehr; ihn hier abzufangen spart
+  // Datenbank-Arbeit (Limit-Prüfung, Kategorie-Abfrage, INSERT) für jeden einzelnen
+  // Crawl-Aufruf. Ein Textvergleich statt drei Roundtrips. Warum überhaupt: lib/analytics.ts.
+  const ua = req.headers.get("user-agent");
+  if (isBotUserAgent(ua)) return new NextResponse(null, { status: 204 });
+
   let body: Record<string, unknown>;
   try {
     body = (await req.json()) as Record<string, unknown>;
@@ -126,7 +134,6 @@ export async function POST(req: Request) {
     typeof body.locale === "string" && (LOCALE_CODES as readonly string[]).includes(body.locale)
       ? body.locale
       : null;
-  const ua = req.headers.get("user-agent");
   const device = classifyDevice(ua);
   const country = clientCountry(req);
   // Headers JETZT auslesen: In `after()` ist das Request-Objekt nicht mehr garantiert
