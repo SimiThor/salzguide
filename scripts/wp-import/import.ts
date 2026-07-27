@@ -23,7 +23,7 @@ import { slugify } from "../../src/lib/slug.ts";
 import { guardStorageUrl } from "../../src/lib/storage-guard.ts";
 import { hashSpotTexts } from "../../src/lib/spot-hash.ts";
 import { stripEmDashFields } from "../../src/lib/em-dash.ts";
-import { routeLengthKm, hikingTimeMinutes, haversineMeters } from "../../src/lib/geo.ts";
+import { routeLengthKm, haversineMeters } from "../../src/lib/geo.ts";
 import type { WpSource } from "./parse.ts";
 
 const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -327,13 +327,6 @@ async function importSpot(src: Source, draft: Draft, mediaMap: Record<string, Ma
   }
 
   return { row, images, texts, notes, spotId };
-}
-
-// „5 h 47" statt „347". Freitext-Feld, wie snapRoute es auch schreibt.
-function formatDuration(min: number): string {
-  const h = Math.floor(min / 60);
-  const m = min % 60;
-  return h ? `${h} Std ${m ? `${m} min` : ""}`.trim() : `${m} min`;
 }
 
 // ── Lauf ────────────────────────────────────────────────────────────────────
