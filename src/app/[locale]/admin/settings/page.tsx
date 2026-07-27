@@ -1,5 +1,5 @@
 import { setRequestLocale } from "next-intl/server";
-import { Link } from "@/i18n/navigation";
+import AdminNavCard from "@/components/admin/AdminNavCard";
 import ToniAvatarSettings from "@/components/admin/ToniAvatarSettings";
 import CategoryManager from "@/components/admin/CategoryManager";
 import LocalManager from "@/components/admin/LocalManager";
@@ -40,112 +40,55 @@ export default async function AdminSettingsPage({
           Sichtweite gescrollt.
           Der Status steht MIT hier: „Übersetzungen veraltet" nützt nichts, wenn man es erst
           sieht, nachdem man hineingeklickt hat. */}
-      <Link
+      <AdminNavCard
         href="/admin/settings/home"
-        className="flex items-center gap-4 rounded-[18px] bg-white p-5 shadow-sm ring-1 ring-black/5 transition hover:ring-black/15 active:scale-[0.995]"
-      >
-        <span className="text-[22px]" aria-hidden>
-          🏠
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="flex flex-wrap items-center gap-2">
-            <span className="text-[17px] font-bold text-ink">Startseite</span>
-            <HomeBadge state={home.state} />
-          </span>
-          <span className="mt-1 block text-[13px] leading-relaxed text-muted">
-            Texte, Bilder und die Spots auf salzguide.com.
-          </span>
-        </span>
-        <span className="shrink-0 text-[18px] text-muted" aria-hidden>
-          ›
-        </span>
-      </Link>
+        emoji="🏠"
+        title="Startseite"
+        badge={<HomeBadge state={home.state} />}
+        description="Texte, Bilder und die Spots auf salzguide.com."
+      />
 
       {/* Analytics ist keine Einstellung, und das weiss ich. Es steht trotzdem hier, weil
           „Einstellungen" faktisch der Ort für alles ist, was man selten anfasst — und ein
           eigener Reiter kostet bei jedem Blick Aufmerksamkeit für etwas, das man ein paar
           Mal im Jahr anschaut. Wer es sucht, findet es hier; wer es nicht sucht, wird nicht
           davon abgelenkt. Anton hat das so entschieden, den Einwand kannte er. */}
-      <Link
+      <AdminNavCard
         href="/admin/settings/analytics"
-        className="flex items-center gap-4 rounded-[18px] bg-white p-5 shadow-sm ring-1 ring-black/5 transition hover:ring-black/15 active:scale-[0.995]"
-      >
-        <span className="text-[22px]" aria-hidden>
-          📈
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="text-[17px] font-bold text-ink">Analytics</span>
-          <span className="mt-1 block text-[13px] leading-relaxed text-muted">
-            Besucher, Spots, Kampagnen und die KI-Auswertung.
-          </span>
-        </span>
-        <span className="shrink-0 text-[18px] text-muted" aria-hidden>
-          ›
-        </span>
-      </Link>
+        emoji="📈"
+        title="Analytics"
+        description="Besucher, Spots, Kampagnen und die KI-Auswertung."
+      />
 
       {/* Das Logbuch. Steht bewusst WEIT OBEN, direkt nach Startseite und Analytics: Wer
           eine Alarm-Mail bekommen hat, klickt zwar den Link darin — aber wer ohne Anlass
           nachsehen will, ob alles läuft, soll nicht scrollen müssen. Es ist die einzige
           Kachel hier, die eine Frage beantwortet statt eine Einstellung anzubieten. */}
-      <Link
+      <AdminNavCard
         href="/admin/settings/system"
-        className="flex items-center gap-4 rounded-[18px] bg-white p-5 shadow-sm ring-1 ring-black/5 transition hover:ring-black/15 active:scale-[0.995]"
-      >
-        <span className="text-[22px]" aria-hidden>
-          🩺
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="text-[17px] font-bold text-ink">System</span>
-          <span className="mt-1 block text-[13px] leading-relaxed text-muted">
-            Fehler, Missbrauchsversuche und die Hintergrund-Läufe.
-          </span>
-        </span>
-        <span className="shrink-0 text-[18px] text-muted" aria-hidden>
-          ›
-        </span>
-      </Link>
+        emoji="🩺"
+        title="System"
+        description="Fehler, Missbrauchsversuche und die Hintergrund-Läufe."
+      />
 
       {/* Vorschau aller Mails, in allen neun Sprachen. Steht hier und nicht unter Nutzer,
           weil man sie nicht bei einer bestimmten Person braucht, sondern beim Nachschauen,
           was eigentlich rausgeht. Verschickt nichts. */}
-      <Link
+      <AdminNavCard
         href="/admin/settings/mails"
-        className="flex items-center gap-4 rounded-[18px] bg-white p-5 shadow-sm ring-1 ring-black/5 transition hover:ring-black/15 active:scale-[0.995]"
-      >
-        <span className="text-[22px]" aria-hidden>
-          ✉️
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="text-[17px] font-bold text-ink">Mails</span>
-          <span className="mt-1 block text-[13px] leading-relaxed text-muted">
-            Anmeldelink, Kaufbestätigung und der Rest, in jeder Sprache zum Anschauen.
-          </span>
-        </span>
-        <span className="shrink-0 text-[18px] text-muted" aria-hidden>
-          ›
-        </span>
-      </Link>
+        emoji="✉️"
+        title="Mails"
+        description="Anmeldelink, Kaufbestätigung und der Rest, in jeder Sprache zum Anschauen."
+      />
 
       {/* Download-Center für die Clean-Intro-Videos (ohne Text-Overlay), für die eigene
           Werbevideo-Produktion. Bewusst versteckt in den Einstellungen: selten gebraucht. */}
-      <Link
+      <AdminNavCard
         href="/admin/settings/intro-videos"
-        className="flex items-center gap-4 rounded-[18px] bg-white p-5 shadow-sm ring-1 ring-black/5 transition hover:ring-black/15 active:scale-[0.995]"
-      >
-        <span className="text-[22px]" aria-hidden>
-          🎬
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="text-[17px] font-bold text-ink">Intro-Videos</span>
-          <span className="mt-1 block text-[13px] leading-relaxed text-muted">
-            Die Wander-Animationen ohne Text-Overlay herunterladen (für eigene Videos).
-          </span>
-        </span>
-        <span className="shrink-0 text-[18px] text-muted" aria-hidden>
-          ›
-        </span>
-      </Link>
+        emoji="🎬"
+        title="Intro-Videos"
+        description="Die Wander-Animationen ohne Text-Overlay herunterladen (für eigene Videos)."
+      />
 
       {/* Instagram-Kacheln: Bild hochladen, Link einfügen, fertig. Bewusst ohne Meta-App und
           ohne Token — die Einrichtung dort war der Grund, den automatischen Abgleich wieder

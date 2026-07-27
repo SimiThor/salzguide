@@ -1,5 +1,5 @@
 import { setRequestLocale } from "next-intl/server";
-import { Link } from "@/i18n/navigation";
+import AdminNavCard from "@/components/admin/AdminNavCard";
 import {
   getAdminUsers,
   getLatestProGrants,
@@ -77,34 +77,19 @@ export default async function AdminUsersPage({
           eigener Reiter stand es oben und kostete bei jedem Blick Aufmerksamkeit — jetzt
           sagt der Zähler in der Navigation Bescheid, wenn jemand wartet, und man muss
           nicht mehr nachsehen. Gleiches Muster wie Events -> Jahres-Events. */}
-      <Link
+      <AdminNavCard
         href="/admin/users/support"
-        className="flex items-center gap-4 rounded-[18px] bg-white p-5 shadow-sm ring-1 ring-black/5 transition hover:ring-black/15 active:scale-[0.995]"
-      >
-        <span className="text-[22px]" aria-hidden>
-          ✉️
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="flex flex-wrap items-center gap-2">
-            <span className="text-[17px] font-bold text-ink">Support-Anfragen</span>
-            {openSupport > 0 ? (
-              <span className={STATUS_ACCENT}>
-                {openSupport} offen
-              </span>
-            ) : (
-              <span className={STATUS_NEUTRAL}>
-                nichts offen
-              </span>
-            )}
-          </span>
-          <span className="mt-1 block text-[13px] leading-relaxed text-muted">
-            Nachrichten aus dem Formular auf /support.
-          </span>
-        </span>
-        <span className="shrink-0 text-[18px] text-muted" aria-hidden>
-          ›
-        </span>
-      </Link>
+        emoji="✉️"
+        title="Support-Anfragen"
+        badge={
+          openSupport > 0 ? (
+            <span className={STATUS_ACCENT}>{openSupport} offen</span>
+          ) : (
+            <span className={STATUS_NEUTRAL}>nichts offen</span>
+          )
+        }
+        description="Nachrichten aus dem Formular auf /support."
+      />
 
       {/* IMMER zeigen, auch bei leerer Liste.
           Vorher stand hier `migration.total > 0 &&` — mit der Absicht, dass die Kachel nach
@@ -113,40 +98,27 @@ export default async function AdminUsersPage({
           die Kachel zu sehen, Adressen. Anton stand davor und fand den Einstieg nicht.
           Ein Einstieg, der von den Daten abhängt, die man nur über ihn anlegen kann, ist
           immer eine Falle. Statt der Kachel geht jetzt der TEXT mit. */}
-      <Link
+      <AdminNavCard
         href="/admin/users/migration"
-        className="flex items-center gap-4 rounded-[18px] bg-white p-5 shadow-sm ring-1 ring-black/5 transition hover:ring-black/15 active:scale-[0.995]"
-      >
-        <span className="text-[22px]" aria-hidden>
-          📦
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="flex flex-wrap items-center gap-2">
-            <span className="text-[17px] font-bold text-ink">Alt-Käufer freischalten</span>
-            {migration.total === 0 ? (
-              <span className={STATUS_NEUTRAL}>
-                noch nichts eingetragen
-              </span>
-            ) : migration.open > 0 ? (
-              <span className={STATUS_ACCENT}>
-                {migration.claimed} von {migration.total} angemeldet
-              </span>
-            ) : (
-              <span className={STATUS_NEUTRAL}>
-                alle {migration.total} angemeldet
-              </span>
-            )}
-          </span>
-          <span className="mt-1 block text-[13px] leading-relaxed text-muted">
-            {migration.total === 0
-              ? "E-Mail-Adressen der Käufer von der alten WordPress-Seite hier eintragen."
-              : "Käufer von der alten WordPress-Seite. Pro kommt automatisch bei ihrer Anmeldung."}
-          </span>
-        </span>
-        <span className="shrink-0 text-[18px] text-muted" aria-hidden>
-          ›
-        </span>
-      </Link>
+        emoji="📦"
+        title="Alt-Käufer freischalten"
+        badge={
+          migration.total === 0 ? (
+            <span className={STATUS_NEUTRAL}>noch nichts eingetragen</span>
+          ) : migration.open > 0 ? (
+            <span className={STATUS_ACCENT}>
+              {migration.claimed} von {migration.total} angemeldet
+            </span>
+          ) : (
+            <span className={STATUS_NEUTRAL}>alle {migration.total} angemeldet</span>
+          )
+        }
+        description={
+          migration.total === 0
+            ? "E-Mail-Adressen der Käufer von der alten WordPress-Seite hier eintragen."
+            : "Käufer von der alten WordPress-Seite. Pro kommt automatisch bei ihrer Anmeldung."
+        }
+      />
 
       {/* Map -> Array: Eine Map überlebt die Server/Client-Grenze nicht. */}
       <AdminUserList users={users} grants={Object.fromEntries(grants)} />

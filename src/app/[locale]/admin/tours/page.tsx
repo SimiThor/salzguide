@@ -1,33 +1,23 @@
 import { Link } from "@/i18n/navigation";
 import { getToursAdmin } from "@/lib/tours";
+import { getAreasAdmin } from "@/lib/tour-pool";
+import AdminNavCard from "@/components/admin/AdminNavCard";
 import ProBadge from "@/components/ProBadge";
+import { STATUS_NEUTRAL } from "@/lib/ui";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminToursPage() {
-  const tours = await getToursAdmin();
+  const [tours, areas] = await Promise.all([getToursAdmin(), getAreasAdmin()]);
+  const points = areas.reduce((n, a) => n + a.pointCount, 0);
 
   return (
     <div className="space-y-4 pb-12">
-
-      {/* Neues Pool-Modell: Gebiete + dedizierte Audio-Punkte (Basis für kuratierte & KI-Touren). */}
-      <Link
-        href="/admin/tours/gebiete"
-        className="flex items-center justify-between gap-3 rounded-[16px] bg-ink px-5 py-4 text-white active:scale-[0.99]"
-      >
-        <span>
-          <span className="block text-[15px] font-semibold">Gebiete &amp; Punkte (Pool)</span>
-          <span className="block text-[12px] text-white/70">
-            Dedizierte Audio-Punkte je Gebiet verwalten – Basis für kuratierte &amp; KI-Touren
-          </span>
-        </span>
-        <span className="text-[18px]" aria-hidden>
-          ›
-        </span>
-      </Link>
-
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-ink">Kuratierte Touren</h1>
+      {/* Überschrift zuerst, wie auf Spots, Events, Nutzer und Einstellungen. Hier fing die
+          Seite als einzige mit einer Kachel an und trug ihre Überschrift eine Stufe kleiner
+          mittendrin. */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold text-ink">Admin · Audio-Touren</h1>
         <Link
           href="/admin/tours/new"
           className="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-white active:scale-[0.98]"
@@ -35,6 +25,30 @@ export default async function AdminToursPage() {
           + Neue Tour
         </Link>
       </div>
+
+      {/* Neues Pool-Modell: Gebiete + dedizierte Audio-Punkte (Basis für kuratierte & KI-Touren).
+          Dieselbe Kachel wie Einstellungen -> Startseite oder Events -> Jahres-Events. Sie war
+          hier als Einzelstück gebaut (dunkel, ohne Emoji, kleinere Schrift) und damit das
+          einzige Ding im Admin, das aussah, als gehörte es woanders hin.
+
+          Die Zahlen stehen MIT drauf: Ob der Pool überhaupt schon gefüllt ist, ist die Frage,
+          die man von aussen stellt. Der Zähler kostet eine Abfrage, die die Seite ohnehin
+          dynamisch macht. */}
+      <AdminNavCard
+        href="/admin/tours/gebiete"
+        emoji="🗺️"
+        title="Gebiete & Punkte (Pool)"
+        badge={
+          <span className={STATUS_NEUTRAL}>
+            {areas.length === 0
+              ? "noch nichts angelegt"
+              : `${areas.length} ${areas.length === 1 ? "Gebiet" : "Gebiete"} · ${points} ${points === 1 ? "Punkt" : "Punkte"}`}
+          </span>
+        }
+        description="Dedizierte Audio-Punkte je Gebiet. Die Basis für kuratierte und KI-Touren."
+      />
+
+      <h2 className="text-xl font-bold text-ink">Kuratierte Touren</h2>
 
       <div className="divide-y divide-black/5 overflow-hidden rounded-[16px] bg-white shadow-sm">
         {tours.map((t) => (
