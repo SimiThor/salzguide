@@ -1,7 +1,9 @@
 import "server-only";
 import { LEGAL, legalAddress } from "./legal";
 import { siteUrl } from "./site-url";
+import { fill, mailTexts } from "./mail-i18n";
 import { renderMailShell, renderMailShellText, type MailContent } from "./mail-layout";
+import { bcp47, DEFAULT_LOCALE } from "@/i18n/locales";
 
 // ═══════════════════════════════════════════════════════════════════════════════════════
 //  Die Kaufbestätigung. Keine Höflichkeit, sondern Bedingung (c).
@@ -23,22 +25,32 @@ import { renderMailShell, renderMailShellText, type MailContent } from "./mail-l
 // (siehe pro-purchase.ts), und deshalb ist sie eine Mail und kein Bildschirm: Eine Webseite
 // ist kein dauerhafter Datenträger, ein Postfach schon.
 //
-// DEUTSCH, wie die anderen beiden Mails: Die AGB legen Deutsch als Vertragssprache fest, und
-// die Rechtstexte sind bewusst nur deutsch (siehe lib/legal.ts). Eine Vertragsbestätigung in
-// einer Sprache zu schicken, in der die Bedingungen gar nicht gelten, wäre kein Fortschritt.
+// ── WARUM DAS KLEINGEDRUCKTE DEUTSCH BLEIBT, WÄHREND DER REST ÜBERSETZT IST ──
 //
-// AUFBAU wie bei der Umzugs- und der Geschenk-Mail, mit denselben Bausteinen aus
-// mail-layout.ts: Überschrift, kurze Absätze mit Emoji, Datenblock, EIN Knopf, die Blush-
-// Kachel für die Angabe, an der alles hängt, Hinweis, Rechtslinks. Die Pflichtangaben stehen
-// im Datenblock und nicht im Fliesstext, weil sie nachgeschlagen und nicht gelesen werden.
+// Alles, was der Käufer verstehen MUSS, um zu wissen, was er gekauft hat, kommt in seiner
+// Sprache: Leistung, Preis, Zeitpunkt, Vertragspartner, Bestellreferenz. Das Kleingedruckte
+// darunter (die dokumentierte §-18-Zustimmung und ihre Folge) bleibt deutsch, und das ist
+// eine bewusste Entscheidung, keine Lücke:
+//
+//   - Die AGB legen Deutsch als Vertragssprache fest, und die Rechtstexte auf der Seite sind
+//     nur deutsch (lib/legal.ts, Legal.deOnly: „rechtlich verbindlich ist die deutsche
+//     Fassung"). Eine Bestätigung kann nicht in mehr Sprachen gelten als der Vertrag, den
+//     sie bestätigt.
+//   - Dieser Absatz IST der Nachweis. Eine Übersetzung, die eine Nuance verschiebt, macht
+//     den Nachweis angreifbar, und zwar genau dann, wenn er gebraucht wird.
+//
+// Damit das niemanden ratlos zurücklässt, steht eine Zeile in SEINER Sprache darüber
+// (`purchase.legalDe`), die sagt, warum dort Deutsch steht. ANTON: Wenn ein Anwalt das
+// anders sieht, ist der Umbau klein — die Texte hängen alle an messages/*.json.
 
-export const PRO_PURCHASE_SUBJECT = "Deine Kaufbestätigung: SalzGuide Pro";
-
-/** Datum und Uhrzeit, wie sie in eine österreichische Vertragsbestätigung gehören. */
-function atDateTime(iso: string | null): string {
+/** Datum und Uhrzeit, in der Schreibweise des Empfängers. */
+function dateTime(iso: string | null, locale: string): string {
   const d = iso ? new Date(iso) : new Date();
   const when = Number.isNaN(d.getTime()) ? new Date() : d;
-  return new Intl.DateTimeFormat("de-AT", {
+  // Die ZEITZONE bleibt Europe/Vienna, auch für einen Käufer in Seoul: Der Zeitpunkt des
+  // Vertragsabschlusses ist eine Tatsache über unser Geschäft, keine Ansichtssache. Nur die
+  // Schreibweise richtet sich nach dem Leser.
+  return new Intl.DateTimeFormat(bcp47(locale), {
     dateStyle: "long",
     timeStyle: "short",
     timeZone: "Europe/Vienna",
@@ -76,82 +88,102 @@ export type ProPurchaseReceipt = {
    * für den, der längst in der App steht.
    */
   guest: boolean;
+  /** Sprache des Käufers, aus den Stripe-Metadaten (siehe stripe-actions.ts). */
+  locale: string;
 };
 
-function content(r: ProPurchaseReceipt): MailContent {
+/**
+ * Das Kleingedruckte. DEUTSCH, siehe Kopf dieser Datei.
+ *
+ * Steht hier im Code und nicht in messages/*.json, weil es dort acht Übersetzungen anfordern
+ * würde, die es nicht geben soll: `npm run i18n:check` verlangt jeden Schlüssel in jeder
+ * Sprache, und genau dieser eine soll nur auf Deutsch existieren.
+ */
+function fineprintDe(r: ProPurchaseReceipt): string {
+  return (
+    `✍️ Deine Zustimmung beim Kauf: Du hast am ${dateTime(r.consentAt ?? r.paidAt, "de")} ` +
+    "ausdrücklich verlangt, dass wir schon vor Ablauf der Rücktrittsfrist mit der Ausführung " +
+    "beginnen, also sofort freischalten. Und du hast bestätigt, zur Kenntnis genommen zu " +
+    "haben, dass du dadurch dein Rücktrittsrecht (Widerrufsrecht) für die Inhalte verlierst " +
+    "(§ 18 Abs. 1 Z 11 FAGG).\n\n" +
+    "↩️ Was das heisst: Für die freigeschalteten Inhalte ist dein 14-tägiges Rücktrittsrecht " +
+    "mit der sofortigen Freischaltung erloschen. Der KI-Assistent ohne Begrenzung ist eine " +
+    "unentgeltliche Zugabe und nicht Teil der bezahlten Leistung; auf ihn entfällt kein " +
+    "Preisanteil. Erklären kannst du einen Rücktritt jederzeit und ohne Begründung über das " +
+    "Formular in der Widerrufsbelehrung, wir bestätigen den Eingang unverzüglich per E-Mail."
+  );
+}
+
+async function content(r: ProPurchaseReceipt): Promise<MailContent> {
   const base = siteUrl();
+  const locale = r.locale;
+  const all = await mailTexts(locale);
+  const t = all.purchase;
 
   return {
-    subject: PRO_PURCHASE_SUBJECT,
+    locale,
+    subject: t.subject,
     // „SalzGuide" wird vom Rahmen automatisch rot gesetzt, deshalb steht es in der Überschrift
     // und nicht nochmal darüber.
-    headline: "Deine Bestätigung für SalzGuide Pro",
+    headline: t.headline,
     body:
-      "Danke dir. Hier steht schwarz auf weiss, was du gekauft hast. Bewahr die Mail auf, " +
-      "sie ist deine Vertragsbestätigung.\n\n" +
-      (r.guest
-        ? "📩 Dein Zugang läuft auf die Adresse unten. Wenn du gerade nicht schon in der App " +
-          "eingeloggt bist, melde dich damit an, ohne Passwort, du bekommst einen Link zum " +
-          "Antippen. Dein Pro liegt dort bereit.\n\n"
-        : "🗺️ Alle Pro-Inhalte sind ab sofort für dich offen. Aufmachen, Karte anschauen, " +
-          "hinfahren. Mehr ist nicht zu tun.") +
+      `${t.intro}\n\n` +
+      (r.guest ? t.guest : t.member) +
       // Nur wenn die zwei Adressen auseinandergehen. Ein Satz, der in 99 von 100 Mails
       // fehlt, aber im hundertsten die Verwirrung verhindert, die sonst als Anfrage kommt.
       (r.accountEmail && r.accountEmail !== r.email
-        ? `\n\n📮 Bezahlt hast du mit ${r.email}. Dein Pro liegt aber auf deinem Konto ` +
-          `${r.accountEmail}, mit dieser Adresse meldest du dich an.`
+        ? `\n\n${fill(t.otherAddress, { paid: r.email, account: r.accountEmail })}`
         : ""),
     rows: [
+      { label: t.rowService, value: t.rowServiceValue },
       {
-        label: "Leistung",
-        value:
-          "SalzGuide Pro, dauerhafte Freischaltung der digitalen Inhalte: Geheimtipp-Spots mit Insider-Tipp, Wanderungen mit Route, vollständige Audio-Touren. Zugabe ohne Preisanteil: KI-Assistent ohne Limit.",
+        label: t.rowPrice,
+        value: r.price ? fill(t.rowPriceValue, { price: r.price }) : t.rowPriceUnknown,
       },
+      { label: t.rowContract, value: dateTime(r.paidAt, locale) },
+      { label: t.rowReference, value: r.reference },
       {
-        label: "Preis",
-        value: r.price ? `${r.price} inkl. USt., einmalig, kein Abo` : "einmalig, kein Abo",
-      },
-      { label: "Vertragsabschluss", value: atDateTime(r.paidAt) },
-      { label: "Bestellreferenz", value: r.reference },
-      {
-        label: "Vertragspartner",
+        label: t.rowPartner,
         value: `${LEGAL.company}, ${legalAddress()}, ${LEGAL.email}`,
       },
-      { label: "Vertragssprache", value: "Deutsch" },
+      { label: t.rowLanguage, value: t.rowLanguageValue },
     ],
     // Der Knopf führt dorthin, wo das Gekaufte liegt, nicht ins Profil: Dort stünde nur, DASS
-    // er Pro hat, und das weiss er nach dieser Mail bereits.
-    cta: { label: "Pro-Spots anschauen", url: `${base}/de/explore` },
+    // er Pro hat, und das weiss er nach dieser Mail bereits. In SEINER Sprache, sonst hört
+    // die Mail beim Antippen mitten im Satz auf.
+    cta: { label: t.cta, url: `${base}/${locale}/explore` },
     // Die eine hervorgehobene Angabe: Mit dieser Adresse kommt er auf jedem Gerät herein.
-    tile: { label: "Dein Zugang läuft auf", value: r.accountEmail || r.email },
-    note: "Fragen zum Kauf? Antworte einfach auf diese Mail, wir lesen mit.",
+    tile: { label: t.tileLabel, value: r.accountEmail || r.email },
+    note: t.note,
     // Die zwei Angaben, die § 7 Abs. 3 FAGG verlangt: die Zustimmung wörtlich bestätigt und
     // mit Zeitpunkt, dazu die Belehrung, was das für das Rücktrittsrecht heisst. Leiser
     // gesetzt als die Nachricht, aber vollständig und auf demselben dauerhaften Datenträger.
+    // Die Zeile davor erklärt in der Sprache des Lesers, warum darunter Deutsch steht — aber
+    // nur, wenn der Leser kein Deutsch liest. In der deutschen Fassung wäre sie die Erklärung,
+    // dass ein deutscher Text deutsch ist, also genau die Zeile, über die jemand stolpert und
+    // sich fragt, was ihm entgeht.
     fineprint:
-      `✍️ Deine Zustimmung beim Kauf: Du hast am ${atDateTime(r.consentAt ?? r.paidAt)} ` +
-      "ausdrücklich verlangt, dass wir schon vor Ablauf der Rücktrittsfrist mit der Ausführung " +
-      "beginnen, also sofort freischalten. Und du hast bestätigt, zur Kenntnis genommen zu " +
-      "haben, dass du dadurch dein Rücktrittsrecht (Widerrufsrecht) für die Inhalte verlierst " +
-      "(§ 18 Abs. 1 Z 11 FAGG).\n\n" +
-      "↩️ Was das heisst: Für die freigeschalteten Inhalte ist dein 14-tägiges Rücktrittsrecht " +
-      "mit der sofortigen Freischaltung erloschen. Der KI-Assistent ohne Begrenzung ist eine " +
-      "unentgeltliche Zugabe und nicht Teil der bezahlten Leistung; auf ihn entfällt kein " +
-      "Preisanteil. Erklären kannst du einen Rücktritt jederzeit und ohne Begründung über das " +
-      "Formular in der Widerrufsbelehrung, wir bestätigen den Eingang unverzüglich per E-Mail.",
-    // Anklickbar und nicht als Adresse im Fliesstext, siehe `links` in mail-layout.ts.
+      locale === DEFAULT_LOCALE ? fineprintDe(r) : `${t.legalDe}\n\n${fineprintDe(r)}`,
+    // Anklickbar und nicht als Adresse im Fliesstext, siehe `links` in mail-layout.ts. Die
+    // Rechtstexte selbst sind deutsch, deshalb zeigen die Links auf /de.
     links: [
-      { label: "Widerrufsbelehrung", url: `${base}/de/rechtliches/widerruf` },
-      { label: "AGB", url: `${base}/de/rechtliches/agb` },
-      { label: "Datenschutz", url: `${base}/de/rechtliches/datenschutz` },
+      { label: t.linkWithdrawal, url: `${base}/de/rechtliches/widerruf` },
+      { label: t.linkTerms, url: `${base}/de/rechtliches/agb` },
+      { label: t.linkPrivacy, url: `${base}/de/rechtliches/datenschutz` },
     ],
   };
 }
 
-export function renderProPurchaseMail(r: ProPurchaseReceipt): string {
-  return renderMailShell(content(r));
-}
-
-export function renderProPurchaseText(r: ProPurchaseReceipt): string {
-  return renderMailShellText(content(r));
+/** Betreff, HTML und Reintext in einem Zug — aus derselben Quelle, damit nichts driftet. */
+export async function renderProPurchase(r: ProPurchaseReceipt): Promise<{
+  subject: string;
+  html: string;
+  text: string;
+}> {
+  const c = await content(r);
+  return {
+    subject: c.subject,
+    html: await renderMailShell(c),
+    text: await renderMailShellText(c),
+  };
 }

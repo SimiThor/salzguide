@@ -143,6 +143,14 @@ export async function createCheckoutSession(
       metadata: {
         withdrawal_waiver_consent: "true",
         withdrawal_waiver_at: new Date().toISOString(),
+        // Die Sprache des Käufers reist mit der Zahlung mit.
+        //
+        // Sie steht zwar auch in `locale` der Session, aber das ist Stripes eigene Liste
+        // (dort heisst „auto" auch mal „auto"), nicht unsere. Und die Kaufbestätigung
+        // entsteht im Webhook: Der kommt von Stripes Servern, ohne offene Seite, ohne
+        // Sprache in der Adresse. Ein Gast hat obendrein noch kein Profil, in dem sie
+        // stünde. Hier ist der einzige Ort, an dem sie den Weg überlebt.
+        locale: lang,
         ...(user ? { supabase_user_id: user.id } : {}),
         ...(claimSecret ? { claim_hash: hashClaim(claimSecret) } : {}),
       },

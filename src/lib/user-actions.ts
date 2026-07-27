@@ -4,7 +4,8 @@ import { requireAdmin } from "./admin-guard";
 import { createServiceClient } from "./supabase/service";
 import { emailEnabled, sendEmail } from "./email";
 import { LEGAL } from "./legal";
-import { PRO_GIFT_SUBJECT, renderProGiftMail, renderProGiftText } from "./pro-gift-mail";
+import { renderProGift } from "./pro-gift-mail";
+import { DEFAULT_LOCALE } from "@/i18n/locales";
 
 // Pro von Hand geben und nehmen, für Leute, die nicht über Stripe gekauft haben:
 // Gewinnspiele, Beschwerden, Testkonten, Partner.
@@ -117,21 +118,25 @@ async function mailProGift(userId: string): Promise<ProMailState> {
     // Client schickt, ist eine Behauptung — und eine Mail an eine behauptete Adresse zu
     // schicken, wäre ein offener Versandweg für jeden, der die Aktion aufrufen darf.
     const svc = createServiceClient();
+    // `locale` kommt mit: Die Mail geht in der Sprache raus, in der sich dieser Mensch
+    // zuletzt angemeldet hat. Steht dort nichts (Konto aus der Zeit vor dem Vermerk), nagelt
+    // safeLocale() in mail-i18n.ts das auf Deutsch fest.
     const { data } = await svc
       .from("profiles")
-      .select("email, pro_gift_mailed_at")
+      .select("email, locale, pro_gift_mailed_at")
       .eq("id", userId)
       .maybeSingle();
 
     if (!data?.email) return "no_address";
     if (data.pro_gift_mailed_at) return "already";
 
+    const mail = await renderProGift(data.locale ?? DEFAULT_LOCALE);
     const ok = await sendEmail({
       to: data.email,
-      subject: PRO_GIFT_SUBJECT,
+      subject: mail.subject,
       replyTo: LEGAL.email,
-      text: renderProGiftText(),
-      html: renderProGiftMail(),
+      text: mail.text,
+      html: mail.html,
     });
     if (!ok) return "failed";
 

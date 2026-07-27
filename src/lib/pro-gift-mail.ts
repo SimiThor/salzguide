@@ -1,52 +1,54 @@
 import "server-only";
 import { siteUrl } from "./site-url";
+import { mailTexts } from "./mail-i18n";
 import { renderMailShell, renderMailShellText, type MailContent } from "./mail-layout";
 
 // Die Mail an jemanden, dem wir Pro geschenkt haben.
 //
-// WARUM DIE TEXTE HIER STEHEN UND NICHT IM ADMIN (anders als bei der Umzugs-Mail):
+// WARUM DIE TEXTE NICHT IM ADMIN STEHEN (anders als bei der Umzugs-Mail):
 // Die Umzugs-Mail geht einmalig an alle Alt-Käufer, sie ist eine Ansprache und Anton wollte
 // an den Worten feilen können. Diese hier ist eine Quittung: Sie geht einzeln raus, immer
 // aus demselben Anlass, und sagt immer dasselbe. Ein Admin-Formular dafür wären drei
 // Eingabefelder, die in 99% der Fälle unangetastet bleiben und im hundertsten versehentlich
 // leer sind. Ändern geht per Commit, und die Vorschau im Admin zeigt vorher, was rausgeht.
 //
-// DEUTSCH, so wie die Umzugs-Mail: profiles.locale gibt es zwar seit dem ersten Commit,
-// wird aber nirgends beschrieben und steht faktisch bei allen auf 'de'. Eine Sprachwahl
-// vorzutäuschen, die es nicht gibt, wäre schlechter als eine ehrlich deutsche Mail.
+// DIE SPRACHE kommt aus `profiles.locale`, also aus der Sprache, in der sich dieser Mensch
+// zuletzt angemeldet hat (siehe auth/callback/route.ts). Hier stand einmal, die Mail sei
+// bewusst deutsch, weil `profiles.locale` zwar existiere, aber nirgends beschrieben werde und
+// faktisch bei allen auf 'de' stehe. Das stimmte, und es war der Fehler, nicht der Grund:
+// Der Wert wird jetzt gepflegt.
 
-/**
- * Betreff. Sagt die Sache im Betreff selbst, ohne "Wichtig" oder "Deine Anfrage":
- * Wer den nur in der Vorschau liest, weiss danach Bescheid.
- */
-export const PRO_GIFT_SUBJECT = "Du hast SalzGuide Pro";
-
-function content(): MailContent {
+function content(locale: string, t: Awaited<ReturnType<typeof mailTexts>>): MailContent {
   return {
-    subject: PRO_GIFT_SUBJECT,
+    locale,
+    subject: t.gift.subject,
     // "SalzGuide" wird vom Rahmen automatisch rot gesetzt, deshalb steht es in der
     // Überschrift und nicht nochmal darüber.
-    headline: "SalzGuide Pro freigeschaltet",
-    // Kein "wir haben dir Pro freigeschaltet" mehr: Das steht schon in der Überschrift,
-    // und zweimal dasselbe Wort in zwei Zeilen liest sich wie ein Serienbrief.
-    body:
-      "Geht aufs Haus, du musst nichts bezahlen und nichts einlösen.\n\n" +
-      "🔓 Alle Pro-Spots sind ab sofort für dich sichtbar, auch die, die sonst gesperrt sind.\n\n" +
-      "🗺️ Aufmachen, Karte anschauen, hinfahren. Mehr ist nicht zu tun.",
+    headline: t.gift.headline,
+    body: t.gift.body,
     // Auf die Karte, nicht ins Profil: Dort ist das, was er jetzt neu sehen kann. Im Profil
     // stünde nur, DASS er Pro hat, und das weiss er nach dieser Mail bereits.
-    cta: { label: "Pro-Spots anschauen", url: `${siteUrl()}/de/explore` },
+    // Der Link führt in SEINE Sprache, nicht nach /de: Eine Mail auf Koreanisch, die auf eine
+    // deutsche Seite zeigt, hört mitten im Satz auf.
+    cta: { label: t.gift.cta, url: `${siteUrl()}/${locale}/explore` },
     // Keine Adress-Kachel wie bei der Umzugs-Mail: Der Mensch hat schon ein Konto, er muss
     // sich nicht überlegen, mit welcher Adresse er sich anmeldet.
     tile: null,
-    note: "Klappt was nicht? Antworte einfach auf diese Mail, wir lesen mit.",
+    note: t.reply,
   };
 }
 
-export function renderProGiftMail(): string {
-  return renderMailShell(content());
-}
-
-export function renderProGiftText(): string {
-  return renderMailShellText(content());
+/** Betreff, HTML und Reintext in einem Zug — aus derselben Quelle, damit nichts driftet. */
+export async function renderProGift(locale: string): Promise<{
+  subject: string;
+  html: string;
+  text: string;
+}> {
+  const t = await mailTexts(locale);
+  const c = content(locale, t);
+  return {
+    subject: c.subject,
+    html: await renderMailShell(c),
+    text: await renderMailShellText(c),
+  };
 }

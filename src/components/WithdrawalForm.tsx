@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
+import { useLocale } from "next-intl";
 import TurnstileWidget from "@/components/TurnstileWidget";
 import {
   submitWithdrawal,
@@ -25,6 +26,7 @@ const inputCls =
 // sichtbar ist (Schritt 1). Schritt 2 = „Widerruf bestätigen" sendet ab. Danach geht die
 // Eingangsbestätigung per E-Mail raus. Bot-Schutz via Turnstile; Button ist nie „tot".
 export default function WithdrawalForm() {
+  const locale = useLocale();
   const [state, formAction, pending] = useActionState<WithdrawalState, FormData>(
     submitWithdrawal,
     null,
@@ -83,6 +85,12 @@ export default function WithdrawalForm() {
       }}
       className="mt-4 flex flex-col gap-3 rounded-[16px] bg-white/60 p-5"
     >
+      {/* Die Sprache dieser Seite fährt mit: Die Eingangsbestätigung geht in derselben
+          Sprache raus, in der jemand hier gerade liest. Ohne dieses Feld weiss der Server
+          es nicht, denn eine Server-Action kennt die Adresse der Seite nicht, von der sie
+          aufgerufen wurde. */}
+      <input type="hidden" name="locale" value={locale} />
+
       <label className="text-[13px] font-medium text-ink">
         Name*
         <input name="name" required maxLength={120} autoComplete="name" className={`mt-1 ${inputCls}`} />

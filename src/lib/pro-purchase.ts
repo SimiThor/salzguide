@@ -5,11 +5,8 @@ import { createServiceClient } from "./supabase/service";
 import { formatProPrice } from "./pro";
 import { LEGAL } from "./legal";
 import { sendEmail } from "./email";
-import {
-  PRO_PURCHASE_SUBJECT,
-  renderProPurchaseMail,
-  renderProPurchaseText,
-} from "./pro-purchase-mail";
+import { renderProPurchase } from "./pro-purchase-mail";
+import { safeLocale } from "@/i18n/locales";
 
 // ═══════════════════════════════════════════════════════════════════════════════════════
 //  DIE EINE STELLE, an der ein bezahlter Stripe-Kauf zu Pro wird.
@@ -478,16 +475,22 @@ async function sendPurchaseConfirmation(
 ): Promise<void> {
   if (!email) return;
   try {
+    // Die Sprache des Käufers, wie sie beim Anlegen der Session mitgegeben wurde
+    // (stripe-actions.ts). Fehlt sie (Session aus der Zeit davor), nagelt safeLocale() sie
+    // auf Deutsch fest. Der Preis wird in derselben Sprache geschrieben wie die Mail,
+    // sonst steht „19,90 €" mitten in einem koreanischen Satz nach deutscher Regel da.
+    const locale = safeLocale(session.metadata?.locale);
     const price =
       session.amount_total != null && session.currency
         ? formatProPrice(
             { amountMinor: session.amount_total, currency: session.currency },
-            "de",
+            locale,
           )
         : "";
     const receipt = {
       email,
       accountEmail: accountEmail || email,
+      locale,
       price,
       paidAt: new Date().toISOString(),
       consentAt: (session.metadata?.withdrawal_waiver_at as string | undefined) ?? null,
@@ -497,12 +500,13 @@ async function sendPurchaseConfirmation(
       reference: paymentIntentOf(session) ?? session.id,
       guest,
     };
+    const mail = await renderProPurchase(receipt);
     const ok = await sendEmail({
       to: email,
-      subject: PRO_PURCHASE_SUBJECT,
+      subject: mail.subject,
       replyTo: LEGAL.email,
-      text: renderProPurchaseText(receipt),
-      html: renderProPurchaseMail(receipt),
+      text: mail.text,
+      html: mail.html,
     });
     if (!ok) {
       // Laut, mit Bestellreferenz: Diese Mail ist die dritte Bedingung dafür, dass das
