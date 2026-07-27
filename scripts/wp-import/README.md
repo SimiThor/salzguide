@@ -215,7 +215,8 @@ selben Ort erwähnt.
 **Der Insider-Tipp steht in der Ich-Form des Locals**, und der steht in der Vorlage. Ohne
 Namen ist es Anton. Toni ist die KI und nie ein Local.
 
-Stand: 89 von 95 geschrieben.
+Stand: 95 von 95 geschrieben, `wp:check` läuft sauber durch. Der Trockenlauf bereitet alle
+95 Spots vor und überspringt keinen mehr. Was jetzt noch fehlt, ist `wp:import -- --go`.
 
 ## Was der Import NICHT entscheidet
 
