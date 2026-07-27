@@ -433,10 +433,16 @@ export async function getJobStatus(): Promise<JobStatus[]> {
  * Überfällige Jobs suchen und melden. Läuft am Ende des täglichen Aufräum-Crons.
  *
  * WER BEWACHT DEN WÄCHTER: Der tägliche Cron prüft hier auch sich selbst — was nichts nützt,
- * wenn er gar nicht erst läuft. Deshalb ruft die Admin-Systemseite dieselbe Funktion auf. Wer
- * in den Admin schaut, sieht die Meldung dann eben dort. Ein wirklich unabhängiger zweiter
+ * wenn er gar nicht erst läuft. Die Admin-Systemseite ZEIGT denselben Zustand (über
+ * getJobStatus), schickt aber bewusst keine Mail: Wer die Seite offen hat, sieht das rote
+ * „überfällig" ja bereits, eine Mail dazu wäre nur Lärm. Ein wirklich unabhängiger zweiter
  * Wächter müsste ausserhalb dieser App laufen (externer Uptime-Dienst); das steht als
  * offener Punkt in docs/36.
+ *
+ * DAMIT DAS HIER ÜBERHAUPT ANSCHLAGEN KANN, braucht jeder Job eine Zeile in ops_heartbeats.
+ * Ein Job ohne Zeile gilt absichtlich als „nicht überfällig" (sonst gäbe es beim ersten
+ * Deploy Fehlalarm) — und wäre damit für immer unsichtbar, wenn er NIE läuft. Genau diesen
+ * Fall gab es (siehe Migration 0057), deshalb sät sie die Zeilen beim Einspielen.
  */
 export async function reportOverdueJobs(): Promise<number> {
   const overdue = (await getJobStatus()).filter((s) => s.overdue);

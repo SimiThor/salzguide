@@ -117,10 +117,19 @@ export default async function AdminSystemPage({
           {jobs.map((j) => (
             <li key={j.job} className="flex flex-wrap items-center gap-x-3 gap-y-1">
               <span className="text-[15px] font-semibold text-ink">{j.label}</span>
+              {/* Reihenfolge = Dringlichkeit. „überfällig" schlägt alles andere, weil ein
+                  ausbleibender Lauf schwerer wiegt als ein fehlgeschlagener: Beim
+                  fehlgeschlagenen weiss man wenigstens, dass es ihn gibt.
+                  „noch nie erfolgreich" ist der Zustand, den es vor Migration 0057 gar nicht
+                  zu sehen gab — die Saat setzt zwar last_run_at, aber last_ok_at bleibt leer,
+                  bis der Job wirklich einmal durchgelaufen ist. Ein grünes „läuft" wäre hier
+                  gelogen. */}
               {j.lastRunAt === null ? (
                 <span className={STATUS_NEUTRAL}>noch nie gelaufen</span>
               ) : j.overdue ? (
                 <span className={STATUS_ACCENT}>überfällig</span>
+              ) : j.lastOkAt === null ? (
+                <span className={STATUS_ACCENT}>noch nie erfolgreich</span>
               ) : j.ok ? (
                 <span className={STATUS_GOOD}>läuft</span>
               ) : (

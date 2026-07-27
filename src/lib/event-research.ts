@@ -650,5 +650,28 @@ export async function runAutoWeeklyResearch(): Promise<AutoResult> {
   }
 
   const purged = await purgeStaleDrafts(supabase);
-  return { ok: true, weeks, purged };
+
+  // ═══════════════════════════════════════════════════════════════════════════════════
+  //  `ok` MUSS die Wochen widerspiegeln. Hier stand fest verdrahtet `ok: true`.
+  // ═══════════════════════════════════════════════════════════════════════════════════
+  //
+  // Damit meldete der Lauf auch dann Erfolg, wenn JEDE Woche gescheitert war — etwa weil
+  // das Anthropic-Guthaben leer ist oder die Web-Suche nichts hergab. Die Route macht daraus
+  // HTTP 200, der Totmannschalter setzt ein grünes Lebenszeichen, und niemand erfährt, dass
+  // seit Wochen keine Veranstaltung mehr dazugekommen ist. Genau die Sorte Ausfall, gegen
+  // die dieser ganze Umbau gebaut ist, und sie steckte im Herzstück davon.
+  //
+  // KEINE Woche zu bearbeiten ist Erfolg, nicht Misserfolg: Sind alle drei schon
+  // protokolliert, hat der Lauf nichts zu tun und ist korrekt durchgelaufen. Deshalb
+  // `every` (auf einer leeren Liste true) und nicht `some`.
+  const ok = weeks.every((w) => w.ok);
+  const failed = weeks.filter((w) => !w.ok);
+  return {
+    ok,
+    weeks,
+    purged,
+    // Den ersten echten Grund nach oben durchreichen, damit er in der Alarm-Mail steht und
+    // nicht nur „irgendwas war nicht ok".
+    ...(ok ? {} : { error: failed[0]?.error ?? "Mindestens eine Woche ist gescheitert." }),
+  };
 }
