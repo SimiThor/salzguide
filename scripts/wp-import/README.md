@@ -215,7 +215,7 @@ selben Ort erwähnt.
 **Der Insider-Tipp steht in der Ich-Form des Locals**, und der steht in der Vorlage. Ohne
 Namen ist es Anton. Toni ist die KI und nie ein Local.
 
-Stand: 81 von 95 geschrieben.
+Stand: 89 von 95 geschrieben.
 
 ## Was der Import NICHT entscheidet
 
