@@ -80,11 +80,22 @@ async function content(r: WithdrawalReceipt): Promise<MailContent> {
     // Der Vorgang läuft bei uns weiter, nicht bei ihm. Ein „Zur App"-Knopf unter einem
     // Widerruf wäre die Aufforderung, doch bitte dazubleiben.
     cta: null,
+    // Die kurze Zeile, mit der jede unserer Mails endet. Steht hier und nicht als dritter
+    // Absatz im Fliesstext: Bei einem Widerruf zählt, dass die Angaben unten stimmen, und
+    // der Hinweis darauf gehört an dieselbe Stelle wie in allen anderen Mails.
+    note: t.note,
     // Der Hinweis „das darunter steht auf Deutsch" NUR, wenn die Mail nicht deutsch ist.
     // In der deutschen Fassung wäre er die Erklärung, dass ein deutscher Text deutsch ist,
     // also genau die Zeile, über die jemand stolpert und sich fragt, was ihm entgeht.
-    note: locale === DEFAULT_LOCALE ? null : t.legalDe,
-    fineprint: `${DECLARATION_DE}\n\n${LEGAL.company}, ${legalAddress()}, ${LEGAL.email}`,
+    // Als erster Absatz des Kleingedruckten, wie in pro-purchase-mail.ts: Er kündigt an,
+    // was darunter kommt, und steht deshalb direkt davor.
+    fineprint: [
+      locale === DEFAULT_LOCALE ? null : t.legalDe,
+      DECLARATION_DE,
+      `${LEGAL.company}, ${legalAddress()}, ${LEGAL.email}`,
+    ]
+      .filter(Boolean)
+      .join("\n\n"),
   };
 }
 

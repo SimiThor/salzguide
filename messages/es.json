@@ -431,7 +431,7 @@
   "Support": {
     "linkLabel": "Ayuda",
     "title": "Te ayudamos",
-    "subtitle": "¿Algo no funciona, un lugar está mal o tienes una pregunta? Escríbenos. Somos dos y leemos cada mensaje personalmente.",
+    "subtitle": "¿Algo no funciona, un lugar está mal o tienes una pregunta? Escríbenos.",
     "name": "Nombre",
     "email": "Correo",
     "message": "Tu mensaje",
@@ -475,28 +475,27 @@
     "greeting": "Un saludo desde Salzburgo",
     "signoff": "Anton de SalzGuide",
     "follow": "Síguenos:",
-    "reply": "¿Algo no funciona? Responde a este correo, lo leemos nosotros.",
+    "reply": "¿Algo no funciona? Escríbenos.",
     "login": {
       "subject": "Tu enlace de acceso a SalzGuide",
       "headline": "Tu enlace de acceso a SalzGuide",
       "body": "👇 Toca el botón y estás dentro. No necesitas contraseña.\n\n🔒 El enlace es solo para esta dirección y funciona una vez.",
       "cta": "Entrar ahora",
       "tileLabel": "Entras con",
-      "note": "¿No lo has pedido tú? Ignora este correo, no pasa nada."
+      "note": "¿No lo has pedido tú? Borra el correo."
     },
     "gift": {
       "subject": "Tienes SalzGuide Pro",
       "headline": "SalzGuide Pro desbloqueado",
-      "body": "Invita la casa, no tienes que pagar nada ni canjear nada.\n\n🔓 Desde ahora ves todos los lugares Pro, también los que suelen estar bloqueados.\n\n🗺️ Abres, miras el mapa y vas. No hay más.",
+      "body": "Invita la casa. Nada que pagar, nada que canjear.\n\n🔓 Desde ahora ves todos los lugares Pro, también los que suelen estar bloqueados.\n\n🗺️ Abres, miras el mapa y vas. No hay más.",
       "cta": "Ver los lugares Pro"
     },
     "purchase": {
       "subject": "Tu confirmación de compra: SalzGuide Pro",
       "headline": "Tu confirmación de SalzGuide Pro",
-      "intro": "Gracias. Aquí está por escrito lo que has comprado. Guarda este correo, es tu confirmación de contrato.",
-      "guest": "📩 Tu acceso está en la dirección de abajo. Si aún no has entrado en la app, entra con ella, sin contraseña, te llega un enlace para tocar. Tu Pro te espera ahí.",
+      "intro": "Gracias. Guarda este correo, es tu confirmación de contrato.",
+      "guest": "📩 Para entrar no hace falta contraseña: pones el correo, tocas el enlace y listo.",
       "member": "🗺️ Todos los contenidos Pro están abiertos para ti desde ahora. Abres, miras el mapa y vas. No hay más.",
-      "otherAddress": "📮 Has pagado con {paid}. Pero tu Pro está en tu cuenta {account}, y con esa dirección entras.",
       "rowService": "Prestación",
       "rowServiceValue": "SalzGuide Pro, acceso permanente a los contenidos digitales: lugares secretos con el consejo de quien los conoce, rutas de senderismo con el recorrido, audioguías completas. De regalo, sin parte del precio: asistente de IA sin límite.",
       "rowPrice": "Precio",
@@ -509,8 +508,8 @@
       "rowLanguageValue": "Alemán",
       "cta": "Ver los lugares Pro",
       "tileLabel": "Tu acceso está en",
-      "note": "¿Dudas sobre la compra? Responde a este correo, lo leemos nosotros.",
-      "legalDe": "La letra pequeña de abajo es jurídicamente vinculante y por eso está en alemán, igual que nuestros términos y la información de desistimiento.",
+      "note": "¿Dudas sobre la compra? Escríbenos.",
+      "legalDe": "La letra pequeña está en alemán: la versión alemana es la vinculante.",
       "linkWithdrawal": "Desistimiento",
       "linkTerms": "Términos",
       "linkPrivacy": "Privacidad"
@@ -518,7 +517,7 @@
     "withdrawal": {
       "subject": "Confirmación de recepción de tu desistimiento",
       "headline": "Tu desistimiento ha llegado",
-      "body": "Hola {name}, confirmamos que hemos recibido tu desistimiento el {receivedAt}.\n\n⏱️ Lo estamos tramitando y te escribimos. Cualquier devolución sale sin demora, como muy tarde 14 días después de la recepción, por el mismo medio de pago.\n\n📄 Tus datos están abajo, tal y como los enviaste. Si algo no cuadra, responde a este correo.",
+      "body": "Hola {name}, confirmamos que hemos recibido tu desistimiento el {receivedAt}.\n\n⏱️ Lo estamos tramitando y te escribimos. Cualquier devolución sale sin demora, como muy tarde 14 días después de la recepción, por el mismo medio de pago.",
       "rowReceived": "Recepción",
       "rowName": "Nombre",
       "rowEmail": "Correo electrónico",
@@ -526,7 +525,8 @@
       "rowContract": "Contrato / pedido",
       "rowOrderDate": "Pedido / recibido el",
       "rowNote": "Tu mensaje",
-      "legalDe": "El texto de tu declaración y el aviso legal están en alemán, porque la versión alemana es la vinculante."
+      "legalDe": "El texto de abajo está en alemán: la versión alemana es la vinculante.",
+      "note": "¿Algo no cuadra? Escríbenos."
     }
   }
 }

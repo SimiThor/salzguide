@@ -474,7 +474,7 @@
   "Support": {
     "linkLabel": "Hilfe",
     "title": "Wir helfen dir",
-    "subtitle": "Etwas klappt nicht, ein Spot stimmt nicht, oder du hast eine Frage? Schreib uns. Wir sind zu zweit und lesen jede Nachricht selbst.",
+    "subtitle": "Etwas klappt nicht, ein Spot stimmt nicht, oder du hast eine Frage? Schreib uns.",
     "name": "Name",
     "email": "E-Mail",
     "message": "Deine Nachricht",
@@ -518,28 +518,27 @@
     "greeting": "Liebe Grüße aus Salzburg",
     "signoff": "Anton von SalzGuide",
     "follow": "Folge uns:",
-    "reply": "Klappt was nicht? Antworte einfach auf diese Mail, wir lesen mit.",
+    "reply": "Klappt was nicht? Schreib zurück.",
     "login": {
       "subject": "Dein Anmeldelink für SalzGuide",
       "headline": "Dein Anmeldelink für SalzGuide",
-      "body": "👇 Tipp auf den Knopf, und du bist drin. Ein Passwort brauchst du nicht.\n\n🔒 Der Link gilt nur für diese Adresse und funktioniert einmal.",
+      "body": "👇 Tipp auf den Knopf, und du bist drin. Passwort brauchst du keins.\n\n🔒 Der Link gilt nur für diese Adresse und funktioniert einmal.",
       "cta": "Jetzt anmelden",
       "tileLabel": "Du meldest dich an mit",
-      "note": "Du hast das nicht angefordert? Dann ignorier die Mail einfach, es passiert nichts."
+      "note": "Du hast das nicht angefordert? Lösch die Mail."
     },
     "gift": {
       "subject": "Du hast SalzGuide Pro",
       "headline": "SalzGuide Pro freigeschaltet",
-      "body": "Geht aufs Haus, du musst nichts bezahlen und nichts einlösen.\n\n🔓 Alle Pro-Spots sind ab sofort für dich sichtbar, auch die, die sonst gesperrt sind.\n\n🗺️ Aufmachen, Karte anschauen, hinfahren. Mehr ist nicht zu tun.",
+      "body": "Geht aufs Haus. Nichts zu zahlen, nichts einzulösen.\n\n🔓 Alle Pro-Spots sind ab sofort für dich sichtbar, auch die, die sonst gesperrt sind.\n\n🗺️ Aufmachen, Karte anschauen, hinfahren. Mehr ist nicht zu tun.",
       "cta": "Pro-Spots anschauen"
     },
     "purchase": {
       "subject": "Deine Kaufbestätigung: SalzGuide Pro",
       "headline": "Deine Bestätigung für SalzGuide Pro",
-      "intro": "Danke dir. Hier steht schwarz auf weiß, was du gekauft hast. Bewahr die Mail auf, sie ist deine Vertragsbestätigung.",
-      "guest": "📩 Dein Zugang läuft auf die Adresse unten. Wenn du gerade nicht schon in der App eingeloggt bist, melde dich damit an, ohne Passwort, du bekommst einen Link zum Antippen. Dein Pro liegt dort bereit.",
+      "intro": "Danke dir. Bewahr die Mail auf, sie ist deine Vertragsbestätigung.",
+      "guest": "📩 Ohne Passwort kommst du herein: E-Mail rein, Link antippen, drin.",
       "member": "🗺️ Alle Pro-Inhalte sind ab sofort für dich offen. Aufmachen, Karte anschauen, hinfahren. Mehr ist nicht zu tun.",
-      "otherAddress": "📮 Bezahlt hast du mit {paid}. Dein Pro liegt aber auf deinem Konto {account}, mit dieser Adresse meldest du dich an.",
       "rowService": "Leistung",
       "rowServiceValue": "SalzGuide Pro, dauerhafte Freischaltung der digitalen Inhalte: Geheimtipp-Spots mit Insider-Tipp, Wanderungen mit Route, vollständige Audio-Touren. Zugabe ohne Preisanteil: KI-Assistent ohne Limit.",
       "rowPrice": "Preis",
@@ -552,8 +551,8 @@
       "rowLanguageValue": "Deutsch",
       "cta": "Pro-Spots anschauen",
       "tileLabel": "Dein Zugang läuft auf",
-      "note": "Fragen zum Kauf? Antworte einfach auf diese Mail, wir lesen mit.",
-      "legalDe": "Das Kleingedruckte darunter ist rechtlich verbindlich und steht deshalb auf Deutsch, so wie unsere AGB und die Widerrufsbelehrung.",
+      "note": "Fragen zum Kauf? Schreib zurück.",
+      "legalDe": "Das Kleingedruckte steht auf Deutsch: Die deutsche Fassung ist die rechtlich verbindliche.",
       "linkWithdrawal": "Widerrufsbelehrung",
       "linkTerms": "AGB",
       "linkPrivacy": "Datenschutz"
@@ -561,7 +560,7 @@
     "withdrawal": {
       "subject": "Eingangsbestätigung deines Widerrufs",
       "headline": "Dein Widerruf ist bei uns",
-      "body": "Hallo {name}, wir bestätigen den Eingang deines Widerrufs am {receivedAt}.\n\n⏱️ Wir bearbeiten ihn und melden uns bei dir. Eine Rückzahlung geht unverzüglich raus, spätestens 14 Tage nach Eingang, über dasselbe Zahlungsmittel.\n\n📄 Deine Angaben stehen unten, so wie du sie geschickt hast. Stimmt etwas nicht, antworte einfach auf diese Mail.",
+      "body": "Hallo {name}, wir bestätigen den Eingang deines Widerrufs am {receivedAt}.\n\n⏱️ Wir bearbeiten ihn und melden uns. Eine Rückzahlung geht unverzüglich raus, spätestens 14 Tage nach Eingang, über dasselbe Zahlungsmittel.",
       "rowReceived": "Eingang",
       "rowName": "Name",
       "rowEmail": "E-Mail",
@@ -569,7 +568,8 @@
       "rowContract": "Vertrag / Bestellung",
       "rowOrderDate": "Bestellt / erhalten am",
       "rowNote": "Deine Nachricht",
-      "legalDe": "Der Wortlaut deiner Erklärung und der rechtliche Hinweis stehen auf Deutsch, weil die deutsche Fassung verbindlich ist."
+      "legalDe": "Der Wortlaut unten steht auf Deutsch: Die deutsche Fassung ist die rechtlich verbindliche.",
+      "note": "Stimmt was nicht? Schreib zurück."
     }
   }
 }

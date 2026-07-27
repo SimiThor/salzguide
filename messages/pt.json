@@ -431,7 +431,7 @@
   "Support": {
     "linkLabel": "Ajuda",
     "title": "Estamos aqui para ajudar",
-    "subtitle": "Alguma coisa não funciona, um spot está errado, ou tens uma pergunta? Escreve-nos. Somos dois e lemos cada mensagem pessoalmente.",
+    "subtitle": "Alguma coisa não funciona, um spot está errado, ou tens uma pergunta? Escreve-nos.",
     "name": "Nome",
     "email": "E-mail",
     "message": "A tua mensagem",
@@ -475,28 +475,27 @@
     "greeting": "Um abraço de Salzburgo",
     "signoff": "Anton do SalzGuide",
     "follow": "Segue-nos:",
-    "reply": "Alguma coisa não funciona? Responde a este email, somos nós que lemos.",
+    "reply": "Alguma coisa não funciona? Escreve-nos.",
     "login": {
       "subject": "O teu link de acesso ao SalzGuide",
       "headline": "O teu link de acesso ao SalzGuide",
       "body": "👇 Toca no botão e estás dentro. Não precisas de palavra-passe.\n\n🔒 O link é só para este endereço e funciona uma vez.",
       "cta": "Entrar agora",
       "tileLabel": "Entras com",
-      "note": "Não foste tu que pediste? Ignora este email, não acontece nada."
+      "note": "Não foste tu que pediste? Apaga o email."
     },
     "gift": {
       "subject": "Tens o SalzGuide Pro",
       "headline": "SalzGuide Pro desbloqueado",
-      "body": "É por conta da casa, não tens de pagar nada nem de ativar nada.\n\n🔓 A partir de agora vês todos os spots Pro, também os que costumam estar bloqueados.\n\n🗺️ Abres, vês o mapa e vais. Não é preciso mais nada.",
+      "body": "É por conta da casa. Nada a pagar, nada a ativar.\n\n🔓 A partir de agora vês todos os spots Pro, também os que costumam estar bloqueados.\n\n🗺️ Abres, vês o mapa e vais. Não é preciso mais nada.",
       "cta": "Ver os spots Pro"
     },
     "purchase": {
       "subject": "A tua confirmação de compra: SalzGuide Pro",
       "headline": "A tua confirmação do SalzGuide Pro",
-      "intro": "Obrigado. Aqui fica preto no branco o que compraste. Guarda este email, é a tua confirmação de contrato.",
-      "guest": "📩 O teu acesso está no endereço aqui em baixo. Se ainda não entraste na app, entra com ele, sem palavra-passe, recebes um link para tocar. O teu Pro está lá à espera.",
+      "intro": "Obrigado. Guarda este email, é a tua confirmação de contrato.",
+      "guest": "📩 Para entrar não precisas de palavra-passe: metes o email, tocas no link e pronto.",
       "member": "🗺️ Todos os conteúdos Pro estão abertos para ti a partir de agora. Abres, vês o mapa e vais. Não é preciso mais nada.",
-      "otherAddress": "📮 Pagaste com {paid}. Mas o teu Pro está na conta {account}, e é com esse endereço que entras.",
       "rowService": "Serviço",
       "rowServiceValue": "SalzGuide Pro, acesso permanente aos conteúdos digitais: spots secretos com a dica de quem conhece, caminhadas com o percurso, audioguias completos. De oferta, sem parte do preço: assistente de IA sem limite.",
       "rowPrice": "Preço",
@@ -509,8 +508,8 @@
       "rowLanguageValue": "Alemão",
       "cta": "Ver os spots Pro",
       "tileLabel": "O teu acesso está em",
-      "note": "Dúvidas sobre a compra? Responde a este email, somos nós que lemos.",
-      "legalDe": "As letras pequenas em baixo têm valor legal e por isso estão em alemão, tal como os nossos termos e as informações de resolução.",
+      "note": "Dúvidas sobre a compra? Escreve-nos.",
+      "legalDe": "As letras pequenas estão em alemão: a versão alemã é a que vale legalmente.",
       "linkWithdrawal": "Resolução",
       "linkTerms": "Termos",
       "linkPrivacy": "Privacidade"
@@ -518,7 +517,7 @@
     "withdrawal": {
       "subject": "Confirmação de receção da tua resolução",
       "headline": "A tua resolução chegou",
-      "body": "Olá {name}, confirmamos que recebemos a tua resolução a {receivedAt}.\n\n⏱️ Estamos a tratar dela e depois falamos. Qualquer reembolso segue sem demora, no máximo 14 dias após a receção, pelo mesmo meio de pagamento.\n\n📄 Os teus dados estão em baixo, tal como os enviaste. Se algo não estiver certo, responde a este email.",
+      "body": "Olá {name}, confirmamos que recebemos a tua resolução a {receivedAt}.\n\n⏱️ Estamos a tratar dela e depois falamos. Qualquer reembolso segue sem demora, no máximo 14 dias após a receção, pelo mesmo meio de pagamento.",
       "rowReceived": "Receção",
       "rowName": "Nome",
       "rowEmail": "Email",
@@ -526,7 +525,8 @@
       "rowContract": "Contrato / encomenda",
       "rowOrderDate": "Encomendado / recebido a",
       "rowNote": "A tua mensagem",
-      "legalDe": "O texto da tua declaração e o aviso legal estão em alemão, porque é a versão alemã que vale."
+      "legalDe": "O texto em baixo está em alemão: a versão alemã é a que vale legalmente.",
+      "note": "Algo não está certo? Escreve-nos."
     }
   }
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { Link, usePathname } from "@/i18n/navigation";
+import ScrollStrip from "@/components/ScrollStrip";
 
 // Die Admin-Navigation. Steht EINMAL im Layout, nicht in jeder Seite.
 //
@@ -72,15 +73,12 @@ export default function AdminNav({ supportCount = 0 }: { supportCount?: number }
     // Die fünf Reiter sind zusammen breiter als ein iPhone. Vorher war das eine schlichte
     // `inline-flex`-Leiste — die hörte nicht am Rand auf, sondern schob das DOKUMENT breiter.
     // Ergebnis: die ganze Admin-Seite liess sich seitlich wegschieben, Überschriften und
-    // Karten wanderten mit, obwohl nur die Leiste zu breit war. Der Streifen fängt das
-    // Überbreite jetzt selbst ab: er scrollt, die Seite steht still.
-    // -mx-4/px-4 spiegelt das px-4 des Admin-Rahmens (layout.tsx), damit die Pillen bis an
-    // den Bildschirmrand laufen statt vorher hart abzureissen — dasselbe Muster wie bei den
-    // Event-Filtern (EventsWeek.tsx).
-    <div
-      ref={strip}
-      className="-mx-4 overflow-x-auto px-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-    >
+    // Karten wanderten mit, obwohl nur die Leiste zu breit war.
+    // Die Klassenliste dafür stand hier von Hand und war eine von vier leicht verschiedenen
+    // Fassungen derselben Sache; jetzt kommt sie aus ScrollStrip, samt Maus-Ziehen und dem
+    // Verlauf am Rand. `scrollRef` gibt das scrollende Element zurück, weil der Effekt oben
+    // den aktiven Reiter selbst in den Blick holen muss.
+    <ScrollStrip scrollRef={strip}>
       {/* w-max: der Streifen darf die Reiter NICHT zusammenquetschen. Ohne das würde Flex
           sie schmal rechnen und „Audio-Touren" umbrechen, statt zu scrollen. */}
       <nav className="flex w-max rounded-full bg-black/5 p-1">
@@ -115,6 +113,6 @@ export default function AdminNav({ supportCount = 0 }: { supportCount?: number }
           );
         })}
       </nav>
-    </div>
+    </ScrollStrip>
   );
 }

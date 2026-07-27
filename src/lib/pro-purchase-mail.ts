@@ -58,19 +58,17 @@ function dateTime(iso: string | null, locale: string): string {
 }
 
 export type ProPurchaseReceipt = {
-  /** Die Adresse, mit der bezahlt wurde. Dorthin geht diese Mail. */
-  email: string;
   /**
-   * Die Adresse, unter der der Zugang liegt, also die des Kontos.
+   * Die Adresse des Kontos. Dorthin geht diese Mail, und dieselbe steht darin.
    *
-   * MEISTENS DIESELBE wie oben, aber eben nicht immer: Wer eingeloggt kauft, bekommt Pro
-   * auf sein KONTO gutgeschrieben (über die User-ID, nicht über die E-Mail). Hat sein
-   * Stripe-Kunde keine Adresse hinterlegt, tippt er an der Kasse eine ein, und die kann eine
-   * andere sein. Stünde dann hier die Zahladresse, schickte die Bestätigung ihn an ein
-   * Postfach, unter dem sein Pro gar nicht liegt. Beim Gast-Kauf sind beide identisch, weil
-   * das Konto genau aus der Zahladresse entsteht.
+   * EINE, nicht zwei: Hier standen bis 07/2026 `email` (bezahlt) und `accountEmail` (Konto)
+   * nebeneinander, und die Mail erklärte den Unterschied, wenn er auftrat. Er kann nicht mehr
+   * auftreten; die Begründung steht bei `fulfillPaidCheckout` in pro-purchase.ts, dort wird
+   * eine Abweichung auch geloggt, falls die Annahme je kippt. Zwei Felder, die immer gleich
+   * sind, sind kein Sicherheitsnetz, sondern zwei Stellen, an denen ein Aufrufer sie
+   * verwechseln kann.
    */
-  accountEmail: string;
+  email: string;
   /** Preis, wie bezahlt (z.B. „19,90 €"). Leer, wenn Stripe nichts geliefert hat. */
   price: string;
   /** Zeitpunkt des Vertragsabschlusses (ISO), der Moment der Zahlung. */
@@ -126,14 +124,7 @@ async function content(r: ProPurchaseReceipt): Promise<MailContent> {
     // „SalzGuide" wird vom Rahmen automatisch rot gesetzt, deshalb steht es in der Überschrift
     // und nicht nochmal darüber.
     headline: t.headline,
-    body:
-      `${t.intro}\n\n` +
-      (r.guest ? t.guest : t.member) +
-      // Nur wenn die zwei Adressen auseinandergehen. Ein Satz, der in 99 von 100 Mails
-      // fehlt, aber im hundertsten die Verwirrung verhindert, die sonst als Anfrage kommt.
-      (r.accountEmail && r.accountEmail !== r.email
-        ? `\n\n${fill(t.otherAddress, { paid: r.email, account: r.accountEmail })}`
-        : ""),
+    body: `${t.intro}\n\n${r.guest ? t.guest : t.member}`,
     rows: [
       { label: t.rowService, value: t.rowServiceValue },
       {
@@ -153,7 +144,7 @@ async function content(r: ProPurchaseReceipt): Promise<MailContent> {
     // die Mail beim Antippen mitten im Satz auf.
     cta: { label: t.cta, url: `${base}/${locale}/explore` },
     // Die eine hervorgehobene Angabe: Mit dieser Adresse kommt er auf jedem Gerät herein.
-    tile: { label: t.tileLabel, value: r.accountEmail || r.email },
+    tile: { label: t.tileLabel, value: r.email },
     note: t.note,
     // Die zwei Angaben, die § 7 Abs. 3 FAGG verlangt: die Zustimmung wörtlich bestätigt und
     // mit Zeitpunkt, dazu die Belehrung, was das für das Rücktrittsrecht heisst. Leiser

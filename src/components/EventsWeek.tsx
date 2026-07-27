@@ -10,6 +10,7 @@ import {
   type EventItem,
 } from "@/lib/events-format";
 import EventCard from "./EventCard";
+import ScrollStrip from "./ScrollStrip";
 import { STATUS_ACCENT, STATUS_NEUTRAL } from "@/lib/ui";
 
 type Filter = "all" | "highlights" | "free" | EventCategory;
@@ -97,8 +98,10 @@ export default function EventsWeek({
         </div>
       ) : (
         <>
-          {/* Kategorie-Filter-Pills (horizontal scrollbar) */}
-          <div className="-mx-4 mt-4 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {/* Kategorie-Filter-Pills im gemeinsamen Scroll-Streifen (siehe ScrollStrip.tsx):
+              fängt die Überbreite ab, lässt sich am Desktop mit der Maus ziehen und läuft am
+              Rand aus statt eine Pille mittendurch zu schneiden. */}
+          <ScrollStrip className="mt-4">
             <div className="flex w-max gap-2">
               {pills.map((p) => {
                 const active = filter === p.key;
@@ -119,7 +122,7 @@ export default function EventsWeek({
                 );
               })}
             </div>
-          </div>
+          </ScrollStrip>
 
           {/* Tage */}
           {days.length === 0 ? (

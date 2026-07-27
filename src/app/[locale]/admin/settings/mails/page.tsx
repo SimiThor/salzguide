@@ -1,6 +1,7 @@
 import { setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { LOCALES, safeLocale } from "@/i18n/locales";
+import ScrollStrip from "@/components/ScrollStrip";
 import { renderProGift } from "@/lib/pro-gift-mail";
 import { renderProPurchase } from "@/lib/pro-purchase-mail";
 import { renderWithdrawal } from "@/lib/withdrawal-mail";
@@ -24,7 +25,6 @@ export const dynamic = "force-dynamic";
 
 /** Beispielwerte. Erfunden, aber in der Form, in der echte Werte ankommen. */
 const SAMPLE_EMAIL = "du@example.at";
-const SAMPLE_ACCOUNT = "dein.konto@example.at";
 
 export default async function AdminMailsPage({
   params,
@@ -50,7 +50,6 @@ export default async function AdminMailsPage({
     renderProGift(lang),
     renderProPurchase({
       email: SAMPLE_EMAIL,
-      accountEmail: SAMPLE_ACCOUNT,
       price: "19,90 €",
       paidAt: sampleDate,
       consentAt: sampleDate,
@@ -108,9 +107,11 @@ export default async function AdminMailsPage({
         </p>
       </div>
 
-      {/* Die Sprachleiste. Als Scroll-Streifen, sonst schiebt sie auf einem schmalen
-          Bildschirm das ganze Dokument breiter (die Regel dazu steht in globals.css). */}
-      <div className="-mx-4 overflow-x-auto px-4">
+      {/* Die Sprachleiste. Neun Pillen sind auf jedem Handy und auch im 820px-Admin-Rahmen
+          breiter als der Platz, deshalb der gemeinsame Scroll-Streifen: Er fängt die
+          Überbreite ab, lässt sich mit der Maus ziehen und schneidet die letzte Pille nicht
+          hart ab (siehe ScrollStrip.tsx). */}
+      <ScrollStrip>
         <div className="flex w-max gap-2">
           {LOCALES.map((l) => (
             <Link
@@ -128,7 +129,7 @@ export default async function AdminMailsPage({
             </Link>
           ))}
         </div>
-      </div>
+      </ScrollStrip>
 
       {mails.map((m) => (
         <section key={m.title} className="rounded-[18px] bg-white p-5 shadow-sm ring-1 ring-black/5">
