@@ -1,7 +1,12 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { createServiceClient } from "./supabase/service";
+// Der Cache-Anhänger des Katalogs. Kommt aus lib/spots.ts, damit Leser und Schreiber
+// denselben Namen benutzen — ein zweites "spots" hier wäre ein Tippfehler von der stillen
+// Sorte: Alles baut, alles läuft, nur die Karte bleibt alt.
+// (spots.ts holt sich von hier nur einen Typ per `import type` -> zur Laufzeit kein Kreis.)
+import { SPOTS_TAG } from "./spots";
 import { BRAND_VOICE } from "./brand-voice";
 import { normalizeManual, type OpeningWeek } from "./opening-hours";
 import { routing } from "@/i18n/routing";
@@ -557,6 +562,9 @@ export async function saveSpot(input: SpotInput): Promise<SaveResult> {
   // sowie die ausgewählten Spots. Ohne diesen Aufruf hinge sie nach dem Veröffentlichen bis
   // zu einer Stunde auf dem alten Stand.
   for (const l of routing.locales) revalidatePath(`/${l}`);
+  // Und der Katalog hinter Karte und „Ähnliche Spots" (lib/spots.ts). Seit er gecacht ist,
+  // ist DIESE Zeile der Unterschied zwischen „veröffentlicht" und „sichtbar".
+  updateTag(SPOTS_TAG);
 
   return { ok: true, id: spotId };
 }
@@ -1005,8 +1013,10 @@ export async function deleteSpot(id: string): Promise<SaveResult> {
     intro?.intro_video_poster_url,
   ]);
 
-  // Wie in saveSpot: Die vorgerenderte Startseite muss die neue Spot-Anzahl mitbekommen.
+  // Wie in saveSpot: Die vorgerenderte Startseite muss die neue Spot-Anzahl mitbekommen,
+  // und der gecachte Katalog den gelöschten Spot.
   for (const l of routing.locales) revalidatePath(`/${l}`);
+  updateTag(SPOTS_TAG);
 
   return { ok: true };
 }
@@ -1253,6 +1263,9 @@ export async function fillSpotTranslations(
     if (error) failed.push(l);
     else filled++;
   }
+  // Die neuen Übersetzungen stecken im gecachten Katalog (Titel/Kurztext auf Karte und
+  // Karussells). Ohne das sähe ein Italiener bis zu fünf Minuten weiter Deutsch.
+  if (filled) updateTag(SPOTS_TAG);
   return { ok: true, filled, failed: failed.length ? failed : undefined };
 }
 
@@ -1372,6 +1385,8 @@ export async function saveCategory(
       .update({ title_translations: titles, sort_order: sortOrder })
       .eq("id", input.id);
     if (error) return { ok: false, error: "db" };
+    // Kategorien sind Teil des gecachten Katalogs (die Filter-Pillen über der Karte).
+    updateTag(SPOTS_TAG);
     return { ok: true, id: input.id };
   }
 
@@ -1394,7 +1409,10 @@ export async function saveCategory(
       .insert({ key, season: input.season, title_translations: titles, sort_order: sortOrder })
       .select("id")
       .single();
-    if (!error && created) return { ok: true, id: created.id as string };
+    if (!error && created) {
+      updateTag(SPOTS_TAG);
+      return { ok: true, id: created.id as string };
+    }
     if (error && (error as { code?: string }).code === "23505") {
       used.add(key); // Key inzwischen vergeben -> nächsten Suffix probieren
       continue;
@@ -1411,6 +1429,7 @@ export async function deleteCategory(id: string): Promise<{ ok: boolean; error?:
   // spot_categories hängt per ON DELETE CASCADE -> Zuordnungen werden mit entfernt.
   const { error } = await gate.supabase.from("categories").delete().eq("id", id);
   if (error) return { ok: false, error: "db" };
+  updateTag(SPOTS_TAG);
   return { ok: true };
 }
 
@@ -1447,6 +1466,8 @@ export async function reorderCategories(
       .eq("season", season);
     if (error) return { ok: false, error: "db" };
   }
+  // Die Reihenfolge der Filter-Pillen steckt im gecachten Katalog.
+  updateTag(SPOTS_TAG);
   return { ok: true };
 }
 
@@ -1567,6 +1588,7 @@ export async function fillCategoryTranslations(
     .update({ title_translations: titles })
     .eq("id", categoryId);
   if (error) return { ok: false, error: "db" };
+  updateTag(SPOTS_TAG);
   return { ok: true, filled, failed: failed.length ? failed : undefined };
 }
 

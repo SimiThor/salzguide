@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "./supabase/server";
+import { currentUserId } from "./viewer";
 import {
   asBBox,
   imagesFromMedia,
@@ -45,12 +46,14 @@ export async function getOrCreateDefaultList(
 }
 
 // Slugs der gespeicherten Spots des aktuellen Users (RLS filtert auf eigene)
+//
+// Lokale Token-Prüfung (currentUserId), weil das reines Lesen ist und an der Karte hängt:
+// Die Entdecken-Seite fragte hier zum dritten Mal in einem Render nach demselben Nutzer.
+// Die Absicherung leistet ohnehin die RLS, nicht diese Zeile — sie entscheidet nur, ob wir
+// die Abfrage überhaupt stellen. Siehe lib/viewer.ts.
 export async function getSavedSlugs(): Promise<Set<string>> {
+  if (!(await currentUserId())) return new Set();
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return new Set();
 
   const { data, error } = await supabase
     .from("saved_items")
@@ -67,11 +70,8 @@ export async function getSavedSlugs(): Promise<Set<string>> {
 
 // Gespeicherte Spots als Karten-Daten (null = nicht eingeloggt)
 export async function getSavedSpots(locale: string): Promise<SavedSpot[] | null> {
+  if (!(await currentUserId())) return null;
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
 
   const { data: items } = await supabase.from("saved_items").select("spot_id");
   const ids = (items ?? []).map((i) => i.spot_id);

@@ -1,6 +1,8 @@
 import { cache } from "react";
+import { unstable_cache } from "next/cache";
 import { createClient } from "./supabase/server";
 import { createServiceClient } from "./supabase/service";
+import { currentUserId } from "./viewer";
 import type { ElevationProfile } from "./admin-actions";
 import { parsePois, type MapPoi } from "./geo";
 
@@ -10,15 +12,17 @@ import { parsePois, type MapPoi } from "./geo";
 // (bypassen RLS), damit die gesperrten Pins/Karten weiterhin erscheinen — die
 // RLS (Migration 0017) bleibt die harte Sperre gegen direkten PostgREST-Zugriff.
 export const viewerCanSeePro = cache(async function viewerCanSeePro(): Promise<boolean> {
+  // currentUserId() statt auth.getUser(): prüft das Token lokal statt über das Netz. Diese
+  // Funktion hängt an der Karte, an jeder Spot-Seite und an jeder Tour — sie war damit die
+  // teuerste einzelne Auth-Frage der App. Warum das sicher ist und wo weiterhin der
+  // Auth-Server gefragt wird, steht in lib/viewer.ts.
+  const userId = await currentUserId();
+  if (!userId) return false;
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return false;
   const { data } = await supabase
     .from("profiles")
     .select("is_pro, role")
-    .eq("id", user.id)
+    .eq("id", userId)
     .maybeSingle();
   return Boolean(data?.is_pro) || data?.role === "admin";
 });
@@ -275,11 +279,69 @@ export type ExploreData = {
   categories: ExploreCategory[];
 };
 
-// canSeePro: solange kein Login existiert (Auftrag G/H) IMMER false ->
-// Pro-Inhalte werden serverseitig entfernt, damit echte Titel/Slugs/Texte
+/**
+ * Der Cache-Anhänger des Katalogs. Wer Spots oder Kategorien ändert, ruft
+ * `updateTag(SPOTS_TAG)` — dann sehen ALLE Besucher sofort den neuen Stand.
+ *
+ * `updateTag` und nicht `revalidateTag`: Next 16 trennt die beiden. `updateTag` ist die
+ * Fassung für Server-Actions und garantiert, dass der Admin seine eigene Änderung SOFORT
+ * sieht (read your own writes) — ohne das speichert er einen Spot, landet auf der Karte und
+ * sieht dort noch den alten Stand, was wie ein verlorener Klick aussieht.
+ *
+ * Steht hier und nicht in der Admin-Datei, damit Schreiber und Leser dieselbe Zeile
+ * benutzen und kein zweiter Tag-Name entsteht, der fast gleich heisst.
+ */
+export const SPOTS_TAG = "spots";
+
+/**
+ * Sicherheitsnetz hinter dem Tag: Auch wenn irgendwo ein `revalidateTag` fehlt, ist der
+ * Katalog nach fünf Minuten von selbst wieder aktuell.
+ *
+ * Ein reiner Tag ohne Zeit wäre die sauberere Theorie und die gefährlichere Praxis: Wird
+ * später eine Schreibstelle ergänzt und der Tag vergessen, stünde die Karte auf ewig auf
+ * altem Stand — und niemand merkt es, weil nichts kaputt aussieht.
+ */
+const EXPLORE_REVALIDATE = 300;
+
+// canSeePro: Pro-Inhalte werden serverseitig entfernt, damit echte Titel/Slugs/Texte
 // NICHT im Client-HTML landen (docs/33). Nur Teaser-Marker bleiben.
+//
+// ═══════════════════════════════════════════════════════════════════════════════════════
+//  WARUM DER KATALOG GECACHT IST, OBWOHL ER VOM BETRACHTER ABHÄNGT
+// ═══════════════════════════════════════════════════════════════════════════════════════
+//
+// Das hier ist die Abfrage hinter der Entdecken-Karte, dem Herz der App: alle Spots, alle
+// Übersetzungen, alle Bilder, alle Kategorien. Bis 07/2026 lief sie bei JEDEM Aufruf neu.
+// Bei zehn Besuchern ist das egal. Bei tausend gleichzeitig sind es tausend identische
+// Joins über den ganzen Katalog — und weil dieselbe Funktion auch an der Spot-Seite hing,
+// zählte jeder Google-Besucher doppelt. Das ist der Punkt, an dem eine Datenbank nicht
+// langsam wird, sondern die Verbindungen ausgehen.
+//
+// „Hängt vom Betrachter ab, also nicht cachebar" stimmt hier nur auf den ersten Blick: Es
+// gibt genau ZWEI mögliche Antworten je Sprache — die für Leute mit Pro-Zugang und die für
+// alle anderen. Nicht tausend, zwei. Der Betrachter entscheidet nur, WELCHE er bekommt,
+// und diese Entscheidung (viewerCanSeePro) fällt weiterhin bei jedem Aufruf frisch.
+//
+// WICHTIG für die Sicherheit: `unstable_cache` darf nichts anfassen, was zum Request
+// gehört — keine Cookies, keine Header. Deshalb steht viewerCanSeePro AUSSERHALB und geht
+// nur als Wert hinein. Käme die Prüfung mit hinein, könnte der erste Pro-Kunde, der die
+// Karte lädt, seine entsperrte Fassung für alle anderen einfrieren. Diese Reihenfolge
+// bitte nicht vertauschen.
 export async function getExploreData(locale: string): Promise<ExploreData> {
   const canSeePro = await viewerCanSeePro();
+  return loadExploreData(locale, canSeePro);
+}
+
+const loadExploreData = (locale: string, canSeePro: boolean): Promise<ExploreData> =>
+  unstable_cache(
+    () => queryExploreData(locale, canSeePro),
+    // Beide Werte gehören in den Schlüssel: Sonst bekäme ein Ausgeloggter die Fassung
+    // eines Pro-Kunden — also echte Titel und exakte Koordinaten der Geheimtipps.
+    ["explore", locale, canSeePro ? "pro" : "public"],
+    { tags: [SPOTS_TAG], revalidate: EXPLORE_REVALIDATE },
+  )();
+
+async function queryExploreData(locale: string, canSeePro: boolean): Promise<ExploreData> {
   // Service-Client: sieht auch Pro-Spots (für die gesperrten Teaser-Pins). Pro-Inhalte
   // werden unten für Nicht-Pro-Betrachter geschwärzt, bevor irgendetwas zum Client geht.
   const supabase = createServiceClient();
@@ -360,6 +422,178 @@ export async function getExploreData(locale: string): Promise<ExploreData> {
   });
 
   return { spots, categories };
+}
+
+// ---- Ähnliche Spots ---------------------------------------------------------
+//
+// ═══════════════════════════════════════════════════════════════════════════════════════
+//  WARUM DAS NICHT MEHR ÜBER getExploreData LÄUFT
+// ═══════════════════════════════════════════════════════════════════════════════════════
+//
+// Die Spot-Detailseite hat sich für ihre acht Vorschläge bis 07/2026 den GANZEN Katalog
+// über getExploreData geholt: jede Übersetzung, jedes Bild jedes Spots, alle Kategorien —
+// um daraus acht Karten zu zeigen und den Rest wegzuwerfen. Bei 76 Spots ist das schon
+// unnötig, bei 300 ist es die teuerste Abfrage der App auf der Seite, auf der Leute aus
+// Google landen. Und sie lief bei JEDEM Aufruf neu.
+//
+// Jetzt in zwei Schritten, und beide sind klein:
+//   1. Was zum RECHNEN nötig ist (Art, Kategorien, Saison, Koordinaten) — ohne Bilder,
+//      ohne Texte. Das sind ein paar Zahlen pro Spot.
+//   2. Die vollen Karten-Daten für die ACHT Gewinner.
+//
+// Zwei Abfragen statt einer, aber zusammen ein Bruchteil der Daten — und der Anteil, der
+// mit dem Katalog wächst, ist jetzt der billige.
+
+const RELATED_COUNT = 8;
+
+/** Ähnlichkeit: gleiche Art + geteilte Kategorien + Nähe + Saison-Überlappung. Höher = passender. */
+type ScoreRow = {
+  slug: string;
+  type: string;
+  is_pro: boolean;
+  lat: number | null;
+  lng: number | null;
+  seasons: string[] | null;
+  categoryKeys: string[];
+};
+
+function similarity(self: ScoreRow, c: ScoreRow): number {
+  let s = 0;
+  if (c.type === self.type) s += 4;
+  const selfCats = new Set(self.categoryKeys);
+  s += c.categoryKeys.filter((k) => selfCats.has(k)).length * 3;
+  const selfSeasons = new Set(self.seasons ?? []);
+  if ((c.seasons ?? []).some((x) => selfSeasons.has(x))) s += 1;
+  if (self.lat != null && self.lng != null && c.lat != null && c.lng != null) {
+    const dx = self.lng - c.lng;
+    const dy = self.lat - c.lat;
+    const dist = Math.sqrt(dx * dx + dy * dy); // grobe Grad-Distanz
+    s += Math.max(0, 4 - dist * 20); // Nähe (~<20 km) gibt Bonus
+  }
+  return s;
+}
+
+/**
+ * Die acht passendsten anderen Spots als fertige Karten-Daten.
+ *
+ * Gating wie überall: Service-Client zum Lesen, am BETRACHTER entscheiden. Gesperrte
+ * Pro-Spots kommen als Teaser zurück (Blur-Vorschau, kein echter Slug, kein Titel) —
+ * dieselbe Regel wie in getExploreData, damit der Tipp darauf den Pro-Hinweis öffnet.
+ */
+export const getRelatedSpots = cache(async function getRelatedSpots(
+  slug: string,
+  locale: string,
+): Promise<SpotCardData[]> {
+  // Gleiche Regel wie bei getExploreData: Die Betrachter-Prüfung passiert HIER, draussen,
+  // und geht nur als Wert in den Cache-Schlüssel. Ein Ergebnis pro (Spot, Sprache, Zugang).
+  const canSeePro = await viewerCanSeePro();
+  return loadRelatedSpots(slug, locale, canSeePro);
+});
+
+const loadRelatedSpots = (
+  slug: string,
+  locale: string,
+  canSeePro: boolean,
+): Promise<SpotCardData[]> =>
+  unstable_cache(
+    () => queryRelatedSpots(slug, locale, canSeePro),
+    ["related", slug, locale, canSeePro ? "pro" : "public"],
+    { tags: [SPOTS_TAG], revalidate: EXPLORE_REVALIDATE },
+  )();
+
+async function queryRelatedSpots(
+  slug: string,
+  locale: string,
+  canSeePro: boolean,
+): Promise<SpotCardData[]> {
+  const supabase = createServiceClient();
+
+  // Schritt 1: nur die Felder zum Rechnen. Keine Bilder, keine Übersetzungen.
+  const { data: light, error: lightErr } = await supabase
+    .from("spots")
+    .select("slug, type, is_pro, lat, lng, seasons, spot_categories(categories(key))")
+    .eq("status", "published");
+
+  if (lightErr) {
+    console.error("getRelatedSpots (Auswahl):", lightErr.message);
+    return [];
+  }
+
+  const rows: ScoreRow[] = (light ?? []).map((s) => {
+    const links = (s.spot_categories ?? []) as {
+      categories: { key: string } | { key: string }[] | null;
+    }[];
+    return {
+      slug: s.slug,
+      type: s.type,
+      is_pro: s.is_pro,
+      lat: s.lat,
+      lng: s.lng,
+      seasons: s.seasons,
+      categoryKeys: links
+        .flatMap((l) => (Array.isArray(l.categories) ? l.categories : l.categories ? [l.categories] : []))
+        .map((c) => c.key),
+    };
+  });
+
+  const self = rows.find((r) => r.slug === slug);
+  if (!self) return [];
+
+  const winners = rows
+    .filter((r) => r.slug !== slug)
+    .map((r) => ({ r, score: similarity(self, r) }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, RELATED_COUNT)
+    .map((x) => x.r);
+  if (winners.length === 0) return [];
+
+  // Schritt 2: die vollen Daten NUR für die Gewinner.
+  const { data: full, error: fullErr } = await supabase
+    .from("spots")
+    .select(
+      "slug, emoji, is_pro, type, spot_translations!inner(title, short_desc, lang), media(url, role, sort_order, blur_url)",
+    )
+    .in(
+      "slug",
+      winners.map((w) => w.slug),
+    )
+    .eq("status", "published")
+    .in("spot_translations.lang", localeWithFallback(locale));
+
+  if (fullErr) {
+    console.error("getRelatedSpots (Karten):", fullErr.message);
+    return [];
+  }
+
+  const lockedSpotName = lockedName(locale);
+  const byslug = new Map((full ?? []).map((s) => [s.slug as string, s]));
+
+  // In der Reihenfolge der Gewinner ausgeben — `.in()` liefert sie sonst in DB-Reihenfolge
+  // und die beste Empfehlung stünde irgendwo in der Mitte.
+  return winners.flatMap((w, i) => {
+    const s = byslug.get(w.slug);
+    if (!s) return [];
+    const t = pickTranslation(
+      s.spot_translations as { title: string; short_desc: string | null; lang: string }[],
+      locale,
+    );
+    const locked = s.is_pro && !canSeePro;
+    return [
+      {
+        // Gesperrt: nichts Echtes ausliefern (kein Slug, kein Titel, kein Text) — genau
+        // wie in getExploreData. Der Index hält den React-key eindeutig.
+        slug: locked ? `locked-${i}` : s.slug,
+        emoji: locked ? null : s.emoji,
+        imageUrl: locked ? null : (imagesFromMedia(s.media)[0] ?? null),
+        previewUrl: locked ? heroPreviewFromMedia(s.media) : null,
+        locked,
+        isPro: s.is_pro,
+        type: s.type,
+        title: locked ? lockedSpotName : (t?.title ?? s.slug),
+        shortDesc: locked ? null : (t?.short_desc ?? null),
+      },
+    ];
+  });
 }
 
 // ---- Spot-Detail (Auftrag E) ------------------------------------------------
