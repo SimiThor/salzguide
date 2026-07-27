@@ -103,3 +103,15 @@ export type SocialPost = {
 
 /** Wie viele Kacheln die Section zeigt. Eine Zahl, zwei Layouts (Streifen am Handy, Reihe am PC). */
 export const SOCIAL_FEED_SIZE = 6;
+
+/**
+ * Das Seitenverhältnis JEDER Kachel: 4:5, Instagrams Hochformat.
+ *
+ * WARUM ALS KONSTANTE UND NICHT ZWEIMAL GETIPPT: Die Section auf der Startseite zeigt das
+ * Bild in diesem Rahmen (object-cover schneidet mittig zu), der Admin zeigt Vorschau und
+ * Listen-Kachel im selben. Stünde die Zahl an drei Stellen, versprächen Vorschau und
+ * Ergebnis irgendwann Verschiedenes — und der Zuschnitt fällt erst auf der fertigen Seite
+ * auf. So ist der Rahmen für JEDE hochgeladene Bildgrösse derselbe, quer wie hoch wie
+ * quadratisch.
+ */
+export const SOCIAL_TILE_ASPECT = "aspect-[4/5]";
