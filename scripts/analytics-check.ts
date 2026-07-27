@@ -15,7 +15,7 @@
 import { readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { classifyPath, classifyLocalePath, isBotUserAgent } from "../src/lib/analytics.ts";
-import { KIND_LABELS } from "../src/lib/analytics-labels.ts";
+import { KIND_LABELS, LEGACY_KINDS } from "../src/lib/analytics-labels.ts";
 import { viennaDayStart, bucketRange, bucketStart, dayCount, shiftDay } from "../src/lib/vienna-day.ts";
 
 let failed = 0;
@@ -98,13 +98,36 @@ if (unclassified.length === 0) {
 // nach Programmierfehler aus. Die Prüfung geht von den ECHTEN Routen aus, nicht von einer
 // Liste, die jemand hier pflegen müsste.
 const kinds = new Set(
-  [...routes, "/", "/spot/x", "/touren/x"]
+  [
+    ...routes,
+    "/", "/spot/x", "/touren/x",
+    // Eine Adresse, die es in der App NICHT gibt. Sie gehört dazu: Genau so entsteht
+    // „other" im Betrieb (alte Links der WordPress-Seite, Tippfehler, Scanner), und ohne
+    // sie hielte die Karteileichen-Prüfung unten die Beschriftung für überflüssig.
+    "/wp-content/uploads/alt.jpg",
+  ]
     .map((r) => classifyPath(r)?.kind)
     .filter((k): k is string => Boolean(k)),
 );
 eq(
   `alle ${kinds.size} Seitenarten haben eine deutsche Beschriftung`,
   [...kinds].filter((k) => !KIND_LABELS[k]),
+  [],
+);
+// Und die Gegenrichtung. Reichweitendaten bleiben 14 Monate liegen, in der Tabelle stehen
+// also auch Kennungen, die der heutige Code nicht mehr vergibt. Genau daran ist die erste
+// Fassung vorbeigelaufen: `home` (46 Zeilen, in Altdaten der KARTEN-Aufruf) hatte keine
+// Beschriftung und wäre im Dashboard als „home" erschienen — was jeder als Startseite liest.
+// Gefunden hat es nicht dieses Skript, sondern ein Blick in die echten Daten nach dem
+// Einspielen. Jetzt fängt es das Skript.
+eq(
+  `alle ${Object.keys(LEGACY_KINDS).length} Altdaten-Kennungen sind beschriftet`,
+  Object.keys(LEGACY_KINDS).filter((k) => !KIND_LABELS[k]),
+  [],
+);
+eq(
+  "keine Beschriftung ohne Seitenart (Karteileiche)",
+  Object.keys(KIND_LABELS).filter((k) => !kinds.has(k) && !LEGACY_KINDS[k]),
   [],
 );
 
