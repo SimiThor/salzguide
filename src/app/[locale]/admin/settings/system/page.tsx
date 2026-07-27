@@ -2,6 +2,7 @@ import { setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import BackButton from "@/components/BackButton";
 import ScrollStrip from "@/components/ScrollStrip";
+import AutoRefresh from "@/components/admin/AutoRefresh";
 import TestAlertButton from "@/components/admin/TestAlertButton";
 import { getJobStatus } from "@/lib/ops";
 import { getOpsEvents, getOpsSummary } from "@/lib/ops-read";
@@ -68,6 +69,11 @@ export default async function AdminSystemPage({
         <p className="mt-1 text-[13px] text-muted">
           Fehler, Missbrauchsversuche und Hintergrund-Läufe. Alarme kommen zusätzlich per Mail.
         </p>
+        {/* Steht oben und nicht unten: Wer hier hereinkommt, muss als Erstes wissen, ob die
+            Zahlen darunter von jetzt sind. Eine alte Zahl sieht genauso aus wie eine frische. */}
+        <div className="mt-2">
+          <AutoRefresh />
+        </div>
       </div>
 
       {/* ── Der erste Blick: geht es der Plattform gut? ────────────────────────────
