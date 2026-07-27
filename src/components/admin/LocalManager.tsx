@@ -47,8 +47,9 @@ function LocalForm({
       // Quadratisch wie bei Gründern und Toni: Das Foto steht überall rund und klein.
       const { blob } = await compressSquareImage(file);
       setAvatarUrl(await uploadImage(blob, "locals"));
-    } catch {
-      setErr("Foto-Upload hat nicht geklappt.");
+    } catch (e) {
+      // Wie in den anderen Formularen: den echten Grund zeigen.
+      setErr(e instanceof Error ? e.message : "Foto-Upload hat nicht geklappt.");
     } finally {
       setUploading(false);
     }

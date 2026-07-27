@@ -21,12 +21,18 @@ export default function ToniAvatarSettings({ current }: { current: string | null
     try {
       const { blob } = await compressSquareImage(file);
       const publicUrl = await uploadImage(blob, "site");
+      // Speicher-Fehler bewusst GETRENNT: Dessen Text kommt vom Server und gehört nicht
+      // ungefiltert in den Admin. Die Upload-Meldungen (zu gross, kein Bild, HEIC) dagegen
+      // sind für genau diesen Moment geschrieben und werden unten durchgereicht.
       const r = await setToniAvatarUrl(publicUrl);
-      if (!r.ok) throw new Error(r.error ?? "save");
+      if (!r.ok) {
+        setErr("Konnte nicht gespeichert werden. Bitte erneut versuchen.");
+        return;
+      }
       setUrl(publicUrl);
       setMsg("Profilbild aktualisiert. Es erscheint im KI-Chat.");
-    } catch {
-      setErr("Upload hat nicht geklappt. Bitte erneut versuchen.");
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Upload hat nicht geklappt. Bitte erneut versuchen.");
     } finally {
       setBusy(false);
       if (fileRef.current) fileRef.current.value = "";

@@ -167,8 +167,9 @@ export default function TourForm({
     try {
       const { blob } = await compressImage(file);
       set({ coverUrl: await uploadImage(blob, "tours") });
-    } catch {
-      setErr("Cover-Upload hat nicht geklappt.");
+    } catch (e) {
+      // Wie im AreaForm: den echten Grund zeigen, nicht nur, dass es schiefging.
+      setErr(e instanceof Error ? e.message : "Cover-Upload hat nicht geklappt.");
     } finally {
       setUploadingCover(false);
     }

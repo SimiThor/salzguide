@@ -32,6 +32,8 @@ import Busy from "@/components/Busy";
 const wordCount = (s: string) => (s.trim() ? s.trim().split(/\s+/).length : 0);
 const secEstimate = (s: string) => Math.round((wordCount(s) / 140) * 60);
 const KNOWN_TAGS = new Set<string>(TAG_KEYS);
+/** Deckel für selbst hochgeladene Sprechtexte (Begründung an der Prüfstelle unten). */
+const MAX_AUDIO_BYTES = 10 * 1024 * 1024;
 
 const inputCls =
   "w-full rounded-[12px] border border-black/10 bg-white px-3 py-2 text-[15px] text-ink outline-none focus:border-accent";
@@ -298,6 +300,17 @@ export default function PointForm({
       setErr("Bitte eine MP3-Datei wählen (andere Audio-Formate nimmt der Speicher nicht an).");
       return;
     }
+    // Der einzige Upload-Pfad, der bisher gar keinen Deckel hatte. Der Bucket lehnt zwar
+    // ab 20 MiB ab, aber erst NACH dem Hochladen - man wartet also minutenlang für eine
+    // Fehlermeldung. Und darunter kommt alles durch: Eine 15-MB-Datei bliebe für immer
+    // liegen und ginge bei JEDEM Zuhörer über die Leitung. Die KI-Stimme wiegt ~2 MB,
+    // 10 MB sind rund zehn Minuten Sprache - mehr ist hier kein gültiger Fall.
+    if (file.size > MAX_AUDIO_BYTES) {
+      setErr(
+        `Audio ist zu groß (${Math.round(file.size / 1048576)} MB, max. ${Math.round(MAX_AUDIO_BYTES / 1048576)} MB). Bitte als MP3 mit 128 kbit/s exportieren.`,
+      );
+      return;
+    }
     setUploading((u) => [...u, lang]);
     setErr("");
     try {
@@ -312,8 +325,15 @@ export default function PointForm({
         });
       if (error) throw new Error(error.message);
       setTexts(lang, { audioUrl: path });
-    } catch {
-      setErr("Audio-Upload hat nicht geklappt.");
+    } catch (e) {
+      // Wie im VideoUploader: Das Speicher-Limit ist der häufigste Grund und die
+      // Roh-Meldung ("exceeded the maximum allowed size") sagt nicht, was zu tun ist.
+      const m = e instanceof Error ? e.message : "";
+      setErr(
+        /exceed|maximum allowed size|too large|413/i.test(m)
+          ? "Audio ist größer als das Speicher-Limit. Bitte als MP3 mit 128 kbit/s exportieren."
+          : "Audio-Upload hat nicht geklappt.",
+      );
     } finally {
       setUploading((u) => u.filter((x) => x !== lang));
     }
@@ -325,8 +345,9 @@ export default function PointForm({
     try {
       const { blob } = await compressImage(file);
       set({ imageUrl: await uploadImage(blob, "tours") });
-    } catch {
-      setErr("Bild-Upload hat nicht geklappt.");
+    } catch (e) {
+      // Wie in den anderen Formularen: den echten Grund zeigen.
+      setErr(e instanceof Error ? e.message : "Bild-Upload hat nicht geklappt.");
     } finally {
       setUploadingImage(false);
     }
