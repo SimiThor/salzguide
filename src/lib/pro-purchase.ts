@@ -7,6 +7,7 @@ import { LEGAL } from "./legal";
 import { sendEmail } from "./email";
 import { logOps } from "./ops";
 import { renderProPurchase } from "./pro-purchase-mail";
+import { trackConversion } from "./analytics";
 import { safeLocale } from "@/i18n/locales";
 
 // ═══════════════════════════════════════════════════════════════════════════════════════
@@ -371,7 +372,31 @@ async function recordPurchase(
     account_created: opts.accountCreated,
     claim_hash: opts.claimHash ?? null,
   });
-  if (!error) return true;
+  if (!error) {
+    // HIER wird der Kauf für die Reichweitenmessung gezählt, und nur hier.
+    //
+    // Bis 07/2026 wurde er GAR NICHT gezählt: trackConversion() stand seit der ersten
+    // Analytics-Migration in lib/analytics.ts, „vorbereitet für Stripe" (docs/34 §H) — und
+    // hatte keine einzige Aufrufstelle. Die Kachel „Conversions · Free → Pro" im Dashboard
+    // stand also dauerhaft auf 0, und die KI-Auswertung bekam diese 0 als Tatsache serviert
+    // und sollte daraus Ratschläge zur Conversion ableiten. Eine Kennzahl, die strukturell
+    // nie steigen kann, ist schlimmer als keine: Man liest sie als Ergebnis.
+    //
+    // Warum genau an dieser Zeile und nicht in fulfillPaidCheckout(): Zwei Wege führen zu
+    // einem Kauf (Rücksprung und Webhook), beide rufen fulfillPaidCheckout auf, und Stripe
+    // stellt den Webhook bis zu drei Tage lang erneut zu. Der Unique-Index auf
+    // stripe_session_id ist der einzige Punkt im ganzen Ablauf, der pro Kauf exakt einmal
+    // „neu" sagt — der Rest ist absichtlich mehrfach durchlaufbar. Ein Zähler gehört an den
+    // Türsteher, nicht an die Tür.
+    //
+    // MIT await, obwohl die Zahl unkritisch ist: Diese Funktion läuft im Stripe-Webhook,
+    // und eine serverlose Funktion darf einfrieren, sobald ihre Antwort draussen ist. Eine
+    // freilaufende Zusage wäre dann genau das, was wir hier gerade reparieren — ein Zähler,
+    // der manchmal nicht zählt. Ein Insert bei einem Kauf, den es ein paar Mal am Tag gibt.
+    // Fehler schluckt trackEvent selbst, der Kauf kann daran nicht scheitern.
+    await trackConversion({ locale: safeLocale(session.metadata?.locale) });
+    return true;
+  }
   // 23505 = unique_violation -> schon verbucht. Das ist der NORMALFALL, wenn Webhook und
   // Rücksprung gleichzeitig ankommen, und kein Fehler: Es wird nicht gemeldet.
   if ((error as { code?: string }).code !== "23505") {

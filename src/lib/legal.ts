@@ -22,11 +22,11 @@ export const LEGAL = {
   editorialLine:
     "SalzGuide ist ein unabhängiger digitaler Reise- und Freizeitführer für das Salzburger Land mit kuratierten Orten, Audio-Touren und einem KI-Assistenten.",
   // Muss mitwandern, sobald sich der Inhalt der Rechtstexte ändert: Ein "Stand" von gestern
-  // unter einer Erklärung von heute ist selbst eine falsche Angabe. Zuletzt: Gast-Kauf und
-  // Kaufbestätigung (§ 7 Abs. 3 FAGG), Bestellknopf „Jetzt kaufen" (§ 8 FAGG), Support-
-  // Anfragen als eigener Abschnitt, Bot-Schutz an allen drei Formularen statt nur am Login,
-  // Sitzländer der Empfänger benannt, Outdoor-Hinweis gilt auch für Pro-Inhalte (26.07.2026).
-  updated: "26. Juli 2026",
+  // unter einer Erklärung von heute ist selbst eine falsche Angabe. Zuletzt: Reichweiten-
+  // messung vollständig beschrieben (welche Merkmale, Tages-Wiedererkennung offen benannt,
+  // 14 Monate für die Ereignisse), Missbrauchs-Zähler und Betriebs-Logbuch als eigene Punkte
+  // unter Server-Logs, Speicherdauern um die drei fehlenden Fristen ergänzt (27.07.2026).
+  updated: "27. Juli 2026",
 } as const;
 
 // Vollständige Postanschrift als einzeiliger String.

@@ -13,6 +13,7 @@ import {
   type RangeKey,
   type TimePoint,
 } from "@/lib/analytics-queries";
+import { bucketRange, dayCount, type Bucket } from "@/lib/vienna-day";
 import { getAiInsights, type AiInsightsData } from "@/lib/ai-insights";
 import { siteUrl } from "@/lib/site-url";
 import { routing } from "@/i18n/routing";
@@ -32,28 +33,59 @@ const EVENT_CAT_LABELS: Record<string, string> = { party: "Party", tradition: "T
 
 const fmtDuration = (sec: number) => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")} min`;
 
-function StatCard({ label, value, display, sub }: { label: string; value?: number; display?: string; sub?: string }) {
+/**
+ * Eine Kennzahl-Kachel. `answerable={false}` heisst NICHT „null", sondern „diese Frage
+ * beantwortet der gesetzte Filter nicht" — siehe `Answerable` in lib/analytics-queries.ts.
+ * Dann steht ein Strich da, wo sonst eine Zahl steht, denn eine 0 wäre gelogen.
+ */
+function StatCard({
+  label,
+  value,
+  display,
+  sub,
+  answerable = true,
+  reason,
+}: {
+  label: string;
+  value?: number;
+  display?: string;
+  sub?: string;
+  answerable?: boolean;
+  reason?: string | null;
+}) {
   return (
     <div className="rounded-[16px] bg-white p-4 shadow-sm ring-1 ring-black/[0.04]">
       <p className="text-[12px] font-medium uppercase tracking-wide text-muted">{label}</p>
-      <p className="mt-1 text-[22px] font-bold leading-none text-ink">
-        {display ?? (value ?? 0).toLocaleString("de-AT")}
+      <p
+        className={`mt-1 text-[22px] font-bold leading-none ${answerable ? "text-ink" : "text-black/25"}`}
+        title={answerable ? undefined : (reason ?? undefined)}
+      >
+        {answerable ? (display ?? (value ?? 0).toLocaleString("de-AT")) : "–"}
       </p>
-      {sub && <p className="mt-1 text-[12px] text-muted">{sub}</p>}
+      {(answerable ? sub : true) && (
+        <p className="mt-1 text-[12px] text-muted">
+          {answerable ? sub : "nicht nach diesem Filter auswertbar"}
+        </p>
+      )}
     </div>
   );
 }
 
-function BarList({ title, subtitle, items, labelMap, empty }: {
+function BarList({ title, subtitle, items, labelMap, empty, answerable = true, reason }: {
   title: string; subtitle?: string; items: LabeledValue[];
   labelMap?: Record<string, string>; empty: string;
+  answerable?: boolean; reason?: string | null;
 }) {
   const max = Math.max(1, ...items.map((i) => i.value));
   return (
     <div className="rounded-[16px] bg-white p-4 shadow-sm ring-1 ring-black/[0.04]">
       <h2 className="text-[15px] font-semibold text-ink">{title}</h2>
       {subtitle && <p className="text-[11px] text-muted">{subtitle}</p>}
-      {items.length === 0 ? (
+      {/* Leere Liste ≠ „es ist nichts passiert". Beantwortet der Filter die Frage gar
+          nicht, muss das dastehen und nicht „Noch keine gemerkten Spots." */}
+      {!answerable ? (
+        <p className="mt-3 text-[13px] text-muted">{reason ?? "Nicht nach diesem Filter auswertbar."}</p>
+      ) : items.length === 0 ? (
         <p className="mt-3 text-[13px] text-muted">{empty}</p>
       ) : (
         <ul className="mt-3 space-y-2">
@@ -74,16 +106,29 @@ function BarList({ title, subtitle, items, labelMap, empty }: {
   );
 }
 
-function TimeBars({ points }: { points: TimePoint[] }) {
+const BUCKET_LABEL: Record<Bucket, string> = { day: "je Tag", week: "je Woche", month: "je Monat" };
+
+function TimeBars({ points, bucket }: { points: TimePoint[]; bucket: Bucket }) {
   const max = Math.max(1, ...points.map((p) => p.pageviews));
   return (
     <div className="rounded-[16px] bg-white p-4 shadow-sm ring-1 ring-black/[0.04]">
       <h2 className="text-[15px] font-semibold text-ink">Seitenaufrufe im Zeitverlauf</h2>
+      <p className="text-[11px] text-muted">
+        {BUCKET_LABEL[bucket]} · der letzte Balken läuft noch
+      </p>
       <div className="mt-3 flex h-28 items-end gap-[3px]">
         {points.map((p) => (
-          <div key={p.bucket} title={`${p.bucket}: ${p.pageviews} Aufrufe · ${p.visitors} Besucher`}
-            className="flex-1 rounded-t bg-accent/80"
-            style={{ height: `${Math.max(2, Math.round((p.pageviews / max) * 100))}%` }} />
+          <div
+            key={p.bucket}
+            // „Besucher-Tage" und nicht „Besucher": Der Besucher-Hash wechselt jede Nacht
+            // (das ist der Grund, warum diese Messung ohne Cookie auskommt). Über einen
+            // Wochen- oder Monatsbalken zählt „eindeutig" deshalb jeden Tag neu mit. Wer
+            // hier „Besucher" liest, liest bei einem Monatsbalken eine bis zu 30-fach zu
+            // grosse Zahl — die Kachel oben sagt aus demselben Grund „eindeutig / Tag".
+            title={`${p.bucket}: ${p.pageviews} Aufrufe · ${p.visitors} Besucher-Tage`}
+            className={`flex-1 rounded-t ${p.pageviews ? "bg-accent/80" : "bg-black/[0.06]"}`}
+            style={{ height: `${Math.max(2, Math.round((p.pageviews / max) * 100))}%` }}
+          />
         ))}
       </div>
       <div className="mt-1.5 flex justify-between text-[11px] text-muted">
@@ -129,23 +174,24 @@ function CampaignTable({ campaigns }: { campaigns: Campaign[] }) {
 }
 
 // ── Beispieldaten-Vorschau (deterministisch, skaliert mit dem Zeitraum) ──────
-function demoDashboard(spanDays: number): AnalyticsDashboard {
+//
+// Zeitraum, Balkenbreite und Balken-Anfänge kommen aus DERSELBEN Rechnung wie bei echten
+// Daten (lib/vienna-day.ts). Vorher rechnete diese Funktion ihr eigenes Raster: Die
+// Vorschau zeigte damit ein Diagramm, das es mit echten Zahlen so nie geben konnte.
+function demoDashboard(from: string, to: string, bucket: Bucket): AnalyticsDashboard {
+  const spanDays = dayCount(from, to);
   const factor = spanDays <= 31 ? 1 : spanDays <= 92 ? 2.7 : spanDays <= 185 ? 4.9 : 8.6;
-  const nBuckets = spanDays <= 45 ? Math.min(spanDays, 30) : spanDays <= 200 ? Math.round(spanDays / 7) : 12;
-  const stepDays = spanDays <= 45 ? 1 : spanDays <= 200 ? 7 : 30;
-  const now = Date.now();
+  const perBucket = bucket === "day" ? 1 : bucket === "week" ? 7 : 30;
   const scale = (n: number) => Math.round(n * factor);
-  const timeseries: TimePoint[] = Array.from({ length: nBuckets }, (_, i) => {
-    const d = new Date(now - (nBuckets - 1 - i) * stepDays * 86_400_000);
-    const bucket = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Vienna" }).format(d);
-    const pv = Math.round((150 + Math.sin(i / 2.5) * 28 + (i % 7 > 4 ? 60 : 0)) * stepDays * 0.9);
-    return { bucket, pageviews: pv, visitors: Math.round(pv * 0.62) };
+  const timeseries: TimePoint[] = bucketRange(from, to, bucket).map((b, i) => {
+    const pv = Math.round((150 + Math.sin(i / 2.5) * 28 + (i % 7 > 4 ? 60 : 0)) * perBucket * 0.9);
+    return { bucket: b, pageviews: pv, visitors: Math.round(pv * 0.62) };
   });
-  const to = new Date(now);
-  const from = new Date(now - spanDays * 86_400_000);
   return {
-    from: from.toISOString().slice(0, 10),
-    to: to.toISOString().slice(0, 10),
+    from,
+    to,
+    bucket,
+    answerable: { saves: true, aiQueries: true, eventLinks: true, conversions: true, note: null },
     overview: {
       pageviews: scale(5130), visitors: scale(2840), sessions: scale(3260), saves: scale(312),
       eventLinks: scale(148), aiQueries: scale(221), conversions: scale(18),
@@ -301,19 +347,23 @@ export default async function AnalyticsPage({
   // Vorschau, solange keine echten Seitenaufrufe da sind (Pageviews = Produktions-
   // Indikator; Client-Beacon trackt nur live). Einzelne Server-Events (z.B. KI) ändern das nicht.
   const isDemo = real.overview.pageviews === 0;
-  const spanDays =
-    sp.from && sp.to
-      ? Math.max(1, Math.round((Date.parse(`${sp.to}T00:00Z`) - Date.parse(`${sp.from}T00:00Z`)) / 86_400_000))
-      : { "30d": 30, "3mo": 90, "6mo": 180, "12mo": 365 }[range];
-  const data = isDemo ? demoDashboard(spanDays) : real;
+  // Zeitraum NICHT hier noch einmal rechnen: `real` bringt ihn mit, in Wiener Tagen und auf
+  // die Balkenbreite eingerastet. Die zweite Rechnung an dieser Stelle wich von der ersten ab
+  // (sie las die roh übergebenen Parameter statt der geprüften) — und beschriftete damit ein
+  // Diagramm mit einem Zeitraum, den es nicht zeigte.
+  const data = isDemo ? demoDashboard(real.from, real.to, real.bucket) : real;
   const o = data.overview;
+  const a = data.answerable;
   const baseUrl = siteUrl();
 
-  // KI-Insights (anonyme Chatbot-Nachfrage). Gleicher Demo-Modus wie oben.
-  const insightsQuery = { range, from: query.from, to: query.to };
+  // KI-Insights (anonyme Chatbot-Nachfrage). Gleicher Zeitraum wie oben — die Kachel
+  // „KI-Anfragen" steht hier zweimal auf einer Seite, sie darf nicht zwei Fenster meinen.
+  const insightsQuery = { range, from: data.from, to: data.to };
   const realInsights = await getAiInsights(insightsQuery);
   const insights =
-    isDemo || !realInsights ? demoInsights(spanDays, data.from, data.to) : realInsights;
+    isDemo || !realInsights
+      ? demoInsights(dayCount(data.from, data.to), data.from, data.to)
+      : realInsights;
 
   return (
     <div className="space-y-4 pb-12">
@@ -355,26 +405,40 @@ export default async function AnalyticsPage({
         <StatCard label="Besucher" value={o.visitors} sub="eindeutig / Tag" />
         <StatCard label="Bounce-Rate" display={`${o.bounceRate}%`} />
         <StatCard label="Ø Verweildauer" display={fmtDuration(o.avgDurationSec)} />
-        <StatCard label="Merkungen" value={o.saves} sub={`Merkrate ${o.saveRate}/100`} />
-        <StatCard label="KI-Anfragen" value={o.aiQueries} sub={`Event-Klicks: ${o.eventLinks}`} />
-        <StatCard label="Conversions" value={o.conversions} sub="Free → Pro" />
+        <StatCard
+          label="Merkungen" value={o.saves} sub={`Merkrate ${o.saveRate}/100`}
+          answerable={a.saves} reason={a.note}
+        />
+        <StatCard
+          label="KI-Anfragen" value={o.aiQueries}
+          sub={a.eventLinks ? `Event-Klicks: ${o.eventLinks}` : undefined}
+          answerable={a.aiQueries} reason={a.note}
+        />
+        <StatCard
+          label="Conversions" value={o.conversions} sub="Free → Pro"
+          answerable={a.conversions} reason={a.note}
+        />
       </div>
 
-      <TimeBars points={data.timeseries} />
+      {a.note && (
+        <p className="px-1 text-[12px] leading-relaxed text-muted">{a.note}</p>
+      )}
+
+      <TimeBars points={data.timeseries} bucket={data.bucket} />
 
       <div className="grid gap-4 md:grid-cols-2">
-        <BarList title="Top-Spots" subtitle="nach Merkungen" items={data.topSpotsSaved} empty="Noch keine gemerkten Spots." />
+        <BarList title="Top-Spots" subtitle="nach Merkungen" items={data.topSpotsSaved} empty="Noch keine gemerkten Spots." answerable={a.saves} reason={a.note} />
         <BarList title="Top-Spots" subtitle="nach Aufrufen" items={data.topSpotsViewed} empty="Noch keine Aufrufe." />
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <BarList title="Top-Events" subtitle="nach Merkungen" items={data.topEventsSaved} empty="Noch keine gemerkten Events." />
+        <BarList title="Top-Events" subtitle="nach Merkungen" items={data.topEventsSaved} empty="Noch keine gemerkten Events." answerable={a.saves} reason={a.note} />
         <BarList title="Spot-Kategorien" subtitle="nach Aufrufen" items={data.spotCategories} empty="Keine Daten." />
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <BarList title="Event-Kategorien" subtitle="nach Merkungen" items={data.eventCategories} labelMap={EVENT_CAT_LABELS} empty="Keine Daten." />
-        <BarList title="Länder" items={data.countries} empty="Keine Daten." />
+        <BarList title="Event-Kategorien" subtitle="nach Merkungen" items={data.eventCategories} labelMap={EVENT_CAT_LABELS} empty="Keine Daten." answerable={a.saves} reason={a.note} />
+        <BarList title="Länder" subtitle="nach Aufrufen" items={data.countries} empty="Keine Daten." />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -383,9 +447,9 @@ export default async function AnalyticsPage({
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <BarList title="Quellen" items={data.sources} labelMap={SOURCE_LABELS} empty="Keine Daten." />
-        <BarList title="Geräte" items={data.devices} labelMap={DEVICE_LABELS} empty="Keine Daten." />
-        <BarList title="Sprache" items={data.locales} labelMap={LOCALE_LABELS} empty="Keine Daten." />
+        <BarList title="Quellen" subtitle="nach Aufrufen" items={data.sources} labelMap={SOURCE_LABELS} empty="Keine Daten." />
+        <BarList title="Geräte" subtitle="nach Aufrufen" items={data.devices} labelMap={DEVICE_LABELS} empty="Keine Daten." />
+        <BarList title="Sprache" subtitle="nach Aufrufen" items={data.locales} labelMap={LOCALE_LABELS} empty="Keine Daten." />
       </div>
 
       {/* ── KI-Insights: anonyme Auswertung der Chatbot-Nachfrage (docs/34 §I) ── */}
@@ -400,7 +464,13 @@ export default async function AnalyticsPage({
       {!isDemo && <AiInsightsSummary query={insightsQuery} />}
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <StatCard label="KI-Anfragen" value={insights.total} />
+        {/* „eingeordnet" und nicht schlicht „KI-Anfragen": Weiter oben steht eine Kachel mit
+            demselben Namen, die aus einer anderen Tabelle kommt. Dort zählt jede beantwortete
+            Frage; hier nur die, für die der Klassifikator hinterher auch Codes vergeben hat.
+            Fällt der aus, bleibt die Antwort trotzdem beim Nutzer — die Zeile hier fehlt dann.
+            Diese Kachel ist also immer kleiner oder gleich der oberen, und wer den Unterschied
+            nicht erklärt bekommt, hält eine der beiden Zahlen für falsch. */}
+        <StatCard label="KI-Anfragen" value={insights.total} sub="davon eingeordnet" />
         <StatCard label="Beantwortet" display={`${insights.answerRate}%`} sub={`${insights.answered} von ${insights.total}`} />
         <StatCard label="Offen geblieben" value={insights.unanswered} sub="Content-/Datenlücken" />
         <StatCard label="Sichtbarkeit" display={`k ≥ ${insights.kMin}`} sub="kleinere Gruppen verborgen" />

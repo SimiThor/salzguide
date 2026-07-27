@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "i18n:check": "node scripts/i18n-check.mjs",
+    "analytics:check": "node --experimental-strip-types --disable-warning=ExperimentalWarning --import ./scripts/lib/alias-hook.mjs scripts/analytics-check.ts",
     "icons": "node --experimental-strip-types scripts/make-icons.ts",
     "backfill:blur": "node --experimental-strip-types scripts/backfill-blur.ts",
     "render:intro": "node --experimental-strip-types scripts/render-intro.ts"

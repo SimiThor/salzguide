@@ -18,7 +18,9 @@ import {
   visitorHash as analyticsVisitorHash,
   classifyDevice,
   clientCountry,
+  clientIp,
   classifyPath,
+  isBotUserAgent,
 } from "@/lib/analytics";
 
 export const runtime = "nodejs";
@@ -51,18 +53,12 @@ const GUEST_COOKIE = "sg_aid"; // anonyme Geräte-ID für das Gast-Limit
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-// Vertrauenswürdige Client-IP: auf Vercel überschreibt der Edge `x-forwarded-for`
-// (Anti-Spoofing), und `x-real-ip` ist die eindeutige, vom Edge gesetzte Einzel-IP.
-// NICHT einfach den linkesten XFF-Wert nehmen (der wäre ohne Trusted-Proxy fälschbar).
-// Hinweis: gilt für das Vercel-Deployment; bei Selbst-Hosting ohne Trusted-Proxy neu bewerten.
-function clientIp(req: Request): string | null {
-  const real = req.headers.get("x-real-ip")?.trim();
-  if (real) return real;
-  // Fallback: Vercel setzt XFF selbst -> erster Eintrag ist die echte Client-IP.
-  const fwd = req.headers.get("x-forwarded-for") ?? "";
-  return fwd.split(",")[0]?.trim() || null;
-}
-
+// Die Client-IP kommt aus lib/analytics.ts und wird NICHT hier noch einmal ausgelesen.
+// Bis 07/2026 stand dieselbe Funktion in beiden Dateien wortgleich — und ausgerechnet diese
+// Route bildet mit ihr den Besucher-Hash, mit dem ihre KI-Anfragen zu denselben Sitzungen
+// gehören sollen wie die Seitenaufrufe aus /api/track. Zwei Kopien, die genau
+// übereinstimmen müssen, sind eine Kopie zu viel.
+//
 // Client-IP pseudonymisieren (SHA-256 + Server-Secret als Salt) -> kein Klartext-
 // IP in der DB (DSGVO-Datensparsamkeit), aber stabil pro Tag als Abuse-Schlüssel.
 function hashedIpSubject(req: Request): string | null {
@@ -405,8 +401,11 @@ export async function POST(req: Request) {
   // Toni gewartet, er soll nicht noch auf zwei Datenbank-Schreibvorgänge warten, die mit
   // seiner Antwort nichts zu tun haben. Header JETZT auslesen — in after() ist das
   // Request-Objekt nicht mehr garantiert lesbar.
-  if (!isOperator) {
-    const ua = req.headers.get("user-agent");
+  const ua = req.headers.get("user-agent");
+  // Betreiber zählt nicht, Maschine auch nicht — dieselbe Regel wie in /api/track, aus
+  // derselben Quelle. Die ANTWORT bekommt der Aufrufer trotzdem; hier geht es nur darum,
+  // was in der Reichweitenmessung landet.
+  if (!isOperator && !isBotUserAgent(ua)) {
     const ip = clientIp(req);
     const country = clientCountry(req);
     after(async () => {
