@@ -10,7 +10,7 @@ import { ChevronLeft } from "@/components/icons";
 // über einem Hero, sonst in-flow oben links).
 //
 // ═══════════════════════════════════════════════════════════════════════════════════════
-//  DIESER KNOPF IST DER EINZIGE. Auch im Admin.
+//  DIESER KNOPF IST DER EINZIGE. Auch im Admin, auch auf den Rechtstexten.
 // ═══════════════════════════════════════════════════════════════════════════════════════
 //
 // Im Admin-Bereich standen daneben drei selbstgebaute Varianten als Text-Links: „← Einstellungen",
@@ -29,8 +29,22 @@ import { ChevronLeft } from "@/components/icons";
 //   • `label` ist nur für Screenreader (aria-label), es steht nirgends auf dem Bildschirm.
 //     Deshalb der Name des ZIELS („Einstellungen"), nicht das Wort „Zurück".
 //
-// Ein „← Zurück" im Blätterwerk (Seite 2 von 5) ist etwas anderes und bleibt Text: Das ist
-// keine Rückkehr, sondern eine Richtung, und es hat sein Gegenstück in „Weiter →".
+// Die vier RECHTSTEXTE (Impressum, Datenschutz, AGB, Widerruf) hatten eine fünfte Fassung:
+// „‹ Zurück zur App" in LegalShell, mit dem einfachen Anführungszeichen als Pfeil (fiel
+// deshalb, wie die Admin-Variante, bei der Suche nach „←" nicht auf) und nur einer Textzeile
+// als Trefferfläche. Sie ging zusätzlich IMMER fest auf /explore statt eine Ebene zurück: Wer
+// aus dem Kauf-Ablauf in die AGB sah, kam nicht dorthin zurück, wo er war. Jetzt steht dort
+// dieser Knopf, mit /explore nur noch als `fallbackHref`.
+//
+// WAS KEIN ZURÜCK-KNOPF IST, damit die Regel nicht zu weit greift:
+//
+//   • „← Zurück / Weiter →" im Blätterwerk (Seite 2 von 5, /admin/users) bleibt Text. Das ist
+//     keine Rückkehr, sondern eine Richtung, und es hat sein Gegenstück in „Weiter →".
+//   • Ein Schritt zurück INNERHALB einer Ansicht bleibt ein normaler Knopf: der Abbrechen-Knopf
+//     im ClipTrimmer, das „Zurück" aus Tonis Verlaufsliste. Dort wechselt die Seite nicht,
+//     ein Verlaufs-Pfeil führte also in die Irre.
+//   • Die Fehlerseite (error.tsx) bietet „Nochmal" + „Startseite" als Handlungs-Knöpfe an.
+//     Sie ist ein Ausweg, keine Navigationsebene.
 /**
  * Die Navigation-API, soweit wir sie brauchen. Sie steht (Juli 2026) nicht in TypeScripts
  * DOM-Typen, deshalb hier so eng wie möglich deklariert statt per `any`.
