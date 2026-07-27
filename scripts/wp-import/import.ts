@@ -117,9 +117,16 @@ function subtypeOf(src: Source, draft: Draft): string | null {
   return null;
 }
 
-// Saison aus der besten Jahreszeit ableiten. Ein Spot ohne Angabe ist Sommer, wie der
-// Vorgabewert in der Datenbank. „Ganzjährig" heisst beides, nicht „egal".
-function seasonsOf(bestSeason: string | null): string[] {
+// Saison. Die Karte STICHT die Jahreszeit-Angabe: Was auf der Gastein-Karte stand, ist
+// Winter-Inhalt, und zwar auch dann, wenn eine Therme oder eine Bergbahn dort ganzjährig
+// aufsperrt. Anton entscheidet das bewusst so, weil diese Spots durchweg Winterfotos
+// haben; ein Sommerfoto-loser Spot auf der Sommerkarte sähe falscher aus als einer, der
+// dort fehlt. Was im Sommer mitlaufen soll, gibt er später im Admin einzeln frei.
+//
+// Sonst gilt die alte Angabe. Ohne jede Angabe ist es Sommer, wie der Vorgabewert der
+// Datenbank. „Ganzjährig" heisst beides, nicht „egal".
+function seasonsOf(bestSeason: string | null, mapSeason: string | null | undefined): string[] {
+  if (mapSeason) return [mapSeason];
   if (!bestSeason) return ["summer"];
   const s = bestSeason.toLowerCase();
   if (s.includes("ganzjährig")) return ["summer", "winter"];
@@ -241,7 +248,7 @@ async function importSpot(src: Source, draft: Draft, mediaMap: Record<string, Ma
     type,
     subtype: subtypeOf(src, draft),
     emoji: draft.emoji ?? src.emoji,
-    seasons: seasonsOf(bestSeason),
+    seasons: seasonsOf(bestSeason, src.mapSeason),
     is_pro: src.isPro,
     status: "draft",
     sort_weight: 0,
@@ -257,10 +264,19 @@ async function importSpot(src: Source, draft: Draft, mediaMap: Record<string, Ma
     difficulty: factCanonical("difficulty", factValue(src, "difficulty") ?? "") ?? null,
     best_season: bestSeason,
     access: factValue(src, "access"),
-    duration:
-      isRoute && profile
-        ? formatDuration(hikingTimeMinutes(routeLengthKm(coords), profile.ascent, profile.descent))
-        : factValue(src, "duration"),
+    // Dauer IMMER aus der alten Angabe, nie aus der importierten Linie gerechnet.
+    //
+    // Ich hatte es zuerst andersherum: DAV-Gehzeit aus der Linie, weil die App das beim
+    // Snappen auch so macht. Der Vergleich mit den alten Angaben hat das widerlegt. Bei 16
+    // von 45 vergleichbaren Routen ist die hinterlegte Linie weit kürzer als der
+    // beschriebene Weg — die Seisenbergklamm hat 160 Meter bei angegebenen zwei Stunden.
+    // Die Linien sind unvollständig gezeichnet, nicht falsch gemessen.
+    //
+    // Aus einer halben Linie eine Gehzeit zu rechnen ergibt eine Zahl, die stimmig aussieht
+    // und falsch ist: „27 min" für den Gaisberg. Die alte Angabe ist dagegen Antons eigenes
+    // Wissen. Sobald er eine Route im Admin nachzieht und neu snappt, rechnet die App die
+    // Gehzeit ohnehin selbst und überschreibt sie richtig.
+    duration: factValue(src, "duration"),
     price_level: factPrice(factValue(src, "priceLevel") ?? ""),
     area: factCanonical("area", factValue(src, "area") ?? "") ?? factValue(src, "area"),
     fame: factCanonical("fame", factValue(src, "fame") ?? "") ?? null,
