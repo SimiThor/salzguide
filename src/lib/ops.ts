@@ -148,18 +148,49 @@ function release(): string | null {
 }
 
 /**
+ * Läuft dieser Prozess auf der ECHTEN Seite?
+ *
+ * ═══════════════════════════════════════════════════════════════════════════════════════
+ *  DIE FALLE: `NODE_ENV` IST AUF VERCEL AUCH IM PREVIEW „production"
+ * ═══════════════════════════════════════════════════════════════════════════════════════
+ *
+ * Vercel baut jeden Branch-Preview als Produktions-Build, also steht dort `NODE_ENV` auf
+ * "production" — genau wie auf salzguide.com. Wer nur danach fragt, hält jeden Preview für
+ * die echte Seite. Folge wäre: Ein Fehler in einem halbfertigen Branch schreibt in DIESELBE
+ * ops_events-Tabelle, zählt in der 24-Stunden-Übersicht als echter Vorfall mit, und ein
+ * `critical` daraus schickt eine Mail. Man würde nachts wegen eines Branches geweckt, an dem
+ * gerade jemand arbeitet — und danach dem nächsten Alarm nicht mehr glauben.
+ *
+ * `VERCEL_ENV` unterscheidet sauber: "production" | "preview" | "development".
+ *
+ * DER RÜCKFALL IST ABSICHT: Ist `VERCEL_ENV` nicht da (System-Variablen im Projekt nicht
+ * freigegeben, oder ein ganz anderer Hoster), zählt wieder `NODE_ENV`. Lieber ein Preview zu
+ * viel gemeldet als die echte Seite stumm — ein Meldewesen, das sich bei einer fehlenden
+ * Variable selbst abschaltet, wäre der schlimmere Fehler.
+ */
+function isRealSite(): boolean {
+  const vercelEnv = process.env.VERCEL_ENV?.trim();
+  if (vercelEnv) return vercelEnv === "production";
+  return process.env.NODE_ENV === "production";
+}
+
+/**
  * Schreibt diese Umgebung überhaupt ins Logbuch?
  *
- * NEIN in der Entwicklung, und zwar aus einem konkreten Grund: Es gibt EIN Supabase-Projekt.
- * Ein lokaler Fehlversuch würde als „Kritisch" in derselben Tabelle landen wie die echten,
- * und morgens stünde ein Alarm im Postfach, den man selbst gestern Abend beim Ausprobieren
- * erzeugt hat. Das ist derselbe Gedanke, aus dem die Reichweitenmessung nur in Produktion
- * läuft (docs/34 §H).
+ * NEIN in der Entwicklung UND nein im Branch-Preview, und zwar aus einem konkreten Grund:
+ * Es gibt EIN Supabase-Projekt. Ein lokaler Fehlversuch würde als „Kritisch" in derselben
+ * Tabelle landen wie die echten, und morgens stünde ein Alarm im Postfach, den man selbst
+ * gestern Abend beim Ausprobieren erzeugt hat. Das ist derselbe Gedanke, aus dem die
+ * Reichweitenmessung nur in Produktion läuft (docs/34 §H).
+ *
+ * Warum der Preview mitgemeint ist, obwohl er sich als „production" ausgibt: siehe
+ * `isRealSite()`. Wer an einem Branch arbeitet, schaut ohnehin auf das Vercel-Log genau
+ * dieses Deployments — dafür braucht es keinen Eintrag in der echten Chronik.
  *
  * Zum Testen: `OPS_LOCAL=1` in .env.local, oder der Test-Knopf im Admin (`force`).
  */
 function active(force?: boolean): boolean {
-  return force === true || process.env.NODE_ENV === "production" || process.env.OPS_LOCAL === "1";
+  return force === true || isRealSite() || process.env.OPS_LOCAL === "1";
 }
 
 /** Was `claim_ops_alert` zurückgibt. */
