@@ -24,7 +24,6 @@ export const dynamic = "force-dynamic";
 
 /** Beispielwerte. Erfunden, aber in der Form, in der echte Werte ankommen. */
 const SAMPLE_EMAIL = "du@example.at";
-const SAMPLE_ACCOUNT = "dein.konto@example.at";
 
 export default async function AdminMailsPage({
   params,
@@ -50,7 +49,6 @@ export default async function AdminMailsPage({
     renderProGift(lang),
     renderProPurchase({
       email: SAMPLE_EMAIL,
-      accountEmail: SAMPLE_ACCOUNT,
       price: "19,90 €",
       paidAt: sampleDate,
       consentAt: sampleDate,

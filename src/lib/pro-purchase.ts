@@ -148,22 +148,42 @@ export async function fulfillPaidCheckout(
 
   // ── Fall 1: eingeloggt gekauft ────────────────────────────────────────────────────────
   if (memberId) {
-    // ZWEI Adressen, und sie sind nicht dasselbe.
+    // ES GIBT NUR EINE ADRESSE, und das ist keine Vereinfachung, sondern nachgeprüft.
     //
-    // Die Kontoadresse ist die, unter der der Zugang liegt; Pro hängt an der User-ID aus den
-    // Metadaten, nicht an einer E-Mail. Die Zahladresse ist die, die Stripe erhoben hat.
-    // Normalerweise sind sie gleich: Wird ein Kunde mit gültiger E-Mail übergeben, zeigt
-    // Stripe das Feld nur noch an und lässt es nicht mehr ändern. Hat der Kunde bei Stripe
-    // aber keine Adresse hinterlegt, tippt der Käufer an der Kasse eine ein, und dann kann
-    // sie eine andere sein.
+    // Hier standen einmal zwei: die Kontoadresse (dort liegt der Zugang, Pro hängt an der
+    // User-ID) und die Zahladresse (die Stripe erhoben hat). Die Kaufbestätigung nannte beide,
+    // wenn sie auseinandergingen. Auseinandergehen können sie nicht mehr, aus zwei Gründen,
+    // die unabhängig voneinander halten:
     //
-    // Die Bestätigung geht an die ZAHLADRESSE (das ist die Adresse, die er für diesen Kauf
-    // angegeben hat) und nennt darin die KONTOADRESSE. Andersherum stünde in der Mail eine
-    // Adresse, unter der sein Pro gar nicht zu finden ist.
+    //   1. Ein eingeloggter Käufer hat IMMER einen Stripe-Kunden, der die Kontoadresse trägt:
+    //      stripe-actions.ts legt ihn genau dafür an (`email: user.email ?? profile.email`),
+    //      bevor die Session entsteht. Und Stripe schreibt zu einem übergebenen Kunden mit
+    //      gültiger Adresse: „the email will be prefilled and not editable in Checkout."
+    //      An der Kasse ist das Feld also nur noch Anzeige.
+    //   2. Die Kontoadresse selbst kann sich nicht ändern. Die App hat keinen
+    //      E-Mail-Wechsel — nachgesehen am 2026-07-27, es gibt keinen Aufruf von
+    //      updateUser({ email }) und keine Stelle, die profiles.email neu schreibt.
+    //
+    // Beim Gast-Kauf sind beide ohnehin dieselbe: Das Konto entsteht AUS der Zahladresse.
+    //
+    // WENN SIE TROTZDEM AUSEINANDERGEHEN, erfährt es das Log und nicht der Käufer. Ein Satz
+    // in der Mail über zwei Adressen ist für 999 von 1000 Menschen eine Verwirrung, die es
+    // nicht braucht; für den tausendsten wäre er eine Erklärung, die er ohnehin nicht
+    // einordnen kann. Diese Annahme kippt genau dann, wenn jemand einen E-Mail-Wechsel
+    // einbaut (dann gehört sie neu bedacht) — bis dahin ist eine laute Logzeile die richtige
+    // Antwort. Verschickt und angezeigt wird die KONTOadresse: Dort liegt der Zugang.
     const accountEmail = await profileEmail(svc, memberId);
-    const payerEmail = emailOf(session) || accountEmail;
+    const payerEmail = emailOf(session);
+    if (payerEmail && accountEmail && payerEmail !== accountEmail) {
+      console.error(
+        "[pro] Zahladresse weicht von der Kontoadresse ab — sollte unmöglich sein, siehe fulfillPaidCheckout",
+        session.id,
+        { payerEmail, accountEmail },
+      );
+    }
+    const email = accountEmail || payerEmail;
     const firstTime = await recordPurchase(svc, session, {
-      email: payerEmail,
+      email,
       userId: memberId,
       granted: true,
       accountCreated: false,
@@ -171,11 +191,9 @@ export async function fulfillPaidCheckout(
     });
     // Nur beim ersten Mal: Die Zeile ist neu, also hat noch niemand bestätigt. Beim zweiten
     // Weg (Webhook nach Rücksprung) wäre es dieselbe Mail ein zweites Mal.
-    if (firstTime) await sendPurchaseConfirmation(session, payerEmail, accountEmail, false);
+    if (firstTime) await sendPurchaseConfirmation(session, email, false);
     await grantPro(memberId, customerId);
-    // Zurück geht die KONTOadresse: Der Rücksprung schickt damit im Notfall einen
-    // Anmeldelink, und der muss dorthin, wo das Konto ist.
-    return { ok: true, kind: "member", userId: memberId, email: accountEmail || payerEmail };
+    return { ok: true, kind: "member", userId: memberId, email };
   }
 
   // ── Fall 2 & 3: als Gast gekauft ──────────────────────────────────────────────────────
@@ -217,7 +235,7 @@ export async function fulfillPaidCheckout(
   // Rücktrittsrecht nicht (§ 18 Abs. 1 Z 11 lit. c). Der Kauf hängt trotzdem nicht daran:
   // Geht die Mail nicht raus, wird trotzdem freigeschaltet und der Fehler steht im Log.
   // Bezahlte Leistung zurückzuhalten, weil ein Mailserver hustet, wäre die falsche Reihenfolge.
-  await sendPurchaseConfirmation(session, email, email, true);
+  await sendPurchaseConfirmation(session, email, true);
 
   // Konto anlegen. createUser IST die Prüfung „gibt es die Adresse schon?" — und zwar eine
   // ohne Wettlauf: Die Eindeutigkeit von auth.users entscheidet, nicht ein Blick davor, der
@@ -458,8 +476,8 @@ export async function claimVerifiedLogin(userId: string): Promise<boolean> {
  * Die Vertragsbestätigung verschicken (§ 7 Abs. 3 FAGG). Siehe pro-purchase-mail.ts, dort
  * steht, warum das eine Pflicht und keine Höflichkeit ist.
  *
- * `email` = wohin die Mail geht (die Zahladresse), `accountEmail` = wo der Zugang liegt.
- * Beim Gast-Kauf dasselbe, beim eingeloggten Kauf nicht zwingend (siehe oben).
+ * `email` ist die Adresse des Kontos, und dieselbe wurde bezahlt (siehe oben, warum das
+ * keine Annahme mehr ist). Dorthin geht die Mail, und dieselbe steht darin.
  *
  * `guest` = ohne Konto gekauft. Wer eingeloggt gekauft hat, soll in seiner Bestätigung nicht
  * lesen, wie er sich anmeldet.
@@ -470,7 +488,6 @@ export async function claimVerifiedLogin(userId: string): Promise<boolean> {
 async function sendPurchaseConfirmation(
   session: Stripe.Checkout.Session,
   email: string,
-  accountEmail: string,
   guest: boolean,
 ): Promise<void> {
   if (!email) return;
@@ -489,7 +506,6 @@ async function sendPurchaseConfirmation(
         : "";
     const receipt = {
       email,
-      accountEmail: accountEmail || email,
       locale,
       price,
       paidAt: new Date().toISOString(),
