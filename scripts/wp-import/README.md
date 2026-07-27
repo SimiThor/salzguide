@@ -166,6 +166,40 @@ einem Kommentar stand, warum das schon in Ordnung sei. Dieser ffmpeg-Build hat k
 WebP-Encoder, und ffmpeg wählt den Encoder nach der Dateiendung. Aufgefallen ist es nur
 beim Zurückholen der hochgeladenen Dateien.
 
+## Die deutschen Texte schreiben (der lange Teil)
+
+Das Einzige, was hier niemand ableiten kann. Ohne Entwurf überspringt der Import den Spot.
+
+```bash
+npm run wp:brief -- --limit 8   # Arbeitsvorlage für die nächsten acht
+#   -> .wp-cache/drafts/<slug>.json schreiben
+npm run wp:check                # gegen BRAND_VOICE prüfen
+npm run wp:import -- --go       # als Entwurf in die Datenbank
+```
+
+Ein Entwurf hat sieben Felder: `subtype`, `shortDesc`, `general`, `insiderTip`, `sectionA`,
+`sectionB`, `locationText`. Der Rest kommt aus der Quelle.
+
+**Eher zu lang ansetzen.** Beim Schreiben landet man verlässlich rund 15 % unter dem, was
+man schätzt: Wer 60 Wörter im Gefühl hat, tippt 50. BRAND_VOICE will bei einer Aktivität
+60 bis 80, bei Food etwa 50. Also im Kopf auf 65 bis 70 zielen. In den ersten Chargen
+kostete das zwei bis drei Nachbesserungsrunden pro Charge, und zwar nur wegen der Wortzahl.
+
+**Die Gehzeit im Text muss die aus dem Feld sein.** `wp:brief` druckt sie deshalb ganz
+oben. Ein Spot, der „50 min" anzeigt und „gut zwei Stunden" schreibt, ist schlimmer als
+einer ohne Angabe.
+
+**Der Gaisberg-Fall kommt öfter.** Die alte Linie zeichnet oft den Aufstieg vom Tal,
+während der alte Text alle mit der Bergbahn hochfahren lässt (Gaisberg, Almwelt Lofer,
+Asitz). Beides ist für sich richtig, es sind zwei verschiedene Ausflüge. Der Text folgt der
+LINIE, weil das Dauer-Feld aus ihr gerechnet ist; die Bahn wird als der andere Weg zum
+selben Ort erwähnt.
+
+**Der Insider-Tipp steht in der Ich-Form des Locals**, und der steht in der Vorlage. Ohne
+Namen ist es Anton. Toni ist die KI und nie ein Local.
+
+Stand: 17 von 95 geschrieben.
+
 ## Was der Import NICHT entscheidet
 
 **Subtyp**, wo die alte Seite keinen Marker hatte, die **24 Spots ohne zuordenbare
