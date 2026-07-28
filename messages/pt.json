@@ -543,9 +543,8 @@
     "code": "Código de erro"
   },
   "NotFound": {
-    "title": "Esta página não existe",
-    "body": "O link é antigo ou está errado. O que procuras encontra-se mais depressa no mapa.",
-    "exploreCta": "Abrir o mapa",
-    "homeCta": "Ir para a página inicial"
+    "title": "Caminho errado",
+    "body": "Este caminho, nem quem é daqui o conhece. Melhor dar meia-volta.",
+    "home": "Ir para o início"
   }
 }

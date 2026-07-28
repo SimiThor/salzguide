@@ -543,9 +543,8 @@
     "code": "Code d’erreur"
   },
   "NotFound": {
-    "title": "Cette page n'existe pas",
-    "body": "Le lien est ancien ou mal tapé. Le plus rapide pour trouver ce que tu cherches, c'est la carte.",
-    "exploreCta": "Ouvrir la carte",
-    "homeCta": "Vers la page d'accueil"
+    "title": "Mauvaise direction",
+    "body": "Même les locaux ne connaissent pas ce chemin. Fais demi-tour ici.",
+    "home": "Retour à l'accueil"
   }
 }

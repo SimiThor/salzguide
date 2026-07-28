@@ -586,9 +586,8 @@
     "code": "Fehlercode"
   },
   "NotFound": {
-    "title": "Diese Seite gibt es nicht",
-    "body": "Der Link ist alt oder vertippt. Was du suchst, findest du am schnellsten auf der Karte.",
-    "exploreCta": "Zur Karte",
-    "homeCta": "Zur Startseite"
+    "title": "Falsch abgebogen",
+    "body": "Diesen Weg kennt nicht mal ein Local. Dreh am besten hier um.",
+    "home": "Zur Startseite"
   }
 }

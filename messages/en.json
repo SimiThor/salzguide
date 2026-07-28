@@ -543,9 +543,8 @@
     "code": "Error code"
   },
   "NotFound": {
-    "title": "This page does not exist",
-    "body": "The link is old or mistyped. The fastest way to find what you are looking for is the map.",
-    "exploreCta": "Open the map",
-    "homeCta": "Go to the start page"
+    "title": "Wrong turn",
+    "body": "Not even a local knows this trail. Best turn around here.",
+    "home": "Back to start"
   }
 }

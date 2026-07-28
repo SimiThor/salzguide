@@ -543,9 +543,8 @@
     "code": "Codice errore"
   },
   "NotFound": {
-    "title": "Questa pagina non esiste",
-    "body": "Il link è vecchio o sbagliato. Il modo più veloce per trovare quello che cerchi è la mappa.",
-    "exploreCta": "Apri la mappa",
-    "homeCta": "Vai alla pagina iniziale"
+    "title": "Strada sbagliata",
+    "body": "Questo sentiero non lo conosce neanche chi è del posto. Meglio girare qui.",
+    "home": "Vai alla home"
   }
 }

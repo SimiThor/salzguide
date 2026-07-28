@@ -1,35 +1,53 @@
-import { getTranslations } from "next-intl/server";
+import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 
-// Lokalisierte 404 statt der nackten Next-Standardseite. Wird über den Catch-all
-// ([...rest]/page.tsx) für jede unbekannte Adresse unter einer gültigen Sprache
-// erreicht und rendert im normalen App-Rahmen (Header/Nav aus dem Locale-Layout).
-// Bewusst ohne Cookie-Zugriffe: Die Seite braucht nichts vom Betrachter.
-export default async function NotFound() {
-  const t = await getTranslations("NotFound");
+// Die 404-Seite für alles unterhalb von /[locale]. Greift bei `notFound()` (Spot/Tour/Event
+// ohne Treffer) und über die Catch-all-Route ([...rest]/page.tsx) für jede URL, zu der es
+// gar keine Route gibt.
+//
+// Kein async, kein Supabase, keine Params: `useTranslations` funktioniert in einer
+// synchronen Server-Komponente, die Sprache kommt aus dem Request-Kontext des Layouts.
+// So bleibt die Seite frei von Daten und kippt nichts am statischen Rendering.
+//
+// Gestaltung wie die Fehlerseite (error.tsx), nur verspielter: Wer hier landet, hat nichts
+// kaputt gemacht, er ist nur falsch abgebogen. Deshalb Wanderschild-Ton statt Fehler-Ton.
+
+// Gleiche Karten-Schatten wie überall (Spot-Seite, Sheets) -> die zwei Emoji-Kacheln sehen
+// aus wie verlegte Foto-Karten aus der App, nicht wie ein neues Gestaltungselement.
+const TILE =
+  "grid place-items-center rounded-[22px] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04),0_12px_32px_-20px_rgba(0,0,0,0.28)]";
+
+export default function NotFound() {
+  const t = useTranslations("NotFound");
+
   return (
-    <div className="mx-auto flex w-full max-w-[640px] flex-1 flex-col items-center justify-center px-4 py-16 text-center">
-      <div className="text-5xl" aria-hidden>
-        🗺️
+    // flex-1 statt min-h: Die Seite rendert im <main> von AppChrome (flex flex-col) und
+    // füllt so genau den Platz zwischen Kopfzeile und Tab-Leiste. pb > pt: Die Tab-Leiste
+    // liegt fixed über dem unteren Rand, das Plus unten rückt die optische Mitte hoch.
+    <div className="flex flex-1 flex-col items-center justify-center px-6 pb-24 pt-14 text-center md:pb-16">
+      {/* Zwei leicht verdrehte Kacheln wie verstreute Karten: der Wanderschuh lugt hinter
+          dem Kompass hervor. Rein dekorativ, deshalb aria-hidden. */}
+      <div className="relative" aria-hidden>
+        <span className={`${TILE} absolute -right-7 -top-3 h-14 w-14 rotate-12 rounded-[16px] text-[26px]`}>
+          🥾
+        </span>
+        <span className={`${TILE} relative h-24 w-24 -rotate-6 text-[46px]`}>🧭</span>
       </div>
-      <h1 className="mt-4 text-2xl font-bold text-ink">{t("title")}</h1>
-      <p className="mx-auto mt-2 max-w-sm text-[15px] leading-relaxed text-muted">
-        {t("body")}
+
+      {/* „404" sprachneutral als kleine Kennzeile (gleicher Stil wie die Subtype-Zeile im
+          Spot-Hero) — wer den Code sucht, findet ihn, er schreit aber nicht. */}
+      <p className="mt-8 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted/80">
+        404
       </p>
-      <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-        <Link
-          href="/explore"
-          className="rounded-full bg-accent px-6 py-3 text-sm font-semibold text-white transition active:scale-[0.98]"
-        >
-          {t("exploreCta")}
-        </Link>
-        <Link
-          href="/"
-          className="rounded-full bg-white px-6 py-3 text-sm font-semibold text-ink shadow-sm transition active:scale-[0.98]"
-        >
-          {t("homeCta")}
-        </Link>
-      </div>
+      <h1 className="mt-1 text-[24px] font-bold leading-tight text-ink">{t("title")}</h1>
+      <p className="mt-2 max-w-[24rem] text-[15px] leading-relaxed text-muted">{t("body")}</p>
+
+      <Link
+        href="/"
+        className="sg-hit mt-7 rounded-full bg-accent px-6 py-3.5 text-[15px] font-semibold text-white shadow-[0_10px_24px_-10px_rgba(204,41,36,0.55)] transition active:scale-[0.98]"
+      >
+        {t("home")}
+      </Link>
     </div>
   );
 }

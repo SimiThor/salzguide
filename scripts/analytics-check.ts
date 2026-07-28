@@ -75,8 +75,10 @@ const routes: string[] = [];
   for (const entry of readdirSync(dir)) {
     const full = join(dir, entry);
     if (statSync(full).isDirectory()) {
-      // Catch-all ([...rest]) ist die 404-Falle, keine echte Seite: Adressen, die dort
-      // landen, gibt es in der App nicht — genau dafür ist "other" die richtige Kennung.
+      // Catch-all ([...rest]) ist die 404-Seite, keine eigene Seitenart: Jede Adresse,
+      // die dort landet, ist GENAU der Verkehr, den kind:"other" misst (tote WP-Links,
+      // Tippfehler, Scanner). Eine eigene Kennung wäre von "other" nicht unterscheidbar
+      // und würde die Serie nur spalten.
       if (entry.startsWith("[...")) continue;
       if (entry.startsWith("(") || entry.startsWith("_")) walk(full, url);
       else walk(full, `${url}/${entry.startsWith("[") ? "musterwert" : entry}`);

@@ -543,9 +543,8 @@
     "code": "Foutcode"
   },
   "NotFound": {
-    "title": "Deze pagina bestaat niet",
-    "body": "De link is oud of verkeerd getypt. Wat je zoekt vind je het snelst op de kaart.",
-    "exploreCta": "Naar de kaart",
-    "homeCta": "Naar de startpagina"
+    "title": "Verkeerd afgeslagen",
+    "body": "Dit pad kent zelfs een local niet. Draai hier maar om.",
+    "home": "Naar de startpagina"
   }
 }
