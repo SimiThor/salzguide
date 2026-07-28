@@ -1,0 +1,46 @@
+name: Lockfile prüfen
+
+# Wächter für package-lock.json. Anlass: Ein Commit hat nebenbei die optionalen
+# WASM-Untertrees (@emnapi/*, verschachteltes @swc/helpers) aus dem Lockfile geworfen -
+# ein npm install mit einer npm-Version, die diese Einträge prunt. Aufgefallen ist es erst
+# fünf Tage später, als der Render-Knopf im Admin einen Lauf startete, der nach 9 Sekunden
+# an "npm ci" starb.
+#
+# Warum es sonst niemand merkt: Vercel baut mit "npm install" und heilt so ein schiefes
+# Lockfile still. "npm ci" (Render-Workflow) prüft streng und bricht. Dieser Job zieht das
+# Scheitern nach vorn, an den Pull Request, wo es hingehört.
+on:
+  pull_request:
+    paths:
+      - package.json
+      - package-lock.json
+      - .github/workflows/deps-check.yml
+  # Netz für den Fall, dass doch einmal direkt auf main gepusst wird.
+  push:
+    branches: [main]
+    paths:
+      - package.json
+      - package-lock.json
+
+jobs:
+  lockfile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      # --dry-run löst den kompletten Baum auf und meldet jede Abweichung, installiert aber
+      # nichts: derselbe Riegel wie im Render-Workflow, nur in Sekunden statt Minuten.
+      - name: npm ci --dry-run
+        run: npm run deps:check
+
+      - name: Was zu tun ist
+        if: failure()
+        run: |
+          echo "::error::package-lock.json passt nicht zu package.json."
+          echo "Reparieren: npm install --package-lock-only, dann package-lock.json mitcommitten."
+          echo "Vorher lokal prüfen: npm run deps:check"
