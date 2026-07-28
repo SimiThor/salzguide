@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { getSavedEventIds, getUpcomingEvents } from "@/lib/events";
 import { viennaDayKey } from "@/lib/events-format";
-import { alternatesFor } from "@/lib/metadata";
+import { alternatesFor, ogFor } from "@/lib/metadata";
+import { eventsLd } from "@/lib/jsonld";
+import JsonLd from "@/components/JsonLd";
 import EventsWeek from "@/components/EventsWeek";
 
 export async function generateMetadata({
@@ -11,11 +13,20 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
-  const t = await getTranslations({ locale, namespace: "Events" });
+  // SEO-Titel/-Beschreibung leben im Meta-Namensraum, entkoppelt von der sichtbaren
+  // Überschrift (Events.title bleibt die h1): Suchbegriff und Seitentitel dürfen sich
+  // unterscheiden, ohne dass die Seite ihre Sprache ändert.
+  const t = await getTranslations({ locale, namespace: "Meta" });
   return {
-    title: t("title"),
-    description: t("subtitle"),
+    title: t("eventsTitle"),
+    description: t("eventsDescription"),
     alternates: alternatesFor(locale, "/events"),
+    ...ogFor({
+      locale,
+      path: "/events",
+      title: t("eventsTitle"),
+      description: t("eventsDescription"),
+    }),
   };
 }
 
@@ -32,11 +43,15 @@ export default async function EventsPage({
   ]);
   const todayKey = viennaDayKey(new Date().toISOString());
   return (
-    <EventsWeek
-      events={events}
-      todayKey={todayKey}
-      savedIds={saved.ids}
-      loggedIn={saved.loggedIn}
-    />
+    <>
+      {/* Strukturierte Daten: die Event-Liste als schema.org-ItemList (lib/jsonld.ts). */}
+      <JsonLd data={eventsLd(events)} />
+      <EventsWeek
+        events={events}
+        todayKey={todayKey}
+        savedIds={saved.ids}
+        loggedIn={saved.loggedIn}
+      />
+    </>
   );
 }

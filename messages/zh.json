@@ -1,12 +1,25 @@
 {
   "Meta": {
-    "description": "萨尔茨堡，轻松游——由本地人精选的最棒去处。",
-    "homeTitle": "SalzGuide：谷歌知道萨尔茨堡，我们去过。",
-    "homeDescription": "两个本地人，一张地图：我们在萨尔茨堡州最喜欢的去处，每一处都配一条贴士。每一处我们都亲自去过。还有 Toni——只认识这些去处的 AI。",
-    "exploreTitle": "探索",
-    "exploreDescription": "萨尔茨堡，轻松游——由本地人精选的最棒去处。",
-    "proTitle": "Pro",
-    "proDescription": "附带本地人建议的锁住地点、带路线的徒步、完整语音导览和无限次的 Toni。一次付费，无订阅。"
+    "description": "萨尔茨堡的秘密景点：互动地图加本地人的真实建议，找到最美的去处。",
+    "homeTitle": "SalzGuide：发现萨尔茨堡的秘密景点",
+    "homeDescription": "互动地图加本地人的真实建议，帮你找到萨尔茨堡最美的景点和隐藏宝藏。每个地方我们都亲自去过。",
+    "exploreTitle": "萨尔茨堡好去处：互动地图",
+    "exploreDescription": "徒步、湖泊、观景点、山间小屋和餐馆，都在一张互动地图上。每个地方都亲自去过，都有本地人的真实建议。",
+    "proTitle": "SalzGuide Pro",
+    "proDescription": "附带本地人建议的锁住地点、带路线的徒步、完整语音导览和无限次的 Toni。一次付费，无订阅。",
+    "eventsTitle": "萨尔茨堡活动",
+    "eventsDescription": "萨尔茨堡最近有什么活动：节庆、文化、传统和亲子活动。持续更新，附地图。",
+    "wasserTitle": "萨尔茨堡湖泊水温",
+    "wasserDescription": "沃尔夫冈湖、富施尔湖等萨尔茨堡湖泊的实时水温，以及最美的游泳地点，都在一张地图上。",
+    "tourenTitle": "萨尔茨堡语音导览",
+    "tourenDescription": "用耳朵探索萨尔茨堡：本地人的故事，一站一站，在手机上就能听。",
+    "supportTitle": "帮助与联系",
+    "supportDescription": "有什么不对劲、信息有误，或者有问题？写信告诉我们。",
+    "aboutTitle": "关于我们",
+    "aboutDescription": "安东和西蒙，两个萨尔茨堡人：为什么做 SalzGuide，以及我们如何挑选地点。",
+    "spotTitle": "{title}：萨尔茨堡的{kind}",
+    "spotTitlePlain": "{title}：萨尔茨堡",
+    "spotDescriptionFallback": "萨尔茨堡的{title}：位置、交通和我们的实在建议。"
   },
   "Common": {
     "back": "返回",
@@ -174,6 +187,7 @@
     "paywallProBody": "有了 Pro，你可以无限次问 Toni，锁住的地点也一起打开。"
   },
   "Explore": {
+    "pageHeading": "互动地图上的萨尔茨堡好去处与秘密景点",
     "summer": "夏季",
     "winter": "冬季",
     "lockedLabel": "🤫 秘密地点",
@@ -418,15 +432,6 @@
     "deleteError": "删除失败。请稍后再试。",
     "newsletterLabel": "邮件订阅与贴士",
     "newsletterHint": "偶尔发送新地点和贴士。可随时退订。"
-  },
-  "Demo": {
-    "title": "组件演示",
-    "subtitle": "SpotCards、轮播和可拖动的底部面板。",
-    "carousel": "示例地点",
-    "openSheet": "打开底部面板",
-    "sheetTitle": "可拖动面板",
-    "sheetBody": "用把手把我往上拖（全屏）或往下拖（关闭）。之后正是这个面板会在地图上方显示地点详情、筛选和 AI 助手。",
-    "lockedLabel": "🤫 秘密地点"
   },
   "Support": {
     "linkLabel": "帮助",

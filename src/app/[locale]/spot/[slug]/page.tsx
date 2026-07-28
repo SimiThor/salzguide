@@ -5,8 +5,8 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { getRelatedSpots, getSpotDetail } from "@/lib/spots";
 import { getSavedSlugs } from "@/lib/saved";
+import { isLoggedIn } from "@/lib/viewer";
 import LockedMedia from "@/components/LockedMedia";
-import { createClient } from "@/lib/supabase/server";
 import { buildMapsLink } from "@/lib/maps";
 import type { Metadata } from "next";
 import ActionTile from "@/components/ActionTile";
@@ -18,7 +18,7 @@ import ProFeatureList from "@/components/ProFeatureList";
 import QuickFacts, { type Fact } from "@/components/QuickFacts";
 import SaveButton from "@/components/SaveButton";
 import SpotCard from "@/components/SpotCard";
-import SpotDetailMap from "@/components/SpotDetailMap";
+import SpotDetailMapLazy from "@/components/SpotDetailMapLazy";
 import type { SpotPoi } from "@/components/SpotMap";
 import { poiLabelKey } from "@/lib/poi";
 import SpotWeather from "@/components/SpotWeather";
@@ -42,6 +42,9 @@ import {
   factSeason,
   factSubtype,
 } from "@/lib/facts-i18n";
+import { alternatesFor, ogFor } from "@/lib/metadata";
+import { breadcrumbLd, spotLd } from "@/lib/jsonld";
+import JsonLd from "@/components/JsonLd";
 import { routeLengthKm } from "@/lib/geo";
 
 // Einheitlicher Karten-Look (Apple iOS 2026): weiß, weiche Schatten, 18px-Radius.
@@ -56,13 +59,45 @@ export async function generateMetadata({
   const { locale, slug } = await params;
   const spot = await getSpotDetail(slug, locale);
   if (!spot) return {};
+
+  // Gesperrte Pro-Spots: noindex. Crawler sind immer ausgeloggt und sehen sonst
+  // dutzende Seiten mit identischem Titel "SalzGuide Pro" (Duplikat-Signal). Dass
+  // ein Pro-Kunde dieselbe URL indexierbar sieht, ist egal: Google crawlt ohne Login.
+  // Kein Hero-Foto in die Vorschau: Das Foto ist der Pro-Inhalt (Marken-Standardbild).
+  if (spot.locked) {
+    return {
+      title: "SalzGuide Pro",
+      robots: { index: false, follow: true },
+      alternates: alternatesFor(locale, `/spot/${slug}`),
+      ...ogFor({ locale, path: `/spot/${slug}`, title: "SalzGuide Pro" }),
+    };
+  }
+
+  // Titel-Muster "Nockstein: Wanderung im Salzburger Land": Spot-Name vorn (Marke der
+  // Seite), dahinter Art + Region als Suchbegriff. factSubtype ist bereits in allen
+  // 9 Sprachen übersetzt. Lange Spot-Namen bekommen keinen Zusatz, sonst schneidet
+  // Google den Titel ab ("%s · SalzGuide" aus dem Layout kommt ja noch dazu).
+  const t = await getTranslations({ locale, namespace: "Meta" });
+  const kind = spot.subtype ? factSubtype(spot.subtype, locale) : null;
+  const title =
+    spot.title.length > 35
+      ? spot.title
+      : kind
+        ? t("spotTitle", { title: spot.title, kind })
+        : t("spotTitlePlain", { title: spot.title });
+  const description = spot.shortDesc ?? t("spotDescriptionFallback", { title: spot.title });
   return {
-    title: spot.locked ? "SalzGuide Pro" : spot.title,
-    description: spot.locked ? undefined : (spot.shortDesc ?? undefined),
-    alternates: {
-      canonical: `/${locale}/spot/${slug}`,
-      languages: { de: `/de/spot/${slug}`, en: `/en/spot/${slug}` },
-    },
+    title,
+    description,
+    alternates: alternatesFor(locale, `/spot/${slug}`),
+    // Das echte Hero-Foto als Link-Vorschau: bester Klick-Anreiz, keine Extra-Infrastruktur.
+    ...ogFor({
+      locale,
+      path: `/spot/${slug}`,
+      title,
+      description,
+      image: spot.images[0] ?? null,
+    }),
   };
 }
 
@@ -163,11 +198,10 @@ export default async function SpotPage({
 
   if (!spot) notFound();
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const loggedIn = !!user;
+  // Projektregel (lib/viewer.ts): Lesen über die lokale JWT-Prüfung statt
+  // supabase.auth.getUser() — das war ein Netz-Roundtrip zum Auth-Server bei JEDEM
+  // Aufruf der wichtigsten Google-Landeseite.
+  const loggedIn = await isLoggedIn();
   const savedSlugs = loggedIn ? await getSavedSlugs() : new Set<string>();
   const isSaved = savedSlugs.has(spot.slug);
 
@@ -323,9 +357,24 @@ export default async function SpotPage({
   // kompletten Katalog samt aller Bilder und Übersetzungen geladen hat.
   const related = await getRelatedSpots(spot.slug, locale);
 
+  // Strukturierte Daten: der Spot als schema.org-Objekt + Brotkrumen-Pfad. spotLd()
+  // liefert für gesperrte Pro-Spots null (kein Geheimtipp-Leak in die Metadaten).
+  const structured = spotLd(spot, locale);
+  const tNav = await getTranslations("Nav");
+
   return (
     <SpotGalleryProvider images={spot.images} title={spot.title}>
     <div className="pb-16">
+      {structured && <JsonLd data={structured} />}
+      {structured && (
+        <JsonLd
+          data={breadcrumbLd(locale, [
+            { name: "SalzGuide", path: "" },
+            { name: tNav("explore"), path: "/explore" },
+            { name: spot.title },
+          ])}
+        />
+      )}
       <Hero {...heroProps} />
 
       <div className="mx-auto w-full max-w-[760px]">
@@ -397,9 +446,10 @@ export default async function SpotPage({
           </Suspense>
         )}
 
-        {/* Karte + (bei Wanderungen) interaktives Höhenprofil + Vollbild-Karte */}
+        {/* Karte + (bei Wanderungen) interaktives Höhenprofil + Vollbild-Karte.
+            Lazy (SpotDetailMapLazy): Mapbox lädt erst beim Heranscrollen. */}
         {(spot.route || mainPoint) && (
-          <SpotDetailMap
+          <SpotDetailMapLazy
             route={spot.route}
             elevation={spot.elevation}
             marker={

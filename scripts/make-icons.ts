@@ -262,6 +262,31 @@ console.log(
   `Startbildschirme:\n  ${jobs.length} Dateien für ${APPLE_SCREENS.length} Bildschirmgrössen, ${((bytes - before) / 1024).toFixed(0)} kB`,
 );
 
+// 6. Open-Graph-Standardbild (Link-Vorschau in WhatsApp, iMessage, Slack & Co.).
+//    1200×630 ist das Format, das alle Messenger erwarten. Gleiche Bausteine wie der
+//    Startbildschirm: Creme, Kachel, Schriftzug — die Schrift als eingefrorene Pfade,
+//    damit das Bild auf jedem Rechner identisch rastert. Spot-Seiten schicken ihr
+//    echtes Foto (lib/metadata.ts ogFor()); dieses Bild tragen alle anderen Seiten.
+function ogImage(): string {
+  const W = 1200;
+  const H = 630;
+  const size = 200; // Kachel wie am Startbildschirm-Deckel
+  const wordmarkHeight = 92; // grösser als am Splash: das Bild steht in der Vorschau allein
+  const gap = 56;
+  const block = size + gap + wordmarkHeight;
+  const top = (H - block) / 2;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+  <rect width="${W}" height="${H}" fill="${CREAM}"/>
+  ${tile(W / 2 - size / 2, top, size, size * RADIUS_FRACTION)}
+  ${glyphs(WORDMARK, W / 2, top + size + gap, wordmarkHeight, RED)}
+</svg>
+`;
+}
+
+const beforeOg = bytes;
+await write("public/og-default.png", await png(ogImage(), true));
+console.log(`Open-Graph-Bild:\n  1 Datei, ${((bytes - beforeOg) / 1024).toFixed(0)} kB`);
+
 // Gegenprobe: liegt für jede Zeile der Tabelle auch wirklich eine Datei da? Ein fehlendes
 // Bild gibt keine Fehlermeldung, sondern nur einen leeren Startbildschirm am iPhone.
 const written = new Set(await readdir(splashDir));

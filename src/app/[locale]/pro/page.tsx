@@ -4,7 +4,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getProPrice, formatProPrice } from "@/lib/pro";
-import { alternatesFor } from "@/lib/metadata";
+import { alternatesFor, ogFor } from "@/lib/metadata";
 import ProLanding from "@/components/ProLanding";
 import { ProWordmark } from "@/components/ProBadge";
 
@@ -18,9 +18,17 @@ export async function generateMetadata({
   // Layout zu „SalzGuide · SalzGuide". Seiten-Titel leben im Meta-Namespace.
   const t = await getTranslations({ locale, namespace: "Meta" });
   return {
-    title: t("proTitle"),
+    // absolute: proTitle ist der Produktname „SalzGuide Pro" — mit dem Titel-Template
+    // aus dem Layout würde daraus „SalzGuide Pro · SalzGuide".
+    title: { absolute: t("proTitle") },
     description: t("proDescription"),
     alternates: alternatesFor(locale, "/pro"),
+    ...ogFor({
+      locale,
+      path: "/pro",
+      title: t("proTitle"),
+      description: t("proDescription"),
+    }),
   };
 }
 

@@ -1,12 +1,25 @@
 {
   "Meta": {
-    "description": "Salzburg sans stress – les meilleurs spots, sélectionnés par des locaux.",
-    "homeTitle": "SalzGuide : Google connaît Salzburg. Nous, on y est allés.",
-    "homeDescription": "Deux locaux, une carte : nos spots préférés dans la région de Salzburg, chacun avec un conseil. On y est allés nous-mêmes. Et Toni, l'IA qui ne connaît que ces spots.",
-    "exploreTitle": "Explorer",
-    "exploreDescription": "Salzburg sans stress – les meilleurs spots, sélectionnés par des locaux.",
-    "proTitle": "Pro",
-    "proDescription": "Spots verrouillés avec le conseil de local, randos avec le tracé, parcours audio en entier et Toni sans limite. Un paiement, sans abonnement."
+    "description": "Spots secrets de la région de Salzbourg : les plus beaux endroits sur une carte interactive, avec de vrais conseils de locaux.",
+    "homeTitle": "SalzGuide : découvre les spots secrets du pays de Salzbourg",
+    "homeDescription": "Avec la carte interactive et de vrais conseils de locaux, tu trouves les plus beaux spots et hidden gems de la région de Salzbourg. On les a tous visités.",
+    "exploreTitle": "Que faire autour de Salzbourg : la carte interactive",
+    "exploreDescription": "Randos, lacs, points de vue, alpages et auberges sur une carte interactive. Chaque spot visité par nous, avec un vrai conseil de local.",
+    "proTitle": "SalzGuide Pro",
+    "proDescription": "Spots verrouillés avec le conseil de local, randos avec le tracé, parcours audio en entier et Toni sans limite. Un paiement, sans abonnement.",
+    "eventsTitle": "Événements à Salzbourg",
+    "eventsDescription": "Ce qui se passe à Salzbourg : fêtes, culture, traditions et sorties pour les enfants. Mis à jour en continu, avec une carte.",
+    "wasserTitle": "Température de l'eau des lacs de Salzbourg",
+    "wasserDescription": "Températures actuelles du Wolfgangsee, du Fuschlsee et d'autres lacs, plus les plus beaux coins de baignade de la région, sur une carte.",
+    "tourenTitle": "Visites audio de Salzbourg",
+    "tourenDescription": "Découvre Salzbourg à l'oreille : des histoires de locaux, étape par étape, sur ton téléphone.",
+    "supportTitle": "Aide et contact",
+    "supportDescription": "Quelque chose ne marche pas, un spot est faux, ou tu as une question ? Écris-nous.",
+    "aboutTitle": "À propos",
+    "aboutDescription": "Anton et Simon, deux Salzbourgeois : pourquoi SalzGuide existe et comment on choisit nos spots.",
+    "spotTitle": "{title} : {kind} dans la région de Salzbourg",
+    "spotTitlePlain": "{title}, région de Salzbourg",
+    "spotDescriptionFallback": "{title} dans la région de Salzbourg : où c'est, comment y aller et notre conseil honnête."
   },
   "Common": {
     "back": "Retour",
@@ -174,6 +187,7 @@
     "paywallProBody": "Avec Pro tu poses tes questions à Toni sans limite. Et les spots verrouillés s'ouvrent aussi."
   },
   "Explore": {
+    "pageHeading": "Idées de sorties et spots secrets de la région de Salzbourg sur une carte interactive",
     "summer": "Été",
     "winter": "Hiver",
     "lockedLabel": "🤫 Spot secret",
@@ -418,15 +432,6 @@
     "deleteError": "La suppression a échoué. Réessaie plus tard.",
     "newsletterLabel": "Newsletter & conseils par e-mail",
     "newsletterHint": "De temps en temps, de nouveaux spots & conseils. Désinscription à tout moment."
-  },
-  "Demo": {
-    "title": "Démo des composants",
-    "subtitle": "SpotCards, carrousel et le panneau coulissant du bas.",
-    "carousel": "Spots d'exemple",
-    "openSheet": "Ouvrir le panneau du bas",
-    "sheetTitle": "Panneau coulissant",
-    "sheetBody": "Fais-moi glisser vers le haut par la poignée (plein écran) ou vers le bas (fermer). Ce même panneau affichera plus tard les détails des spots, les filtres et l'assistant IA – par-dessus la carte.",
-    "lockedLabel": "🤫 Spot secret"
   },
   "Support": {
     "linkLabel": "Aide",

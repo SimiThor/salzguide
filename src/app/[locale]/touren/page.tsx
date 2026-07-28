@@ -4,7 +4,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { getPublishedTours } from "@/lib/tours";
 import { listUserTours } from "@/lib/user-tours";
-import { alternatesFor } from "@/lib/metadata";
+import { alternatesFor, ogFor } from "@/lib/metadata";
 import SavedRoutesList from "@/components/tours/SavedRoutesList";
 import AiSparkle from "@/components/ai/AiSparkle";
 import { STATUS_ACCENT, STATUS_GOOD, STATUS_NEUTRAL } from "@/lib/ui";
@@ -20,11 +20,18 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
-  const t = await getTranslations({ locale, namespace: "Tours" });
+  // SEO-Texte aus dem Meta-Namensraum, die sichtbare Überschrift bleibt Tours.title.
+  const t = await getTranslations({ locale, namespace: "Meta" });
   return {
-    title: t("title"),
-    description: t("subtitle"),
+    title: t("tourenTitle"),
+    description: t("tourenDescription"),
     alternates: alternatesFor(locale, "/touren"),
+    ...ogFor({
+      locale,
+      path: "/touren",
+      title: t("tourenTitle"),
+      description: t("tourenDescription"),
+    }),
   };
 }
 

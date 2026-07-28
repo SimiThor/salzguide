@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { getSavedSpots } from "@/lib/saved";
@@ -11,6 +12,18 @@ import SavedSpots from "@/components/SavedSpots";
 import SavedEventsList from "@/components/SavedEventsList";
 
 const PAD = "pt-[var(--sg-page-top)] md:pt-6";
+
+// Die Merkliste ist eine private Seite: Google soll sie nicht als Suchtreffer führen
+// (noindex), darf ihren Links aber folgen (follow). Gleiches Muster wie /rechtliches.
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "Saved" });
+  return { title: t("title"), robots: { index: false, follow: true } };
+}
 
 export default async function GespeichertPage({
   params,

@@ -3,7 +3,9 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { getSpotCount } from "@/lib/spots";
 import { getHomeTexts, getHomeMedia } from "@/lib/home-content";
-import { alternatesFor } from "@/lib/metadata";
+import { alternatesFor, ogFor } from "@/lib/metadata";
+import { organizationLd, webSiteLd } from "@/lib/jsonld";
+import JsonLd from "@/components/JsonLd";
 import LandingNav from "@/components/landing/LandingNav";
 import Hero from "@/components/landing/Hero";
 import TrustStrip from "@/components/landing/TrustStrip";
@@ -47,6 +49,12 @@ export async function generateMetadata({
     title: { absolute: t("homeTitle") },
     description: t("homeDescription"),
     alternates: alternatesFor(locale, ""),
+    ...ogFor({
+      locale,
+      path: "",
+      title: t("homeTitle"),
+      description: t("homeDescription"),
+    }),
   };
 }
 
@@ -76,6 +84,10 @@ export default async function HomePage({
 
   return (
     <>
+      {/* Strukturierte Daten: Wer wir sind + was die Seite ist. Nur hier auf der
+          Startseite — Google erwartet Organization/WebSite einmal, nicht auf jeder Seite. */}
+      <JsonLd data={organizationLd()} />
+      <JsonLd data={webSiteLd(locale)} />
       <LandingNav ctaLabel={texts.navCta} />
       <Hero texts={texts} media={media} />
       <TrustStrip texts={texts} spotCount={spotCount} />

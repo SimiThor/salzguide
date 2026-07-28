@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -7,6 +8,18 @@ import AccountDataControls from "@/components/AccountDataControls";
 // Eigene, datenschutzkonforme Seite für die DSGVO-Selbstbedienung (Newsletter-
 // Widerruf, Datenexport Art. 15/20, Konto-Löschung Art. 17). Vom Profil per Button
 // verlinkt; Widerruf/Auskunft/Löschung bleiben so leicht auffindbar (Art. 7(3)).
+
+// Private Seite: kein Suchtreffer (noindex), Links folgen erlaubt.
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "Account" });
+  return { title: t("title"), robots: { index: false, follow: true } };
+}
+
 export default async function AccountDataPage({
   params,
 }: {

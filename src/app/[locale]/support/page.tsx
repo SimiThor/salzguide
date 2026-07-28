@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
-import { alternatesFor } from "@/lib/metadata";
+import { alternatesFor, ogFor } from "@/lib/metadata";
 import SupportForm from "@/components/SupportForm";
 
 // Kontaktseite. BEWUSST ohne Login-Zwang: Der häufigste Support-Fall ist „ich komme nicht
@@ -14,11 +14,18 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
-  const t = await getTranslations({ locale, namespace: "Support" });
+  // SEO-Texte aus dem Meta-Namensraum, die sichtbare Überschrift bleibt Support.title.
+  const t = await getTranslations({ locale, namespace: "Meta" });
   return {
-    title: t("title"),
-    description: t("subtitle"),
+    title: t("supportTitle"),
+    description: t("supportDescription"),
     alternates: alternatesFor(locale, "/support"),
+    ...ogFor({
+      locale,
+      path: "/support",
+      title: t("supportTitle"),
+      description: t("supportDescription"),
+    }),
   };
 }
 

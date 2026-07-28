@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -11,6 +12,17 @@ import ProBadge from "@/components/ProBadge";
 import SocialLinks from "@/components/SocialLinks";
 import { signOut } from "./actions";
 import { STATUS_NEUTRAL } from "@/lib/ui";
+
+// Login/Profil ist eine private Seite: kein Suchtreffer (noindex), Links folgen erlaubt.
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "Nav" });
+  return { title: t("profile"), robots: { index: false, follow: true } };
+}
 
 export default async function ProfilPage({
   params,

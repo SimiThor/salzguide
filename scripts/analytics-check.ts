@@ -53,7 +53,8 @@ const PATHS: [string, { kind: string; target: string | null } | null][] = [
   ["/de/ueber-uns", { kind: "about", target: null }],
   ["/de/support", { kind: "support", target: null }],
   ["/de/rechtliches/datenschutz", { kind: "legal", target: null }],
-  ["/de/demo", { kind: "demo", target: null }],
+  // /demo wurde 07/2026 gelöscht: Aufrufe alter Links sind jetzt "Sonstige Adressen".
+  ["/de/demo", { kind: "other", target: null }],
   // Betreiber-eigene Nutzung wird gar nicht gezählt:
   ["/de/admin", null],
   ["/de/admin/settings/analytics", null],
@@ -74,12 +75,12 @@ const routes: string[] = [];
   for (const entry of readdirSync(dir)) {
     const full = join(dir, entry);
     if (statSync(full).isDirectory()) {
-      if (entry.startsWith("(") || entry.startsWith("_")) walk(full, url);
       // Catch-all ([...rest]) ist die 404-Seite, keine eigene Seitenart: Jede Adresse,
       // die dort landet, ist GENAU der Verkehr, den kind:"other" misst (tote WP-Links,
       // Tippfehler, Scanner). Eine eigene Kennung wäre von "other" nicht unterscheidbar
       // und würde die Serie nur spalten.
-      else if (entry.startsWith("[...")) continue;
+      if (entry.startsWith("[...")) continue;
+      if (entry.startsWith("(") || entry.startsWith("_")) walk(full, url);
       else walk(full, `${url}/${entry.startsWith("[") ? "musterwert" : entry}`);
     } else if (entry === "page.tsx") {
       routes.push(url || "/");
