@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import SpotMap, { type MapMarker } from "@/components/SpotMap";
 import MobileSheet from "@/components/MobileSheet";
+import PartnerCredits from "@/components/PartnerCredits";
 import BackButton from "@/components/BackButton";
 import ActionTile from "@/components/ActionTile";
 import { buildMapsLink } from "@/lib/maps";
@@ -319,6 +320,10 @@ export default function TourView({
           </Link>
         </div>
       )}
+
+      {/* Partner-Nennung: Pflicht auf jeder Seite (lib/partners.ts). Hier im Panel, weil
+          der LegalFooter auf den Vollbild-Karten nicht rendert (lib/routes.ts). */}
+      <PartnerCredits className="mt-14" />
     </div>
   );
 
