@@ -26,6 +26,10 @@ import { useSheetPeek } from "@/lib/sheet-metrics";
 // Server-HTML: Griff 26 + pt-1 4 + Zähler 15 + Titel 22 + mt-4 16 + Transport 117
 // (Scrubber 22 + 10 + Zeiten 19 + 10 + Knöpfe 56) + 16 Luft. Der Titel ist einzeilig
 // (truncate), deshalb kommt die Schätzung hier auf den Pixel hin – am Browser nachgemessen.
+//
+// Bei einem GESPERRTEN Stopp steht statt des Transports der Pro-Hinweis im Anker – die
+// Messung folgt dem Inhalt (ResizeObserver in MobileSheet), die Schätzung hier gilt nur
+// für den ersten Paint, und der beginnt immer auf Stopp 1 (gratis, mit Transport).
 const SHEET_PEEK = { fits: '[data-sg="tour-peek"]', fallback: "calc(216px + var(--sg-nav-h))" };
 // Ohne Peek – die ist beim Sheet eine eigene Angabe.
 const SHEET_DETENTS = [0.62, 0.94];
@@ -205,6 +209,27 @@ export default function TourView({
               />
             </div>
           )}
+          {/* Gesperrter Stopp: Der Pro-Hinweis übernimmt den Platz des Transports und
+              steht damit IM Peek-Anker – sichtbar, ohne das Sheet aufzuziehen. Genau
+              dieser Moment entscheidet über den Kauf: Der letzte Gratis-Stopp läuft
+              aus, useTourAudio wählt den nächsten (gesperrten) Stopp an, und statt
+              eines toten Players steht hier, wie es weitergeht. Das Sheet misst den
+              Anker per ResizeObserver nach (MobileSheet), der Peek wächst also von
+              selbst mit. */}
+          {locked && (
+            <div className="mt-4 rounded-[16px] bg-white/85 p-4 shadow-sm ring-1 ring-black/[0.04]">
+              <p className="text-[14px] font-semibold text-ink">🔒 {t("lockedTitle")}</p>
+              <p className="mt-1 text-[13px] leading-snug text-muted">
+                {t("lockedFree", { free: tour.freeStops, total: tour.stops.length })}
+              </p>
+              <Link
+                href="/pro"
+                className="mt-3 flex items-center justify-center rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white transition active:scale-[0.98]"
+              >
+                {tPro("cta")}
+              </Link>
+            </div>
+          )}
         </div>
         {/* Foto bleibt auch bei gesperrten Stopps sichtbar: Titel/Bild/Position sind
             bei Touren öffentliche Teaser, nur das Audio ist Pro (Migration 0029). */}
@@ -221,22 +246,13 @@ export default function TourView({
         )}
       </div>
 
-      {/* Inhalt: Transkript zum Mitlesen (immer sichtbar, wenn vorhanden) */}
-      {locked ? (
-        <div className="mt-6 rounded-[16px] bg-white/70 p-5 text-center">
-          <div className="text-3xl" aria-hidden>
-            🔒
-          </div>
-          <p className="mt-2 text-[15px] font-semibold text-ink">{t("lockedTitle")}</p>
-          <p className="mt-1 text-[13px] leading-relaxed text-muted">{t("lockedBody")}</p>
-          <Link
-            href="/pro"
-            className="mt-3 inline-block rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white active:scale-[0.98]"
-          >
-            {tPro("cta")}
-          </Link>
-        </div>
-      ) : !hasAudio && !hasText ? (
+      {/* Inhalt: Transkript zum Mitlesen (immer sichtbar, wenn vorhanden).
+          Gesperrt -> nichts: Der Pro-Hinweis steht schon oben im Peek-Anker, ein
+          zweiter Block direkt darunter wäre derselbe Text zweimal im Blick. Der
+          `locked`-Zweig bleibt trotzdem in der Kette, sonst fiele ein gesperrter
+          Stopp (audioUrl/audioText sind serverseitig null) in die noAudio-Meldung
+          und behauptete, es gäbe keine Aufnahme. */}
+      {locked ? null : !hasAudio && !hasText ? (
         <p className="mt-6 rounded-[16px] bg-white/70 p-4 text-center text-[13px] text-muted">
           {t("noAudio")}
         </p>
