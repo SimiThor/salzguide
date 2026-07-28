@@ -516,6 +516,15 @@ dasteht, und wirft bei `--only` ohne Liste.
     npm run wp:audio-tour -- --only steingasse  einzelne Stationen
     npm run wp:audio-tour -- --go              schreibt wirklich (Bilder + DB)
     npm run wp:audio-tour -- --retext [--go]   Sprechtexte aus den Entwürfen neu einspielen
+    npm run wp:audio-tour -- --meta [--go]     Tags/Typ/Emoji aus den Entwürfen setzen
+    npm run wp:audio-tour -- --i18n [--go]     Übersetzungen aus .wp-cache/audio-i18n/ einspielen
+
+`--meta` füllt Tags und Typ nur, wo die DB leer ist (kuratierte Alt-Punkte gewinnen);
+ein Emoji im Entwurf ist eine ausdrückliche Korrektur und überschreibt. `--i18n` liest
+`.wp-cache/audio-i18n/<slug>.json` (`{ "en": { "title", "audioText" }, … }`), spielt
+Titel + Sprechtext je Sprache ein und setzt den aktuellen de-Hash als `source_hash`
+(Marke: aktuell). Beide Modi überschreiben NIE eine Sprache, für die schon eine MP3
+existiert — die wird gemeldet und bleibt eine bewusste Entscheidung im Admin.
 
 Übernimmt die 15 Stationen von `/salzburg-altstadt-audioguide/` in den Audio-Punkte-Pool
 (`tour_points` im Gebiet `salzburger-altstadt`). Die Quelle ist wie bei den zwei

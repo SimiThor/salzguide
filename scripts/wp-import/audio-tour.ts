@@ -5,6 +5,8 @@
 //   npm run wp:audio-tour -- --only steingasse,mozartsteg   einzelne Stationen
 //   npm run wp:audio-tour -- --go        schreibt wirklich (Bilder + DB)
 //   npm run wp:audio-tour -- --retext [--go]   Sprechtexte aus den Entwürfen NEU einspielen
+//   npm run wp:audio-tour -- --meta [--go]     Tags/Typ/Emoji aus den Entwürfen setzen
+//   npm run wp:audio-tour -- --i18n [--go]     Übersetzungen aus .wp-cache/audio-i18n/ einspielen
 //
 // --retext überschreibt den deutschen Sprechtext eines Punkts aus seinem Entwurf, aber
 // NUR solange keine deutsche MP3 existiert: Eine Aufnahme, deren Transkript sich unter
@@ -12,6 +14,18 @@
 // Steht schon eine Aufnahme da, meldet der Lauf das, und Text + Neuvertonung bleiben
 // eine bewusste Entscheidung im Admin. Der source_hash der de-Zeile wird mitgezogen,
 // damit vorhandene Übersetzungen automatisch als veraltet markiert werden.
+//
+// --meta liest tags/kind/emoji aus dem Entwurf. Tags und Typ werden nur GEFÜLLT, wo die
+// DB leer ist (die Alt-Punkte hat Anton im Admin kuratiert, das gewinnt); ein Emoji im
+// Entwurf ist dagegen eine ausdrückliche Korrektur und überschreibt. Tags müssen aus
+// TAG_KEYS (src/lib/tour-tags.ts) stammen, sonst bricht der Lauf ab statt still zu raten.
+//
+// --i18n liest .wp-cache/audio-i18n/<slug>.json ({ en: { title, audioText }, ... }) und
+// spielt Titel + Sprechtext je Sprache ein. Dieselbe Aufnahme-Regel wie --retext, nur je
+// Sprache: Existiert für eine Sprache schon eine MP3, wird GENAU diese Sprache gemeldet
+// und übersprungen. Nach dem Einspielen bekommen die Ziel-Zeilen den aktuellen de-Hash
+// als source_hash, wie savePoint nach „In alle Sprachen übersetzen" (Marke: aktuell).
+// Die Übersetzungen sind Pro-Inhalt und bleiben wie die Entwürfe im gitignorierten Cache.
 //
 // QUELLE ist das `spots`-Array im Seitenquelltext von /salzburg-altstadt-audioguide/,
 // wie bei den zwei Frontend-Karten des Spot-Imports (fetch.ts): Die Seite baut ihre
@@ -55,6 +69,8 @@ import { slugifyKey } from "../../src/lib/slug.ts";
 import { guardStorageUrl } from "../../src/lib/storage-guard.ts";
 import { hashTexts } from "../../src/lib/spot-hash.ts";
 import { stripEmDash } from "../../src/lib/em-dash.ts";
+import { TAG_KEYS } from "../../src/lib/tour-tags.ts";
+import { routing } from "../../src/i18n/routing.ts";
 
 const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPA_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -68,7 +84,10 @@ const CACHE_DIR = ".wp-cache";
 const HTML_FILE = join(CACHE_DIR, "audio-tour.html");
 const SOURCE_FILE = join(CACHE_DIR, "audio-tour.json");
 const DRAFT_DIR = join(CACHE_DIR, "audio-drafts");
+const I18N_DIR = join(CACHE_DIR, "audio-i18n");
 const MAP_FILE = join(CACHE_DIR, "audio-media-map.json");
+
+const TARGET_LOCALES = routing.locales.filter((l) => l !== "de");
 
 // Wie src/lib/image-upload.ts (MAX_DIM / QUALITY) — Begründung im Kopfkommentar.
 const IMAGE_MAX_DIM = 1600;
@@ -77,6 +96,8 @@ const CACHE_CONTROL = "31536000";
 
 const GO = process.argv.includes("--go");
 const RETEXT = process.argv.includes("--retext");
+const META = process.argv.includes("--meta");
+const I18N = process.argv.includes("--i18n");
 // Erst prüfen, ob --only überhaupt dasteht; ohne Liste dahinter: Fehler statt still
 // „alle importieren" (dieselbe Falle wie in wp:publish, siehe README).
 const onlyIdx = process.argv.indexOf("--only");
@@ -163,6 +184,54 @@ function loadDraft(slug: string): string | null {
   return text ? stripEmDash(text, "de") : null;
 }
 
+type DraftMeta = { tags: string[] | null; kind: string | null; emoji: string | null };
+
+function loadDraftMeta(slug: string): DraftMeta | null {
+  const file = join(DRAFT_DIR, `${slug}.json`);
+  if (!existsSync(file)) return null;
+  const draft = JSON.parse(readFileSync(file, "utf8")) as {
+    tags?: string[];
+    kind?: string;
+    emoji?: string;
+  };
+  const tags = Array.isArray(draft.tags) ? draft.tags.map((t) => String(t).trim().toLowerCase()) : null;
+  if (tags) {
+    const allowed = new Set<string>(TAG_KEYS);
+    const bad = tags.filter((t) => !allowed.has(t));
+    // Abbrechen statt still verwerfen: Ein Tippfehler im Tag fiele sonst nie auf.
+    if (bad.length) throw new Error(`Unbekannte Tags in ${slug}: ${bad.join(", ")}`);
+  }
+  return {
+    tags,
+    kind: draft.kind?.trim() || null,
+    emoji: draft.emoji?.trim() || null,
+  };
+}
+
+// Übersetzungen je Punkt: { en: { title, audioText }, fr: ... } aus audio-i18n/<slug>.json.
+type I18nTexts = Record<string, { title: string; audioText: string }>;
+
+function loadI18n(slug: string): I18nTexts | null {
+  const file = join(I18N_DIR, `${slug}.json`);
+  if (!existsSync(file)) return null;
+  const raw = JSON.parse(readFileSync(file, "utf8")) as Record<
+    string,
+    { title?: string; audioText?: string }
+  >;
+  const out: I18nTexts = {};
+  for (const [lang, tx] of Object.entries(raw)) {
+    if (!TARGET_LOCALES.includes(lang))
+      throw new Error(`Unbekannte Sprache '${lang}' in ${slug} (erlaubt: ${TARGET_LOCALES.join(",")})`);
+    const title = stripEmDash((tx.title ?? "").trim(), lang);
+    const audioText = stripEmDash((tx.audioText ?? "").trim(), lang);
+    // Halbe Sprache ist keine Sprache: Titel UND Text, sonst Abbruch.
+    if (!title || !audioText) throw new Error(`Sprache '${lang}' in ${slug} unvollständig`);
+    out[lang] = { title, audioText };
+  }
+  if (!Object.keys(out).length) return null;
+  return out;
+}
+
 // ── Bilder: wie ein Admin-Upload über PointForm ─────────────────────────────
 
 const mediaMap: Record<string, MapEntry> = existsSync(MAP_FILE)
@@ -209,9 +278,13 @@ type DbPoint = {
   lng: number | null;
   emoji: string | null;
   image_url: string | null;
+  tags: string[];
+  kind: string | null;
   titleDe: string | null;
   audioTextDe: string | null;
   audioUrlDe: string | null;
+  /** MP3-Pfad je Sprache (null = Zeile ohne Aufnahme, fehlt = keine Zeile). */
+  audioUrlByLang: Record<string, string | null>;
 };
 
 // Titel-Vergleich unempfindlich gegen Gross/Klein und Mehrfach-Leerzeichen:
@@ -230,7 +303,7 @@ async function loadArea(): Promise<{ areaId: string; points: DbPoint[] }> {
 
   const { data: rows, error: e2 } = await db
     .from("tour_points")
-    .select("id, lat, lng, emoji, image_url, tour_point_translations(lang, title), tour_point_audio(lang, audio_text, audio_url)")
+    .select("id, lat, lng, emoji, image_url, tags, kind, tour_point_translations(lang, title), tour_point_audio(lang, audio_text, audio_url)")
     .eq("area_id", area.id);
   if (e2) throw new Error(`Punkte nicht lesbar: ${e2.message}`);
 
@@ -245,9 +318,12 @@ async function loadArea(): Promise<{ areaId: string; points: DbPoint[] }> {
       lng: p.lng as number | null,
       emoji: p.emoji as string | null,
       image_url: p.image_url as string | null,
+      tags: (p.tags as string[] | null) ?? [],
+      kind: p.kind as string | null,
       titleDe: trs.find((t) => t.lang === "de")?.title ?? null,
       audioTextDe: de?.audio_text ?? null,
       audioUrlDe: de?.audio_url ?? null,
+      audioUrlByLang: Object.fromEntries(audio.map((a) => [a.lang, a.audio_url])),
     };
   });
   return { areaId: area.id, points };
@@ -281,6 +357,84 @@ async function retextStation(
     .eq("lang", "de");
   if (eHash) throw new Error(`source_hash fehlgeschlagen: ${eHash.message}`);
   return `Sprechtext ersetzt (${words} Wörter)`;
+}
+
+// ── Meta: Tags/Typ füllen, Emoji-Korrekturen anwenden ───────────────────────
+
+async function metaStation(st: Station, existing: DbPoint | undefined): Promise<string> {
+  if (!existing) return "ÜBERSPRUNGEN: Punkt existiert nicht (erst normal importieren)";
+  const meta = loadDraftMeta(st.slug);
+  if (!meta) return "ÜBERSPRUNGEN: kein Entwurf";
+
+  const patch: Record<string, unknown> = {};
+  const parts: string[] = [];
+  // Tags/Typ nur füllen: Was Anton im Admin kuratiert hat, gewinnt.
+  if (meta.tags?.length && existing.tags.length === 0) {
+    patch.tags = meta.tags;
+    parts.push(`Tags [${meta.tags.join(", ")}]`);
+  }
+  if (meta.kind && !existing.kind) {
+    patch.kind = meta.kind;
+    parts.push(`Typ '${meta.kind}'`);
+  }
+  // Emoji im Entwurf = ausdrückliche Korrektur, überschreibt.
+  if (meta.emoji && meta.emoji !== existing.emoji) {
+    patch.emoji = meta.emoji;
+    parts.push(`Emoji ${existing.emoji ?? "·"} -> ${meta.emoji}`);
+  }
+  if (!Object.keys(patch).length) return "ok, nichts zu tun";
+  if (!GO) return `würde setzen: ${parts.join(", ")}`;
+
+  const { error } = await db.from("tour_points").update(patch).eq("id", existing.id);
+  if (error) throw new Error(`Meta fehlgeschlagen: ${error.message}`);
+  return `gesetzt: ${parts.join(", ")}`;
+}
+
+// ── I18n: Titel + Sprechtexte je Sprache einspielen ─────────────────────────
+
+async function i18nStation(st: Station, existing: DbPoint | undefined): Promise<string> {
+  if (!existing) return "ÜBERSPRUNGEN: Punkt existiert nicht (erst normal importieren)";
+  const texts = loadI18n(st.slug);
+  if (!texts) return "ÜBERSPRUNGEN: keine Übersetzungsdatei";
+  if (!existing.audioTextDe || !existing.titleDe)
+    return "ÜBERSPRUNGEN: kein deutscher Titel/Text als Quelle";
+
+  const parts: string[] = [];
+  const skipped: string[] = [];
+  const write: [string, { title: string; audioText: string }][] = [];
+  for (const lang of TARGET_LOCALES) {
+    const tx = texts[lang];
+    if (!tx) {
+      skipped.push(`${lang} (fehlt in Datei)`);
+      continue;
+    }
+    // Aufnahme-Regel je Sprache: Text nie unter einer existierenden MP3 wegdrehen.
+    if (existing.audioUrlByLang[lang]) {
+      skipped.push(`${lang} (hat Aufnahme)`);
+      continue;
+    }
+    write.push([lang, tx]);
+  }
+  if (!write.length) return `ÜBERSPRUNGEN: ${skipped.join(", ")}`;
+  if (!GO)
+    return `würde ${write.length} Sprachen einspielen (${write.map(([l]) => l).join(", ")})${skipped.length ? `; übersprungen: ${skipped.join(", ")}` : ""}`;
+
+  // Marke „aktuell": der Hash des DE-Standes, aus dem übersetzt wurde (wie savePoint).
+  const sourceHash = hashTexts([existing.titleDe, existing.audioTextDe]);
+  for (const [lang, tx] of write) {
+    const { error: eTr } = await db.from("tour_point_translations").upsert(
+      { point_id: existing.id, lang, title: tx.title, source_hash: sourceHash },
+      { onConflict: "point_id,lang" },
+    );
+    if (eTr) throw new Error(`Titel (${lang}) fehlgeschlagen: ${eTr.message}`);
+    const { error: eAu } = await db.from("tour_point_audio").upsert(
+      { point_id: existing.id, lang, audio_text: tx.audioText },
+      { onConflict: "point_id,lang" },
+    );
+    if (eAu) throw new Error(`Sprechtext (${lang}) fehlgeschlagen: ${eAu.message}`);
+    parts.push(lang);
+  }
+  return `eingespielt: ${parts.join(", ")}${skipped.length ? `; übersprungen: ${skipped.join(", ")}` : ""}`;
 }
 
 // ── Import ──────────────────────────────────────────────────────────────────
@@ -388,18 +542,22 @@ const stations = await loadSource();
 const { areaId, points } = await loadArea();
 const byTitle = new Map(points.filter((p) => p.titleDe).map((p) => [norm(p.titleDe!), p]));
 
+const MODE = RETEXT ? "RETEXT" : META ? "META" : I18N ? "I18N" : "IMPORT";
 console.log(
-  `\n${GO ? (RETEXT ? "RETEXT" : "IMPORT") : "TROCKENLAUF"}: ${stations.length} Stationen, Gebiet '${AREA_KEY}'\n`,
+  `\n${GO ? MODE : `TROCKENLAUF (${MODE})`}: ${stations.length} Stationen, Gebiet '${AREA_KEY}'\n`,
 );
 
 let skipped = 0;
 for (const st of stations) {
   if (ONLY && !ONLY.includes(st.slug)) continue;
   const existing = byTitle.get(norm(st.title));
-  const draft = loadDraft(st.slug);
   const result = RETEXT
-    ? await retextStation(st, existing, draft)
-    : await upsertStation(areaId, st, existing, draft);
+    ? await retextStation(st, existing, loadDraft(st.slug))
+    : META
+      ? await metaStation(st, existing)
+      : I18N
+        ? await i18nStation(st, existing)
+        : await upsertStation(areaId, st, existing, loadDraft(st.slug));
   if (result.startsWith("ÜBERSPRUNGEN")) skipped++;
   console.log(`${st.emoji} ${st.title} (${st.slug}): ${result}`);
 }
