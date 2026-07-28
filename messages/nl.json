@@ -50,6 +50,7 @@
     "freeTag": "Gratis start",
     "proTag": "Pro",
     "start": "Tour starten",
+    "finish": "Eindpunt",
     "backToList": "Alle tours",
     "stopOf": "Stop {current} van {total}",
     "play": "Afspelen",

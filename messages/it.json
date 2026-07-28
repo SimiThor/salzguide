@@ -50,6 +50,7 @@
     "freeTag": "Inizio gratis",
     "proTag": "Pro",
     "start": "Avvia tour",
+    "finish": "Arrivo",
     "backToList": "Tutti i tour",
     "stopOf": "Tappa {current} di {total}",
     "play": "Riproduci",

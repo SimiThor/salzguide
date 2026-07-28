@@ -21,6 +21,9 @@ export default async function EditTourPage({
         title: p.title,
         status: p.status,
         hasAudio: p.hasAudio,
+        // Koordinaten braucht der Editor für die Linie über die Stationen.
+        lat: p.lat,
+        lng: p.lng,
       }))
     : [];
   return (

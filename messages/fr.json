@@ -50,6 +50,7 @@
     "freeTag": "Début gratuit",
     "proTag": "Pro",
     "start": "Démarrer la visite",
+    "finish": "Arrivée",
     "backToList": "Toutes les visites",
     "stopOf": "Arrêt {current} sur {total}",
     "play": "Lecture",

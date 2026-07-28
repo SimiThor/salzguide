@@ -54,6 +54,7 @@ export default function LocationPicker({
   placing,
   waterStops,
   huts,
+  pins = [],
   onSet,
   onRouteChange,
   onPoiChange,
@@ -67,6 +68,10 @@ export default function LocationPicker({
   placing: PlacingKind;
   waterStops: MapPoi[];
   huts: MapPoi[];
+  // Feste Punkte, die die Karte nur ANZEIGT (nicht ziehbar, kein Klick-Ziel): die
+  // Stationen einer kuratierten Runde. Sie gehören dem Stationen-Abschnitt des
+  // Formulars, nicht der Karte – hier sollen sie nur sichtbar sein.
+  pins?: { lat: number; lng: number; label: string; title?: string }[];
   onSet: (which: "spot" | "parking", lat: number | null, lng: number | null) => void;
   onRouteChange: (coords: [number, number][]) => void;
   onPoiChange: (kind: "water" | "hut", pois: MapPoi[]) => void;
@@ -82,6 +87,7 @@ export default function LocationPicker({
   });
   const routeMarkers = useRef<mapboxgl.Marker[]>([]);
   const poiMarkers = useRef<mapboxgl.Marker[]>([]);
+  const pinMarkers = useRef<mapboxgl.Marker[]>([]);
 
   // Die Karte wird einmal aufgebaut, ihre Handler leben danach weiter. Alles, was sie
   // brauchen, liegt in Refs -> sie lesen immer den neuesten Stand statt der Props vom
@@ -338,6 +344,24 @@ export default function LocationPicker({
       routeMarkers.current.push(m);
     });
   }, [route, line, onRouteRef, routeRef]);
+
+  // Reine Anzeige-Pins (Stationen einer Runde): nummeriert, NICHT ziehbar. Sie liegen
+  // unter allem Setzbaren (zIndex 1), damit sie Start/Ziel nie verdecken.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    pinMarkers.current.forEach((m) => m.remove());
+    pinMarkers.current = [];
+    for (const p of pins) {
+      const el = document.createElement("div");
+      el.style.cssText =
+        "display:flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:9999px;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35);background:#111;color:#fff;font-size:10px;font-weight:700";
+      el.textContent = p.label;
+      el.style.zIndex = "1";
+      if (p.title) el.title = p.title;
+      pinMarkers.current.push(new mapboxgl.Marker({ element: el }).setLngLat([p.lng, p.lat]).addTo(map));
+    }
+  }, [pins]);
 
   // Zusatzpunkte (Wasserstellen, Hütten): ziehbare Emoji-Marker, beide Typen in einem
   // Effekt neu aufgebaut. Ziehen aktualisiert nur den einen Punkt (Name bleibt erhalten).

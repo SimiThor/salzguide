@@ -93,10 +93,28 @@ export default function TourView({
     tour.start && tour.start.lat != null && tour.start.lng != null
       ? { slug: "__start__", lat: tour.start.lat, lng: tour.start.lng, emoji: "🚩", title: t("start") }
       : null;
-  const markers: MapMarker[] = startMarker ? [startMarker, ...stopMarkers] : stopMarkers;
+  // Eigenes Ziel (kuratierte Runden). Liegt es auf dem Start, ist es ein Rundweg und
+  // die Flagge bliebe unter dem Start-Pin liegen -> dann keinen zweiten Pin setzen.
+  const endMarker: MapMarker | null =
+    tour.end &&
+    tour.end.lat != null &&
+    tour.end.lng != null &&
+    !(
+      startMarker &&
+      Math.abs(startMarker.lat - tour.end.lat) < 1e-5 &&
+      Math.abs(startMarker.lng - tour.end.lng) < 1e-5
+    )
+      ? { slug: "__end__", lat: tour.end.lat, lng: tour.end.lng, emoji: "🏁", title: t("finish") }
+      : null;
+  const markers: MapMarker[] = [
+    ...(startMarker ? [startMarker] : []),
+    ...stopMarkers,
+    ...(endMarker ? [endMarker] : []),
+  ];
   // Echte, an Straßen gesnappte Route (Normalfall). Fehlt sie (Routing-Dienst war nicht
-  // erreichbar), keine losen Segmente zeigen: die Ersatzlinie läuft vom Start (Mirabell)
-  // über die Stops und zurück, damit die Runde wenigstens am Start verankert ist.
+  // erreichbar), keine losen Segmente zeigen: die Ersatzlinie läuft vom Start über die
+  // Stops zum Ziel – und ohne eigenes Ziel zurück zum Start, damit die Runde wenigstens
+  // am Start verankert ist (so laufen die KI-Runden, die immer Rundwege sind).
   const route: [number, number][] | null =
     tour.routeGeo && tour.routeGeo.length > 1
       ? tour.routeGeo
@@ -104,10 +122,15 @@ export default function TourView({
         ? [
             [startMarker.lng, startMarker.lat],
             ...stopMarkers.map((m) => [m.lng, m.lat] as [number, number]),
-            [startMarker.lng, startMarker.lat],
+            endMarker
+              ? ([endMarker.lng, endMarker.lat] as [number, number])
+              : ([startMarker.lng, startMarker.lat] as [number, number]),
           ]
         : stopMarkers.length > 1
-          ? stopMarkers.map((m) => [m.lng, m.lat])
+          ? [
+              ...stopMarkers.map((m) => [m.lng, m.lat] as [number, number]),
+              ...(endMarker ? [[endMarker.lng, endMarker.lat] as [number, number]] : []),
+            ]
           : null;
   const center: [number, number] = startMarker
     ? [startMarker.lng, startMarker.lat]
@@ -349,7 +372,7 @@ export default function TourView({
             padding={mapPadding}
             mapClass={topRight ? "sg-ctrl-tour" : "sg-ctrl-safe"}
             onMarkerClick={(slug) => {
-              if (slug === "__start__") return;
+              if (slug === "__start__" || slug === "__end__") return;
               const i = tour.stops.findIndex((st) => st.spotSlug === slug);
               if (i >= 0) selectStop(i);
             }}

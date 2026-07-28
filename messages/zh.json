@@ -50,6 +50,7 @@
     "freeTag": "免费试听",
     "proTag": "Pro",
     "start": "开始导览",
+    "finish": "终点",
     "backToList": "全部导览",
     "stopOf": "第 {current} / {total} 站",
     "play": "播放",

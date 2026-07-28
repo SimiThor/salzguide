@@ -50,6 +50,7 @@
     "freeTag": "Free start",
     "proTag": "Pro",
     "start": "Start tour",
+    "finish": "Finish",
     "backToList": "All tours",
     "stopOf": "Stop {current} of {total}",
     "play": "Play",

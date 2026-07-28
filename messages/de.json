@@ -93,6 +93,7 @@
     "freeTag": "Gratis-Start",
     "proTag": "Pro",
     "start": "Tour starten",
+    "finish": "Ziel",
     "backToList": "Alle Touren",
     "stopOf": "Stopp {current} von {total}",
     "play": "Abspielen",
