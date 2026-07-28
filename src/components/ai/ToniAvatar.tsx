@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { createClient } from "@/lib/supabase/client";
 
 // Avatar für den KI-Local „Toni". Das Bild wird im Admin (Einstellungen) gesetzt und
 // in app_settings gespeichert (öffentlich lesbar). Hier client-seitig geladen und
@@ -30,6 +29,9 @@ export default function ToniAvatar({ size = 40 }: { size?: number }) {
     void (async () => {
       let v: string | null = null;
       try {
+        // await import(): Der Launcher hängt auf jeder Seite — als Modul-Import zöge er
+        // den Supabase-Chunk in den kritischen Pfad jedes Seitenaufrufs.
+        const { createClient } = await import("@/lib/supabase/client");
         const { data } = await createClient()
           .from("app_settings")
           .select("value")

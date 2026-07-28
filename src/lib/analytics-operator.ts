@@ -4,7 +4,10 @@
 // (role='admin'). Client-Variante für die cookieless Beacons (Pageview/Event-Link):
 // getSession() liest lokal (kein Netzwerk); nur wenn überhaupt eine Session existiert,
 // wird die eigene Rolle gelesen (RLS erlaubt Selbst-Read). Ergebnis pro Load gecacht.
-import { createClient } from "@/lib/supabase/client";
+//
+// Supabase kommt per await import(): Diese Datei hängt über Analytics.tsx an JEDER
+// Seite — als Modul-Import stünde der ~240-kB-Chunk damit wieder im kritischen Pfad,
+// den AiProvider/ToniAvatar gerade freigeräumt haben.
 
 let cached: boolean | null = null;
 let inflight: Promise<boolean> | null = null;
@@ -14,6 +17,7 @@ export function isOperatorClient(): Promise<boolean> {
   if (inflight) return inflight;
   inflight = (async () => {
     try {
+      const { createClient } = await import("@/lib/supabase/client");
       const supabase = createClient();
       // Lokaler Session-Check (kein Netzwerk): anonyme Besucher (die Mehrheit)
       // sind sofort "kein Betreiber" und werden normal gezählt.

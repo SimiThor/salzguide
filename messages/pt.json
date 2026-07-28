@@ -1,12 +1,25 @@
 {
   "Meta": {
-    "description": "Salzburg sem stress – os melhores spots, escolhidos por locais.",
-    "homeTitle": "SalzGuide: o Google conhece Salzburg. Nós estivemos lá.",
-    "homeDescription": "Dois locais, um mapa: os nossos spots preferidos na região de Salzburg, cada um com uma dica. Estivemos em todos. E o Toni, a IA que só conhece estes spots.",
-    "exploreTitle": "Explorar",
-    "exploreDescription": "Salzburg sem stress – os melhores spots, escolhidos por locais.",
-    "proTitle": "Pro",
-    "proDescription": "Sítios bloqueados com a dica de local, caminhadas com o traçado, percursos áudio completos e Toni sem limite. Pagas uma vez, sem subscrição."
+    "description": "Sítios secretos da região de Salzburgo: os lugares mais bonitos num mapa interativo, com dicas reais de locais.",
+    "homeTitle": "SalzGuide: descobre os sítios secretos de Salzburgo",
+    "homeDescription": "Com o mapa interativo e dicas reais de locais encontras os sítios mais bonitos e hidden gems da região de Salzburgo. Estivemos em todos.",
+    "exploreTitle": "O que fazer na região de Salzburgo: o mapa interativo",
+    "exploreDescription": "Caminhadas, lagos, miradouros, abrigos e tabernas num mapa interativo. Cada sítio visitado por nós, com uma dica real de um local.",
+    "proTitle": "SalzGuide Pro",
+    "proDescription": "Sítios bloqueados com a dica de local, caminhadas com o traçado, percursos áudio completos e Toni sem limite. Pagas uma vez, sem subscrição.",
+    "eventsTitle": "Eventos em Salzburgo",
+    "eventsDescription": "O que se passa em Salzburgo: festas, cultura, tradição e programas para crianças. Sempre atualizado, com mapa.",
+    "wasserTitle": "Temperatura da água dos lagos de Salzburgo",
+    "wasserDescription": "Temperaturas atuais do Wolfgangsee, do Fuschlsee e de outros lagos, mais os melhores sítios para nadar na região, num mapa.",
+    "tourenTitle": "Tours áudio por Salzburgo",
+    "tourenDescription": "Explora Salzburgo de ouvido: histórias de locais, paragem a paragem, no telemóvel.",
+    "supportTitle": "Ajuda e contacto",
+    "supportDescription": "Algo não funciona, um sítio não bate certo, ou tens uma pergunta? Escreve-nos.",
+    "aboutTitle": "Sobre nós",
+    "aboutDescription": "O Anton e o Simon, dois salzburgueses: porque existe o SalzGuide e como escolhemos os nossos sítios.",
+    "spotTitle": "{title}: {kind} na região de Salzburgo",
+    "spotTitlePlain": "{title}, região de Salzburgo",
+    "spotDescriptionFallback": "{title} na região de Salzburgo: onde fica, como chegar e a nossa dica honesta."
   },
   "Common": {
     "back": "Voltar",
@@ -174,6 +187,7 @@
     "paywallProBody": "Com o Pro perguntas ao Toni sem limite. E os sítios bloqueados também abrem."
   },
   "Explore": {
+    "pageHeading": "O que fazer e sítios secretos na região de Salzburgo, num mapa interativo",
     "summer": "Verão",
     "winter": "Inverno",
     "lockedLabel": "🤫 Dica secreta",
@@ -419,15 +433,6 @@
     "newsletterLabel": "Newsletter e dicas por email",
     "newsletterHint": "De vez em quando, novos spots e dicas. Cancela quando quiseres."
   },
-  "Demo": {
-    "title": "Demo de blocos",
-    "subtitle": "SpotCards, carrossel e o bottom sheet arrastável.",
-    "carousel": "Spots de exemplo",
-    "openSheet": "Abrir bottom sheet",
-    "sheetTitle": "Sheet arrastável",
-    "sheetBody": "Arrasta-me para cima pela pega (total) ou para baixo (fechar). Este mesmo sheet vai depois mostrar detalhes de spots, filtros e o assistente de IA – por cima do mapa.",
-    "lockedLabel": "🤫 Dica secreta"
-  },
   "Support": {
     "linkLabel": "Ajuda",
     "title": "Estamos aqui para ajudar",
@@ -536,5 +541,11 @@
     "retry": "Tentar de novo",
     "home": "Ir para o início",
     "code": "Código de erro"
+  },
+  "NotFound": {
+    "title": "Esta página não existe",
+    "body": "O link é antigo ou está errado. O que procuras encontra-se mais depressa no mapa.",
+    "exploreCta": "Abrir o mapa",
+    "homeCta": "Ir para a página inicial"
   }
 }

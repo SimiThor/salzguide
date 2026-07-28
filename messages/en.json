@@ -1,12 +1,25 @@
 {
   "Meta": {
-    "description": "Salzburg without the stress – the best spots, curated by locals.",
-    "homeTitle": "SalzGuide: Google knows Salzburg. We've been there.",
-    "homeDescription": "Two locals, one map: our favourite spots in the Salzburg region, each with a tip. We've been to every single one. Plus Toni, the AI that knows only these spots.",
-    "exploreTitle": "Explore",
-    "exploreDescription": "Salzburg without the stress – the best spots, curated by locals.",
-    "proTitle": "Pro",
-    "proDescription": "Locked spots with the insider tip, hikes with the route, audio tours in full and Toni without a limit. Pay once, no subscription."
+    "description": "Hidden gems in the Salzburg region: the most beautiful spots on an interactive map, with real local tips.",
+    "homeTitle": "SalzGuide: discover hidden gems in the Salzburg region",
+    "homeDescription": "Find the most beautiful spots & hidden gems in the Salzburg region with an interactive map & real local tips. We have been to every single one.",
+    "exploreTitle": "Things to do in Salzburg: the interactive map",
+    "exploreDescription": "Hikes, lakes, viewpoints, mountain huts & inns on one interactive map. Every spot visited by us, each with a real local tip.",
+    "proTitle": "SalzGuide Pro",
+    "proDescription": "Locked spots with the insider tip, hikes with the route, audio tours in full and Toni without a limit. Pay once, no subscription.",
+    "eventsTitle": "Events in Salzburg: what's on",
+    "eventsDescription": "What's on in Salzburg: festivals, culture, tradition and things for kids. Updated continuously, with a map and a saved list.",
+    "wasserTitle": "Water temperature of Salzburg's lakes",
+    "wasserDescription": "Current water temperatures for Lake Wolfgang, Lake Fuschl and more, plus the best swimming spots in the Salzburg region on one map.",
+    "tourenTitle": "Audio tours through Salzburg",
+    "tourenDescription": "Explore Salzburg by ear: stories from locals, stop by stop, right on your phone.",
+    "supportTitle": "Help & contact",
+    "supportDescription": "Something is not working, a spot is wrong, or you have a question? Write to us.",
+    "aboutTitle": "About us",
+    "aboutDescription": "Anton and Simon, two locals from Salzburg: why SalzGuide exists and how we pick our spots.",
+    "spotTitle": "{title}: {kind} in the Salzburg region",
+    "spotTitlePlain": "{title} in the Salzburg region",
+    "spotDescriptionFallback": "{title} in the Salzburg region: where it is, how to get there and our honest tip."
   },
   "Common": {
     "back": "Back",
@@ -174,6 +187,7 @@
     "paywallProBody": "With Pro you ask Toni without a limit. And the locked spots open too."
   },
   "Explore": {
+    "pageHeading": "Things to do & hidden gems in the Salzburg region on an interactive map",
     "summer": "Summer",
     "winter": "Winter",
     "lockedLabel": "🤫 Secret Spot",
@@ -419,15 +433,6 @@
     "newsletterLabel": "Newsletter & tips by email",
     "newsletterHint": "Occasional new spots & tips. Unsubscribe anytime."
   },
-  "Demo": {
-    "title": "Building blocks demo",
-    "subtitle": "SpotCards, carousel and the draggable bottom sheet.",
-    "carousel": "Example spots",
-    "openSheet": "Open bottom sheet",
-    "sheetTitle": "Draggable sheet",
-    "sheetBody": "Drag me up by the handle (full) or down (close). This same sheet will later show spot details, filters and the AI assistant – on top of the map.",
-    "lockedLabel": "🤫 Secret Spot"
-  },
   "Support": {
     "linkLabel": "Help",
     "title": "We're here to help",
@@ -536,5 +541,11 @@
     "retry": "Try again",
     "home": "Back to start",
     "code": "Error code"
+  },
+  "NotFound": {
+    "title": "This page does not exist",
+    "body": "The link is old or mistyped. The fastest way to find what you are looking for is the map.",
+    "exploreCta": "Open the map",
+    "homeCta": "Go to the start page"
   }
 }

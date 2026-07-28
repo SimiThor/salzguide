@@ -3,6 +3,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getPublishedAreas } from "@/lib/tours";
+import { alternatesFor } from "@/lib/metadata";
 import TourBuilder from "@/components/tours/TourBuilder";
 import BackButton from "@/components/BackButton";
 
@@ -13,7 +14,11 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "Tours" });
-  return { title: t("buildTitle"), description: t("buildLead") };
+  return {
+    title: t("buildTitle"),
+    description: t("buildLead"),
+    alternates: alternatesFor(locale, "/touren/bauen"),
+  };
 }
 
 export default async function BuildTourPage({

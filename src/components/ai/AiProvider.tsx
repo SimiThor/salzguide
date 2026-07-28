@@ -8,11 +8,16 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import dynamic from "next/dynamic";
 import { usePathname } from "@/i18n/navigation";
-import AiAssistant from "./AiAssistant";
 import ToniLauncher from "./ToniLauncher";
-import { createClient } from "@/lib/supabase/client";
 import { clearToniChat } from "@/lib/toni-chat-store";
+
+// Das Chat-Sheet ist ein grosses Bündel (Sheet, Markdown, Widgets, Actions) und wird
+// von den meisten Besuchern nie geöffnet. Es lädt deshalb erst beim ERSTEN Öffnen
+// (hasOpened unten) statt auf jeder Seite im kritischen Pfad. Die Öffnen-Animation
+// des Sheets überdeckt die kurze Ladezeit des Chunks.
+const AiAssistant = dynamic(() => import("./AiAssistant"), { ssr: false });
 
 // Globaler Zugang zum KI-Sheet: BottomNav & Desktop-Header rufen open() auf.
 // Der Login-Status wird client-seitig ermittelt -> das Locale-Layout bleibt
@@ -38,21 +43,39 @@ export function useAi(): AiContextValue {
 
 export default function AiProvider({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
+  // Einmal geöffnet = das Sheet bleibt gemountet (Chat-Verlauf überlebt das Schliessen).
+  const [hasOpened, setHasOpened] = useState(false);
   const [overlayOpen, setOverlayOpen] = useState(false);
   const [loggedIn, setLoggedIn] = useState(false);
 
   useEffect(() => {
-    const supabase = createClient();
-    supabase.auth
-      .getUser()
-      .then(({ data }) => setLoggedIn(!!data.user))
-      .catch(() => {});
-    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
-      setLoggedIn(!!session?.user);
-      // Beim Abmelden den lokalen Chat verwerfen (Privatsphäre auf geteilten Geräten).
-      if (event === "SIGNED_OUT") clearToniChat();
-    });
-    return () => sub.subscription.unsubscribe();
+    // Supabase-Client per await import(): Der ~240-kB-Chunk verlässt den kritischen
+    // Pfad und lädt nach der Hydration. Verhalten unverändert (Login-Status + Chat
+    // leeren beim Abmelden). alive-Riegel gegen das Rennen Import vs. Unmount.
+    let alive = true;
+    let unsub: (() => void) | null = null;
+    void (async () => {
+      const { createClient } = await import("@/lib/supabase/client");
+      if (!alive) return;
+      const supabase = createClient();
+      supabase.auth
+        .getUser()
+        .then(({ data }) => {
+          if (alive) setLoggedIn(!!data.user);
+        })
+        .catch(() => {});
+      const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+        setLoggedIn(!!session?.user);
+        // Beim Abmelden den lokalen Chat verwerfen (Privatsphäre auf geteilten Geräten).
+        if (event === "SIGNED_OUT") clearToniChat();
+      });
+      unsub = () => sub.subscription.unsubscribe();
+      if (!alive) unsub();
+    })();
+    return () => {
+      alive = false;
+      unsub?.();
+    };
   }, []);
 
   // Seitenwechsel schließt den Chat. Er ist ein Overlay ÜBER der aktuellen Seite –
@@ -69,13 +92,16 @@ export default function AiProvider({ children }: { children: ReactNode }) {
     setIsOpen(false);
   }
 
-  const open = useCallback(() => setIsOpen(true), []);
+  const open = useCallback(() => {
+    setHasOpened(true);
+    setIsOpen(true);
+  }, []);
   const close = useCallback(() => setIsOpen(false), []);
 
   return (
     <AiContext.Provider value={{ open, close, isOpen, setOverlayOpen }}>
       {children}
-      <AiAssistant open={isOpen} loggedIn={loggedIn} onClose={close} />
+      {hasOpened && <AiAssistant open={isOpen} loggedIn={loggedIn} onClose={close} />}
       <ToniLauncher open={open} isOpen={isOpen} bubbleBlocked={overlayOpen} />
     </AiContext.Provider>
   );

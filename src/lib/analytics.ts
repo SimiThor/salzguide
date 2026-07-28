@@ -212,11 +212,6 @@ export function classifyPath(
   if (p.startsWith("/ueber-uns")) return { kind: "about", target: null };
   if (p.startsWith("/support")) return { kind: "support", target: null };
   if (p.startsWith("/rechtliches")) return { kind: "legal", target: null };
-  // Übrig gebliebene Entwickler-Seite (Karussell + Sheet-Probe). Sie ist öffentlich
-  // erreichbar, gehört aber nicht zum Produkt: eigene Kennung, damit ihre Aufrufe sichtbar
-  // sind und nicht unter "other" die Auswertung verwässern. Fällt die Seite weg, fällt
-  // diese Zeile mit weg.
-  if (p.startsWith("/demo")) return { kind: "demo", target: null };
   // Bleibt "other" dauerhaft gross, fehlt oben eine Zeile. scripts/analytics-check.ts
   // schlägt Alarm, sobald eine neue Route hier landet.
   return { kind: "other", target: null };

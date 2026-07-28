@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { LAKES } from "@/lib/lakes";
 import { getWaterMaps, lookupLake, getLakeSpots } from "@/lib/water-temp";
-import { alternatesFor } from "@/lib/metadata";
+import { alternatesFor, ogFor } from "@/lib/metadata";
 import WaterExplore, { type LakeTemp } from "@/components/WaterExplore";
 
 export async function generateMetadata({
@@ -11,11 +11,19 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
-  const t = await getTranslations({ locale, namespace: "Water" });
+  // SEO-Texte aus dem Meta-Namensraum (Suchbegriff "Wassertemperatur Salzburger Seen"),
+  // die sichtbare Überschrift bleibt Water.title.
+  const t = await getTranslations({ locale, namespace: "Meta" });
   return {
-    title: t("title"),
-    description: t("subtitle"),
+    title: t("wasserTitle"),
+    description: t("wasserDescription"),
     alternates: alternatesFor(locale, "/wasser"),
+    ...ogFor({
+      locale,
+      path: "/wasser",
+      title: t("wasserTitle"),
+      description: t("wasserDescription"),
+    }),
   };
 }
 

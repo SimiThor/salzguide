@@ -1,12 +1,25 @@
 {
   "Meta": {
-    "description": "Salisburgo senza stress – i posti migliori, scelti dai local.",
-    "homeTitle": "SalzGuide: Google conosce Salisburgo. Noi ci siamo stati.",
-    "homeDescription": "Due local, una mappa: i nostri posti preferiti nella regione di Salisburgo, ognuno con un consiglio. Ci siamo stati di persona. E Toni, l'IA che conosce solo questi posti.",
-    "exploreTitle": "Esplora",
-    "exploreDescription": "Salisburgo senza stress – i posti migliori, scelti dai local.",
-    "proTitle": "Pro",
-    "proDescription": "Posti bloccati con il consiglio da insider, escursioni con il percorso, tour audio interi e Toni senza limiti. Paghi una volta, nessun abbonamento."
+    "description": "Chicche segrete nel Salisburghese: i posti più belli su una mappa interattiva, con veri consigli dei local.",
+    "homeTitle": "SalzGuide: scopri le chicche segrete del Salisburghese",
+    "homeDescription": "Con la mappa interattiva e i veri consigli dei local trovi i posti più belli e le chicche segrete del Salisburghese. Siamo stati in ognuno di persona.",
+    "exploreTitle": "Cose da fare nel Salisburghese: la mappa interattiva",
+    "exploreDescription": "Escursioni, laghi, punti panoramici, malghe e osterie su un'unica mappa interattiva. Ogni posto visitato da noi, con un vero consiglio local.",
+    "proTitle": "SalzGuide Pro",
+    "proDescription": "Posti bloccati con il consiglio da insider, escursioni con il percorso, tour audio interi e Toni senza limiti. Paghi una volta, nessun abbonamento.",
+    "eventsTitle": "Eventi a Salisburgo",
+    "eventsDescription": "Cosa succede a Salisburgo: feste, cultura, tradizione e cose per bambini. Sempre aggiornato, con mappa.",
+    "wasserTitle": "Temperatura dell'acqua dei laghi di Salisburgo",
+    "wasserDescription": "Temperature attuali del Wolfgangsee, del Fuschlsee e di altri laghi, più i posti più belli per fare il bagno nel Salisburghese, su una mappa.",
+    "tourenTitle": "Tour audio di Salisburgo",
+    "tourenDescription": "Esplora Salisburgo con le orecchie: storie di gente del posto, tappa dopo tappa, sul telefono.",
+    "supportTitle": "Aiuto e contatti",
+    "supportDescription": "Qualcosa non funziona, un posto non torna o hai una domanda? Scrivici.",
+    "aboutTitle": "Chi siamo",
+    "aboutDescription": "Anton e Simon, due salisburghesi: perché esiste SalzGuide e come scegliamo i nostri posti.",
+    "spotTitle": "{title}: {kind} nel Salisburghese",
+    "spotTitlePlain": "{title} nel Salisburghese",
+    "spotDescriptionFallback": "{title} nel Salisburghese: dove si trova, come arrivarci e il nostro consiglio sincero."
   },
   "Common": {
     "back": "Indietro",
@@ -174,6 +187,7 @@
     "paywallProBody": "Con Pro chiedi a Toni senza limiti. E si aprono anche i posti bloccati."
   },
   "Explore": {
+    "pageHeading": "Cose da fare e chicche segrete nel Salisburghese su una mappa interattiva",
     "summer": "Estate",
     "winter": "Inverno",
     "lockedLabel": "🤫 Spot segreto",
@@ -419,15 +433,6 @@
     "newsletterLabel": "Newsletter e consigli via email",
     "newsletterHint": "Ogni tanto nuovi spot e consigli. Puoi disiscriverti quando vuoi."
   },
-  "Demo": {
-    "title": "Demo dei componenti",
-    "subtitle": "SpotCard, carosello e il bottom sheet trascinabile.",
-    "carousel": "Spot di esempio",
-    "openSheet": "Apri il bottom sheet",
-    "sheetTitle": "Sheet trascinabile",
-    "sheetBody": "Trascinami in alto dalla maniglia (intero) o in basso (chiudi). Questo stesso sheet mostrerà più avanti i dettagli degli spot, i filtri e l'assistente IA – sopra la mappa.",
-    "lockedLabel": "🤫 Spot segreto"
-  },
   "Support": {
     "linkLabel": "Aiuto",
     "title": "Ti aiutiamo",
@@ -536,5 +541,11 @@
     "retry": "Riprova",
     "home": "Vai alla home",
     "code": "Codice errore"
+  },
+  "NotFound": {
+    "title": "Questa pagina non esiste",
+    "body": "Il link è vecchio o sbagliato. Il modo più veloce per trovare quello che cerchi è la mappa.",
+    "exploreCta": "Apri la mappa",
+    "homeCta": "Vai alla pagina iniziale"
   }
 }

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { setRequestLocale } from "next-intl/server";
 import { getTourDetail } from "@/lib/tours";
+import { alternatesFor, ogFor } from "@/lib/metadata";
 import TourView from "@/components/tours/TourView";
 
 export async function generateMetadata({
@@ -15,10 +16,14 @@ export async function generateMetadata({
   return {
     title: tour.title,
     description: tour.subtitle ?? undefined,
-    alternates: {
-      canonical: `/${locale}/touren/${slug}`,
-      languages: { de: `/de/touren/${slug}`, en: `/en/touren/${slug}` },
-    },
+    alternates: alternatesFor(locale, `/touren/${slug}`),
+    ...ogFor({
+      locale,
+      path: `/touren/${slug}`,
+      title: tour.title,
+      description: tour.subtitle,
+      image: tour.coverUrl,
+    }),
   };
 }
 

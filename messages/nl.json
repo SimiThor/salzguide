@@ -1,12 +1,25 @@
 {
   "Meta": {
-    "description": "Salzburg zonder stress – de beste spots, samengesteld door locals.",
-    "homeTitle": "SalzGuide: Google kent Salzburg. Wij zijn er geweest.",
-    "homeDescription": "Twee locals, één kaart: onze favoriete spots in het Salzburger Land, elk met een tip. We zijn er overal zelf geweest. En Toni, de AI die alleen deze spots kent.",
-    "exploreTitle": "Ontdekken",
-    "exploreDescription": "Salzburg zonder stress – de beste spots, samengesteld door locals.",
-    "proTitle": "Pro",
-    "proDescription": "Plekken op slot met de insidertip, wandelingen met route, audiotours helemaal en Toni zonder limiet. Eén keer betalen, geen abonnement."
+    "description": "Geheime plekjes in het Salzburgerland: de mooiste plekken op een interactieve kaart, met echte tips van locals.",
+    "homeTitle": "SalzGuide: geheime plekjes in het Salzburgerland ontdekken",
+    "homeDescription": "Vind de mooiste plekken & hidden gems in het Salzburgerland met een interactieve kaart & echte tips van locals. Wij zijn overal zelf geweest.",
+    "exploreTitle": "Uitstapjes in het Salzburgerland: de interactieve kaart",
+    "exploreDescription": "Wandelingen, meren, uitzichtpunten, almen & gasthoven op één interactieve kaart. Elke plek zelf bezocht, met een echte tip van een local.",
+    "proTitle": "SalzGuide Pro",
+    "proDescription": "Plekken op slot met de insidertip, wandelingen met route, audiotours helemaal en Toni zonder limiet. Eén keer betalen, geen abonnement.",
+    "eventsTitle": "Evenementen in Salzburg",
+    "eventsDescription": "Wat is er te doen in Salzburg: feesten, cultuur, traditie en dingen voor kinderen. Steeds actueel, met kaart en bewaarlijst.",
+    "wasserTitle": "Watertemperatuur van de meren in Salzburg",
+    "wasserDescription": "Actuele watertemperaturen van de Wolfgangsee, de Fuschlsee en meer, plus de mooiste zwemplekken in het Salzburgerland op één kaart.",
+    "tourenTitle": "Audiotours door Salzburg",
+    "tourenDescription": "Verken Salzburg op het gehoor: verhalen van locals, stop voor stop, gewoon op je telefoon.",
+    "supportTitle": "Hulp & contact",
+    "supportDescription": "Werkt iets niet, klopt een plek niet, of heb je een vraag? Schrijf ons.",
+    "aboutTitle": "Over ons",
+    "aboutDescription": "Anton en Simon, twee Salzburgers: waarom SalzGuide bestaat en hoe we onze plekken kiezen.",
+    "spotTitle": "{title}: {kind} in het Salzburgerland",
+    "spotTitlePlain": "{title} in het Salzburgerland",
+    "spotDescriptionFallback": "{title} in het Salzburgerland: ligging, bereikbaarheid en onze eerlijke tip."
   },
   "Common": {
     "back": "Terug",
@@ -174,6 +187,7 @@
     "paywallProBody": "Met Pro vraag je Toni zonder limiet. En de plekken op slot gaan ook open."
   },
   "Explore": {
+    "pageHeading": "Uitstapjes & geheime plekjes in het Salzburgerland op een interactieve kaart",
     "summer": "Zomer",
     "winter": "Winter",
     "lockedLabel": "🤫 Geheime tip",
@@ -419,15 +433,6 @@
     "newsletterLabel": "Nieuwsbrief & tips per e-mail",
     "newsletterHint": "Af en toe nieuwe spots & tips. Altijd opzegbaar."
   },
-  "Demo": {
-    "title": "Bouwstenen-demo",
-    "subtitle": "SpotCards, carrousel en het sleepbare bottom-sheet.",
-    "carousel": "Voorbeeldspots",
-    "openSheet": "Bottom-sheet openen",
-    "sheetTitle": "Sleepbaar sheet",
-    "sheetBody": "Sleep me aan de greep omhoog (vol) of omlaag (dicht). Precies dit sheet toont later spotdetails, filters en de AI-assistent – boven op de kaart.",
-    "lockedLabel": "🤫 Geheime tip"
-  },
   "Support": {
     "linkLabel": "Hulp",
     "title": "We helpen je",
@@ -536,5 +541,11 @@
     "retry": "Opnieuw proberen",
     "home": "Naar de startpagina",
     "code": "Foutcode"
+  },
+  "NotFound": {
+    "title": "Deze pagina bestaat niet",
+    "body": "De link is oud of verkeerd getypt. Wat je zoekt vind je het snelst op de kaart.",
+    "exploreCta": "Naar de kaart",
+    "homeCta": "Naar de startpagina"
   }
 }

@@ -3,6 +3,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link } from "@/i18n/navigation";
 import type { ExploreCategory, ExploreSpot } from "@/lib/spots";
 import { useAi } from "./ai/AiProvider";
 import Carousel from "./Carousel";
@@ -253,13 +254,15 @@ export default function Explore({
                 {cat.title}
               </h2>
               <Carousel>
-                {catSpots.map((s, j) => (
-                  <button
-                    key={s.slug}
-                    type="button"
-                    onClick={() => openSpot(s.slug)}
-                    className="cursor-pointer sg-tap-card block text-left"
-                  >
+                {catSpots.map((s, j) => {
+                  // Entsperrte Karten sind echte Links auf die Spot-Seite: Google folgt
+                  // ihnen aus dem Server-HTML (vorher fand es Spots fast nur über die
+                  // Sitemap), und Cmd/Ctrl-Klick öffnet einen neuen Tab. Der normale
+                  // Klick bleibt App-Gefühl: preventDefault + Sheet, die Adresse ändert
+                  // sich nicht. Gesperrte Spots behalten den Knopf — ihr slug ist die
+                  // Tarnung "locked-N" (lib/spots.ts), ein Link liefe ins Leere; das
+                  // ProGate-Sheet übernimmt.
+                  const card = (
                     <SpotCard
                       title={s.title}
                       shortDesc={s.shortDesc}
@@ -280,8 +283,33 @@ export default function Explore({
                       sizeClassName="w-[76vw] max-w-[300px] md:w-[var(--sg-card)] md:max-w-none"
                       sizes="(min-width: 768px) 220px, 76vw"
                     />
-                  </button>
-                ))}
+                  );
+                  return s.locked ? (
+                    <button
+                      key={s.slug}
+                      type="button"
+                      onClick={() => openSpot(s.slug)}
+                      className="cursor-pointer sg-tap-card block text-left"
+                    >
+                      {card}
+                    </button>
+                  ) : (
+                    <Link
+                      key={s.slug}
+                      href={`/spot/${s.slug}`}
+                      onClick={(e) => {
+                        // Neuer Tab (Cmd/Ctrl/Shift/Alt/Mitteltaste): dem Browser überlassen.
+                        if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0)
+                          return;
+                        e.preventDefault();
+                        openSpot(s.slug);
+                      }}
+                      className="cursor-pointer sg-tap-card block text-left"
+                    >
+                      {card}
+                    </Link>
+                  );
+                })}
               </Carousel>
             </section>
           );
