@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { useTranslations } from "next-intl";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "@/i18n/navigation";
 import type { ExploreCategory, ExploreSpot } from "@/lib/spots";
 import { useAi } from "./ai/AiProvider";
@@ -17,6 +17,7 @@ import { MAP_CTRL_PAD } from "./mapControls";
 import MobileSheet, { type Detent } from "./MobileSheet";
 import PartnerCredits from "./PartnerCredits";
 import { SHEET_PEEK_VAR, useSheetPeek } from "@/lib/sheet-metrics";
+import { useScrollMemory } from "@/lib/scroll-memory";
 import { useViewportHeight } from "@/lib/viewport";
 
 // Stufen des Explore-Sheets über dem Peek.
@@ -66,6 +67,12 @@ export default function Explore({
   // Server-Daten, in der Session live gehalten -> kein falscher Zustand beim
   // Spot-Wechsel oder nach dem Merken.
   const [savedSet, setSavedSet] = useState<Set<string>>(() => new Set(savedSlugs));
+  // Scroll-Gedächtnis der Desktop-Sidebar (das Geschwister von viewKey an der Karte):
+  // Zurück von der Spot-Seite steht der Feed wieder so weit unten wie vorher. Nur am
+  // Desktop; am Handy gehört das Bottom-Sheet beim Neuaufbau nach oben (der Hook ist
+  // dort von selbst inert, siehe scroll-memory.ts).
+  const panelScrollRef = useRef<HTMLDivElement>(null);
+  useScrollMemory(panelScrollRef, "explore-panel", "y");
 
   // gespeicherte Saison laden (über eine Microtask-Grenze -> kein synchrones
   // setState im Effekt-Body, verhindert Kaskaden-Renders)
@@ -253,7 +260,9 @@ export default function Explore({
               <h2 className="mb-3 px-4 text-xl font-bold tracking-tight text-ink">
                 {cat.title}
               </h2>
-              <Carousel>
+              {/* memoryKey trägt die Saison, damit Sommer- und Winter-Fassung eines
+                  Regals sich ihre Blätter-Position getrennt merken. */}
+              <Carousel memoryKey={`explore-shelf:${cat.key}-${cat.season}`}>
                 {catSpots.map((s, j) => {
                   // Entsperrte Karten sind echte Links auf die Spot-Seite: Google folgt
                   // ihnen aus dem Server-HTML (vorher fand es Spots fast nur über die
@@ -385,7 +394,9 @@ export default function Explore({
           100-200 verdoppelt sich hier eine Liste, die dann ohnehin nicht mehr am
           Stück gehören sollte. Wer das angeht, löst beides zusammen. */}
       <aside className="absolute inset-y-0 left-0 z-10 hidden w-[var(--sg-panel)] flex-col border-r border-black/5 bg-cream/95 backdrop-blur-xl md:flex">
-        <div className="flex-1 overflow-y-auto py-5">{panelInner}</div>
+        <div ref={panelScrollRef} className="flex-1 overflow-y-auto py-5">
+          {panelInner}
+        </div>
       </aside>
       {/* `contents`: am Handy darf der Wrapper das Layout nicht anfassen. */}
       <div className="contents md:hidden">
