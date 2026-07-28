@@ -74,6 +74,8 @@
     "buildLead": "告诉我们你想要什么——我们为你设计一条散步环线，总能回到起点。",
     "buildCard": "定制你专属的散步路线",
     "buildCardSub": "选择兴趣，我们为你组合一条语音路线",
+    "buildCardSubPro": "选好兴趣，生成专属路线。Pro 专享。",
+    "buildProTeaser": "告诉我们你的喜好，AI 就为你定制专属的语音路线。自建路线是 Pro 功能。精选路线向所有人开放，前几站免费。",
     "buildNeedLogin": "登录后定制",
     "buildNeedLoginBody": "登录后即可定制并保存你自己的语音路线。精选路线无需账号也能收听。",
     "login": "登录",

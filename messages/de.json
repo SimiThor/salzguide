@@ -117,6 +117,8 @@
     "buildLead": "Sag uns, worauf du Bock hast – wir bauen dir eine passende Geh-Runde, immer zurück zum Start.",
     "buildCard": "Bau dir deine eigene Runde",
     "buildCardSub": "Interessen wählen, wir stellen dir eine Audio-Runde zusammen",
+    "buildCardSubPro": "Interessen wählen, eigene Runde bekommen. Das gibt es mit Pro.",
+    "buildProTeaser": "Sag, worauf du Bock hast, und die KI baut dir deine eigene Audio-Runde. Eigene Runden bauen ist Pro. Die kuratierten Runden hörst du auch ohne Pro an, die ersten Stationen sind gratis.",
     "buildNeedLogin": "Zum Bauen anmelden",
     "buildNeedLoginBody": "Eigene Audio-Runden baust und speicherst du als angemeldeter Nutzer. Kuratierte Runden kannst du auch ohne Konto anhören.",
     "login": "Anmelden",

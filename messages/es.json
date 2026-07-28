@@ -74,6 +74,8 @@
     "buildLead": "Dinos qué te apetece y te armamos una ruta a pie que siempre vuelve al inicio.",
     "buildCard": "Crea tu propia ruta",
     "buildCardSub": "Elige intereses, te preparamos una ruta con audio",
+    "buildCardSubPro": "Elige intereses, consigue tu propia ruta. Eso viene con Pro.",
+    "buildProTeaser": "Dinos qué te apetece y la IA te monta tu propia ruta con audio. Crear rutas propias es Pro. Las rutas seleccionadas quedan abiertas para todos, con las primeras paradas gratis.",
     "buildNeedLogin": "Inicia sesión para crear",
     "buildNeedLoginBody": "Crea y guarda tus propias rutas con audio al iniciar sesión. Las rutas seleccionadas puedes escucharlas sin cuenta.",
     "login": "Iniciar sesión",

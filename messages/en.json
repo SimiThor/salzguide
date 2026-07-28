@@ -74,6 +74,8 @@
     "buildLead": "Tell us what you're into – we'll build you a walking loop that always returns to the start.",
     "buildCard": "Build your own walk",
     "buildCardSub": "Pick your interests, we put together an audio loop",
+    "buildCardSubPro": "Pick your interests, get your own walk. That comes with Pro.",
+    "buildProTeaser": "Tell us what you are into and the AI builds your own audio walk. Building your own walks is Pro. The curated walks stay open for everyone, with the first stops free.",
     "buildNeedLogin": "Sign in to build",
     "buildNeedLoginBody": "Build and save your own audio walks once you're signed in. You can listen to curated walks without an account.",
     "login": "Sign in",

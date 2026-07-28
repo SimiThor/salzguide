@@ -4,6 +4,8 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { getPublishedTours } from "@/lib/tours";
 import { listUserTours } from "@/lib/user-tours";
+import { viewerCanSeePro } from "@/lib/spots";
+import ProBadge from "@/components/ProBadge";
 import { alternatesFor, ogFor } from "@/lib/metadata";
 import SavedRoutesList from "@/components/tours/SavedRoutesList";
 import AiSparkle from "@/components/ai/AiSparkle";
@@ -43,9 +45,10 @@ export default async function ToursPage({
   const { locale } = await params;
   setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: "Tours" });
-  const [tours, mine] = await Promise.all([
+  const [tours, mine, canSeePro] = await Promise.all([
     getPublishedTours(locale),
     listUserTours(locale),
+    viewerCanSeePro(),
   ]);
   // listUserTours liefert null, wenn nicht angemeldet -> zuverlässiges Login-Signal
   // ohne zweiten Auth-Roundtrip.
@@ -56,8 +59,10 @@ export default async function ToursPage({
       <h1 className="text-2xl font-bold text-ink">{t("title")}</h1>
       <p className="mt-1 text-[15px] leading-relaxed text-muted">{t("subtitle")}</p>
 
-      {/* Einstieg in den KI-Runden-Builder. Angemeldet -> Builder; sonst -> Login-Hinweis
-          (nicht angemeldete Nutzer können nur kuratierte Runden testen).
+      {/* Einstieg in den KI-Runden-Builder. Angemeldet -> Builder bzw. dessen Kauf-Fläche
+          (Bauen ist Pro, siehe tour-generate.ts); sonst -> Login-Hinweis. Die Karte bleibt
+          für Nicht-Pro voll anfassbar, sagt aber EHRLICH vorher, was hinter dem Tipp liegt:
+          Badge an der Zeile statt Überraschung auf der Zielseite.
           Smart-AI-Look wie im Rest der App: helle Karte (Familie mit den Runden-Karten
           darunter), das KI-Signal steckt im warmen Sparkle-Chip, nicht in einer lauten
           Fläche. Der laute rote KI-Verlauf (.sg-ai-btn) bleibt dem „generiert gerade"-
@@ -68,9 +73,16 @@ export default async function ToursPage({
       >
         <AiSparkle gradient className="h-[26px] w-[26px] shrink-0" />
         <span className="min-w-0 flex-1">
-          <span className="block text-[15px] font-semibold text-ink">{t("buildCard")}</span>
+          <span className="flex items-center gap-2 text-[15px] font-semibold text-ink">
+            {t("buildCard")}
+            {loggedIn && !canSeePro && <ProBadge />}
+          </span>
           <span className="block text-[13px] leading-snug text-muted">
-            {loggedIn ? t("buildCardSub") : t("buildNeedLogin")}
+            {!loggedIn
+              ? t("buildNeedLogin")
+              : canSeePro
+                ? t("buildCardSub")
+                : t("buildCardSubPro")}
           </span>
         </span>
         <span className="shrink-0 text-[17px] text-muted/50" aria-hidden>
