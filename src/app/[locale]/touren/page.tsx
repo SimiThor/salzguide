@@ -9,12 +9,9 @@ import ProBadge from "@/components/ProBadge";
 import { alternatesFor, ogFor } from "@/lib/metadata";
 import SavedRoutesList from "@/components/tours/SavedRoutesList";
 import AiSparkle from "@/components/ai/AiSparkle";
-import { STATUS_ACCENT, STATUS_GOOD, STATUS_NEUTRAL } from "@/lib/ui";
 
 const CARD =
   "rounded-[18px] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04),0_12px_32px_-20px_rgba(0,0,0,0.28)]";
-// Status, kein Knopf: umrandet statt gefüllt (siehe lib/ui.ts).
-const PILL = STATUS_NEUTRAL;
 
 export async function generateMetadata({
   params,
@@ -135,27 +132,21 @@ export default async function ToursPage({
                     {tour.subtitle}
                   </p>
                 )}
-                <div className="mt-3 flex flex-wrap items-center gap-2 text-[12px] text-muted">
-                  <span className={PILL}>{t("stops", { count: tour.stopCount })}</span>
-                  {tour.durationMin != null && (
-                    <span className={PILL}>{t("minutes", { count: tour.durationMin })}</span>
-                  )}
-                  {tour.distanceKm != null && (
-                    <span className={PILL}>{tour.distanceKm} km</span>
-                  )}
-                  <span className={PILL} title={t("modeToggle")} aria-hidden>
-                    🎧 · 📖
-                  </span>
-                  {tour.isPro ? (
-                    <span className={STATUS_ACCENT}>
-                      {t("proTag")}
-                    </span>
-                  ) : (
-                    <span className={STATUS_GOOD}>
-                      {t("freeTag")}
-                    </span>
-                  )}
-                </div>
+                {/* Ruhige Meta-Zeile statt Pillen-Reihe – dasselbe Muster wie
+                    SavedRouteCard, damit beide Kartentypen EIN System sind. Bewusst
+                    OHNE Pro-Kennzeichnung: Die ersten Stopps jeder Runde sind gratis
+                    anhörbar, ein Pro-Etikett an der Kachel würde nur abschrecken,
+                    bevor jemand überhaupt reingehört hat. Den Pro-Moment erklärt die
+                    Tour-Seite selbst am ersten gesperrten Stopp. */}
+                <p className="mt-2.5 text-[13px] text-muted">
+                  {[
+                    t("stops", { count: tour.stopCount }),
+                    tour.durationMin != null ? t("minutes", { count: tour.durationMin }) : null,
+                    tour.distanceKm != null ? `${tour.distanceKm} km` : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </p>
               </div>
             </Link>
           ))}

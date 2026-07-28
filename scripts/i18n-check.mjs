@@ -17,6 +17,9 @@
 //      weg. Das ist ein Rechtsproblem, das kein Key-Vergleich findet.
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
+// Der echte ICU-Parser, den auch next-intl zur Laufzeit benutzt (kommt mit ihm in
+// node_modules). Kein neues Paket in package.json: Läuft die App, läuft der Check.
+import { parse, TYPE } from "@formatjs/icu-messageformat-parser";
 
 const DIR = "messages";
 const BASE = "de";
@@ -71,9 +74,34 @@ const isBaseOnly = (key) => BASE_ONLY_NAMESPACES.has(key.split(".")[0]);
 const NO_STRING_READER = new Set(["Mail"]);
 const hasObjectReader = (key) => NO_STRING_READER.has(key.split(".")[0]);
 
-// {name} — greift NICHT bei {count, plural, ...}: dort ist der erste Teil der Name.
-const placeholders = (s) =>
-  new Set([...String(s).matchAll(/\{\s*(\w+)/g)].map((m) => m[1]));
+// Platzhalter-Namen über den ICU-PARSER statt per Regex. Der alte Regex (/\{\s*(\w+)/)
+// las in {free, plural, =1 {Der erste Stopp ...}} auch „{Der" als Platzhalter — er fiel
+// nur deshalb nie auf, weil bis dahin zufällig jeder Plural-Zweig mit „#" begann. Der
+// Parser kennt die Grammatik wirklich und steigt auch in Plural-/Select-Zweige hinab
+// (ein {total} IM other-Zweig zählt genauso wie eines auf oberster Ebene).
+const collectArgs = (nodes, into) => {
+  for (const el of nodes) {
+    if (el.type === TYPE.argument || el.type === TYPE.number || el.type === TYPE.date || el.type === TYPE.time)
+      into.add(el.value);
+    if (el.type === TYPE.plural || el.type === TYPE.select) {
+      into.add(el.value);
+      for (const opt of Object.values(el.options)) collectArgs(opt.value, into);
+    }
+    if (el.type === TYPE.tag) collectArgs(el.children, into);
+  }
+  return into;
+};
+const placeholders = (s) => {
+  try {
+    // ignoreTag: <w>/<terms> sind next-intl-Rich-Text-Tags, kein ICU; die prüft
+    // richTags() darunter separat.
+    return collectArgs(parse(String(s), { ignoreTag: true }), new Set());
+  } catch {
+    // Kaputtes ICU (würde auch zur Laufzeit werfen). null statt leerem Set, damit der
+    // Aufrufer es MELDEN kann — ein leeres Set sähe aus wie „keine Platzhalter, alles gut".
+    return null;
+  }
+};
 // <tag> aus t.rich() — schliessende Tags interessieren nicht, der Name reicht.
 const richTags = (s) => new Set([...String(s).matchAll(/<(\w+)>/g)].map((m) => m[1]));
 
@@ -103,6 +131,13 @@ function checkDashes(locale, entries) {
 
 checkDashes(BASE, [...base.entries()]);
 
+// Basissprache einmal vorab auf ICU-Syntax prüfen — nicht in der Sprachschleife, sonst
+// stünde derselbe deutsche Fehler achtmal da (Fehlalarm-Regel, siehe Kopf).
+for (const [key, value] of base.entries()) {
+  if (typeof value === "string" && placeholders(value) === null)
+    report(BASE, `ICU-SYNTAX kaputt in  ${key}`);
+}
+
 for (const locale of locales) {
   const target = new Map(flatten(load(locale)));
   checkDashes(locale, [...target.entries()]);
@@ -122,8 +157,11 @@ for (const locale of locales) {
     if (typeof b !== "string") continue;
 
     const [pb, pt] = [placeholders(b), placeholders(t)];
-    for (const p of pb) if (!pt.has(p)) report(locale, `PLATZHALTER {${p}} fehlt in  ${key}`);
-    for (const p of pt) if (!pb.has(p)) report(locale, `PLATZHALTER {${p}} unbekannt in  ${key}`);
+    if (pt === null) report(locale, `ICU-SYNTAX kaputt in  ${key}`);
+    if (pb !== null && pt !== null) {
+      for (const p of pb) if (!pt.has(p)) report(locale, `PLATZHALTER {${p}} fehlt in  ${key}`);
+      for (const p of pt) if (!pb.has(p)) report(locale, `PLATZHALTER {${p}} unbekannt in  ${key}`);
+    }
 
     const [rb, rt] = [richTags(b), richTags(t)];
     for (const tag of rb) if (!rt.has(tag)) report(locale, `RICH-TAG <${tag}> fehlt in  ${key}`);
