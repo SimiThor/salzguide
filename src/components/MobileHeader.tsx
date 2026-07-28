@@ -95,8 +95,9 @@ export default function MobileHeader() {
 
   const close = () => setOpen(false);
 
-  // Aktuell verfügbar (alle untereinander) vs. bald. Die Seiten kommen aus der gemeinsamen
-  // Quelle (lib/nav.ts) -> exakt dieselben Punkte wie am PC. KI ist hier bewusst NICHT
+  // Alle Seiten untereinander, aus der gemeinsamen Quelle (lib/nav.ts) -> exakt dieselben
+  // Punkte UND dieselbe Reihenfolge wie am PC (erst die Leisten-Punkte, dann die aus dem
+  // "Mehr"-Menü; die Begründung steht an der Liste selbst). KI ist hier bewusst NICHT
   // dabei: die sitzt in der unteren Leiste, im Burger wäre sie doppelt.
   const ready = NAV_ITEMS;
 
@@ -214,9 +215,17 @@ export default function MobileHeader() {
                     mt-auto: unten angeheftet, solange Platz ist; wird es eng, scrollt der
                     Block einfach mit (margin:auto wird zu 0, sobald kein freier Raum bleibt).
 
-                    Kleiner und ruhiger als die Menüpunkte darüber — es bleibt die zweite
-                    Reihe. Angefasst wird trotzdem in voller Zeilenbreite und dank sg-hit
-                    44px hoch (Apples Mindestmaß), statt auf 13px Schrift zielen zu müssen. */}
+                    Darstellung als FUSSNOTE, nicht als Menüpunkte: dieselbe fließende
+                    Zeile mit Trennpunkten wie in LegalFooter und im PC-„Mehr"-Menü —
+                    Pflichtlinks, keine Navigation, also leiser als die Seiten darüber.
+                    Bei fünf Links bricht die Zeile in der Schublade auf etwa zwei Reihen
+                    um (flex-wrap regelt das je Sprache selbst).
+
+                    KEIN sg-hit mehr: dessen unsichtbare 44px-Fläche würde in einer eng
+                    umbrechenden Zeile die Nachbarlinks überdecken und ihnen Tipps
+                    wegnehmen (genau die Warnung an .sg-hit in globals.css). Stattdessen
+                    py-1.5 als echtes Polster; die Fußzeile zeigt dieselben Links in
+                    derselben Größe. */}
                 <div className="mt-auto flex flex-col px-3 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-6">
                   {/* Die Profile trennen die App-Seiten oben von der zweiten Reihe unten.
                       Sie stehen bewusst HIER und nicht nur in der Fusszeile: Auf den
@@ -227,22 +236,28 @@ export default function MobileHeader() {
                       Tab aufgeht: Wer zurückkommt, steht wieder da, wo er war. */}
                   <SocialLinks className="gap-1 pb-3" />
 
-                  {LEGAL_LINKS.map((l) => {
-                    const active = l.href === pathname;
-                    return (
-                      <Link
-                        key={l.key}
-                        href={l.href}
-                        onClick={close}
-                        aria-current={active ? "page" : undefined}
-                        className={`sg-hit rounded-xl px-3 py-3 text-[13px] active:bg-black/5 ${
-                          active ? "text-accent" : "text-muted"
-                        }`}
-                      >
-                        {l.ns === "Support" ? tSupport(l.key) : tLegal(l.key)}
-                      </Link>
-                    );
-                  })}
+                  <div className="flex flex-wrap items-center gap-x-1.5 px-3 text-[13px]">
+                    {LEGAL_LINKS.map((l, i) => {
+                      const active = l.href === pathname;
+                      return (
+                        <span key={l.key} className="flex items-center gap-x-1.5">
+                          <Link
+                            href={l.href}
+                            onClick={close}
+                            aria-current={active ? "page" : undefined}
+                            className={`py-1.5 ${active ? "text-accent" : "text-muted"}`}
+                          >
+                            {l.ns === "Support" ? tSupport(l.key) : tLegal(l.key)}
+                          </Link>
+                          {i < LEGAL_LINKS.length - 1 && (
+                            <span className="text-muted/40" aria-hidden>
+                              ·
+                            </span>
+                          )}
+                        </span>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             </motion.div>
