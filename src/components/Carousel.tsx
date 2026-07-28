@@ -3,6 +3,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { useTranslations } from "next-intl";
 import { useDragScroll } from "@/lib/use-drag-scroll";
+import { useScrollMemory } from "@/lib/scroll-memory";
 
 // Auf dem Server gibt es kein Layout, useLayoutEffect warnt dort. Auf dem Client MUSS es
 // useLayoutEffect sein: die Pfeilhöhe muss VOR dem ersten Paint stehen (siehe measure()).
@@ -45,15 +46,22 @@ export default function Carousel({
   // scroll-padding aus).
   railPadClass = "px-4",
   scrollPadClass = "scroll-px-4",
+  memoryKey,
 }: {
   children: ReactNode;
   railPadClass?: string;
   scrollPadClass?: string;
+  // Scroll-Gedächtnis (lib/scroll-memory.ts): Unter diesem Schlüssel merkt sich das
+  // Karussell am Desktop, wie weit es durchgeblättert war, und steht nach dem
+  // Zurücknavigieren wieder dort. Opt-in wie viewKey an der Karte; ohne Schlüssel
+  // (KI-Chat, Landing, Spot-Seite) ändert sich nichts.
+  memoryKey?: string;
 }) {
   const tc = useTranslations("Common");
   const outerRef = useRef<HTMLDivElement>(null);
   // Drag-to-Scroll (Maus) aus gemeinsamem Hook -> gleiches Verhalten wie im KI-Chat.
   const { ref, dragProps } = useDragScroll();
+  useScrollMemory(ref, memoryKey, "x");
   // Startwerte so, dass VOR der Messung kein Pfeil sichtbar sein kann: an beiden Enden
   // und ohne Höhe. Alles andere hieße, im Server-HTML einen Pfeil zu behaupten, den der
   // Client gleich wieder wegnimmt.
