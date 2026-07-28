@@ -65,6 +65,18 @@ export default async function AdminToursPage() {
             </span>
             <span className="flex shrink-0 items-center gap-1.5">
               {t.isPro && <ProBadge />}
+              {/* Sprach-Stand wie in der Punkte-Liste: auf einen Blick sichtbar, welche
+                  Runde noch nicht in allen Sprachen steht. */}
+              <span
+                className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                  t.trComplete
+                    ? "bg-green-600/10 text-green-700"
+                    : "bg-amber-500/10 text-amber-700"
+                }`}
+                title={`${t.trPresent}/${t.trTotal} Sprachen übersetzt und aktuell`}
+              >
+                {t.trComplete ? "🌍 ✓" : `🌍 ${t.trPresent}/${t.trTotal}`}
+              </span>
               <span
                 className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
                   t.status === "published"

@@ -39,7 +39,11 @@ export type TourDetail = TourSummary & {
   description: string | null;
   stops: TourStopView[];
   canSeePro: boolean; // ob der Betrachter voll berechtigt ist (Pro/Admin)
-  // Nur bei KI-generierten Runden: echte Geh-Route (Mapbox) + fixer Startpunkt der Runde.
+  // Echte, an Fusswege gesnappte Geh-Route (Mapbox) + Start/Ziel der Runde. Bei
+  // KI-Runden kommt sie aus dem Optimizer, bei kuratierten Runden aus dem Admin
+  // („Route an die Wege anpassen", Migration 0061). Fehlt sie, zeichnet TourView
+  // die Linie über die Stationen.
   routeGeo?: [number, number][] | null; // [lng,lat][] Loop-Geometrie
   start?: { lat: number; lng: number } | null;
+  end?: { lat: number; lng: number } | null; // gleich dem Start = Rundweg
 };

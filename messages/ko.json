@@ -50,6 +50,7 @@
     "freeTag": "무료 시작",
     "proTag": "Pro",
     "start": "투어 시작",
+    "finish": "도착점",
     "backToList": "모든 투어",
     "stopOf": "정거장 {current}/{total}",
     "play": "재생",

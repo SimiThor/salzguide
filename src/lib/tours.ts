@@ -1,5 +1,8 @@
 import { createServiceClient } from "./supabase/service";
 import { viewerCanSeePro } from "./spots";
+import { cleanRouteGeo } from "./tour-route";
+import { translationStatus } from "./spot-hash";
+import { routing } from "@/i18n/routing";
 import type { TourDetail, TourStopView, TourSummary } from "./tour-types";
 
 // Datenschicht für Audio-Touren (POOL-Modell): eine kuratierte Runde besteht aus
@@ -64,18 +67,34 @@ export async function getTourDetail(
   const canSeePro = await viewerCanSeePro();
   const supabase = createServiceClient();
 
-  const { data: tour } = await supabase
+  // Start/Ziel und die gesnappte Linie kommen erst mit Migration 0061. Solange sie
+  // fehlen, darf die öffentliche Tour-Seite nicht ausfallen -> zweiter Versuch ohne
+  // diese Spalten (gleiches Fallback-Muster wie getAreaForEdit in tour-pool.ts).
+  const baseCols =
+    "id, slug, region, emoji, cover_url, is_pro, free_stops, duration_min, distance_km, " +
+    "tour_translations(lang, title, subtitle, description)";
+  const routeCols = "start_lat, start_lng, end_lat, end_lng, route_geo";
+  const withRoute = await supabase
     .from("tours")
-    .select(
-      "id, slug, region, emoji, cover_url, is_pro, free_stops, duration_min, distance_km, " +
-        "tour_translations(lang, title, subtitle, description)",
-    )
+    .select(`${baseCols}, ${routeCols}`)
     .eq("slug", slug)
     .eq("status", "published")
     .maybeSingle();
+  let tour: Record<string, unknown> | null = withRoute.error
+    ? null
+    : ((withRoute.data as unknown as Record<string, unknown> | null) ?? null);
+  if (withRoute.error) {
+    const plain = await supabase
+      .from("tours")
+      .select(baseCols)
+      .eq("slug", slug)
+      .eq("status", "published")
+      .maybeSingle();
+    tour = (plain.data as unknown as Record<string, unknown> | null) ?? null;
+  }
   if (!tour) return null;
 
-  const tt = tour as unknown as Record<string, unknown>;
+  const tt = tour;
   const tr = pickTr(
     tt.tour_translations as
       | ({ lang: string; title: string; subtitle: string | null; description: string | null }[])
@@ -206,7 +225,19 @@ export async function getTourDetail(
     distanceKm: (tt.distance_km as number | null) ?? null,
     stops,
     canSeePro,
+    // Gesnappte Geh-Route + Start/Ziel (Migration 0061). Fehlen sie, zeichnet die
+    // Karte wie bisher die Linie über die Stationen (TourView).
+    routeGeo: cleanRouteGeo(tt.route_geo),
+    start: coordOf(tt.start_lat, tt.start_lng),
+    end: coordOf(tt.end_lat, tt.end_lng),
   };
+}
+
+// Ein Koordinatenpaar aus zwei Spalten – nur wenn BEIDE gesetzt sind.
+function coordOf(lat: unknown, lng: unknown): { lat: number; lng: number } | null {
+  return typeof lat === "number" && typeof lng === "number" && Number.isFinite(lat) && Number.isFinite(lng)
+    ? { lat, lng }
+    : null;
 }
 
 // Veröffentlichte Gebiete (für den KI-Runden-Builder / Gebiets-Auswahl).
@@ -246,18 +277,41 @@ export type AdminTourRow = {
   isPro: boolean;
   stopCount: number;
   title: string;
+  // Übersetzungs-Status wie in der Punkte-Liste: wie viele Zielsprachen sind da und
+  // stammen aus dem aktuellen deutschen Stand.
+  trPresent: number;
+  trTotal: number;
+  trComplete: boolean;
 };
 
 export async function getToursAdmin(): Promise<AdminTourRow[]> {
   const supabase = createServiceClient();
-  const { data } = await supabase
+  const targets = routing.locales.filter((l) => l !== DE);
+  const cols = "id, slug, region, status, is_pro, tour_stops(id)";
+  // source_hash gibt es erst ab Migration 0060 -> mit Fallback abfragen.
+  const withHash = await supabase
     .from("tours")
-    .select("id, slug, region, status, is_pro, tour_translations(lang, title), tour_stops(id)")
+    .select(`${cols}, tour_translations(lang, title, source_hash)`)
     .order("sort_order", { ascending: true })
     .order("created_at", { ascending: true }); // sort_order ist überall 0 -> ohne Zweitschlüssel wäre die Reihenfolge Postgres-Zufall
-  return ((data as unknown as Record<string, unknown>[]) ?? []).map((t) => {
-    const trs = (t.tour_translations as { lang: string; title: string }[] | null) ?? [];
-    const tr = trs.find((r) => r.lang === "de") ?? trs[0];
+  let rows = withHash.error
+    ? null
+    : ((withHash.data as unknown as Record<string, unknown>[] | null) ?? null);
+  if (withHash.error) {
+    const plain = await supabase
+      .from("tours")
+      .select(`${cols}, tour_translations(lang, title)`)
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: true });
+    rows = (plain.data as unknown as Record<string, unknown>[] | null) ?? null;
+  }
+  return (rows ?? []).map((t) => {
+    const trs =
+      (t.tour_translations as
+        | { lang: string; title: string; source_hash?: string | null }[]
+        | null) ?? [];
+    const tr = trs.find((r) => r.lang === DE) ?? trs[0];
+    const st = translationStatus(trs, targets);
     return {
       id: t.id as string,
       slug: t.slug as string,
@@ -266,11 +320,16 @@ export async function getToursAdmin(): Promise<AdminTourRow[]> {
       isPro: Boolean(t.is_pro),
       stopCount: ((t.tour_stops as unknown[] | null) ?? []).length,
       title: tr?.title ?? (t.slug as string),
+      trPresent: st.present,
+      trTotal: st.total,
+      trComplete: st.state === "complete",
     };
   });
 }
 
 export type TourEditStop = { pointId: string; title: string };
+
+export type TourTextData = { title: string; subtitle: string; description: string };
 
 export type TourEditData = {
   id: string;
@@ -282,29 +341,73 @@ export type TourEditData = {
   status: "draft" | "published";
   durationMin: number | null;
   distanceKm: number | null;
-  de: { title: string; subtitle: string; description: string };
-  en: { title: string; subtitle: string; description: string };
+  de: TourTextData;
+  // Alle weiteren Sprachen wie bei Punkten/Gebieten: eine Zeile je Sprache, Deutsch
+  // bleibt die Quelle. translationsSourceHash = Stand, aus dem übersetzt wurde.
+  translations: Record<string, TourTextData>;
+  translationsSourceHash?: string;
+  startLat: number | null;
+  startLng: number | null;
+  endLat: number | null;
+  endLng: number | null;
+  routeGeo: [number, number][] | null;
+  routeHash: string | null;
   stops: TourEditStop[];
 };
 
 export async function getTourForEdit(id: string): Promise<TourEditData | null> {
   const supabase = createServiceClient();
-  const { data: tour } = await supabase
+  // source_hash (0060) und die Route-Spalten (0061) mit Fallback abfragen, damit das
+  // Admin-Formular auch vor den Migrationen aufgeht (Muster: getAreaForEdit).
+  const baseCols =
+    "id, area_id, emoji, cover_url, is_pro, free_stops, status, duration_min, distance_km";
+  const full = await supabase
     .from("tours")
     .select(
-      "id, area_id, emoji, cover_url, is_pro, free_stops, status, duration_min, distance_km, " +
-        "tour_translations(lang, title, subtitle, description)",
+      `${baseCols}, start_lat, start_lng, end_lat, end_lng, route_geo, route_hash, ` +
+        "tour_translations(lang, title, subtitle, description, source_hash)",
     )
     .eq("id", id)
     .maybeSingle();
+  let tour: Record<string, unknown> | null = full.error
+    ? null
+    : ((full.data as unknown as Record<string, unknown> | null) ?? null);
+  if (full.error) {
+    const plain = await supabase
+      .from("tours")
+      .select(`${baseCols}, tour_translations(lang, title, subtitle, description)`)
+      .eq("id", id)
+      .maybeSingle();
+    tour = (plain.data as unknown as Record<string, unknown> | null) ?? null;
+  }
   if (!tour) return null;
-  const tt = tour as unknown as Record<string, unknown>;
+  const tt = tour;
   const trs =
     (tt.tour_translations as
-      | { lang: string; title: string; subtitle: string | null; description: string | null }[]
+      | {
+          lang: string;
+          title: string;
+          subtitle: string | null;
+          description: string | null;
+          source_hash?: string | null;
+        }[]
       | null) ?? [];
-  const de = trs.find((r) => r.lang === "de");
-  const en = trs.find((r) => r.lang === "en");
+  const build = (lang: string): TourTextData => {
+    const r = trs.find((x) => x.lang === lang);
+    return {
+      title: r?.title ?? "",
+      subtitle: r?.subtitle ?? "",
+      description: r?.description ?? "",
+    };
+  };
+  const translations: Record<string, TourTextData> = {};
+  for (const l of routing.locales) {
+    if (l === DE) continue;
+    if (trs.some((r) => r.lang === l)) translations[l] = build(l);
+  }
+  // Die Marke steht auf den ZIEL-Zeilen (saveTour stempelt sie), nicht auf der
+  // DE-Zeile, die jeder Save auf aktuell setzt – wie bei Punkten und Gebieten.
+  const deHash = trs.find((r) => r.lang !== DE && r.source_hash)?.source_hash ?? undefined;
 
   const { data: stopRows } = await supabase
     .from("tour_stops")
@@ -331,16 +434,15 @@ export async function getTourForEdit(id: string): Promise<TourEditData | null> {
     status: (tt.status as "draft" | "published") ?? "draft",
     durationMin: (tt.duration_min as number | null) ?? null,
     distanceKm: (tt.distance_km as number | null) ?? null,
-    de: {
-      title: de?.title ?? "",
-      subtitle: de?.subtitle ?? "",
-      description: de?.description ?? "",
-    },
-    en: {
-      title: en?.title ?? "",
-      subtitle: en?.subtitle ?? "",
-      description: en?.description ?? "",
-    },
+    de: build(DE),
+    translations,
+    translationsSourceHash: deHash ?? undefined,
+    startLat: (tt.start_lat as number | null) ?? null,
+    startLng: (tt.start_lng as number | null) ?? null,
+    endLat: (tt.end_lat as number | null) ?? null,
+    endLng: (tt.end_lng as number | null) ?? null,
+    routeGeo: cleanRouteGeo(tt.route_geo),
+    routeHash: (tt.route_hash as string | null) ?? null,
     stops,
   };
 }

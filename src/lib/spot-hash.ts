@@ -41,6 +41,18 @@ export function hashSpotTexts(t: SpotTextFields): string {
   ]);
 }
 
+// Quelltexte einer kuratierten Audio-Runde (Titel/Untertitel/Beschreibung). Liegt hier
+// und nicht in tour-actions.ts, weil dort "use server" steht: Eine Server-Action-Datei
+// darf nur async Funktionen exportieren, und Server UND Formular brauchen exakt DIESE
+// Hash-Berechnung, sonst gilt jede Übersetzung sofort als veraltet.
+export function hashTourTexts(t: {
+  title: string;
+  subtitle: string;
+  description: string;
+}): string {
+  return hashTexts([t.title, t.subtitle, t.description]);
+}
+
 // Übersetzungs-Status aus Übersetzungs-ZEILEN (Spots): die DE-Zeile trägt den aktuellen
 // source_hash (Versionsmarke); eine Sprache ist AKTUELL, wenn ihr source_hash gleich ist.
 // none: keine · partial: nicht alle · stale: alle da, aber ≥1 veraltet · complete: alle & aktuell.

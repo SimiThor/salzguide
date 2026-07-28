@@ -358,7 +358,16 @@ export async function setPointStatus(
 }
 
 // Pool-Punkte eines Gebiets für den kuratierten Runden-Builder (Client-Picker).
-export type PickerPoint = { id: string; title: string; status: string; hasAudio: boolean };
+// lat/lng sind dabei: Der Runden-Editor zeichnet daraus die Linie über die Stationen,
+// solange die Route noch nicht an die Wege angepasst wurde.
+export type PickerPoint = {
+  id: string;
+  title: string;
+  status: string;
+  hasAudio: boolean;
+  lat: number | null;
+  lng: number | null;
+};
 
 export async function listAreaPoints(
   areaId: string,
@@ -368,7 +377,7 @@ export async function listAreaPoints(
   if (!areaId) return { ok: true, points: [] };
   const { data, error } = await gate.supabase
     .from("tour_points")
-    .select("id, status, tour_point_translations(lang, title), tour_point_audio(lang)")
+    .select("id, status, lat, lng, tour_point_translations(lang, title), tour_point_audio(lang)")
     .eq("area_id", areaId)
     // sort_order wird (noch) nirgends gepflegt und steht überall auf 0. Ohne stabilen
     // Zweitschlüssel wäre die Reihenfolge Postgres-Zufall und spränge zwischen Aufrufen.
@@ -383,6 +392,8 @@ export async function listAreaPoints(
       title: tr?.title ?? "(ohne Titel)",
       status: p.status as string,
       hasAudio: ((p.tour_point_audio as unknown[] | null) ?? []).length > 0,
+      lat: (p.lat as number | null) ?? null,
+      lng: (p.lng as number | null) ?? null,
     };
   });
   return { ok: true, points };
