@@ -579,5 +579,10 @@
     "retry": "Nochmal versuchen",
     "home": "Zur Startseite",
     "code": "Fehlercode"
+  },
+  "NotFound": {
+    "title": "Falsch abgebogen",
+    "body": "Diesen Weg kennt nicht mal ein Local. Dreh am besten hier um.",
+    "home": "Zur Startseite"
   }
 }

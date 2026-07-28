@@ -536,5 +536,10 @@
     "retry": "Tentar de novo",
     "home": "Ir para o início",
     "code": "Código de erro"
+  },
+  "NotFound": {
+    "title": "Caminho errado",
+    "body": "Este caminho, nem quem é daqui o conhece. Melhor dar meia-volta.",
+    "home": "Ir para o início"
   }
 }

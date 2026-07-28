@@ -75,6 +75,11 @@ const routes: string[] = [];
     const full = join(dir, entry);
     if (statSync(full).isDirectory()) {
       if (entry.startsWith("(") || entry.startsWith("_")) walk(full, url);
+      // Catch-all ([...rest]) ist die 404-Seite, keine eigene Seitenart: Jede Adresse,
+      // die dort landet, ist GENAU der Verkehr, den kind:"other" misst (tote WP-Links,
+      // Tippfehler, Scanner). Eine eigene Kennung wäre von "other" nicht unterscheidbar
+      // und würde die Serie nur spalten.
+      else if (entry.startsWith("[...")) continue;
       else walk(full, `${url}/${entry.startsWith("[") ? "musterwert" : entry}`);
     } else if (entry === "page.tsx") {
       routes.push(url || "/");

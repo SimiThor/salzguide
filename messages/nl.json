@@ -536,5 +536,10 @@
     "retry": "Opnieuw proberen",
     "home": "Naar de startpagina",
     "code": "Foutcode"
+  },
+  "NotFound": {
+    "title": "Verkeerd afgeslagen",
+    "body": "Dit pad kent zelfs een local niet. Draai hier maar om.",
+    "home": "Naar de startpagina"
   }
 }

@@ -536,5 +536,10 @@
     "retry": "Try again",
     "home": "Back to start",
     "code": "Error code"
+  },
+  "NotFound": {
+    "title": "Wrong turn",
+    "body": "Not even a local knows this trail. Best turn around here.",
+    "home": "Back to start"
   }
 }

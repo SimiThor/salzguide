@@ -536,5 +536,10 @@
     "retry": "Intentar de nuevo",
     "home": "Ir al inicio",
     "code": "Código de error"
+  },
+  "NotFound": {
+    "title": "Giro equivocado",
+    "body": "Este camino no lo conoce ni la gente de aquí. Mejor da la vuelta.",
+    "home": "Ir al inicio"
   }
 }

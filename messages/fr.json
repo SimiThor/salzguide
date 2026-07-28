@@ -536,5 +536,10 @@
     "retry": "Réessayer",
     "home": "Retour à l'accueil",
     "code": "Code d’erreur"
+  },
+  "NotFound": {
+    "title": "Mauvaise direction",
+    "body": "Même les locaux ne connaissent pas ce chemin. Fais demi-tour ici.",
+    "home": "Retour à l'accueil"
   }
 }

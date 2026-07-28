@@ -536,5 +536,10 @@
     "retry": "Riprova",
     "home": "Vai alla home",
     "code": "Codice errore"
+  },
+  "NotFound": {
+    "title": "Strada sbagliata",
+    "body": "Questo sentiero non lo conosce neanche chi è del posto. Meglio girare qui.",
+    "home": "Vai alla home"
   }
 }
