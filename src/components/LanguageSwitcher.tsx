@@ -105,9 +105,22 @@ export default function LanguageSwitcher({
     return () => mq.removeEventListener("change", update);
   }, []);
 
-  // Klick außerhalb + Escape schließen (Desktop-Dropdown).
+  // Klick außerhalb + Escape schließen – NUR fürs Desktop-Dropdown, deshalb `isPhone`.
+  //
+  // Am Handy ist die Liste kein Dropdown, sondern ein BottomSheet, und das hängt per Portal
+  // an document.body: `rootRef` enthält es NICHT. Jeder Tipp auf eine Sprache zählte damit
+  // als „außerhalb" – und das war genau der Fehler, dass am iPhone beim Sprachwechsel nichts
+  // passierte. Am Handy nachgemessen: touchstart und touchend trafen die Zeile sauber, der
+  // click landete auf <body>. Dazwischen liegt das Maus-mousedown, das jeder Browser auf
+  // Touch nachreicht: Es lief hier durch, schloss das Sheet, das Sheet bekam damit
+  // `pointer-events-none` – und der Browser sucht sich das Ziel für den click ERST DANACH.
+  // Unter dem Finger lag dann nichts mehr, also bekam der Body den click und `onClick` an
+  // der Zeile lief nie.
+  //
+  // Zumachen kann das Sheet ohnehin selbst, und zwar besser: Backdrop-Tipp, Runterwischen
+  // und Escape stecken alle in BottomSheet. Hier bleibt nur, was es am PC nicht gibt.
   useEffect(() => {
-    if (!open) return;
+    if (!open || isPhone) return;
     function onDown(e: MouseEvent) {
       if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
     }
@@ -120,7 +133,7 @@ export default function LanguageSwitcher({
       document.removeEventListener("mousedown", onDown);
       document.removeEventListener("keydown", onKey);
     };
-  }, [open]);
+  }, [open, isPhone]);
 
   function choose(code: string) {
     setOpen(false);
