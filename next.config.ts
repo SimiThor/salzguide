@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
+import { legacyRedirects } from "./src/lib/legacy-redirects";
 
 const withNextIntl = createNextIntlPlugin();
 
@@ -57,6 +58,14 @@ const headers =
 const nextConfig: NextConfig = {
   async headers() {
     return [{ source: "/:path*", headers }];
+  },
+  // Die Adressen der alten WordPress-Seite. Sie stehen hier und nicht im Proxy, weil
+  // next.config-Weiterleitungen VOR dem Proxy laufen (dokumentierte Reihenfolge: headers,
+  // redirects, Proxy) — und unser Proxy ist das Sprach-Routing. Läge die Regel dahinter,
+  // käme /alle/gaisberg/ dort schon als /de/alle/gaisberg an und träfe nie.
+  // Begründung je Zeile: src/lib/legacy-redirects.ts.
+  async redirects() {
+    return legacyRedirects;
   },
   // Bild-Pipeline: moderne Formate (AVIF/WebP) + On-Demand-Resize (next/image liefert je
   // nach Anzeige-Größe passende Auflösungen aus dem 1600px-WebP-Master -> ein 44px-Thumbnail
