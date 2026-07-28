@@ -369,3 +369,62 @@ Google-Place-IDs, Telefonnummern, Ticket-Links, Seenamen, Fotos, Videos, 60 Rout
 von 95 Kategorien.
 
 Der Lücken-Report (`.wp-cache/report.md`) listet je Spot, wo etwas fehlt.
+
+## Übersetzungen in die acht Zielsprachen (`wp:translate`)
+
+Die 95 deutschen Texte sind 109.000 Zeichen. Mal acht Sprachen wären das über 700 bezahlte
+API-Aufrufe, wenn man den Admin-Knopf „In alle Sprachen übersetzen" 95 Mal drückt. Deshalb
+übersetzt hier die KI in der Sitzung (Abo), und das Skript ist nur Prüfer und Schreiber.
+
+    npm run wp:translate                     Stand
+    npm run wp:translate -- --todo 5         die nächsten 5 offenen Spots mit deutschem Text
+    npm run wp:translate -- --check          alle abgelegten Dateien prüfen
+    npm run wp:translate -- --go             prüfen UND schreiben
+    npm run wp:translate -- --only a,b,c ... alles davon auf diese Spots eingegrenzt
+
+Ablage: `.wp-cache/i18n/<slug>.json`, je Datei ein Objekt mit den acht Sprachcodes und
+darunter denselben sieben Feldern wie in `.wp-cache/drafts/`. `.wp-cache/` ist ausgenommen,
+das Repo ist öffentlich.
+
+**Der Prompt-Kern in `admin-actions.ts` bleibt unangetastet.** Er ist weiter der Weg für
+einzelne, spätere Spots. Was hier passiert, ist ein einmaliger Massenlauf.
+
+### Geprüft wird maschinell, nicht durch Lesen
+
+Eine Übersetzung, in der aus 1.042 Metern 1.024 werden, sieht beim Überfliegen richtig aus.
+Genau deshalb liest das eine Maschine nach, und geschrieben wird erst, wenn ALLES sauber ist:
+
+- **Zahlen.** Jede deutsche Zahl muss vorkommen, unabhängig von der Schreibweise: 1.100 =
+  1,100 = 1 100. Verglichen wird die Ziffernfolge. Römische Zahlzeichen werden umgerechnet,
+  weil die romanischen Sprachen Jahrhunderte so schreiben („XI secolo", „XIe siècle").
+- **Gedankenstrich**, ausser Chinesisch. Zusätzlich läuft vor dem Speichern alles durch
+  `stripEmDashFields()`. Ein Prompt ist eine Bitte, diese Funktion ist der Riegel.
+- **Feld-Parität.** Wo Deutsch etwas sagt, sagt die Übersetzung etwas, und wo Deutsch
+  schweigt, wird nichts dazuerfunden.
+- **Länge.** Die Grenzen sind an den ersten 19 fertigen Spots GEMESSEN, nicht geschätzt:
+  Chinesisch 29 bis 42 Prozent der deutschen Zeichenzahl, Koreanisch 46 bis 58, die
+  lateinischen Sprachen 91 bis 113. Eine gemeinsame Schwelle für Chinesisch und Koreanisch
+  war zu eng und meldete einen vollständigen chinesischen Text als zu kurz.
+
+### Warum `--only` existiert
+
+Damit die Arbeit auf mehrere parallel laufende Claude-Instanzen aufgeteilt werden kann, ohne
+dass eine die halbfertigen Dateien der anderen als Fehler meldet. Jede bekommt ihre Slugs,
+holt sich damit den deutschen Text, schreibt ihre Dateien und prüft nur ihre eigenen.
+`--go` läuft danach EINMAL zentral über alles.
+
+### Entscheidungen, die durchgehalten werden
+
+- **Eigennamen bleiben stehen**, auch im Koreanischen und Chinesischen (Speicherteich,
+  Getreidegasse 33a, Schloss Aigen). So macht es der Admin-Prompt auch; sonst driften
+  später einzeln übersetzte Spots vom Bestand weg.
+- **Beschreibende Titel werden übersetzt** (`Blick auf Hohenwerfen` -> `Vista sobre
+  Hohenwerfen`), echte Namen nicht (`Asitz`, `Balkan-Grill Walter`).
+- **Der Tipp bleibt in der Ich-Form.** Das ist Antons Stimme, nicht die eines Reiseführers.
+
+### Was das Skript setzt
+
+Je Sprache eine Zeile in `spot_translations` mit `source_hash = hashSpotTexts(de)`, und die
+DE-Zeile bekommt dieselbe Marke. Erst damit gilt ein Spot als veröffentlichbar
+(`translationsPublishable` in `spot-hash.ts`). Danach hängt der Katalog-Cache daran: Server
+neu starten oder im Admin einmal speichern.
