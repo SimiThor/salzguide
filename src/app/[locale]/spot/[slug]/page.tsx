@@ -13,6 +13,8 @@ import ActionTile from "@/components/ActionTile";
 import Carousel from "@/components/Carousel";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import LockedSpotCard from "@/components/LockedSpotCard";
+import { ProWordmark } from "@/components/ProBadge";
+import ProFeatureList from "@/components/ProFeatureList";
 import QuickFacts, { type Fact } from "@/components/QuickFacts";
 import SaveButton from "@/components/SaveButton";
 import SpotCard from "@/components/SpotCard";
@@ -180,21 +182,36 @@ export default async function SpotPage({
   // Immer gleich befüllt -> einmal vorbereiten statt an beiden Aufrufstellen wiederholen.
   const heroProps = { spot, t, locale, back, isSaved, loggedIn };
 
-  // Pro-Spot ohne Zugriff -> Paywall (serverseitig gegated)
+  // Pro-Spot ohne Zugriff -> Paywall (serverseitig gegated).
+  //
+  // BEWUSST DERSELBE AUFBAU WIE DAS PRO-GATE-SHEET (ProGate.tsx): Wortmarke, ein Satz,
+  // dieselben vier Zeilen, Knopf, „einmalig · kein Abo" darunter. Wer eine gesperrte Karte
+  // antippt, sieht das Sheet; wer per Link direkt auf der Spot-Seite landet, sieht hier
+  // dieselbe Fläche als Seite. Ein Angebot, ein Look — kein zweites Design zum Pflegen.
   if (spot.locked) {
     return (
       <div className="pb-16">
         {/* Hero zeigt bei locked selbst die Blur-Vorschau – kein 🤫 mehr nötig. */}
         <Hero {...heroProps} />
         <div className="mx-auto w-full max-w-[760px] px-4">
-          <div className={`${CARD} relative z-10 -mt-9 flex flex-col items-start gap-4 p-6`}>
-            <p className="text-[15px] leading-relaxed text-muted">{tPro("spotTeaser")}</p>
-            <Link
-              href="/pro"
-              className="rounded-full bg-accent px-5 py-3 text-sm font-semibold text-white active:scale-[0.98]"
-            >
-              {tPro("cta")}
-            </Link>
+          <div className={`${CARD} relative z-10 -mt-9 p-6 text-center`}>
+            {/* max-w wie im Sheet: Auf dem 760px-Desktop-Layout bleiben die Zeilen sonst
+                so breit, dass die Karte leer wirkt. */}
+            <div className="mx-auto max-w-[22rem]">
+              <ProWordmark name={tPro("title")} className="text-[17px]" />
+              <p className="mt-2 text-[15px] leading-relaxed text-muted">
+                {tPro("spotTeaser")}
+              </p>
+              {/* Liste zentriert als Block, Zeilen selbst linksbündig (w-fit + text-left). */}
+              <ProFeatureList density="sheet" className="mx-auto mt-4 w-fit text-left" />
+              <Link
+                href="/pro"
+                className="mt-5 block w-full rounded-full bg-accent px-5 py-4 text-[16px] font-semibold text-white shadow-[0_10px_24px_-10px_rgba(204,41,36,0.55)] transition active:scale-[0.98]"
+              >
+                {tPro("cta")}
+              </Link>
+              <p className="mt-2.5 text-[12px] text-muted/80">{tPro("oneTime")}</p>
+            </div>
           </div>
         </div>
       </div>
