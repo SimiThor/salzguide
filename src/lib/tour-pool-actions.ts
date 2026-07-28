@@ -398,7 +398,8 @@ const AUDIO_GUIDE_RULES = `AUDIO-GUIDE-MODUS (gesprochener Text):
 - Zielgruppe: junge Locals & Reisende (18–40), allergisch auf Museums-/Reiseführer-Gelaber. Also KEIN "Willkommen bei..."-Ton, keine trockene Chronologie.
 - Starker HOOK im ersten Satz (neugierig machen), dann 1–2 überraschende, konkrete Facts oder eine kleine Anekdote/Geschichte zu GENAU diesem Ort – zeig, warum's cool/lustig/besonders ist.
 - WENIG Jahreszahlen (höchstens eine, nur wenn sie wirklich was bringt). Keine Datenflut, keine Namensketten.
-- Ende mit einem kleinen "schau dir das an" / einer Überleitung zum Weitergehen.
+- IN SICH GESCHLOSSEN: Die Reihenfolge der Stationen ist NICHT fix – jede Runde wird pro Nutzer neu aus dem Punkte-Pool gebaut, derselbe Text läuft mal als erste, mal als letzte Station. Deshalb NIEMALS auf Reihenfolge oder Weg Bezug nehmen: kein "weiter zur nächsten Station", kein "geh weiter Richtung ...", kein "gleich um die Ecke wartet ...", kein "du kommst gerade von ...", kein "bevor es weitergeht". Weder am Anfang noch am Ende. Bewegung AM Ort selbst ist ok ("geh die Gasse bis zum Ende", "stell dich an die Brüstung").
+- Ende mit einem kleinen "schau dir das an"-Moment an GENAU diesem Ort – nie mit einer Überleitung.
 - Fakten 100% korrekt: nutze NUR die gegebenen Notizen/Fakten + wirklich allgemein bekanntes Wissen. Erfinde nichts (keine erfundenen Zahlen, Namen, Distanzen).`;
 
 export type PointAudioGenResult = { ok: boolean; text?: string; error?: string };
