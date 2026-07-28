@@ -1,12 +1,25 @@
 {
   "Meta": {
-    "description": "Salzburgo sin estrés: los mejores lugares, seleccionados por locales.",
-    "homeTitle": "SalzGuide: Google conoce Salzburgo. Nosotros estuvimos allí.",
-    "homeDescription": "Dos locales, un mapa: nuestros lugares favoritos de la región de Salzburgo, cada uno con un consejo. Estuvimos en todos. Y Toni, la IA que solo conoce estos lugares.",
-    "exploreTitle": "Explorar",
-    "exploreDescription": "Salzburgo sin estrés: los mejores lugares, seleccionados por locales.",
-    "proTitle": "Pro",
-    "proDescription": "Sitios bloqueados con el consejo de local, caminatas con su trazado, rutas de audio enteras y Toni sin límite. Pagas una vez, sin suscripción."
+    "description": "Sitios secretos de la región de Salzburgo: los lugares más bonitos en un mapa interactivo, con consejos reales de gente local.",
+    "homeTitle": "SalzGuide: descubre los sitios secretos de Salzburgo",
+    "homeDescription": "Con el mapa interactivo y consejos reales de gente local encuentras los sitios más bonitos y hidden gems de la región de Salzburgo. Hemos estado en todos.",
+    "exploreTitle": "Qué hacer en la región de Salzburgo: el mapa interactivo",
+    "exploreDescription": "Rutas, lagos, miradores, refugios y tabernas en un mapa interactivo. Cada sitio visitado por nosotros, con un consejo real de un local.",
+    "proTitle": "SalzGuide Pro",
+    "proDescription": "Sitios bloqueados con el consejo de local, caminatas con su trazado, rutas de audio enteras y Toni sin límite. Pagas una vez, sin suscripción.",
+    "eventsTitle": "Eventos en Salzburgo",
+    "eventsDescription": "Qué pasa en Salzburgo: fiestas, cultura, tradición y planes con niños. Siempre al día, con mapa.",
+    "wasserTitle": "Temperatura del agua de los lagos de Salzburgo",
+    "wasserDescription": "Temperaturas actuales del Wolfgangsee, el Fuschlsee y otros lagos, más los mejores sitios para bañarse en la región, en un mapa.",
+    "tourenTitle": "Tours de audio por Salzburgo",
+    "tourenDescription": "Explora Salzburgo con los oídos: historias de gente local, parada a parada, en tu móvil.",
+    "supportTitle": "Ayuda y contacto",
+    "supportDescription": "¿Algo no funciona, un sitio no cuadra o tienes una pregunta? Escríbenos.",
+    "aboutTitle": "Sobre nosotros",
+    "aboutDescription": "Anton y Simon, dos salzburgueses: por qué existe SalzGuide y cómo elegimos nuestros sitios.",
+    "spotTitle": "{title}: {kind} en la región de Salzburgo",
+    "spotTitlePlain": "{title}, región de Salzburgo",
+    "spotDescriptionFallback": "{title} en la región de Salzburgo: dónde está, cómo llegar y nuestro consejo honesto."
   },
   "Common": {
     "back": "Atrás",
@@ -174,6 +187,7 @@
     "paywallProBody": "Con Pro preguntas a Toni sin límite. Y los sitios bloqueados también se abren."
   },
   "Explore": {
+    "pageHeading": "Qué hacer y sitios secretos en la región de Salzburgo, en un mapa interactivo",
     "summer": "Verano",
     "winter": "Invierno",
     "lockedLabel": "🤫 Secreto",
@@ -419,15 +433,6 @@
     "newsletterLabel": "Boletín y consejos por correo",
     "newsletterHint": "De vez en cuando, lugares nuevos y consejos. Date de baja cuando quieras."
   },
-  "Demo": {
-    "title": "Demo de componentes",
-    "subtitle": "SpotCards, carrusel y el bottom sheet arrastrable.",
-    "carousel": "Lugares de ejemplo",
-    "openSheet": "Abrir bottom sheet",
-    "sheetTitle": "Sheet arrastrable",
-    "sheetBody": "Arrástrame hacia arriba por el tirador (completo) o hacia abajo (cerrar). Este mismo sheet mostrará luego detalles de lugares, filtros y el asistente de IA, sobre el mapa.",
-    "lockedLabel": "🤫 Secreto"
-  },
   "Support": {
     "linkLabel": "Ayuda",
     "title": "Te ayudamos",
@@ -536,5 +541,11 @@
     "retry": "Intentar de nuevo",
     "home": "Ir al inicio",
     "code": "Código de error"
+  },
+  "NotFound": {
+    "title": "Esta página no existe",
+    "body": "El enlace es antiguo o está mal escrito. Lo que buscas se encuentra más rápido en el mapa.",
+    "exploreCta": "Abrir el mapa",
+    "homeCta": "Ir a la página de inicio"
   }
 }

@@ -1,12 +1,25 @@
 {
   "Meta": {
-    "description": "Salzburg ohne Stress – die besten Spots, kuratiert von Locals.",
-    "homeTitle": "SalzGuide: Google kennt Salzburg. Wir waren dort.",
-    "homeDescription": "Zwei Salzburger, eine Karte: unsere Lieblings-Spots im Salzburger Land, mit einem Tipp bei jedem. Wir waren an jedem selbst. Dazu Toni, die KI, die nur diese Spots kennt.",
-    "exploreTitle": "Entdecken",
-    "exploreDescription": "Salzburg ohne Stress – die besten Spots, kuratiert von Locals.",
-    "proTitle": "Pro",
-    "proDescription": "Gesperrte Spots mit Insider-Tipp, Wanderungen mit Route, Audio-Touren komplett und Toni ohne Limit. Einmal zahlen, kein Abo."
+    "description": "Geheimtipps im Salzburger Land: die schönsten Spots & Hidden Gems auf einer interaktiven Karte, mit echten Local-Tipps.",
+    "homeTitle": "SalzGuide: Geheimtipps im Salzburger Land entdecken",
+    "homeDescription": "Mit interaktiver Karte & echten Local-Tipps findest du die schönsten Spots & Hidden Gems im Salzburger Land. Wir waren an jedem selbst.",
+    "exploreTitle": "Ausflugsziele im Salzburger Land: interaktive Karte",
+    "exploreDescription": "Wanderungen, Seen, Almen, Aussichtspunkte & Wirtshäuser auf einer interaktiven Karte. Jeden Spot haben wir selbst besucht, mit echtem Local-Tipp.",
+    "proTitle": "SalzGuide Pro",
+    "proDescription": "Gesperrte Spots mit Insider-Tipp, Wanderungen mit Route, Audio-Touren komplett und Toni ohne Limit. Einmal zahlen, kein Abo.",
+    "eventsTitle": "Veranstaltungen in Salzburg und Umgebung",
+    "eventsDescription": "Was geht in Salzburg: Feste, Kultur, Tradition und Sachen für Kinder. Laufend aktualisiert, mit Karte und Merkliste.",
+    "wasserTitle": "Wassertemperatur der Salzburger Seen",
+    "wasserDescription": "Aktuelle Wassertemperaturen von Wolfgangsee, Fuschlsee und weiteren Seen, dazu die schönsten Badeplätze im Salzburger Land auf einer Karte.",
+    "tourenTitle": "Audio-Touren durch Salzburg",
+    "tourenDescription": "Salzburg mit dem Ohr erkunden: Geschichten von Locals, Stopp für Stopp direkt am Handy.",
+    "supportTitle": "Hilfe & Kontakt",
+    "supportDescription": "Etwas klappt nicht, ein Spot stimmt nicht, oder du hast eine Frage? Schreib uns.",
+    "aboutTitle": "Über uns",
+    "aboutDescription": "Anton und Simon, zwei Salzburger: warum es SalzGuide gibt und wie wir unsere Spots auswählen.",
+    "spotTitle": "{title}: {kind} im Salzburger Land",
+    "spotTitlePlain": "{title} im Salzburger Land",
+    "spotDescriptionFallback": "{title} im Salzburger Land: Lage, Anfahrt und unser ehrlicher Tipp."
   },
   "Common": {
     "back": "Zurück",
@@ -21,7 +34,7 @@
   },
   "Home": {
     "navCta": "Karte öffnen",
-    "heroTitle": "Google kennt Salzburg. Wir waren dort.",
+    "heroTitle": "Geheimtipps im Salzburger Land entdecken!",
     "heroSubtitle": "Eine Karte mit unseren Lieblings-Spots im Salzburger Land: Seen, Wanderungen, Aussichten, Cafés. Wir waren an jedem selbst.",
     "heroCta": "Karte öffnen",
     "trustLocalsTitle": "Anton & Simon",
@@ -217,6 +230,7 @@
     "paywallProBody": "Mit Pro fragst du Toni ohne Limit. Und die gesperrten Spots gehen auch auf."
   },
   "Explore": {
+    "pageHeading": "Ausflugsziele & Geheimtipps im Salzburger Land auf einer interaktiven Karte",
     "summer": "Sommer",
     "winter": "Winter",
     "lockedLabel": "🤫 Geheimtipp",
@@ -462,15 +476,6 @@
     "newsletterLabel": "Newsletter & Tipps per E-Mail",
     "newsletterHint": "Gelegentlich neue Spots & Tipps. Jederzeit abbestellbar."
   },
-  "Demo": {
-    "title": "Bausteine-Demo",
-    "subtitle": "SpotCards, Karussell und das ziehbare Bottom-Sheet.",
-    "carousel": "Beispiel-Spots",
-    "openSheet": "Bottom-Sheet öffnen",
-    "sheetTitle": "Ziehbares Sheet",
-    "sheetBody": "Zieh mich am Griff nach oben (Voll) oder nach unten (zu). Genau dieses Sheet zeigt später Spot-Details, Filter und den KI-Assistenten – über der Karte.",
-    "lockedLabel": "🤫 Geheimtipp"
-  },
   "Support": {
     "linkLabel": "Hilfe",
     "title": "Wir helfen dir",
@@ -579,5 +584,11 @@
     "retry": "Nochmal versuchen",
     "home": "Zur Startseite",
     "code": "Fehlercode"
+  },
+  "NotFound": {
+    "title": "Diese Seite gibt es nicht",
+    "body": "Der Link ist alt oder vertippt. Was du suchst, findest du am schnellsten auf der Karte.",
+    "exploreCta": "Zur Karte",
+    "homeCta": "Zur Startseite"
   }
 }

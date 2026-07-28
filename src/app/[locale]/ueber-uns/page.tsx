@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { getHomeTexts, getHomeMedia, explainerVideoFor } from "@/lib/home-content";
-import { alternatesFor } from "@/lib/metadata";
+import { alternatesFor, ogFor } from "@/lib/metadata";
 import LandingVideo from "@/components/landing/LandingVideo";
 import MediaSlot from "@/components/landing/MediaSlot";
 import SocialSection from "@/components/landing/SocialSection";
@@ -22,13 +22,21 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   const [t, texts] = await Promise.all([
-    getTranslations({ locale, namespace: "Menu" }),
+    getTranslations({ locale, namespace: "Meta" }),
     getHomeTexts(locale),
   ]);
+  // Beschreibung bleibt der echte Gründer-Text aus der DB (foundersBody): authentisch,
+  // vom Admin pflegbar und in jeder Sprache vorhanden. Nur der Titel kommt aus Meta.
   return {
-    title: { absolute: `${t("about")} · SalzGuide` },
+    title: t("aboutTitle"),
     description: texts.foundersBody,
     alternates: alternatesFor(locale, "/ueber-uns"),
+    ...ogFor({
+      locale,
+      path: "/ueber-uns",
+      title: t("aboutTitle"),
+      description: texts.foundersBody,
+    }),
   };
 }
 

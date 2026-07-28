@@ -329,6 +329,11 @@ export default function TourView({
 
   return (
     <div className="fixed inset-0 z-0 md:top-[var(--sg-header-h)]">
+      {/* Seiten-Überschrift für Suchmaschinen und Screenreader: Der Tour-Titel steht
+          sonst nirgends im DOM (sichtbar ist nur der aktive Stopp im Mini-Player).
+          sr-only statt sichtbar, weil die Karte die Bühne ist. Einmal HIER statt im
+          panel: Das panel rendert doppelt (Sheet + Aside), zwei h1 wären die Folge. */}
+      <h1 className="sr-only">{tour.title}</h1>
       {/* Fullscreen-Karte: mobil vollflächig, Desktop um das Panel versetzt */}
       <div className="absolute inset-0 md:left-[var(--sg-panel)]">
         {markers.length > 0 ? (

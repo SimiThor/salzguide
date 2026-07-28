@@ -1,12 +1,25 @@
 {
   "Meta": {
-    "description": "스트레스 없는 잘츠부르크 – 로컬이 직접 고른 최고의 스팟.",
-    "homeTitle": "SalzGuide: 구글은 잘츠부르크를 압니다. 우리는 직접 가봤습니다.",
-    "homeDescription": "로컬 두 명, 지도 하나. 잘츠부르크 지역에서 우리가 가장 좋아하는 스팟, 그리고 스팟마다 팁 하나. 모두 직접 다녀왔습니다. 여기에 이 스팟들만 아는 AI, Toni까지.",
-    "exploreTitle": "둘러보기",
-    "exploreDescription": "스트레스 없는 잘츠부르크 – 로컬이 직접 고른 최고의 스팟.",
-    "proTitle": "Pro",
-    "proDescription": "현지인 팁이 붙은 잠긴 스팟, 경로가 있는 하이킹, 전체 오디오 투어, 무제한 토니. 한 번 결제, 구독 없음."
+    "description": "잘츠부르크의 숨은 명소: 인터랙티브 지도와 현지인의 진짜 팁으로 찾는 가장 아름다운 곳들.",
+    "homeTitle": "SalzGuide: 잘츠부르크의 숨은 명소를 찾아보세요",
+    "homeDescription": "인터랙티브 지도와 현지인의 진짜 팁으로 잘츠부르크에서 가장 아름다운 명소와 숨은 보석을 찾아보세요. 모든 곳을 직접 가봤습니다.",
+    "exploreTitle": "잘츠부르크 명소: 인터랙티브 지도",
+    "exploreDescription": "하이킹, 호수, 전망대, 산장, 맛집을 인터랙티브 지도 한 장에. 모든 곳을 직접 가봤고, 진짜 현지인 팁이 함께합니다.",
+    "proTitle": "SalzGuide Pro",
+    "proDescription": "현지인 팁이 붙은 잠긴 스팟, 경로가 있는 하이킹, 전체 오디오 투어, 무제한 토니. 한 번 결제, 구독 없음.",
+    "eventsTitle": "잘츠부르크 이벤트",
+    "eventsDescription": "잘츠부르크에서 지금 열리는 축제, 문화, 전통 행사와 아이와 갈 만한 곳. 지도와 함께 계속 업데이트됩니다.",
+    "wasserTitle": "잘츠부르크 호수 수온",
+    "wasserDescription": "볼프강 호수, 푸슐 호수 등 잘츠부르크 호수들의 현재 수온과 가장 좋은 물놀이 명소를 지도에서 확인하세요.",
+    "tourenTitle": "잘츠부르크 오디오 투어",
+    "tourenDescription": "귀로 즐기는 잘츠부르크: 현지인의 이야기를 정거장마다 휴대폰으로 들을 수 있습니다.",
+    "supportTitle": "도움말 및 문의",
+    "supportDescription": "뭔가 안 되거나, 정보가 틀렸거나, 궁금한 게 있나요? 저희에게 알려주세요.",
+    "aboutTitle": "소개",
+    "aboutDescription": "잘츠부르크 사람 안톤과 지몬: SalzGuide를 만든 이유와 명소를 고르는 방식.",
+    "spotTitle": "{title}: 잘츠부르크 {kind}",
+    "spotTitlePlain": "{title}: 잘츠부르크",
+    "spotDescriptionFallback": "잘츠부르크의 {title}: 위치, 가는 방법, 그리고 우리의 솔직한 팁."
   },
   "Common": {
     "back": "뒤로",
@@ -174,6 +187,7 @@
     "paywallProBody": "Pro면 토니에게 무제한으로 물어볼 수 있어요. 잠긴 스팟도 함께 열려요."
   },
   "Explore": {
+    "pageHeading": "인터랙티브 지도로 보는 잘츠부르크의 명소와 숨은 보석",
     "summer": "여름",
     "winter": "겨울",
     "lockedLabel": "🤫 비밀 스팟",
@@ -419,15 +433,6 @@
     "newsletterLabel": "뉴스레터 & 팁 이메일",
     "newsletterHint": "가끔 새 스팟 & 팁. 언제든 구독 해지 가능."
   },
-  "Demo": {
-    "title": "빌딩 블록 데모",
-    "subtitle": "SpotCards, 캐러셀, 드래그 가능한 바텀 시트.",
-    "carousel": "예시 스팟",
-    "openSheet": "바텀 시트 열기",
-    "sheetTitle": "드래그 가능한 시트",
-    "sheetBody": "손잡이를 잡고 위로(전체) 또는 아래로(닫기) 드래그해 보세요. 바로 이 시트가 나중에 스팟 상세, 필터, AI 어시스턴트를 지도 위에 보여줘요.",
-    "lockedLabel": "🤫 비밀 스팟"
-  },
   "Support": {
     "linkLabel": "도움말",
     "title": "저희가 도와드릴게요",
@@ -536,5 +541,11 @@
     "retry": "다시 시도",
     "home": "처음으로",
     "code": "오류 코드"
+  },
+  "NotFound": {
+    "title": "존재하지 않는 페이지입니다",
+    "body": "링크가 오래되었거나 잘못 입력되었어요. 찾는 곳은 지도에서 가장 빨리 찾을 수 있어요.",
+    "exploreCta": "지도 열기",
+    "homeCta": "시작 페이지로"
   }
 }
