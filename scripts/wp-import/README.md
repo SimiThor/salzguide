@@ -479,3 +479,33 @@ Sonst wären spätere Durchgänge nur einspielbar, indem man die früheren rück
 `wp:translate --check` und `--go`, und ERST DANACH `wp:fix-numbers`. Die Durchgänge haben den
 Bestand gelesen, bevor die Zahlen korrigiert waren; umgekehrt holt der Patch die alte Zahl
 zurück.
+
+## Live schalten (`wp:publish`)
+
+    npm run wp:publish                     zeigt, was live ginge und was blockiert ist
+    npm run wp:publish -- --only gaisberg   einzelne Spots
+    npm run wp:publish -- --go             schreibt wirklich
+
+Veröffentlichen war bewusst Handarbeit im Admin, und für einen einzelnen neuen Spot bleibt
+das richtig. Für den Erst-Start sind es 95 Stück. 95-mal ein Formular öffnen und speichern
+ist nicht sorgfältiger als ein Lauf, es ist nur länger, und nach dem dreissigsten Klick
+schaut niemand mehr hin, ob die Sprache wirklich vollständig ist.
+
+**Das Gate wird importiert, nicht nachgebaut.** `saveSpot` lässt einen Spot nur live, wenn
+Ort UND alle Übersetzungen stehen. Ein Skript, das direkt in die DB schreibt, umgeht diese
+Action, also ruft es dieselben Funktionen auf: `hashSpotTexts`, `translationsPublishable`
+und `translationStatus` aus `src/lib/spot-hash.ts`. Geprüft wird mit beiden, weil die App an
+zwei Stellen prüft: `translationsPublishable` kennt nur eine Marke am Objekt und würde eine
+einzelne zurückgebliebene Sprache durchlassen, `translationStatus` sieht sie.
+
+**Kein Foto blockiert nicht, wird aber genannt.** Die App ist bildgetrieben, ein Spot ohne
+Bild steht auf der Karte als graue Kachel. Das Admin-Gate verlangt trotzdem kein Bild, also
+verlangt es das Skript auch nicht: Es zählt sie auf, damit die Entscheidung sichtbar
+getroffen wird statt versehentlich.
+
+**Was die Flag-Auswertung fast angerichtet hätte:** `--only` gab es in zwei Schreibweisen,
+und der getrennte Fall las `args[args.indexOf("--only") + 1]`. Ohne `--only` liefert
+`indexOf` −1, also stand `args[0]` in der Liste, und das war `--go`. Der erste echte Lauf
+meldete „0 bereit, nichts zu tun" statt 95. Ein Trockenlauf hätte den Fehler nie gezeigt: Da
+sind gar keine Argumente da. Deshalb prüft der Code jetzt zuerst, ob `--only` überhaupt
+dasteht, und wirft bei `--only` ohne Liste.
