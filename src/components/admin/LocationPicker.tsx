@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { MapLoadingScreen, useMapLoading } from "../MapLoading";
 import { RecenterControl } from "../mapControls";
 import { useLatestRef } from "@/lib/use-latest-ref";
+import { declutterBasemap } from "@/lib/map-declutter";
 import type { MapPoi } from "@/lib/geo";
 import { poiEmoji, poiDeLabel } from "@/lib/poi";
 
@@ -186,6 +187,11 @@ export default function LocationPicker({
       touchPitch: false,
     });
     map.addControl(new mapboxgl.AttributionControl({ compact: true }));
+    // Auch hier aufgeräumt (Begründung in map-declutter.ts): Der Admin soll den Punkt auf
+    // derselben Karte setzen, die der Gast später sieht — sonst sitzt der Marker an einem
+    // fremden POI-Symbol, das es öffentlich gar nicht gibt. Zum Wiederfinden einer Adresse
+    // ist die Suche oben da.
+    declutterBasemap(map);
     map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "top-right");
     map.addControl(new RecenterControl(() => recenterRef.current()), "top-right");
     map.on("load", () => {

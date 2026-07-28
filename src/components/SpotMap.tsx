@@ -7,6 +7,7 @@ import { useEffect, useRef } from "react";
 import { MapLoadingScreen, useMapLoading } from "./MapLoading";
 import { RecenterControl } from "./mapControls";
 import { useLatestRef } from "@/lib/use-latest-ref";
+import { declutterBasemap } from "@/lib/map-declutter";
 import { poiEmoji, type PoiKind } from "@/lib/poi";
 import { isClosedRoute } from "@/lib/geo";
 import {
@@ -396,6 +397,10 @@ export default function SpotMap({
       touchPitch: false,
     });
     map.addControl(new mapboxgl.AttributionControl({ compact: true }));
+    // Fremde POIs, Gipfel- und Seenamen raus (Begründung in map-declutter.ts):
+    // Auf einer Spot-Karte soll unser Marker der einzige Punkt sein — und der Name des
+    // Sees daneben löst sonst jeden gesperrten Geheimtipp.
+    declutterBasemap(map);
 
     // Bedienung gibt es nur auf Arbeits-Karten. Vorschauen tragen keinen einzigen
     // Knopf — dort ist die ganze Fläche der Knopf (siehe `preview` weiter oben).

@@ -13,6 +13,7 @@ import MobileSheet from "./MobileSheet";
 import { SHEET_PEEK_VAR, readCssLength } from "@/lib/sheet-metrics";
 import { useViewportHeight } from "@/lib/viewport";
 import { useLatestRef } from "@/lib/use-latest-ref";
+import { declutterBasemap } from "@/lib/map-declutter";
 import { RecenterControl } from "./mapControls";
 
 const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
@@ -162,6 +163,8 @@ export default function WaterExplore({
       attributionControl: false,
     });
     map.addControl(new mapboxgl.AttributionControl({ compact: true }));
+    // Gleiche aufgeräumte Karte wie überall sonst (Begründung in map-declutter.ts).
+    declutterBasemap(map);
     // Gleiche Karten-Tools wie die Startseite: Zoom, Zentrieren (alle Seen einpassen),
     // Standort (blauer Punkt / Heading).
     map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "top-right");
