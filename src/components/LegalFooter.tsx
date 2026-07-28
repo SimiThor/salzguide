@@ -5,6 +5,7 @@ import { Link, usePathname } from "@/i18n/navigation";
 import { LEGAL_LINKS } from "@/lib/legal-links";
 import { isFullscreenMapRoute } from "@/lib/routes";
 import SocialLinks from "./SocialLinks";
+import PartnerCredits from "./PartnerCredits";
 
 // Globaler Site-Footer (im Root-Layout, auf JEDER Seite). Enthält den Widerrufs-Zugang
 // (§ 13a FAGG / EU-RL 2023/2673, ab 01.10.2026 in Österreich): login-frei, global, leicht
@@ -56,6 +57,10 @@ export default function LegalFooter() {
       <p className="mt-3 text-[12px] leading-relaxed text-muted/80">
         © {year} SalzGuide · {t("tagline")}
       </p>
+
+      {/* Partner-Nennung: Pflicht aus der Inhalte-Vereinbarung (lib/partners.ts). Auf den
+          Vollbild-Karten, wo diese Fusszeile nicht rendert, tragen die Panels sie selbst. */}
+      <PartnerCredits className="mt-10" />
     </footer>
   );
 }

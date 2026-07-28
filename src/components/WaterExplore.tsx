@@ -10,6 +10,7 @@ import { Link } from "@/i18n/navigation";
 import BottomSheet from "./BottomSheet";
 import { MapLoadingScreen, useMapLoading } from "./MapLoading";
 import MobileSheet from "./MobileSheet";
+import PartnerCredits from "./PartnerCredits";
 import { SHEET_PEEK_VAR, readCssLength } from "@/lib/sheet-metrics";
 import { useViewportHeight } from "@/lib/viewport";
 import { useLatestRef } from "@/lib/use-latest-ref";
@@ -298,6 +299,9 @@ export default function WaterExplore({
       </div>
       )}
       <p className="mt-4 text-[11px] leading-snug text-muted">{labels.attribution}</p>
+      {/* Partner-Nennung: Pflicht auf jeder Seite (lib/partners.ts). Hier im Panel, weil
+          der LegalFooter auf den Vollbild-Karten nicht rendert (lib/routes.ts). */}
+      <PartnerCredits className="mt-12" />
     </div>
   );
 

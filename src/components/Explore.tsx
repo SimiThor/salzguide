@@ -14,6 +14,7 @@ import SpotMap, { type MapMarker } from "./SpotMap";
 import { useSpotSelection } from "./useSpotSelection";
 import { MAP_CTRL_PAD } from "./mapControls";
 import MobileSheet, { type Detent } from "./MobileSheet";
+import PartnerCredits from "./PartnerCredits";
 import { SHEET_PEEK_VAR, useSheetPeek } from "@/lib/sheet-metrics";
 import { useViewportHeight } from "@/lib/viewport";
 
@@ -284,6 +285,10 @@ export default function Explore({
         {shelves.length === 0 && <p className="px-4 text-sm text-muted">{t("empty")}</p>}
         </motion.div>
       </AnimatePresence>
+      {/* Partner-Nennung: Pflicht auf jeder Seite (lib/partners.ts). Hier im Panel, weil
+          der LegalFooter auf den Vollbild-Karten nicht rendert (lib/routes.ts). Bewusst
+          AUSSERHALB der Saison-Animation: Sie soll beim Umschalten nicht mitblenden. */}
+      <PartnerCredits className="mt-14 px-4 md:pb-4" />
     </>
     ),
     [season, changeSeason, labels, shelves, openSpot, t],
