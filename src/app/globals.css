@@ -314,6 +314,33 @@ body {
   }
 }
 
+/* EIGENE EBENE FÜR ETWAS, DAS IN EINEM BLUR-PANEL EIN- ODER AUSBLENDET.
+
+   DAS PROBLEM: Safari zeichnet eine Fläche mit `backdrop-filter` nicht neu, wenn sich
+   allein die Deckkraft eines Kindes ändert. Der Zustand stimmt, nur das Bild nicht:
+   Gemessen am Partner-Logo im Explore-Panel stand nach dem Hover wieder `opacity: 0.7`
+   im berechneten Stil, während auf dem Schirm weiter das helle Logo klebte. Weg ging es
+   erst, wenn irgendetwas ein volles Neuzeichnen erzwingt, also beim Wechsel in eine
+   andere App oder nach sehr langer Zeit. Dieselbe Fusszeile auf einer normalen Seite
+   (kein Blur darüber) blendet sauber aus, und genau das war der Unterschied.
+
+   DIE LÖSUNG: `translateZ(0)` legt das Element auf eine eigene Compositing-Ebene. Seine
+   Deckkraft ist damit reine Compositor-Arbeit, die Blur-Fläche muss dafür gar nicht mehr
+   angefasst werden, und die Frage, ob Safari sie neu zeichnet, stellt sich nicht.
+
+   NUR AUFS ELEMENT, NIE AUFS PANEL: Ein transform macht das Panel zum Bezugsrahmen für
+   alles darin, was `position: fixed` ist. Ein geschlossenes Sheet säße dann nicht mehr
+   unter dem Bildschirmrand, sondern mitten im Panel. Deshalb trägt die Klasse das kleine
+   Ding, das wirklich blendet, und nicht sein Behälter.
+
+   In `@layer components` (wie .sg-hit): Bringt ein Element eine eigene
+   transform-Utility mit, gewinnt die, und dann hat es seine Ebene ohnehin schon. */
+@layer components {
+  .sg-own-layer {
+    transform: translateZ(0);
+  }
+}
+
 /* TAP-FEEDBACK: sofort da, sanft weg.
    Rund 70 Komponenten setzen `active:scale-…` oder `active:opacity-…` zusammen mit
    einem `transition … duration-150/200`. Diese Dauer gilt in BEIDE Richtungen, das

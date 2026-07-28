@@ -51,7 +51,11 @@ export default function PartnerCredits({ className = "" }: { className?: string 
             {...EXTERNAL_LINK_ATTRS}
             // sg-hit: 44pt Trefferfläche um die kleinen Logos (globals.css). Der Link
             // erbt seinen zugänglichen Namen vom alt-Text des Bilds.
-            className="sg-hit flex items-center opacity-70 transition-opacity hover:opacity-100"
+            // sg-own-layer: eigene Ebene fürs Ein-/Ausblenden. In den Panels der
+            // Vollbild-Karten steht diese Reihe in einer Fläche mit `backdrop-filter`, und
+            // dort blieb in Safari nach dem Hover das helle Logo stehen, obwohl der Stil
+            // längst wieder gedämpft war. Begründung in globals.css.
+            className="sg-hit sg-own-layer flex items-center opacity-70 transition-opacity hover:opacity-100"
           >
             {/* Bewusst <img>, nicht next/image: Die Dateien sind schon in Zielgrösse
                 und Zielformat (SVG/WebP, zusammen ~40 KB); der Optimierer hätte hier
