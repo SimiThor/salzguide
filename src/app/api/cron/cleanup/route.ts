@@ -33,6 +33,12 @@ export async function GET(req: Request): Promise<Response> {
     console.error("[cron] Prüfung auf überfällige Läufe fehlgeschlagen", e);
   }
 
-  await finishCron("cleanup", result.ok, { geloeschteKiZaehler: result.aiUsage, ueberfaellig: overdue });
-  return Response.json({ ok: result.ok, purgedAiUsage: result.aiUsage, overdue });
+  await finishCron("cleanup", result.ok, {
+    geloeschteKiZaehler: result.aiUsage,
+    ueberfaellig: overdue,
+    // Nur im Fehlerfall: Der Heartbeat soll dann gleich sagen, WO es geklemmt hat, ohne
+    // dass jemand erst im Logbuch nach der passenden retention_failed-Zeile suchen muss.
+    ...(result.failedTables.length > 0 ? { fehlgeschlageneTabellen: result.failedTables } : {}),
+  });
+  return Response.json({ ok: result.ok, purgedAiUsage: result.aiUsage, overdue, failedTables: result.failedTables });
 }
