@@ -121,6 +121,24 @@ console.log("\n3. Nur die ersten " + TOP_SLOTS + " Plätze zählen als vorne");
   ]);
 }
 
+// ── 4b. Zurückhaltend bleibt hinten, auch nach einem Top-Platz ──────────────
+console.log("\n3b. Zurückhaltend bleibt hinten, auch nach einem Top-Platz");
+{
+  // "nurfueller" gewinnt Regal 1 nur, weil dort nichts Stärkeres steht. Im zweiten
+  // Regal darf ihn das nicht vor die frischen Zurückhaltenden heben.
+  const spots = [
+    spot("nurfueller", 0, ["erste", "zweite"]),
+    spot("anderer", 0, ["zweite"], { createdAt: "2026-06-01T00:00:00Z" }),
+    spot("gaisberg", 2, ["zweite"]),
+  ];
+  const r = rankShelves([cat("erste", 0), cat("zweite", 1)], spots);
+  eq("Füller steigt nicht in die Mitte auf", r.get(shelfKey("zweite", "summer")), [
+    "gaisberg",
+    "anderer",
+    "nurfueller",
+  ]);
+}
+
 // ── 5. Saisons rechnen getrennt ─────────────────────────────────────────────
 console.log("\n4. Sommer und Winter getrennt");
 {

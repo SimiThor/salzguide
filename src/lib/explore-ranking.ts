@@ -88,9 +88,10 @@ export function rankShelves(
           s.categoryKeys.some((ck) => ck.key === shelf.key && ck.season === season),
       );
       // Drei Gruppen, innerhalb jeder nach Stufe: erst die frischen Gesichter, dann die
-      // schon gezeigten, ganz hinten die Zurückhaltenden (deren Definition "steht
-      // hinten" ist — auch hinter schon gezeigten Highlights).
-      const group = (s: RankSpot) => (featured.has(s.slug) ? 1 : s.weight === 0 ? 2 : 0);
+      // schon gezeigten, ganz hinten die Zurückhaltenden. Der Füller-Test kommt ZUERST:
+      // "Zurückhaltend" heisst hinten, auch wenn der Spot (in einem Regal ohne stärkere)
+      // mal einen Top-Platz bekam — sonst stiege er dadurch in die Mitte auf.
+      const group = (s: RankSpot) => (s.weight === 0 ? 2 : featured.has(s.slug) ? 1 : 0);
       candidates.sort(
         (a, b) =>
           group(a) - group(b) ||
