@@ -34,7 +34,8 @@
     "wp:fix-numbers": "node --experimental-strip-types --disable-warning=ExperimentalWarning --env-file=.env.local --import ./scripts/lib/alias-hook.mjs scripts/wp-import/fix-text-numbers.ts",
     "wp:apply-review": "node --experimental-strip-types --disable-warning=ExperimentalWarning --import ./scripts/lib/alias-hook.mjs scripts/wp-import/apply-review.ts",
     "wp:fix-claims": "node --experimental-strip-types --disable-warning=ExperimentalWarning --env-file=.env.local --import ./scripts/lib/alias-hook.mjs scripts/wp-import/fix-text-claims.ts",
-    "wp:publish": "node --experimental-strip-types --disable-warning=ExperimentalWarning --env-file=.env.local --import ./scripts/lib/alias-hook.mjs scripts/wp-import/publish.ts"
+    "wp:publish": "node --experimental-strip-types --disable-warning=ExperimentalWarning --env-file=.env.local --import ./scripts/lib/alias-hook.mjs scripts/wp-import/publish.ts",
+    "wp:audio-tour": "node --experimental-strip-types --disable-warning=ExperimentalWarning --env-file=.env.local --import ./scripts/lib/alias-hook.mjs scripts/wp-import/audio-tour.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

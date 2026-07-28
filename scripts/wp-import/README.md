@@ -509,3 +509,33 @@ und der getrennte Fall las `args[args.indexOf("--only") + 1]`. Ohne `--only` lie
 meldete „0 bereit, nichts zu tun" statt 95. Ein Trockenlauf hätte den Fehler nie gezeigt: Da
 sind gar keine Argumente da. Deshalb prüft der Code jetzt zuerst, ob `--only` überhaupt
 dasteht, und wirft bei `--only` ohne Liste.
+
+## Audioguide-Stationen (`wp:audio-tour`)
+
+    npm run wp:audio-tour                      zeigt, was entstünde
+    npm run wp:audio-tour -- --only steingasse  einzelne Stationen
+    npm run wp:audio-tour -- --go              schreibt wirklich (Bilder + DB)
+
+Übernimmt die 15 Stationen von `/salzburg-altstadt-audioguide/` in den Audio-Punkte-Pool
+(`tour_points` im Gebiet `salzburger-altstadt`). Die Quelle ist wie bei den zwei
+Frontend-Karten das `spots`-Array im Seitenquelltext: Titel, Koordinate, Emoji, Bild und
+MP3 je Station stehen dort als Klartext-JavaScript. Der Abzug wird als
+`.wp-cache/audio-tour.json` gecacht und danach nie neu geladen — nach dem Domain-Umzug
+ist der Cache die einzige Quelle.
+
+Punkte entstehen als **Entwurf**; bestehende Punkte (Match über den deutschen Titel)
+werden nie überschrieben, nur leere Felder ergänzt. Die deutschen Sprechtexte entstehen
+von Hand als `.wp-cache/audio-drafts/<slug>.json` (`{ "audioTextDe": "…" }`) — sie sind
+Pro-Inhalt und gehören deshalb NICHT ins öffentliche Repo. Ohne Entwurf wird eine neue
+Station übersprungen statt halb angelegt.
+
+**Die alten MP3s bleiben zurück.** Die Texte entstehen neu, und eine Aufnahme, die etwas
+anderes sagt als ihr Transkript, ist schlimmer als gar keine. Vertonen macht der
+TTS-Knopf im Admin, Übersetzen der Übersetzen-Knopf — beides erst nach Antons Review der
+deutschen Texte. Die Runden-Route der alten Seite wird nicht übernommen: Das Pool-Modell
+kennt keine fixe Route, die baut der Runden-Builder aus den Punkten.
+
+Bilder laufen durch dieselben Regeln wie ein Admin-Upload über `PointForm`: lange Kante
+1600 px, WebP-Qualität 82, Bucket `spot-media` unter `tours/<uuid>.webp`. Hochgeladen
+wird erst mit `--go` (Trockenläufe legen sonst Waisen in den Bucket), fertige Uploads
+stehen in `.wp-cache/audio-media-map.json` und werden übersprungen.
