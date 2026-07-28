@@ -77,7 +77,12 @@ export const RETENTION_DAYS = {
   opsAlerts: 30,
 } as const;
 
-export type RetentionResult = { aiUsage: number; ok: boolean };
+export type RetentionResult = {
+  aiUsage: number;
+  ok: boolean;
+  /** Tabellen, deren Löschung die Datenbank abgelehnt hat. Leer, wenn alles durchging. */
+  failedTables: string[];
+};
 
 function daysAgo(days: number): Date {
   const d = new Date();
@@ -89,37 +94,75 @@ function daysAgo(days: number): Date {
 export async function pruneExpiredData(): Promise<RetentionResult> {
   try {
     const service = createServiceClient();
-    const [usage] = await Promise.all([
-      service
-        .from("ai_usage")
-        .delete({ count: "exact" })
-        .lt("day", daysAgo(RETENTION_DAYS.aiUsage).toISOString().slice(0, 10)),
-      service.from("ai_burst").delete().lt("window_start", daysAgo(RETENTION_DAYS.burst).toISOString()),
-      service
-        .from("rate_limits")
-        .delete()
-        .lt("window_start", daysAgo(RETENTION_DAYS.rateLimits).toISOString()),
-      service
-        .from("analytics_salt")
-        .delete()
-        .lt("day", daysAgo(RETENTION_DAYS.analyticsSalt).toISOString().slice(0, 10)),
-      service
-        .from("analytics_events")
-        .delete()
-        .lt("created_at", daysAgo(RETENTION_DAYS.analyticsEvents).toISOString()),
+    const day = (days: number) => daysAgo(days).toISOString().slice(0, 10);
+    const at = (days: number) => daysAgo(days).toISOString();
+
+    // Jede Löschung trägt ihren Tabellennamen. Der Grund ist ein Loch, das hier bis 07/2026
+    // sass: supabase-js WIRFT bei einem Datenbankfehler nicht, es löst mit einem
+    // { error }-Feld auf. Das anonyme Promise.all davor hat da nie hineingesehen, also wäre
+    // jeder Lauf als Erfolg gezählt worden, auch einer, der keine einzige Zeile löscht
+    // (fehlende Tabelle, entzogenes Recht, Tippfehler im Spaltennamen). Der catch unten
+    // fängt nur, was wirklich wirft, praktisch also nur eine kaputte Konfiguration. Ein
+    // Aufräumen, das leise scheitert, bricht die Fristen der Datenschutzerklärung, ohne dass
+    // es irgendwo aufscheint: genau die Stille, gegen die dieses Modul gebaut ist.
+    const deletions = [
+      // ai_usage steht bewusst an erster Stelle: Nur diese Löschung zählt mit, und das
+      // Ergebnis unten greift sie über den Index 0.
+      {
+        table: "ai_usage",
+        query: service.from("ai_usage").delete({ count: "exact" }).lt("day", day(RETENTION_DAYS.aiUsage)),
+      },
+      {
+        table: "ai_burst",
+        query: service.from("ai_burst").delete().lt("window_start", at(RETENTION_DAYS.burst)),
+      },
+      {
+        table: "rate_limits",
+        query: service.from("rate_limits").delete().lt("window_start", at(RETENTION_DAYS.rateLimits)),
+      },
+      {
+        table: "analytics_salt",
+        query: service.from("analytics_salt").delete().lt("day", day(RETENTION_DAYS.analyticsSalt)),
+      },
+      {
+        table: "analytics_events",
+        query: service.from("analytics_events").delete().lt("created_at", at(RETENTION_DAYS.analyticsEvents)),
+      },
       // Das Betriebs-Logbuch räumt sich selbst mit auf. Es steht bewusst in DERSELBEN Liste
       // wie alles andere: Ein Aufräum-Job, den man für die neue Tabelle vergisst, ist genau
       // der Fehler, den diese Tabelle eigentlich melden soll.
-      service
-        .from("ops_events")
-        .delete()
-        .lt("created_at", daysAgo(RETENTION_DAYS.opsEvents).toISOString()),
-      service
-        .from("ops_alerts")
-        .delete()
-        .lt("window_start", daysAgo(RETENTION_DAYS.opsAlerts).toISOString()),
-    ]);
-    return { aiUsage: usage.count ?? 0, ok: true };
+      {
+        table: "ops_events",
+        query: service.from("ops_events").delete().lt("created_at", at(RETENTION_DAYS.opsEvents)),
+      },
+      {
+        table: "ops_alerts",
+        query: service.from("ops_alerts").delete().lt("window_start", at(RETENTION_DAYS.opsAlerts)),
+      },
+    ];
+
+    const settled = await Promise.all(deletions.map((d) => d.query));
+    const failed = deletions.flatMap((d, i) => {
+      const error = settled[i].error;
+      return error ? [{ table: d.table, message: error.message }] : [];
+    });
+
+    if (failed.length > 0) {
+      await logOps("retention_failed", {
+        message: `Das tägliche Löschen ist bei ${failed.length} von ${deletions.length} Tabellen fehlgeschlagen.`,
+        group: "retention",
+        detail: {
+          // Nur Tabellenname und Fehlertext der Datenbank, nichts aus den Zeilen selbst.
+          tabellen: Object.fromEntries(failed.map((f) => [f.table, f.message])),
+        },
+      });
+    }
+
+    return {
+      aiUsage: settled[0].count ?? 0,
+      ok: failed.length === 0,
+      failedTables: failed.map((f) => f.table),
+    };
   } catch (e) {
     console.error("[retention] Aufräumen fehlgeschlagen", e);
     // Als „kritisch" eingestuft, und zwar aus RECHTLICHEN Gründen, nicht aus technischen:
@@ -133,6 +176,6 @@ export async function pruneExpiredData(): Promise<RetentionResult> {
       error: e,
       group: "retention",
     });
-    return { aiUsage: 0, ok: false };
+    return { aiUsage: 0, ok: false, failedTables: [] };
   }
 }

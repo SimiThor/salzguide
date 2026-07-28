@@ -445,7 +445,10 @@ export const OPS_JOBS: readonly OpsJob[] = [
   {
     job: "cleanup",
     label: "Tägliches Aufräumen",
-    schedule: "täglich 03:30",
+    // UTC dazugesagt, weil Vercel Cron-Pläne in UTC fährt: 03:30 UTC ist bei uns 05:30 im
+    // Sommer und 04:30 im Winter. Ohne den Zusatz sucht man einen 03:30-Lauf, den es zu
+    // dieser Uhrzeit nie gab (so geschehen bei der Fehlersuche am 28.07.2026).
+    schedule: "täglich 03:30 UTC",
     // 36 statt 24 Stunden: Vercel schiebt Cron-Läufe um bis zu eine Stunde, und ein
     // einzelner verpasster Lauf ist noch kein Problem. Zwei aufeinanderfolgende schon.
     overdueHours: 36,
@@ -453,7 +456,7 @@ export const OPS_JOBS: readonly OpsJob[] = [
   {
     job: "events",
     label: "Wöchentliche Event-Recherche",
-    schedule: "montags 05:00",
+    schedule: "montags 05:00 UTC",
     overdueHours: 24 * 10,
   },
 ] as const;
