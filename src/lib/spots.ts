@@ -6,6 +6,7 @@ import { currentUserId } from "./viewer";
 import type { ElevationProfile } from "./admin-actions";
 import { rankShelves, shelfKey } from "./explore-ranking";
 import { parsePois, type MapPoi } from "./geo";
+import { ticketPartnerName } from "./ticket-partners";
 
 // Darf der aktuelle Betrachter Pro-Inhalte sehen? (eingeloggter Pro-User ODER Admin)
 // Wird server-seitig ermittelt und ist die AUTORITATIVE Gate-Entscheidung für das
@@ -616,6 +617,7 @@ export type SpotDetail = {
   phone: string | null;
   websiteUrl: string | null;
   ticketUrl: string | null;
+  // Anzeigename des Ticket-Shops (lib/ticket-partners.ts) — nie der rohe DB-Code.
   ticketPartner: string | null;
   lakeName: string | null;
   googlePlaceId: string | null;
@@ -819,7 +821,8 @@ async function querySpotDetail(
     phone: data.phone,
     websiteUrl: data.website_url,
     ticketUrl: data.ticket_url,
-    ticketPartner: data.ticket_partner,
+    // Roher Code aus dem WP-Import ("gyg") -> Anzeigename; unbekannt -> null.
+    ticketPartner: ticketPartnerName(data.ticket_partner),
     lakeName: data.lake_name,
     googlePlaceId: data.google_place_id,
     title: (t.title as string) ?? data.slug,
