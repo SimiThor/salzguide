@@ -23,6 +23,7 @@ import { slugify } from "../../src/lib/slug.ts";
 import { guardStorageUrl } from "../../src/lib/storage-guard.ts";
 import { hashSpotTexts } from "../../src/lib/spot-hash.ts";
 import { stripEmDashFields } from "../../src/lib/em-dash.ts";
+import { writeSpotImages } from "../../src/lib/spot-images.ts";
 import {
   elevationProfile,
   formatDuration,
@@ -335,9 +336,10 @@ async function importSpot(
     const { error } = await db.from("spots").update(row).eq("id", existing.id);
     if (error) throw new Error(`spots aktualisieren: ${error.message}`);
     spotId = existing.id as string;
-    // Medien neu setzen statt anhängen, sonst sammelt jeder Lauf dieselben Fotos erneut ein.
-    // Die DATEIEN bleiben liegen, sie werden gleich wieder eingetragen (media-map ist stabil).
-    await db.from("media").delete().eq("spot_id", spotId);
+    // Die Medien-Zeilen räumt writeSpotImages weiter unten auf (neu setzen statt anhängen,
+    // sonst sammelt jeder Lauf dieselben Fotos erneut ein). Hier NICHT mehr blind löschen:
+    // Der Löschbefehl stand vor dem Schreiben und nahm damit die schon erzeugte Blur-
+    // Vorschau des Heros mit — jeder erneute Import hätte sie wieder auf null gesetzt.
   } else {
     const { data: spot, error } = await db.from("spots").insert(row).select("id").single();
     if (error) throw new Error(`spots: ${error.message}`);
@@ -384,19 +386,18 @@ async function importSpot(
     notes.push("keine Kategorie zuordenbar");
   }
 
-  if (images.length) {
-    const { error: mErr } = await db.from("media").insert(
-      images.map((img, i) => ({
-        spot_id: spotId,
-        type: "image",
-        role: i === 0 ? "hero" : "gallery",
-        url: img.url,
-        alt: img.alt,
-        sort_order: i,
-      })),
-    );
-    if (mErr) throw new Error(`media: ${mErr.message}`);
-  }
+  // Fotos über dieselbe Schreibstelle wie das Admin-Formular (lib/spot-images.ts). Vorher
+  // trug dieses Skript die Zeilen selbst ein — ohne die Blur-Vorschau des Heros. Ergebnis:
+  // 95 importierte Hero-Fotos, kein einziges blur_url, und jeder gesperrte Pro-Spot zeigte
+  // statt des unscharfen Teasers nur das Emoji.
+  //
+  // removeUnusedFiles: false — die Dateien stehen in .wp-cache/media-map.json, der
+  // Wiederaufnahme-Marke eines fast 1 GB grossen Downloads. Löschte ein Lauf sie, zeigte
+  // die Karte auf ein Loch und der nächste Lauf trüge eine tote URL ein.
+  const written = await writeSpotImages(db, db.storage, spotId, images, {
+    removeUnusedFiles: false,
+  });
+  if (!written.ok) throw new Error(`media (${written.step}): ${written.message}`);
 
   return { row, images, texts, notes, spotId };
 }

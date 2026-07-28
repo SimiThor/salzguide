@@ -46,8 +46,8 @@ const FETCH_TIMEOUT_MS = 10_000;
 
 // Nur der Teil der Supabase-Storage-API, den wir brauchen. So können saveSpot (Admin-
 // Session) und das Backfill (Service-Key) dieselbe Funktion mit ihrem eigenen Client
-// aufrufen.
-type StorageApi = {
+// aufrufen. Exportiert, weil lib/spot-images.ts denselben Client durchreicht.
+export type StorageApi = {
   from(bucket: string): {
     upload(
       path: string,
@@ -65,6 +65,12 @@ type StorageApi = {
     ): Promise<{ data: { name: string }[] | null; error: { message: string } | null }>;
   };
 };
+
+// Anders als bei StorageApi hier KEIN handgeschriebener Minimal-Typ: Supabases Query-
+// Builder ist zwar awaitbar, aber kein Promise, und jede Nachbildung davon ist entweder
+// falsch (dann lügt der Compiler) oder so tief verschachtelt, dass tsc aufgibt
+// ("Type instantiation is excessively deep"). Beides hatte ich schon.
+type Db = SupabaseClient;
 
 // Pfad im Bucket aus einer öffentlichen Storage-URL zurückgewinnen (zum Aufräumen).
 // null, wenn die URL nicht aus unserem Bucket stammt. Liegt seit dem Instagram-Feed in
@@ -174,6 +180,82 @@ export async function createBlurPreview(
   return storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
 }
 
+// ── Fehlende Vorschauen nachziehen ───────────────────────────────────────────
+//
+// WARUM ES DAS BRAUCHT, OBWOHL DER SCHREIBWEG SIE ERZEUGT:
+// Ein Vorschaubild entsteht beim Speichern (writeSpotImages), aber sein Scheitern darf das
+// Speichern nie kippen — ein Netzhänger beim Download reicht, und die Spalte bleibt null.
+// Genau das sieht man der App nicht an: Der gesperrte Pro-Spot zeigt dann still das Emoji
+// statt des Teasers, so wie ALLE 95 importierten Fotos es getan haben. Was von selbst
+// kaputtgehen kann und niemandem auffällt, muss von selbst heilen. Deshalb läuft dieser
+// Nachzug wöchentlich im Wartungs-Cron mit — und dieselbe Funktion treibt `npm run
+// backfill:blur`, damit es nicht zwei Fassungen derselben Schleife gibt.
+
+export type BackfillResult = {
+  /** Neu erzeugte Vorschauen. */
+  done: number;
+  /** Fotos, bei denen es nicht klappte (bleiben null, nächster Lauf versucht es erneut). */
+  failed: number;
+  /** Wegen des Lauf-Deckels zurückgestellt. */
+  remaining: number;
+};
+
+/**
+ * Erzeugt Vorschauen für Hero-Fotos, die noch keine haben.
+ *
+ * Nur Spot-Hero-Fotos: Galeriebilder sieht nie jemand unscharf (nur das erste Bild wird
+ * ausgeliefert, siehe heroPreviewFromMedia), und Tour-Stopps brauchen bewusst gar keine
+ * Vorschau — dort sind Titel, Bild und Position öffentliche Teaser (Migration 0029).
+ *
+ * @param limit Deckel pro Lauf. Jede Vorschau kostet einen Download plus sharp; im Cron
+ *              begrenzt das die Laufzeit, im Skript wird er bewusst weit aufgedreht.
+ * @param force ALLE neu erzeugen (nötig nach einer Änderung von PREVIEW_WIDTH).
+ * @param onRow Fortschritt je Foto – das Skript schreibt damit seine Zeilen.
+ */
+export async function backfillMissingPreviews(
+  db: Db,
+  storage: StorageApi,
+  opts: { limit?: number; force?: boolean; onRow?: (row: { url: string; preview: string | null }) => void } = {},
+): Promise<BackfillResult> {
+  const { limit = 25, force = false, onRow } = opts;
+  const out: BackfillResult = { done: 0, failed: 0, remaining: 0 };
+
+  const base = db.from("media").select("id, url, blur_url").eq("type", "image").eq("role", "hero");
+  const { data, error } = await (force ? base : base.is("blur_url", null));
+  if (error) {
+    console.error("backfillMissingPreviews: media lesen fehlgeschlagen", error.message);
+    return out;
+  }
+
+  const rows = ((data ?? []) as { id: string; url: string; blur_url: string | null }[]).filter(
+    (r) => typeof r.url === "string" && r.url,
+  );
+  const batch = rows.slice(0, limit);
+  out.remaining = rows.length - batch.length;
+
+  for (const row of batch) {
+    // Bei --force die alte URL absichtlich NICHT als "prev" durchreichen: Sonst gälte das
+    // Bild als unverändert und die alte Vorschau bliebe stehen — genau das, was force
+    // verhindern soll. Die alte Datei wird trotzdem aufgeräumt (prevPreviewUrl).
+    const preview = await blurPreviewFor(storage, row.url, force ? null : row.url, row.blur_url);
+    if (preview) {
+      const { error: upErr } = await db.from("media").update({ blur_url: preview }).eq("id", row.id);
+      if (upErr) {
+        console.error("backfillMissingPreviews: speichern fehlgeschlagen", upErr.message);
+        out.failed++;
+        onRow?.({ url: row.url, preview: null });
+        continue;
+      }
+      out.done++;
+    } else {
+      out.failed++;
+    }
+    onRow?.({ url: row.url, preview });
+  }
+
+  return out;
+}
+
 // ── Aufräumen ────────────────────────────────────────────────────────────────
 //
 // WARUM ES DAS BRAUCHT:
@@ -196,12 +278,6 @@ export type PruneResult = {
   orphans: number;
 };
 
-// Anders als bei StorageApi hier KEIN handgeschriebener Minimal-Typ: Supabases Query-
-// Builder ist zwar awaitbar, aber kein Promise, und jede Nachbildung davon ist entweder
-// falsch (dann lügt der Compiler) oder so tief verschachtelt, dass tsc aufgibt
-// ("Type instantiation is excessively deep"). Beides hatte ich schon.
-type PruneDb = SupabaseClient;
-
 type MediaRow = { id: string; role: string | null; blur_url: string | null };
 
 /**
@@ -220,7 +296,7 @@ type MediaRow = { id: string; role: string | null; blur_url: string | null };
  * Verweis ist schlimmer als eine übrig gebliebene 4-KB-Datei.
  */
 export async function prunePreviews(
-  db: PruneDb,
+  db: Db,
   storage: StorageApi,
 ): Promise<PruneResult> {
   const out: PruneResult = { unlinked: 0, deleted: 0, orphans: 0 };

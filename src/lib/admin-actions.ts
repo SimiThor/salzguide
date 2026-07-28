@@ -12,12 +12,8 @@ import { normalizeManual, type OpeningWeek } from "./opening-hours";
 import { routing } from "@/i18n/routing";
 import { localeMeta } from "@/i18n/locales";
 import { hashSpotTexts, translationsPublishable } from "./spot-hash";
-import {
-  createBlurPreview,
-  planImageBlur,
-  removeBlurPreviews,
-  removeSpotMediaFiles,
-} from "./blur-preview";
+import { removeSpotMediaFiles } from "./blur-preview";
+import { writeSpotImages } from "./spot-images";
 import { stripEmDashFields } from "./em-dash";
 import { guardStorageUrl } from "./storage-guard";
 import { parsePois, hikingTimeMinutes, type MapPoi } from "./geo";
@@ -314,7 +310,9 @@ export async function saveSpot(input: SpotInput): Promise<SaveResult> {
       .select("id")
       .single();
     if (error) return { ok: false, error: spotErr(error) };
-    spotId = data.id;
+    // Der Client ist untypisiert, `data.id` also `any`. Ohne diese Zusage bliebe spotId für
+    // TypeScript `string | undefined` – und writeSpotImages will eine echte ID sehen.
+    spotId = data.id as string;
   }
 
   // Schlägt ein Folge-Write fehl, bleibt kein halber Spot zurück:
@@ -484,68 +482,19 @@ export async function saveSpot(input: SpotInput): Promise<SaveResult> {
 
   // Fotos neu setzen (erstes = Hero); media-Tabelle ist die Quelle der Wahrheit.
   //
-  // DIE VORSCHAU GEHÖRT ZUM BILD, NICHT ZUR HERO-ROLLE.
-  // Deshalb lesen wir ALLE bisherigen Bildzeilen, nicht nur das Hero. Wer im Admin ein
-  // Foto nach vorn zieht, das schon einmal Hero war, bekommt dessen Vorschau geschenkt,
-  // statt sie erneut aus dem Netz zu laden und durch sharp zu schicken. Und – wichtiger –
-  // ein Umsortieren kann keine funktionierende Vorschau mehr zerstören: Wir werfen nur
-  // weg, was zu einem entfernten FOTO gehört, nie was zu einer alten Rolle gehörte.
-  const { data: prevRows, error: prevErr } = await supabase
-    .from("media")
-    .select("url, blur_url")
-    .eq("spot_id", spotId)
-    .eq("type", "image");
-  if (prevErr) return await abort(logDb("saveSpot: Fotos lesen", prevErr.message));
-
-  const plan = planImageBlur(prevRows ?? [], images);
-
-  // Fehlt dem Hero die Vorschau, jetzt EINE erzeugen. Ein reines Textspeichern rendert
-  // damit gar nichts, und Umsortieren auf ein Foto, das schon einmal Hero war, ebenso
-  // wenig. Schlägt es fehl, bleibt die Spalte null und die UI fällt auf das Emoji zurück –
-  // das Speichern darf daran nicht scheitern, `npm run backfill:blur` holt es nach.
-  if (plan.heroNeedingPreview) {
-    const made = await createBlurPreview(supabase.storage, plan.heroNeedingPreview);
-    if (made) plan.blurByUrl.set(plan.heroNeedingPreview, made);
-  }
-
-  // Delete+Insert mit Fehlerprüfung (siehe Kategorien): Ein stiller Insert-Fehler
-  // hieß vorher „Spot live, aber alle Fotos weg" – und der Admin sah „gespeichert".
-  {
-    const { error: delErr } = await supabase
-      .from("media")
-      .delete()
-      .eq("spot_id", spotId)
-      .eq("type", "image");
-    if (delErr) return await abort(logDb("saveSpot: Fotos löschen", delErr.message));
-    if (images.length) {
-      const { error: insErr } = await supabase.from("media").insert(
-        images.map((url, i) => ({
-          spot_id: spotId,
-          type: "image",
-          role: i === 0 ? "hero" : "gallery",
-          url,
-          sort_order: i,
-          // Eine einmal erzeugte Vorschau bleibt an ihrem Bild kleben, auch wenn es gerade
-          // in der Galerie steht: Sonst kostet jedes Hin-und-Her-Sortieren ein neues Rendern.
-          blur_url: plan.blurByUrl.get(url) ?? null,
-        })),
-      );
-      if (insErr) return await abort(logDb("saveSpot: Fotos schreiben", insErr.message));
-    }
-  }
-
-  // Vorschauen UND Originaldateien entfernter Fotos wegräumen. Erst NACH dem Insert,
-  // damit ein Fehler beim Aufräumen nichts gerade Gespeichertes reißt. Originale sind
-  // sicher wegwerfbar: Jeder Upload bekommt einen eigenen UUID-Dateinamen, die Datei
-  // gehört also genau diesem Spot. Best-effort, loggt nur.
-  if (plan.orphanPreviews.length) {
-    await removeBlurPreviews(supabase.storage, plan.orphanPreviews);
-  }
-  const removedOriginals = (prevRows ?? [])
-    .map((r) => r.url)
-    .filter((u): u is string => typeof u === "string" && u !== "" && !images.includes(u));
-  if (removedOriginals.length) {
-    await removeSpotMediaFiles(supabase.storage, removedOriginals);
+  // Die Regeln dahinter (Hero-Vorschau erzeugen, Vorschau folgt dem BILD statt der Rolle,
+  // entfernte Dateien wegräumen) stehen in lib/spot-images.ts — der EINEN Schreibstelle,
+  // die auch der WordPress-Import benutzt. Vorher standen sie nur hier, der Import schrieb
+  // seine Zeilen ohne Vorschau, und jeder gesperrte Pro-Spot zeigte statt des unscharfen
+  // Teasers nur das Emoji.
+  const written = await writeSpotImages(
+    supabase,
+    supabase.storage,
+    spotId,
+    images.map((url) => ({ url })),
+  );
+  if (!written.ok) {
+    return await abort(logDb(`saveSpot: ${written.step}`, written.message));
   }
 
   // Ersetztes/entferntes VIDEO ebenso wegräumen: Jeder Tausch liess vorher ein bis zu

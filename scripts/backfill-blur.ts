@@ -11,7 +11,7 @@
 //                                    bleiben bestehende Vorschauen auf dem alten Stand.
 import { createClient } from "@supabase/supabase-js";
 import { readFileSync } from "node:fs";
-import { blurPreviewFor, prunePreviews } from "../src/lib/blur-preview.ts";
+import { backfillMissingPreviews, prunePreviews } from "../src/lib/blur-preview.ts";
 
 // .env.local einlesen (gleiches Muster wie scripts/seed.mjs)
 const env = Object.fromEntries(
@@ -36,47 +36,22 @@ const supabase = createClient(url, key, { auth: { persistSession: false } });
 const force = process.argv.includes("--force");
 if (force) console.log("--force: ALLE Vorschauen werden neu erzeugt.\n");
 
-// Nur Spot-Hero-Fotos. Tour-Stopps brauchen KEINE Vorschau: Dort sind Titel, Bild und
-// Position bewusst öffentliche Teaser, nur das Audio ist Pro (Migration 0029).
-const base = supabase.from("media").select("id, url, blur_url").eq("type", "image").eq("role", "hero");
-const { data, error } = await (force ? base : base.is("blur_url", null));
+// Die Schleife selbst steht in lib/blur-preview.ts (backfillMissingPreviews) – dieselbe,
+// die wöchentlich im Wartungs-Cron mitläuft. Zwei Fassungen derselben Schleife wären genau
+// die zweite Wahrheit, die irgendwann auseinanderläuft. Hier bleibt nur die Ausgabe.
+//
+// Kein Deckel (limit): Wer das Skript startet, will alles nachgezogen haben und schaut zu.
+// Der Cron nimmt dagegen 25 pro Lauf, damit ein Wartungslauf nicht am Bilder-Rechnen hängt.
+const { done, failed } = await backfillMissingPreviews(supabase, supabase.storage, {
+  limit: Number.MAX_SAFE_INTEGER,
+  force,
+  onRow: ({ url, preview }) =>
+    preview
+      ? console.log(`  ✓ ${url.split("/").pop()} -> ${preview.split("/").pop()}`)
+      : console.warn(`  ✗ ${url} – Vorschau konnte nicht erzeugt werden`),
+});
 
-if (error) {
-  console.error("Laden fehlgeschlagen:", error.message);
-  process.exit(1);
-}
-
-const rows = (data ?? []).filter((r) => typeof r.url === "string" && r.url);
-if (!rows.length) {
-  console.log("Nichts zu tun – alle Hero-Fotos haben eine Vorschau.");
-  process.exit(0);
-}
-
-console.log(`${rows.length} Hero-Foto(s) ${force ? "werden neu erzeugt" : "ohne Vorschau"}.`);
-
-let done = 0;
-let failed = 0;
-
-for (const row of rows) {
-  // Bei --force die alte URL absichtlich NICHT als "prev" durchreichen: Sonst gälte das
-  // Bild als unverändert und die alte Vorschau bliebe stehen – genau das, was --force
-  // verhindern soll. Die alte Datei wird trotzdem aufgeräumt (prevPreviewUrl).
-  const preview = await blurPreviewFor(supabase.storage, row.url, force ? null : row.url, row.blur_url);
-  if (!preview) {
-    console.warn(`  ✗ ${row.url} – Vorschau konnte nicht erzeugt werden`);
-    failed++;
-    continue;
-  }
-  const up = await supabase.from("media").update({ blur_url: preview }).eq("id", row.id);
-  if (up.error) {
-    console.warn(`  ✗ ${row.url} – Speichern fehlgeschlagen: ${up.error.message}`);
-    failed++;
-    continue;
-  }
-  done++;
-  console.log(`  ✓ ${row.url.split("/").pop()} -> ${preview.split("/").pop()}`);
-}
-
+if (!done && !failed) console.log("Nichts zu tun – alle Hero-Fotos haben eine Vorschau.");
 console.log(`\nFertig: ${done} erzeugt, ${failed} fehlgeschlagen.`);
 // Fehlgeschlagene bleiben null -> UI fällt auf den Emoji-Platzhalter zurück und ein
 // erneuter Lauf holt sie nach. Kein harter Exit-Code, damit Teil-Erfolge zählen.

@@ -1,6 +1,6 @@
 import { runAutoWeeklyResearch } from "@/lib/event-research";
 import { createServiceClient } from "@/lib/supabase/service";
-import { prunePreviews } from "@/lib/blur-preview";
+import { backfillMissingPreviews, prunePreviews } from "@/lib/blur-preview";
 import { sweepOrphanMedia, type OrphanSweepResult } from "@/lib/storage-orphans";
 import { pruneExpiredData } from "@/lib/data-retention";
 import { guardCron, finishCron } from "@/lib/cron-guard";
@@ -50,6 +50,28 @@ export async function GET(req: Request): Promise<Response> {
     });
   }
 
+  // Fehlende Blur-Vorschauen nachziehen. Erzeugt werden sie beim Speichern
+  // (lib/spot-images.ts), aber ein Fehlschlag dort darf das Speichern nicht kippen — die
+  // Spalte bleibt dann null, und der gesperrte Pro-Spot zeigt still das Emoji statt des
+  // unscharfen Teasers. Genau so waren ALLE importierten Fotos ohne Vorschau, ohne dass es
+  // irgendwo aufgefallen wäre. Was von selbst kaputtgehen kann, muss von selbst heilen.
+  //
+  // 25 pro Lauf: Jede Vorschau kostet einen Download plus sharp. Was übrig bleibt, holt der
+  // nächste Montag — oder `npm run backfill:blur`, wenn es eilt.
+  let previewBackfill = { done: 0, failed: 0, remaining: 0 };
+  try {
+    const service = createServiceClient();
+    previewBackfill = await backfillMissingPreviews(service, service.storage, { limit: 25 });
+  } catch (e) {
+    console.error("[cron] backfillMissingPreviews:", e instanceof Error ? e.message : e);
+    await logOps("cron_failed", {
+      message: "Nachziehen fehlender Bild-Vorschauen fehlgeschlagen.",
+      error: e,
+      group: "job:events:previews-backfill",
+      path: "/api/cron/events",
+    });
+  }
+
   // Waisen-Sweep über beide Buckets (storage-orphans.ts): Uploads passieren im Browser
   // VOR dem Speichern, also hinterlässt jedes verworfene Formular und jeder Datei-Tausch
   // prinzipbedingt unreferenzierte Dateien. Der Sweep ist fail-closed (bei jedem
@@ -77,11 +99,13 @@ export async function GET(req: Request): Promise<Response> {
     ...(result.error ? { grund: result.error } : {}),
     geloeschteKiZaehler: purgedAiUsage,
     vorschauen: prunedPreviews.deleted,
+    neueVorschauen: previewBackfill.done,
+    ...(previewBackfill.remaining ? { vorschauenOffen: previewBackfill.remaining } : {}),
     waisen: orphanSweep?.deleted ?? 0,
   });
 
   return Response.json(
-    { ...result, purgedAiUsage, prunedPreviews, orphanSweep },
+    { ...result, purgedAiUsage, prunedPreviews, previewBackfill, orphanSweep },
     { status: result.ok ? 200 : 500 },
   );
 }
