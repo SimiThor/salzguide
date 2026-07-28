@@ -4,6 +4,7 @@ import { createClient } from "./supabase/server";
 import { createServiceClient } from "./supabase/service";
 import { currentUserId } from "./viewer";
 import type { ElevationProfile } from "./admin-actions";
+import { rankShelves, shelfKey } from "./explore-ranking";
 import { parsePois, type MapPoi } from "./geo";
 
 // Darf der aktuelle Betrachter Pro-Inhalte sehen? (eingeloggter Pro-User ODER Admin)
@@ -272,6 +273,10 @@ export type ExploreCategory = {
   season: string;
   title: string;
   sortOrder: number;
+  /** Spot-Slugs in Anzeige-Reihenfolge — fertig gerechnet (explore-ranking.ts, docs/38).
+   *  Der Client zeigt sie nur noch an; sortierte er selbst nach einer globalen Zahl,
+   *  stünde derselbe Spot in jedem seiner Regale ganz vorne. */
+  slugs: string[];
 };
 
 export type ExploreData = {
@@ -355,7 +360,8 @@ async function queryExploreData(locale: string, canSeePro: boolean): Promise<Exp
         // Geometrie zu holen, um daraus eine Box zu rechnen, kostete bei 8 Spots schon
         // 20 KB und würde bei 100-200 Spots rund 1 MB PRO Seitenaufruf bedeuten.
         // Postgres rechnet die Box beim Schreiben (Migration 0042).
-        "slug, emoji, is_pro, type, lat, lng, seasons, route_bbox, spot_translations!inner(title, short_desc, lang), spot_categories(categories(key, season)), media(url, role, sort_order, blur_url)",
+        // sort_weight + created_at: Zutaten der Regal-Reihenfolge (explore-ranking.ts).
+        "slug, emoji, is_pro, type, lat, lng, seasons, route_bbox, sort_weight, created_at, spot_translations!inner(title, short_desc, lang), spot_categories(categories(key, season)), media(url, role, sort_order, blur_url)",
       )
       .eq("status", "published")
       .in("spot_translations.lang", localeWithFallback(locale))
@@ -411,6 +417,22 @@ async function queryExploreData(locale: string, canSeePro: boolean): Promise<Exp
     };
   });
 
+  // Fertige Regal-Reihenfolge (Stufen + Abwechslungs-Regel, docs/38) — EINMAL hier im
+  // gecachten Katalog gerechnet, nicht bei jedem Betrachter. Bewusst NACH dem Mapping:
+  // Gesperrte Pro-Spots ranken unter ihrem Tarn-Slug (locked-N), denn nur den kennt der
+  // Client. Beide Cache-Fassungen (pro/public) sortieren trotzdem identisch, weil die
+  // Zutaten (Stufe, Kategorien, Datum) nicht vom Betrachter abhängen.
+  const ranked = rankShelves(
+    (catsRes.data ?? []).map((c) => ({ key: c.key, season: c.season, sortOrder: c.sort_order })),
+    (spotsRes.data ?? []).map((s, i) => ({
+      slug: spots[i].slug,
+      weight: typeof s.sort_weight === "number" ? s.sort_weight : 0,
+      createdAt: (s.created_at as string | null) ?? "",
+      seasons: spots[i].seasons,
+      categoryKeys: spots[i].categoryKeys,
+    })),
+  );
+
   const categories: ExploreCategory[] = (catsRes.data ?? []).map((c) => {
     const titles = (c.title_translations ?? {}) as Record<string, string>;
     return {
@@ -418,6 +440,7 @@ async function queryExploreData(locale: string, canSeePro: boolean): Promise<Exp
       season: c.season,
       title: titles[locale] ?? titles.de ?? c.key,
       sortOrder: c.sort_order,
+      slugs: ranked.get(shelfKey(c.key, c.season)) ?? [],
     };
   });
 

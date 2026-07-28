@@ -197,18 +197,22 @@ export default function Explore({
   // Regale = Kategorien, die in dieser Saison wirklich Spots haben. Vorab gefiltert
   // statt beim Rendern übersprungen, damit das ERSTE tatsächlich gerenderte Regal
   // markiert werden kann: An ihm misst das Sheet seine mittlere Stufe.
-  const shelves = useMemo(
-    () =>
-      seasonCats
-        .map((cat) => ({
-          cat,
-          spots: seasonSpots.filter((s) =>
-            s.categoryKeys.some((ck) => ck.key === cat.key && ck.season === season),
-          ),
-        }))
-        .filter((shelf) => shelf.spots.length > 0),
-    [seasonCats, seasonSpots, season],
-  );
+  //
+  // Die Reihenfolge JE Regal kommt fertig vom Server (cat.slugs, explore-ranking.ts):
+  // Stufen + Abwechslungs-Regel, damit derselbe Spot nicht in jedem seiner Regale ganz
+  // vorne steht. Hier wird nur noch nachgeschlagen — wer hier wieder selbst sortiert,
+  // holt das "Hochkeil zweimal auf Platz 1"-Problem zurück (docs/38).
+  const shelves = useMemo(() => {
+    const bySlug = new Map(seasonSpots.map((s) => [s.slug, s]));
+    return seasonCats
+      .map((cat) => ({
+        cat,
+        spots: cat.slugs
+          .map((slug) => bySlug.get(slug))
+          .filter((s): s is ExploreSpot => s != null),
+      }))
+      .filter((shelf) => shelf.spots.length > 0);
+  }, [seasonCats, seasonSpots]);
 
   // Gemerkt, weil an diesem Baum ALLE Regale, Karussells und Karten hängen. Ohne das
   // baut ihn jedes Öffnen und Schließen neu auf — das blockiert den Hauptthread lange

@@ -209,7 +209,12 @@ export async function saveSpot(input: SpotInput): Promise<SaveResult> {
   // serialisiert zu null und knallt erst als roher Postgres-Fehler (sort_weight ist
   // NOT NULL); kaputte Koordinaten-Paare gingen über route_geojson bis auf die
   // öffentliche Karte durch (getSpotRoute).
-  const sortWeight = Number.isFinite(input.sortWeight) ? Math.trunc(input.sortWeight) : 0;
+  // sort_weight ist seit Migration 0059 eine Stufe 0..3 — hier geklemmt, damit ein
+  // Alt-Wert aus einem offenen Formular (z. B. 57) nicht am DB-Constraint zerschellt;
+  // NaN fällt auf "Normal" (1), den DB-Default.
+  const sortWeight = Number.isFinite(input.sortWeight)
+    ? Math.min(3, Math.max(0, Math.trunc(input.sortWeight)))
+    : 1;
   const num = (v: number | null) => (v != null && Number.isFinite(v) ? v : null);
   const finitePair = (p: [number, number]) =>
     Array.isArray(p) && p.length === 2 && Number.isFinite(p[0]) && Number.isFinite(p[1]);

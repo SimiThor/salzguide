@@ -44,6 +44,7 @@ import AiButton from "./AiButton";
 import { blockEnterSubmit } from "./form-utils";
 import { adminErrorText } from "@/lib/admin-errors";
 import { STATUS_NEUTRAL } from "@/lib/ui";
+import { WEIGHT_TIERS } from "@/lib/explore-ranking";
 import Busy from "@/components/Busy";
 
 const EMPTY: SpotInput = {
@@ -54,7 +55,7 @@ const EMPTY: SpotInput = {
   seasons: ["summer"],
   isPro: false,
   status: "draft",
-  sortWeight: 0,
+  sortWeight: 1, // Stufe "Normal" — wie der DB-Default (Migration 0059)
   lat: null,
   lng: null,
   parkingLat: null,
@@ -1719,9 +1720,29 @@ export default function SpotForm({
           <div><label className={labelCls}>Telefon</label><input className={input} value={form.phone} onChange={(e) => set({ phone: e.target.value })} /></div>
           <div><label className={labelCls}>Website-URL</label><input className={input} value={form.websiteUrl} onChange={(e) => set({ websiteUrl: e.target.value })} /></div>
           <div><label className={labelCls}>Seename (Wassertemp.)</label><input className={input} value={form.lakeName} onChange={(e) => set({ lakeName: e.target.value })} placeholder="z. B. Fuschlsee" /></div>
-          <div>
-            <label className={labelCls}>Sortier-Gewicht</label>
-            <input type="number" className={input} value={form.sortWeight} onChange={(e) => set({ sortWeight: Number(e.target.value) })} />
+          <div className="sm:col-span-2">
+            <label className={labelCls}>Gewichtung</label>
+            {/* Vier Stufen statt freier Zahl (docs/38): Der Spot wird für sich bewertet
+                ("wie gut ist er?"), die Regal-Reihenfolge samt Abwechslung zwischen den
+                Regalen rechnet der Server (lib/explore-ranking.ts). */}
+            <div className="inline-flex flex-wrap rounded-full bg-black/5 p-1">
+              {WEIGHT_TIERS.map((tier) => (
+                <button
+                  key={tier.value}
+                  type="button"
+                  onClick={() => set({ sortWeight: tier.value })}
+                  className={`cursor-pointer rounded-full px-3.5 py-1.5 text-sm font-medium transition ${
+                    form.sortWeight === tier.value ? "bg-white text-ink shadow-sm" : "text-muted"
+                  }`}
+                >
+                  {tier.label}
+                </button>
+              ))}
+            </div>
+            <p className="mt-1 text-xs text-muted">
+              {WEIGHT_TIERS.find((t) => t.value === form.sortWeight)?.hint ??
+                "Alter Zahlenwert aus der Zeit vor den Stufen, bitte eine Stufe wählen."}
+            </p>
           </div>
         </div>
       </details>
