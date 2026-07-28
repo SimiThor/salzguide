@@ -341,6 +341,10 @@ export default function Explore({
           onMarkerClick={openSpot}
           padding={mapPadding}
           focus={focus}
+          // Kamera-Gedächtnis: Wer zu einem Spot hinzoomt, seine Seite öffnet und
+          // zurückkommt, landet wieder im selben Ausschnitt statt auf der ganz
+          // herausgezoomten Übersicht (lib/map-view-memory.ts).
+          viewKey="explore"
           // Beim Schließen sofort loslassen: Der Pin geht auf Normalgröße zurück und
           // die Route blendet aus, während das Sheet fährt — nicht danach.
           selectedSlug={selectedSlug}
