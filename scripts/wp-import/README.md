@@ -428,3 +428,54 @@ Je Sprache eine Zeile in `spot_translations` mit `source_hash = hashSpotTexts(de
 DE-Zeile bekommt dieselbe Marke. Erst damit gilt ein Spot als veröffentlichbar
 (`translationsPublishable` in `spot-hash.ts`). Danach hängt der Katalog-Cache daran: Server
 neu starten oder im Admin einmal speichern.
+
+## Nachprüfen: was gemessen ist, und was nur behauptet (`wp:audit`)
+
+    npm run wp:audit                Widersprüche, sprachliche Mängel, Nachschlage-Liste
+    npm run wp:audit -- --dump en   Deutsch und Zielsprache Feld für Feld nebeneinander
+
+`wp:consistency` stellt Feld und Text nebeneinander und **urteilt nicht**. Genau deshalb war
+nie aufgefallen, dass drei Wanderungen die Kilometer der alten WordPress-Seite trugen,
+während auf der Karte die gesnappte Linie liegt und die Gehzeit aus genau dieser Linie
+gerechnet ist. `wp:audit` vergleicht, statt aufzulisten, und hat sie gefunden.
+
+**Die wichtigste Trennlinie in diesem Skript** ist die zwischen dem, was eine Maschine wissen
+kann, und dem, was sie nur für richtig hält. Länge, Höhenmeter und Dauer sind im System
+gemessen, dazu gibt es ein Urteil. Ob ein Berg wirklich 2.051 Meter hoch ist oder ein Bus
+noch dorthin fährt, steht nirgends in der Datenbank. Solche Angaben landen in der Liste
+`NACHSCHLAGEN`, damit ein Mensch sie prüft, statt dass sie stillschweigend als wahr gelten.
+
+**Zwei Fehlalarme waren mehr Arbeit wert als die Funde.** „mit Pause eher anderthalb" lässt
+das Wort „Stunden" weg, und Hin-und-retour-Wege nennen einmal den reinen Anstieg und einmal
+Auf plus Ab. Beides ist richtig. Eine Liste voller Fehlalarme schaut sich beim zweiten Mal
+niemand mehr an, also löst die Prüfung beide selbst auf.
+
+### Was das Nachschlagen fand, und wie es korrigiert wird
+
+Zwei Skripte, weil die Fälle verschieden sind:
+
+- **`wp:fix-numbers`** tauscht eine Zahl in ALLEN neun Sprachen und setzt die
+  Aktualitäts-Marke neu. Deutsch allein zu ändern hiesse, den Widerspruch in acht Sprachen
+  stehen zu lassen und sie gleichzeitig auf „veraltet" zu setzen. Die Schreibweisen leitet
+  das Skript selbst ab: aus „2.300" werden „2,300", „2 300" und „2300".
+- **`wp:fix-claims`** ändert eine Aussage, und zwar NUR auf Deutsch. Deutsch ist die Quelle;
+  ändert sie sich, sollen die Übersetzungen veralten und danach neu geschrieben werden. Eine
+  Übersetzung hier mitzuschreiben hiesse, sie an einer zweiten Stelle zu pflegen.
+
+Jede Zeile in beiden Tabellen trägt ihren Grund und ihre Quelle. Wer später eine anzweifelt,
+findet die Begründung daneben und muss nicht suchen.
+
+### Muttersprachler-Durchgänge (`wp:apply-review`)
+
+Acht Lektorate, eines je Zielsprache, über alle 95 Spots. Jeder Durchgang schreibt NUR
+`.wp-cache/review/<lang>.json` mit seinen eigenen Feldern; zusammengeführt wird an einer
+Stelle. Hätte jeder direkt in `.wp-cache/i18n/<slug>.json` geschrieben, hätte der letzte die
+Arbeit der anderen sieben überschrieben, ohne dass es jemandem aufgefallen wäre.
+
+Der Lauf ist wiederholbar: schon eingespielte Felder werden übersprungen, nicht beanstandet.
+Sonst wären spätere Durchgänge nur einspielbar, indem man die früheren rückgängig macht.
+
+**Reihenfolge, die man nicht vertauschen darf:** erst `wp:apply-review`, dann
+`wp:translate --check` und `--go`, und ERST DANACH `wp:fix-numbers`. Die Durchgänge haben den
+Bestand gelesen, bevor die Zahlen korrigiert waren; umgekehrt holt der Patch die alte Zahl
+zurück.
