@@ -14,7 +14,14 @@ import type { TourDetail, TourStopView } from "./tour-types";
 // passende POOL-Punkte eines Gebiets, Mapbox baut daraus die effiziente Geh-RUNDE
 // ab dem fixen Gebiets-Startpunkt (z.B. Mirabellplatz) zurück zum Start. Ergebnis ist
 // EPHEMER (nicht gespeichert) und wird als TourDetail zurückgegeben (Teaser/Pro-Gating
-// + Signed-URLs wie überall). Bauen ist gratis; die ersten Stops sind gratis, Rest Pro.
+// + Signed-URLs wie überall).
+//
+// BAUEN IST PRO-ONLY (Anton, 07/2026). Vorher galt „Bauen gratis, 2 Stops hören": Jede
+// Generierung kostet aber echtes Geld (Claude + Mapbox), und ein Gratis-Konto konnte
+// beliebig viele Läufe auslösen, ohne dass je ein Cent zurückkommt. Free bekommt die
+// kuratierten Runden mit ihren Gratis-Stops (free_stops); die eigene Runde ist das
+// Pro-Argument. /touren/bauen zeigt Nicht-Pro dafür die Kauf-Fläche; der Riegel HIER
+// gilt zusätzlich, weil eine Server-Action jeder direkt aufrufen kann.
 
 const DE = "de";
 const GENERATED_FREE_STOPS = 2; // Teaser: erste 2 Stops gratis anhörbar
@@ -48,6 +55,7 @@ export async function generateTour(
     ? input.locale
     : DE;
   const canSeePro = await viewerCanSeePro();
+  if (!canSeePro) return { ok: false, error: "pro" };
   const supabase = createServiceClient();
 
   // 1) Gebiet + Startpunkt

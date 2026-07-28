@@ -74,6 +74,8 @@
     "buildLead": "Diz-nos do que gostas – criamos-te um percurso a pé, sempre de volta ao início.",
     "buildCard": "Cria a tua própria volta",
     "buildCardSub": "Escolhe interesses, montamos-te uma volta em áudio",
+    "buildCardSubPro": "Escolhe interesses, recebe a tua própria volta. Isso vem com o Pro.",
+    "buildProTeaser": "Diz-nos o que te apetece e a IA monta-te a tua própria volta com áudio. Criar voltas próprias é Pro. As voltas escolhidas ficam abertas a todos, com as primeiras paragens grátis.",
     "buildNeedLogin": "Inicia sessão para criar",
     "buildNeedLoginBody": "Cria e guarda as tuas próprias voltas em áudio depois de iniciares sessão. As voltas escolhidas por locais podes ouvir sem conta.",
     "login": "Iniciar sessão",
