@@ -62,7 +62,7 @@ export default async function EditSpotPage({
     seasons: (s.seasons as string[]) ?? ["summer"],
     isPro: Boolean(s.is_pro),
     status: (s.status as "draft" | "published") ?? "draft",
-    sortWeight: numOrNull(s.sort_weight) ?? 0,
+    sortWeight: numOrNull(s.sort_weight) ?? 1, // Fallback = Stufe "Normal" (Migration 0059)
     lat: numOrNull(s.lat),
     lng: numOrNull(s.lng),
     parkingLat: numOrNull(s.parking_lat),
