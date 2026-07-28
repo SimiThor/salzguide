@@ -4,6 +4,14 @@
 //   npm run wp:audio-tour                Trockenlauf: zeigt, was entstünde
 //   npm run wp:audio-tour -- --only steingasse,mozartsteg   einzelne Stationen
 //   npm run wp:audio-tour -- --go        schreibt wirklich (Bilder + DB)
+//   npm run wp:audio-tour -- --retext [--go]   Sprechtexte aus den Entwürfen NEU einspielen
+//
+// --retext überschreibt den deutschen Sprechtext eines Punkts aus seinem Entwurf, aber
+// NUR solange keine deutsche MP3 existiert: Eine Aufnahme, deren Transkript sich unter
+// ihr wegdreht, ist genau die Inkonsistenz, die dieser Import sonst überall vermeidet.
+// Steht schon eine Aufnahme da, meldet der Lauf das, und Text + Neuvertonung bleiben
+// eine bewusste Entscheidung im Admin. Der source_hash der de-Zeile wird mitgezogen,
+// damit vorhandene Übersetzungen automatisch als veraltet markiert werden.
 //
 // QUELLE ist das `spots`-Array im Seitenquelltext von /salzburg-altstadt-audioguide/,
 // wie bei den zwei Frontend-Karten des Spot-Imports (fetch.ts): Die Seite baut ihre
@@ -68,6 +76,7 @@ const IMAGE_QUALITY = 82;
 const CACHE_CONTROL = "31536000";
 
 const GO = process.argv.includes("--go");
+const RETEXT = process.argv.includes("--retext");
 // Erst prüfen, ob --only überhaupt dasteht; ohne Liste dahinter: Fehler statt still
 // „alle importieren" (dieselbe Falle wie in wp:publish, siehe README).
 const onlyIdx = process.argv.indexOf("--only");
@@ -202,6 +211,7 @@ type DbPoint = {
   image_url: string | null;
   titleDe: string | null;
   audioTextDe: string | null;
+  audioUrlDe: string | null;
 };
 
 // Titel-Vergleich unempfindlich gegen Gross/Klein und Mehrfach-Leerzeichen:
@@ -220,13 +230,15 @@ async function loadArea(): Promise<{ areaId: string; points: DbPoint[] }> {
 
   const { data: rows, error: e2 } = await db
     .from("tour_points")
-    .select("id, lat, lng, emoji, image_url, tour_point_translations(lang, title), tour_point_audio(lang, audio_text)")
+    .select("id, lat, lng, emoji, image_url, tour_point_translations(lang, title), tour_point_audio(lang, audio_text, audio_url)")
     .eq("area_id", area.id);
   if (e2) throw new Error(`Punkte nicht lesbar: ${e2.message}`);
 
   const points: DbPoint[] = ((rows ?? []) as unknown as Record<string, unknown>[]).map((p) => {
     const trs = (p.tour_point_translations as { lang: string; title: string }[] | null) ?? [];
-    const audio = (p.tour_point_audio as { lang: string; audio_text: string | null }[] | null) ?? [];
+    const audio =
+      (p.tour_point_audio as { lang: string; audio_text: string | null; audio_url: string | null }[] | null) ?? [];
+    const de = audio.find((a) => a.lang === "de");
     return {
       id: p.id as string,
       lat: p.lat as number | null,
@@ -234,10 +246,41 @@ async function loadArea(): Promise<{ areaId: string; points: DbPoint[] }> {
       emoji: p.emoji as string | null,
       image_url: p.image_url as string | null,
       titleDe: trs.find((t) => t.lang === "de")?.title ?? null,
-      audioTextDe: audio.find((a) => a.lang === "de")?.audio_text ?? null,
+      audioTextDe: de?.audio_text ?? null,
+      audioUrlDe: de?.audio_url ?? null,
     };
   });
   return { areaId: area.id, points };
+}
+
+// ── Retext: Sprechtext aus dem Entwurf neu einspielen (nur ohne Aufnahme) ───
+
+async function retextStation(
+  st: Station,
+  existing: DbPoint | undefined,
+  draft: string | null,
+): Promise<string> {
+  if (!existing) return "ÜBERSPRUNGEN: Punkt existiert nicht (erst normal importieren)";
+  if (!draft) return "ÜBERSPRUNGEN: kein Entwurfstext";
+  if (existing.audioUrlDe)
+    return "ÜBERSPRUNGEN: hat schon eine deutsche Aufnahme (Text im Admin ändern + neu vertonen)";
+  if ((existing.audioTextDe ?? "").trim() === draft) return "ok, Text ist aktuell";
+
+  const words = draft.split(/\s+/).length;
+  if (!GO) return `würde Sprechtext ersetzen (${words} Wörter)`;
+
+  const { error } = await db.from("tour_point_audio").upsert(
+    { point_id: existing.id, lang: "de", audio_text: draft },
+    { onConflict: "point_id,lang" },
+  );
+  if (error) throw new Error(`Sprechtext fehlgeschlagen: ${error.message}`);
+  const { error: eHash } = await db
+    .from("tour_point_translations")
+    .update({ source_hash: hashTexts([existing.titleDe ?? st.title, draft]) })
+    .eq("point_id", existing.id)
+    .eq("lang", "de");
+  if (eHash) throw new Error(`source_hash fehlgeschlagen: ${eHash.message}`);
+  return `Sprechtext ersetzt (${words} Wörter)`;
 }
 
 // ── Import ──────────────────────────────────────────────────────────────────
@@ -345,14 +388,18 @@ const stations = await loadSource();
 const { areaId, points } = await loadArea();
 const byTitle = new Map(points.filter((p) => p.titleDe).map((p) => [norm(p.titleDe!), p]));
 
-console.log(`\n${GO ? "IMPORT" : "TROCKENLAUF"}: ${stations.length} Stationen, Gebiet '${AREA_KEY}'\n`);
+console.log(
+  `\n${GO ? (RETEXT ? "RETEXT" : "IMPORT") : "TROCKENLAUF"}: ${stations.length} Stationen, Gebiet '${AREA_KEY}'\n`,
+);
 
 let skipped = 0;
 for (const st of stations) {
   if (ONLY && !ONLY.includes(st.slug)) continue;
   const existing = byTitle.get(norm(st.title));
   const draft = loadDraft(st.slug);
-  const result = await upsertStation(areaId, st, existing, draft);
+  const result = RETEXT
+    ? await retextStation(st, existing, draft)
+    : await upsertStation(areaId, st, existing, draft);
   if (result.startsWith("ÜBERSPRUNGEN")) skipped++;
   console.log(`${st.emoji} ${st.title} (${st.slug}): ${result}`);
 }

@@ -515,6 +515,7 @@ dasteht, und wirft bei `--only` ohne Liste.
     npm run wp:audio-tour                      zeigt, was entstünde
     npm run wp:audio-tour -- --only steingasse  einzelne Stationen
     npm run wp:audio-tour -- --go              schreibt wirklich (Bilder + DB)
+    npm run wp:audio-tour -- --retext [--go]   Sprechtexte aus den Entwürfen neu einspielen
 
 Übernimmt die 15 Stationen von `/salzburg-altstadt-audioguide/` in den Audio-Punkte-Pool
 (`tour_points` im Gebiet `salzburger-altstadt`). Die Quelle ist wie bei den zwei
@@ -528,6 +529,15 @@ werden nie überschrieben, nur leere Felder ergänzt. Die deutschen Sprechtexte 
 von Hand als `.wp-cache/audio-drafts/<slug>.json` (`{ "audioTextDe": "…" }`) — sie sind
 Pro-Inhalt und gehören deshalb NICHT ins öffentliche Repo. Ohne Entwurf wird eine neue
 Station übersprungen statt halb angelegt.
+
+**Jeder Sprechtext muss in sich geschlossen sein.** Die Reihenfolge der Stationen ist
+nicht fix — der Runden-Builder baut jede Runde pro Nutzer neu aus dem Pool, derselbe
+Text läuft mal als erste, mal als letzte Station. Also keine Überleitungen und keine
+Wegweisung an Anfang oder Ende: kein „weiter zur nächsten Station", kein „geh weiter
+Richtung …", kein „du kommst gerade von …". Bewegung AM Ort selbst ist in Ordnung
+(„geh die Gasse bis zum Ende"). Für die KI-Knöpfe im Admin steht dieselbe Regel in
+`AUDIO_GUIDE_RULES` (`src/lib/tour-pool-actions.ts`); wer Entwürfe von Hand schreibt,
+hält sie hier ein.
 
 **Die alten MP3s bleiben zurück.** Die Texte entstehen neu, und eine Aufnahme, die etwas
 anderes sagt als ihr Transkript, ist schlimmer als gar keine. Vertonen macht der
