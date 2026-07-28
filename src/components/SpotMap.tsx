@@ -7,6 +7,7 @@ import { useEffect, useRef } from "react";
 import { MapLoadingScreen, useMapLoading } from "./MapLoading";
 import { RecenterControl } from "./mapControls";
 import { useLatestRef } from "@/lib/use-latest-ref";
+import { bindMapViewMemory, readMapView } from "@/lib/map-view-memory";
 import { declutterBasemap } from "@/lib/map-declutter";
 import { poiEmoji, type PoiKind } from "@/lib/poi";
 import { isClosedRoute } from "@/lib/geo";
@@ -87,6 +88,7 @@ export default function SpotMap({
   onFullscreen,
   openMapLabel,
   mapClass,
+  viewKey,
 }: {
   markers: MapMarker[];
   onMarkerClick?: (slug: string) => void;
@@ -136,6 +138,12 @@ export default function SpotMap({
   openMapLabel?: string;
   // Zusätzliche CSS-Klasse am Karten-Container (steuert u.a. Control-Position mobil)
   mapClass?: string;
+  // Kamera-Gedächtnis (lib/map-view-memory.ts): Unter diesem Schlüssel merkt sich die
+  // Karte ihren Ausschnitt pro Tab und startet beim nächsten Aufbau wieder dort, statt
+  // auf die Übersicht zurückzufallen (der "zurück von der Spot-Seite"-Fall). Nur für
+  // die Vollbild-Arbeits-Karten gedacht; ohne Schlüssel ändert sich nichts. Muss über
+  // die Lebenszeit der Karte stabil sein (wird nur beim Aufbau gelesen).
+  viewKey?: string;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   // Ladeschirm über der Karte, bis das erste fertige Kartenbild steht (siehe unten).
@@ -362,15 +370,26 @@ export default function SpotMap({
   // bleiben unverändert.
   const preview = Boolean(onFullscreen);
 
+  // Der Aufbau hat einen gemerkten Ausschnitt wiederhergestellt -> das ERSTE
+  // automatische Einpassen auf die Marker (Effekt unten) einmal überspringen,
+  // sonst wäre die Wiederherstellung sofort wieder überschrieben. Spätere
+  // Marker-Wechsel (z.B. Saison-Umschalter) passen wieder normal ein.
+  const skipFirstFit = useRef(false);
+
   // Karte einmalig initialisieren
   useEffect(() => {
     if (!TOKEN || !containerRef.current || mapRef.current) return;
     mapboxgl.accessToken = TOKEN;
+    // Gemerkter Ausschnitt (falls viewKey gesetzt und noch frisch): Die Karte startet
+    // direkt dort, wo sie zuletzt stand — kein Flug, kein Umspringen.
+    const savedView = viewKey ? readMapView(viewKey) : null;
+    if (savedView) skipFirstFit.current = true;
     const map = new mapboxgl.Map({
       container: containerRef.current,
       style: "mapbox://styles/mapbox/outdoors-v12",
-      center,
-      zoom,
+      center: savedView?.center ?? center,
+      zoom: savedView?.zoom ?? zoom,
+      bearing: savedView?.bearing ?? 0,
       // Vorschau-Karten reagieren auf GAR keine Geste (siehe Kommentar unten): kein
       // Ziehen, kein Zoomen, kein Drehen. Deshalb braucht es hier auch keine
       // Zwei-Finger-Sperre mehr — der Hinweis „Use two fingers to move the map" war
@@ -424,10 +443,13 @@ export default function SpotMap({
     // Ladeschirm an die Karte hängen: Er zeigt den Fortschritt und geht weg, sobald
     // das erste fertige Kartenbild steht (Meilensteine + Sicherheitsnetz in MapLoading).
     const unbindLoading = bindMap(map);
+    // Kamera-Gedächtnis: jeden fertigen Ausschnitt merken (siehe viewKey oben).
+    const unbindView = viewKey ? bindMapViewMemory(map, viewKey) : null;
     // Klick auf die leere Karte schließt die Vorschau (Marker stoppen das Event)
     map.on("click", () => onMapClickRef.current?.());
     mapRef.current = map;
     return () => {
+      unbindView?.();
       unbindLoading();
       stopRouteAnim();
       poiMarkers.current.forEach((m) => m.remove());
@@ -447,6 +469,12 @@ export default function SpotMap({
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
+
+    // Genau EINMAL lesen und sofort zurücksetzen: Nur der Lauf direkt nach dem Aufbau
+    // darf das Einpassen auslassen (wiederhergestellter Ausschnitt), jeder spätere
+    // (Saison-Wechsel) passt wieder normal ein.
+    const skipFit = skipFirstFit.current;
+    skipFirstFit.current = false;
 
     markerObjs.current.forEach((m) => m.remove());
     markerObjs.current = [];
@@ -482,7 +510,7 @@ export default function SpotMap({
       bounds.extend([mk.lng, mk.lat]);
     });
 
-    if (!bounds.isEmpty()) {
+    if (!bounds.isEmpty() && !skipFit) {
       map.fitBounds(bounds, {
         padding: {
           top: padding?.top ?? 90,

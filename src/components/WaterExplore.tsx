@@ -14,6 +14,7 @@ import PartnerCredits from "./PartnerCredits";
 import { SHEET_PEEK_VAR, readCssLength } from "@/lib/sheet-metrics";
 import { useViewportHeight } from "@/lib/viewport";
 import { useLatestRef } from "@/lib/use-latest-ref";
+import { bindMapViewMemory, readMapView } from "@/lib/map-view-memory";
 import { declutterBasemap } from "@/lib/map-declutter";
 import { RecenterControl } from "./mapControls";
 
@@ -147,11 +148,16 @@ export default function WaterExplore({
   useEffect(() => {
     if (!TOKEN || !mapEl.current || mapRef.current) return;
     mapboxgl.accessToken = TOKEN;
+    // Kamera-Gedächtnis wie auf der Startseiten-Karte (lib/map-view-memory.ts): Wer
+    // von einem Spot-Link zurückkommt, landet wieder im selben Ausschnitt. Nur ohne
+    // gemerkten Ausschnitt passt die Karte beim Laden auf alle Seen ein (unten).
+    const savedView = readMapView("water");
     const map = new mapboxgl.Map({
       container: mapEl.current,
       style: "mapbox://styles/mapbox/outdoors-v12",
-      center: [13.25, 47.72],
-      zoom: 7.6,
+      center: savedView?.center ?? [13.25, 47.72],
+      zoom: savedView?.zoom ?? 7.6,
+      bearing: savedView?.bearing ?? 0,
       // Immer flache 2D-Ansicht — keine 3D-Neigung (Pitch), wie die Startseiten-Karte.
       pitch: 0,
       maxPitch: 0,
@@ -179,12 +185,17 @@ export default function WaterExplore({
       "top-right",
     );
     // Beim ersten Laden automatisch auf alle Seen einpassen (kein fixer Ausschnitt).
-    map.on("load", () => fitRef.current(0));
+    // Mit wiederhergestelltem Ausschnitt entfällt das: Er würde die Kamera sofort
+    // wieder auf die Übersicht reißen.
+    if (!savedView) map.on("load", () => fitRef.current(0));
     map.on("click", () => setSelected(null));
+    // Jeden fertigen Ausschnitt merken (moveend), Trennfunktion sichert den letzten.
+    const unbindView = bindMapViewMemory(map, "water");
     // Ladeschirm über der Karte, bis das erste fertige Kartenbild steht (siehe MapLoading).
     const unbindLoading = bindMap(map);
     mapRef.current = map;
     return () => {
+      unbindView();
       unbindLoading();
       Object.values(markersRef.current).forEach((m) => m.remove());
       markersRef.current = {};
