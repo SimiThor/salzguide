@@ -207,43 +207,6 @@ export const getFeaturedSpots = cache(async function getFeaturedSpots(
   });
 });
 
-// Veröffentlichte Spots inkl. Übersetzung in der gewünschten Sprache (mit DE-Fallback).
-// Liest über den anon-Key → RLS lässt nur status='published' durch.
-export async function getPublishedSpots(locale: string): Promise<SpotCardData[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("spots")
-    .select("slug, emoji, is_pro, type, spot_translations!inner(title, short_desc, lang), media(url, role, sort_order)")
-    .eq("status", "published")
-    .in("spot_translations.lang", localeWithFallback(locale))
-    .order("sort_weight", { ascending: false });
-
-  if (error) {
-    console.error("getPublishedSpots:", error.message);
-    return [];
-  }
-
-  return (data ?? []).map((s) => {
-    const t = pickTranslation(
-      s.spot_translations as { title: string; short_desc: string | null; lang: string }[],
-      locale,
-    );
-    return {
-      slug: s.slug,
-      emoji: s.emoji,
-      imageUrl: imagesFromMedia(s.media)[0] ?? null,
-      // Läuft über den anon-Key: Die RLS (Migration 0017) lässt Pro-Spots nur durch,
-      // wenn der Betrachter sie sehen darf. Was hier ankommt, ist also nie gesperrt.
-      locked: false,
-      previewUrl: null,
-      isPro: s.is_pro,
-      type: s.type,
-      title: t?.title ?? s.slug,
-      shortDesc: t?.short_desc ?? null,
-    };
-  });
-}
-
 // ---- Explore (Karte + Karussells + Saison) ----------------------------------
 export type ExploreSpot = SpotCardData & {
   lat: number | null;
@@ -681,7 +644,35 @@ export const getSpotDetail = cache(async function getSpotDetail(
   slug: string,
   locale: string,
 ): Promise<SpotDetail | null> {
+  // Betrachter-Prüfung AUSSERHALB des Caches: viewerCanSeePro() liest Cookies, und
+  // `unstable_cache` darf nichts anfassen, was zum Request gehört — dieselbe Ordnung
+  // wie bei getExploreData (Begründung oben, "WARUM DER KATALOG GECACHT IST").
   const canSeePro = await viewerCanSeePro();
+  return loadSpotDetail(slug, locale, canSeePro);
+});
+
+// Wie loadExploreData: Die Stufe (pro|public) gehört in den Schlüssel. Ohne sie würde
+// der erste Pro-Kunde seine entsperrte Fassung für alle Gäste einfrieren — oder ein
+// Gast die Paywall für zahlende Kunden. Admin-Änderungen kommen über updateTag(SPOTS_TAG)
+// sofort an; die fünf Minuten sind nur das Sicherheitsnetz (EXPLORE_REVALIDATE).
+// Vorher lief die Abfrage (2-3 Supabase-Queries) bei JEDEM Aufruf jeder Spot-Seite —
+// also bei jedem Google-Besucher — komplett neu.
+const loadSpotDetail = (
+  slug: string,
+  locale: string,
+  canSeePro: boolean,
+): Promise<SpotDetail | null> =>
+  unstable_cache(
+    () => querySpotDetail(slug, locale, canSeePro),
+    ["spot-detail", slug, locale, canSeePro ? "pro" : "public"],
+    { tags: [SPOTS_TAG], revalidate: EXPLORE_REVALIDATE },
+  )();
+
+async function querySpotDetail(
+  slug: string,
+  locale: string,
+  canSeePro: boolean,
+): Promise<SpotDetail | null> {
   // Service-Client, damit die Paywall-Seite eines Pro-Spots erscheinen kann; die
   // sensiblen Felder werden unten bei `locked` autoritativ genullt (kein Leak).
   const supabase = createServiceClient();
@@ -847,4 +838,4 @@ export const getSpotDetail = cache(async function getSpotDetail(
     introVideoUrl: (data.intro_video_url as string | null) ?? null,
     introVideoPosterUrl: (data.intro_video_poster_url as string | null) ?? null,
   };
-});
+}
