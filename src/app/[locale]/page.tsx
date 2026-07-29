@@ -31,12 +31,16 @@ import { LANDING_SECTION_Y } from "@/components/landing/layout";
 // und zu ChatGPT (rät). Alles, was diese Aussage nicht stützt, gehört nicht auf die Seite.
 //
 // Roter Faden: Was ist das und wieso nicht Google? (Hero) -> Wem glaubst du? (TrustStrip)
-// -> Wie schaut das aus? (FeaturedSpots) -> Wieso diese Spots? (Story) -> Wer ist „wir"?
-// (Founders) -> Was kann seine KI? (Toni) -> Was kostet es? (Pro) -> Los. (Schluss-CTA)
+// -> Wie schaut das aus? (FeaturedSpots) -> Wer ist „wir"? (Founders) -> Wieso diese
+// Spots? (Story) -> Was kann ihre KI? (Toni) -> Was kostet es? (Pro) -> Los. (Schluss-CTA)
 //
-// Founders steht VOR Toni, und das ist Absicht: Tonis Glaubwürdigkeit kommt von den
-// Menschen, nicht umgekehrt. „Jeden Spot, den Toni dir empfiehlt, haben wir selbst
-// gesehen" trägt nur, wenn Anton kurz davor ein Gesicht bekommen hat.
+// Founders steht direkt HINTER den Favoriten, und das ist Absicht (Antons Entscheidung,
+// 07/2026): Deren Überschrift sagt „Die Geheimtipps, die wir sonst nur Freunden zeigen",
+// und wer da „wir" sagt, zeigt im nächsten Atemzug sein Gesicht. Zwei echte Salzburger
+// sind der Unterschied zu booking.com und Tripadvisor, also sollen sie früh kommen.
+// Die Kette zu Toni bleibt trotzdem geschlossen: Story hält die beiden im Bild („Wir
+// waren an jedem Spot selbst"), und direkt danach erbt Toni diese Glaubwürdigkeit
+// („Jeden Spot, den Toni dir empfiehlt, haben wir selbst gesehen").
 export async function generateMetadata({
   params,
 }: {
@@ -94,16 +98,17 @@ export default async function HomePage({
       {/* Echte Spots, bevor irgendetwas erklärt wird. Auswahl im Admin unter
           Einstellungen; ohne Auswahl blendet sich die Section selbst aus. */}
       <FeaturedSpots texts={texts} locale={locale} />
-      <Story texts={texts} />
       <FoundersSection texts={texts} media={media} locale={locale} />
+      <Story texts={texts} />
       <ToniSection texts={texts} />
       <ProSection texts={texts} locale={locale} />
 
       {/* Instagram, bewusst NACH Pro und VOR dem Schluss: Wer bis hier gelesen hat, ist
           entweder überzeugt (dann kommt gleich der Weg zur Karte) oder noch nicht (dann ist
           Folgen der leichtere zweite Schritt, und wir sehen uns wieder). Der rote Faden
-          Gründer -> Toni bleibt dabei unangetastet: Tonis Glaubwürdigkeit kommt von den zwei
-          Gesichtern direkt davor, dazwischen gehört nichts.
+          Founders -> Story -> Toni bleibt dabei unangetastet: Tonis Glaubwürdigkeit kommt
+          von den Gründern und ihrem „wir waren an jedem Spot" direkt davor, dazwischen
+          gehört nichts Fremdes.
           Ohne gespiegelte Beiträge blendet sich die Section selbst aus. */}
       <SocialSection texts={texts} posts={socialPosts} />
 

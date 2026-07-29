@@ -13,8 +13,9 @@ import { LANDING_CONTAINER, LANDING_SECTION_Y } from "./layout";
 //
 // Seitdem spricht die Section dieselbe Sprache wie die SEO-Texte in Meta (Geheimtipps,
 // Hidden Gems): EIN kurzer Claim, EIN Absatz, der sagt, was der Leser bekommt, nämlich
-// Insider-Tipps von Leuten, die selbst dort waren. Behauptung nackt, Beleg (wer „wir"
-// sind) kommt zwei Sections später bei den Gründern.
+// Insider-Tipps von Leuten, die selbst dort waren. Behauptung nackt, und die Gesichter
+// dazu stehen seit 07/2026 direkt DAVOR (Founders): „Wir waren an jedem Spot selbst"
+// liest man hier mit zwei bekannten Salzburgern im Kopf.
 //
 // Die Kacheln danach folgen hikebeasts Kachel-Muster: schlichter Titel, EINE Zeile Nutzen.
 // Test: nur die Titel lesen. Wer scannt, muss damit das Produkt haben.
