@@ -27,8 +27,8 @@ export const HOME_GROUPS: readonly HomeGroup[] = [
   {
     title: "Kopfzeile & Hero",
     fields: [
-      { key: "heroTitle", label: "Überschrift", hint: "Rendert bis 68px. Zwei kurze Sätze halten besser als einer langer." },
-      { key: "heroSubtitle", label: "Untertitel", long: true, hint: "Macht die Verständnis-Arbeit: Wer noch nie von uns gehört hat, muss HIER erfahren, was das ist." },
+      { key: "heroTitle", label: "Überschrift", hint: "Rendert bis 68px, kurz halten." },
+      { key: "heroSubtitle", label: "Untertitel", long: true, hint: "Erklärt Neuen in einem Satz, was SalzGuide ist." },
       { key: "heroCta", label: "Knopf" },
       { key: "navCta", label: "Knopf in der Kopfzeile", hint: "Erscheint erst beim Scrollen." },
     ],
@@ -38,25 +38,30 @@ export const HOME_GROUPS: readonly HomeGroup[] = [
     fields: [
       { key: "trustLocalsTitle", label: "Kachel 1: Titel" },
       { key: "trustLocalsBody", label: "Kachel 1: Text" },
-      { key: "trustSpotsTitle", label: "Kachel 2: Titel (ab 10 Spots)", hint: "{count} wird durch die echte Zahl ersetzt, abgerundet. Die Klammern müssen stehen bleiben." },
-      { key: "trustSpotsTitleExact", label: "Kachel 2: Titel (unter 10 Spots)", hint: "Gilt, solange weniger als 10 Spots online sind. {count} ist dann die exakte Zahl." },
+      { key: "trustSpotsTitle", label: "Kachel 2: Titel (ab 10 Spots)", hint: "{count} muss bleiben, die echte Zahl kommt automatisch." },
+      { key: "trustSpotsTitleExact", label: "Kachel 2: Titel (unter 10 Spots)", hint: "{count} muss bleiben." },
       { key: "trustSpotsBody", label: "Kachel 2: Text" },
-      { key: "trustVisitorsTitle", label: "Kachel 3: Titel", hint: "ACHTUNG: Gemessen sind 25.000 BESUCHER der alten Seite. Die 10.000 sind Antons Schätzung, keine Messung. Nicht wachsen lassen, ohne sie zu messen." },
+      // Gemessen sind 25.000 BESUCHER der alten WordPress-Seite; die 10.000 Trips sind
+      // Antons Schätzung, keine Messung. Deshalb behält dieses Feld als einziges eine
+      // Warnung im Formular, nur eben in einem Satz.
+      { key: "trustVisitorsTitle", label: "Kachel 3: Titel", hint: "Die 10.000 sind geschätzt. Nicht erhöhen, ohne zu messen." },
       { key: "trustVisitorsBody", label: "Kachel 3: Text" },
     ],
   },
   {
     title: "Spots von der Karte",
-    note: "Welche Spots hier stehen, wählst du weiter unten unter „Spots auf der Startseite“.",
+    note: "Die Spots wählst du unten unter „Spots auf der Startseite“.",
     fields: [
-      { key: "featuredEyebrow", label: "Kleine Zeile darüber", hint: "Keine Anzahl hineinschreiben: du darfst bis zu 6 Spots auswählen." },
+      { key: "featuredEyebrow", label: "Kleine Zeile darüber", hint: "Ohne Anzahl, es können bis zu 6 Spots sein." },
       { key: "featuredTitle", label: "Überschrift" },
       { key: "featuredCta", label: "Knopf" },
     ],
   },
   {
     title: "Hidden Gems",
-    note: "Spricht dieselbe Sprache wie die SEO-Texte (Geheimtipps, Hidden Gems). Hier stand mal „ChatGPT war noch nie am Fuschlsee“: klang clever, erklärte aber einen Badesee statt unser Produkt.",
+    // Warum die Section so heisst und was vorher hier stand (die ChatGPT-Fuschlsee-Zeile):
+    // steht bei der Section selbst, components/landing/Story.tsx. Der Admin braucht die
+    // Geschichte nicht.
     fields: [
       { key: "pitchEyebrow", label: "Kleine Zeile darüber" },
       { key: "pitchTitle", label: "Überschrift" },
@@ -65,7 +70,9 @@ export const HOME_GROUPS: readonly HomeGroup[] = [
   },
   {
     title: "Die drei Features",
-    note: "Nur behaupten, was in der Datenbank wirklich flächendeckend gepflegt ist. Öffnungszeiten und Öffi standen hier mal und hingen an je einem einzigen Spot.",
+    // Öffnungszeiten und Öffi standen hier mal als Features und hingen an je EINEM Spot.
+    // Deshalb die Regel als note; die Geschichte dazu nur noch hier.
+    note: "Nur behaupten, was die Datenbank flächendeckend hergibt.",
     fields: [
       { key: "feat1Title", label: "Feature 1: Titel" },
       { key: "feat1Body", label: "Feature 1: Text", long: true },
@@ -98,7 +105,7 @@ export const HOME_GROUPS: readonly HomeGroup[] = [
   },
   {
     title: "Pro",
-    note: "Der Preis und die vier Vorteile kommen aus Stripe und aus proFeatures.ts, nicht von hier.",
+    note: "Preis und Vorteile kommen aus Stripe und proFeatures.ts.",
     fields: [
       { key: "proEyebrow", label: "Kleine Zeile darüber", hint: "Steht neben dem Pro-Abzeichen." },
       { key: "proTitle", label: "Überschrift" },
@@ -107,7 +114,9 @@ export const HOME_GROUPS: readonly HomeGroup[] = [
   },
   {
     title: "Instagram",
-    note: "Zeigt die letzten sechs Beiträge. Sie kommen automatisch (Einstellungen -> Instagram-Feed); ist noch keiner da, blendet sich die ganze Section aus. Die Überschrift ist der Handle selbst (@salzguide) und kommt aus src/lib/social.ts, damit er beim Umbenennen nur an einer Stelle steht.",
+    // Die Überschrift der Section ist der Handle selbst (@salzguide) und kommt aus
+    // src/lib/social.ts, damit er beim Umbenennen nur an einer Stelle steht.
+    note: "Die Beiträge kommen automatisch aus Einstellungen -> Instagram-Feed. Ohne Beiträge blendet sich die Section aus.",
     fields: [
       { key: "socialEyebrow", label: "Kleine Zeile darüber" },
       { key: "socialCta", label: "Knopf" },
