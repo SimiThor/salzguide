@@ -432,20 +432,28 @@ export async function getJobStatus(): Promise<JobStatus[]> {
 /**
  * Überfällige Jobs suchen und melden. Läuft am Ende des täglichen Aufräum-Crons.
  *
- * WER BEWACHT DEN WÄCHTER: Der tägliche Cron prüft hier auch sich selbst — was nichts nützt,
- * wenn er gar nicht erst läuft. Die Admin-Systemseite ZEIGT denselben Zustand (über
+ * WER BEWACHT DEN WÄCHTER: Sich selbst kann ein Cron nicht bewachen — läuft er nicht, läuft
+ * auch diese Prüfung nicht. Die Admin-Systemseite ZEIGT denselben Zustand (über
  * getJobStatus), schickt aber bewusst keine Mail: Wer die Seite offen hat, sieht das rote
  * „überfällig" ja bereits, eine Mail dazu wäre nur Lärm. Ein wirklich unabhängiger zweiter
  * Wächter müsste ausserhalb dieser App laufen (externer Uptime-Dienst); das steht als
  * offener Punkt in docs/36.
+ *
+ * `runningJob` nimmt den Job aus, in dem diese Prüfung gerade steckt. Ohne die Ausnahme
+ * meldet sich der Job beim ERSTEN Lauf nach einer Lücke selbst: Die Prüfung läuft vor dem
+ * eigenen Stempel (finishCron), sieht also noch den alten Zeitstempel — und verschickt
+ * „bleibt aus" in genau dem Moment, in dem der Lauf wieder da ist. So geschehen am
+ * 29.07.2026, als der erste Lauf nach dem CRON_SECRET-Fix die eigene Saat-Zeile (Migration
+ * 0057, 38 h alt) als überfällig meldete. Ein Alarm, der das Gegenteil der Lage behauptet,
+ * kostet das Vertrauen in alle weiteren.
  *
  * DAMIT DAS HIER ÜBERHAUPT ANSCHLAGEN KANN, braucht jeder Job eine Zeile in ops_heartbeats.
  * Ein Job ohne Zeile gilt absichtlich als „nicht überfällig" (sonst gäbe es beim ersten
  * Deploy Fehlalarm) — und wäre damit für immer unsichtbar, wenn er NIE läuft. Genau diesen
  * Fall gab es (siehe Migration 0057), deshalb sät sie die Zeilen beim Einspielen.
  */
-export async function reportOverdueJobs(): Promise<number> {
-  const overdue = (await getJobStatus()).filter((s) => s.overdue);
+export async function reportOverdueJobs(runningJob?: string): Promise<number> {
+  const overdue = (await getJobStatus()).filter((s) => s.overdue && s.job !== runningJob);
   for (const s of overdue) {
     await logOps("cron_missing", {
       message: `${s.label} ist seit ${Math.floor(s.hoursSince ?? 0)} Stunden nicht mehr gelaufen (Fahrplan: ${s.schedule}).`,

@@ -26,9 +26,13 @@ export async function GET(req: Request): Promise<Response> {
 
   // Erst aufräumen, dann nach überfälligen Läufen sehen. Die Reihenfolge ist Absicht: Fällt
   // die Prüfung aus, war das Aufräumen (die Rechtsfrist) trotzdem schon erledigt.
+  //
+  // "cleanup" nimmt sich selbst aus der Prüfung: Der eigene Stempel fällt erst NACH ihr
+  // (finishCron unten), und ein Job, der gerade läuft, ist nicht „ausgeblieben" — auch wenn
+  // sein letzter Stempel älter als die Frist ist (Details am runningJob-Parameter in ops.ts).
   let overdue = 0;
   try {
-    overdue = await reportOverdueJobs();
+    overdue = await reportOverdueJobs("cleanup");
   } catch (e) {
     console.error("[cron] Prüfung auf überfällige Läufe fehlgeschlagen", e);
   }
