@@ -74,7 +74,6 @@ export default function AiAssistant({
   onClose: () => void;
 }) {
   const t = useTranslations("Ai");
-  const tPro = useTranslations("Pro"); // Knopfbeschriftung: eine Quelle, siehe SpotSheet.tsx
   const locale = useLocale();
   const kb = useKeyboard(); // Tastatur offen? -> Sheet wird kürzer, siehe Scroll-Effekt
   const pathname = usePathname(); // locale-frei, z.B. "/spot/hochkeil" -> Seiten-Kontext für Toni
@@ -355,25 +354,28 @@ export default function AiAssistant({
   const footer = paywall ? (
     <div className="rounded-[16px] bg-white p-4 text-center shadow-sm ring-1 ring-black/[0.04]">
       <p className="text-[15px] font-semibold text-ink">
-        {t(paywall === "guest" ? "paywallGuestTitle" : "paywallProTitle")}
+        {t(paywall === "guest" ? "paywallGuestTitle" : "paywallFreeTitle")}
       </p>
       <p className="mt-1 text-[13px] text-muted">
-        {t(paywall === "guest" ? "paywallGuestBody" : "paywallProBody")}
+        {t(paywall === "guest" ? "paywallGuestBody" : "paywallFreeBody")}
       </p>
-      {/* Gast-CTA MIT next: Nach dem Login geht es auf die Seite zurück, über der der
+      {/* Nur der Gast bekommt einen Knopf (Anmelden). Beim Tageslimit eines angemeldeten
+          Nutzers stand hier „Pro freischalten" – raus (Antons Regel, 07/2026): Toni wird
+          nirgends als Pro-Vorteil verkauft, und ein Kauf-Knopf unter „Tageslimit erreicht"
+          wäre genau dieses Versprechen, nur als Knopf. Pro hebt das Limit zwar technisch
+          auf (api/ai/chat), aber das ist Verhalten, kein Verkaufsargument.
+          Gast-CTA MIT next: Nach dem Login geht es auf die Seite zurück, über der der
           Chat gerade lag – nicht aufs Profil. Locale-Präfix von Hand, weil usePathname
           aus i18n/navigation den Pfad OHNE Präfix liefert (siehe LoginGate.tsx). */}
-      <Link
-        href={
-          paywall === "guest"
-            ? `/profil?next=${encodeURIComponent(`/${locale}${pathname}`)}`
-            : "/pro"
-        }
-        onClick={onClose}
-        className="mt-3 inline-block rounded-full bg-accent px-5 py-2 text-[14px] font-semibold text-white active:scale-95"
-      >
-        {paywall === "guest" ? t("paywallGuestCta") : tPro("cta")}
-      </Link>
+      {paywall === "guest" && (
+        <Link
+          href={`/profil?next=${encodeURIComponent(`/${locale}${pathname}`)}`}
+          onClick={onClose}
+          className="mt-3 inline-block rounded-full bg-accent px-5 py-2 text-[14px] font-semibold text-white active:scale-95"
+        >
+          {t("paywallGuestCta")}
+        </Link>
+      )}
     </div>
   ) : (
     <>

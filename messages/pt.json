@@ -6,7 +6,7 @@
     "exploreTitle": "O que fazer na região de Salzburgo: o mapa interativo",
     "exploreDescription": "Caminhadas, lagos, miradouros, abrigos e tabernas num mapa interativo. Cada sítio visitado por nós, com uma dica real de um local.",
     "proTitle": "SalzGuide Pro",
-    "proDescription": "Sítios bloqueados com a dica de local, caminhadas com o traçado, percursos áudio completos e Toni sem limite. Pagas uma vez, sem subscrição.",
+    "proDescription": "Sítios bloqueados com a dica de local, caminhadas com o traçado e percursos áudio completos. Pagas uma vez, sem subscrição.",
     "eventsTitle": "Eventos em Salzburgo",
     "eventsDescription": "O que se passa em Salzburgo: festas, cultura, tradição e programas para crianças. Sempre atualizado, com mapa.",
     "wasserTitle": "Temperatura da água dos lagos de Salzburgo",
@@ -184,8 +184,8 @@
     "paywallGuestTitle": "Chegaste ao teu limite grátis de hoje",
     "paywallGuestBody": "Regista-te grátis e pergunta ao Toni mais vezes.",
     "paywallGuestCta": "Registar grátis",
-    "paywallProTitle": "Limite diário atingido",
-    "paywallProBody": "Com o Pro perguntas ao Toni sem limite. E os sítios bloqueados também abrem."
+    "paywallFreeTitle": "Limite diário atingido",
+    "paywallFreeBody": "Amanhã o Toni volta a estar disponível para ti."
   },
   "Explore": {
     "pageHeading": "O que fazer e sítios secretos na região de Salzburgo, num mapa interativo",
@@ -388,7 +388,7 @@
     "unavailable": "A compra não está disponível de momento.",
     "alreadyPro": "Já és Pro. 🎉",
     "successTitle": "Obrigado – bem-vindo ao Pro!",
-    "successBody": "A partir de agora todos os sítios secretos, todos os percursos e o Toni estão abertos para ti.",
+    "successBody": "A partir de agora todos os sítios secretos e todos os percursos estão abertos para ti.",
     "accountIs": "A tua conta está em {email}. É com esse endereço que entras em qualquer dispositivo.",
     "canceledTitle": "Compra cancelada",
     "canceledBody": "Sem problema – podes tornar-te Pro quando quiseres.",

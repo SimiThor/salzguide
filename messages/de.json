@@ -6,7 +6,7 @@
     "exploreTitle": "Ausflugsziele im Salzburger Land: interaktive Karte",
     "exploreDescription": "Wanderungen, Seen, Almen, Aussichtspunkte & Wirtshäuser auf einer interaktiven Karte. Jeden Spot haben wir selbst besucht, mit echtem Local-Tipp.",
     "proTitle": "SalzGuide Pro",
-    "proDescription": "Gesperrte Spots mit Insider-Tipp, Wanderungen mit Route, Audio-Touren komplett und Toni ohne Limit. Einmal zahlen, kein Abo.",
+    "proDescription": "Gesperrte Spots mit Insider-Tipp, Wanderungen mit Route und Audio-Touren komplett. Einmal zahlen, kein Abo.",
     "eventsTitle": "Veranstaltungen in Salzburg und Umgebung",
     "eventsDescription": "Was geht in Salzburg: Feste, Kultur, Tradition und Sachen für Kinder. Laufend aktualisiert, mit Karte und Merkliste.",
     "wasserTitle": "Wassertemperatur der Salzburger Seen",
@@ -227,8 +227,8 @@
     "paywallGuestTitle": "Dein Gratis-Limit für heute ist erreicht",
     "paywallGuestBody": "Meld dich kostenlos an und frag Toni öfter.",
     "paywallGuestCta": "Kostenlos anmelden",
-    "paywallProTitle": "Tageslimit erreicht",
-    "paywallProBody": "Mit Pro fragst du Toni ohne Limit. Und die gesperrten Spots gehen auch auf."
+    "paywallFreeTitle": "Tageslimit erreicht",
+    "paywallFreeBody": "Morgen ist Toni wieder für dich da."
   },
   "Explore": {
     "pageHeading": "Ausflugsziele & Geheimtipps im Salzburger Land auf einer interaktiven Karte",
@@ -431,7 +431,7 @@
     "unavailable": "Der Kauf ist gerade nicht verfügbar.",
     "alreadyPro": "Du bist bereits Pro. 🎉",
     "successTitle": "Danke – willkommen bei Pro!",
-    "successBody": "Alle Geheimtipps, alle Touren und Toni sind ab jetzt für dich offen.",
+    "successBody": "Alle Geheimtipps und alle Touren sind ab jetzt für dich offen.",
     "accountIs": "Dein Konto läuft auf {email}. Damit meldest du dich auf jedem Gerät an.",
     "canceledTitle": "Kauf abgebrochen",
     "canceledBody": "Kein Problem – du kannst jederzeit Pro werden.",

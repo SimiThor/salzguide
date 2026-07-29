@@ -6,7 +6,7 @@
     "exploreTitle": "Cose da fare nel Salisburghese: la mappa interattiva",
     "exploreDescription": "Escursioni, laghi, punti panoramici, malghe e osterie su un'unica mappa interattiva. Ogni posto visitato da noi, con un vero consiglio local.",
     "proTitle": "SalzGuide Pro",
-    "proDescription": "Posti bloccati con il consiglio da insider, escursioni con il percorso, tour audio interi e Toni senza limiti. Paghi una volta, nessun abbonamento.",
+    "proDescription": "Posti bloccati con il consiglio da insider, escursioni con il percorso e tour audio interi. Paghi una volta, nessun abbonamento.",
     "eventsTitle": "Eventi a Salisburgo",
     "eventsDescription": "Cosa succede a Salisburgo: feste, cultura, tradizione e cose per bambini. Sempre aggiornato, con mappa.",
     "wasserTitle": "Temperatura dell'acqua dei laghi di Salisburgo",
@@ -184,8 +184,8 @@
     "paywallGuestTitle": "Hai raggiunto il limite gratis di oggi",
     "paywallGuestBody": "Registrati gratis e chiedi a Toni più spesso.",
     "paywallGuestCta": "Registrati gratis",
-    "paywallProTitle": "Limite giornaliero raggiunto",
-    "paywallProBody": "Con Pro chiedi a Toni senza limiti. E si aprono anche i posti bloccati."
+    "paywallFreeTitle": "Limite giornaliero raggiunto",
+    "paywallFreeBody": "Domani Toni è di nuovo qui per te."
   },
   "Explore": {
     "pageHeading": "Cose da fare e chicche segrete nel Salisburghese su una mappa interattiva",
@@ -388,7 +388,7 @@
     "unavailable": "L'acquisto ora non è disponibile.",
     "alreadyPro": "Sei già Pro. 🎉",
     "successTitle": "Grazie – benvenuto in Pro!",
-    "successBody": "Da adesso tutti i posti segreti, tutti i tour e Toni sono aperti per te.",
+    "successBody": "Da adesso tutti i posti segreti e tutti i tour sono aperti per te.",
     "accountIs": "Il tuo account è su {email}. Con questo indirizzo accedi da qualsiasi dispositivo.",
     "canceledTitle": "Acquisto annullato",
     "canceledBody": "Nessun problema – puoi passare a Pro quando vuoi.",

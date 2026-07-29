@@ -6,7 +6,7 @@
     "exploreTitle": "萨尔茨堡好去处：互动地图",
     "exploreDescription": "徒步、湖泊、观景点、山间小屋和餐馆，都在一张互动地图上。每个地方都亲自去过，都有本地人的真实建议。",
     "proTitle": "SalzGuide Pro",
-    "proDescription": "附带本地人建议的锁住地点、带路线的徒步、完整语音导览和无限次的 Toni。一次付费，无订阅。",
+    "proDescription": "附带本地人建议的锁住地点、带路线的徒步和完整语音导览。一次付费，无订阅。",
     "eventsTitle": "萨尔茨堡活动",
     "eventsDescription": "萨尔茨堡最近有什么活动：节庆、文化、传统和亲子活动。持续更新，附地图。",
     "wasserTitle": "萨尔茨堡湖泊水温",
@@ -184,8 +184,8 @@
     "paywallGuestTitle": "你今天的免费额度已用完",
     "paywallGuestBody": "免费注册，就能更常问 Toni。",
     "paywallGuestCta": "免费注册",
-    "paywallProTitle": "已达每日上限",
-    "paywallProBody": "有了 Pro，你可以无限次问 Toni，锁住的地点也一起打开。"
+    "paywallFreeTitle": "已达每日上限",
+    "paywallFreeBody": "明天 Toni 会继续陪你聊。"
   },
   "Explore": {
     "pageHeading": "互动地图上的萨尔茨堡好去处与秘密景点",
@@ -388,7 +388,7 @@
     "unavailable": "目前无法购买。",
     "alreadyPro": "你已经是 Pro 了。🎉",
     "successTitle": "谢谢——欢迎加入 Pro！",
-    "successBody": "从现在起，所有秘密地点、所有路线和 Toni 都为你开放。",
+    "successBody": "从现在起，所有秘密地点和所有路线都为你开放。",
     "accountIs": "你的账户使用 {email}。在任何设备上都用这个邮箱登录。",
     "canceledTitle": "已取消购买",
     "canceledBody": "没关系——你随时可以开通 Pro。",

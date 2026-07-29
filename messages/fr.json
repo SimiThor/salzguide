@@ -6,7 +6,7 @@
     "exploreTitle": "Que faire autour de Salzbourg : la carte interactive",
     "exploreDescription": "Randos, lacs, points de vue, alpages et auberges sur une carte interactive. Chaque spot visité par nous, avec un vrai conseil de local.",
     "proTitle": "SalzGuide Pro",
-    "proDescription": "Spots verrouillés avec le conseil de local, randos avec le tracé, parcours audio en entier et Toni sans limite. Un paiement, sans abonnement.",
+    "proDescription": "Spots verrouillés avec le conseil de local, randos avec le tracé et parcours audio en entier. Un paiement, sans abonnement.",
     "eventsTitle": "Événements à Salzbourg",
     "eventsDescription": "Ce qui se passe à Salzbourg : fêtes, culture, traditions et sorties pour les enfants. Mis à jour en continu, avec une carte.",
     "wasserTitle": "Température de l'eau des lacs de Salzbourg",
@@ -184,8 +184,8 @@
     "paywallGuestTitle": "Tu as atteint ta limite gratuite du jour",
     "paywallGuestBody": "Inscris-toi gratuitement pour poser plus de questions à Toni.",
     "paywallGuestCta": "Inscription gratuite",
-    "paywallProTitle": "Limite quotidienne atteinte",
-    "paywallProBody": "Avec Pro tu poses tes questions à Toni sans limite. Et les spots verrouillés s'ouvrent aussi."
+    "paywallFreeTitle": "Limite quotidienne atteinte",
+    "paywallFreeBody": "Toni est de retour pour toi demain."
   },
   "Explore": {
     "pageHeading": "Idées de sorties et spots secrets de la région de Salzbourg sur une carte interactive",
@@ -388,7 +388,7 @@
     "unavailable": "Le paiement n'est pas disponible pour le moment.",
     "alreadyPro": "Tu es déjà Pro. 🎉",
     "successTitle": "Merci – bienvenue chez Pro !",
-    "successBody": "Tous les coins secrets, tous les parcours et Toni sont ouverts pour toi à partir de maintenant.",
+    "successBody": "Tous les coins secrets et tous les parcours sont ouverts pour toi à partir de maintenant.",
     "accountIs": "Ton compte est sur {email}. C'est avec cette adresse que tu te connectes sur n'importe quel appareil.",
     "canceledTitle": "Paiement annulé",
     "canceledBody": "Pas de souci – tu peux passer à Pro quand tu veux.",
