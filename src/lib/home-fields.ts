@@ -121,8 +121,9 @@ export const HOME_GROUPS: readonly HomeGroup[] = [
     title: "Kleinkram",
     fields: [
       // Hier stand ein Feld „Fusszeile" mit dem Hinweis, es stehe im Footer jeder Seite.
-      // Das stimmte nie: Der Footer liest Legal.tagline aus den Sprachdateien und hat das
-      // seit dem ersten Commit getan. Home.tagline las NIEMAND, in keinem Commit.
+      // Das stimmte nie: Der Footer las Legal.tagline aus den Sprachdateien (bis 07/2026,
+      // seither ist die ©-Zeile samt Key raus, siehe LegalFooter.tsx). Home.tagline las
+      // NIEMAND, in keinem Commit.
       //
       // Entstanden ist es beim Bau dieser Liste: Sie wurde aus dem Home-Namensraum von
       // de.json abgeleitet, dort lag ein Key namens „tagline" (ein Doppelgänger von
