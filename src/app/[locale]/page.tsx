@@ -31,12 +31,12 @@ import { LANDING_SECTION_Y } from "@/components/landing/layout";
 // und zu ChatGPT (rät). Alles, was diese Aussage nicht stützt, gehört nicht auf die Seite.
 //
 // Roter Faden: Was ist das und wieso nicht Google? (Hero) -> Wem glaubst du? (TrustStrip)
-// -> Wie schaut das aus? (FeaturedSpots) -> Wieso nicht ChatGPT? (Story) -> Wer ist „wir"?
+// -> Wie schaut das aus? (FeaturedSpots) -> Wieso diese Spots? (Story) -> Wer ist „wir"?
 // (Founders) -> Was kann seine KI? (Toni) -> Was kostet es? (Pro) -> Los. (Schluss-CTA)
 //
 // Founders steht VOR Toni, und das ist Absicht: Tonis Glaubwürdigkeit kommt von den
-// Menschen, nicht umgekehrt. „Jeder Platz, den Toni dir zeigt, hat Anton selbst gesehen"
-// trägt nur, wenn Anton kurz davor ein Gesicht bekommen hat.
+// Menschen, nicht umgekehrt. „Jeden Spot, den Toni dir empfiehlt, haben wir selbst
+// gesehen" trägt nur, wenn Anton kurz davor ein Gesicht bekommen hat.
 export async function generateMetadata({
   params,
 }: {

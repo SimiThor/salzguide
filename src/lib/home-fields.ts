@@ -55,7 +55,8 @@ export const HOME_GROUPS: readonly HomeGroup[] = [
     ],
   },
   {
-    title: "Der Unterschied",
+    title: "Hidden Gems",
+    note: "Spricht dieselbe Sprache wie die SEO-Texte (Geheimtipps, Hidden Gems). Hier stand mal „ChatGPT war noch nie am Fuschlsee“: klang clever, erklärte aber einen Badesee statt unser Produkt.",
     fields: [
       { key: "pitchEyebrow", label: "Kleine Zeile darüber" },
       { key: "pitchTitle", label: "Überschrift" },
