@@ -18,7 +18,6 @@ export default function LegalFooter() {
   const t = useTranslations("Legal");
   const tSupport = useTranslations("Support");
   const pathname = usePathname();
-  const year = new Date().getFullYear();
 
   // Nicht auf Vollbild-Karten (die Regel steht in lib/routes.ts, samt Begründung, warum sie
   // dort und nicht hier steht) und nicht im internen Admin-Bereich (kein Kunden-Kontext).
@@ -32,7 +31,11 @@ export default function LegalFooter() {
   }
 
   return (
-    <footer className="mx-auto w-full max-w-[640px] px-4 pb-[calc(env(safe-area-inset-bottom)+5.5rem)] pt-16 text-center md:pb-12 md:pt-20">
+    // pt-24/28: bewusst grosszügiger Abstand zum Seiteninhalt. Der Footer ist Fussnote,
+    // nicht Teil des Contents, und darf auf keiner Seite direkt am letzten Absatz kleben.
+    // EINE Stelle für alle Seiten: der Footer bringt seinen Abstand selbst mit, statt dass
+    // jede Seite unten Platz reserviert (das würde beim nächsten neuen Screen vergessen).
+    <footer className="mx-auto w-full max-w-[640px] px-4 pb-[calc(env(safe-area-inset-bottom)+5.5rem)] pt-24 text-center md:pb-12 md:pt-28">
       {/* Die Profile stehen ÜBER den Rechtslinks und ohne Beschriftung. Beides ist eine
           Entscheidung: Folgen ist das, was wir hier wollen, die Rechtslinks sind Pflicht und
           dürfen leiser sein. Ein „Folge uns" davor wäre ein Wort, das zwei Glyphen schon
@@ -54,9 +57,10 @@ export default function LegalFooter() {
         ))}
       </nav>
 
-      <p className="mt-3 text-[12px] leading-relaxed text-muted/80">
-        © {year} SalzGuide · {t("tagline")}
-      </p>
+      {/* Hier stand mal „© {Jahr} SalzGuide · Dein digitaler Guide fürs Salzburger Land."
+          Raus (07/2026): Direkt darunter steht schon der ©-Satz der Partner-Nennung, und
+          zwei ©-Zeilen übereinander verwirren mehr, als sie schützen. Rechtlich braucht es
+          den Vermerk nicht (Urheberrecht gilt auch ohne), das Impressum steht in den Links. */}
 
       {/* Partner-Nennung: Pflicht aus der Inhalte-Vereinbarung (lib/partners.ts). Auf den
           Vollbild-Karten, wo diese Fusszeile nicht rendert, tragen die Panels sie selbst. */}

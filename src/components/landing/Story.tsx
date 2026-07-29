@@ -3,17 +3,20 @@ import { LANDING_CONTAINER, LANDING_SECTION_Y } from "./layout";
 
 // Warum es SalzGuide gibt, plus was drin ist.
 //
-// Hier stand mal eine eigene PROBLEM-Sektion („Freitagabend, 23 Uhr. 30 Tabs. Drei Blogs,
-// zwei Listen …"). Die ist raus, und zwar nicht wegen der Formulierung: Sie hat dem Leser
-// sein eigenes Elend erklärt. Das ist eine Belehrung, und niemand kommt auf eine Website,
-// um über seinen letzten Freitagabend belehrt zu werden.
+// Diese Section hat zwei Vorgänger, beide raus:
+//   1. Eine eigene PROBLEM-Sektion („Freitagabend, 23 Uhr. 30 Tabs …"). Sie hat dem Leser
+//      sein eigenes Elend erklärt; eine Belehrung, und niemand kommt auf eine Website, um
+//      über seinen letzten Freitagabend belehrt zu werden.
+//   2. „ChatGPT war noch nie am Fuschlsee." nach dem Muster von hikebeast.com. Klang
+//      clever, aber der Absatz danach musste erst einen Badesee erklären, statt unser
+//      Produkt zu zeigen. Zu generisch, zu weit weg vom Angebot (Antons Urteil, 07/2026).
 //
-// Stattdessen das Muster von hikebeast.com, dessen bester Satz lautet: „Die schönsten Orte
-// der Schweiz findest du nicht mit ChatGPT. Sie sind in Whatsapp Gruppen von Schweizern."
-// EIN Absatz, der das Problem andeutet, WÄHREND er die Lösung nennt. Er hat gar keine
-// Problem-Sektion.
+// Seitdem spricht die Section dieselbe Sprache wie die SEO-Texte in Meta (Geheimtipps,
+// Hidden Gems): EIN kurzer Claim, EIN Absatz, der sagt, was der Leser bekommt, nämlich
+// Insider-Tipps von Leuten, die selbst dort waren. Behauptung nackt, Beleg (wer „wir"
+// sind) kommt zwei Sections später bei den Gründern.
 //
-// Die Kacheln danach folgen seinem Kachel-Muster: schlichter Titel, EINE Zeile Nutzen.
+// Die Kacheln danach folgen hikebeasts Kachel-Muster: schlichter Titel, EINE Zeile Nutzen.
 // Test: nur die Titel lesen. Wer scannt, muss damit das Produkt haben.
 //
 // Drei Kacheln, und jede ist bei 7 von 7 freien Spots gedeckt. Hier standen mal vier:
