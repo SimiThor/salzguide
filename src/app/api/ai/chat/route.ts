@@ -1,5 +1,5 @@
 // KI-Assistent „Toni" — Chat-Endpoint (docs/16, 17, 02 §6).
-// Ablauf: Eingabe prüfen -> Free-Limit serverseitig (Gast 3 / Gratis 5 / Pro 50)
+// Ablauf: Eingabe prüfen -> Free-Limit serverseitig (Gast 3 / Gratis 5 / Pro 15)
 // -> Anton laufen lassen (Claude + Tools) -> Verlauf (eingeloggt) speichern ->
 // Zähler hochsetzen. Bei Limit: HTTP 402 -> Frontend zeigt Soft-Paywall.
 import { NextResponse, after } from "next/server";
@@ -32,7 +32,7 @@ export const runtime = "nodejs";
 // Antworten. Wer nach einer Minute noch auf einen Chat wartet, hat die App längst zugemacht.
 export const maxDuration = 60;
 
-// Zentrale Stellschrauben (Gast 3 · eingeloggt-gratis 5 · Pro 50 · Admin 200).
+// Zentrale Stellschrauben (Gast 3 · eingeloggt-gratis 5 · Pro 15 · Admin 200).
 const GUEST_LIMIT = 3;
 // Gratis bewusst knapp über dem Gast (Antons Entscheidung, 07/2026): 15 war so hoch,
 // dass praktisch niemand die Limit-Karte (und damit den Pro-Pitch) je gesehen hat, und
@@ -40,12 +40,15 @@ const GUEST_LIMIT = 3;
 // danach steht das Angebot. Die Leiter Gast -> Gratis -> Pro muss dabei stimmen bleiben:
 // jede Stufe spürbar mehr als die davor ("frag Toni öfter" in Ai.paywallGuestBody).
 const FREE_LIMIT = 5;
-// Pro: großzügig, aber BEWUSST endlich (Antons Regel, 07/2026). Toni ist KEIN
-// Pro-Bestandteil und wird nirgends so verkauft — wäre er Teil des Pro-Kaufs, hinge er
-// mit am Widerruf (§ 18 FAGG deckt die digitalen INHALTE ab, keinen KI-Dienst). Also gilt:
-// Pro bekommt mehr Luft als gratis, aber kein "ohne Limit", weder im Text noch im Code.
-// Nebeneffekt wie beim Admin-Limit: Denial-of-Wallet bleibt auch für Pro-Konten gedeckelt.
-const PRO_LIMIT = 50;
+// Pro: spürbar mehr als gratis, aber BEWUSST endlich und knapp (Antons Regel, 07/2026).
+// Zwei Gründe. Rechtlich: Toni ist KEIN Pro-Bestandteil und wird nirgends so verkauft —
+// wäre er Teil des Pro-Kaufs, hinge er mit am Widerruf (§ 18 FAGG deckt die digitalen
+// INHALTE ab, keinen KI-Dienst). Wirtschaftlich: Pro ist EINE Zahlung, jede Toni-Anfrage
+// kostet uns danach für immer Anthropic-Geld. 50/Tag hätte einem Dauernutzer erlaubt, die
+// Marge eines Einmal-Kaufs in Wochen aufzufressen; 15 deckt auch einen intensiven
+// Urlaubstag und hält den Worst-Case-Kostentag pro Konto klein (dazu Burst 6/min).
+// Kein "ohne Limit", weder im Text noch im Code.
+const PRO_LIMIT = 15;
 // Admin/Betreiber: großzügig zum Testen, aber BEWUSST endlich (nicht unbegrenzt).
 // Sicherheit: kappt den Worst-Case-Anthropic-Kostentag selbst dann, wenn eine
 // Admin-Session gestohlen würde (Denial-of-Wallet-Schutz). Zusätzlich greift das
