@@ -6,7 +6,7 @@
     "exploreTitle": "Ausflugsziele im Salzburger Land: interaktive Karte",
     "exploreDescription": "Wanderungen, Seen, Almen, Aussichtspunkte & Wirtshäuser auf einer interaktiven Karte. Jeden Spot haben wir selbst besucht, mit echtem Local-Tipp.",
     "proTitle": "SalzGuide Pro",
-    "proDescription": "Gesperrte Spots mit Insider-Tipp, Wanderungen mit Route, Audio-Touren komplett und Toni ohne Limit. Einmal zahlen, kein Abo.",
+    "proDescription": "Gesperrte Spots mit Insider-Tipp, Wanderungen mit Route und Audio-Touren komplett. Einmal zahlen, kein Abo.",
     "eventsTitle": "Veranstaltungen in Salzburg und Umgebung",
     "eventsDescription": "Was geht in Salzburg: Feste, Kultur, Tradition und Sachen für Kinder. Laufend aktualisiert, mit Karte und Merkliste.",
     "wasserTitle": "Wassertemperatur der Salzburger Seen",
@@ -227,8 +227,8 @@
     "paywallGuestTitle": "Dein Gratis-Limit für heute ist erreicht",
     "paywallGuestBody": "Meld dich kostenlos an und frag Toni öfter.",
     "paywallGuestCta": "Kostenlos anmelden",
-    "paywallProTitle": "Tageslimit erreicht",
-    "paywallProBody": "Mit Pro fragst du Toni ohne Limit. Und die gesperrten Spots gehen auch auf."
+    "paywallFreeTitle": "Tageslimit erreicht",
+    "paywallFreeBody": "Morgen ist Toni wieder für dich da."
   },
   "Explore": {
     "pageHeading": "Ausflugsziele & Geheimtipps im Salzburger Land auf einer interaktiven Karte",
@@ -413,7 +413,7 @@
   },
   "Pro": {
     "title": "SalzGuide",
-    "subtitle": "Ohne Pro bleibt dieser Teil der Karte zu.",
+    "subtitle": "Unsere besten Geheimtipps siehst du mit Pro.",
     "feat1": "Alle gesperrten Spots, mit Insider-Tipps dazu",
     "feat2": "Wanderungen mit Route, jede selbst gegangen",
     "feat3": "Jeden Spot selbst gesehen, von Herzen empfohlen",
@@ -431,7 +431,7 @@
     "unavailable": "Der Kauf ist gerade nicht verfügbar.",
     "alreadyPro": "Du bist bereits Pro. 🎉",
     "successTitle": "Danke – willkommen bei Pro!",
-    "successBody": "Alle Geheimtipps, alle Touren und Toni sind ab jetzt für dich offen.",
+    "successBody": "Alle Geheimtipps und alle Touren sind ab jetzt für dich offen.",
     "accountIs": "Dein Konto läuft auf {email}. Damit meldest du dich auf jedem Gerät an.",
     "canceledTitle": "Kauf abgebrochen",
     "canceledBody": "Kein Problem – du kannst jederzeit Pro werden.",
@@ -546,7 +546,7 @@
       "guest": "📩 Ohne Passwort kommst du herein: E-Mail rein, Link antippen, drin.",
       "member": "🗺️ Alle Pro-Inhalte sind ab sofort für dich offen. Aufmachen, Karte anschauen, hinfahren. Mehr ist nicht zu tun.",
       "rowService": "Leistung",
-      "rowServiceValue": "SalzGuide Pro, dauerhafte Freischaltung der digitalen Inhalte: Geheimtipp-Spots mit Insider-Tipp, Wanderungen mit Route, vollständige Audio-Touren. Zugabe ohne Preisanteil: KI-Assistent ohne Limit.",
+      "rowServiceValue": "SalzGuide Pro, dauerhafte Freischaltung der digitalen Inhalte: Geheimtipp-Spots mit Insider-Tipp, Wanderungen mit Route, vollständige Audio-Touren. Zugabe ohne Preisanteil: erweitertes Tageslimit beim KI-Assistenten.",
       "rowPrice": "Preis",
       "rowPriceValue": "{price} inkl. USt., einmalig, kein Abo",
       "rowPriceUnknown": "einmalig, kein Abo",

@@ -6,7 +6,7 @@
     "exploreTitle": "Things to do in Salzburg: the interactive map",
     "exploreDescription": "Hikes, lakes, viewpoints, mountain huts & inns on one interactive map. Every spot visited by us, each with a real local tip.",
     "proTitle": "SalzGuide Pro",
-    "proDescription": "Locked spots with the insider tip, hikes with the route, audio tours in full and Toni without a limit. Pay once, no subscription.",
+    "proDescription": "Locked spots with the insider tip, hikes with the route and audio tours in full. Pay once, no subscription.",
     "eventsTitle": "Events in Salzburg: what's on",
     "eventsDescription": "What's on in Salzburg: festivals, culture, tradition and things for kids. Updated continuously, with a map and a saved list.",
     "wasserTitle": "Water temperature of Salzburg's lakes",
@@ -184,8 +184,8 @@
     "paywallGuestTitle": "You've hit today's free limit",
     "paywallGuestBody": "Sign up for free to ask Toni more often.",
     "paywallGuestCta": "Sign up free",
-    "paywallProTitle": "Daily limit reached",
-    "paywallProBody": "With Pro you ask Toni without a limit. And the locked spots open too."
+    "paywallFreeTitle": "Daily limit reached",
+    "paywallFreeBody": "Toni is back for you tomorrow."
   },
   "Explore": {
     "pageHeading": "Things to do & hidden gems in the Salzburg region on an interactive map",
@@ -370,7 +370,7 @@
   },
   "Pro": {
     "title": "SalzGuide",
-    "subtitle": "Without Pro this part of the map stays shut.",
+    "subtitle": "Pro opens our best secret spots.",
     "feat1": "Every locked spot, with insider tips",
     "feat2": "Hikes with the route, each one walked ourselves",
     "feat3": "Every spot seen ourselves, recommended from the heart",
@@ -388,7 +388,7 @@
     "unavailable": "Checkout isn't available right now.",
     "alreadyPro": "You're already Pro. 🎉",
     "successTitle": "Thanks – welcome to Pro!",
-    "successBody": "Every secret spot, every tour and Toni are open for you from now on.",
+    "successBody": "Every secret spot and every tour is open for you from now on.",
     "accountIs": "Your account runs on {email}. Use that address to sign in on any device.",
     "canceledTitle": "Checkout canceled",
     "canceledBody": "No worries – you can go Pro anytime.",
@@ -503,7 +503,7 @@
       "guest": "📩 Getting in needs no password: email in, tap the link, done.",
       "member": "🗺️ All Pro content is open for you from now on. Open it, look at the map, go. That’s all there is to it.",
       "rowService": "Service",
-      "rowServiceValue": "SalzGuide Pro, permanent access to the digital content: secret spots with the insider tip, hikes with the route, full audio tours. Thrown in at no share of the price: the AI assistant without a limit.",
+      "rowServiceValue": "SalzGuide Pro, permanent access to the digital content: secret spots with the insider tip, hikes with the route, full audio tours. Thrown in at no share of the price: a higher daily allowance for the AI assistant.",
       "rowPrice": "Price",
       "rowPriceValue": "{price} incl. VAT, one-off, no subscription",
       "rowPriceUnknown": "one-off, no subscription",

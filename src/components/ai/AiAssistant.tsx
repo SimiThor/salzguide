@@ -74,7 +74,7 @@ export default function AiAssistant({
   onClose: () => void;
 }) {
   const t = useTranslations("Ai");
-  const tPro = useTranslations("Pro"); // Knopfbeschriftung: eine Quelle, siehe SpotSheet.tsx
+  const tPro = useTranslations("Pro"); // Pitch & Knopf am Tageslimit: eine Quelle mit dem Pro-Gate
   const locale = useLocale();
   const kb = useKeyboard(); // Tastatur offen? -> Sheet wird kürzer, siehe Scroll-Effekt
   const pathname = usePathname(); // locale-frei, z.B. "/spot/hochkeil" -> Seiten-Kontext für Toni
@@ -83,7 +83,7 @@ export default function AiAssistant({
   const [input, setInput] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [paywall, setPaywall] = useState<null | "guest" | "free">(null);
+  const [paywall, setPaywall] = useState<null | "guest" | "free" | "pro">(null);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [ready, setReady] = useState(false); // Erst-Hydrierung erledigt -> kein Greeting-Flackern
   const [showHistory, setShowHistory] = useState(false);
@@ -275,7 +275,7 @@ export default function AiAssistant({
           const j = (await res.json().catch(() => ({}))) as { scope?: string };
           setMessages(prev); // optimistische User-Nachricht zurücknehmen
           setInput(text); // Text zurückgeben, damit nach Login erneut sendbar
-          setPaywall(j.scope === "guest" ? "guest" : "free");
+          setPaywall(j.scope === "guest" ? "guest" : j.scope === "pro" ? "pro" : "free");
           return;
         }
         if (!res.ok) {
@@ -355,25 +355,45 @@ export default function AiAssistant({
   const footer = paywall ? (
     <div className="rounded-[16px] bg-white p-4 text-center shadow-sm ring-1 ring-black/[0.04]">
       <p className="text-[15px] font-semibold text-ink">
-        {t(paywall === "guest" ? "paywallGuestTitle" : "paywallProTitle")}
+        {t(paywall === "guest" ? "paywallGuestTitle" : "paywallFreeTitle")}
       </p>
       <p className="mt-1 text-[13px] text-muted">
-        {t(paywall === "guest" ? "paywallGuestBody" : "paywallProBody")}
+        {t(paywall === "guest" ? "paywallGuestBody" : "paywallFreeBody")}
       </p>
+      {/* Der Pro-Pitch am Tageslimit verkauft Pro FÜR SICH (derselbe Satz wie im Pro-Gate,
+          Pro.subtitle: „Unsere besten Geheimtipps siehst du mit Pro."), NIE über Toni
+          (Antons Regel, 07/2026). Rechtlich ist das der Punkt: Toni ist kein Bestandteil
+          des Pro-Kaufs (§-18-FAGG-Verzicht deckt die digitalen Inhalte), also darf auch
+          dieser Kasten ihn nicht als solchen anbieten. Das Limit-Gefühl und das Angebot
+          bleiben getrennt: oben „morgen geht's weiter", darunter das Angebot, das es
+          unabhängig davon gibt. Pro-Nutzer am Limit sehen nur die erste Hälfte — ihnen
+          „Pro freischalten" anzubieten wäre absurd. */}
+      {paywall === "free" && (
+        <>
+          <p className="mt-3 border-t border-black/[0.06] pt-3 text-[13px] text-muted">
+            {tPro("subtitle")}
+          </p>
+          <Link
+            href="/pro"
+            onClick={onClose}
+            className="mt-3 inline-block rounded-full bg-accent px-5 py-2 text-[14px] font-semibold text-white active:scale-95"
+          >
+            {tPro("cta")}
+          </Link>
+        </>
+      )}
       {/* Gast-CTA MIT next: Nach dem Login geht es auf die Seite zurück, über der der
           Chat gerade lag – nicht aufs Profil. Locale-Präfix von Hand, weil usePathname
           aus i18n/navigation den Pfad OHNE Präfix liefert (siehe LoginGate.tsx). */}
-      <Link
-        href={
-          paywall === "guest"
-            ? `/profil?next=${encodeURIComponent(`/${locale}${pathname}`)}`
-            : "/pro"
-        }
-        onClick={onClose}
-        className="mt-3 inline-block rounded-full bg-accent px-5 py-2 text-[14px] font-semibold text-white active:scale-95"
-      >
-        {paywall === "guest" ? t("paywallGuestCta") : tPro("cta")}
-      </Link>
+      {paywall === "guest" && (
+        <Link
+          href={`/profil?next=${encodeURIComponent(`/${locale}${pathname}`)}`}
+          onClick={onClose}
+          className="mt-3 inline-block rounded-full bg-accent px-5 py-2 text-[14px] font-semibold text-white active:scale-95"
+        >
+          {t("paywallGuestCta")}
+        </Link>
+      )}
     </div>
   ) : (
     <>

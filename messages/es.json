@@ -6,7 +6,7 @@
     "exploreTitle": "Qué hacer en la región de Salzburgo: el mapa interactivo",
     "exploreDescription": "Rutas, lagos, miradores, refugios y tabernas en un mapa interactivo. Cada sitio visitado por nosotros, con un consejo real de un local.",
     "proTitle": "SalzGuide Pro",
-    "proDescription": "Sitios bloqueados con el consejo de local, caminatas con su trazado, rutas de audio enteras y Toni sin límite. Pagas una vez, sin suscripción.",
+    "proDescription": "Sitios bloqueados con el consejo de local, caminatas con su trazado y rutas de audio enteras. Pagas una vez, sin suscripción.",
     "eventsTitle": "Eventos en Salzburgo",
     "eventsDescription": "Qué pasa en Salzburgo: fiestas, cultura, tradición y planes con niños. Siempre al día, con mapa.",
     "wasserTitle": "Temperatura del agua de los lagos de Salzburgo",
@@ -184,8 +184,8 @@
     "paywallGuestTitle": "Has llegado a tu límite gratis de hoy",
     "paywallGuestBody": "Regístrate gratis y pregúntale a Toni más a menudo.",
     "paywallGuestCta": "Registrarse gratis",
-    "paywallProTitle": "Límite diario alcanzado",
-    "paywallProBody": "Con Pro preguntas a Toni sin límite. Y los sitios bloqueados también se abren."
+    "paywallFreeTitle": "Límite diario alcanzado",
+    "paywallFreeBody": "Mañana Toni vuelve a estar para ti."
   },
   "Explore": {
     "pageHeading": "Qué hacer y sitios secretos en la región de Salzburgo, en un mapa interactivo",
@@ -370,7 +370,7 @@
   },
   "Pro": {
     "title": "SalzGuide",
-    "subtitle": "Sin Pro, esta parte del mapa sigue cerrada.",
+    "subtitle": "Con Pro ves nuestros mejores rincones secretos.",
     "feat1": "Todos los sitios bloqueados, con los consejos de locales",
     "feat2": "Caminatas con su trazado, hechas por nosotros",
     "feat3": "Cada sitio visto por nosotros, recomendado de corazón",
@@ -388,7 +388,7 @@
     "unavailable": "La compra no está disponible ahora mismo.",
     "alreadyPro": "Ya eres Pro. 🎉",
     "successTitle": "¡Gracias, bienvenido a Pro!",
-    "successBody": "Desde ahora todos los rincones secretos, todas las rutas y Toni están abiertos para ti.",
+    "successBody": "Desde ahora todos los rincones secretos y todas las rutas están abiertos para ti.",
     "accountIs": "Tu cuenta está en {email}. Con esa dirección entras desde cualquier dispositivo.",
     "canceledTitle": "Compra cancelada",
     "canceledBody": "Sin problema: puedes pasarte a Pro cuando quieras.",
@@ -503,7 +503,7 @@
       "guest": "📩 Para entrar no hace falta contraseña: pones el correo, tocas el enlace y listo.",
       "member": "🗺️ Todos los contenidos Pro están abiertos para ti desde ahora. Abres, miras el mapa y vas. No hay más.",
       "rowService": "Prestación",
-      "rowServiceValue": "SalzGuide Pro, acceso permanente a los contenidos digitales: lugares secretos con el consejo de quien los conoce, rutas de senderismo con el recorrido, audioguías completas. De regalo, sin parte del precio: asistente de IA sin límite.",
+      "rowServiceValue": "SalzGuide Pro, acceso permanente a los contenidos digitales: lugares secretos con el consejo de quien los conoce, rutas de senderismo con el recorrido, audioguías completas. De regalo, sin parte del precio: un límite diario ampliado para el asistente de IA.",
       "rowPrice": "Precio",
       "rowPriceValue": "{price} IVA incluido, pago único, sin suscripción",
       "rowPriceUnknown": "pago único, sin suscripción",

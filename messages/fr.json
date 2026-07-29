@@ -6,7 +6,7 @@
     "exploreTitle": "Que faire autour de Salzbourg : la carte interactive",
     "exploreDescription": "Randos, lacs, points de vue, alpages et auberges sur une carte interactive. Chaque spot visité par nous, avec un vrai conseil de local.",
     "proTitle": "SalzGuide Pro",
-    "proDescription": "Spots verrouillés avec le conseil de local, randos avec le tracé, parcours audio en entier et Toni sans limite. Un paiement, sans abonnement.",
+    "proDescription": "Spots verrouillés avec le conseil de local, randos avec le tracé et parcours audio en entier. Un paiement, sans abonnement.",
     "eventsTitle": "Événements à Salzbourg",
     "eventsDescription": "Ce qui se passe à Salzbourg : fêtes, culture, traditions et sorties pour les enfants. Mis à jour en continu, avec une carte.",
     "wasserTitle": "Température de l'eau des lacs de Salzbourg",
@@ -184,8 +184,8 @@
     "paywallGuestTitle": "Tu as atteint ta limite gratuite du jour",
     "paywallGuestBody": "Inscris-toi gratuitement pour poser plus de questions à Toni.",
     "paywallGuestCta": "Inscription gratuite",
-    "paywallProTitle": "Limite quotidienne atteinte",
-    "paywallProBody": "Avec Pro tu poses tes questions à Toni sans limite. Et les spots verrouillés s'ouvrent aussi."
+    "paywallFreeTitle": "Limite quotidienne atteinte",
+    "paywallFreeBody": "Toni est de retour pour toi demain."
   },
   "Explore": {
     "pageHeading": "Idées de sorties et spots secrets de la région de Salzbourg sur une carte interactive",
@@ -370,7 +370,7 @@
   },
   "Pro": {
     "title": "SalzGuide",
-    "subtitle": "Sans Pro, cette partie de la carte reste fermée.",
+    "subtitle": "Avec Pro, tu vois nos meilleurs coins secrets.",
     "feat1": "Tous les spots verrouillés, avec les conseils de locaux",
     "feat2": "Des randos avec le tracé, faites par nous",
     "feat3": "Chaque spot vu par nous, conseillé du cœur",
@@ -388,7 +388,7 @@
     "unavailable": "Le paiement n'est pas disponible pour le moment.",
     "alreadyPro": "Tu es déjà Pro. 🎉",
     "successTitle": "Merci – bienvenue chez Pro !",
-    "successBody": "Tous les coins secrets, tous les parcours et Toni sont ouverts pour toi à partir de maintenant.",
+    "successBody": "Tous les coins secrets et tous les parcours sont ouverts pour toi à partir de maintenant.",
     "accountIs": "Ton compte est sur {email}. C'est avec cette adresse que tu te connectes sur n'importe quel appareil.",
     "canceledTitle": "Paiement annulé",
     "canceledBody": "Pas de souci – tu peux passer à Pro quand tu veux.",
@@ -503,7 +503,7 @@
       "guest": "📩 Pas besoin de mot de passe pour entrer : tu mets ton mail, tu touches le lien, c’est fait.",
       "member": "🗺️ Tout le contenu Pro est ouvert pour toi dès maintenant. Tu ouvres, tu regardes la carte, tu y vas. C’est tout.",
       "rowService": "Prestation",
-      "rowServiceValue": "SalzGuide Pro, accès permanent aux contenus numériques : spots secrets avec le conseil d’initié, randonnées avec l’itinéraire, audioguides complets. En prime, sans part de prix : l’assistant IA sans limite.",
+      "rowServiceValue": "SalzGuide Pro, accès permanent aux contenus numériques : spots secrets avec le conseil d’initié, randonnées avec l’itinéraire, audioguides complets. En prime, sans part de prix : une limite quotidienne élargie pour l’assistant IA.",
       "rowPrice": "Prix",
       "rowPriceValue": "{price} TVA comprise, paiement unique, sans abonnement",
       "rowPriceUnknown": "paiement unique, sans abonnement",

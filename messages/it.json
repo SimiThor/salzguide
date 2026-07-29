@@ -6,7 +6,7 @@
     "exploreTitle": "Cose da fare nel Salisburghese: la mappa interattiva",
     "exploreDescription": "Escursioni, laghi, punti panoramici, malghe e osterie su un'unica mappa interattiva. Ogni posto visitato da noi, con un vero consiglio local.",
     "proTitle": "SalzGuide Pro",
-    "proDescription": "Posti bloccati con il consiglio da insider, escursioni con il percorso, tour audio interi e Toni senza limiti. Paghi una volta, nessun abbonamento.",
+    "proDescription": "Posti bloccati con il consiglio da insider, escursioni con il percorso e tour audio interi. Paghi una volta, nessun abbonamento.",
     "eventsTitle": "Eventi a Salisburgo",
     "eventsDescription": "Cosa succede a Salisburgo: feste, cultura, tradizione e cose per bambini. Sempre aggiornato, con mappa.",
     "wasserTitle": "Temperatura dell'acqua dei laghi di Salisburgo",
@@ -184,8 +184,8 @@
     "paywallGuestTitle": "Hai raggiunto il limite gratis di oggi",
     "paywallGuestBody": "Registrati gratis e chiedi a Toni più spesso.",
     "paywallGuestCta": "Registrati gratis",
-    "paywallProTitle": "Limite giornaliero raggiunto",
-    "paywallProBody": "Con Pro chiedi a Toni senza limiti. E si aprono anche i posti bloccati."
+    "paywallFreeTitle": "Limite giornaliero raggiunto",
+    "paywallFreeBody": "Domani Toni è di nuovo qui per te."
   },
   "Explore": {
     "pageHeading": "Cose da fare e chicche segrete nel Salisburghese su una mappa interattiva",
@@ -370,7 +370,7 @@
   },
   "Pro": {
     "title": "SalzGuide",
-    "subtitle": "Senza Pro questa parte della mappa resta chiusa.",
+    "subtitle": "Con Pro vedi i nostri migliori posti segreti.",
     "feat1": "Tutti i posti bloccati, con i consigli da insider",
     "feat2": "Escursioni con il percorso, fatte da noi",
     "feat3": "Ogni posto visto di persona, consigliato col cuore",
@@ -388,7 +388,7 @@
     "unavailable": "L'acquisto ora non è disponibile.",
     "alreadyPro": "Sei già Pro. 🎉",
     "successTitle": "Grazie – benvenuto in Pro!",
-    "successBody": "Da adesso tutti i posti segreti, tutti i tour e Toni sono aperti per te.",
+    "successBody": "Da adesso tutti i posti segreti e tutti i tour sono aperti per te.",
     "accountIs": "Il tuo account è su {email}. Con questo indirizzo accedi da qualsiasi dispositivo.",
     "canceledTitle": "Acquisto annullato",
     "canceledBody": "Nessun problema – puoi passare a Pro quando vuoi.",
@@ -503,7 +503,7 @@
       "guest": "📩 Per entrare non serve password: metti la mail, tocchi il link, sei dentro.",
       "member": "🗺️ Da adesso tutti i contenuti Pro sono aperti per te. Apri, guarda la mappa, vai. Non c’è altro da fare.",
       "rowService": "Prestazione",
-      "rowServiceValue": "SalzGuide Pro, sblocco permanente dei contenuti digitali: spot segreti con il consiglio da insider, escursioni con il percorso, audioguide complete. In omaggio, senza quota di prezzo: assistente IA senza limiti.",
+      "rowServiceValue": "SalzGuide Pro, sblocco permanente dei contenuti digitali: spot segreti con il consiglio da insider, escursioni con il percorso, audioguide complete. In omaggio, senza quota di prezzo: un limite giornaliero più ampio per l’assistente IA.",
       "rowPrice": "Prezzo",
       "rowPriceValue": "{price} IVA inclusa, una tantum, nessun abbonamento",
       "rowPriceUnknown": "una tantum, nessun abbonamento",

@@ -6,7 +6,7 @@
     "exploreTitle": "Uitstapjes in het Salzburgerland: de interactieve kaart",
     "exploreDescription": "Wandelingen, meren, uitzichtpunten, almen & gasthoven op één interactieve kaart. Elke plek zelf bezocht, met een echte tip van een local.",
     "proTitle": "SalzGuide Pro",
-    "proDescription": "Plekken op slot met de insidertip, wandelingen met route, audiotours helemaal en Toni zonder limiet. Eén keer betalen, geen abonnement.",
+    "proDescription": "Plekken op slot met de insidertip, wandelingen met route en audiotours helemaal. Eén keer betalen, geen abonnement.",
     "eventsTitle": "Evenementen in Salzburg",
     "eventsDescription": "Wat is er te doen in Salzburg: feesten, cultuur, traditie en dingen voor kinderen. Steeds actueel, met kaart en bewaarlijst.",
     "wasserTitle": "Watertemperatuur van de meren in Salzburg",
@@ -184,8 +184,8 @@
     "paywallGuestTitle": "Je gratis limiet voor vandaag is bereikt",
     "paywallGuestBody": "Meld je gratis aan en vraag Toni vaker om raad.",
     "paywallGuestCta": "Gratis aanmelden",
-    "paywallProTitle": "Daglimiet bereikt",
-    "paywallProBody": "Met Pro vraag je Toni zonder limiet. En de plekken op slot gaan ook open."
+    "paywallFreeTitle": "Daglimiet bereikt",
+    "paywallFreeBody": "Morgen staat Toni weer voor je klaar."
   },
   "Explore": {
     "pageHeading": "Uitstapjes & geheime plekjes in het Salzburgerland op een interactieve kaart",
@@ -370,7 +370,7 @@
   },
   "Pro": {
     "title": "SalzGuide",
-    "subtitle": "Zonder Pro blijft dit deel van de kaart dicht.",
+    "subtitle": "Onze beste geheime plekken zie je met Pro.",
     "feat1": "Alle plekken op slot, met insidertips erbij",
     "feat2": "Wandelingen met route, zelf gelopen",
     "feat3": "Elke plek zelf gezien, uit het hart aanbevolen",
@@ -388,7 +388,7 @@
     "unavailable": "De aankoop is nu even niet beschikbaar.",
     "alreadyPro": "Je bent al Pro. 🎉",
     "successTitle": "Bedankt – welkom bij Pro!",
-    "successBody": "Alle geheime plekken, alle tours en Toni staan vanaf nu voor je open.",
+    "successBody": "Alle geheime plekken en alle tours staan vanaf nu voor je open.",
     "accountIs": "Je account staat op {email}. Daarmee meld je je op elk apparaat aan.",
     "canceledTitle": "Aankoop afgebroken",
     "canceledBody": "Geen probleem – je kunt altijd Pro worden.",
@@ -503,7 +503,7 @@
       "guest": "📩 Om binnen te komen heb je geen wachtwoord nodig: mail invullen, op de link tikken, klaar.",
       "member": "🗺️ Alle Pro-inhoud is vanaf nu open voor je. Openen, kaart bekijken, ernaartoe. Meer is het niet.",
       "rowService": "Dienst",
-      "rowServiceValue": "SalzGuide Pro, permanente toegang tot de digitale inhoud: geheime spots met de insidertip, wandelingen met route, volledige audiotours. Gratis erbij, zonder prijsdeel: de AI-assistent zonder limiet.",
+      "rowServiceValue": "SalzGuide Pro, permanente toegang tot de digitale inhoud: geheime spots met de insidertip, wandelingen met route, volledige audiotours. Gratis erbij, zonder prijsdeel: een ruimere daglimiet voor de AI-assistent.",
       "rowPrice": "Prijs",
       "rowPriceValue": "{price} incl. btw, eenmalig, geen abonnement",
       "rowPriceUnknown": "eenmalig, geen abonnement",

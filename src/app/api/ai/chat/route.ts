@@ -32,9 +32,15 @@ export const runtime = "nodejs";
 // Antworten. Wer nach einer Minute noch auf einen Chat wartet, hat die App längst zugemacht.
 export const maxDuration = 60;
 
-// Zentrale Stellschrauben (Gast 3 · eingeloggt-gratis 15 · Admin 200 · Pro unbegrenzt).
+// Zentrale Stellschrauben (Gast 3 · eingeloggt-gratis 15 · Pro 50 · Admin 200).
 const GUEST_LIMIT = 3;
 const FREE_LIMIT = 15;
+// Pro: großzügig, aber BEWUSST endlich (Antons Regel, 07/2026). Toni ist KEIN
+// Pro-Bestandteil und wird nirgends so verkauft — wäre er Teil des Pro-Kaufs, hinge er
+// mit am Widerruf (§ 18 FAGG deckt die digitalen INHALTE ab, keinen KI-Dienst). Also gilt:
+// Pro bekommt mehr Luft als gratis, aber kein "ohne Limit", weder im Text noch im Code.
+// Nebeneffekt wie beim Admin-Limit: Denial-of-Wallet bleibt auch für Pro-Konten gedeckelt.
+const PRO_LIMIT = 50;
 // Admin/Betreiber: großzügig zum Testen, aber BEWUSST endlich (nicht unbegrenzt).
 // Sicherheit: kappt den Worst-Case-Anthropic-Kostentag selbst dann, wenn eine
 // Admin-Session gestohlen würde (Denial-of-Wallet-Schutz). Zusätzlich greift das
@@ -205,11 +211,7 @@ export async function POST(req: Request) {
     // Daher kann ein normaler Nutzer das höhere Limit nicht erschleichen.
     isOperator = (profile as { role?: string } | null)?.role === "admin";
     subject = `u:${user.id}`;
-    limit = isPro
-      ? Number.POSITIVE_INFINITY
-      : isOperator
-        ? ADMIN_LIMIT
-        : FREE_LIMIT;
+    limit = isOperator ? ADMIN_LIMIT : isPro ? PRO_LIMIT : FREE_LIMIT;
     scope = "free";
   } else {
     const cookieStore = await cookies();
@@ -265,7 +267,12 @@ export async function POST(req: Request) {
     if (count !== null) {
       remaining = Math.max(0, limit - count);
       if (count > limit) {
-        const res = NextResponse.json({ error: "limit", scope }, { status: 402 });
+        // "pro" nach draußen melden: Die Paywall-Karte im Chat zeigt Pro-Nutzern am Limit
+        // KEINEN Kauf-Knopf (sie haben Pro schon) — nur Gast und Gratis bekommen ihren CTA.
+        const res = NextResponse.json(
+          { error: "limit", scope: isPro ? "pro" : scope },
+          { status: 402 },
+        );
         if (setGuestCookie) attachGuestCookie(res, setGuestCookie);
         return res;
       }
