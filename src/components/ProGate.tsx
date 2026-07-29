@@ -42,6 +42,12 @@ type ProGateSpot = {
   // „🤫 Geheimtipp" in der Sprache der Aufrufstelle. Optional: Die Aufrufstelle kennt ihren
   // eigenen Namespace (Detail/Explore), das Gate muss ihn nicht raten.
   label?: string;
+  // Eigener Erklärsatz statt des Standard-Satzes aus dem Pro-Namespace. Für Feature-Gates
+  // wie den Runden-Builder: „Ohne Pro bleibt dieser Teil der Karte zu" wäre dort falsch,
+  // es geht um kein Stück Karte. Wie `label` übersetzt von der Aufrufstelle geliefert –
+  // ihr Namespace hat den Satz schon (z.B. Tours.buildProTeaser), hier entsteht KEIN
+  // neuer Schlüssel in neun Sprachdateien.
+  subtitle?: string;
 };
 
 type ProGateValue = {
@@ -149,7 +155,7 @@ function ProGateSheet({
         <div className="mt-4 shrink-0 text-center">
           <ProWordmark name={t("title")} className="text-[17px]" />
           <p className="mx-auto mt-2 max-w-[20rem] text-[15px] leading-relaxed text-muted">
-            {t("subtitle")}
+            {spot.subtitle ?? t("subtitle")}
           </p>
         </div>
 

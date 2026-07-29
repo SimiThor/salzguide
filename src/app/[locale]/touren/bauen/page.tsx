@@ -52,8 +52,11 @@ export default async function BuildTourPage({
           <p className="mx-auto mt-2 max-w-sm text-[15px] leading-relaxed text-muted">
             {t("buildNeedLoginBody")}
           </p>
+          {/* next + for wie beim Login-Gate: Nach dem Login geht es hierher zurück,
+              und die Loginseite trägt dieselbe 🎧-Überschrift wie dieser Hinweis.
+              Ohne next landete man auf dem Profil und musste den Weg neu suchen. */}
           <Link
-            href="/profil"
+            href={`/profil?next=${encodeURIComponent(`/${locale}/touren/bauen`)}&for=buildTour`}
             className="mt-5 inline-block rounded-full bg-accent px-6 py-3 text-sm font-semibold text-white transition active:scale-[0.98]"
           >
             {t("login")}
