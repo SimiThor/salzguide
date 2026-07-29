@@ -8,8 +8,10 @@ import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import BottomSheet from "./BottomSheet";
+import LockedMedia from "./LockedMedia";
 import { MapLoadingScreen, useMapLoading } from "./MapLoading";
 import MobileSheet from "./MobileSheet";
+import { useProGate } from "./ProGate";
 import PartnerCredits from "./PartnerCredits";
 import { SHEET_PEEK_VAR, readCssLength } from "@/lib/sheet-metrics";
 import { useViewportHeight } from "@/lib/viewport";
@@ -39,6 +41,11 @@ export type LakeSpot = {
   title: string;
   emoji: string | null;
   image: string | null;
+  // Für DIESEN Betrachter gesperrter Pro-Spot? Dann ist der Slug nur Tarnung
+  // (locked-<i>, lib/water-temp.ts) – die Zeile öffnet ProGate statt zu verlinken.
+  locked: boolean;
+  // Blur-Vorschau als Teaser fürs Foto – nur bei locked gesetzt.
+  previewUrl: string | null;
 };
 
 export type LakeTemp = {
@@ -107,6 +114,11 @@ export default function WaterExplore({
   const [selected, setSelected] = useState<string | null>(null);
 
   const t = useTranslations("Water");
+  // Vorhandene Schlüssel wiederverwenden statt neue in neun Sprachdateien anlegen:
+  // "🤫 Geheimtipp" (Explore) und der Pro-Kaufsatz (Pro) sagen überall dasselbe.
+  const tExplore = useTranslations("Explore");
+  const tPro = useTranslations("Pro");
+  const gate = useProGate();
   const loc = bcp47(locale);
   const dfmt = new Intl.DateTimeFormat(loc, { day: "numeric", month: "long" });
   const fmt = (v: number) => formatTemp(v, loc);
@@ -379,7 +391,50 @@ export default function WaterExplore({
                   {t("spotsHere", { count: selectedLake.spots.length })}
                 </p>
                 <div className="space-y-1.5">
-                  {selectedLake.spots.map((sp) => (
+                  {selectedLake.spots.map((sp) =>
+                    sp.locked ? (
+                      // Gesperrter Pro-Spot: Zeile öffnet den Pro-Hinweis (ProGate) –
+                      // ein Link ginge ins Leere, der Slug ist nur Tarnung (locked-<i>).
+                      // aria-label statt Zeilentext: Vorgelesen soll stehen, was der
+                      // Tipp bewirkt, nicht "🤫" (wie LockedSpotCard).
+                      <button
+                        key={sp.slug}
+                        type="button"
+                        onClick={() =>
+                          gate.show({
+                            previewUrl: sp.previewUrl,
+                            emoji: sp.emoji,
+                            label: tExplore("lockedLabel"),
+                          })
+                        }
+                        aria-label={tPro("cta")}
+                        className="flex w-full cursor-pointer items-center gap-3 rounded-[14px] bg-white py-2 pl-2 pr-4 text-left shadow-sm transition active:scale-[0.99] md:hover:bg-black/[0.02]"
+                      >
+                        {/* Kein Abzeichen IM Bild (48px sind dafür zu klein) – das
+                            Wort steht daneben als Zeilentext, wie es die LockedMedia-
+                            Doku für Stellen mit eigener Überschrift vorsieht. Ohne
+                            Vorschau das Emoji-Quadrat der freien Zeilen: LockedMedias
+                            eigener Fallback (text-5xl) ist für 48px gerechnet zu gross. */}
+                        {sp.previewUrl ? (
+                          <LockedMedia
+                            previewUrl={sp.previewUrl}
+                            eager
+                            className="h-12 w-12 shrink-0 rounded-[12px]"
+                          />
+                        ) : (
+                          <span
+                            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[12px] bg-gradient-to-br from-accent/15 to-muted/15 text-xl"
+                            aria-hidden
+                          >
+                            🤫
+                          </span>
+                        )}
+                        <span className="min-w-0 flex-1 truncate text-[15px] font-medium text-ink">
+                          {tExplore("lockedLabel")}
+                        </span>
+                        <Chevron className="shrink-0 text-muted/40" />
+                      </button>
+                    ) : (
                     <Link
                       key={sp.slug}
                       href={`/spot/${sp.slug}`}
@@ -405,7 +460,8 @@ export default function WaterExplore({
                       </span>
                       <Chevron className="shrink-0 text-muted/40" />
                     </Link>
-                  ))}
+                    ),
+                  )}
                 </div>
               </div>
             )}

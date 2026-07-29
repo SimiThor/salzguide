@@ -111,7 +111,8 @@ const LOCKED_NAME: Record<string, string> = {
   es: "Lugar secreto",
   pt: "Lugar secreto",
 };
-function lockedName(locale: string): string {
+// Exportiert: auch die See-Spot-Teaser auf /wasser (lib/water-temp.ts) tragen diesen Namen.
+export function lockedName(locale: string): string {
   return LOCKED_NAME[locale] ?? LOCKED_NAME.de;
 }
 
@@ -269,8 +270,11 @@ export const SPOTS_TAG = "spots";
  * Ein reiner Tag ohne Zeit wäre die sauberere Theorie und die gefährlichere Praxis: Wird
  * später eine Schreibstelle ergänzt und der Tag vergessen, stünde die Karte auf ewig auf
  * altem Stand — und niemand merkt es, weil nichts kaputt aussieht.
+ *
+ * Exportiert, weil auch die See-Spot-Liste (lib/water-temp.ts) am Katalog liest und
+ * dieselbe Frist benutzen soll — ein zweiter, fast gleicher Wert wäre nur Drift.
  */
-const EXPLORE_REVALIDATE = 300;
+export const EXPLORE_REVALIDATE = 300;
 
 // canSeePro: Pro-Inhalte werden serverseitig entfernt, damit echte Titel/Slugs/Texte
 // NICHT im Client-HTML landen (docs/33). Nur Teaser-Marker bleiben.

@@ -1,7 +1,15 @@
 import "server-only";
+import { unstable_cache } from "next/cache";
 import { cachedJson } from "./api-cache";
-import { createClient } from "./supabase/server";
-import { imagesFromMedia } from "./spots";
+import { createServiceClient } from "./supabase/service";
+import {
+  EXPLORE_REVALIDATE,
+  SPOTS_TAG,
+  heroPreviewFromMedia,
+  imagesFromMedia,
+  lockedName,
+  viewerCanSeePro,
+} from "./spots";
 import { findLake, type Lake } from "./lakes";
 
 // Wassertemperaturen aus kostenlosen Behörden-Open-Data:
@@ -135,14 +143,25 @@ export function lookupLake(
 }
 
 // See -> zugehörige Spots (mehrere möglich!) über spot.lake_name.
-// Ergebnis: { lakeSlug: [{ slug, title, emoji, image }] } – Pro-Spots ausgenommen
-// (kein ungegatetes Verlinken). So findet man leicht alle Spots am Lieblingssee.
+// Ergebnis: { lakeSlug: [{ slug, title, emoji, image, ... }] }. So findet man leicht
+// alle Spots am Lieblingssee.
+//
+// Gating wie überall (getExploreData/getRelatedSpots): Service-Client zum Lesen, am
+// BETRACHTER entscheiden. Gesperrte Pro-Spots kommen als Teaser zurück (Blur-Vorschau,
+// kein echter Slug, kein Titel) — vorher wurden sie einfach ausgelassen, und ein See,
+// der NUR Pro-Spots hat (z.B. Wolfgangsee), stand auf /wasser scheinbar ohne Spots da.
+// Auch zahlende Pro-Kunden sahen dort nichts, obwohl die Detailseite ihnen alles zeigt.
 export type LakeSpot = {
   slug: string;
   title: string;
   shortDesc: string | null;
   emoji: string | null;
   image: string | null;
+  // Für DIESEN Betrachter gesperrt? Dann sind slug/title Tarnwerte (locked-<i> /
+  // "Geheimtipp") und der Client öffnet ProGate statt zu verlinken — wie SpotCardData.
+  locked: boolean;
+  // Blur-Vorschau (~160px) – nur bei locked gesetzt, als Teaser fürs Foto.
+  previewUrl: string | null;
 };
 
 type SpotRow = {
@@ -154,32 +173,58 @@ type SpotRow = {
   media?: unknown;
 };
 
+// Gleiche Cache-Regel wie der Katalog (Begründung ausführlich in lib/spots.ts über
+// getExploreData): genau ZWEI Antworten je Sprache (pro/public), die Betrachter-Frage
+// fällt AUSSERHALB des Caches — unstable_cache darf keine Cookies anfassen.
 export async function getLakeSpots(
   locale: string,
 ): Promise<Record<string, LakeSpot[]>> {
+  const canSeePro = await viewerCanSeePro();
+  return unstable_cache(
+    () => queryLakeSpots(locale, canSeePro),
+    ["lake-spots", locale, canSeePro ? "pro" : "public"],
+    { tags: [SPOTS_TAG], revalidate: EXPLORE_REVALIDATE },
+  )();
+}
+
+async function queryLakeSpots(
+  locale: string,
+  canSeePro: boolean,
+): Promise<Record<string, LakeSpot[]>> {
   const out: Record<string, LakeSpot[]> = {};
   try {
-    const supabase = await createClient();
+    const supabase = createServiceClient();
     const { data } = await supabase
       .from("spots")
       .select(
-        "slug, emoji, is_pro, lake_name, spot_translations(title, short_desc, lang), media(url, role, sort_order)",
+        "slug, emoji, is_pro, lake_name, spot_translations(title, short_desc, lang), media(url, role, sort_order, blur_url)",
       )
       .eq("status", "published");
-    for (const s of (data ?? []) as SpotRow[]) {
-      if (s.is_pro) continue; // Pro-Spots nicht ungegated verlinken
+    const lockedSpotName = lockedName(locale);
+    const rows = (data ?? []) as SpotRow[];
+    for (let i = 0; i < rows.length; i++) {
+      const s = rows[i];
       const lake = findLake(s.lake_name);
       if (!lake) continue;
       const tr = s.spot_translations ?? [];
       const trm = tr.find((t) => t.lang === locale) ?? tr.find((t) => t.lang === "de");
+      const locked = s.is_pro && !canSeePro;
+      // Gesperrt: nichts Echtes ausliefern (kein Slug/Titel/Text/Foto) — dieselbe Regel
+      // wie in getExploreData. Der Zeilen-Index hält den Tarn-Slug eindeutig.
       (out[lake.slug] ??= []).push({
-        slug: s.slug,
-        title: trm?.title ?? s.slug,
-        shortDesc: trm?.short_desc ?? null,
-        emoji: s.emoji ?? null,
-        image: imagesFromMedia(s.media)[0] ?? null,
+        slug: locked ? `locked-${i}` : s.slug,
+        title: locked ? lockedSpotName : (trm?.title ?? s.slug),
+        shortDesc: locked ? null : (trm?.short_desc ?? null),
+        emoji: locked ? null : (s.emoji ?? null),
+        image: locked ? null : (imagesFromMedia(s.media)[0] ?? null),
+        previewUrl: locked ? heroPreviewFromMedia(s.media) : null,
+        locked,
       });
     }
+    // Verlinkbares zuerst, Teaser dahinter – wer den See antippt, soll erst echte
+    // Spots sehen, dann das Angebot.
+    for (const list of Object.values(out))
+      list.sort((a, b) => Number(a.locked) - Number(b.locked));
   } catch {
     /* egal -> keine Verlinkung */
   }

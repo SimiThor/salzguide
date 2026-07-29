@@ -585,7 +585,12 @@ export async function runAssistant(
               tempC: r.tempC,
               at: r.at,
             });
-            const spotsHere = (lakeSpotsMap[l.slug] ?? []).slice(0, 4);
+            // Gesperrte Teaser (Tarn-Slug locked-<i>, Titel "Geheimtipp") sind für Toni
+            // wertlos: kein echter Name, kein verlinkbarer Chip. Für Pro-Kunden ist
+            // locked ohnehin false – sie bekommen hier auch ihre Pro-Spots.
+            const spotsHere = (lakeSpotsMap[l.slug] ?? [])
+              .filter((s) => !s.locked)
+              .slice(0, 4);
             for (const s of spotsHere) {
               if (!spotBySlug.has(s.slug))
                 spotBySlug.set(s.slug, {
