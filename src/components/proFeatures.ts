@@ -7,7 +7,10 @@
 //
 // Toni steht hier bewusst NICHT und kommt auch nicht zurück (Antons Regel, 07/2026):
 // Toni wird nirgends als Pro-Vorteil verkauft – nicht hier, nicht in Meta.proDescription,
-// nicht im Chat-Tageslimit (Ai.paywallFree*), nicht in Pro.successBody.
+// nicht in Pro.successBody. Am Chat-Tageslimit wird Pro zwar angeboten, aber mit
+// Pro.subtitle (Geheimtipps), nie über Toni – und Pro hat dort selbst ein endliches
+// Limit (PRO_LIMIT in api/ai/chat). Grund ist neben der Positionierung der Widerruf:
+// Wäre Toni Teil des Pro-Kaufs, hinge der KI-Dienst mit am § 18 FAGG.
 //
 // Die Audio-Touren standen hier und sind vorerst raus: Es ist noch keine veröffentlicht
 // (07/2026). Eine Zeile, die etwas verspricht, das ein Käufer heute nicht bekommt, ist
