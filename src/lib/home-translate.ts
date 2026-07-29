@@ -42,8 +42,9 @@ function placeholders(s: string): string[] {
   return [...s.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort();
 }
 
-// Hat die Übersetzung alle Platzhalter der Quelle behalten?
-function keepsPlaceholders(src: string, out: string): boolean {
+// Hat der neue Text alle Platzhalter der Quelle behalten? Prüft Übersetzungen (hier)
+// UND die deutschen Admin-Eingaben (saveHomeTexts) — dieselbe Regel, eine Stelle.
+export function keepsPlaceholders(src: string, out: string): boolean {
   return placeholders(src).join("|") === placeholders(out).join("|");
 }
 
@@ -52,7 +53,7 @@ function keepsPlaceholders(src: string, out: string): boolean {
 // oder eine Fussnote ist. Kommt aus derselben Quelle wie das Admin-Formular.
 function fieldNotes(): string {
   return HOME_GROUPS.flatMap((g) =>
-    g.fields.map((f) => `- ${f.key} (${g.title}): ${f.label}${f.hint ? ". " + f.hint : ""}`),
+    g.fields.map((f) => `- ${f.key} (${g.title}): ${f.label}`),
   ).join("\n");
 }
 
