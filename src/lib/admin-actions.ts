@@ -17,8 +17,9 @@ import { writeSpotImages } from "./spot-images";
 import { stripEmDashFields } from "./em-dash";
 import { guardStorageUrl } from "./storage-guard";
 import { parsePois, hikingTimeMinutes, type MapPoi } from "./geo";
-import { HOME_KEYS } from "./home-fields";
-import { translateHomeTextsWith } from "./home-translate";
+import { HOME_KEYS, homeFieldLabel } from "./home-fields";
+import { HOME_FILE_TEXTS } from "./home-source";
+import { keepsPlaceholders, translateHomeTextsWith } from "./home-translate";
 import { parseLandingImage, parseLandingVideo } from "./landing-media";
 import type { HomeMedia } from "./home-content";
 import { MAX_HOME_FEATURED } from "./home-featured";
@@ -1786,6 +1787,21 @@ export async function saveHomeTexts(
   // nicht für ihre Herkunft (brand-voice.ts). Beim Einfügen aus einem KI-Chat käme er
   // sonst durch die Hintertür wieder rein.
   const cleaned = stripEmDashFields(clean, "de");
+
+  // Platzhalter müssen jede Bearbeitung überleben: {count} wird zur Laufzeit durch die
+  // echte Spot-Zahl ersetzt. Der Hinweis dazu stand mal als Text im Formular und konnte
+  // dort überlesen werden; jetzt lehnt das Speichern den kaputten Stand ab (das Formular
+  // ist seit 07/2026 bewusst ohne Erklärtexte). Welche Felder Platzhalter tragen, sagt
+  // die Datei — sie ist die unterste Stufe und ändert sich nur per Commit. Leeren bleibt
+  // erlaubt: ein leeres Feld fällt auf die Datei zurück (home-source.ts).
+  for (const [k, v] of Object.entries(cleaned)) {
+    if (v && !keepsPlaceholders(HOME_FILE_TEXTS[k] ?? "", v)) {
+      return {
+        ok: false,
+        error: `„${homeFieldLabel(k)}“: Platzhalter wie {count} müssen genau so stehen bleiben.`,
+      };
+    }
+  }
 
   const svc = createServiceClient();
   const { error } = await svc

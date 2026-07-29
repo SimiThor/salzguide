@@ -11,26 +11,30 @@
 //
 // Die Reihenfolge hier ist die Reihenfolge der Seite. Wer im Admin von oben nach unten
 // liest, geht die Startseite von oben nach unten durch.
+//
+// Erklärtexte im Formular gibt es bewusst NICHT (Antons Entscheidung, 07/2026): Das UI
+// bleibt still. Was kaputtgehen kann (der {count}-Platzhalter), fängt saveHomeTexts beim
+// Speichern ab, und Wissenswertes steht hier als Kommentar bei seiner Gruppe.
 
 export type HomeField = {
   key: string;
   label: string;
   /** Mehrzeiliges Feld (Fliesstext) statt einzeiliger Eingabe. */
   long?: boolean;
-  /** Erklärung unter dem Feld: Was der Text tut, oder was man nicht kaputtmachen darf. */
-  hint?: string;
 };
 
-export type HomeGroup = { title: string; note?: string; fields: HomeField[] };
+export type HomeGroup = { title: string; fields: HomeField[] };
 
 export const HOME_GROUPS: readonly HomeGroup[] = [
   {
     title: "Kopfzeile & Hero",
     fields: [
-      { key: "heroTitle", label: "Überschrift", hint: "Rendert bis 68px. Zwei kurze Sätze halten besser als einer langer." },
-      { key: "heroSubtitle", label: "Untertitel", long: true, hint: "Macht die Verständnis-Arbeit: Wer noch nie von uns gehört hat, muss HIER erfahren, was das ist." },
+      // Die Überschrift rendert bis 68px, kurz halten. Der Untertitel erklärt Neuen in
+      // einem Satz, was SalzGuide ist. Der Kopfzeilen-Knopf erscheint erst beim Scrollen.
+      { key: "heroTitle", label: "Überschrift" },
+      { key: "heroSubtitle", label: "Untertitel", long: true },
       { key: "heroCta", label: "Knopf" },
-      { key: "navCta", label: "Knopf in der Kopfzeile", hint: "Erscheint erst beim Scrollen." },
+      { key: "navCta", label: "Knopf in der Kopfzeile" },
     ],
   },
   {
@@ -38,25 +42,33 @@ export const HOME_GROUPS: readonly HomeGroup[] = [
     fields: [
       { key: "trustLocalsTitle", label: "Kachel 1: Titel" },
       { key: "trustLocalsBody", label: "Kachel 1: Text" },
-      { key: "trustSpotsTitle", label: "Kachel 2: Titel (ab 10 Spots)", hint: "{count} wird durch die echte Zahl ersetzt, abgerundet. Die Klammern müssen stehen bleiben." },
-      { key: "trustSpotsTitleExact", label: "Kachel 2: Titel (unter 10 Spots)", hint: "Gilt, solange weniger als 10 Spots online sind. {count} ist dann die exakte Zahl." },
+      // {count} in den Spot-Titeln wird zur Laufzeit durch die echte Zahl ersetzt. Der
+      // Hinweis dazu stand mal als Formular-Text; jetzt lehnt saveHomeTexts einen Stand
+      // ohne Platzhalter beim Speichern ab, dann kann ihn auch niemand überlesen.
+      { key: "trustSpotsTitle", label: "Kachel 2: Titel (ab 10 Spots)" },
+      { key: "trustSpotsTitleExact", label: "Kachel 2: Titel (unter 10 Spots)" },
       { key: "trustSpotsBody", label: "Kachel 2: Text" },
-      { key: "trustVisitorsTitle", label: "Kachel 3: Titel", hint: "ACHTUNG: Gemessen sind 25.000 BESUCHER der alten Seite. Die 10.000 sind Antons Schätzung, keine Messung. Nicht wachsen lassen, ohne sie zu messen." },
+      // Gemessen sind 25.000 BESUCHER der alten WordPress-Seite; die 10.000 Trips sind
+      // Antons Schätzung, keine Messung. Nicht erhöhen, ohne zu messen.
+      { key: "trustVisitorsTitle", label: "Kachel 3: Titel" },
       { key: "trustVisitorsBody", label: "Kachel 3: Text" },
     ],
   },
   {
     title: "Spots von der Karte",
-    note: "Welche Spots hier stehen, wählst du weiter unten unter „Spots auf der Startseite“.",
+    // Welche Spots hier stehen, wählt der Admin weiter unten unter „Spots auf der
+    // Startseite" (bis zu 6). In die kleine Zeile gehört deshalb keine Anzahl.
     fields: [
-      { key: "featuredEyebrow", label: "Kleine Zeile darüber", hint: "Keine Anzahl hineinschreiben: du darfst bis zu 6 Spots auswählen." },
+      { key: "featuredEyebrow", label: "Kleine Zeile darüber" },
       { key: "featuredTitle", label: "Überschrift" },
       { key: "featuredCta", label: "Knopf" },
     ],
   },
   {
     title: "Hidden Gems",
-    note: "Spricht dieselbe Sprache wie die SEO-Texte (Geheimtipps, Hidden Gems). Hier stand mal „ChatGPT war noch nie am Fuschlsee“: klang clever, erklärte aber einen Badesee statt unser Produkt.",
+    // Warum die Section so heisst und was vorher hier stand (die ChatGPT-Fuschlsee-Zeile):
+    // steht bei der Section selbst, components/landing/Story.tsx. Der Admin braucht die
+    // Geschichte nicht.
     fields: [
       { key: "pitchEyebrow", label: "Kleine Zeile darüber" },
       { key: "pitchTitle", label: "Überschrift" },
@@ -65,7 +77,8 @@ export const HOME_GROUPS: readonly HomeGroup[] = [
   },
   {
     title: "Die drei Features",
-    note: "Nur behaupten, was in der Datenbank wirklich flächendeckend gepflegt ist. Öffnungszeiten und Öffi standen hier mal und hingen an je einem einzigen Spot.",
+    // Nur behaupten, was die Datenbank flächendeckend hergibt: Öffnungszeiten und Öffi
+    // standen hier mal als Features und hingen an je EINEM Spot.
     fields: [
       { key: "feat1Title", label: "Feature 1: Titel" },
       { key: "feat1Body", label: "Feature 1: Text", long: true },
@@ -98,16 +111,20 @@ export const HOME_GROUPS: readonly HomeGroup[] = [
   },
   {
     title: "Pro",
-    note: "Der Preis und die vier Vorteile kommen aus Stripe und aus proFeatures.ts, nicht von hier.",
+    // Preis und Vorteile kommen aus Stripe und proFeatures.ts, nicht von hier. Die
+    // kleine Zeile steht neben dem Pro-Abzeichen.
     fields: [
-      { key: "proEyebrow", label: "Kleine Zeile darüber", hint: "Steht neben dem Pro-Abzeichen." },
+      { key: "proEyebrow", label: "Kleine Zeile darüber" },
       { key: "proTitle", label: "Überschrift" },
       { key: "proCta", label: "Knopf" },
     ],
   },
   {
     title: "Instagram",
-    note: "Zeigt die letzten sechs Beiträge. Sie kommen automatisch (Einstellungen -> Instagram-Feed); ist noch keiner da, blendet sich die ganze Section aus. Die Überschrift ist der Handle selbst (@salzguide) und kommt aus src/lib/social.ts, damit er beim Umbenennen nur an einer Stelle steht.",
+    // Die Beiträge kommen automatisch aus Einstellungen -> Instagram-Feed; ohne Beiträge
+    // blendet sich die ganze Section aus. Die Überschrift ist der Handle selbst
+    // (@salzguide) und kommt aus src/lib/social.ts, damit er beim Umbenennen nur an
+    // einer Stelle steht.
     fields: [
       { key: "socialEyebrow", label: "Kleine Zeile darüber" },
       { key: "socialCta", label: "Knopf" },
@@ -138,6 +155,13 @@ export const HOME_GROUPS: readonly HomeGroup[] = [
 
 // Alle pflegbaren Keys, in Seiten-Reihenfolge.
 export const HOME_KEYS: readonly string[] = HOME_GROUPS.flatMap((g) => g.fields.map((f) => f.key));
+
+// Beschriftung eines Feldes, für Fehlermeldungen beim Speichern: „Kachel 2: Titel" sagt
+// dem Admin mehr als der technische Key.
+export function homeFieldLabel(key: string): string {
+  for (const g of HOME_GROUPS) for (const f of g.fields) if (f.key === key) return f.label;
+  return key;
+}
 
 export type HomeTexts = Record<string, string>;
 

@@ -143,7 +143,6 @@ export default function HomeContentManager({
         {HOME_GROUPS.map((g) => (
           <div key={g.title} className="rounded-[14px] bg-black/[0.02] p-4 ring-1 ring-black/5">
             <h3 className="text-[14px] font-bold text-ink">{g.title}</h3>
-            {g.note && <p className="mt-1 text-[12px] leading-relaxed text-muted">{g.note}</p>}
             <div className="mt-3 space-y-3">
               {g.fields.map((f) => (
                 <label key={f.key} className="block">
@@ -163,7 +162,6 @@ export default function HomeContentManager({
                       className="mt-1 w-full rounded-[10px] bg-white px-3 py-2 text-[14px] text-ink ring-1 ring-black/10 outline-none focus:ring-2 focus:ring-accent/40"
                     />
                   )}
-                  {f.hint && <span className="mt-1 block text-[11px] leading-relaxed text-muted">{f.hint}</span>}
                 </label>
               ))}
             </div>
