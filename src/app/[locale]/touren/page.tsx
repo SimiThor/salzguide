@@ -5,10 +5,9 @@ import { Link } from "@/i18n/navigation";
 import { getPublishedTours } from "@/lib/tours";
 import { listUserTours } from "@/lib/user-tours";
 import { viewerCanSeePro } from "@/lib/spots";
-import ProBadge from "@/components/ProBadge";
 import { alternatesFor, ogFor } from "@/lib/metadata";
 import SavedRoutesList from "@/components/tours/SavedRoutesList";
-import AiSparkle from "@/components/ai/AiSparkle";
+import BuildTourCard from "@/components/tours/BuildTourCard";
 
 const CARD =
   "rounded-[18px] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04),0_12px_32px_-20px_rgba(0,0,0,0.28)]";
@@ -56,36 +55,14 @@ export default async function ToursPage({
       <h1 className="text-2xl font-bold text-ink">{t("title")}</h1>
       <p className="mt-1 text-[15px] leading-relaxed text-muted">{t("subtitle")}</p>
 
-      {/* Einstieg in den KI-Runden-Builder. Angemeldet -> Builder bzw. dessen Kauf-Fläche
-          (Bauen ist Pro, siehe tour-generate.ts); sonst -> Login-Hinweis. Die Karte bleibt
-          für Nicht-Pro voll anfassbar, sagt aber EHRLICH vorher, was hinter dem Tipp liegt:
-          Badge an der Zeile statt Überraschung auf der Zielseite.
+      {/* Einstieg in den KI-Runden-Builder. Mit Pro -> Builder; Gast und Nicht-Pro
+          bekommen ERST das passende Sheet (Login- bzw. Pro-Gate) statt eines Sprungs
+          auf eine andere Seite – Aufteilung und Begründung in BuildTourCard.tsx.
           Smart-AI-Look wie im Rest der App: helle Karte (Familie mit den Runden-Karten
           darunter), das KI-Signal steckt im warmen Sparkle-Chip, nicht in einer lauten
           Fläche. Der laute rote KI-Verlauf (.sg-ai-btn) bleibt dem „generiert gerade"-
           Moment im Builder vorbehalten. */}
-      <Link
-        href={loggedIn ? "/touren/bauen" : "/profil"}
-        className={`${CARD} mt-5 flex items-center gap-3 px-4 py-3.5 ring-1 ring-black/[0.05] transition active:scale-[0.99]`}
-      >
-        <AiSparkle gradient className="h-[26px] w-[26px] shrink-0" />
-        <span className="min-w-0 flex-1">
-          <span className="flex items-center gap-2 text-[15px] font-semibold text-ink">
-            {t("buildCard")}
-            {loggedIn && !canSeePro && <ProBadge />}
-          </span>
-          <span className="block text-[13px] leading-snug text-muted">
-            {!loggedIn
-              ? t("buildNeedLogin")
-              : canSeePro
-                ? t("buildCardSub")
-                : t("buildCardSubPro")}
-          </span>
-        </span>
-        <span className="shrink-0 text-[17px] text-muted/50" aria-hidden>
-          ›
-        </span>
-      </Link>
+      <BuildTourCard loggedIn={loggedIn} canSeePro={canSeePro} className={CARD} />
 
       {/* Deine gemerkten Runden (nur eingeloggt & vorhanden) */}
       {mine && mine.length > 0 && <SavedRoutesList routes={mine} title={t("yourRoutes")} />}

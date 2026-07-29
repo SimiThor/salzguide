@@ -360,8 +360,15 @@ export default function AiAssistant({
       <p className="mt-1 text-[13px] text-muted">
         {t(paywall === "guest" ? "paywallGuestBody" : "paywallProBody")}
       </p>
+      {/* Gast-CTA MIT next: Nach dem Login geht es auf die Seite zurück, über der der
+          Chat gerade lag – nicht aufs Profil. Locale-Präfix von Hand, weil usePathname
+          aus i18n/navigation den Pfad OHNE Präfix liefert (siehe LoginGate.tsx). */}
       <Link
-        href={paywall === "guest" ? "/profil" : "/pro"}
+        href={
+          paywall === "guest"
+            ? `/profil?next=${encodeURIComponent(`/${locale}${pathname}`)}`
+            : "/pro"
+        }
         onClick={onClose}
         className="mt-3 inline-block rounded-full bg-accent px-5 py-2 text-[14px] font-semibold text-white active:scale-95"
       >
