@@ -43,10 +43,10 @@ type ProGateSpot = {
   // eigenen Namespace (Detail/Explore), das Gate muss ihn nicht raten.
   label?: string;
   // Eigener Erklärsatz statt des Standard-Satzes aus dem Pro-Namespace. Für Feature-Gates
-  // wie den Runden-Builder: „Ohne Pro bleibt dieser Teil der Karte zu" wäre dort falsch,
-  // es geht um kein Stück Karte. Wie `label` übersetzt von der Aufrufstelle geliefert –
-  // ihr Namespace hat den Satz schon (z.B. Tours.buildProTeaser), hier entsteht KEIN
-  // neuer Schlüssel in neun Sprachdateien.
+  // wie den Runden-Builder: Der Standard-Satz („Unsere besten Geheimtipps siehst du mit
+  // Pro.") redet von Spots, dort geht es aber um ein Feature. Wie `label` übersetzt von
+  // der Aufrufstelle geliefert – ihr Namespace hat den Satz schon (z.B.
+  // Tours.buildProTeaser), hier entsteht KEIN neuer Schlüssel in neun Sprachdateien.
   subtitle?: string;
 };
 

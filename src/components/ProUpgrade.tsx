@@ -16,12 +16,11 @@ export default function ProUpgrade({ price }: { price: string }) {
   return (
     <div className="overflow-hidden rounded-[28px] bg-gradient-to-b from-accent/[0.12] via-white to-white shadow-[0_24px_60px_-28px_rgba(204,41,36,0.45)] ring-1 ring-black/[0.05]">
       {/* Kopf: Wortmarke und darunter dieselbe Überschrift wie auf /pro, nur kleiner.
-          Hier stand „Ohne Pro bleibt dieser Teil der Karte zu." (Pro.subtitle). Der Satz
-          sitzt richtig im Karten-Sheet, wo man gerade einen gesperrten Spot angetippt hat
-          und die Karte hinter dem Sheet liegt. Auf dem Profil zeigt „dieser Teil der Karte"
-          auf nichts: Da ist keine Karte, der Mensch schaut auf sein Konto. Deshalb trägt
-          diese Karte jetzt den Satz, der überall funktioniert, weil er das Produkt selbst
-          benennt statt den Ort, an dem man gerade steht. */}
+          Hier stand mal Pro.subtitle (damals „Ohne Pro bleibt dieser Teil der Karte zu.",
+          seit 07/2026 „Unsere besten Geheimtipps siehst du mit Pro."). Der Untertitel
+          gehört ins Gate-Sheet, wo gerade ein gesperrter Spot angetippt wurde. Auf dem
+          Profil schaut der Mensch auf sein Konto, deshalb steht hier die Überschrift, die
+          das Produkt selbst benennt statt der Situation. */}
       <div className="px-6 pt-6 text-center">
         <ProWordmark name={t("title")} className="text-[14px]" />
         <h2 className="mx-auto mt-3 max-w-[17rem] text-[19px] font-bold leading-[1.2] tracking-tight text-ink">
