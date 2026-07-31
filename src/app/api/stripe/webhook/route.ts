@@ -1,5 +1,5 @@
 import type Stripe from "stripe";
-import { stripe } from "@/lib/stripe";
+import { stripe, stripeWebhookSecret } from "@/lib/stripe";
 import { fulfillPaidCheckout, revokePro } from "@/lib/pro-purchase";
 import { logOps, subjectFromRequest } from "@/lib/ops";
 
@@ -19,17 +19,17 @@ export async function POST(req: Request): Promise<Response> {
   // Fehlt hier etwas, kann NIEMAND kaufen — und weil ein Käufer, der nicht kaufen kann,
   // sich selten meldet, ist das ein Ausfall, der sich totstellt. Deshalb gemeldet, statt
   // still ein 503 zurückzugeben.
-  if (!stripe || !process.env.STRIPE_WEBHOOK_SECRET) {
+  const secret = stripeWebhookSecret();
+  if (!stripe || !secret) {
     await logOps("stripe_not_configured", {
       message: !stripe
-        ? "STRIPE_SECRET_KEY fehlt. Käufe können nicht verarbeitet werden."
-        : "STRIPE_WEBHOOK_SECRET fehlt. Bezahlte Käufe werden nicht freigeschaltet.",
+        ? "STRIPE_SECRET_KEY (bzw. _TEST im Testmodus) fehlt. Käufe können nicht verarbeitet werden."
+        : "STRIPE_WEBHOOK_SECRET (bzw. _TEST im Testmodus) fehlt. Bezahlte Käufe werden nicht freigeschaltet.",
       group: "stripe:config",
       path: "/api/stripe/webhook",
     });
     return new Response("stripe not configured", { status: 503 });
   }
-  const secret = process.env.STRIPE_WEBHOOK_SECRET;
 
   const sig = req.headers.get("stripe-signature");
   if (!sig) return new Response("missing signature", { status: 400 });

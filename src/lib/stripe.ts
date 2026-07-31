@@ -1,20 +1,42 @@
 import Stripe from "stripe";
 
+// Umschalter Test-/Produktions-Stripe-KONTO (zwei getrennte Konten bei Stripe, nicht nur
+// zwei Keys desselben Kontos). In Vercel per ENV umlegbar, ohne Deploy: "true" -> die
+// STRIPE_*_TEST-Variablen, sonst das echte Produktionskonto. Default = Produktion, damit
+// ein vergessenes/leeres Flag nie versehentlich auf Test läuft.
+export function stripeTestMode(): boolean {
+  return process.env.STRIPE_TEST_MODE === "true";
+}
+
 // Serverseitiger Stripe-Client. Der Secret Key liegt NUR in der ENV und verlässt nie
 // den Server. Ist kein Key gesetzt (z.B. lokal ohne Stripe), ist `stripe` null -> alle
 // Aufrufer prüfen das und antworten sauber statt zu crashen.
-const secret = process.env.STRIPE_SECRET_KEY;
+const secret = stripeTestMode()
+  ? process.env.STRIPE_SECRET_KEY_TEST
+  : process.env.STRIPE_SECRET_KEY;
 
 export const stripe: Stripe | null = secret
   ? new Stripe(secret, { typescript: true })
   : null;
 
+// Das Webhook-Signing-Secret gehört zum Endpunkt IM jeweiligen Konto - Test- und
+// Produktionskonto haben dafür unterschiedliche Werte, auch wenn beide auf denselben
+// /api/stripe/webhook zeigen.
+export function stripeWebhookSecret(): string | undefined {
+  return stripeTestMode()
+    ? process.env.STRIPE_WEBHOOK_SECRET_TEST
+    : process.env.STRIPE_WEBHOOK_SECRET;
+}
+
 // Die AKTIVE Preis-ID = einzige Quelle der Wahrheit für Betrag & Währung. Sie zeigt auf
 // ein Stripe-Price-Objekt; Betrag/Währung kommen IMMER von Stripe (nie aus dem Client,
 // nie hardcodiert). Preis ändern/testen = neue Price in Stripe anlegen und diese ID
-// setzen -> Anzeige UND Zahlung passen sich automatisch überall an.
+// setzen -> Anzeige UND Zahlung passen sich automatisch überall an. Test- und Produktionskonto
+// haben eigene Produkte/Preise, deshalb eigene ID je Konto.
 export function proPriceId(): string | null {
-  const id = process.env.STRIPE_PRO_PRICE_ID?.trim();
+  const id = (
+    stripeTestMode() ? process.env.STRIPE_PRO_PRICE_ID_TEST : process.env.STRIPE_PRO_PRICE_ID
+  )?.trim();
   return id && id.startsWith("price_") ? id : null;
 }
 
