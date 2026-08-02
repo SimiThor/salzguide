@@ -1,5 +1,6 @@
 import { createClient } from "./supabase/server";
-import { imagesFromMedia } from "./spots";
+import { aiOriginsFromMedia, imagesFromMedia } from "./spots";
+import type { AiOrigin } from "./ai-origin";
 import { routing } from "@/i18n/routing";
 import { translationStatus, type TranslationState } from "./spot-hash";
 import { HOME_KEYS, type HomeTexts } from "./home-fields";
@@ -607,7 +608,7 @@ export async function getSpotForEdit(id: string) {
   const { data, error } = await supabase
     .from("spots")
     .select(
-      "*, spot_translations(*), spot_categories(category_id), media(url, role, sort_order)",
+      "*, spot_translations(*), spot_categories(category_id), media(url, role, sort_order, ai_origin)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -626,7 +627,21 @@ export async function getSpotForEdit(id: string) {
     (c) => c.category_id,
   );
   const images = imagesFromMedia(data.media);
-  return { spot: data, de, translations, translationsSourceHash, categoryIds, images };
+  // KI-Herkunft je Foto-URL fürs Formular (index-gleiche Helfer, siehe lib/spots.ts).
+  const imageAiOrigins: Record<string, AiOrigin | null> = {};
+  aiOriginsFromMedia(data.media).forEach((origin, i) => {
+    const url = images[i];
+    if (url) imageAiOrigins[url] = origin;
+  });
+  return {
+    spot: data,
+    de,
+    translations,
+    translationsSourceHash,
+    categoryIds,
+    images,
+    imageAiOrigins,
+  };
 }
 
 // Alle Spots, die für die Startseite ausgewählt WERDEN KÖNNEN — plus, ob sie es sind.

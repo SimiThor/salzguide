@@ -25,8 +25,15 @@ import {
   type StorageApi,
 } from "./blur-preview.ts";
 
-/** Ein Foto, so wie der Aufrufer es kennt. alt ist optional (das Admin-Formular hat kein Feld dafür). */
-export type SpotImage = { url: string; alt?: string | null };
+// Endung PFLICHT wie oben: Skripte laden diese Datei ohne Bundler.
+import { type AiOrigin, parseAiOrigin } from "./ai-origin.ts";
+
+/**
+ * Ein Foto, so wie der Aufrufer es kennt. alt ist optional (das Admin-Formular hat kein
+ * Feld dafür). aiOrigin: undefined = "nicht angefasst, bestehenden Wert mitführen",
+ * null = "ausdrücklich ohne KI", Wert = KI-Herkunft (Art. 50 KI-VO, docs/39).
+ */
+export type SpotImage = { url: string; alt?: string | null; aiOrigin?: AiOrigin | null };
 
 export type WriteImagesResult =
   | { ok: true }
@@ -84,12 +91,17 @@ export async function writeSpotImages(
   // einem Foto folgen, das zwischenzeitlich in der Galerie stand.
   const { data: prevRows, error: prevErr } = await db
     .from("media")
-    .select("url, blur_url, alt")
+    .select("url, blur_url, alt, ai_origin")
     .eq("spot_id", spotId)
     .eq("type", "image");
   if (prevErr) return { ok: false, step: "Fotos lesen", message: prevErr.message };
 
-  const prev = (prevRows ?? []) as { url: string; blur_url: string | null; alt: string | null }[];
+  const prev = (prevRows ?? []) as {
+    url: string;
+    blur_url: string | null;
+    alt: string | null;
+    ai_origin: string | null;
+  }[];
   const plan = planImageBlur(prev, urls);
 
   if (plan.heroNeedingPreview) {
@@ -101,6 +113,12 @@ export async function writeSpotImages(
   // Speichern im Admin die Alternativtexte des Imports – das Formular hat kein Feld dafür,
   // und was nicht im Formular steht, käme sonst als null zurück.
   const altByUrl = new Map(prev.filter((r) => r.alt).map((r) => [r.url, r.alt]));
+
+  // Die KI-Herkunft gehört wie alt und Vorschau zum BILD und wird nach derselben Regel
+  // mitgeführt: Ein Aufrufer, der aiOrigin gar nicht kennt (undefined, z. B. der
+  // WP-Import), darf einen gesetzten Wert nicht löschen. Nur ein ausdrückliches null
+  // ("ohne KI" im Admin gewählt) setzt zurück.
+  const aiOriginByUrl = new Map(prev.map((r) => [r.url, parseAiOrigin(r.ai_origin)]));
 
   // Delete+Insert ist nicht transaktional -> BEIDE Fehler prüfen. Ein stiller Insert-Fehler
   // hiess früher „Spot gespeichert, aber alle Fotos weg".
@@ -122,6 +140,8 @@ export async function writeSpotImages(
         alt: img.alt ?? altByUrl.get(img.url) ?? null,
         sort_order: i,
         blur_url: plan.blurByUrl.get(img.url) ?? null,
+        ai_origin:
+          img.aiOrigin !== undefined ? img.aiOrigin : (aiOriginByUrl.get(img.url) ?? null),
       })),
     );
     if (insErr) return { ok: false, step: "Fotos schreiben", message: insErr.message };
