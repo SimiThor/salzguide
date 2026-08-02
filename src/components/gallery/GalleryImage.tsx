@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import { useImageReveal } from "@/lib/use-image-reveal";
-import { useGalleryOpen } from "./SpotGalleryProvider";
+import { useGalleryAiOrigin, useGalleryOpen } from "./SpotGalleryProvider";
+import AiImageBadge from "@/components/AiImageBadge";
 
 // Foto, das den Lightbox am gegebenen Index öffnet (Galerie-Kacheln).
 // Mit `zoomable={false}` bleibt es ein reines Bild ohne Tippfläche: das Hero-Foto
@@ -28,6 +29,7 @@ export default function GalleryImage({
   priority = false,
   quality = 62,
   zoomable = true,
+  badgeClassName,
 }: {
   index: number;
   src: string;
@@ -41,8 +43,17 @@ export default function GalleryImage({
   quality?: number;
   /** false = reines Bild ohne Tippfläche (Hero), siehe Kommentar oben. */
   zoomable?: boolean;
+  /**
+   * Position/Display des KI-Badges überschreiben. Braucht nur das Spot-Hero: dort
+   * überlappt die Fakten-Karte die Bildunterkante und würde das Standard-Badge
+   * (rechts unten) verdecken.
+   */
+  badgeClassName?: string;
 }) {
   const open = useGalleryOpen();
+  // KI-Badge kommt aus dem Galerie-Kontext (eine Quelle je Spot), nicht als Prop je
+  // Kachel: der Index IST hier schon die Identität des Fotos (Art. 50 KI-VO, docs/39).
+  const aiOrigin = useGalleryAiOrigin(index);
   // Schimmer + Blende kommen aus der gemeinsamen Regel (lib/use-image-reveal.ts), damit
   // Galerie und Karten identisch erscheinen. Dort steht auch, warum das priority-Bild
   // (Hero = LCP) kein Opacity-Tor bekommt.
@@ -60,6 +71,7 @@ export default function GalleryImage({
       {...(zoomable
         ? { type: "button" as const, onClick: () => open(index) }
         : null)}
+      data-ai-origin={aiOrigin ?? undefined}
       className={`relative ${zoomable ? "cursor-pointer " : ""}${className ?? ""} ${skeletonClassName}`}
     >
       <Image
@@ -75,6 +87,14 @@ export default function GalleryImage({
         onError={onError}
         className={`${imgClassName ?? ""} ${imageClassName}`}
       />
+      {/* imageClassName auch am Badge: es blendet mit dem Foto ein statt vor ihm
+          aufzupoppen (die Welle steht in lib/use-image-reveal.ts). */}
+      {aiOrigin && (
+        <AiImageBadge
+          origin={aiOrigin}
+          className={`${badgeClassName ?? "absolute bottom-1.5 right-1.5 z-10 inline-flex"} ${imageClassName}`}
+        />
+      )}
     </Box>
   );
 }

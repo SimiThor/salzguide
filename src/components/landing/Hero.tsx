@@ -2,6 +2,7 @@ import { Link } from "@/i18n/navigation";
 import type { HomeTexts } from "@/lib/home-fields";
 import type { HomeMedia } from "@/lib/home-content";
 import HeroImage from "./HeroImage";
+import AiImageBadge from "@/components/AiImageBadge";
 import { CTA_PRIMARY } from "./cta";
 import { LANDING_CONTAINER } from "./layout";
 
@@ -37,6 +38,25 @@ export default function Hero({ texts, media }: { texts: HomeTexts; media: HomeMe
             Himmel. Ohne den hängt die Lesbarkeit am Motiv, und das nächste Bild kippt sie. */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/25 to-black/30" />
       </div>
+
+      {/* KI-Label je Bild-VARIANTE (Art. 50 KI-VO, freiwillig; Entscheidung Anton
+          03.08.2026, Einstufung docs/39 §5): Das Querformat ist an den Rändern mit KI
+          verbreitert, das Hochformat ist das echte Foto. <picture> wählt bei md
+          (LANDSCAPE_FROM in HeroImage.tsx) — die Sichtbarkeit der Labels folgt EXAKT
+          derselben Grenze, sonst stünde das Label am falschen Bild. Sitzt AUSSERHALB
+          der -z-10-Bildebene, sonst läge es unter dem Verlauf. */}
+      {media.heroLandscape?.aiOrigin && (
+        <AiImageBadge
+          origin={media.heroLandscape.aiOrigin}
+          className="absolute bottom-3 right-3 z-10 hidden md:inline-flex"
+        />
+      )}
+      {media.heroPortrait?.aiOrigin && (
+        <AiImageBadge
+          origin={media.heroPortrait.aiOrigin}
+          className="absolute bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] right-3 z-10 inline-flex md:hidden"
+        />
+      )}
 
       <div className={`${LANDING_CONTAINER} pb-[calc(env(safe-area-inset-bottom)+3.5rem)] text-center md:pb-24`}>
         <h1 className="mx-auto max-w-[15ch] text-balance text-[40px] font-bold leading-[1.05] tracking-tight text-white drop-shadow-md md:text-[68px]">

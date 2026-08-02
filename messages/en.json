@@ -9,9 +9,14 @@
     "voiceTitle": "The audio tour voice",
     "voiceBody": "The audio tours narrate our reviewed texts with an AI voice (ElevenLabs). No real person is speaking, even if it sounds like it.",
     "humanTitle": "What runs without AI",
-    "humanBody": "All photos are real and taken by us. The flyover videos are real 3D map footage, not AI imagery. No emotion recognition, no ad profile.",
+    "humanBody": "Our photos are real and taken by us. A few images get AI-extended edges so they fit wide screens; those carry a small label. The flyover videos are real 3D map footage. No emotion recognition, no ad profile.",
     "lawTitle": "The legal part, briefly",
     "lawBody": "This page is our transparency under Article 50 of the EU AI Act (Regulation (EU) 2024/1689). What happens to your chat messages is covered in the privacy policy."
+  },
+  "AiMedia": {
+    "generated": "Made with AI",
+    "edited": "Edited with AI",
+    "extended": "Extended with AI"
   },
   "Meta": {
     "aiTransparencyTitle": "Made with love and AI: how SalzGuide works",

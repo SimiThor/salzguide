@@ -140,6 +140,9 @@ function Hero({
           priority
           className={`block ${HERO_BOX}`}
           imgClassName="object-cover"
+          // Oben rechts unter der Merken-Pille: unten überlappt die Fakten-Karte die
+          // Hero-Unterkante, und lange Titel füllen die linke Bildhälfte bis zum Rand.
+          badgeClassName="absolute right-4 top-[4.5rem] z-10 inline-flex"
         />
       ) : (
         <div className={`flex ${HERO_BOX} items-center justify-center bg-gradient-to-br from-accent/20 to-muted/20`}>
@@ -363,7 +366,11 @@ export default async function SpotPage({
   const tNav = await getTranslations("Nav");
 
   return (
-    <SpotGalleryProvider images={spot.images} title={spot.title}>
+    <SpotGalleryProvider
+      images={spot.images}
+      aiOrigins={spot.imageAiOrigins}
+      title={spot.title}
+    >
     <div className="pb-16">
       {structured && <JsonLd data={structured} />}
       {structured && (
