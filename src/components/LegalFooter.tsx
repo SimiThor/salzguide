@@ -42,7 +42,17 @@ export default function LegalFooter() {
           sagen. Quelle der Profile: lib/social.ts. */}
       <SocialLinks className="justify-center gap-1" />
 
-      <nav className="mt-4 flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1 text-[13px]">
+      {/* KI-Motto: ein Satz, ganz verlinkt auf /ki. Die warme Kurzfassung der
+          KI-Transparenz (Art. 50 KI-VO); die Seite dahinter erklärt ehrlich, wo KI
+          mithilft. Steht ÜBER den Pflicht-Links: Markenzeile, nicht Rechtstext. */}
+      <Link
+        href="/ki"
+        className="mt-4 inline-block text-[12px] leading-snug text-muted/80 transition-colors hover:text-ink"
+      >
+        {t("aiMotto")}
+      </Link>
+
+      <nav className="mt-2 flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1 text-[13px]">
         {LEGAL_LINKS.map((l, i) => (
           <span key={l.key} className="flex items-center gap-1.5">
             <Link href={l.href} className="text-muted transition-colors hover:text-ink">
