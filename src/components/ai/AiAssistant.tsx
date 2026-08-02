@@ -352,7 +352,11 @@ export default function AiAssistant({
   );
 
   // ── Footer: Eingabe bzw. Paywall + KI-Hinweis ───────────────────────────────
-  const footer = paywall ? (
+  // Der KI-Hinweis steht NACH dem Zustands-Zweig und ist damit in JEDEM Zustand
+  // sichtbar, auch über der Paywall-Karte (Art. 50 Abs. 1 + 5 KI-VO: Information
+  // klar erkennbar ab der ersten Interaktion, nicht nur solange das Eingabefeld
+  // gerendert wird). Dazu der Link auf /ki (wie wir mit KI arbeiten).
+  const footerBody = paywall ? (
     <div className="rounded-[16px] bg-white p-4 text-center shadow-sm ring-1 ring-black/[0.04]">
       <p className="text-[15px] font-semibold text-ink">
         {t(paywall === "guest" ? "paywallGuestTitle" : "paywallFreeTitle")}
@@ -396,32 +400,45 @@ export default function AiAssistant({
       )}
     </div>
   ) : (
+    <div className="flex items-end gap-2">
+      <textarea
+        ref={taRef}
+        value={input}
+        onChange={(e) => {
+          setInput(e.target.value.slice(0, MAX_INPUT));
+          growTextarea();
+        }}
+        onKeyDown={onKeyDown}
+        rows={1}
+        placeholder={t("placeholder")}
+        aria-label={t("placeholder")}
+        className="max-h-[140px] flex-1 resize-none rounded-[18px] bg-white px-4 py-2.5 text-[15px] text-ink shadow-sm outline-none ring-1 ring-black/[0.06] placeholder:text-muted/70 focus:ring-accent/30"
+      />
+      <button
+        type="button"
+        onClick={() => void send(input)}
+        disabled={!input.trim() || pending}
+        aria-label={t("send")}
+        className="cursor-pointer flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-accent text-white transition active:scale-90 disabled:opacity-40 disabled:cursor-not-allowed"
+      >
+        <SendIcon />
+      </button>
+    </div>
+  );
+
+  const footer = (
     <>
-      <div className="flex items-end gap-2">
-        <textarea
-          ref={taRef}
-          value={input}
-          onChange={(e) => {
-            setInput(e.target.value.slice(0, MAX_INPUT));
-            growTextarea();
-          }}
-          onKeyDown={onKeyDown}
-          rows={1}
-          placeholder={t("placeholder")}
-          aria-label={t("placeholder")}
-          className="max-h-[140px] flex-1 resize-none rounded-[18px] bg-white px-4 py-2.5 text-[15px] text-ink shadow-sm outline-none ring-1 ring-black/[0.06] placeholder:text-muted/70 focus:ring-accent/30"
-        />
-        <button
-          type="button"
-          onClick={() => void send(input)}
-          disabled={!input.trim() || pending}
-          aria-label={t("send")}
-          className="cursor-pointer flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-accent text-white transition active:scale-90 disabled:opacity-40 disabled:cursor-not-allowed"
+      {footerBody}
+      <p className="mt-1.5 px-1 text-[11px] leading-snug text-muted/80">
+        {t("disclaimer")}{" "}
+        <Link
+          href="/ki"
+          onClick={onClose}
+          className="whitespace-nowrap underline decoration-muted/40 underline-offset-2"
         >
-          <SendIcon />
-        </button>
-      </div>
-      <p className="mt-1.5 px-1 text-[11px] leading-snug text-muted/80">{t("disclaimer")}</p>
+          {t("transparencyLink")}
+        </Link>
+      </p>
     </>
   );
 

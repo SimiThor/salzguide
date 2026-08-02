@@ -1,5 +1,21 @@
 {
+  "AiTransparency": {
+    "title": "Mit Liebe und KI gemacht",
+    "intro": "Jeder Spot bei SalzGuide ist von uns besucht, fotografiert und aufgeschrieben. Bei ein paar Dingen hilft künstliche Intelligenz mit. Hier steht ehrlich, wo.",
+    "toniTitle": "Toni, unsere KI",
+    "toniBody": "Toni ist ein KI-Chat auf Basis von Claude (Anthropic). Er arbeitet nur mit unseren geprüften Spots und Events und sagt dir offen, dass er eine KI ist. Auch sein Gesicht ist KI-generiert: Toni ist eine Figur, kein Mensch. Und wie jede KI kann er Fehler machen, Details wie Öffnungszeiten also kurz checken.",
+    "textsTitle": "Texte und Übersetzungen",
+    "textsBody": "Geschrieben wird bei uns: hingehen, notieren, formulieren. KI hilft bei Entwürfen und übersetzt alles in acht Sprachen. Veröffentlicht wird nichts ungeprüft; die Verantwortung dafür trägt Anton Steiner (siehe Impressum).",
+    "voiceTitle": "Die Stimme der Audio-Touren",
+    "voiceBody": "Die Audio-Touren erzählen unsere geprüften Texte mit einer KI-Stimme (ElevenLabs). Es spricht keine echte Person, auch wenn es so klingt.",
+    "humanTitle": "Was ohne KI läuft",
+    "humanBody": "Alle Fotos sind echt und selbst aufgenommen. Die Flug-Videos über den Spots sind echte 3D-Kartenaufnahmen, kein KI-Bildmaterial. Keine Emotionserkennung, kein Werbeprofil.",
+    "lawTitle": "Das Rechtliche, kurz",
+    "lawBody": "Diese Seite ist unsere Transparenz nach Artikel 50 der EU-KI-Verordnung (Verordnung (EU) 2024/1689). Was mit deinen Chat-Nachrichten passiert, steht in der Datenschutzerklärung."
+  },
   "Meta": {
+    "aiTransparencyTitle": "Mit Liebe und KI gemacht: wie SalzGuide arbeitet",
+    "aiTransparencyDescription": "Wo bei SalzGuide KI mithilft und wo nicht: Toni, Texte, Übersetzungen und die Stimme der Audio-Touren. Ehrlich erklärt.",
     "description": "Geheimtipps im Salzburger Land: die schönsten Spots & Hidden Gems auf einer interaktiven Karte, mit echten Local-Tipps.",
     "homeTitle": "SalzGuide: Geheimtipps im Salzburger Land entdecken",
     "homeDescription": "Mit interaktiver Karte & echten Local-Tipps findest du die schönsten Spots & Hidden Gems im Salzburger Land. Wir waren an jedem selbst.",
@@ -12,7 +28,7 @@
     "wasserTitle": "Wassertemperatur der Salzburger Seen",
     "wasserDescription": "Aktuelle Wassertemperaturen von Wolfgangsee, Fuschlsee und weiteren Seen, dazu die schönsten Badeplätze im Salzburger Land auf einer Karte.",
     "tourenTitle": "Audio-Touren durch Salzburg",
-    "tourenDescription": "Salzburg mit dem Ohr erkunden: Geschichten von Locals, Stopp für Stopp direkt am Handy.",
+    "tourenDescription": "Salzburg mit dem Ohr erkunden: Local-Wissen, Stopp für Stopp direkt am Handy.",
     "supportTitle": "Hilfe & Kontakt",
     "supportDescription": "Etwas klappt nicht, ein Spot stimmt nicht, oder du hast eine Frage? Schreib uns.",
     "aboutTitle": "Über uns",
@@ -86,7 +102,8 @@
   },
   "Tours": {
     "title": "Audio-Touren",
-    "subtitle": "Erkunde Salzburg mit dem Ohr – Geschichten von Locals, Stopp für Stopp.",
+    "subtitle": "Erkunde Salzburg mit dem Ohr: Local-Wissen, Stopp für Stopp erzählt.",
+    "aiVoice": "KI-Stimme, Inhalte von uns geprüft",
     "listEmpty": "Aktuell sind keine Audio-Touren verfügbar. Schau bald wieder vorbei.",
     "stops": "{count, plural, one {# Stopp} other {# Stopps}}",
     "minutes": "{count} Min",
@@ -176,11 +193,12 @@
   "Ai": {
     "title": "Toni",
     "subtitle": "dein KI-Local",
-    "greeting": "Servus! Ich bin Toni, dein Local für Salzburg. Worauf hast du grad Bock? 🏔️",
+    "greeting": "Servus! Ich bin Toni, die KI von SalzGuide und dein Local für Salzburg. Worauf hast du grad Bock? 🏔️",
     "placeholder": "Frag Toni …",
     "send": "Senden",
     "thinking": "Toni überlegt …",
     "disclaimer": "Toni ist eine KI und kann Fehler machen. Details vorher kurz checken.",
+    "transparencyLink": "Wie Toni arbeitet",
     "error": "Ups, das hat gerade nicht geklappt. Versuch's nochmal.",
     "newChat": "Neuer Chat",
     "history": "Verlauf",
@@ -500,6 +518,7 @@
     }
   },
   "Legal": {
+    "aiMotto": "Local Tipps, mit Liebe gemacht. Mit KI-Hilfe, von uns geprüft.",
     "sectionTitle": "Rechtliches",
     "imprint": "Impressum",
     "privacy": "Datenschutz",

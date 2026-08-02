@@ -465,12 +465,19 @@ export async function POST(req: Request) {
     }
   }
 
+  // aiGenerated + Header: maschinenlesbare Kennzeichnung der KI-Ausgabe
+  // (Art. 50 Abs. 2 KI-VO). Ein Text-Wasserzeichen ist bei kurzen Chat-Antworten
+  // nicht robust machbar; deshalb Metadaten auf JEDER Auslieferungsschicht
+  // (JSON-Feld hier, data-ai-generated im DOM in AiMessage.tsx). Begründung
+  // und Einstufung: docs/39_RECHT_KI-Transparenz.md.
   const res = NextResponse.json({
     text: result.text,
     cards: result.cards,
     conversationId,
     remaining,
+    aiGenerated: true,
   });
+  res.headers.set("X-AI-Generated", "true");
   if (setGuestCookie) attachGuestCookie(res, setGuestCookie);
   return res;
 }

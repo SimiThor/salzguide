@@ -103,8 +103,8 @@ export default async function WiderrufPage({
         festgehalten.
       </p>
       <p>
-        Der KI-Assistent ohne Begrenzung ist eine unentgeltliche Zugabe und nicht Teil der
-        bezahlten Leistung; auf ihn entfällt kein Preisanteil (Punkt 2 und 5 der{" "}
+        Das erhöhte Toni-Tageslimit ist eine unentgeltliche Zugabe und nicht Teil der
+        bezahlten Leistung; darauf entfällt kein Preisanteil (Punkt 2 und 5 der{" "}
         <Link href="/rechtliches/agb">AGB</Link>). Für ihn gibt es daher nichts zurückzuzahlen.
         Würde ein laufend erbrachter Teil dennoch als entgeltlich angesehen, bliebe dein Recht
         insoweit bis zur vollständigen Erbringung bestehen (§ 18 Abs. 1 Z 1 FAGG) und ein

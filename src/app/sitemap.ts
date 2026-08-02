@@ -22,6 +22,7 @@ const STATIC_PATHS = [
   "/pro",
   "/ueber-uns",
   "/support",
+  "/ki",
 ];
 
 // Seiten, deren Inhalt sich laufend ändert (neue Spots/Events) — im Gegensatz zur

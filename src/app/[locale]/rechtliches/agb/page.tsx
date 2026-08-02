@@ -36,7 +36,9 @@ export default async function AgbPage({
           objektiv erfolgt: Eine Klausel, in der der Kunde den Verlust seines Rechts bestätigt,
           bewirkt nichts, wenn die Leistung in Wahrheit eine laufende ist. Deshalb ist hier
           sauber getrennt, was bezahlt wird (Inhalte) und was dazukommt, ohne bezahlt zu werden
-          (der KI-Assistent ohne Limit). Wer das ändert, ändert die Rechtslage mit. */}
+          (das erhöhte Toni-Tageslimit). Wer das ändert, ändert die Rechtslage mit.
+          „Erhöht", NIE „ohne Limit": PRO_LIMIT in api/ai/chat/route.ts deckelt bewusst
+          (Kostenschutz); der Text hier muss dem Code entsprechen, nicht umgekehrt. */}
       <p>
         <strong>Gegenstand des Kaufs von „SalzGuide Pro“ sind digitale Inhalte:</strong> die
         gesperrten Spots samt Insider-Tipp, Wanderungen mit Route sowie die vollständigen
@@ -45,12 +47,14 @@ export default async function AgbPage({
       </p>
       <p>
         Der KI-Assistent „Toni“ steht allen Nutzer:innen zur Verfügung, ohne Konto und ohne Kauf,
-        begrenzt auf eine Anzahl von Fragen. Für Pro-Käufer:innen heben wir diese Begrenzung auf.
-        <strong> Diese Aufhebung ist eine unentgeltliche Zugabe und nicht Teil der bezahlten
+        begrenzt auf eine Anzahl von Fragen pro Tag. Für Pro-Käufer:innen erhöhen wir dieses
+        Tageslimit (derzeit 15 statt 5 Fragen).
+        <strong> Diese Erhöhung ist eine unentgeltliche Zugabe und nicht Teil der bezahlten
         Leistung</strong> (siehe Punkt 5); wir können sie ändern oder einstellen, ohne dass der
-        Kauf davon berührt wird. Toni beantwortet Fragen anhand unserer eigenen Inhalte; er legt
-        kein Nutzerprofil an, wertet dein Verhalten nicht aus und richtet seine Antworten nicht
-        nach früheren Sitzungen.
+        Kauf davon berührt wird. Toni beantwortet Fragen anhand unserer eigenen Inhalte. Bist du
+        angemeldet, nutzt er deinen gespeicherten Chat-Verlauf und die Art deiner gemerkten Spots
+        für passendere Antworten; ein Werbeprofil entsteht daraus nicht (Details in der
+        Datenschutzerklärung, Punkt 3d).
       </p>
 
       <h2>3. Registrierung &amp; Konto</h2>
@@ -91,7 +95,7 @@ export default async function AgbPage({
         Es gilt der jeweils im Bestellvorgang angezeigte Preis inkl. gesetzlicher Umsatzsteuer.
         SalzGuide Pro ist eine <strong>einmalige Zahlung</strong> (kein Abo). Der Kaufpreis
         entfällt zur Gänze auf die digitalen Inhalte nach Punkt 2; auf die unentgeltliche Zugabe
-        (KI-Assistent ohne Begrenzung) entfällt kein Preisanteil. Die Zahlungsabwicklung
+        (erhöhtes Toni-Tageslimit) entfällt kein Preisanteil. Die Zahlungsabwicklung
         erfolgt über unseren Zahlungsdienstleister Stripe. Es gelten die dort verfügbaren
         Zahlungsarten. Eine Rechnung wird – soweit vorgesehen – elektronisch bereitgestellt.
       </p>
@@ -132,7 +136,7 @@ export default async function AgbPage({
         ein; die Bestätigung senden wir dir unmittelbar nach dem Kauf per E-Mail (siehe Punkt 4).
       </p>
       <p>
-        Die unentgeltliche Zugabe (KI-Assistent ohne Begrenzung, Punkt 2) ist nicht Teil der
+        Die unentgeltliche Zugabe (erhöhtes Toni-Tageslimit, Punkt 2) ist nicht Teil der
         bezahlten Leistung. Auf sie entfällt kein Preisanteil, es gibt für sie also nichts
         zurückzuzahlen. Würde ein laufend erbrachter Teil dennoch als entgeltlich angesehen, bliebe
         das Rücktrittsrecht insoweit bis zur vollständigen Erbringung bestehen und ein Wertersatz

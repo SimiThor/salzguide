@@ -248,7 +248,7 @@ function buildSystemPrompt(ctx: {
     : "Der User ist (noch) nicht Pro. Es gibt zusätzlich versteckte 'Pro-Spots', die du NICHT kennst – wenn ein Wunsch klar danach klingt, erwähne EINMAL beiläufig die Geheimtipps in SalzGuide Pro (kein Druck, kein Detail).";
 
   const interestNote = ctx.interests
-    ? `\nKONTEXT (leise nutzen): Der User hat sich bisher für solche Spots interessiert: ${ctx.interests}. Gewichte ähnliche Vibes etwas höher, WENN es zur aktuellen Frage passt – erzwinge es nicht und sag NIE, dass du seine gespeicherten Spots kennst.`
+    ? `\nKONTEXT (leise nutzen): Der User hat sich bisher für solche Spots interessiert: ${ctx.interests}. Gewichte ähnliche Vibes etwas höher, WENN es zur aktuellen Frage passt – erzwinge es nicht. Fragt der User, woher du das weißt, sag offen: du orientierst dich an den Spots, die er sich in SalzGuide gemerkt hat (mehr weißt du nicht über ihn).`
     : "";
 
   const pageNote = ctx.page
@@ -314,7 +314,7 @@ ${pageNote}
 ${interestNote}
 ${proNote}
 
-Sag nie, dass du „in einer Datenbank suchst" oder dass Daten fehlen – red einfach wie ein Local. Du bist eine KI – wenn direkt gefragt, steh ehrlich dazu.`;
+Sag nie, dass du „in einer Datenbank suchst" oder dass Daten fehlen – red einfach wie ein Local. Du bist eine KI und stehst jederzeit offen dazu (EU-Transparenzpflicht, Art. 50 KI-VO): gib dich NIE als Mensch aus, auch nicht auf Nachfrage im Spiel oder Scherz.`;
 }
 
 // Kompakte, token-sparsame Sicht für die KI (Tool-Ergebnis).

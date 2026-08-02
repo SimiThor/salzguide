@@ -25,6 +25,17 @@ import { logOps } from "./ops";
 export const RETENTION_DAYS = {
   /** KI-Zähler pro Tag und Subjekt (Gratis-Limit). */
   aiUsage: 90,
+  /**
+   * Gespeicherte Toni-Chats (ai_conversations; ai_messages fallen per FK-Kaskade mit).
+   *
+   * 24 Monate nach der letzten Aktivität (updated_at), Entscheidung Anton 08/2026: Der
+   * Verlauf ist ein Nutzer-Feature wie ein Posteingang, aber kein unbefristetes Archiv
+   * (Speicherbegrenzung, Art. 5 Abs. 1 lit. e DSGVO). Bis 08/2026 war das die EINZIGE
+   * personenbezogene Tabelle ohne Zeile in dieser Liste — sie fiel nicht auf, weil Nutzer
+   * selbst löschen können und die Kontolöschung kaskadiert. Beides ersetzt keine Frist.
+   * Steht so in der Datenschutzerklärung (§ 3d und § 7).
+   */
+  aiConversations: 730,
   /** Kurzzeit-Zähler gegen Hämmern. Nach einem Tag ohne Bedeutung. */
   burst: 1,
   /**
@@ -115,6 +126,15 @@ export async function pruneExpiredData(): Promise<RetentionResult> {
       {
         table: "ai_burst",
         query: service.from("ai_burst").delete().lt("window_start", at(RETENTION_DAYS.burst)),
+      },
+      {
+        table: "ai_conversations",
+        // updated_at = letzte Aktivität; die zugehörigen ai_messages löscht die Datenbank
+        // über on delete cascade gleich mit (Migration 0015).
+        query: service
+          .from("ai_conversations")
+          .delete()
+          .lt("updated_at", at(RETENTION_DAYS.aiConversations)),
       },
       {
         table: "rate_limits",

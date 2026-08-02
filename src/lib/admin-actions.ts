@@ -767,6 +767,12 @@ Finde konkrete Insider-Tipps, Besonderheiten, beste Zeit und Parken/Anreise.`;
   return { research, sources: [...new Set(sources)], searches };
 }
 
+// REDAKTIONS-REGEL (Art. 50 Abs. 4 KI-VO, docs/39_RECHT_KI-Transparenz.md): Alles, was
+// diese Funktion liefert, ist ein ENTWURF. Veröffentlicht wird erst nach menschlicher
+// Prüfung im Admin (redaktionelle Verantwortung: Anton). Besonders der insider_tip steht
+// in der Ich-Form eines benannten, echten Locals: Der Text darf nur live gehen, wenn
+// genau diese Person ihn gelesen und freigegeben hat. Sonst legen wir jemandem Worte in
+// den Mund, und zwar mit Foto und Namen daneben.
 export async function generateSpotTexts(
   input: GenerateTextsInput,
 ): Promise<GenerateTextsResult> {

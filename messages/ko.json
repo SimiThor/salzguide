@@ -1,5 +1,21 @@
 {
+  "AiTransparency": {
+    "title": "사랑과 AI로 만들었습니다",
+    "intro": "SalzGuide의 모든 스팟은 저희가 직접 가보고, 찍고, 씁니다. 몇 가지 일에는 인공지능이 함께합니다. 어디에 쓰는지 여기에 솔직하게 적었습니다.",
+    "toniTitle": "우리의 AI, Toni",
+    "toniBody": "Toni는 Claude(Anthropic) 기반의 AI 챗입니다. 저희가 검증한 스팟과 이벤트만 다루고, AI라는 사실을 숨기지 않습니다. 얼굴도 AI가 만들었습니다. Toni는 캐릭터이지 사람이 아닙니다. 그리고 어떤 AI든 실수할 수 있으니 영업시간 같은 세부 정보는 한 번 더 확인하세요.",
+    "textsTitle": "글과 번역",
+    "textsBody": "글은 저희가 씁니다. 직접 가서 메모하고 정리합니다. AI는 초안과 8개 언어 번역을 돕습니다. 검토 없이 공개되는 글은 없으며, 책임은 Anton Steiner에게 있습니다(법적 고지 참조).",
+    "voiceTitle": "오디오 투어의 목소리",
+    "voiceBody": "오디오 투어는 검토된 저희 글을 AI 목소리(ElevenLabs)로 들려줍니다. 진짜 사람이 말하는 것처럼 들려도, 실제 사람은 아닙니다.",
+    "humanTitle": "AI 없이 하는 것들",
+    "humanBody": "모든 사진은 저희가 직접 찍은 실제 사진입니다. 플라이오버 영상은 실제 3D 지도 촬영이며 AI 이미지가 아닙니다. 감정 인식도, 광고 프로필도 없습니다.",
+    "lawTitle": "법적인 부분, 짧게",
+    "lawBody": "이 페이지는 EU AI법(규정 (EU) 2024/1689) 제50조에 따른 저희의 투명성 안내입니다. 채팅 메시지가 어떻게 처리되는지는 개인정보처리방침에 있습니다."
+  },
   "Meta": {
+    "aiTransparencyTitle": "사랑과 AI로 만들었습니다: SalzGuide가 일하는 방식",
+    "aiTransparencyDescription": "SalzGuide에서 AI가 돕는 곳과 아닌 곳: Toni, 글, 번역, 오디오 투어의 목소리. 솔직하게 설명합니다.",
     "description": "잘츠부르크의 숨은 명소: 인터랙티브 지도와 현지인의 진짜 팁으로 찾는 가장 아름다운 곳들.",
     "homeTitle": "SalzGuide: 잘츠부르크의 숨은 명소를 찾아보세요",
     "homeDescription": "인터랙티브 지도와 현지인의 진짜 팁으로 잘츠부르크에서 가장 아름다운 명소와 숨은 보석을 찾아보세요. 모든 곳을 직접 가봤습니다.",
@@ -12,7 +28,7 @@
     "wasserTitle": "잘츠부르크 호수 수온",
     "wasserDescription": "볼프강 호수, 푸슐 호수 등 잘츠부르크 호수들의 현재 수온과 가장 좋은 물놀이 명소를 지도에서 확인하세요.",
     "tourenTitle": "잘츠부르크 오디오 투어",
-    "tourenDescription": "귀로 즐기는 잘츠부르크: 현지인의 이야기를 정거장마다 휴대폰으로 들을 수 있습니다.",
+    "tourenDescription": "귀로 즐기는 잘츠부르크: 로컬의 지식을 정거장마다 휴대폰으로 들을 수 있습니다.",
     "supportTitle": "도움말 및 문의",
     "supportDescription": "뭔가 안 되거나, 정보가 틀렸거나, 궁금한 게 있나요? 저희에게 알려주세요.",
     "aboutTitle": "소개",
@@ -43,7 +59,8 @@
   },
   "Tours": {
     "title": "오디오 투어",
-    "subtitle": "귀로 즐기는 잘츠부르크 – 로컬의 이야기를 정거장마다 들어보세요.",
+    "subtitle": "귀로 즐기는 잘츠부르크: 로컬의 지식을 정거장마다 들려드립니다.",
+    "aiVoice": "AI 목소리, 내용은 저희가 검토했습니다",
     "listEmpty": "지금은 이용할 수 있는 오디오 투어가 없어요. 곧 다시 확인해 주세요.",
     "stops": "{count, plural, other {정거장 #개}}",
     "minutes": "{count}분",
@@ -133,11 +150,12 @@
   "Ai": {
     "title": "Toni",
     "subtitle": "당신의 AI 로컬",
-    "greeting": "안녕! 나는 잘츠부르크 로컬 Toni예요. 오늘 뭐가 땡겨요? 🏔️",
+    "greeting": "안녕! 나는 SalzGuide의 AI이자 잘츠부르크 로컬 Toni예요. 오늘 뭐가 땡겨요? 🏔️",
     "placeholder": "Toni에게 물어보기 …",
     "send": "보내기",
     "thinking": "Toni가 생각 중 …",
     "disclaimer": "Toni는 AI라서 실수할 수 있어요. 나가기 전에 세부 정보는 한 번 더 확인하세요.",
+    "transparencyLink": "Toni의 작동 방식",
     "error": "앗, 지금은 잘 안 됐어요. 다시 시도해 주세요.",
     "newChat": "새 채팅",
     "history": "기록",
@@ -457,6 +475,7 @@
     }
   },
   "Legal": {
+    "aiMotto": "로컬 팁, 사랑으로 만들었습니다. AI의 도움을 받고, 저희가 확인합니다.",
     "sectionTitle": "법적 고지",
     "imprint": "임프린트",
     "privacy": "개인정보",

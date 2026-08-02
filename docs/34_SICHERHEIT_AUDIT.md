@@ -173,7 +173,10 @@ Marketing-Pixel), dann ist ein **Opt-in-Consent-Banner** nötig (Consent-Cookie 
 - **⬜ noch offen (du):** Datenschutzerklärung (nennt Auftragsverarbeiter **Supabase, Vercel,
   Anthropic, Google Places, Mapbox, Resend** + EU/Drittland), Impressum/ECG, AGB, Widerruf/FAGG.
 - **⬜ AVV/DPAs** mit allen Auftragsverarbeitern; USA-Verarbeiter (Anthropic, Google) via **DPF/SCCs**.
-- **✅ EU AI Act:** Anton ist als KI gekennzeichnet (Disclaimer im Chat) — beibehalten.
+- **✅ EU AI Act:** Seit 02.08.2026 vollständig umgesetzt (nicht nur der Chat-Disclaimer:
+  KI-Offenlegung im Greeting, Disclaimer in jedem Zustand, maschinenlesbare Kennzeichnung,
+  /ki-Transparenzseite, KI-Stimmen-Hinweis der Audio-Touren). Nachweis + Einstufung:
+  **docs/39_RECHT_KI-Transparenz.md** (dort auch die Fristen).
 
 ### C8. 🟠 EU-Datenresidenz & Supabase-Härtung
 - Supabase-Projekt in EU-Region (Frankfurt) bestätigen; Vercel EU wo möglich.
@@ -418,7 +421,7 @@ fehlt und was ist zu schwach? · Woher kommen sie? · Was fragen sie Toni?*
 
 **Produkt-Nutzen:** Content-Lücken (unbeantwortete Wünsche → Spots aufnehmen), Datenlücken (fehlende Öffnungszeiten/Anfahrt → Spot-Daten ergänzen), Nachfrage-Landkarte (Themen/Regionen), Sprach-Nachfrage (→ EN-Übersetzung priorisieren), Pro-Interesse.
 
-**AI Act, Art. 50 (ab 2. Aug. 2026):** KI-Kennzeichnung erfüllt — Disclaimer „Anton ist eine KI und kann Fehler machen" steht dauerhaft unter dem Eingabefeld (auch beim ersten Kontakt).
+**AI Act, Art. 50 (gilt seit 02.08.2026):** Der Disclaimer allein hätte NICHT gereicht (er hing am Eingabefeld und verschwand hinter der Paywall-Karte; das Greeting nannte die KI nicht). Seit 08/2026 vollständig: Offenlegung im Greeting, Disclaimer in jedem Zustand, maschinenlesbare Kennzeichnung der Ausgaben, /ki-Seite. Nachweis: docs/39_RECHT_KI-Transparenz.md.
 
 **Datenschutz-Baustein (Ergänzung Datenschutzerklärung):**
 > *„KI-Assistent: Anfragen an unseren KI-Assistenten werden zur Beantwortung an unseren Auftragsverarbeiter (Anthropic) übermittelt. Zur Verbesserung der App werten wir Anfragen zusätzlich in ausschließlich **anonymisierter, aggregierter** Form aus (Themen-/Kategorie-Codes, keine Speicherung des Nachrichtentextes, kein Personenbezug). Diese anonymen Auswertungen erlauben keinen Rückschluss auf einzelne Personen."*

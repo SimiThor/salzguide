@@ -35,6 +35,10 @@ export function GET() {
 
 - it, nl, ko, fr, zh, es, pt: gleiche Pfade mit anderem Sprachkürzel, z. B. ${base}/it/explore
 - Vollständige Seitenliste / full page list: ${base}/sitemap.xml
+
+## KI-Transparenz / AI transparency
+
+- Teile der Inhalte sind KI-unterstützt entstanden (Entwürfe, Übersetzungen, die Stimme der Audio-Touren) und redaktionell geprüft. Details: ${base}/de/ki bzw. ${base}/en/ki
 `;
   return new Response(body, {
     headers: { "Content-Type": "text/plain; charset=utf-8" },

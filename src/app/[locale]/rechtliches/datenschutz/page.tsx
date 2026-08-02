@@ -73,8 +73,15 @@ export default async function DatenschutzPage({
       <p>
         Stellst du dem KI-Assistenten Fragen, wird dein Text zur Beantwortung an unseren
         KI-Dienstleister (Anthropic) übermittelt. Bitte gib dort keine sensiblen personenbezogenen
-        Daten ein. Zur Verbesserung des Angebots speichern wir ausschließlich anonyme Auswertungen
-        (z. B. Themen-Kategorien) ohne Bezug zu deiner Person, deinem Konto oder deiner IP.
+        Daten ein. Bist du angemeldet, speichern wir deinen Chat-Verlauf, damit du ihn später
+        wieder öffnen kannst: bis du ihn löschst, spätestens 24 Monate nach der letzten
+        Aktivität; er ist im Datenexport enthalten. Als Gast wird kein Verlauf auf unseren
+        Servern gespeichert. Angemeldet nutzt Toni außerdem die Art deiner gemerkten Spots
+        (z.&nbsp;B. Seen oder Wanderungen) für passendere Vorschläge; ein Werbeprofil entsteht
+        daraus nicht. Zur Verbesserung des Angebots speichern wir ausschließlich anonyme
+        Auswertungen (z.&nbsp;B. Themen-Kategorien) ohne Bezug zu deiner Person, deinem Konto
+        oder deiner IP. Wo überall KI mithilft, erklärt unsere Seite{" "}
+        <Link href="/ki">„Mit Liebe und KI gemacht“</Link>.
       </p>
       <h3>e) Kauf von SalzGuide Pro</h3>
       {/* Muss beschreiben, was der Code WIRKLICH tut (Art. 13 DSGVO). Seit dem Gast-Kauf ist
@@ -406,7 +413,11 @@ export default async function DatenschutzPage({
           unbefristet lagen). */}
       <ul>
         <li>Kontodaten: bis zur Löschung deines Kontos durch dich oder auf deine Anfrage.</li>
-        <li>Anonyme KI-Auswertungen: ohne Personenbezug; Roh-Nutzungsdaten der KI max. 90 Tage.</li>
+        <li>
+          Anonyme KI-Auswertungen: ohne Personenbezug; Nutzungszähler der KI max. 90 Tage;
+          gespeicherte Chat-Verläufe: bis du sie löschst, spätestens 24 Monate nach der
+          letzten Aktivität.
+        </li>
         <li>
           Reichweitenmessung: der Zufallswert nach spätestens 2 Tagen gelöscht, die Ereignisse
           danach ohne Personenbezug und nach rund 14 Monaten gelöscht.

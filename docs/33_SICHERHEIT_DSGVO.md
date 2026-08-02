@@ -71,11 +71,16 @@ Für **jeden** Dienst, der personenbezogene Daten verarbeitet, **AVV** (Art. 28)
 
 ---
 
-## 3. EU AI Act (Transparenz — gilt ab 2. Aug 2026)
-- **Pflicht:** Nutzer müssen **erkennen, dass sie mit einer KI** interagieren (Art. 50). → KI „Anton" **klar als KI kennzeichnen** (Begrüßung/Hinweis), Datenschutz-Hinweis zur KI-Verarbeitung (Anbieter nennen). Antons Bots tun das bereits — beibehalten/aktualisieren auf Claude.
-- **KI-Ausgaben** (Texte/Audio/Video aus KI) ggf. als KI-generiert kennzeichnen, wo relevant.
-- Risikoklasse: Reise-Empfehlungs-Chatbot = **minimal/limited risk** → v.a. **Transparenzpflichten**. Kein Hochrisiko, aber dokumentieren.
-- Verstöße: bis **35 Mio. € / 7 % Umsatz** → ernst nehmen.
+## 3. EU AI Act (Transparenz — gilt seit 2. Aug 2026): UMGESETZT, Nachweis in docs/39
+- **Erledigt 08/2026:** Chat-Offenlegung (Greeting + Disclaimer in jedem Zustand),
+  maschinenlesbare Kennzeichnung der Chat-Ausgaben, /ki-Transparenzseite (9 Sprachen),
+  KI-Stimmen-Hinweis der Audio-Touren, Datenschutz §3d erweitert.
+- Einstufung aller Funktionen, Redaktions-Workflow (Art. 50(4)-Ausnahme), Fristen und
+  offene Punkte: **docs/39_RECHT_KI-Transparenz.md** (das ist die eine Quelle; dieser
+  Abschnitt hier bleibt nur als historischer Zeiger stehen).
+- Korrektur zur alten Zahl: Verstöße gegen Art. 50 kosten bis **15 Mio. € / 3 %**
+  (Art. 99(4)(g)); 35 Mio./7 % gilt nur für verbotene Praktiken nach Art. 5. Für KMU
+  greift je der niedrigere Wert (Art. 99(6)).
 
 ---
 
