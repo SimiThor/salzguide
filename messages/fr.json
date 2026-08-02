@@ -1,5 +1,21 @@
 {
+  "AiTransparency": {
+    "title": "Fait avec amour et un peu d’IA",
+    "intro": "Chaque spot sur SalzGuide est visité, photographié et rédigé par nous. Pour certaines choses, l’intelligence artificielle nous aide. Voici où, en toute honnêteté.",
+    "toniTitle": "Toni, notre IA",
+    "toniBody": "Toni est un chat IA basé sur Claude (Anthropic). Il ne travaille qu’avec nos spots et events vérifiés et te dit ouvertement qu’il est une IA. Son visage aussi est généré par IA : Toni est un personnage, pas une personne. Et comme toute IA, il peut se tromper : vérifie les détails comme les horaires.",
+    "textsTitle": "Textes et traductions",
+    "textsBody": "Les textes naissent chez nous : on y va, on note, on rédige. L’IA aide pour les brouillons et traduit tout en huit langues. Rien n’est publié sans relecture ; Anton Steiner en porte la responsabilité (voir mentions légales).",
+    "voiceTitle": "La voix des audio-tours",
+    "voiceBody": "Les audio-tours racontent nos textes vérifiés avec une voix IA (ElevenLabs). Aucune vraie personne ne parle, même si on s’y croirait.",
+    "humanTitle": "Ce qui se fait sans IA",
+    "humanBody": "Toutes les photos sont réelles et prises par nous. Les vidéos de survol sont de vraies prises de vue 3D de la carte, pas des images IA. Pas de reconnaissance des émotions, pas de profil publicitaire.",
+    "lawTitle": "Le côté légal, en bref",
+    "lawBody": "Cette page est notre transparence selon l’article 50 du règlement européen sur l’IA (règlement (UE) 2024/1689). Ce qui arrive à tes messages du chat est décrit dans la politique de confidentialité."
+  },
   "Meta": {
+    "aiTransparencyTitle": "Fait avec amour et un peu d’IA : comment fonctionne SalzGuide",
+    "aiTransparencyDescription": "Où l’IA aide chez SalzGuide et où elle n’aide pas : Toni, les textes, les traductions et la voix des audio-tours. Expliqué honnêtement.",
     "description": "Spots secrets de la région de Salzbourg : les plus beaux endroits sur une carte interactive, avec de vrais conseils de locaux.",
     "homeTitle": "SalzGuide : découvre les spots secrets du pays de Salzbourg",
     "homeDescription": "Avec la carte interactive et de vrais conseils de locaux, tu trouves les plus beaux spots et hidden gems de la région de Salzbourg. On les a tous visités.",
@@ -12,7 +28,7 @@
     "wasserTitle": "Température de l'eau des lacs de Salzbourg",
     "wasserDescription": "Températures actuelles du Wolfgangsee, du Fuschlsee et d'autres lacs, plus les plus beaux coins de baignade de la région, sur une carte.",
     "tourenTitle": "Visites audio de Salzbourg",
-    "tourenDescription": "Découvre Salzbourg à l'oreille : des histoires de locaux, étape par étape, sur ton téléphone.",
+    "tourenDescription": "Découvre Salzbourg à l’oreille : le savoir des locaux, étape par étape, sur ton téléphone.",
     "supportTitle": "Aide et contact",
     "supportDescription": "Quelque chose ne marche pas, un spot est faux, ou tu as une question ? Écris-nous.",
     "aboutTitle": "À propos",
@@ -43,7 +59,8 @@
   },
   "Tours": {
     "title": "Visites audio",
-    "subtitle": "Explore Salzburg par l'oreille – des histoires de locaux, arrêt après arrêt.",
+    "subtitle": "Explore Salzburg par l’oreille : le savoir des locaux, raconté arrêt après arrêt.",
+    "aiVoice": "Voix IA, contenus vérifiés par nous",
     "listEmpty": "Aucune visite audio disponible pour le moment. Reviens bientôt.",
     "stops": "{count, plural, one {# arrêt} other {# arrêts}}",
     "minutes": "{count} min",
@@ -133,11 +150,12 @@
   "Ai": {
     "title": "Toni",
     "subtitle": "ton local IA",
-    "greeting": "Salut ! Je suis Toni, ton local à Salzburg. T'as envie de quoi là ? 🏔️",
+    "greeting": "Salut ! Moi c'est Toni, l'IA de SalzGuide et ton local à Salzburg. T'as envie de quoi là ? 🏔️",
     "placeholder": "Demande à Toni …",
     "send": "Envoyer",
     "thinking": "Toni réfléchit …",
     "disclaimer": "Toni est une IA et peut se tromper. Vérifie les détails avant de partir.",
+    "transparencyLink": "Comment Toni fonctionne",
     "error": "Oups, ça n'a pas marché. Réessaie.",
     "newChat": "Nouveau chat",
     "history": "Historique",
@@ -457,6 +475,7 @@
     }
   },
   "Legal": {
+    "aiMotto": "Des tips locaux, faits avec amour. Avec l’aide de l’IA, vérifiés par nous.",
     "sectionTitle": "Informations légales",
     "imprint": "Mentions légales",
     "privacy": "Confidentialité",

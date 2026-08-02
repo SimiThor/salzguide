@@ -1,5 +1,21 @@
 {
+  "AiTransparency": {
+    "title": "Met liefde en AI gemaakt",
+    "intro": "Elke spot op SalzGuide is door ons bezocht, gefotografeerd en opgeschreven. Bij een paar dingen helpt kunstmatige intelligentie mee. Hier staat eerlijk waar.",
+    "toniTitle": "Toni, onze AI",
+    "toniBody": "Toni is een AI-chat op basis van Claude (Anthropic). Toni werkt alleen met onze gecheckte spots en events en zegt je open dat je met een AI praat. Ook het gezicht is AI-gegenereerd: Toni is een figuur, geen mens. En zoals elke AI kan Toni fouten maken: check details zoals openingstijden even.",
+    "textsTitle": "Teksten en vertalingen",
+    "textsBody": "Schrijven doen we zelf: erheen gaan, noteren, uitschrijven. AI helpt bij concepten en vertaalt alles naar acht talen. Niets gaat ongecheckt online; de verantwoordelijkheid ligt bij Anton Steiner (zie colofon).",
+    "voiceTitle": "De stem van de audiotours",
+    "voiceBody": "De audiotours vertellen onze gecheckte teksten met een AI-stem (ElevenLabs). Er spreekt geen echt persoon, ook al klinkt het zo.",
+    "humanTitle": "Wat zonder AI gaat",
+    "humanBody": "Alle foto’s zijn echt en zelf gemaakt. De flyover-video’s zijn echte 3D-kaartopnames, geen AI-beelden. Geen emotieherkenning, geen advertentieprofiel.",
+    "lawTitle": "Het juridische, kort",
+    "lawBody": "Deze pagina is onze transparantie volgens artikel 50 van de EU-AI-verordening (Verordening (EU) 2024/1689). Wat er met je chatberichten gebeurt, staat in de privacyverklaring."
+  },
   "Meta": {
+    "aiTransparencyTitle": "Met liefde en AI gemaakt: hoe SalzGuide werkt",
+    "aiTransparencyDescription": "Waar AI meehelpt bij SalzGuide en waar niet: Toni, teksten, vertalingen en de stem van de audiotours. Eerlijk uitgelegd.",
     "description": "Geheime plekjes in het Salzburgerland: de mooiste plekken op een interactieve kaart, met echte tips van locals.",
     "homeTitle": "SalzGuide: geheime plekjes in het Salzburgerland ontdekken",
     "homeDescription": "Vind de mooiste plekken & hidden gems in het Salzburgerland met een interactieve kaart & echte tips van locals. Wij zijn overal zelf geweest.",
@@ -12,7 +28,7 @@
     "wasserTitle": "Watertemperatuur van de meren in Salzburg",
     "wasserDescription": "Actuele watertemperaturen van de Wolfgangsee, de Fuschlsee en meer, plus de mooiste zwemplekken in het Salzburgerland op één kaart.",
     "tourenTitle": "Audiotours door Salzburg",
-    "tourenDescription": "Verken Salzburg op het gehoor: verhalen van locals, stop voor stop, gewoon op je telefoon.",
+    "tourenDescription": "Verken Salzburg op het gehoor: lokale kennis, stop voor stop, gewoon op je telefoon.",
     "supportTitle": "Hulp & contact",
     "supportDescription": "Werkt iets niet, klopt een plek niet, of heb je een vraag? Schrijf ons.",
     "aboutTitle": "Over ons",
@@ -43,7 +59,8 @@
   },
   "Tours": {
     "title": "Audiotours",
-    "subtitle": "Ontdek Salzburg met je oren – verhalen van locals, stop voor stop.",
+    "subtitle": "Ontdek Salzburg met je oren: lokale kennis, stop voor stop verteld.",
+    "aiVoice": "AI-stem, inhoud door ons gecheckt",
     "listEmpty": "Er zijn nu geen audiotours beschikbaar. Kom snel weer eens kijken.",
     "stops": "{count, plural, one {# stop} other {# stops}}",
     "minutes": "{count} min",
@@ -133,11 +150,12 @@
   "Ai": {
     "title": "Toni",
     "subtitle": "jouw AI-local",
-    "greeting": "Hoi! Ik ben Toni, jouw local voor Salzburg. Waar heb je nu zin in? 🏔️",
+    "greeting": "Hoi! Ik ben Toni, de AI van SalzGuide en jouw local voor Salzburg. Waar heb je nu zin in? 🏔️",
     "placeholder": "Vraag het Toni …",
     "send": "Versturen",
     "thinking": "Toni denkt na …",
     "disclaimer": "Toni is een AI en kan fouten maken. Check details even voordat je op pad gaat.",
+    "transparencyLink": "Hoe Toni werkt",
     "error": "Oeps, dat lukte even niet. Probeer het opnieuw.",
     "newChat": "Nieuwe chat",
     "history": "Geschiedenis",
@@ -457,6 +475,7 @@
     }
   },
   "Legal": {
+    "aiMotto": "Local tips, met liefde gemaakt. Met AI-hulp, door ons gecheckt.",
     "sectionTitle": "Juridisch",
     "imprint": "Colofon",
     "privacy": "Privacy",

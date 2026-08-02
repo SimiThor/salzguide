@@ -1,5 +1,21 @@
 {
+  "AiTransparency": {
+    "title": "Hecho con amor y con IA",
+    "intro": "Cada spot de SalzGuide está visitado, fotografiado y escrito por nosotros. En algunas cosas nos ayuda la inteligencia artificial. Aquí te contamos dónde, con honestidad.",
+    "toniTitle": "Toni, nuestra IA",
+    "toniBody": "Toni es un chat de IA basado en Claude (Anthropic). Solo trabaja con nuestros spots y eventos verificados y te dice abiertamente que es una IA. Su cara también está generada por IA: Toni es un personaje, no una persona. Y como toda IA puede equivocarse: comprueba detalles como los horarios.",
+    "textsTitle": "Textos y traducciones",
+    "textsBody": "Los textos nacen aquí: vamos, tomamos notas, escribimos. La IA ayuda con borradores y traduce todo a ocho idiomas. Nada se publica sin revisión; la responsabilidad es de Anton Steiner (ver aviso legal).",
+    "voiceTitle": "La voz de los audiotours",
+    "voiceBody": "Los audiotours narran nuestros textos revisados con una voz de IA (ElevenLabs). No habla ninguna persona real, aunque lo parezca.",
+    "humanTitle": "Lo que funciona sin IA",
+    "humanBody": "Todas las fotos son reales y hechas por nosotros. Los vídeos de sobrevuelo son tomas 3D reales del mapa, no imágenes de IA. Sin reconocimiento de emociones, sin perfil publicitario.",
+    "lawTitle": "Lo legal, en corto",
+    "lawBody": "Esta página es nuestra transparencia según el artículo 50 del Reglamento de IA de la UE (Reglamento (UE) 2024/1689). Qué pasa con tus mensajes del chat está en la política de privacidad."
+  },
   "Meta": {
+    "aiTransparencyTitle": "Hecho con amor y con IA: cómo funciona SalzGuide",
+    "aiTransparencyDescription": "Dónde ayuda la IA en SalzGuide y dónde no: Toni, los textos, las traducciones y la voz de los audiotours. Explicado con honestidad.",
     "description": "Sitios secretos de la región de Salzburgo: los lugares más bonitos en un mapa interactivo, con consejos reales de gente local.",
     "homeTitle": "SalzGuide: descubre los sitios secretos de Salzburgo",
     "homeDescription": "Con el mapa interactivo y consejos reales de gente local encuentras los sitios más bonitos y hidden gems de la región de Salzburgo. Hemos estado en todos.",
@@ -12,7 +28,7 @@
     "wasserTitle": "Temperatura del agua de los lagos de Salzburgo",
     "wasserDescription": "Temperaturas actuales del Wolfgangsee, el Fuschlsee y otros lagos, más los mejores sitios para bañarse en la región, en un mapa.",
     "tourenTitle": "Tours de audio por Salzburgo",
-    "tourenDescription": "Explora Salzburgo con los oídos: historias de gente local, parada a parada, en tu móvil.",
+    "tourenDescription": "Explora Salzburgo con los oídos: saber local, parada a parada, en tu móvil.",
     "supportTitle": "Ayuda y contacto",
     "supportDescription": "¿Algo no funciona, un sitio no cuadra o tienes una pregunta? Escríbenos.",
     "aboutTitle": "Sobre nosotros",
@@ -43,7 +59,8 @@
   },
   "Tours": {
     "title": "Audioguías",
-    "subtitle": "Descubre Salzburgo con el oído: historias de locales, parada a parada.",
+    "subtitle": "Descubre Salzburgo con el oído: saber local, parada a parada.",
+    "aiVoice": "Voz de IA, contenido revisado por nosotros",
     "listEmpty": "Ahora mismo no hay audioguías disponibles. Vuelve pronto.",
     "stops": "{count, plural, one {# parada} other {# paradas}}",
     "minutes": "{count} min",
@@ -133,11 +150,12 @@
   "Ai": {
     "title": "Toni",
     "subtitle": "tu local con IA",
-    "greeting": "¡Hola! Soy Toni, tu local en Salzburgo. ¿Qué te apetece ahora? 🏔️",
+    "greeting": "¡Hola! Soy Toni, la IA de SalzGuide y tu local en Salzburgo. ¿Qué te apetece ahora? 🏔️",
     "placeholder": "Pregúntale a Toni …",
     "send": "Enviar",
     "thinking": "Toni está pensando …",
     "disclaimer": "Toni es una IA y puede equivocarse. Comprueba los detalles antes de salir.",
+    "transparencyLink": "Cómo funciona Toni",
     "error": "Vaya, esta vez no ha funcionado. Inténtalo de nuevo.",
     "newChat": "Nuevo chat",
     "history": "Historial",
@@ -457,6 +475,7 @@
     }
   },
   "Legal": {
+    "aiMotto": "Tips locales, hechos con amor. Con ayuda de IA, revisados por nosotros.",
     "sectionTitle": "Legal",
     "imprint": "Aviso legal",
     "privacy": "Privacidad",

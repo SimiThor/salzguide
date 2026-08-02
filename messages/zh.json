@@ -1,5 +1,21 @@
 {
+  "AiTransparency": {
+    "title": "用爱与 AI 打造",
+    "intro": "SalzGuide 上的每个地点都由我们亲自探访、拍摄和撰写。有些环节会有人工智能帮忙。这里坦诚地告诉你是哪些。",
+    "toniTitle": "我们的 AI：Toni",
+    "toniBody": "Toni 是基于 Claude（Anthropic）的 AI 聊天助手。它只使用我们核实过的地点和活动，并且会坦率告诉你它是 AI。它的头像也是 AI 生成的：Toni 是一个角色，不是真人。和所有 AI 一样，它可能出错，营业时间等细节请再核对一下。",
+    "textsTitle": "文字与翻译",
+    "textsBody": "文字由我们自己写：实地探访、记录、成文。AI 协助起草，并把所有内容翻译成八种语言。未经审核不会发布；由 Anton Steiner 负责（见法律声明）。",
+    "voiceTitle": "语音导览的声音",
+    "voiceBody": "语音导览用 AI 声音（ElevenLabs）朗读我们审核过的文字。听起来像真人，但并没有真人在说话。",
+    "humanTitle": "不用 AI 的部分",
+    "humanBody": "所有照片都是我们实拍的。飞行视频是真实的 3D 地图画面，不是 AI 图像。没有情绪识别，也没有广告画像。",
+    "lawTitle": "法律部分，简短说",
+    "lawBody": "本页面是我们依据欧盟《人工智能法》（条例 (EU) 2024/1689）第 50 条所做的透明说明。你的聊天消息如何处理，请见隐私政策。"
+  },
   "Meta": {
+    "aiTransparencyTitle": "用爱与 AI 打造：SalzGuide 的工作方式",
+    "aiTransparencyDescription": "SalzGuide 哪里用了 AI、哪里没有：Toni、文字、翻译和语音导览的声音。坦诚说明。",
     "description": "萨尔茨堡的秘密景点：互动地图加本地人的真实建议，找到最美的去处。",
     "homeTitle": "SalzGuide：发现萨尔茨堡的秘密景点",
     "homeDescription": "互动地图加本地人的真实建议，帮你找到萨尔茨堡最美的景点和隐藏宝藏。每个地方我们都亲自去过。",
@@ -12,7 +28,7 @@
     "wasserTitle": "萨尔茨堡湖泊水温",
     "wasserDescription": "沃尔夫冈湖、富施尔湖等萨尔茨堡湖泊的实时水温，以及最美的游泳地点，都在一张地图上。",
     "tourenTitle": "萨尔茨堡语音导览",
-    "tourenDescription": "用耳朵探索萨尔茨堡：本地人的故事，一站一站，在手机上就能听。",
+    "tourenDescription": "用耳朵探索萨尔茨堡：本地知识，一站一站，在手机上就能听。",
     "supportTitle": "帮助与联系",
     "supportDescription": "有什么不对劲、信息有误，或者有问题？写信告诉我们。",
     "aboutTitle": "关于我们",
@@ -43,7 +59,8 @@
   },
   "Tours": {
     "title": "语音导览",
-    "subtitle": "用耳朵探索萨尔茨堡——本地人讲故事，一站接一站。",
+    "subtitle": "用耳朵探索萨尔茨堡：本地知识，一站接一站。",
+    "aiVoice": "AI 声音，内容经我们审核",
     "listEmpty": "目前还没有语音导览，请稍后再来看看。",
     "stops": "{count, plural, other {# 站}}",
     "minutes": "{count} 分钟",
@@ -133,11 +150,12 @@
   "Ai": {
     "title": "Toni",
     "subtitle": "你的 AI 本地向导",
-    "greeting": "嘿！我是 Toni，你的萨尔茨堡本地向导。今天想玩点什么？🏔️",
+    "greeting": "嘿！我是 Toni，SalzGuide 的 AI，也是你的萨尔茨堡本地向导。今天想玩点什么？🏔️",
     "placeholder": "问问 Toni……",
     "send": "发送",
     "thinking": "Toni 正在思考……",
     "disclaimer": "Toni 是 AI，可能会出错。出发前记得核对一下细节。",
+    "transparencyLink": "Toni 的工作原理",
     "error": "哎呀，刚才没成功。请再试一次。",
     "newChat": "新对话",
     "history": "历史记录",
@@ -457,6 +475,7 @@
     }
   },
   "Legal": {
+    "aiMotto": "本地建议，用爱打造。AI 帮忙，我们把关。",
     "sectionTitle": "法律信息",
     "imprint": "法律声明",
     "privacy": "隐私",

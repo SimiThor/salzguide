@@ -1,5 +1,21 @@
 {
+  "AiTransparency": {
+    "title": "Made with love and AI",
+    "intro": "Every spot on SalzGuide is visited, photographed and written up by us. For a few things, artificial intelligence helps out. Here’s honestly where.",
+    "toniTitle": "Toni, our AI",
+    "toniBody": "Toni is an AI chat built on Claude (Anthropic). Toni only works with our verified spots and events and tells you openly that you’re talking to an AI. The face is AI-generated too: Toni is a character, not a person. And like any AI, Toni can make mistakes, so double-check details like opening hours.",
+    "textsTitle": "Texts and translations",
+    "textsBody": "The writing happens here: we go there, take notes, write it down. AI helps with drafts and translates everything into eight languages. Nothing goes live unchecked; Anton Steiner is responsible for what’s published (see legal notice).",
+    "voiceTitle": "The audio tour voice",
+    "voiceBody": "The audio tours narrate our reviewed texts with an AI voice (ElevenLabs). No real person is speaking, even if it sounds like it.",
+    "humanTitle": "What runs without AI",
+    "humanBody": "All photos are real and taken by us. The flyover videos are real 3D map footage, not AI imagery. No emotion recognition, no ad profile.",
+    "lawTitle": "The legal part, briefly",
+    "lawBody": "This page is our transparency under Article 50 of the EU AI Act (Regulation (EU) 2024/1689). What happens to your chat messages is covered in the privacy policy."
+  },
   "Meta": {
+    "aiTransparencyTitle": "Made with love and AI: how SalzGuide works",
+    "aiTransparencyDescription": "Where AI helps at SalzGuide and where it doesn’t: Toni, texts, translations and the audio tour voice. Explained honestly.",
     "description": "Hidden gems in the Salzburg region: the most beautiful spots on an interactive map, with real local tips.",
     "homeTitle": "SalzGuide: discover hidden gems in the Salzburg region",
     "homeDescription": "Find the most beautiful spots & hidden gems in the Salzburg region with an interactive map & real local tips. We have been to every single one.",
@@ -12,7 +28,7 @@
     "wasserTitle": "Water temperature of Salzburg's lakes",
     "wasserDescription": "Current water temperatures for Lake Wolfgang, Lake Fuschl and more, plus the best swimming spots in the Salzburg region on one map.",
     "tourenTitle": "Audio tours through Salzburg",
-    "tourenDescription": "Explore Salzburg by ear: stories from locals, stop by stop, right on your phone.",
+    "tourenDescription": "Explore Salzburg by ear: local knowledge, stop by stop, right on your phone.",
     "supportTitle": "Help & contact",
     "supportDescription": "Something is not working, a spot is wrong, or you have a question? Write to us.",
     "aboutTitle": "About us",
@@ -43,7 +59,8 @@
   },
   "Tours": {
     "title": "Audio tours",
-    "subtitle": "Explore Salzburg by ear – stories from locals, stop by stop.",
+    "subtitle": "Explore Salzburg by ear: local knowledge, told stop by stop.",
+    "aiVoice": "AI voice, content checked by us",
     "listEmpty": "No audio tours available right now. Check back soon.",
     "stops": "{count, plural, one {# stop} other {# stops}}",
     "minutes": "{count} min",
@@ -133,11 +150,12 @@
   "Ai": {
     "title": "Toni",
     "subtitle": "your AI local",
-    "greeting": "Hey! I'm Toni, your Salzburg local. What are you in the mood for? 🏔️",
+    "greeting": "Hey! I'm Toni, SalzGuide's AI and your Salzburg local. What are you in the mood for? 🏔️",
     "placeholder": "Ask Toni …",
     "send": "Send",
     "thinking": "Toni's thinking …",
     "disclaimer": "Toni is an AI and can make mistakes. Double-check details before you head out.",
+    "transparencyLink": "How Toni works",
     "error": "Oops, that didn't work. Please try again.",
     "newChat": "New chat",
     "history": "History",
@@ -457,6 +475,7 @@
     }
   },
   "Legal": {
+    "aiMotto": "Local tips, made with love. With AI help, checked by us.",
     "sectionTitle": "Legal",
     "imprint": "Imprint",
     "privacy": "Privacy",
