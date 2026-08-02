@@ -150,6 +150,51 @@ export function smoothSafePitch(raw: number[], r: number): number[] {
   return boxBlur(boxBlur(eroded, r), r);
 }
 
+// --- Sichtlinien-Prüfung: ragt ein Berg ZWISCHEN Kamera und Ziel in den Blick? ---
+// Der Crash-Schutz (Höhe unter der Kamera) reicht nicht: die Kamera kann sicher schweben
+// und trotzdem zeichnet der Kopf-Punkt hinter einem Grat weiter. Darum wird die gerade
+// Sichtlinie Kamera -> Ziel in festen Schritten abgetastet und ihre Höhe mit dem Gelände
+// darunter verglichen. Interpoliert wird in Mercator, weil die Karte in Web-Mercator
+// rendert - so läuft die Probe-Linie dort, wo auch die gerenderte Sichtlinie läuft.
+//
+// Rückgabe: knappster Spielraum in Metern über die ganze Linie (negativ = ein Berg ragt
+// hinein, Infinity = nichts prüfbar). Alle Höhen in GERENDERTEN Metern, also inklusive
+// Terrain-Überhöhung; groundAt muss dieselbe Einheit liefern (NaN = unbekannt -> Probe
+// wird übersprungen, gleiche Philosophie wie beim Boden-Check unter der Kamera).
+//
+// marginM ist die geforderte Mindest-Luft. Sie blendet auf den letzten taperM vor dem
+// Ziel linear auf 0 aus: das Ziel STEHT am Boden, kurz davor darf die Sichtlinie dem
+// Gelände beliebig nahe kommen - nur schneiden darf sie es nicht. Beide Endpunkte werden
+// ausgelassen (unter der Kamera wacht der Crash-Schutz, am Ziel ist der Abstand per
+// Definition 0).
+export type SightlinePoint = { lng: number; lat: number; alt: number };
+
+export function sightlineSlack(
+  cam: SightlinePoint,
+  target: SightlinePoint,
+  groundAt: (lng: number, lat: number) => number,
+  opts: { marginM: number; taperM: number; stepM: number },
+): number {
+  const dist = haversineMeters([cam.lng, cam.lat], [target.lng, target.lat]);
+  if (!Number.isFinite(dist) || dist <= opts.stepM) return Infinity;
+  const taper = Math.max(1, opts.taperM);
+  const a = toMerc([cam.lng, cam.lat]);
+  const b = toMerc([target.lng, target.lat]);
+  const n = Math.min(400, Math.max(8, Math.ceil(dist / opts.stepM)));
+  let worst = Infinity;
+  for (let i = 1; i < n; i++) {
+    const t = i / n;
+    const [lng, lat] = fromMerc([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]);
+    const g = groundAt(lng, lat);
+    if (Number.isNaN(g)) continue;
+    const lineAlt = cam.alt + (target.alt - cam.alt) * t;
+    const required = opts.marginM * Math.min(1, ((1 - t) * dist) / taper);
+    const slack = lineAlt - g - required;
+    if (slack < worst) worst = slack;
+  }
+  return worst;
+}
+
 // Erzeugt die vollständige Kamera-Bahn.
 export function buildIntroCameraPath(
   route: [number, number][],
