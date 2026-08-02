@@ -105,8 +105,8 @@ function fineprintDe(r: ProPurchaseReceipt): string {
     "haben, dass du dadurch dein Rücktrittsrecht (Widerrufsrecht) für die Inhalte verlierst " +
     "(§ 18 Abs. 1 Z 11 FAGG).\n\n" +
     "↩️ Was das heisst: Für die freigeschalteten Inhalte ist dein 14-tägiges Rücktrittsrecht " +
-    "mit der sofortigen Freischaltung erloschen. Der KI-Assistent ohne Begrenzung ist eine " +
-    "unentgeltliche Zugabe und nicht Teil der bezahlten Leistung; auf ihn entfällt kein " +
+    "mit der sofortigen Freischaltung erloschen. Das erhöhte Toni-Tageslimit ist eine " +
+    "unentgeltliche Zugabe und nicht Teil der bezahlten Leistung; darauf entfällt kein " +
     "Preisanteil. Erklären kannst du einen Rücktritt jederzeit und ohne Begründung über das " +
     "Formular in der Widerrufsbelehrung, wir bestätigen den Eingang unverzüglich per E-Mail."
   );
