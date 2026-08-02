@@ -2,6 +2,8 @@
 
 import Image from "next/image";
 import { useImageReveal } from "@/lib/use-image-reveal";
+import AiImageBadge from "@/components/AiImageBadge";
+import type { AiOrigin } from "@/lib/ai-origin";
 
 // DAS Foto der Plattform: Kachel mit Schimmer, darüber blendet das Bild weich ein.
 // Überall dort, wo ein Spot-Foto in einer Liste, Karte oder einem Sheet steht
@@ -32,6 +34,12 @@ type SmoothImageProps = React.HTMLAttributes<HTMLDivElement> & {
   // früher, wenn die sichtbaren Bilder nicht hinten in der Warteschlange stehen.
   eager?: boolean;
   quality?: number;
+  /**
+   * KI-Herkunft des Fotos (Art. 50 KI-VO, docs/39 §5a): gesetzt zeigt die Kachel das
+   * kleine KI-Label und trägt data-ai-origin. Muss ÜBERALL mitgegeben werden, wo das
+   * Hero-Foto eines Spots erscheint; die erste Exposition ist meist eine Karte.
+   */
+  aiOrigin?: AiOrigin | null;
 };
 
 export default function SmoothImage({
@@ -42,6 +50,7 @@ export default function SmoothImage({
   imgClassName = "object-cover",
   eager = false,
   quality,
+  aiOrigin,
   ...rest
 }: SmoothImageProps) {
   // Ohne zweites Argument: Ein Foto in einer Karte, einem Sheet oder einer Liste hat
@@ -54,6 +63,7 @@ export default function SmoothImage({
     // (sonst zeigen sich eckige Kanten).
     <div
       {...rest}
+      data-ai-origin={aiOrigin ?? undefined}
       className={`relative isolate transform-gpu overflow-hidden ${skeletonClassName} ${className}`}
     >
       <Image
@@ -83,6 +93,14 @@ export default function SmoothImage({
         onError={onError}
         className={`${imgClassName} ${imageClassName}`}
       />
+      {/* imageClassName auch am Badge: es blendet mit dem Foto ein statt vor ihm
+          aufzupoppen (Welle aus lib/use-image-reveal.ts). */}
+      {aiOrigin && (
+        <AiImageBadge
+          origin={aiOrigin}
+          className={`absolute bottom-1.5 right-1.5 z-10 inline-flex ${imageClassName}`}
+        />
+      )}
     </div>
   );
 }

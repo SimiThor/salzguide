@@ -69,6 +69,14 @@ export function aiOriginsFromMedia(media: unknown): (AiOrigin | null)[] {
   return sortedMedia(media).map((m) => parseAiOrigin(m.ai_origin));
 }
 
+// KI-Herkunft NUR des Hero-Fotos: für alle Karten/Sheets, die genau ein Bild zeigen.
+// Wo das Hero-Foto erscheint, muss sein Label mit (Art. 50(4)+(5) KI-VO: Offenlegung
+// spätestens bei der ERSTEN Exposition, und die ist meist eine Karte, nicht die
+// Detailseite). Voraussetzung wie oben: die Abfrage lädt media(ai_origin) mit.
+export function heroAiOriginFromMedia(media: unknown): AiOrigin | null {
+  return aiOriginsFromMedia(media)[0] ?? null;
+}
+
 // URL der Vorschau des Hero-Bilds (~160px, siehe lib/blur-preview.ts). Das EINZIGE
 // Bild, das gesperrte Pro-Spots ausliefern dürfen. null, wenn der Spot kein Foto hat
 // oder die Vorschau noch nicht erzeugt wurde (-> Emoji-Fallback).
@@ -80,6 +88,9 @@ export type SpotCardData = {
   slug: string;
   emoji: string | null;
   imageUrl: string | null; // Hero-Foto – bei gesperrten Spots IMMER null
+  // KI-Herkunft des Hero-Fotos (Art. 50 KI-VO, docs/39 §5a). Wie imageUrl bei
+  // gesperrten Spots null: ohne Bild kein Label.
+  imageAiOrigin: AiOrigin | null;
   // Ist der Spot für DIESEN Betrachter gesperrt? Autoritativ vom Server (is_pro und
   // kein Pro-Zugang). Nicht aus isPro ableiten: Ein zahlender Pro-User sieht Pro-Spots
   // ganz normal, für ihn ist isPro true, locked aber false.
@@ -186,7 +197,7 @@ export const getFeaturedSpots = cache(async function getFeaturedSpots(
   const { data, error } = await supabase
     .from("spots")
     .select(
-      "slug, emoji, is_pro, type, spot_translations!inner(title, short_desc, lang), media(url, role, sort_order)",
+      "slug, emoji, is_pro, type, spot_translations!inner(title, short_desc, lang), media(url, role, sort_order, ai_origin)",
     )
     .eq("status", "published")
     .eq("is_pro", false)
@@ -209,6 +220,7 @@ export const getFeaturedSpots = cache(async function getFeaturedSpots(
       slug: s.slug,
       emoji: s.emoji,
       imageUrl: imagesFromMedia(s.media)[0] ?? null,
+      imageAiOrigin: heroAiOriginFromMedia(s.media),
       locked: false, // nur freie Spots kommen hier an (siehe Filter oben)
       previewUrl: null,
       isPro: false,
@@ -339,7 +351,7 @@ async function queryExploreData(locale: string, canSeePro: boolean): Promise<Exp
         // 20 KB und würde bei 100-200 Spots rund 1 MB PRO Seitenaufruf bedeuten.
         // Postgres rechnet die Box beim Schreiben (Migration 0042).
         // sort_weight + created_at: Zutaten der Regal-Reihenfolge (explore-ranking.ts).
-        "slug, emoji, is_pro, type, lat, lng, seasons, route_bbox, sort_weight, created_at, spot_translations!inner(title, short_desc, lang), spot_categories(categories(key, season)), media(url, role, sort_order, blur_url)",
+        "slug, emoji, is_pro, type, lat, lng, seasons, route_bbox, sort_weight, created_at, spot_translations!inner(title, short_desc, lang), spot_categories(categories(key, season)), media(url, role, sort_order, blur_url, ai_origin)",
       )
       .eq("status", "published")
       .in("spot_translations.lang", localeWithFallback(locale))
@@ -378,6 +390,7 @@ async function queryExploreData(locale: string, canSeePro: boolean): Promise<Exp
       slug: locked ? `locked-${i}` : s.slug,
       emoji: locked ? null : s.emoji,
       imageUrl: locked ? null : (imagesFromMedia(s.media)[0] ?? null),
+      imageAiOrigin: locked ? null : heroAiOriginFromMedia(s.media),
       // Statt des Fotos nur die Vorschau (~160px): Motiv erkennbar, Ort nicht.
       previewUrl: locked ? heroPreviewFromMedia(s.media) : null,
       locked,
@@ -552,7 +565,7 @@ async function queryRelatedSpots(
   const { data: full, error: fullErr } = await supabase
     .from("spots")
     .select(
-      "slug, emoji, is_pro, type, spot_translations!inner(title, short_desc, lang), media(url, role, sort_order, blur_url)",
+      "slug, emoji, is_pro, type, spot_translations!inner(title, short_desc, lang), media(url, role, sort_order, blur_url, ai_origin)",
     )
     .in(
       "slug",
@@ -586,6 +599,7 @@ async function queryRelatedSpots(
         slug: locked ? `locked-${i}` : s.slug,
         emoji: locked ? null : s.emoji,
         imageUrl: locked ? null : (imagesFromMedia(s.media)[0] ?? null),
+        imageAiOrigin: locked ? null : heroAiOriginFromMedia(s.media),
         previewUrl: locked ? heroPreviewFromMedia(s.media) : null,
         locked,
         isPro: s.is_pro,

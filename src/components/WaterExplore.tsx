@@ -6,6 +6,7 @@ import "mapbox-gl/dist/mapbox-gl.css";
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
+import type { AiOrigin } from "@/lib/ai-origin";
 import { Link } from "@/i18n/navigation";
 import BottomSheet from "./BottomSheet";
 import LockedMedia from "./LockedMedia";
@@ -41,6 +42,9 @@ export type LakeSpot = {
   title: string;
   emoji: string | null;
   image: string | null;
+  // KI-Herkunft des Fotos (Art. 50 KI-VO, docs/39 §5a): am 48px-Thumb nur als
+  // data-Attribut, das sichtbare Label trägt die nächste größere Fläche.
+  imageAiOrigin: AiOrigin | null;
   // Für DIESEN Betrachter gesperrter Pro-Spot? Dann ist der Slug nur Tarnung
   // (locked-<i>, lib/water-temp.ts) – die Zeile öffnet ProGate statt zu verlinken.
   locked: boolean;
@@ -441,7 +445,11 @@ export default function WaterExplore({
                       className="flex items-center gap-3 rounded-[14px] bg-white py-2 pl-2 pr-4 shadow-sm transition active:scale-[0.99] md:hover:bg-black/[0.02]"
                     >
                       {sp.image ? (
+                        // data-ai-origin: maschinenlesbar auch am 48px-Thumb. Ein
+                        // SICHTBARES Label wäre hier unleserlich; das trägt die nächste
+                        // größere Fläche (Spot-Karte/Detailseite). Begründung docs/39 §5a.
                         <span
+                          data-ai-origin={sp.imageAiOrigin ?? undefined}
                           className="relative h-12 w-12 shrink-0 overflow-hidden rounded-[12px]"
                           aria-hidden
                         >
