@@ -15,6 +15,7 @@ import {
 import {
   buildIntroCameraPath,
   smoothSafePitch,
+  sightlineSlack,
   DEFAULT_INTRO_CAMERA,
   type IntroKeyframe,
 } from "@/lib/intro-camera";
@@ -23,14 +24,21 @@ import { outboundRoute } from "@/lib/geo";
 
 const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
-// --- Terrain-Sicherheit: die Kamera darf nie in einen Berg tauchen ---
-// Über 3D-Terrain rechnet Mapbox die Kamera (hinter+über dem Ziel) bei steilem Pitch manchmal
-// UNTER die Geländeoberfläche -> das Bild bricht. Lösung: pro Frame prüfen, wo die Kamera bei
-// dem gewünschten Pitch landen würde, und den Pitch nur so weit abflachen, dass sie garantiert
-// mit Abstand über dem Gelände bleibt. Flacher schauen über Bergen ist genau der cinematische
-// Reflex (wie Apple Maps). Alles bleibt im jumpTo-Modell -> Komposition/Padding unverändert.
+// --- Terrain-Sicherheit: die Kamera darf nie in einen Berg tauchen ODER hinter einen schauen ---
+// Zwei Regeln, ein Mittel. (a) Crash-Schutz: über 3D-Terrain rechnet Mapbox die Kamera
+// (hinter+über dem Ziel) bei steilem Pitch manchmal UNTER die Geländeoberfläche -> das Bild
+// bricht. (b) Verdeckungs-Schutz: die Kamera kann sicher schweben und trotzdem ragt ein Grat
+// in die SICHTLINIE zwischen Kamera und Kopf-Punkt -> der Punkt zeichnet unsichtbar hinter
+// dem Berg weiter. Lösung für beides: pro Frame prüfen, wo die Kamera beim gewünschten Pitch
+// landen würde, und den Pitch nur so weit abflachen, dass sie mit Abstand über dem Gelände
+// bleibt UND freie Sicht auf den Punkt hat. Flacher = die Kamera steigt und schaut steiler
+// von oben, genau der cinematische Reflex (wie Apple Maps). Alles bleibt im jumpTo-Modell
+// -> Komposition/Padding unverändert.
 const TERRAIN_CLEARANCE_M = 350; // Mindestabstand Kamera <-> höchstes Gelände im Blickfeld
-const PITCH_FLOOR = 8; // ganz flach ist erlaubt (crasht nie), bleibt aber minimal 3D
+const LOS_CLEARANCE_M = 120; // Mindest-Luft zwischen Sichtlinie und Gelände dazwischen
+const LOS_TAPER_M = 300; // auf den letzten Metern vorm Punkt blendet die Forderung auf 0 aus
+const LOS_STEP_M = 35; // Abtast-Schritt entlang der Sichtlinie (DEM ~7 m/px -> reichlich fein)
+const PITCH_FLOOR = 8; // ganz flach ist erlaubt (crasht nie, sieht alles), bleibt minimal 3D
 const PITCH_SCAN_STEP = 1; // feine 1-Grad-Abtastung -> keine Treppen in der Roh-Kurve
 const PITCH_SMOOTH_FRAC = 0.03; // Glättungs-Radius als Anteil der Frames (~9 bei 300) -> weich
 
@@ -326,9 +334,19 @@ export default function IntroRenderMap({
       map.triggerRepaint();
       await nextPaint();
 
-      // Abstand = Kamera-Höhe minus Gelände UNTER der Kamera (gerendert, also *EXAGG).
-      // Negativ = die Kamera steckt im Berg. Kein DEM an der Stelle -> als sicher behandeln.
-      const clearanceAt = (kf: IntroKeyframe, pitch: number): number => {
+      // Gelände in GERENDERTEN Metern (DEM * Überhöhung), die Einheit von Kamera-Höhen.
+      const groundAt = (lng: number, lat: number) => elevAt(lng, lat) * EXAGG;
+
+      // Sicherheits-Spielraum eines Kamerastands in Metern; >= 0 heißt: dieser Pitch ist
+      // erlaubt. Beide Regeln (siehe Konstanten oben) in einer Zahl: (a) Kamera-Höhe minus
+      // Gelände UNTER der Kamera minus Mindestabstand, (b) knappste Luft entlang der
+      // SICHTLINIE Kamera -> Kopf-Punkt. Kein DEM an einer Stelle -> als sicher behandeln.
+      //
+      // Flacherer Pitch hilft beweisbar BEIDEN Regeln: die Kamera steigt und rückt Richtung
+      // Ziel-Senkrechte, und weil alte wie neue Sichtlinie im selben Ziel enden, liegt die
+      // neue überall HÖHER. Deshalb darf die geglättete Kurve aus smoothSafePitch (immer
+      // <= roher Grenze) beide Garantien übernehmen, ohne sie neu zu prüfen.
+      const safetySlackAt = (kf: IntroKeyframe, pitch: number): number => {
         map.jumpTo({
           center: kf.center,
           zoom: kf.zoom,
@@ -339,14 +357,25 @@ export default function IntroRenderMap({
         const cam = map.getFreeCameraOptions();
         if (!cam.position) return Infinity;
         const ll = cam.position.toLngLat();
-        const g = elevAt(ll.lng, ll.lat);
-        if (Number.isNaN(g)) return Infinity;
-        return cam.position.toAltitude() - g * EXAGG;
+        const camAlt = cam.position.toAltitude();
+        const gCam = groundAt(ll.lng, ll.lat);
+        const underCam = Number.isNaN(gCam) ? Infinity : camAlt - gCam - TERRAIN_CLEARANCE_M;
+        if (underCam < 0) return underCam; // schon durchgefallen -> Sichtlinie sparen
+        const gHead = groundAt(kf.head[0], kf.head[1]);
+        const los = Number.isNaN(gHead)
+          ? Infinity
+          : sightlineSlack(
+              { lng: ll.lng, lat: ll.lat, alt: camAlt },
+              { lng: kf.head[0], lat: kf.head[1], alt: gHead },
+              groundAt,
+              { marginM: LOS_CLEARANCE_M, taperM: LOS_TAPER_M, stepM: LOS_STEP_M },
+            );
+        return Math.min(underCam, los);
       };
-      // Steilster Pitch <= Vorgabe, bei dem die Kamera mit Abstand über dem Gelände bleibt.
+      // Steilster Pitch <= Vorgabe, der Crash- UND Verdeckungs-Schutz einhält.
       const safePitchFor = (kf: IntroKeyframe): number => {
         for (let p = kf.pitch; p > PITCH_FLOOR; p -= PITCH_SCAN_STEP) {
-          if (clearanceAt(kf, p) >= TERRAIN_CLEARANCE_M) return p;
+          if (safetySlackAt(kf, p) >= 0) return p;
         }
         return PITCH_FLOOR;
       };
