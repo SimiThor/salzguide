@@ -7,12 +7,16 @@
 
 import LockedMedia from "./LockedMedia";
 import SmoothImage from "./SmoothImage";
+import type { AiOrigin } from "@/lib/ai-origin";
 
 type SpotCardProps = {
   title: string;
   shortDesc?: string | null;
   emoji?: string | null;
   imageUrl?: string | null;
+  // KI-Herkunft des Fotos (Art. 50 KI-VO, docs/39 §5a): gesetzt trägt die Kachel das
+  // kleine KI-Label. Jeder Aufrufer mit echtem Foto MUSS den Wert durchreichen.
+  imageAiOrigin?: AiOrigin | null;
   // Winzige Blur-Vorschau für gesperrte Spots (data:-URI). Bei locked ist imageUrl
   // serverseitig null – das echte Foto verlässt den Server nicht.
   previewUrl?: string | null;
@@ -39,6 +43,7 @@ export default function SpotCard({
   shortDesc,
   emoji,
   imageUrl,
+  imageAiOrigin,
   previewUrl = null,
   locked = false,
   lockedLabel = "🤫 Geheimtipp",
@@ -65,6 +70,7 @@ export default function SpotCard({
           alt={title}
           sizes={sizes}
           eager={eager}
+          aiOrigin={imageAiOrigin}
           className="aspect-[4/3] w-full rounded-card shadow-sm"
           imgClassName="rounded-card object-cover"
         />

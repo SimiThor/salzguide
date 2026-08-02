@@ -98,6 +98,7 @@ export default function SavedSpots({
                       src={s.imageUrl}
                       alt={s.title}
                       sizes="80px"
+                      aiOrigin={s.imageAiOrigin}
                       className="h-16 w-20 shrink-0 rounded-[12px]"
                     />
                   ) : (

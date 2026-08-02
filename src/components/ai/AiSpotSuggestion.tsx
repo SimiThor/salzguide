@@ -79,6 +79,7 @@ export default function AiSpotSuggestion({
         shortDesc={spot.shortDesc}
         emoji={spot.emoji}
         imageUrl={spot.imageUrl}
+        imageAiOrigin={spot.imageAiOrigin}
         sizeClassName="w-[210px]"
         sizes="210px"
       />

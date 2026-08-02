@@ -101,6 +101,7 @@ export default function SpotCardDesktop({
               src={spot.imageUrl}
               alt={spot.title}
               sizes="384px"
+              aiOrigin={spot.imageAiOrigin}
               className="aspect-[16/10] w-full"
             />
           ) : (

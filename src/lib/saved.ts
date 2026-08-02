@@ -3,6 +3,7 @@ import { createClient } from "./supabase/server";
 import { currentUserId } from "./viewer";
 import {
   asBBox,
+  heroAiOriginFromMedia,
   imagesFromMedia,
   localeWithFallback,
   pickTranslation,
@@ -80,7 +81,7 @@ export async function getSavedSpots(locale: string): Promise<SavedSpot[] | null>
   const { data } = await supabase
     .from("spots")
     .select(
-      "slug, emoji, is_pro, type, lat, lng, route_bbox, spot_translations!inner(title, short_desc, lang), media(url, role, sort_order)",
+      "slug, emoji, is_pro, type, lat, lng, route_bbox, spot_translations!inner(title, short_desc, lang), media(url, role, sort_order, ai_origin)",
     )
     .in("id", ids)
     .eq("status", "published")
@@ -96,6 +97,7 @@ export async function getSavedSpots(locale: string): Promise<SavedSpot[] | null>
       slug: s.slug,
       emoji: s.emoji,
       imageUrl: imagesFromMedia(s.media)[0] ?? null,
+      imageAiOrigin: heroAiOriginFromMedia(s.media),
       // Läuft über den anon-Key: Die RLS (Migration 0017) lässt Pro-Spots nur durch,
       // wenn der eingeloggte Betrachter sie sehen darf. Gespeichertes ist nie gesperrt.
       locked: false,

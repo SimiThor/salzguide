@@ -352,6 +352,7 @@ export default function SpotSheet({
                   src={spot.imageUrl}
                   alt={spot.title}
                   sizes="(min-width: 768px) 27rem, 100vw"
+                  aiOrigin={spot.imageAiOrigin}
                   className="mt-3 aspect-[16/10] min-h-[88px] w-full shrink rounded-[16px]"
                 />
               ) : (

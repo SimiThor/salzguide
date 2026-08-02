@@ -5,11 +5,13 @@ import { createServiceClient } from "./supabase/service";
 import {
   EXPLORE_REVALIDATE,
   SPOTS_TAG,
+  heroAiOriginFromMedia,
   heroPreviewFromMedia,
   imagesFromMedia,
   lockedName,
   viewerCanSeePro,
 } from "./spots";
+import type { AiOrigin } from "./ai-origin";
 import { findLake, type Lake } from "./lakes";
 
 // Wassertemperaturen aus kostenlosen Behörden-Open-Data:
@@ -157,6 +159,9 @@ export type LakeSpot = {
   shortDesc: string | null;
   emoji: string | null;
   image: string | null;
+  // KI-Herkunft des Fotos (Art. 50 KI-VO, docs/39 §5a) — wandert bis in die
+  // Chat-Wasserkarten und die /wasser-Thumbnails mit.
+  imageAiOrigin: AiOrigin | null;
   // Für DIESEN Betrachter gesperrt? Dann sind slug/title Tarnwerte (locked-<i> /
   // "Geheimtipp") und der Client öffnet ProGate statt zu verlinken — wie SpotCardData.
   locked: boolean;
@@ -197,7 +202,7 @@ async function queryLakeSpots(
     const { data } = await supabase
       .from("spots")
       .select(
-        "slug, emoji, is_pro, lake_name, spot_translations(title, short_desc, lang), media(url, role, sort_order, blur_url)",
+        "slug, emoji, is_pro, lake_name, spot_translations(title, short_desc, lang), media(url, role, sort_order, blur_url, ai_origin)",
       )
       .eq("status", "published");
     const lockedSpotName = lockedName(locale);
@@ -217,6 +222,7 @@ async function queryLakeSpots(
         shortDesc: locked ? null : (trm?.short_desc ?? null),
         emoji: locked ? null : (s.emoji ?? null),
         image: locked ? null : (imagesFromMedia(s.media)[0] ?? null),
+        imageAiOrigin: locked ? null : heroAiOriginFromMedia(s.media),
         previewUrl: locked ? heroPreviewFromMedia(s.media) : null,
         locked,
       });

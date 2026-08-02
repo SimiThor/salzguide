@@ -70,6 +70,7 @@ export default async function FeaturedSpots({
                   shortDesc={s.shortDesc}
                   emoji={s.emoji}
                   imageUrl={s.imageUrl}
+                  imageAiOrigin={s.imageAiOrigin}
                   previewUrl={s.previewUrl}
                   isPro={s.isPro}
                   locked={s.locked}

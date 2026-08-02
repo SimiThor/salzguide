@@ -6,7 +6,7 @@ import { cache } from "react";
 import { bcp47, localeMeta } from "@/i18n/locales";
 import { pickLabel, ALL_DAY, CLOSED, TOMORROW, WEATHER_PLACE } from "./i18n-labels";
 import { createClient } from "./supabase/server";
-import { imagesFromMedia } from "./spots";
+import { heroAiOriginFromMedia, imagesFromMedia } from "./spots";
 import { getUpcomingEvents } from "./events";
 import type { EventItem } from "./events-format";
 import { eventTimeLabel } from "./events-format";
@@ -107,7 +107,7 @@ const loadSpotCandidates = cache(async function loadSpotCandidates(
   let q = supabase
     .from("spots")
     .select(
-      "slug, emoji, is_pro, type, subtype, area, loc, kids, bus, vibes, spot_categories(categories(key)), spot_translations!inner(title, short_desc, lang), media(url, role, sort_order)",
+      "slug, emoji, is_pro, type, subtype, area, loc, kids, bus, vibes, spot_categories(categories(key)), spot_translations!inner(title, short_desc, lang), media(url, role, sort_order, ai_origin)",
     )
     .eq("status", "published")
     .eq("spot_translations.lang", "de")
@@ -134,6 +134,7 @@ const loadSpotCandidates = cache(async function loadSpotCandidates(
       shortDesc: t?.short_desc ?? null,
       emoji: s.emoji,
       imageUrl: imagesFromMedia(s.media)[0] ?? null,
+      imageAiOrigin: heroAiOriginFromMedia(s.media),
       type: s.type,
       subtype: (s.subtype as string | null) ?? null,
       cats,
@@ -599,6 +600,7 @@ export async function runAssistant(
                   shortDesc: s.shortDesc,
                   emoji: s.emoji,
                   imageUrl: s.image,
+                  imageAiOrigin: s.imageAiOrigin,
                   type: "activity",
                 });
             }

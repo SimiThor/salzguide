@@ -2,6 +2,7 @@
 // Browser-Bundle landen (Chat-Sheet, Verlauf). EventItem kommt aus events-format
 // (ebenfalls client-sicher).
 import type { EventItem } from "./events-format";
+import type { AiOrigin } from "./ai-origin";
 
 export type AiSpotCard = {
   slug: string;
@@ -9,6 +10,9 @@ export type AiSpotCard = {
   shortDesc: string | null;
   emoji: string | null;
   imageUrl: string | null;
+  // KI-Herkunft des Fotos (Art. 50 KI-VO, docs/39 §5a): auch die Spot-Karten IM Chat
+  // können die erste Exposition des Bilds sein und tragen dann das Label.
+  imageAiOrigin: AiOrigin | null;
   type: "activity" | "food";
 };
 

@@ -115,13 +115,34 @@ src/lib/ai-origin.ts ('generated' | 'edited' | 'extended' | null = ohne KI).
 - Admin: Kachel-Umschalter im PhotoUploader (Spot-Fotos) und Auswahl je Startseiten-Slot
   (HomeMediaManager).
 - Anzeige: EIN Bauteil AiImageBadge.tsx (dunkle Glas-Pille, Marken-Sparkle, Text aus
-  AiMedia.* in 9 Sprachen, data-ai-origin als maschinenlesbares Attribut). Verdrahtet:
-  Spot-Detail (Hero, Galerie-Kacheln, Lightbox über den Galerie-Kontext) und
-  Startseiten-Hero (je Bild-Variante, Sichtbarkeit an der md-Grenze des picture-Elements).
-- Bewusst OHNE Badge: Karten-Kacheln (SpotCard & Co.). Begründung: 'generated'-Bilder
-  echter Orte sind per Regel verboten, für 'edited'/'extended' ist das Label freiwillig;
-  die volle Ansicht mit Label ist einen Tap entfernt. Fällt die Verbots-Regel, MUSS das
-  Badge zuerst in die Karten (SmoothImage) einziehen.
+  AiMedia.* in 9 Sprachen, data-ai-origin als maschinenlesbares Attribut).
+- VOLLSTÄNDIGE Abdeckung (seit 03.08.2026, zweiter Durchgang): Die Offenlegung muss
+  spätestens bei der ERSTEN Exposition stehen (Art. 50(4)+(5)), und die erste Exposition
+  eines Hero-Fotos ist meist eine Karte. Deshalb ist imageAiOrigin ein PFLICHTFELD in
+  SpotCardData: TypeScript zwingt jeden neuen Karten-Erzeuger, den Wert zu liefern.
+  Verdrahtet sind ALLE Flächen mit Spot-Fotos:
+  Spot-Detail (Hero, Galerie, Lightbox über den Galerie-Kontext), Explore-Karussell
+  (SpotCard), Desktop-Panel (SpotCardDesktop), Karten-Sheet (SpotSheet),
+  Startseiten-Featured (FeaturedSpots), Ähnliche Spots (Detailseite), Gespeichert
+  (SavedSpots), Toni-Chat-Spotkarten inkl. Wasser-Empfehlungen (AiSpotCard),
+  /wasser-Seeliste, Startseiten-Hero (je picture-Variante).
+- Grenzfälle, bewusst OHNE sichtbares Label (Begründung je Fall):
+  - 48px-Thumbnails (/wasser-Liste): Label wäre unleserlich; das data-ai-origin-Attribut
+    sitzt trotzdem am Element, das sichtbare Label trägt die nächste größere Fläche.
+  - Blur-Teaser gesperrter Pro-Spots (~160px, stark unscharf): kein erkennbarer
+    Bildinhalt, damit keine Exposition im Sinn von Art. 50(4); das echte Foto erscheint
+    erst nach Freischaltung, dann mit Label.
+  - og:image / Link-Vorschau (WhatsApp & Co.): rohe Bild-URL an fremde Plattformen, ein
+    Overlay ist technisch nicht möglich. Deshalb bleibt die harte Regel aus §5: kein
+    'generated' bei fotorealistischen Ortsbildern; für 'edited'/'extended' ist das Label
+    ohnehin freiwillig.
+  - Alte Toni-Chat-Verläufe: gespeicherte Karten von vor 08/2026 tragen das Feld nicht;
+    Inhalte von vor dem 02.08.2026 sind laut Kommissions-FAQ nicht rückwirkend zu
+    kennzeichnen.
+- Andere Bildspalten OHNE Marker (events.image_url, tour_points.image_url,
+  tours/areas.cover_url, locals.avatar_url): dort gilt die Regel aus §5 (keine
+  KI-Bilder verwenden). Wer sie doch braucht: ERST Spalte + Badge nachziehen wie bei
+  media.ai_origin, DANN hochladen. Toni-Avatar: als KI-Bild auf /ki offengelegt.
 - WebP-Re-Encode beim Upload entfernt eingebettete Herkunfts-Metadaten (C2PA) des
   Werkzeugs; unser ai_origin-Marker ist der Ersatz auf Plattform-Ebene. Optionales
   Härten (Metadaten durchreichen) wäre Phase 2.

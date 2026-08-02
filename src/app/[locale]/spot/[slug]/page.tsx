@@ -610,6 +610,7 @@ export default async function SpotPage({
                     shortDesc={s.shortDesc}
                     emoji={s.emoji}
                     imageUrl={s.imageUrl}
+                    imageAiOrigin={s.imageAiOrigin}
                   />
                 </Link>
               ),
