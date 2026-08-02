@@ -22,6 +22,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { compressImage, uploadImage } from "@/lib/image-upload";
+import { AI_ORIGINS, type AiOrigin } from "@/lib/ai-origin";
 import Busy from "@/components/Busy";
 
 // Fotos hochladen und ihre Reihenfolge per Ziehen bestimmen.
@@ -43,16 +44,31 @@ const TOUCH_ACTIVATION_TOLERANCE = 6;
 
 const TILE = "relative h-20 w-28 shrink-0 overflow-hidden rounded-[10px] bg-black/5";
 
+// KI-Herkunft am Kachel-Knopf durchschalten: ohne -> erweitert -> bearbeitet ->
+// erstellt -> ohne. "erweitert" zuerst, weil das der häufigste echte Fall ist
+// (Ränder für Breitbild). Werte-Quelle: lib/ai-origin.ts, Regeln: docs/39 §5.
+const AI_CYCLE: (AiOrigin | null)[] = [null, ...AI_ORIGINS.slice().reverse()];
+const AI_TILE_LABEL: Record<AiOrigin, string> = {
+  generated: "KI erstellt",
+  edited: "KI bearbeitet",
+  extended: "KI erweitert",
+};
+
 function PhotoTile({
   url,
   index,
   ordered,
+  aiOrigin,
+  onCycleAiOrigin,
   onRemove,
   onMakeHero,
 }: {
   url: string;
   index: number;
   ordered: boolean;
+  /** undefined = Feature vom Host-Formular nicht angeboten (z. B. Events). */
+  aiOrigin?: AiOrigin | null;
+  onCycleAiOrigin?: () => void;
   onRemove: () => void;
   onMakeHero: () => void;
 }) {
@@ -79,6 +95,19 @@ function PhotoTile({
         <span className="absolute left-1 top-1 rounded bg-accent px-1.5 py-0.5 text-[10px] font-semibold text-white">
           Hero
         </span>
+      )}
+      {onCycleAiOrigin && (
+        <button
+          type="button"
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={onCycleAiOrigin}
+          title="KI-Herkunft umschalten (zeigt am Bild ein KI-Label)"
+          className={`cursor-pointer absolute bottom-1 left-1 rounded px-1.5 py-0.5 text-[9px] font-semibold shadow ${
+            aiOrigin ? "bg-accent text-white" : "bg-white/90 text-muted"
+          }`}
+        >
+          {aiOrigin ? AI_TILE_LABEL[aiOrigin] : "KI?"}
+        </button>
       )}
       <div className="absolute right-1 top-1 flex gap-1">
         {ordered && index !== 0 && (
@@ -112,9 +141,17 @@ export default function PhotoUploader({
   onChange,
   ordered = true,
   onBusyChange,
+  aiOrigins,
+  onAiOriginChange,
 }: {
   images: string[];
   onChange: (urls: string[]) => void;
+  /**
+   * KI-Herkunft je Foto-URL (Art. 50 KI-VO, docs/39). Beide Props zusammen angeben,
+   * dann trägt jede Kachel den Umschalter. Ohne sie (Events) bleibt alles wie bisher.
+   */
+  aiOrigins?: Record<string, AiOrigin | null>;
+  onAiOriginChange?: (url: string, origin: AiOrigin | null) => void;
   /**
    * false = ein einzelnes Bild ohne Rangfolge (Events): kein Hero-Abzeichen, kein Ziehen.
    * Ein „Hero" unter genau einem Bild wäre eine Auswahl, die es nicht gibt.
@@ -263,6 +300,17 @@ export default function PhotoUploader({
                   url={url}
                   index={i}
                   ordered={ordered}
+                  aiOrigin={aiOrigins?.[url] ?? null}
+                  onCycleAiOrigin={
+                    onAiOriginChange
+                      ? () => {
+                          const cur = aiOrigins?.[url] ?? null;
+                          const next =
+                            AI_CYCLE[(AI_CYCLE.indexOf(cur) + 1) % AI_CYCLE.length];
+                          onAiOriginChange(url, next);
+                        }
+                      : undefined
+                  }
                   onRemove={() => remove(url)}
                   onMakeHero={() => makeHero(url)}
                 />

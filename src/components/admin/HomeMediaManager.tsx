@@ -13,6 +13,7 @@ import {
 } from "@/lib/image-upload";
 import type { HomeMedia } from "@/lib/home-content";
 import type { LandingImage } from "@/lib/landing-media";
+import { parseAiOrigin } from "@/lib/ai-origin";
 import VideoUploader from "./VideoUploader";
 import Busy from "@/components/Busy";
 
@@ -247,9 +248,16 @@ function ImageSlotRow({
         ? await compressSquareImage(file, slot.maxDim)
         : await compressImage(file, slot.maxDim);
       const src = await uploadImage(blob, "home");
-      // Alt-Text beim Austausch behalten: Wer nur ein besseres Foto nachlegt, hat ihn
-      // sonst still verloren, und niemandem fällt es auf.
-      onChange({ src, alt: valueRef.current?.alt ?? "", width, height });
+      // Alt-Text UND KI-Herkunft beim Austausch behalten: Wer nur ein besseres Foto
+      // nachlegt, hat beides sonst still verloren, und niemandem fällt es auf. Wer ein
+      // KI-erweitertes Bild durch ein echtes ersetzt, stellt die Herkunft darunter um.
+      onChange({
+        src,
+        alt: valueRef.current?.alt ?? "",
+        width,
+        height,
+        aiOrigin: valueRef.current?.aiOrigin ?? null,
+      });
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Upload fehlgeschlagen.");
     } finally {
@@ -326,6 +334,22 @@ function ImageSlotRow({
                 <span className="mt-1 block text-[11px] leading-relaxed text-muted">
                   Für Screenreader und wenn das Bild nicht lädt. Leer lassen, wenn es rein
                   schmückend ist.
+                </span>
+              </label>
+              <label className="mt-3 block">
+                <span className="text-[12px] font-semibold text-ink">KI-Herkunft</span>
+                <select
+                  value={value.aiOrigin ?? ""}
+                  onChange={(e) => onChange({ ...value, aiOrigin: parseAiOrigin(e.target.value) })}
+                  className="mt-1 w-full rounded-[10px] bg-white px-3 py-2 text-[14px] text-ink ring-1 ring-black/10 outline-none focus:ring-2 focus:ring-accent/40"
+                >
+                  <option value="">ohne KI</option>
+                  <option value="extended">mit KI erweitert</option>
+                  <option value="edited">mit KI bearbeitet</option>
+                  <option value="generated">mit KI erstellt</option>
+                </select>
+                <span className="mt-1 block text-[11px] leading-relaxed text-muted">
+                  Zeigt am Bild ein kleines KI-Label (Art. 50 KI-VO).
                 </span>
               </label>
               <p className="mt-2 text-[11px] text-muted">

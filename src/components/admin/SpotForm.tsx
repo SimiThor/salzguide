@@ -83,6 +83,7 @@ const EMPTY: SpotInput = {
   localId: "",
   categoryIds: [],
   images: [],
+  imageAiOrigins: {},
   videoUrl: null,
   videoPosterUrl: null,
   title: "",
@@ -1431,6 +1432,10 @@ export default function SpotForm({
         <PhotoUploader
           images={form.images}
           onChange={(urls) => set({ images: urls })}
+          aiOrigins={form.imageAiOrigins}
+          onAiOriginChange={(url, origin) =>
+            set({ imageAiOrigins: { ...form.imageAiOrigins, [url]: origin } })
+          }
           onBusyChange={onMediaBusy}
         />
       </section>
