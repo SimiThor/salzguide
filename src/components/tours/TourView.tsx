@@ -207,6 +207,13 @@ export default function TourView({
                 total={tour.stops.length}
                 canPlay={canPlay}
               />
+              {/* KI-Stimmen-Hinweis (Ehrlichkeit + Art. 50 KI-VO, docs/39): die
+                  Erzählstimme ist synthetisch (ElevenLabs). Steht IM Peek-Anker unter
+                  dem Transport und ist damit sichtbar, BEVOR jemand auf Play drückt,
+                  auch im eingeklappten Mini-Player. */}
+              <p className="mt-1.5 text-[11px] leading-snug text-muted/80">
+                {t("aiVoice")}
+              </p>
             </div>
           )}
           {/* Gesperrter Stopp: Der Pro-Hinweis übernimmt den Platz des Transports und
