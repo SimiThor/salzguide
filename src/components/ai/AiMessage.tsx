@@ -113,7 +113,10 @@ export default function AiMessage({
   }
 
   return (
-    <div className="flex flex-col items-start">
+    // data-ai-generated: maschinenlesbare Kennzeichnung der KI-Antwort im DOM
+    // (Art. 50 Abs. 2 KI-VO, Metadaten-Ansatz; Gegenstück zum aiGenerated-Feld
+    // der Chat-API). Einstufung: docs/39_RECHT_KI-Transparenz.md.
+    <div className="flex flex-col items-start" data-ai-generated="true">
       <div className="max-w-[92%] rounded-[18px] rounded-bl-md bg-white px-4 py-3 text-[15px] leading-relaxed text-ink shadow-sm ring-1 ring-black/[0.04]">
         <RichText text={message.text} onNavigate={onNavigate} />
       </div>
