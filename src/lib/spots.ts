@@ -6,6 +6,7 @@ import { currentUserId } from "./viewer";
 import type { ElevationProfile } from "./admin-actions";
 import { rankShelves, shelfKey } from "./explore-ranking";
 import { parsePois, type MapPoi } from "./geo";
+import { parseAiOrigin, type AiOrigin } from "./ai-origin";
 import { ticketPartnerName } from "./ticket-partners";
 
 // Darf der aktuelle Betrachter Pro-Inhalte sehen? (eingeloggter Pro-User ODER Admin)
@@ -42,6 +43,7 @@ type MediaRow = {
   role: string | null;
   sort_order: number | null;
   blur_url?: string | null;
+  ai_origin?: string | null;
 };
 function sortedMedia(media: unknown): MediaRow[] {
   const arr = (Array.isArray(media) ? media : []) as MediaRow[];
@@ -57,6 +59,14 @@ function sortedMedia(media: unknown): MediaRow[] {
 
 export function imagesFromMedia(media: unknown): string[] {
   return sortedMedia(media).map((m) => m.url);
+}
+
+// KI-Herkunft je Foto, INDEX-GLEICH zu imagesFromMedia (beide laufen über sortedMedia).
+// Getrennt statt als Objekt-Array, damit die string[]-Ketten (Galerie, Lightbox, og-Bild)
+// unangetastet bleiben; zusammengeführt wird nur an der Anzeige (Galerie-Kontext).
+// Voraussetzung: die Abfrage lädt media(ai_origin) mit, sonst ist alles null.
+export function aiOriginsFromMedia(media: unknown): (AiOrigin | null)[] {
+  return sortedMedia(media).map((m) => parseAiOrigin(m.ai_origin));
 }
 
 // URL der Vorschau des Hero-Bilds (~160px, siehe lib/blur-preview.ts). Das EINZIGE
@@ -596,6 +606,8 @@ export type SpotDetail = {
   isPro: boolean;
   locked: boolean; // Pro + (noch) kein Zugriff -> Paywall statt Inhalt
   images: string[]; // Fotos (Hero zuerst), leer wenn gesperrt
+  // KI-Herkunft je Foto, index-gleich zu images (Art. 50 KI-VO, docs/39). null = ohne KI.
+  imageAiOrigins: (AiOrigin | null)[];
   // URL der Blur-Vorschau – nur bei locked gesetzt, als Teaser auf der Paywall.
   // Einziges Bild, das ein gesperrter Spot ausliefert.
   previewUrl: string | null;
@@ -683,7 +695,7 @@ async function querySpotDetail(
   // sensiblen Felder werden unten bei `locked` autoritativ genullt (kein Leak).
   const supabase = createServiceClient();
   const select =
-    "slug, type, subtype, emoji, is_pro, duration, lat, lng, parking_lat, parking_lng, transit_lat, transit_lng, water_stops, huts, route_geojson, elevation_profile, difficulty, best_season, access, price_level, area, fame, has_opening_hours, phone, website_url, ticket_url, ticket_partner, lake_name, google_place_id, video_url, video_poster_url, intro_video_url, intro_video_poster_url, media(url, role, sort_order, blur_url), local:locals(id, name, role, avatar_url), spot_translations!inner(title, short_desc, general, insider_tip, section_a, section_b, location_text, insider_author, lang)";
+    "slug, type, subtype, emoji, is_pro, duration, lat, lng, parking_lat, parking_lng, transit_lat, transit_lng, water_stops, huts, route_geojson, elevation_profile, difficulty, best_season, access, price_level, area, fame, has_opening_hours, phone, website_url, ticket_url, ticket_partner, lake_name, google_place_id, video_url, video_poster_url, intro_video_url, intro_video_poster_url, media(url, role, sort_order, blur_url, ai_origin), local:locals(id, name, role, avatar_url), spot_translations!inner(title, short_desc, general, insider_tip, section_a, section_b, location_text, insider_author, lang)";
 
   const run = (lang: string) =>
     supabase
@@ -751,6 +763,7 @@ async function querySpotDetail(
       isPro: true,
       locked: true,
       images: [],
+      imageAiOrigins: [],
       previewUrl: heroPreviewFromMedia(data.media),
       duration: null,
       route: null,
@@ -803,6 +816,7 @@ async function querySpotDetail(
     isPro: data.is_pro,
     locked: false,
     images: imagesFromMedia(data.media),
+    imageAiOrigins: aiOriginsFromMedia(data.media),
     previewUrl: null, // nicht gesperrt -> das echte Foto wird gezeigt
     duration: data.duration,
     route,

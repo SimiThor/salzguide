@@ -42,7 +42,8 @@ was umgesetzt ist (mit Dateipfaden) und was bewusst nicht. Wer eine KI-Funktion 
 | Audio-Touren: synthetische Stimme (ElevenLabs) | Betreiber (ElevenLabs ist TTS-Anbieter) | Kein Deepfake (imitiert keine bestimmte reale Person), Offenlegung trotzdem: Vertrauen + UWG | Sichtbarer Hinweis Tours.aiVoice im Player-Peek (TourView.tsx), ehrliches Tours.subtitle, Abschnitt auf /ki |
 | Eigene Runden (TourBuilder, KI wählt Stopps + Name) | Anbieter | 50(1) | Feature-Text nennt die KI, Sparkle-Symbol; Name läuft durch stripEmDash und ist als KI-Ausgabe in diesem Dokument erfasst |
 | Intro-Flyover-Videos | keine KI (Playwright + Mapbox, deterministisch) | keine | dokumentiert, §5 |
-| Fotos, Blur-Teaser, Icons | keine KI (sharp) | keine | dokumentiert, §5 |
+| Fotos, Blur-Teaser, Icons | im Regelfall keine KI (sharp); AUSNAHMEN tragen media.ai_origin bzw. LandingImage.aiOrigin und damit das sichtbare KI-Label | 50(4) nur bei Deepfake; Teil-Bearbeitungen ohne Sinn-Änderung sind Standard-Bearbeitung (Ausnahme) | Marker-System seit 08/2026, §5a |
+| Startseiten-Hero, Desktop-Variante (Ränder mit KI verbreitert, Mitte = echtes Foto) | Betreiber | KEIN Deepfake i.S.v. Art. 3 Nr. 60: Motiv, Ort und Aussage unverändert, die Verbreiterung ist Standard-Bearbeitung ohne wesentliche Sinn-Änderung (Kriterien der Kommissions-FAQ, doppelt geprüft 03.08.2026). Label daher FREIWILLIG | Entscheidung Anton 03.08.2026: dezent labeln ('extended'), nur auf der Desktop-Variante sichtbar (md-Grenze = picture-Umschaltpunkt); Handy zeigt das echte Foto ohne Label |
 | Admin-KI-Werkzeuge (Texte, Events, Insights) | intern | 50(1) durch Offensichtlichkeit erfüllt (Sparkle-Knöpfe, Admins wissen es) | AiButton.tsx + AiSparkle.tsx |
 | Haiku-Klassifizierer für anonyme Chat-Insights | intern, kein Nutzerkontakt | keine 50er-Pflicht | anonym per Design, docs/34 §C zur Analytik |
 | Toni-Avatar | Bild ist KI-generiert (Anton, 02.08.2026) | kein Deepfake-Fall (Kunstfigur), Offenlegung freiwillig | Satz auf /ki (AiTransparency.toniBody) |
@@ -87,15 +88,50 @@ tour-pool-actions.ts) steht als Phase 2 offen.
 - Fotos: von Menschen aufgenommen, nur WebP-Re-Encoding (lib/image-upload.ts).
   Blur-Teaser: deterministisches sharp-Resize (lib/blur-preview.ts).
 - Keine Emotionserkennung, keine biometrische Kategorisierung (Art. 50(3) leer),
-  keine KI-Bildgenerierung im Produkt.
-- REGEL für die Zukunft: KEINE fotorealistischen KI-Bilder oder -Videos von echten Orten
-  oder Personen einführen; das wären Deepfakes (Art. 3 Nr. 60) mit Labelpflicht. Erst
-  dieses Dokument erweitern, dann bauen.
+  keine vollständige KI-Bildgenerierung im Produkt.
+- REGEL (verschärft 03.08.2026): KEINE fotorealistischen, VOLL KI-generierten Bilder oder
+  Videos von echten Orten oder Personen; das wären Deepfakes (Art. 3 Nr. 60) mit
+  Labelpflicht, und wir wollen sie grundsätzlich nicht. KI-BEARBEITUNGEN echter Fotos
+  (Retusche, Rand-Erweiterung für Breitbild) sind erlaubt, MÜSSEN aber beim Speichern
+  als ai_origin markiert werden (§5a). Erst dieses Dokument erweitern, dann bauen.
+
+## 5a. Bild-Marker ai_origin (seit 08/2026)
+
+Jedes hochgeladene Bild kann eine KI-Herkunft tragen. EINE Werte-Quelle:
+src/lib/ai-origin.ts ('generated' | 'edited' | 'extended' | null = ohne KI).
+
+- Rechtliche Einordnung (doppelt geprüft am 03.08.2026 gegen Kommissions-FAQ und
+  Praxisleitfäden): Die MASCHINENLESBARE Markierung nach Art. 50(2) ist Pflicht des
+  WERKZEUG-Anbieters (z. B. Adobe/Firefly), nicht unsere. Unsere Betreiberpflicht aus
+  Art. 50(4) greift nur bei Deepfakes. Teil-Bearbeitungen ohne wesentliche Änderung von
+  Inhalt/Semantik sind ausgenommen (Standard-Bearbeitung). Unser sichtbares Label ist
+  bei 'edited'/'extended' also FREIWILLIG (Vertrauen), bei einem fotorealistischen
+  'generated'-Bild echter Orte/Personen wäre es PFLICHT; solche Bilder sind per Regel
+  in §5 aber ohnehin verboten.
+- Speicherung: media.ai_origin (Migration 0062, Spot-Fotos, eine Schreibstelle
+  writeSpotImages) und LandingImage.aiOrigin (home_content.media, Parser
+  lib/landing-media.ts). Beim Foto-Ersetzen und Speichern wird der Wert wie der
+  Alt-Text am BILD mitgeführt.
+- Admin: Kachel-Umschalter im PhotoUploader (Spot-Fotos) und Auswahl je Startseiten-Slot
+  (HomeMediaManager).
+- Anzeige: EIN Bauteil AiImageBadge.tsx (dunkle Glas-Pille, Marken-Sparkle, Text aus
+  AiMedia.* in 9 Sprachen, data-ai-origin als maschinenlesbares Attribut). Verdrahtet:
+  Spot-Detail (Hero, Galerie-Kacheln, Lightbox über den Galerie-Kontext) und
+  Startseiten-Hero (je Bild-Variante, Sichtbarkeit an der md-Grenze des picture-Elements).
+- Bewusst OHNE Badge: Karten-Kacheln (SpotCard & Co.). Begründung: 'generated'-Bilder
+  echter Orte sind per Regel verboten, für 'edited'/'extended' ist das Label freiwillig;
+  die volle Ansicht mit Label ist einen Tap entfernt. Fällt die Verbots-Regel, MUSS das
+  Badge zuerst in die Karten (SmoothImage) einziehen.
+- WebP-Re-Encode beim Upload entfernt eingebettete Herkunfts-Metadaten (C2PA) des
+  Werkzeugs; unser ai_origin-Marker ist der Ersatz auf Plattform-Ebene. Optionales
+  Härten (Metadaten durchreichen) wäre Phase 2.
 
 ## 6. Sichtbare Transparenz (Nutzerseite)
 
 - /ki ("Mit Liebe und KI gemacht"): erklärt alle KI-Hilfen in 9 Sprachen,
-  src/app/[locale]/ki/page.tsx, Namensraum AiTransparency.
+  src/app/[locale]/ki/page.tsx, Namensraum AiTransparency. Seit 03.08.2026 sagt der
+  Abschnitt "Was ohne KI läuft" ehrlich, dass einzelne Bilder mit KI erweitert und
+  am Bild gekennzeichnet sind.
 - Fußzeile: Legal.aiMotto verlinkt /ki (LegalFooter.tsx). Chat verlinkt /ki neben dem
   Disclaimer (Ai.transparencyLink). Sitemap führt /ki, llms.txt nennt die KI-Nutzung.
 - Datenschutzerklärung §3d: Anthropic-Übermittlung, Chat-Verlauf (24-Monate-Frist,

@@ -14,6 +14,7 @@ import { localeMeta } from "@/i18n/locales";
 import { hashSpotTexts, translationsPublishable } from "./spot-hash";
 import { removeSpotMediaFiles } from "./blur-preview";
 import { writeSpotImages } from "./spot-images";
+import { parseAiOrigin, type AiOrigin } from "./ai-origin";
 import { stripEmDashFields } from "./em-dash";
 import { guardStorageUrl } from "./storage-guard";
 import { parsePois, hikingTimeMinutes, type MapPoi } from "./geo";
@@ -68,6 +69,10 @@ export type SpotInput = {
   localId: string;
   categoryIds: string[];
   images: string[]; // Foto-URLs (erstes = Hero)
+  // KI-Herkunft je Foto-URL (Art. 50 KI-VO, docs/39_RECHT_KI-Transparenz.md). Fehlender
+  // Eintrag = bestehenden DB-Wert mitführen (writeSpotImages), null = ausdrücklich
+  // "ohne KI". Nur der Admin-Umschalter am Foto-Kachel schreibt hier hinein.
+  imageAiOrigins?: Record<string, AiOrigin | null>;
   videoUrl: string | null; // 9:16-Video (MP4 im spot-media-Bucket) oder null
   videoPosterUrl: string | null; // Auto-Standbild (WebP) oder null
   // DE-Texte
@@ -493,11 +498,18 @@ export async function saveSpot(input: SpotInput): Promise<SaveResult> {
   // die auch der WordPress-Import benutzt. Vorher standen sie nur hier, der Import schrieb
   // seine Zeilen ohne Vorschau, und jeder gesperrte Pro-Spot zeigte statt des unscharfen
   // Teasers nur das Emoji.
+  // KI-Herkunft nur für Fotos übernehmen, die der Admin angefasst hat; parseAiOrigin
+  // riegelt den Wert (Formulardaten sind Client-Eingaben). Fehlender Eintrag = undefined
+  // = writeSpotImages führt den bestehenden DB-Wert weiter.
+  const aiOriginByUrl = input.imageAiOrigins ?? {};
   const written = await writeSpotImages(
     supabase,
     supabase.storage,
     spotId,
-    images.map((url) => ({ url })),
+    images.map((url) => ({
+      url,
+      aiOrigin: url in aiOriginByUrl ? parseAiOrigin(aiOriginByUrl[url]) : undefined,
+    })),
   );
   if (!written.ok) {
     return await abort(logDb(`saveSpot: ${written.step}`, written.message));

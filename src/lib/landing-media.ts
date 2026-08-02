@@ -14,12 +14,20 @@
 // Startseite wirft für JEDEN Besucher. Ein kaputter Slot soll ein leerer Slot sein: dann
 // zeigt die Seite ihren Platzhalter und läuft weiter.
 
+import { parseAiOrigin, type AiOrigin } from "./ai-origin";
+
 export type LandingImage = {
   src: string;
   /** Beschreibung für Screenreader + wenn das Bild nicht lädt. Leer lassen = rein dekorativ. */
   alt: string;
   width: number;
   height: number;
+  /**
+   * KI-Herkunft (Art. 50 KI-VO, docs/39): null = ohne KI. Gesetzt zeigt die Seite das
+   * kleine KI-Label am Bild (AiImageBadge). Fall der Praxis: das Desktop-Hero ist an den
+   * Rändern mit KI verbreitert ('extended'), das Handy-Hero ist das echte Foto.
+   */
+  aiOrigin: AiOrigin | null;
 };
 
 export type LandingVideo = {
@@ -55,6 +63,9 @@ export function parseLandingImage(v: unknown): LandingImage | null {
     alt: typeof o.alt === "string" ? o.alt.trim() : "",
     width: o.width,
     height: o.height,
+    // Unbekannte oder fehlende Herkunft = null (ohne KI): Alt-Zeilen ohne das Feld
+    // bleiben gültig, ein Tippfehler im Wert wird nicht zum Label.
+    aiOrigin: parseAiOrigin(o.aiOrigin),
   };
 }
 

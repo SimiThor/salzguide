@@ -9,9 +9,14 @@
     "voiceTitle": "Die Stimme der Audio-Touren",
     "voiceBody": "Die Audio-Touren erzählen unsere geprüften Texte mit einer KI-Stimme (ElevenLabs). Es spricht keine echte Person, auch wenn es so klingt.",
     "humanTitle": "Was ohne KI läuft",
-    "humanBody": "Alle Fotos sind echt und selbst aufgenommen. Die Flug-Videos über den Spots sind echte 3D-Kartenaufnahmen, kein KI-Bildmaterial. Keine Emotionserkennung, kein Werbeprofil.",
+    "humanBody": "Unsere Fotos sind echt und selbst aufgenommen. Einzelne Bilder erweitern wir mit KI an den Rändern, damit sie auf breite Bildschirme passen; solche Bilder tragen ein kleines Label. Die Flug-Videos über den Spots sind echte 3D-Kartenaufnahmen. Keine Emotionserkennung, kein Werbeprofil.",
     "lawTitle": "Das Rechtliche, kurz",
     "lawBody": "Diese Seite ist unsere Transparenz nach Artikel 50 der EU-KI-Verordnung (Verordnung (EU) 2024/1689). Was mit deinen Chat-Nachrichten passiert, steht in der Datenschutzerklärung."
+  },
+  "AiMedia": {
+    "generated": "Mit KI erstellt",
+    "edited": "Mit KI bearbeitet",
+    "extended": "Mit KI erweitert"
   },
   "Meta": {
     "aiTransparencyTitle": "Mit Liebe und KI gemacht: wie SalzGuide arbeitet",

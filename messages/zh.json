@@ -9,9 +9,14 @@
     "voiceTitle": "语音导览的声音",
     "voiceBody": "语音导览用 AI 声音（ElevenLabs）朗读我们审核过的文字。听起来像真人，但并没有真人在说话。",
     "humanTitle": "不用 AI 的部分",
-    "humanBody": "所有照片都是我们实拍的。飞行视频是真实的 3D 地图画面，不是 AI 图像。没有情绪识别，也没有广告画像。",
+    "humanBody": "我们的照片都是实拍的。个别图片会用 AI 扩展边缘，以适配宽屏幕，这些图片会带有小标签。飞行视频是真实的 3D 地图画面。没有情绪识别，也没有广告画像。",
     "lawTitle": "法律部分，简短说",
     "lawBody": "本页面是我们依据欧盟《人工智能法》（条例 (EU) 2024/1689）第 50 条所做的透明说明。你的聊天消息如何处理，请见隐私政策。"
+  },
+  "AiMedia": {
+    "generated": "AI 生成",
+    "edited": "AI 编辑",
+    "extended": "AI 扩展"
   },
   "Meta": {
     "aiTransparencyTitle": "用爱与 AI 打造：SalzGuide 的工作方式",

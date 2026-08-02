@@ -24,7 +24,8 @@ export default async function EditSpotPage({
   ]);
   if (!data) notFound();
 
-  const { spot, de, translations, translationsSourceHash, categoryIds, images } = data;
+  const { spot, de, translations, translationsSourceHash, categoryIds, images, imageAiOrigins } =
+    data;
   const s = spot as Record<string, unknown>;
   const str = (v: unknown) => (typeof v === "string" ? v : "");
   // Übersetzungs-Zeilen (snake_case) -> SpotTexts (camelCase) je Sprache.
@@ -91,6 +92,7 @@ export default async function EditSpotPage({
     localId: str(s.local_id),
     categoryIds,
     images,
+    imageAiOrigins,
     videoUrl: str(s.video_url) || null,
     videoPosterUrl: str(s.video_poster_url) || null,
     title: str(de.title),

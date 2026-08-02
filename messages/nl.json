@@ -9,9 +9,14 @@
     "voiceTitle": "De stem van de audiotours",
     "voiceBody": "De audiotours vertellen onze gecheckte teksten met een AI-stem (ElevenLabs). Er spreekt geen echt persoon, ook al klinkt het zo.",
     "humanTitle": "Wat zonder AI gaat",
-    "humanBody": "Alle foto’s zijn echt en zelf gemaakt. De flyover-video’s zijn echte 3D-kaartopnames, geen AI-beelden. Geen emotieherkenning, geen advertentieprofiel.",
+    "humanBody": "Onze foto’s zijn echt en zelf gemaakt. Een paar beelden verbreden we met AI aan de randen zodat ze op brede schermen passen; die dragen een klein label. De flyover-video’s zijn echte 3D-kaartopnames. Geen emotieherkenning, geen advertentieprofiel.",
     "lawTitle": "Het juridische, kort",
     "lawBody": "Deze pagina is onze transparantie volgens artikel 50 van de EU-AI-verordening (Verordening (EU) 2024/1689). Wat er met je chatberichten gebeurt, staat in de privacyverklaring."
+  },
+  "AiMedia": {
+    "generated": "Gemaakt met AI",
+    "edited": "Bewerkt met AI",
+    "extended": "Verbreed met AI"
   },
   "Meta": {
     "aiTransparencyTitle": "Met liefde en AI gemaakt: hoe SalzGuide werkt",

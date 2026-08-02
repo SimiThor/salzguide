@@ -9,9 +9,14 @@
     "voiceTitle": "La voix des audio-tours",
     "voiceBody": "Les audio-tours racontent nos textes vérifiés avec une voix IA (ElevenLabs). Aucune vraie personne ne parle, même si on s’y croirait.",
     "humanTitle": "Ce qui se fait sans IA",
-    "humanBody": "Toutes les photos sont réelles et prises par nous. Les vidéos de survol sont de vraies prises de vue 3D de la carte, pas des images IA. Pas de reconnaissance des émotions, pas de profil publicitaire.",
+    "humanBody": "Nos photos sont réelles et prises par nous. Quelques images sont élargies par IA sur les bords pour s’adapter aux grands écrans ; elles portent un petit label. Les vidéos de survol sont de vraies prises de vue 3D de la carte. Pas de reconnaissance des émotions, pas de profil publicitaire.",
     "lawTitle": "Le côté légal, en bref",
     "lawBody": "Cette page est notre transparence selon l’article 50 du règlement européen sur l’IA (règlement (UE) 2024/1689). Ce qui arrive à tes messages du chat est décrit dans la politique de confidentialité."
+  },
+  "AiMedia": {
+    "generated": "Créé avec l’IA",
+    "edited": "Retouché avec l’IA",
+    "extended": "Élargi avec l’IA"
   },
   "Meta": {
     "aiTransparencyTitle": "Fait avec amour et un peu d’IA : comment fonctionne SalzGuide",

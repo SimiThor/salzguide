@@ -12,6 +12,8 @@ import {
 } from "framer-motion";
 import { useTranslations } from "next-intl";
 import { useIsMounted } from "@/lib/use-is-mounted";
+import AiImageBadge from "@/components/AiImageBadge";
+import type { AiOrigin } from "@/lib/ai-origin";
 
 function Icon({ d }: { d: string }) {
   return (
@@ -36,11 +38,14 @@ function Icon({ d }: { d: string }) {
 // Gesten mit Achsen-Sperre: horizontal blättert, vertikal schließt – nie beides.
 export default function Lightbox({
   images,
+  aiOrigins,
   title,
   startIndex,
   onClose,
 }: {
   images: string[];
+  /** KI-Herkunft je Foto, index-gleich zu images (Art. 50 KI-VO, docs/39). */
+  aiOrigins?: (AiOrigin | null)[];
   title: string;
   startIndex: number;
   onClose: () => void;
@@ -162,13 +167,18 @@ export default function Lightbox({
           opacity: chromeOpacity,
         }}
       >
-        {n > 1 ? (
-          <span className="text-sm font-medium tabular-nums text-white/80">
-            {index + 1} / {n}
-          </span>
-        ) : (
-          <span />
-        )}
+        <span className="flex items-center gap-2">
+          {n > 1 && (
+            <span className="text-sm font-medium tabular-nums text-white/80">
+              {index + 1} / {n}
+            </span>
+          )}
+          {/* KI-Label des GERADE gezeigten Fotos, im Kopf neben dem Zähler: fährt mit
+              der übrigen Bedienebene aus (chromeOpacity), statt auf dem Foto zu kleben. */}
+          {aiOrigins?.[index] && (
+            <AiImageBadge origin={aiOrigins[index]!} className="inline-flex" />
+          )}
+        </span>
         <button
           type="button"
           onClick={(e) => {
