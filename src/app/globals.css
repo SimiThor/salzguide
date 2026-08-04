@@ -723,6 +723,19 @@ body {
   }
 }
 
+/* Solange im Seiten-Slot ein Lade-Gerüst steht (jede loading.tsx trägt aria-busy als
+   DIREKTES Kind von <main>), bleibt die Fußzeile aus dem Fluss. Zwei Gründe, beide am
+   Handy nachgemessen: (1) Ein Ladebild mit Fußzeile drin sieht aus wie eine fertige
+   Seite. (2) Beim Sprung von einer runtergescrollten Seite (z. B. „Ähnliche Spots")
+   hielte die Fußzeile das Dokument höher als den Bildschirm — der Browser behielte die
+   alte Scroll-Position und man sähe ~0,6 s die Unterkante des Skeletts samt Fußzeile.
+   Ohne sie ist das Dokument exakt bildschirmhoch und der Scroll klemmt von selbst auf 0.
+   Bewusst NUR direkte Kinder (main > …): Formular-Knöpfe tiefer im Baum tragen aria-busy
+   beim Absenden, die dürfen die Fußzeile nicht verstecken. */
+main:has(> [aria-busy="true"]) > footer {
+  display: none;
+}
+
 /* DIE EINE Regel für jedes <video> der Plattform (Spot, Startseite, Admin-Vorschau).
    Warum sie sein muss: In der Kachel füllt `object-fit: cover` den 9:16-Rahmen sauber aus,
    auch wenn ein Clip nicht exakt hochkant ist. Im Vollbild kippt genau dieselbe Regel ins
