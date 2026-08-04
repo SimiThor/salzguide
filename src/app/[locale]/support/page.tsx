@@ -49,7 +49,10 @@ export default async function SupportPage({
     // pt-[var(--sg-page-top)]: Am Handy liegt der App-Header `fixed` über dem Inhalt. Hier
     // stand nur `pt-8` — die Überschrift lag damit 29px HINTER dem Balken und war nicht zu
     // sehen. Der Abstand kommt aus der einen Quelle (globals.css), nicht als eigene Zahl.
-    <main className="mx-auto w-full max-w-[560px] px-4 pb-[calc(env(safe-area-inset-bottom)+6rem)] pt-[var(--sg-page-top)] md:pb-16 md:pt-8">
+    // Kein eigenes pb: Den Platz über der Tab-Leiste bringt die Rechts-Fusszeile für ALLE
+    // Seiten mit (LegalFooter, pb aus --sg-nav-h) — das env()-Polster hier war ein zweiter,
+    // handgerechneter Nav-Ausgleich und stapelte sich mit dem Footer-Abstand.
+    <main className="mx-auto w-full max-w-[560px] px-4 pt-[var(--sg-page-top)] md:pt-8">
       <h1 className="text-[28px] font-bold leading-tight text-ink">{t("title")}</h1>
       <p className="mt-2 text-[15px] leading-relaxed text-muted">{t("subtitle")}</p>
       <div className="mt-5">

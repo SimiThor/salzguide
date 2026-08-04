@@ -30,7 +30,12 @@ export default async function AdminLayout({
   const supportCount = await getOpenSupportCount();
 
   return (
-    <div className="mx-auto w-full max-w-[820px] px-4 pt-[var(--sg-page-top)] md:pt-6">
+    // pb mit --sg-nav-h: Im Admin rendert die Rechts-Fusszeile bewusst nicht (kein
+    // Kunden-Kontext), die bringt sonst überall den Platz über der Tab-Leiste mit. Ohne
+    // dieses Padding lag die fixe Leiste am Handy über dem Seitenende — der letzte Knopf
+    // jeder Admin-Seite war abgeschnitten. Hier EINMAL statt in zwanzig Seiten, aus
+    // demselben Grund, aus dem die Navigation oben steht (siehe Kommentar am Layout).
+    <div className="mx-auto w-full max-w-[820px] px-4 pb-[calc(var(--sg-nav-h)+3rem)] pt-[var(--sg-page-top)] md:pb-16 md:pt-6">
       <div className="mb-4">
         <AdminNav supportCount={supportCount} />
       </div>
