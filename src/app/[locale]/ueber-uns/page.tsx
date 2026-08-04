@@ -63,7 +63,10 @@ export default async function AboutPage({
     // +40px: Diese Seite beginnt mit einem Titel-Block und trägt bewusst mehr Luft als die
     // Listen-Seiten. Der Sockel kommt trotzdem aus der einen Quelle (--sg-page-top), damit
     // der Titel nicht hinter dem Header landet, wenn der Header mal wächst.
-    <div className="pb-[calc(var(--sg-nav-h)+3rem)] pt-[calc(var(--sg-page-top)+40px)] md:pb-28 md:pt-10">
+    // Kein eigenes pb: Den Platz über der Tab-Leiste bringt die Rechts-Fusszeile für ALLE
+    // Seiten mit (LegalFooter, pb aus --sg-nav-h) — ein zweites Polster hier stapelte sich
+    // nur zu einer doppelten Leerfläche vor dem Footer.
+    <div className="pt-[calc(var(--sg-page-top)+40px)] md:pt-10">
       <div className="mx-auto w-full max-w-[1040px] px-5 md:px-8">
         {/* ── HERO ─── Split am Desktop (Aussage links, Hochkant-Video rechts), gestapelt
             und zentriert am Handy. Das Video ist das Gründervideo (mit Ton, lädt erst beim

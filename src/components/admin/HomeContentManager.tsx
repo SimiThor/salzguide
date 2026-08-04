@@ -170,8 +170,10 @@ export default function HomeContentManager({
       </div>
 
       {/* sticky: Bei 40 Feldern ist der Speichern-Knopf sonst eine Bildschirmlänge vom
-          Feld entfernt, das man gerade tippt. */}
-      <div className="sticky bottom-0 -mx-5 -mb-5 mt-5 rounded-b-[18px] border-t border-black/5 bg-white/90 px-5 py-4 backdrop-blur-md">
+          Feld entfernt, das man gerade tippt. bottom-[--sg-nav-h] am Handy: sticky klebt am
+          VIEWPORT-Rand, die fixe Tab-Leiste (z-50) lag also über dem Knopf — die Leiste
+          weiss nichts vom Dokumentfluss. Am PC gibt es keine Tab-Leiste, dort bleibt 0. */}
+      <div className="sticky bottom-[var(--sg-nav-h)] -mx-5 -mb-5 mt-5 rounded-b-[18px] border-t border-black/5 bg-white/90 px-5 py-4 backdrop-blur-md md:bottom-0">
         <div className="flex flex-wrap items-center gap-3">
           <button
             type="button"

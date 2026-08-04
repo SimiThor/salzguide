@@ -45,7 +45,10 @@ export default async function AiTransparencyPage({
   const tLegal = await getTranslations({ locale, namespace: "Legal" });
 
   return (
-    <main className="mx-auto w-full max-w-[640px] px-4 pb-[calc(env(safe-area-inset-bottom)+6rem)] pt-[var(--sg-page-top)] md:pb-16 md:pt-8">
+    // Kein eigenes pb: Den Platz über der Tab-Leiste bringt die Rechts-Fusszeile für ALLE
+    // Seiten mit (LegalFooter, pb aus --sg-nav-h) — das env()-Polster hier war ein zweiter,
+    // handgerechneter Nav-Ausgleich und stapelte sich mit dem Footer-Abstand.
+    <main className="mx-auto w-full max-w-[640px] px-4 pt-[var(--sg-page-top)] md:pt-8">
       <h1 className="text-[28px] font-bold leading-tight text-ink">{t("title")}</h1>
       <p className="mt-2 text-[15px] leading-relaxed text-muted">{t("intro")}</p>
 

@@ -35,7 +35,11 @@ export default function LegalFooter() {
     // nicht Teil des Contents, und darf auf keiner Seite direkt am letzten Absatz kleben.
     // EINE Stelle für alle Seiten: der Footer bringt seinen Abstand selbst mit, statt dass
     // jede Seite unten Platz reserviert (das würde beim nächsten neuen Screen vergessen).
-    <footer className="mx-auto w-full max-w-[640px] px-4 pb-[calc(env(safe-area-inset-bottom)+5.5rem)] pt-24 text-center md:pb-12 md:pt-28">
+    // pb rechnet mit --sg-nav-h (Tab-Leiste inkl. Home-Indicator) + 1rem sichtbarer Luft:
+    // Vorher stand hier ein hartes 5.5rem, das die 72px-Leiste nur zufällig überdeckte —
+    // wächst die Leiste, wäre jede Seite still angeschnitten gewesen. Auf Marketing-Seiten
+    // (keine Tab-Leiste) ergibt dasselbe calc() einfach grosszügigen Abschluss-Weissraum.
+    <footer className="mx-auto w-full max-w-[640px] px-4 pb-[calc(var(--sg-nav-h)+1rem)] pt-24 text-center md:pb-12 md:pt-28">
       {/* Die Profile stehen ÜBER den Rechtslinks und ohne Beschriftung. Beides ist eine
           Entscheidung: Folgen ist das, was wir hier wollen, die Rechtslinks sind Pflicht und
           dürfen leiser sein. Ein „Folge uns" davor wäre ein Wort, das zwei Glyphen schon
