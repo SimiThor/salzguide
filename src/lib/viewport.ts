@@ -12,7 +12,7 @@ import { readCssLength } from "./sheet-metrics";
 // mitten in der Geste. Wer daran hängt, rechnet sein Layout während des Scrollens
 // neu – Sheets fahren auf ihre Ausgangsstufe zurück, die Karte kippt ihren
 // Ausschnitt, der Inhalt wandert unter dem Finger weg. Die ganze Regel steht in
-// globals.css unter "VIEWPORT-HÖHE"; diese Datei ist Fall 3 daraus.
+// globals.css unter "VIEWPORT-HÖHE"; diese Datei ist Fall 4 daraus.
 //
 // STATTDESSEN --sg-vh (= 100svh):
 // svh ist der Bildschirm mit AUSGEFAHRENEN Leisten – pro Gerät und Ausrichtung eine

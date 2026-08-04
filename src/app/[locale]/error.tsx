@@ -40,8 +40,9 @@ export default function LocaleError({
   }, [error]);
 
   return (
-    // min-h-[100svh]: im Fluss gehört svh hin, nicht dvh (springt beim Scrollen) und nicht
-    // vh (ignoriert die Browserleisten am iPhone). Siehe die Viewport-Regel in globals.css.
+    // min-h-[100svh]: bildschirmfüllende Fläche im Fluss (Fall 2 der Viewport-Regel in
+    // globals.css), nicht dvh (springt beim Scrollen) und nicht vh (ignoriert die
+    // Browserleisten am iPhone).
     <div className="flex min-h-[100svh] flex-col items-center justify-center px-6 text-center">
       <div className="w-full max-w-[420px]">
         <h1 className="text-[22px] font-bold leading-tight text-ink">{t("title")}</h1>

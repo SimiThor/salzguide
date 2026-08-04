@@ -43,6 +43,7 @@ import {
   factSubtype,
 } from "@/lib/facts-i18n";
 import { alternatesFor, ogFor } from "@/lib/metadata";
+import { HERO_BOX } from "./hero-box";
 import { breadcrumbLd, spotLd } from "@/lib/jsonld";
 import JsonLd from "@/components/JsonLd";
 import { routeLengthKm } from "@/lib/geo";
@@ -100,8 +101,6 @@ export async function generateMetadata({
     }),
   };
 }
-
-const HERO_BOX = "h-[42svh] max-h-[460px] min-h-[300px] w-full";
 
 // Kopfbild der Spot-Seite: Foto (oder Blur-Vorschau bei Pro), Verlauf, Titel, Zurück
 // und Speichern. Bewusst auf Modulebene statt in SpotPage: eine Komponente, die im

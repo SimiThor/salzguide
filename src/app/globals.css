@@ -121,28 +121,42 @@ body {
    Finger weg: der Hero wächst, der Inhalt darunter wandert, man scrollt ins Leere.
    Die BREITE ändert sich dabei nie – nur daran darf man sich festhalten.
 
-   DIE REGEL (drei Fälle, mehr gibt es nicht):
+   DIE REGEL (vier Fälle, mehr gibt es nicht):
 
-   1. Im Dokumentfluss, scrollt mit  ->  svh  (min-h-svh, h-svh, max-h-svh)
-      svh ist die KLEINE Viewport-Höhe: der Bildschirm mit AUSGEFAHRENEN Leisten.
-      Pro Gerät und Ausrichtung eine feste Zahl, die sich beim Scrollen nicht
-      bewegt. Nichts wird je abgeschnitten, weil svh der kleinstmögliche Fall ist.
+   1. Inhaltskasten im Dokumentfluss (Hero-Foto, Karten-Kachel, Skelett)
+      ->  Höhe aus der BREITE: h-[clamp(MINpx,XXvw,MAXpx)] oder aspect-[x/y]
+      Die Breite ändert sich beim Scrollen nie, also steht der Kasten fest.
+      KEINE vh-Einheit hier, auch nicht svh: Laut Spezifikation ist svh stabil,
+      aber nicht jeder Browser hält sich daran (In-App-Browser, WebViews) – dann
+      atmet der Kasten beim Scrollen doch. Die Breite braucht keine Spezifikation.
+      Die px-Deckel (clamp bzw. min-h/max-h) halten Tablet und Desktop im Zaum.
+
+   2. Bildschirmfüllend im Dokumentfluss (body, Landing-Hero, Fehlerseiten)
+      ->  svh  (min-h-viewport, min-h-[100svh])
+      "So hoch wie der Bildschirm" lässt sich nicht aus der Breite ableiten,
+      darum die einzige Fluss-Ausnahme. svh ist die KLEINE Viewport-Höhe: der
+      Bildschirm mit AUSGEFAHRENEN Leisten. Pro Gerät und Ausrichtung eine feste
+      Zahl, die sich beim Scrollen nicht bewegt. Nichts wird je abgeschnitten,
+      weil svh der kleinstmögliche Fall ist.
       NIE dvh hier: dvh wandert mit der Leiste mit und ist damit genau die Ursache.
       NIE vh/lvh hier: das ist der Bildschirm OHNE Leisten, also zu hoch – der
       untere Rand liegt beim Laden unter der Werkzeugleiste.
 
-   2. position: fixed, vollflächig (Karte, Overlay, Backdrop)  ->  inset-0, keine Einheit
+   3. position: fixed, vollflächig (Karte, Overlay, Backdrop)  ->  inset-0, keine Einheit
       Ein fixed-Element hängt am Viewport statt am Dokument: Es füllt den sichtbaren
       Bereich von allein und verschiebt beim Nachwachsen NICHTS, weil im Dokument
       darunter nichts liegt. Eine Höhenangabe ist hier nicht nur überflüssig,
       sondern schädlich – sie zwingt einen Wert auf, den der Browser besser kennt.
+      Deckel INNERHALB solcher Overlays (Sheet-Detents, Lightbox-Bild) dürfen svh
+      nutzen: Solange das Overlay offen ist, scrollt das Dokument nicht, die
+      Leisten stehen still.
 
-   3. Höhe muss als ZAHL nach JS (Mapbox-Padding, Sheet-Stufen)  ->  useViewportHeight()
+   4. Höhe muss als ZAHL nach JS (Mapbox-Padding, Sheet-Stufen)  ->  useViewportHeight()
       src/lib/viewport.ts liest --sg-vh aus und misst NUR bei Breitenänderung neu.
       Nie window.innerHeight direkt: das ist die dvh-Zahl und ändert sich beim
       Scrollen. Nie an `resize` hängen: iOS feuert resize bei jedem Leisten-Zug.
 
-   --sg-vh ist die Brücke für Fall 3: registrierte @property "<length>", deshalb
+   --sg-vh ist die Brücke für Fall 4: registrierte @property "<length>", deshalb
    rechnet der Browser sie zu echten Pixeln aus und getComputedStyle liefert eine
    Zahl statt des Textes "100svh". So rechnen CSS und JS mit derselben Größe –
    sonst teilen sich zwei Systeme denselben Bildschirm in zwei verschiedene Höhen.
@@ -157,7 +171,7 @@ body {
   --sg-vh: 100svh;
 }
 
-/* Volle Viewport-Höhe im Dokumentfluss – Fall 1 der Regel oben. Bewusst über
+/* Volle Viewport-Höhe im Dokumentfluss – Fall 2 der Regel oben. Bewusst über
    var(--sg-vh) statt direkt über svh: Das Layout RICHTET SICH nach der Variable,
    die JS ausliest, und kann deshalb nicht von ihr abdriften (dasselbe Muster wie
    --sg-nav-h und die Tab-Leiste).
