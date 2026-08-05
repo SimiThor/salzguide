@@ -269,8 +269,11 @@ Löschung) umgesetzt & verifiziert. Datensparsamkeit (Retention) umgesetzt.
   Cache-Header beim Token-Refresh → keine Fremd-Session aus dem CDN.
 - **✅ Web-Cache-Deception:** App-Router matcht exakte Routen (`/profil/x.css` → 404, nicht die
   Profil-Seite); DB-Seiten sind dynamisch (kein Cache); Middleware-Matcher schließt `*.*` aus.
-- **✅ E-Mail-Header-Injection:** kein eigener E-Mail-Versand (Resend ungenutzt); Auth-Mails
-  gehen über Supabase mit Redirect-Allowlist.
+- **✅ E-Mail-Header-Injection:** eigener Versand läuft ausschließlich über Resends
+  JSON-API (`lib/email.ts`) — Empfänger, Betreff und Reply-To gehen als JSON-Werte an die
+  API, es werden nie rohe SMTP-Header aus Nutzereingaben zusammengesetzt (Zeilenumbrüche
+  können daher keine Header einschleusen). Der OTP-Fallback geht über Supabase mit
+  Redirect-Allowlist.
 - **✅ Prototype-Pollution:** kein rekursives Mergen von User-Input; JSON-Felder werden per Key
   gelesen, nicht in gemeinsame Objekte gemischt.
 - **🟠→✅ `locale` aus Formularfeld ungeprüft:** `sendMagicLink`/`signOut` nahmen `locale` roh
