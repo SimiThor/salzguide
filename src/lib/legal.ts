@@ -10,7 +10,7 @@ export const LEGAL = {
   zip: "5020",
   city: "Salzburg",
   country: "Österreich",
-  email: "anton@steinermedia.at",
+  email: "anton@salzguide.com",
   phone: "+43 664 5279354",
   vatId: "ATU77969058",
   // GISA-Zahl (Gewerbeinformationssystem Austria) – für Einzelunternehmer statt Firmenbuch.
@@ -22,11 +22,10 @@ export const LEGAL = {
   editorialLine:
     "SalzGuide ist ein unabhängiger digitaler Reise- und Freizeitführer für das Salzburger Land mit kuratierten Orten, Audio-Touren und einem KI-Assistenten.",
   // Muss mitwandern, sobald sich der Inhalt der Rechtstexte ändert: Ein "Stand" von gestern
-  // unter einer Erklärung von heute ist selbst eine falsche Angabe. Zuletzt: Reichweiten-
-  // messung vollständig beschrieben (welche Merkmale, Tages-Wiedererkennung offen benannt,
-  // 14 Monate für die Ereignisse), Missbrauchs-Zähler und Betriebs-Logbuch als eigene Punkte
-  // unter Server-Logs, Speicherdauern um die drei fehlenden Fristen ergänzt (27.07.2026).
-  updated: "27. Juli 2026",
+  // unter einer Erklärung von heute ist selbst eine falsche Angabe. Zuletzt: Kontaktadresse
+  // in allen Rechtstexten von anton@steinermedia.at auf anton@salzguide.com umgestellt;
+  // sie ist zugleich Reply-To jeder App-Mail und Empfänger der internen Meldungen (05.08.2026).
+  updated: "5. August 2026",
 } as const;
 
 // Vollständige Postanschrift als einzeiliger String.

@@ -66,17 +66,22 @@ online akzeptierbar). Fehlt der AVV, droht ein DSGVO-Bußgeld **unabhängig** vo
 - [ ] Rechnungs-Pflichtangaben (§ 11 UStG) sicherstellen.
 
 ## 4) Keys & Config VOR Live (sonst rechtliche Lücken)
-- [x] **`RESEND_KEY`** + `EMAIL_FROM` — lokal gesetzt (`.env.local`, Absender
-      „SalzGuide &lt;no-reply@steinermedia.at&gt;", also eigene Domain statt Resends
-      Test-Absender). Darüber laufen bereits die Widerruf-Eingangsbestätigung und die
-      Pro-Geschenk-Mail.
-- [ ] **Dasselbe auf Vercel (Production) und Domain in Resend verifiziert?** Das ist der
-      eigentliche Punkt: Ohne gesetzten Key auf dem Server oder ohne verifizierte
-      Absender-Domain geht die **Kaufbestätigung nach § 7 Abs. 3 FAGG** nicht raus (bzw.
-      landet nirgends). Ohne sie erlischt das Rücktrittsrecht nicht (§ 18 Abs. 1 Z 11 lit. c),
-      und jeder Käufer könnte binnen 14 Tagen den vollen Preis zurückverlangen, obwohl im
-      Checkout etwas anderes stand. Prüfen: Vercel → Settings → Environment Variables
-      (Production) und Resend → Domains.
+- [x] **`RESEND_KEY`** + `EMAIL_FROM` — lokal gesetzt (`.env.local`). Ziel-Absender ist
+      „SalzGuide &lt;no-reply@salzguide.com&gt;"; bis salzguide.com in Resend verifiziert
+      ist, bleibt der bisherige verifizierte Absender „SalzGuide
+      &lt;no-reply@steinermedia.at&gt;" aktiv (Umstellungs-Reihenfolge: erst Resend
+      verifizieren, dann `EMAIL_FROM` wechseln). Kontakt-/Reply-To-Adresse ist seit
+      05.08.2026 einheitlich `anton@salzguide.com` (`LEGAL.email`). Darüber laufen
+      bereits die Widerruf-Eingangsbestätigung und die Pro-Geschenk-Mail.
+- [ ] **Dasselbe auf Vercel (Production) und Domain salzguide.com in Resend
+      verifiziert?** Das ist der eigentliche Punkt: Ohne gesetzten Key auf dem Server
+      oder ohne verifizierte Absender-Domain geht die **Kaufbestätigung nach § 7 Abs. 3
+      FAGG** nicht raus (bzw. landet nirgends). Ohne sie erlischt das Rücktrittsrecht
+      nicht (§ 18 Abs. 1 Z 11 lit. c), und jeder Käufer könnte binnen 14 Tagen den
+      vollen Preis zurückverlangen, obwohl im Checkout etwas anderes stand. Prüfen:
+      Vercel → Settings → Environment Variables (Production) und Resend → Domains.
+      Beim DNS-Setzen die bestehenden MX-Einträge der Hauptdomain nicht anrühren,
+      daran hängt der Empfang von anton@salzguide.com.
 - [ ] **`STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` / `STRIPE_PRO_PRICE_ID` / `STRIPE_TAX_ENABLED`**.
 - [ ] **`CRON_SECRET`** (Cron-Endpoint), **Turnstile-Keys** (bereits gesetzt).
 - [ ] Supabase Auth-Redirect-Allowlist eng auf `salzguide.com`.
