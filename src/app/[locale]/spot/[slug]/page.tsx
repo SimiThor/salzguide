@@ -29,7 +29,7 @@ import GalleryImage from "@/components/gallery/GalleryImage";
 import SpotGallery from "@/components/gallery/SpotGallery";
 import SpotVideo from "@/components/SpotVideo";
 import StoryMaker from "@/components/StoryMaker";
-import CardSkeleton from "@/components/CardSkeleton";
+import { CardSkeleton } from "@/components/skeletons";
 import BackButton from "@/components/BackButton";
 import {
   factAccess,
