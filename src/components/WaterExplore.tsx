@@ -355,8 +355,11 @@ export default function WaterExplore({
       </div>
 
       {/* CSS entscheidet, nicht ein State nach der Hydration – siehe TourView/Explore.
-          Vorher zeigte der PC hier für 258ms die Handy-Ansicht in voller Breite. */}
-      <aside className="absolute inset-y-0 left-0 z-10 hidden w-[var(--sg-panel-water)] overflow-y-auto border-r border-black/5 bg-cream/95 py-6 backdrop-blur-xl md:block">
+          Vorher zeigte der PC hier für 258ms die Handy-Ansicht in voller Breite.
+          pb aus --sg-page-bottom: das Panel ist auf der Vollbild-Karte das Seitenende;
+          mit py-6 endete die Liste auf kleinen Fenstern 24px vor der Kante statt der
+          einheitlichen 48px (globals.css). */}
+      <aside className="absolute inset-y-0 left-0 z-10 hidden w-[var(--sg-panel-water)] overflow-y-auto border-r border-black/5 bg-cream/95 pb-[var(--sg-page-bottom)] pt-6 backdrop-blur-xl md:block">
         {list}
       </aside>
       <div className="contents md:hidden">

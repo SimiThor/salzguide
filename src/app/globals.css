@@ -60,6 +60,15 @@ body {
      Ab md überschreiben die Seiten das mit ihrem eigenen `md:pt-*`; dort setzt schon
      AppChrome den Header-Abstand am <main>. */
   --sg-page-top: calc(env(safe-area-inset-top) + var(--sg-header-h) + 12px);
+  /* Wo der Seiteninhalt am PC AUFHÖRT: einheitlicher Abschluss-Weissraum ganz unten.
+     Träger ist im normalen Seitenfluss der LegalFooter (rendert auf jeder Seite), auf
+     den Vollbild-Karten die Desktop-Panels (Explore/Wasser/TourView) und im Admin das
+     Layout. Vorher hatte jeder Ort seine eigene Zahl (20/24/48/64px, nachgemessen am
+     1440x900-Viewport): auf /explore endeten die Partner-Logos 16px vor der Kante,
+     im Admin waren es 64px — je nach Seite klebte der Inhalt unten oder nicht.
+     Am HANDY gilt diese Variable nicht allein: dort kommt die Tab-Leiste dazu, der
+     Abstand rechnet mit --sg-nav-h (LegalFooter, MobileSheet, Admin-Layout). */
+  --sg-page-bottom: 3rem;
   --sg-panel: 27rem; /* md (>=768): ~432px */
   --sg-card: calc((var(--sg-panel) - 40px) / 2.5);
   /* Kantenlänge der Karten-Bedienknöpfe. Am FINGER gezeichnet 34, angefasst 44:

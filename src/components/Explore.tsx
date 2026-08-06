@@ -329,8 +329,10 @@ export default function Explore({
       </AnimatePresence>
       {/* Partner-Nennung: Pflicht auf jeder Seite (lib/partners.ts). Hier im Panel, weil
           der LegalFooter auf den Vollbild-Karten nicht rendert (lib/routes.ts). Bewusst
-          AUSSERHALB der Saison-Animation: Sie soll beim Umschalten nicht mitblenden. */}
-      <PartnerCredits className="mt-14 px-4 md:pb-4" />
+          AUSSERHALB der Saison-Animation: Sie soll beim Umschalten nicht mitblenden.
+          Kein eigenes pb mehr: den Abschluss-Weissraum bringt der Panel-Scroller mit
+          (--sg-page-bottom) — das md:pb-4 hier war ein zweiter, handgerechneter Rest. */}
+      <PartnerCredits className="mt-14 px-4" />
     </>
     ),
     [season, changeSeason, labels, shelves, openSpot, t],
@@ -395,7 +397,14 @@ export default function Explore({
           100-200 verdoppelt sich hier eine Liste, die dann ohnehin nicht mehr am
           Stück gehören sollte. Wer das angeht, löst beides zusammen. */}
       <aside className="absolute inset-y-0 left-0 z-10 hidden w-[var(--sg-panel)] flex-col border-r border-black/5 bg-cream/95 backdrop-blur-xl md:flex">
-        <div ref={panelScrollRef} className="flex-1 overflow-y-auto py-5">
+        {/* pb aus --sg-page-bottom: Das Panel IST auf der Vollbild-Karte das Seitenende
+            (die Rechts-Fusszeile rendert hier nicht, lib/routes.ts). Mit dem alten py-5
+            endeten die Partner-Logos 16px vor der Unterkante — jede normale Seite hat
+            48px. EINE Variable für alle Seitenenden, siehe globals.css. */}
+        <div
+          ref={panelScrollRef}
+          className="flex-1 overflow-y-auto pb-[var(--sg-page-bottom)] pt-5"
+        >
           {panelInner}
         </div>
       </aside>
