@@ -742,7 +742,51 @@ body {
    Bewusst NUR direkte Kinder (main > …): Formular-Knöpfe tiefer im Baum tragen aria-busy
    beim Absenden, die dürfen die Fußzeile nicht verstecken. */
 main:has(> [aria-busy="true"]) > footer {
-  display: none;
+  /* Geparkt statt display:none — dieselbe Wirkung, aber mit Notausstieg (unten):
+     absolute nimmt die Fußzeile aus dem Fluss (Dokument bleibt exakt bildschirmhoch,
+     die Scroll-Klemme oben funktioniert unverändert), top parkt sie über dem Dokument
+     (nach oben wächst kein Scrollbereich, nur nach unten), visibility macht sie
+     unsichtbar und unklickbar. Warum nicht display:none wie früher: Auf einem Element
+     ohne Box STARTET eine CSS-Animation nie (nachgemessen, Chrome 151) — auch nicht
+     mit display in den Keyframes. Der Notausstieg braucht die Box. */
+  position: absolute;
+  top: -200vh;
+  visibility: hidden;
+  /* Notausstieg: Das Verstecken hat eine Obergrenze. Reisst die Server-Antwort einer
+     Navigation ab (Funkloch, Tunnel — nachgestellt mit hängendem RSC-Fetch), bleibt das
+     Gerüst samt aria-busy für IMMER stehen — und ohne diese Zeile wäre auch die Fußzeile
+     für immer weg, samt dem gesetzlichen Widerruf-Zugang (§ 13a FAGG), den sie trägt.
+     Deshalb stellt die Animation sie nach 4s Ladezustand trotzdem in den Fluss. 4s liegt
+     weit über jeder gesunden Ladezeit (nachgemessen: 100-430ms je Client-Navigation im
+     Produktions-Build) und weit über dem ~0,6s-Fenster der Scroll-Klemme; wer nach 4s
+     noch aufs Schimmern schaut, hält die Seite ohnehin nicht mehr für fertig — beide
+     Gründe fürs Verstecken tragen dann nicht mehr.
+     Warum CSS und kein JS-Timer: Wenn dieser Fall eintritt, ist Netz, Hydration oder
+     ein abgerissener Stream gerade DAS, was klemmt — die Animation läuft im Browser
+     immer, auch vor der Hydration und ohne ein einziges Byte JS. */
+  animation: sg-footer-failsafe 300ms var(--sg-ease-ui) 4s forwards;
+}
+/* from = to: position/visibility animieren diskret, gleiche Werte in beiden Frames
+   gelten die ganze Laufzeit; `forwards` hält den Endzustand danach fest. Browser, die
+   position in Keyframes nicht animieren (Safari < 17.4 u. ä.), lassen die Fußzeile
+   einfach unsichtbar geparkt — exakt das bisherige Verhalten, nie ein sichtbares
+   Overlay: Sie wird dort höchstens nicht gezeigt, nie falsch gezeigt. */
+@keyframes sg-footer-failsafe {
+  from {
+    position: static;
+    visibility: visible;
+    opacity: 0;
+  }
+  to {
+    position: static;
+    visibility: visible;
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  main:has(> [aria-busy="true"]) > footer {
+    animation-duration: 1ms;
+  }
 }
 
 /* Weil die Fußzeile im Ladebild fehlt, fehlt auch ihr Abschluss-Weissraum — das Gerüst
