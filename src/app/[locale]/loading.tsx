@@ -1,4 +1,4 @@
-import CardSkeleton from "@/components/CardSkeleton";
+import { CardSkeleton, PageHeadSkeleton } from "@/components/skeletons";
 
 // Auffang-Ladeschirm für ALLE Unterseiten (Loading-Grenze auf [locale]-Ebene).
 //
@@ -13,16 +13,23 @@ import CardSkeleton from "@/components/CardSkeleton";
 //
 // min-h-viewport: Das Gerüst füllt mindestens den Bildschirm, damit die Fußzeile
 // unter der Falte bleibt — ein Ladebild mit Footer drin sieht nach fertiger Seite aus.
-// Neutrale Karten-Skelette, weil hier jede Art von Seite ankommen kann; Seiten mit
-// eigener loading.tsx (Spot, Vollbild-Karten) zeigen weiterhin ihr eigenes Gerüst,
-// sobald der Prefetch es geliefert hat.
+//
+// Form: Seitenkopf (h1 + Untertitel) über Sektions-Karten — das gemeinsame Grundgerüst
+// fast aller Inhaltsseiten, in deren üblicher Breite (640px; Events, Gespeichert, KI,
+// Über uns). Hier kann jede Art von Seite ankommen, deshalb bleibt es bei dieser
+// neutralen Grundform; Seiten mit eigener loading.tsx (Events, Touren, Gespeichert,
+// Profil, Pro, Spot, Vollbild-Karten) zeigen ihr genaueres Gerüst, sobald der
+// Prefetch es geliefert hat.
 export default function Loading() {
   return (
     <div className="min-h-viewport pt-[var(--sg-page-top)] md:pt-6" aria-busy>
-      <div className="mx-auto w-full max-w-[760px] space-y-6 px-4">
-        <CardSkeleton lines={3} />
-        <CardSkeleton lines={4} />
-        <CardSkeleton lines={2} />
+      <div className="mx-auto w-full max-w-[640px] px-4">
+        <PageHeadSkeleton />
+        <div className="mt-6 space-y-6">
+          <CardSkeleton lines={3} />
+          <CardSkeleton lines={4} />
+          <CardSkeleton lines={2} />
+        </div>
       </div>
     </div>
   );

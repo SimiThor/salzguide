@@ -1,10 +1,13 @@
-import CardSkeleton from "@/components/CardSkeleton";
+import { CardSkeleton, QuickFactsSkeleton } from "@/components/skeletons";
 import { HERO_BOX } from "./[slug]/hero-box";
 
 // Lade-Gerüst der Spot-Seite: Die Route ist dynamisch (Betrachter-Prüfung), zwischen
 // Klick und Server-Antwort stand vorher eine leere Fläche. Der Hero-Block hat exakt
 // die Masse des echten Heros (geteilte HERO_BOX), damit beim Eintreffen der Seite
-// nichts springt; darunter zwei Karten-Skelette im Rhythmus der echten Sektionen.
+// nichts springt. Darunter GENAU der Aufbau der echten Seite (spot/[slug]/page.tsx):
+// die Quick-Facts-Pille überlappt den Hero (-mt-9, z-10), dann Sektions-Karten im
+// echten Rhythmus (space-y-10 md:space-y-12) — der Wechsel zum Inhalt ist so ein
+// Auffüllen der Formen, kein Umbau.
 // min-h-viewport wie beim Auffang-Gerüst ([locale]/loading.tsx): füllt mindestens den
 // Bildschirm, damit die Fußzeile unter der Falte bleibt, solange geladen wird.
 //
@@ -17,9 +20,12 @@ export default function Loading() {
   return (
     <div className="min-h-viewport pb-16" aria-busy>
       <div className={`sg-skeleton ${HERO_BOX}`} />
-      <div className="mx-auto mt-6 w-full max-w-[760px] space-y-6 px-4">
-        <CardSkeleton lines={3} />
-        <CardSkeleton lines={4} />
+      <div className="mx-auto w-full max-w-[760px]">
+        <div className="relative z-10 -mt-9 space-y-10 px-4 md:space-y-12">
+          <QuickFactsSkeleton />
+          <CardSkeleton lines={3} />
+          <CardSkeleton lines={4} />
+        </div>
       </div>
     </div>
   );
