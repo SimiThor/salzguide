@@ -35,7 +35,10 @@ export default async function AdminLayout({
     // dieses Padding lag die fixe Leiste am Handy über dem Seitenende — der letzte Knopf
     // jeder Admin-Seite war abgeschnitten. Hier EINMAL statt in zwanzig Seiten, aus
     // demselben Grund, aus dem die Navigation oben steht (siehe Kommentar am Layout).
-    <div className="mx-auto w-full max-w-[820px] px-4 pb-[calc(var(--sg-nav-h)+3rem)] pt-[var(--sg-page-top)] md:pb-16 md:pt-6">
+    // Der sichtbare Abschluss-Weissraum kommt aus --sg-page-bottom (globals.css), wie
+    // auf jeder anderen Seite — vorher stand hier ein eigenes md:pb-16 neben dem
+    // md:pb-12 des Footers, zwei Zahlen für denselben Abstand.
+    <div className="mx-auto w-full max-w-[820px] px-4 pb-[calc(var(--sg-nav-h)+var(--sg-page-bottom))] pt-[var(--sg-page-top)] md:pb-[var(--sg-page-bottom)] md:pt-6">
       <div className="mb-4">
         <AdminNav supportCount={supportCount} />
       </div>

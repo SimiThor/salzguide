@@ -422,7 +422,9 @@ export default function TourView({
           {backControl}
           {topRight}
         </div>
-        <div className="flex-1 overflow-y-auto pb-16 pt-6">{panel}</div>
+        {/* pb aus --sg-page-bottom: gleicher Abschluss-Weissraum wie an jedem anderen
+            Seitenende (globals.css) — vorher stand hier ein eigenes pb-16. */}
+        <div className="flex-1 overflow-y-auto pb-[var(--sg-page-bottom)] pt-6">{panel}</div>
       </aside>
       {/* `contents`: am Handy darf der Wrapper das Layout nicht anfassen, sonst verliert
           das Sheet seinen Bezug zum `fixed inset-0` darüber. Ab md fällt der ganze

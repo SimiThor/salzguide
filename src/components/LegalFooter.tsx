@@ -39,7 +39,9 @@ export default function LegalFooter() {
     // Vorher stand hier ein hartes 5.5rem, das die 72px-Leiste nur zufällig überdeckte —
     // wächst die Leiste, wäre jede Seite still angeschnitten gewesen. Auf Marketing-Seiten
     // (keine Tab-Leiste) ergibt dasselbe calc() einfach grosszügigen Abschluss-Weissraum.
-    <footer className="mx-auto w-full max-w-[640px] px-4 pb-[calc(var(--sg-nav-h)+1rem)] pt-24 text-center md:pb-12 md:pt-28">
+    // md:pb aus --sg-page-bottom: der Footer setzt damit das Seitenende, das die
+    // Desktop-Karten-Panels und das Admin-Layout aus derselben Variable nachbilden.
+    <footer className="mx-auto w-full max-w-[640px] px-4 pb-[calc(var(--sg-nav-h)+1rem)] pt-24 text-center md:pb-[var(--sg-page-bottom)] md:pt-28">
       {/* Die Profile stehen ÜBER den Rechtslinks und ohne Beschriftung. Beides ist eine
           Entscheidung: Folgen ist das, was wir hier wollen, die Rechtslinks sind Pflicht und
           dürfen leiser sein. Ein „Folge uns" davor wäre ein Wort, das zwei Glyphen schon
