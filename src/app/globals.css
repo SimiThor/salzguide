@@ -745,6 +745,24 @@ main:has(> [aria-busy="true"]) > footer {
   display: none;
 }
 
+/* Weil die Fußzeile im Ladebild fehlt, fehlt auch ihr Abschluss-Weissraum — das Gerüst
+   muss ihn selbst mitbringen. Passt das Gerüst auf den Bildschirm, schluckt min-h-viewport
+   das Padding (border-box) und das Dokument bleibt exakt bildschirmhoch wie oben begründet.
+   Ist es HÖHER als das Fenster (Events-Gerüst: 752px auf einem 680px-Laptop-Fenster,
+   nachgemessen), scrollte man vorher auf eine harte Unterkante ohne jede Luft — genau der
+   „Footer fehlt und unten klebt alles"-Eindruck. Werte aus denselben Quellen wie die echte
+   Fußzeile: Tab-Leiste + 1rem am Handy, --sg-page-bottom am PC.
+   .min-h-viewport unterscheidet die Fluss-Gerüste vom Vollbild-Karten-Loader
+   (MapRouteLoading, fixed): der füllt den Schirm selbst und braucht kein Seitenende. */
+main > [aria-busy="true"].min-h-viewport {
+  padding-bottom: calc(var(--sg-nav-h) + 1rem);
+}
+@media (min-width: 768px) {
+  main > [aria-busy="true"].min-h-viewport {
+    padding-bottom: var(--sg-page-bottom);
+  }
+}
+
 /* DIE EINE Regel für jedes <video> der Plattform (Spot, Startseite, Admin-Vorschau).
    Warum sie sein muss: In der Kachel füllt `object-fit: cover` den 9:16-Rahmen sauber aus,
    auch wenn ein Clip nicht exakt hochkant ist. Im Vollbild kippt genau dieselbe Regel ins
