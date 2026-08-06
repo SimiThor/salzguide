@@ -10,6 +10,9 @@ import { HERO_BOX } from "./[slug]/hero-box";
 // Auffüllen der Formen, kein Umbau.
 // min-h-viewport wie beim Auffang-Gerüst ([locale]/loading.tsx): füllt mindestens den
 // Bildschirm, damit die Fußzeile unter der Falte bleibt, solange geladen wird.
+// Kein eigenes pb: den Abschluss-Weissraum bekommt jedes Fluss-Gerüst aus EINER
+// CSS-Regel (globals.css, main > [aria-busy].min-h-viewport) — hier stand ein pb-16,
+// das nur diese eine Seite hatte.
 //
 // BEWUSST hier in spot/ und NICHT in spot/[slug]/: Die Loading-Grenze gehört so zum
 // /spot-Segment, das beim Sprung Spot -> Spot („Ähnliche Spots") schon geladen ist.
@@ -18,7 +21,7 @@ import { HERO_BOX } from "./[slug]/hero-box";
 // die Fußzeile allein ganz oben stand (am Handy nachgemessen, ~0,6 s pro Sprung).
 export default function Loading() {
   return (
-    <div className="min-h-viewport pb-16" aria-busy>
+    <div className="min-h-viewport" aria-busy>
       <div className={`sg-skeleton ${HERO_BOX}`} />
       <div className="mx-auto w-full max-w-[760px]">
         <div className="relative z-10 -mt-9 space-y-10 px-4 md:space-y-12">
