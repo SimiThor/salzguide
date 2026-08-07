@@ -11,8 +11,11 @@ import { CardSkeleton, PageHeadSkeleton } from "@/components/skeletons";
 // Layout-Segment, das beim Klick schon geladen ist — sie ist deshalb IMMER sofort da
 // und fängt jede Navigation ab, deren eigenes Skelett (noch) fehlt.
 //
-// min-h-viewport: Das Gerüst füllt mindestens den Bildschirm, damit die Fußzeile
-// unter der Falte bleibt — ein Ladebild mit Footer drin sieht nach fertiger Seite aus.
+// min-h-viewport: Das Gerüst füllt mindestens den Bildschirm und drückt damit die
+// Fußzeile unter die Falte. Die bleibt beim Laden bewusst sichtbar im Fluss (warum kein
+// Verstecken mehr: globals.css, „Hier stand bis 08/2026 …"): Das erste Bild zeigt nur
+// Gerüst, aber wer runterscrollt, findet die Fußzeile sofort — nicht erst, wenn die
+// Daten da sind.
 //
 // Form: Seitenkopf (h1 + Untertitel) über Sektions-Karten — das gemeinsame Grundgerüst
 // fast aller Inhaltsseiten, in deren üblicher Breite (640px; Events, Gespeichert, KI,
