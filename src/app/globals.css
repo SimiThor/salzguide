@@ -732,80 +732,16 @@ body {
   }
 }
 
-/* Solange im Seiten-Slot ein Lade-Gerüst steht (jede loading.tsx trägt aria-busy als
-   DIREKTES Kind von <main>), bleibt die Fußzeile aus dem Fluss. Zwei Gründe, beide am
-   Handy nachgemessen: (1) Ein Ladebild mit Fußzeile drin sieht aus wie eine fertige
-   Seite. (2) Beim Sprung von einer runtergescrollten Seite (z. B. „Ähnliche Spots")
-   hielte die Fußzeile das Dokument höher als den Bildschirm — der Browser behielte die
-   alte Scroll-Position und man sähe ~0,6 s die Unterkante des Skeletts samt Fußzeile.
-   Ohne sie ist das Dokument exakt bildschirmhoch und der Scroll klemmt von selbst auf 0.
-   Bewusst NUR direkte Kinder (main > …): Formular-Knöpfe tiefer im Baum tragen aria-busy
-   beim Absenden, die dürfen die Fußzeile nicht verstecken. */
-main:has(> [aria-busy="true"]) > footer {
-  /* Geparkt statt display:none — dieselbe Wirkung, aber mit Notausstieg (unten):
-     absolute nimmt die Fußzeile aus dem Fluss (Dokument bleibt exakt bildschirmhoch,
-     die Scroll-Klemme oben funktioniert unverändert), top parkt sie über dem Dokument
-     (nach oben wächst kein Scrollbereich, nur nach unten), visibility macht sie
-     unsichtbar und unklickbar. Warum nicht display:none wie früher: Auf einem Element
-     ohne Box STARTET eine CSS-Animation nie (nachgemessen, Chrome 151) — auch nicht
-     mit display in den Keyframes. Der Notausstieg braucht die Box. */
-  position: absolute;
-  top: -200vh;
-  visibility: hidden;
-  /* Notausstieg: Das Verstecken hat eine Obergrenze. Reisst die Server-Antwort einer
-     Navigation ab (Funkloch, Tunnel — nachgestellt mit hängendem RSC-Fetch), bleibt das
-     Gerüst samt aria-busy für IMMER stehen — und ohne diese Zeile wäre auch die Fußzeile
-     für immer weg, samt dem gesetzlichen Widerruf-Zugang (§ 13a FAGG), den sie trägt.
-     Deshalb stellt die Animation sie nach 4s Ladezustand trotzdem in den Fluss. 4s liegt
-     weit über jeder gesunden Ladezeit (nachgemessen: 100-430ms je Client-Navigation im
-     Produktions-Build) und weit über dem ~0,6s-Fenster der Scroll-Klemme; wer nach 4s
-     noch aufs Schimmern schaut, hält die Seite ohnehin nicht mehr für fertig — beide
-     Gründe fürs Verstecken tragen dann nicht mehr.
-     Warum CSS und kein JS-Timer: Wenn dieser Fall eintritt, ist Netz, Hydration oder
-     ein abgerissener Stream gerade DAS, was klemmt — die Animation läuft im Browser
-     immer, auch vor der Hydration und ohne ein einziges Byte JS. */
-  animation: sg-footer-failsafe 300ms var(--sg-ease-ui) 4s forwards;
-}
-/* from = to: position/visibility animieren diskret, gleiche Werte in beiden Frames
-   gelten die ganze Laufzeit; `forwards` hält den Endzustand danach fest. Browser, die
-   position in Keyframes nicht animieren (Safari < 17.4 u. ä.), lassen die Fußzeile
-   einfach unsichtbar geparkt — exakt das bisherige Verhalten, nie ein sichtbares
-   Overlay: Sie wird dort höchstens nicht gezeigt, nie falsch gezeigt. */
-@keyframes sg-footer-failsafe {
-  from {
-    position: static;
-    visibility: visible;
-    opacity: 0;
-  }
-  to {
-    position: static;
-    visibility: visible;
-    opacity: 1;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  main:has(> [aria-busy="true"]) > footer {
-    animation-duration: 1ms;
-  }
-}
-
-/* Weil die Fußzeile im Ladebild fehlt, fehlt auch ihr Abschluss-Weissraum — das Gerüst
-   muss ihn selbst mitbringen. Passt das Gerüst auf den Bildschirm, schluckt min-h-viewport
-   das Padding (border-box) und das Dokument bleibt exakt bildschirmhoch wie oben begründet.
-   Ist es HÖHER als das Fenster (Events-Gerüst: 752px auf einem 680px-Laptop-Fenster,
-   nachgemessen), scrollte man vorher auf eine harte Unterkante ohne jede Luft — genau der
-   „Footer fehlt und unten klebt alles"-Eindruck. Werte aus denselben Quellen wie die echte
-   Fußzeile: Tab-Leiste + 1rem am Handy, --sg-page-bottom am PC.
-   .min-h-viewport unterscheidet die Fluss-Gerüste vom Vollbild-Karten-Loader
-   (MapRouteLoading, fixed): der füllt den Schirm selbst und braucht kein Seitenende. */
-main > [aria-busy="true"].min-h-viewport {
-  padding-bottom: calc(var(--sg-nav-h) + 1rem);
-}
-@media (min-width: 768px) {
-  main > [aria-busy="true"].min-h-viewport {
-    padding-bottom: var(--sg-page-bottom);
-  }
-}
+/* Hier stand bis 08/2026 eine Regel, die die Fußzeile versteckte, solange im Seiten-Slot
+   ein Lade-Gerüst steht (main:has(> [aria-busy]) > footer). Sie ist BEWUSST weg — nicht
+   vergessen: Jedes Verstecken braucht ein fehlerfreies Wieder-Anzeigen, und genau das
+   riss bei hängenden Server-Antworten ab (Funkloch: Gerüst blieb für immer, Fußzeile samt
+   gesetzlichem Widerruf-Zugang für immer weg) und kam auf langsamem Netz erst mit den
+   Daten. Heute bleibt die Fußzeile beim Laden einfach im Fluss UNTER dem Gerüst: Jede
+   Fluss-loading.tsx füllt per min-h-viewport mindestens den Bildschirm und drückt sie
+   damit unter die Falte — im ersten Bild ist sie nicht zu sehen, aber sie ist von der
+   ersten Millisekunde an da. Wer sie beim Laden wieder verstecken will, löst erst das
+   Wieder-Anzeigen für den Fall, dass die Antwort NIE kommt. */
 
 /* DIE EINE Regel für jedes <video> der Plattform (Spot, Startseite, Admin-Vorschau).
    Warum sie sein muss: In der Kachel füllt `object-fit: cover` den 9:16-Rahmen sauber aus,
