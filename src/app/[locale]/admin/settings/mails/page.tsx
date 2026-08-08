@@ -55,6 +55,9 @@ export default async function AdminMailsPage({
       paidAt: sampleDate,
       consentAt: sampleDate,
       reference: "pi_3RexampleReference",
+      // Gültiges UUID-Format, aber kein Kauf: Der Klick in der Vorschau landet auf
+      // /pro?invoice=missing — und prüft damit gleich die Sackgassen-Karte mit.
+      invoiceToken: "00000000-0000-4000-8000-000000000000",
       guest: true,
       locale: lang,
     }),

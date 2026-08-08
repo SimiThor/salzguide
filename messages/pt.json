@@ -423,6 +423,10 @@
     "helpTitle": "Algo ficou preso",
     "helpBody": "O teu pagamento chegou, a ativação não. Escreve-nos duas linhas e resolvemos logo à mão.",
     "helpCta": "Escreve-nos",
+    "invoicePendingTitle": "A tua fatura está quase pronta",
+    "invoicePendingBody": "A Stripe está a criá-la agora. Tenta o link do teu e-mail outra vez daqui a uns minutos.",
+    "invoiceMissingTitle": "Não conseguimos identificar este link",
+    "invoiceMissingBody": "Não corresponde a nenhuma compra connosco. Escreve-nos e nós vemos.",
     "notice": {
       "stripe": {
         "title": "O teu Pro está ativo. 🎉",
@@ -533,6 +537,8 @@
       "rowPriceUnknown": "pagamento único, sem subscrição",
       "rowContract": "Celebração do contrato",
       "rowReference": "Referência da encomenda",
+      "rowInvoice": "Fatura",
+      "rowInvoiceValue": "Ver a fatura",
       "rowPartner": "Parte contratante",
       "rowLanguage": "Língua do contrato",
       "rowLanguageValue": "Alemão",

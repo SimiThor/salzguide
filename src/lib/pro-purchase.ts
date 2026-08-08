@@ -1,5 +1,5 @@
 import "server-only";
-import { createHash, randomBytes } from "node:crypto";
+import { createHash, randomBytes, randomUUID } from "node:crypto";
 import type Stripe from "stripe";
 import { createServiceClient } from "./supabase/service";
 import { formatProPrice } from "./pro";
@@ -184,16 +184,21 @@ export async function fulfillPaidCheckout(
       );
     }
     const email = accountEmail || payerEmail;
+    // Der Schlüssel für den Rechnungslink in der Mail. Erzeugt VOR dem Verbuchen, damit der
+    // Renn-Gewinner dasselbe Token schreibt UND mailt; der Verlierer verwirft seines mitsamt
+    // seiner nie verschickten Mail.
+    const invoiceToken = randomUUID();
     const firstTime = await recordPurchase(svc, session, {
       email,
       userId: memberId,
       granted: true,
       accountCreated: false,
       customerId,
+      invoiceToken,
     });
     // Nur beim ersten Mal: Die Zeile ist neu, also hat noch niemand bestätigt. Beim zweiten
     // Weg (Webhook nach Rücksprung) wäre es dieselbe Mail ein zweites Mal.
-    if (firstTime) await sendPurchaseConfirmation(session, email, false);
+    if (firstTime) await sendPurchaseConfirmation(session, email, false, invoiceToken);
     await grantPro(memberId, customerId);
     return { ok: true, kind: "member", userId: memberId, email };
   }
@@ -221,6 +226,8 @@ export async function fulfillPaidCheckout(
   if (known) return stateOf(known);
 
   const claimHash = (session.metadata?.claim_hash as string | undefined) ?? null;
+  // Wie im Member-Fall: Token vor dem Verbuchen, Gewinner schreibt und mailt dasselbe.
+  const invoiceToken = randomUUID();
 
   // Die Zeile MUSS vor dem Anlegen des Kontos stehen: handle_new_user (Migration 0053)
   // schaut beim Entstehen des Profils genau hier nach und schreibt Pro in derselben
@@ -232,6 +239,7 @@ export async function fulfillPaidCheckout(
     accountCreated: false,
     customerId,
     claimHash,
+    invoiceToken,
   });
   if (!inserted) {
     // Kollision mit dem parallel laufenden anderen Weg -> dessen Zustand gilt.
@@ -245,7 +253,7 @@ export async function fulfillPaidCheckout(
   // Rücktrittsrecht nicht (§ 18 Abs. 1 Z 11 lit. c). Der Kauf hängt trotzdem nicht daran:
   // Geht die Mail nicht raus, wird trotzdem freigeschaltet und der Fehler steht im Log.
   // Bezahlte Leistung zurückzuhalten, weil ein Mailserver hustet, wäre die falsche Reihenfolge.
-  await sendPurchaseConfirmation(session, email, true);
+  await sendPurchaseConfirmation(session, email, true, invoiceToken);
 
   // Konto anlegen. createUser IST die Prüfung „gibt es die Adresse schon?" — und zwar eine
   // ohne Wettlauf: Die Eindeutigkeit von auth.users entscheidet, nicht ein Blick davor, der
@@ -356,6 +364,9 @@ async function recordPurchase(
     accountCreated: boolean;
     customerId: string | null;
     claimHash?: string | null;
+    /** Schlüssel des Rechnungslinks (siehe pro-purchase-mail.ts). Vom Aufrufer erzeugt,
+     *  damit dieselbe Zeile und dieselbe Mail dasselbe Token tragen. */
+    invoiceToken: string;
   },
 ): Promise<boolean> {
   const now = new Date().toISOString();
@@ -371,6 +382,7 @@ async function recordPurchase(
     granted_at: opts.granted ? now : null,
     account_created: opts.accountCreated,
     claim_hash: opts.claimHash ?? null,
+    invoice_token: opts.invoiceToken,
   });
   if (!error) {
     // HIER wird der Kauf für die Reichweitenmessung gezählt, und nur hier.
@@ -530,6 +542,7 @@ async function sendPurchaseConfirmation(
   session: Stripe.Checkout.Session,
   email: string,
   guest: boolean,
+  invoiceToken: string,
 ): Promise<void> {
   if (!email) return;
   try {
@@ -556,6 +569,7 @@ async function sendPurchaseConfirmation(
       // ist. Fällt sie aus, nehmen wir die Session-ID.
       reference: paymentIntentOf(session) ?? session.id,
       guest,
+      invoiceToken,
     };
     const mail = await renderProPurchase(receipt);
     const ok = await sendEmail({

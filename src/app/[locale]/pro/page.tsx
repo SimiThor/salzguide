@@ -59,10 +59,10 @@ export default async function ProPage({
   searchParams,
 }: {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{ checkout?: string }>;
+  searchParams: Promise<{ checkout?: string; invoice?: string }>;
 }) {
   const { locale } = await params;
-  const { checkout } = await searchParams;
+  const { checkout, invoice } = await searchParams;
   setRequestLocale(locale);
   const t = await getTranslations("Pro");
 
@@ -70,6 +70,29 @@ export default async function ProPage({
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  // ── Ergebnis eines Rechnungslink-Klicks (/pro/rechnung) ──────────────────────────────
+  // Zwei Sackgassen der Route, beide erklärbar ohne Konto und ohne Kaufzustand:
+  //   pending — die Rechnung ist bei Stripe noch nicht fertig (oder Stripe war kurz weg).
+  //             Der Link aus der Mail bleibt gültig, nochmal klicken genügt.
+  //   missing — der Link passt zu keinem Kauf (verstümmelt kopiert, oder das Beispiel aus
+  //             der Mail-Vorschau). Hier hilft nur ein Mensch.
+  if (invoice === "pending") {
+    return (
+      <ProResult
+        emoji="🧾"
+        title={t("invoicePendingTitle")}
+        body={t("invoicePendingBody")}
+      />
+    );
+  }
+  if (invoice === "missing") {
+    return (
+      <ProResult emoji="🛠️" title={t("invoiceMissingTitle")} body={t("invoiceMissingBody")}>
+        <Cta href="/support" label={t("helpCta")} />
+      </ProResult>
+    );
+  }
 
   // ── Ergebnis eines Checkouts ──────────────────────────────────────────────────────────
   if (isResultState(checkout)) {

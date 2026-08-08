@@ -423,6 +423,10 @@
     "helpTitle": "중간에 문제가 생겼어요",
     "helpBody": "결제는 들어왔는데 활성화가 안 됐어요. 짧게 알려주시면 바로 직접 처리할게요.",
     "helpCta": "문의하기",
+    "invoicePendingTitle": "영수증이 곧 준비돼요",
+    "invoicePendingBody": "Stripe에서 지금 만들고 있어요. 몇 분 뒤에 메일 속 링크를 다시 눌러 주세요.",
+    "invoiceMissingTitle": "이 링크를 찾을 수 없어요",
+    "invoiceMissingBody": "저희 구매 내역과 일치하지 않아요. 짧게 문의해 주시면 확인해 드릴게요.",
     "notice": {
       "stripe": {
         "title": "Pro가 활성화됐어요. 🎉",
@@ -533,6 +537,8 @@
       "rowPriceUnknown": "1회 결제, 구독 아님",
       "rowContract": "계약 체결",
       "rowReference": "주문 번호",
+      "rowInvoice": "영수증",
+      "rowInvoiceValue": "영수증 보기",
       "rowPartner": "계약 상대방",
       "rowLanguage": "계약 언어",
       "rowLanguageValue": "독일어",

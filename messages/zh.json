@@ -423,6 +423,10 @@
     "helpTitle": "中间出了点问题",
     "helpBody": "你的付款已经到了，开通却没成功。给我们留个信，我们马上手动处理。",
     "helpCta": "联系我们",
+    "invoicePendingTitle": "你的收据马上就好",
+    "invoicePendingBody": "Stripe 正在生成。请过几分钟再点一次邮件里的链接。",
+    "invoiceMissingTitle": "无法识别这个链接",
+    "invoiceMissingBody": "它与我们这里的任何购买都对不上。给我们留言，我们来查一查。",
     "notice": {
       "stripe": {
         "title": "你的 Pro 已开通。🎉",
@@ -533,6 +537,8 @@
       "rowPriceUnknown": "一次性付款，非订阅",
       "rowContract": "合同订立时间",
       "rowReference": "订单编号",
+      "rowInvoice": "收据",
+      "rowInvoiceValue": "查看收据",
       "rowPartner": "合同相对方",
       "rowLanguage": "合同语言",
       "rowLanguageValue": "德语",

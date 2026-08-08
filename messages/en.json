@@ -423,6 +423,10 @@
     "helpTitle": "Something got stuck",
     "helpBody": "Your payment came through, the unlock didn't. Drop us a line and we'll sort it out by hand right away.",
     "helpCta": "Write to us",
+    "invoicePendingTitle": "Your invoice is almost ready",
+    "invoicePendingBody": "Stripe is creating it right now. Try the link in your email again in a few minutes.",
+    "invoiceMissingTitle": "We can't match this link",
+    "invoiceMissingBody": "It doesn't match any purchase with us. Drop us a line and we'll take a look.",
     "notice": {
       "stripe": {
         "title": "Your Pro is live. 🎉",
@@ -533,6 +537,8 @@
       "rowPriceUnknown": "one-off, no subscription",
       "rowContract": "Contract concluded",
       "rowReference": "Order reference",
+      "rowInvoice": "Invoice",
+      "rowInvoiceValue": "View invoice",
       "rowPartner": "Contracting party",
       "rowLanguage": "Contract language",
       "rowLanguageValue": "German",

@@ -147,8 +147,12 @@ export type MailContent = {
    * der etwas hängt; dieser Block ist Nachschlagewerk. Deshalb bekommt er nur eine feine
    * Linie und keine Farbe. Als Rahmen-Baustein und nicht als Fliesstext, weil „Preis: 19,90 €"
    * in einem Absatz wie ein Tippfehler aussieht und in jeder Mail neu erfunden würde.
+   *
+   * Mit `url` wird der Wert zum Link (z.B. „Rechnung ansehen"). Aus demselben Grund wie bei
+   * `links`: Eine Adresse im Fliesstext liefe durch esc() und bliebe blosser Text. In der
+   * Reintext-Fassung steht dann die URL selbst, sonst wäre die Zeile dort eine Sackgasse.
    */
-  rows?: readonly { label: string; value: string }[] | null;
+  rows?: readonly { label: string; value: string; url?: string }[] | null;
   /**
    * Das Kleingedruckte, ganz unten: Pflichtangaben, die dastehen müssen, aber nicht die
    * Nachricht sind (z.B. die dokumentierte §-18-Zustimmung in der Kaufbestätigung).
@@ -227,7 +231,11 @@ export async function renderMailShell(c: MailContent): Promise<string> {
               i === c.rows!.length - 1 ? "14px" : "10px"
             };${i > 0 ? `border-top:1px solid ${LINE};` : ""}">
           <p style="margin:0;font-size:12px;line-height:1.5;color:${MUTED};">${esc(r.label)}</p>
-          <p style="margin:3px 0 0;font-size:15px;line-height:1.5;font-weight:600;color:${INK};word-break:break-word;">${esc(r.value)}</p>
+          <p style="margin:3px 0 0;font-size:15px;line-height:1.5;font-weight:600;color:${INK};word-break:break-word;">${
+            r.url
+              ? `<a href="${esc(r.url)}" style="color:${INK};text-decoration:underline;">${esc(r.value)}</a>`
+              : esc(r.value)
+          }</p>
         </td></tr>`,
           )
           .join("")}
@@ -301,7 +309,11 @@ export async function renderMailShellText(c: MailContent): Promise<string> {
     c.body,
     // Derselbe Datenblock, nur als „Bezeichnung: Wert"-Zeilen. Er trägt bei einer
     // Kaufbestätigung die Pflichtangaben und darf in der Reintext-Fassung nicht fehlen.
-    c.rows?.length ? c.rows.map((r) => `${r.label}: ${r.value}`).join("\n") : null,
+    // Trägt eine Zeile einen Link, steht hier die URL: Ein „Rechnung ansehen" ohne
+    // Adresse wäre im Reintext eine Sackgasse.
+    c.rows?.length
+      ? c.rows.map((r) => `${r.label}: ${r.url ?? r.value}`).join("\n")
+      : null,
     c.cta ? `${c.cta.label}: ${c.cta.url}` : null,
     c.tile ? `${c.tile.label} ${c.tile.value}` : null,
     c.note,

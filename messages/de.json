@@ -466,6 +466,10 @@
     "helpTitle": "Da hat etwas gehakt",
     "helpBody": "Deine Zahlung ist angekommen, das Freischalten nicht. Schreib uns kurz, wir machen das sofort von Hand.",
     "helpCta": "Schreib uns",
+    "invoicePendingTitle": "Deine Rechnung ist gleich fertig",
+    "invoicePendingBody": "Stripe erstellt sie gerade. Probier den Link aus deiner Mail in ein paar Minuten nochmal.",
+    "invoiceMissingTitle": "Diesen Link können wir nicht zuordnen",
+    "invoiceMissingBody": "Er passt zu keinem Kauf bei uns. Schreib uns kurz, wir schauen nach.",
     "notice": {
       "stripe": {
         "title": "Dein Pro ist aktiv. 🎉",
@@ -576,6 +580,8 @@
       "rowPriceUnknown": "einmalig, kein Abo",
       "rowContract": "Vertragsabschluss",
       "rowReference": "Bestellreferenz",
+      "rowInvoice": "Rechnung",
+      "rowInvoiceValue": "Rechnung ansehen",
       "rowPartner": "Vertragspartner",
       "rowLanguage": "Vertragssprache",
       "rowLanguageValue": "Deutsch",

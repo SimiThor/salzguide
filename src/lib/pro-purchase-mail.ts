@@ -78,6 +78,15 @@ export type ProPurchaseReceipt = {
   /** Zahlungskennung als Bestellreferenz für Rückfragen und das Widerrufsformular. */
   reference: string;
   /**
+   * Schlüssel des Rechnungslinks (pro_purchases.invoice_token). Die Route /pro/rechnung
+   * schlägt ihn nach und löst erst beim Klick live bei Stripe auf, denn zum Zeitpunkt
+   * dieser Mail ist die Rechnung dort meist noch nicht fertig (Stripe erstellt sie nach
+   * dem Checkout asynchron, die Mail muss aber sofort raus, siehe Kopf dieser Datei).
+   * BEWUSST nicht die stripe_session_id: Die ist der Schlüssel zum Auto-Login und darf
+   * nicht dauerhaft in einer Mail stehen (siehe Kopf von pro/aktivieren/route.ts).
+   */
+  invoiceToken: string;
+  /**
    * Als Gast gekauft (ohne Konto davor)?
    *
    * Bewusst NICHT „hat der Auto-Login geklappt": Diese Mail geht raus, bevor das entschieden
@@ -133,6 +142,13 @@ async function content(r: ProPurchaseReceipt): Promise<MailContent> {
       },
       { label: t.rowContract, value: dateTime(r.paidAt, locale) },
       { label: t.rowReference, value: r.reference },
+      // Der Wert ist ein Link (siehe `rows` in mail-layout.ts): Er zeigt auf unsere eigene
+      // Route, nicht direkt auf Stripe, weil es die Stripe-Adresse jetzt noch nicht gibt.
+      {
+        label: t.rowInvoice,
+        value: t.rowInvoiceValue,
+        url: `${base}/${locale}/pro/rechnung?token=${r.invoiceToken}`,
+      },
       {
         label: t.rowPartner,
         value: `${LEGAL.company}, ${legalAddress()}, ${LEGAL.email}`,
