@@ -505,7 +505,7 @@
     "greeting": "Hartelijke groeten uit Salzburg",
     "signoff": "Anton van SalzGuide",
     "follow": "Volg ons:",
-    "reply": "Werkt iets niet? Mail terug.",
+    "reply": "Werkt iets niet? Antwoord gewoon op deze mail.",
     "login": {
       "subject": "Je inloglink voor SalzGuide",
       "headline": "Je inloglink voor SalzGuide",
@@ -538,7 +538,6 @@
       "rowLanguageValue": "Duits",
       "cta": "Bekijk de Pro-spots",
       "tileLabel": "Je toegang staat op",
-      "note": "Vragen over je aankoop? Mail terug.",
       "legalDe": "De kleine lettertjes staan in het Duits: de Duitse versie is de juridisch bindende.",
       "linkWithdrawal": "Herroeping",
       "linkTerms": "Voorwaarden",
@@ -555,8 +554,7 @@
       "rowContract": "Contract / bestelling",
       "rowOrderDate": "Besteld / ontvangen op",
       "rowNote": "Je bericht",
-      "legalDe": "De tekst hieronder staat in het Duits: de Duitse versie is de juridisch bindende.",
-      "note": "Klopt er iets niet? Mail terug."
+      "legalDe": "De tekst hieronder staat in het Duits: de Duitse versie is de juridisch bindende."
     }
   },
   "Error": {

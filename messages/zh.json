@@ -505,7 +505,7 @@
     "greeting": "萨尔茨堡的问候",
     "signoff": "SalzGuide 的 Anton",
     "follow": "关注我们：",
-    "reply": "有什么用不了？回信就行。",
+    "reply": "有什么用不了？直接回复这封邮件。",
     "login": {
       "subject": "你的 SalzGuide 登录链接",
       "headline": "你的 SalzGuide 登录链接",
@@ -538,7 +538,6 @@
       "rowLanguageValue": "德语",
       "cta": "看看 Pro 地点",
       "tileLabel": "你的权限绑定在",
-      "note": "关于这笔购买有疑问？回信就行。",
       "legalDe": "下面的细则是德语的：法律上以德语版本为准。",
       "linkWithdrawal": "撤销",
       "linkTerms": "条款",
@@ -555,8 +554,7 @@
       "rowContract": "合同 / 订单",
       "rowOrderDate": "下单 / 收到日期",
       "rowNote": "你的留言",
-      "legalDe": "下面的文字是德语的：法律上以德语版本为准。",
-      "note": "有不对的地方？回信就行。"
+      "legalDe": "下面的文字是德语的：法律上以德语版本为准。"
     }
   },
   "Error": {

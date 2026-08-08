@@ -145,7 +145,11 @@ async function content(r: ProPurchaseReceipt): Promise<MailContent> {
     cta: { label: t.cta, url: `${base}/${locale}/explore` },
     // Die eine hervorgehobene Angabe: Mit dieser Adresse kommt er auf jedem Gerät herein.
     tile: { label: t.tileLabel, value: r.email },
-    note: t.note,
+    // Derselbe Nachsatz wie in jeder anderen Mail (Mail.reply). Hier stand einmal eine eigene
+    // Fassung ("Fragen zum Kauf?"), und jede Mail hatte am Ende ihre eigene Nuance. Der
+    // Nachsatz sagt aber nichts über den Anlass, sondern nur, wie man uns erreicht, und das
+    // ist überall dasselbe. Eine Quelle heisst: Wer ihn ändert, ändert ihn für alle.
+    note: all.reply,
     // Die zwei Angaben, die § 7 Abs. 3 FAGG verlangt: die Zustimmung wörtlich bestätigt und
     // mit Zeitpunkt, dazu die Belehrung, was das für das Rücktrittsrecht heisst. Leiser
     // gesetzt als die Nachricht, aber vollständig und auf demselben dauerhaften Datenträger.

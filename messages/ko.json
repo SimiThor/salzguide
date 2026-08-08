@@ -505,7 +505,7 @@
     "greeting": "잘츠부르크에서 인사를 전해요",
     "signoff": "SalzGuide의 안톤",
     "follow": "팔로우하기:",
-    "reply": "안 되는 게 있나요? 답장 주세요.",
+    "reply": "안 되는 게 있나요? 이 메일에 답장 주세요.",
     "login": {
       "subject": "SalzGuide 로그인 링크",
       "headline": "SalzGuide 로그인 링크",
@@ -538,7 +538,6 @@
       "rowLanguageValue": "독일어",
       "cta": "Pro 스팟 보기",
       "tileLabel": "이용 권한이 연결된 주소",
-      "note": "구매에 대해 궁금한 게 있나요? 답장 주세요.",
       "legalDe": "아래 약관 문구는 독일어예요. 법적으로는 독일어 원문이 기준이에요.",
       "linkWithdrawal": "철회",
       "linkTerms": "약관",
@@ -555,8 +554,7 @@
       "rowContract": "계약 / 주문",
       "rowOrderDate": "주문 / 수령일",
       "rowNote": "남긴 메시지",
-      "legalDe": "아래 문구는 독일어예요. 법적으로는 독일어 원문이 기준이에요.",
-      "note": "틀린 게 있나요? 답장 주세요."
+      "legalDe": "아래 문구는 독일어예요. 법적으로는 독일어 원문이 기준이에요."
     }
   },
   "Error": {

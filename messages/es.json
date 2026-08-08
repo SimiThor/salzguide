@@ -505,7 +505,7 @@
     "greeting": "Un saludo desde Salzburgo",
     "signoff": "Anton de SalzGuide",
     "follow": "Síguenos:",
-    "reply": "¿Algo no funciona? Escríbenos.",
+    "reply": "¿Algo no funciona? Responde a este correo.",
     "login": {
       "subject": "Tu enlace de acceso a SalzGuide",
       "headline": "Tu enlace de acceso a SalzGuide",
@@ -538,7 +538,6 @@
       "rowLanguageValue": "Alemán",
       "cta": "Ver los lugares Pro",
       "tileLabel": "Tu acceso está en",
-      "note": "¿Dudas sobre la compra? Escríbenos.",
       "legalDe": "La letra pequeña está en alemán: la versión alemana es la vinculante.",
       "linkWithdrawal": "Desistimiento",
       "linkTerms": "Términos",
@@ -555,8 +554,7 @@
       "rowContract": "Contrato / pedido",
       "rowOrderDate": "Pedido / recibido el",
       "rowNote": "Tu mensaje",
-      "legalDe": "El texto de abajo está en alemán: la versión alemana es la vinculante.",
-      "note": "¿Algo no cuadra? Escríbenos."
+      "legalDe": "El texto de abajo está en alemán: la versión alemana es la vinculante."
     }
   },
   "Error": {
