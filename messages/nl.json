@@ -423,6 +423,10 @@
     "helpTitle": "Er is iets blijven hangen",
     "helpBody": "Je betaling is aangekomen, de vrijschakeling niet. Stuur ons een berichtje, wij regelen het meteen met de hand.",
     "helpCta": "Stuur ons een bericht",
+    "invoicePendingTitle": "Je factuur is bijna klaar",
+    "invoicePendingBody": "Stripe maakt hem nu aan. Probeer de link uit je mail over een paar minuten opnieuw.",
+    "invoiceMissingTitle": "Deze link kunnen we niet thuisbrengen",
+    "invoiceMissingBody": "Hij hoort bij geen enkele aankoop bij ons. Stuur ons een berichtje, dan zoeken we het uit.",
     "notice": {
       "stripe": {
         "title": "Je Pro is actief. 🎉",
@@ -533,6 +537,8 @@
       "rowPriceUnknown": "eenmalig, geen abonnement",
       "rowContract": "Contract gesloten op",
       "rowReference": "Bestelreferentie",
+      "rowInvoice": "Factuur",
+      "rowInvoiceValue": "Factuur bekijken",
       "rowPartner": "Contractpartner",
       "rowLanguage": "Contracttaal",
       "rowLanguageValue": "Duits",

@@ -423,6 +423,10 @@
     "helpTitle": "Quelque chose a coincé",
     "helpBody": "Ton paiement est bien arrivé, le déblocage non. Écris-nous deux lignes, on le fait tout de suite à la main.",
     "helpCta": "Écris-nous",
+    "invoicePendingTitle": "Ta facture est presque prête",
+    "invoicePendingBody": "Stripe est en train de la créer. Réessaie le lien de ton mail dans quelques minutes.",
+    "invoiceMissingTitle": "Ce lien ne nous dit rien",
+    "invoiceMissingBody": "Il ne correspond à aucun achat chez nous. Écris-nous un petit mot, on vérifie.",
     "notice": {
       "stripe": {
         "title": "Ton Pro est actif. 🎉",
@@ -533,6 +537,8 @@
       "rowPriceUnknown": "paiement unique, sans abonnement",
       "rowContract": "Conclusion du contrat",
       "rowReference": "Référence de commande",
+      "rowInvoice": "Facture",
+      "rowInvoiceValue": "Voir la facture",
       "rowPartner": "Partie contractante",
       "rowLanguage": "Langue du contrat",
       "rowLanguageValue": "Allemand",

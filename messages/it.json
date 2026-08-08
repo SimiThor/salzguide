@@ -423,6 +423,10 @@
     "helpTitle": "Qualcosa si è bloccato",
     "helpBody": "Il pagamento è arrivato, l'attivazione no. Scrivici due righe e sistemiamo subito a mano.",
     "helpCta": "Scrivici",
+    "invoicePendingTitle": "La tua fattura è quasi pronta",
+    "invoicePendingBody": "Stripe la sta creando proprio ora. Riprova il link della tua mail tra qualche minuto.",
+    "invoiceMissingTitle": "Questo link non ci risulta",
+    "invoiceMissingBody": "Non corrisponde a nessun acquisto da noi. Scrivici due righe e controlliamo.",
     "notice": {
       "stripe": {
         "title": "Il tuo Pro è attivo. 🎉",
@@ -533,6 +537,8 @@
       "rowPriceUnknown": "una tantum, nessun abbonamento",
       "rowContract": "Conclusione del contratto",
       "rowReference": "Riferimento ordine",
+      "rowInvoice": "Fattura",
+      "rowInvoiceValue": "Vedi la fattura",
       "rowPartner": "Controparte contrattuale",
       "rowLanguage": "Lingua del contratto",
       "rowLanguageValue": "Tedesco",
