@@ -2,6 +2,7 @@ import "server-only";
 import { createServiceClient } from "./supabase/service";
 import { getSpotCount } from "./spots";
 import { LOCALES } from "@/i18n/locales";
+import { mailTexts } from "./mail-i18n";
 import { renderMailShell, renderMailShellText, type MailContent } from "./mail-layout";
 
 // Die Umzugs-Mail an die Alt-Käufer: Texte aus dem Admin, Gestaltung aus dem Code.
@@ -166,39 +167,57 @@ export async function resolveTokens(texts: RelaunchMailTexts): Promise<RelaunchM
  * Rahmen, Farben und Unterschrift kommen aus mail-layout.ts. Hier stehen nur noch die
  * Worte dieser einen Mail.
  */
-export function renderRelaunchMail(
+export async function renderRelaunchMail(
   texts: RelaunchMailTexts,
   email: string,
   loginUrl: string,
 ): Promise<string> {
-  return renderMailShell(mailContent(texts, email, loginUrl));
+  return renderMailShell(await mailContent(texts, email, loginUrl));
 }
 
 /** Die Reintext-Fassung. Kein Abklatsch: Sie muss für sich allein funktionieren. */
-export function renderRelaunchText(
+export async function renderRelaunchText(
   texts: RelaunchMailTexts,
   email: string,
   loginUrl: string,
 ): Promise<string> {
-  return renderMailShellText(mailContent(texts, email, loginUrl));
+  return renderMailShellText(await mailContent(texts, email, loginUrl));
 }
 
+/**
+ * DIE EINE MAIL, DIE DEUTSCH BLEIBT, und zwar mit Absicht: Ihre Worte tippt Anton im Admin,
+ * in einer Sprache. Den Rahmen (Gruss, Unterschrift, Fusszeile) trotzdem zu übersetzen,
+ * ergäbe eine koreanische Verabschiedung unter einem deutschen Brief, also genau das
+ * Durcheinander, gegen das der ganze Umbau hier gebaut ist. Entweder eine Mail ganz oder gar
+ * nicht in einer Sprache.
+ *
+ * Sie geht ohnehin einmalig an die Alt-Käufer der WordPress-Seite, und die sind deutsch.
+ *
+ * Als Konstante und nicht zweimal getippt: Der Rahmen und der Nachsatz müssen dieselbe
+ * Sprache sprechen. Stünde die Sprache an beiden Stellen einzeln da, wäre der Tag absehbar,
+ * an dem eine davon umgestellt wird und die andere nicht.
+ */
+const RELAUNCH_LOCALE = "de";
+
 /** Beide Fassungen aus derselben Quelle, damit HTML und Reintext nie auseinanderlaufen. */
-function mailContent(texts: RelaunchMailTexts, email: string, loginUrl: string): MailContent {
+async function mailContent(
+  texts: RelaunchMailTexts,
+  email: string,
+  loginUrl: string,
+): Promise<MailContent> {
+  const t = await mailTexts(RELAUNCH_LOCALE);
   return {
-    // DIE EINE MAIL, DIE DEUTSCH BLEIBT, und zwar mit Absicht: Ihre Worte tippt Anton im
-    // Admin, in einer Sprache. Den Rahmen (Gruss, Unterschrift, Fusszeile) trotzdem zu
-    // übersetzen, ergäbe eine koreanische Verabschiedung unter einem deutschen Brief — also
-    // genau das Durcheinander, gegen das der ganze Umbau hier gebaut ist. Entweder eine Mail
-    // ganz oder gar nicht in einer Sprache.
-    //
-    // Sie geht ohnehin einmalig an die Alt-Käufer der WordPress-Seite, und die sind deutsch.
-    locale: "de",
+    locale: RELAUNCH_LOCALE,
     subject: texts.subject,
     headline: texts.headline,
     body: texts.body,
     cta: { label: texts.cta, url: loginUrl },
     tile: { label: "Melde dich mit dieser Adresse an:", value: email },
-    note: "Klappt was nicht? Antworte einfach auf diese Mail, wir lesen mit.",
+    // Derselbe Nachsatz wie in jeder anderen Mail. Er stand hier fest im Code, und weil er
+    // fest stand, driftete er: Hier hing "wir lesen mit" dran, überall sonst nicht. Genau die
+    // Beteuerung, die BRAND_VOICE verbietet, denn sie beantwortet die Frage "liest das
+    // überhaupt einer?", die der Leser gar nicht gestellt hat. Aus der einen Quelle kann das
+    // nicht mehr passieren.
+    note: t.reply,
   };
 }

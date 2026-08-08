@@ -505,7 +505,7 @@
     "greeting": "Warm regards from Salzburg",
     "signoff": "Anton from SalzGuide",
     "follow": "Follow us:",
-    "reply": "Something not working? Write back.",
+    "reply": "Something not working? Just reply to this email.",
     "login": {
       "subject": "Your login link for SalzGuide",
       "headline": "Your login link for SalzGuide",
@@ -538,7 +538,6 @@
       "rowLanguageValue": "German",
       "cta": "See the Pro spots",
       "tileLabel": "Your access runs on",
-      "note": "Questions about your purchase? Write back.",
       "legalDe": "The small print is in German: the German version is the legally binding one.",
       "linkWithdrawal": "Withdrawal",
       "linkTerms": "Terms",
@@ -555,8 +554,7 @@
       "rowContract": "Contract / order",
       "rowOrderDate": "Ordered / received on",
       "rowNote": "Your message",
-      "legalDe": "The wording below is in German: the German version is the legally binding one.",
-      "note": "Something not right? Write back."
+      "legalDe": "The wording below is in German: the German version is the legally binding one."
     }
   },
   "Error": {

@@ -548,7 +548,7 @@
     "greeting": "Liebe Grüße aus Salzburg",
     "signoff": "Anton von SalzGuide",
     "follow": "Folge uns:",
-    "reply": "Klappt was nicht? Schreib zurück.",
+    "reply": "Klappt was nicht? Antworte einfach auf diese Mail.",
     "login": {
       "subject": "Dein Anmeldelink für SalzGuide",
       "headline": "Dein Anmeldelink für SalzGuide",
@@ -581,7 +581,6 @@
       "rowLanguageValue": "Deutsch",
       "cta": "Pro-Spots anschauen",
       "tileLabel": "Dein Zugang läuft auf",
-      "note": "Fragen zum Kauf? Schreib zurück.",
       "legalDe": "Das Kleingedruckte steht auf Deutsch: Die deutsche Fassung ist die rechtlich verbindliche.",
       "linkWithdrawal": "Widerrufsbelehrung",
       "linkTerms": "AGB",
@@ -598,8 +597,7 @@
       "rowContract": "Vertrag / Bestellung",
       "rowOrderDate": "Bestellt / erhalten am",
       "rowNote": "Deine Nachricht",
-      "legalDe": "Der Wortlaut unten steht auf Deutsch: Die deutsche Fassung ist die rechtlich verbindliche.",
-      "note": "Stimmt was nicht? Schreib zurück."
+      "legalDe": "Der Wortlaut unten steht auf Deutsch: Die deutsche Fassung ist die rechtlich verbindliche."
     }
   },
   "Error": {

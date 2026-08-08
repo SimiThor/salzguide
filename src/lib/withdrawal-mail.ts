@@ -83,7 +83,10 @@ async function content(r: WithdrawalReceipt): Promise<MailContent> {
     // Die kurze Zeile, mit der jede unserer Mails endet. Steht hier und nicht als dritter
     // Absatz im Fliesstext: Bei einem Widerruf zählt, dass die Angaben unten stimmen, und
     // der Hinweis darauf gehört an dieselbe Stelle wie in allen anderen Mails.
-    note: t.note,
+    //
+    // Und jetzt auch mit demselben Wortlaut: Mail.reply. Eine eigene Fassung stand hier, weil
+    // es sie geben konnte, nicht weil ein Widerruf einen anderen Nachsatz braucht.
+    note: all.reply,
     // Der Hinweis „das darunter steht auf Deutsch" NUR, wenn die Mail nicht deutsch ist.
     // In der deutschen Fassung wäre er die Erklärung, dass ein deutscher Text deutsch ist,
     // also genau die Zeile, über die jemand stolpert und sich fragt, was ihm entgeht.

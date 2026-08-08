@@ -505,7 +505,7 @@
     "greeting": "Un saluto da Salisburgo",
     "signoff": "Anton di SalzGuide",
     "follow": "Seguici:",
-    "reply": "Qualcosa non funziona? Scrivici.",
+    "reply": "Qualcosa non funziona? Rispondi a questa mail.",
     "login": {
       "subject": "Il tuo link di accesso a SalzGuide",
       "headline": "Il tuo link di accesso a SalzGuide",
@@ -538,7 +538,6 @@
       "rowLanguageValue": "Tedesco",
       "cta": "Guarda gli spot Pro",
       "tileLabel": "Il tuo accesso è collegato a",
-      "note": "Domande sull’acquisto? Scrivici.",
       "legalDe": "Le note in calce sono in tedesco: la versione tedesca è quella giuridicamente vincolante.",
       "linkWithdrawal": "Recesso",
       "linkTerms": "Termini",
@@ -555,8 +554,7 @@
       "rowContract": "Contratto / ordine",
       "rowOrderDate": "Ordinato / ricevuto il",
       "rowNote": "Il tuo messaggio",
-      "legalDe": "Il testo qui sotto è in tedesco: la versione tedesca è quella giuridicamente vincolante.",
-      "note": "Qualcosa non torna? Scrivici."
+      "legalDe": "Il testo qui sotto è in tedesco: la versione tedesca è quella giuridicamente vincolante."
     }
   },
   "Error": {

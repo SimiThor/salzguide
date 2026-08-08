@@ -505,7 +505,7 @@
     "greeting": "Amitiés de Salzbourg",
     "signoff": "Anton de SalzGuide",
     "follow": "Suis-nous :",
-    "reply": "Quelque chose coince ? Écris-nous.",
+    "reply": "Quelque chose coince ? Réponds simplement à ce mail.",
     "login": {
       "subject": "Ton lien de connexion pour SalzGuide",
       "headline": "Ton lien de connexion pour SalzGuide",
@@ -538,7 +538,6 @@
       "rowLanguageValue": "Allemand",
       "cta": "Voir les spots Pro",
       "tileLabel": "Ton accès est lié à",
-      "note": "Une question sur ton achat ? Écris-nous.",
       "legalDe": "Les mentions ci-dessous sont en allemand : c’est la version allemande qui fait foi.",
       "linkWithdrawal": "Rétractation",
       "linkTerms": "CGU",
@@ -555,8 +554,7 @@
       "rowContract": "Contrat / commande",
       "rowOrderDate": "Commandé / reçu le",
       "rowNote": "Ton message",
-      "legalDe": "Le texte ci-dessous est en allemand : c’est la version allemande qui fait foi.",
-      "note": "Quelque chose ne colle pas ? Écris-nous."
+      "legalDe": "Le texte ci-dessous est en allemand : c’est la version allemande qui fait foi."
     }
   },
   "Error": {
