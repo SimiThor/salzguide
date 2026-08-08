@@ -199,6 +199,9 @@ function mailContent(texts: RelaunchMailTexts, email: string, loginUrl: string):
     body: texts.body,
     cta: { label: texts.cta, url: loginUrl },
     tile: { label: "Melde dich mit dieser Adresse an:", value: email },
-    note: "Klappt was nicht? Antworte einfach auf diese Mail, wir lesen mit.",
+    // Ohne Nachsatz. "wir lesen mit" ist die Beteuerung, die BRAND_VOICE verbietet: Sie
+    // beantwortet die Frage "liest das überhaupt einer?", die der Leser gar nicht gestellt
+    // hat. Einladung hinschreiben, Punkt.
+    note: "Klappt was nicht? Antworte einfach auf diese Mail.",
   };
 }
