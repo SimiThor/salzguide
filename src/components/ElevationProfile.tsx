@@ -312,11 +312,17 @@ export default function ElevationProfile({
                 </linearGradient>
               </defs>
               <path d={area} fill="url(#sg-ele-fill)" />
+              {/* non-scaling-stroke hält die Linie in Bildschirm-Pixeln (das gestreckte
+                  viewBox würde sie sonst verzerren). Damit war sie aber ÜBERALL 2px:
+                  passend am schmalen Handy-Chart, spindeldürr am doppelt so breiten
+                  Desktop-Chart. Ab md deshalb 3px – nah an der 3,5px-Routenlinie auf
+                  der Karte darüber, es ist ja derselbe Weg. */}
               <path
                 d={line}
                 fill="none"
                 stroke="#cc2924"
                 strokeWidth={2}
+                className="md:[stroke-width:3]"
                 strokeLinejoin="round"
                 strokeLinecap="round"
                 vectorEffect="non-scaling-stroke"
