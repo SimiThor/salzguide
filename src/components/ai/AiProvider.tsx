@@ -12,6 +12,7 @@ import dynamic from "next/dynamic";
 import { usePathname } from "@/i18n/navigation";
 import ToniLauncher from "./ToniLauncher";
 import { clearToniChat } from "@/lib/toni-chat-store";
+import { reportClientError } from "@/lib/ops-client";
 
 // Das Chat-Sheet ist ein grosses Bündel (Sheet, Markdown, Widgets, Actions) und wird
 // von den meisten Besuchern nie geöffnet. Es lädt deshalb erst beim ERSTEN Öffnen
@@ -55,7 +56,19 @@ export default function AiProvider({ children }: { children: ReactNode }) {
     let alive = true;
     let unsub: (() => void) | null = null;
     void (async () => {
-      const { createClient } = await import("@/lib/supabase/client");
+      // try/catch wie im ToniAvatar, und zwar nicht als Höflichkeit: Dieses import() war
+      // die einzige Stelle im ganzen Baum, die den Supabase-Chunk OHNE Netz fängt. Am
+      // 09.08.2026 scheiterte genau hier das Nachladen (Chunk 0mvajlld…, Modul 28400),
+      // die Ablehnung lief als unhandledrejection ins Logbuch, und der Besucher blieb
+      // still ohne Login-Status sitzen. Gefangen heisst: wie ausgeloggt weitermachen und
+      // melden — reportClientError erkennt Chunk-Fehler und lädt einmal neu (ops-client).
+      let createClient: typeof import("@/lib/supabase/client").createClient;
+      try {
+        ({ createClient } = await import("@/lib/supabase/client"));
+      } catch (e) {
+        reportClientError(e);
+        return;
+      }
       if (!alive) return;
       const supabase = createClient();
       supabase.auth
