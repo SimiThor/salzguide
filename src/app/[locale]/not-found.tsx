@@ -1,13 +1,15 @@
-import { useTranslations } from "next-intl";
-import { Link } from "@/i18n/navigation";
+import { useLocale, useTranslations } from "next-intl";
+import { getPathname } from "@/i18n/navigation";
 
-// Die 404-Seite für alles unterhalb von /[locale]. Greift bei `notFound()` (Spot/Tour/Event
-// ohne Treffer) und über die Catch-all-Route ([...rest]/page.tsx) für jede URL, zu der es
-// gar keine Route gibt.
+// Die In-App-404 unterhalb von /[locale]. Greift bei `notFound()` einer echten Seite
+// (Spot/Tour ohne Treffer) und über die Catch-all-Route ([...rest]/page.tsx) als
+// Sicherheitsnetz. Müll-Adressen fängt davor schon der Proxy ab und schickt sie an
+// den 404-Handler (app/404/route.ts) – der liefert den echten 404-Status und trägt
+// dieselbe Optik wie diese Datei. Wer hier die Gestaltung ändert, ändert BEIDE.
 //
-// Kein async, kein Supabase, keine Params: `useTranslations` funktioniert in einer
-// synchronen Server-Komponente, die Sprache kommt aus dem Request-Kontext des Layouts.
-// So bleibt die Seite frei von Daten und kippt nichts am statischen Rendering.
+// Kein async, kein Supabase, keine Params: `useTranslations`/`useLocale` funktionieren
+// in einer synchronen Server-Komponente, die Sprache kommt aus dem Request-Kontext des
+// Layouts. So bleibt die Seite frei von Daten und kippt nichts am statischen Rendering.
 //
 // Gestaltung wie die Fehlerseite (error.tsx), nur verspielter: Wer hier landet, hat nichts
 // kaputt gemacht, er ist nur falsch abgebogen. Deshalb Wanderschild-Ton statt Fehler-Ton.
@@ -19,12 +21,18 @@ const TILE =
 
 export default function NotFound() {
   const t = useTranslations("NotFound");
+  const locale = useLocale();
 
   return (
-    // flex-1 statt min-h: Die Seite rendert im <main> von AppChrome (flex flex-col) und
-    // füllt so genau den Platz zwischen Kopfzeile und Tab-Leiste. pb > pt: Die Tab-Leiste
-    // liegt fixed über dem unteren Rand, das Plus unten rückt die optische Mitte hoch.
-    <div className="flex flex-1 flex-col items-center justify-center px-6 pb-24 pt-14 text-center md:pb-16">
+    // min-h-[100svh] statt flex-1 (Fall 2 der Viewport-Regel in globals.css,
+    // bildschirmfüllende Fläche im Fluss): Seit der Footer mit in AppChromes <main>
+    // wohnt, hat flex-1 nichts mehr zum Füllen – der 404-Inhalt blieb inhaltshoch,
+    // der Footer rückte in den Viewport und seine letzte Zeile stand hinter der
+    // Tab-Leiste (am iPhone-Viewport nachgemessen, 955px Dokument auf 844px Fenster).
+    // Mit voller Viewport-Höhe ist der Inhalt echt mittig und der Footer liegt wie auf
+    // den Lade-Gerüsten unter der Falte. pb > pt: Die Tab-Leiste liegt fixed über dem
+    // unteren Rand, das Plus unten rückt die optische Mitte hoch.
+    <div className="flex min-h-[100svh] flex-col items-center justify-center px-6 pb-24 pt-14 text-center md:pb-16">
       {/* Zwei leicht verdrehte Kacheln wie verstreute Karten: der Wanderschuh lugt hinter
           dem Kompass hervor. Rein dekorativ, deshalb aria-hidden. */}
       <div className="relative" aria-hidden>
@@ -42,12 +50,19 @@ export default function NotFound() {
       <h1 className="mt-1 text-[24px] font-bold leading-tight text-ink">{t("title")}</h1>
       <p className="mt-2 max-w-[24rem] text-[15px] leading-relaxed text-muted">{t("body")}</p>
 
-      <Link
-        href="/"
+      {/* Bewusst <a> statt next-intl <Link>: Diese Seite kommt aus einer ABGERISSENEN
+          Streaming-Antwort (notFound nach Antwortbeginn), die Hydration ist danach
+          kaputt (React #419) und eine Client-Navigation von hier kippte in die
+          Fehlerseite. Ein harter Seitenwechsel kann nicht kippen – und schneller
+          als die Startseite frisch zu laden muss eine 404 nichts sein. Das Ziel
+          baut getPathname aus der zentralen Routing-Config (kein handgebautes
+          `/${locale}`, das bei einem localePrefix-Wechsel still driftete). */}
+      <a
+        href={getPathname({ locale, href: "/" })}
         className="sg-hit mt-7 rounded-full bg-accent px-6 py-3.5 text-[15px] font-semibold text-white shadow-[0_10px_24px_-10px_rgba(204,41,36,0.55)] transition active:scale-[0.98]"
       >
         {t("home")}
-      </Link>
+      </a>
     </div>
   );
 }

@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
-import { useTranslations } from "next-intl";
-import { Link } from "@/i18n/navigation";
+import { useLocale, useTranslations } from "next-intl";
+import { getPathname } from "@/i18n/navigation";
 import { reportClientError } from "@/lib/ops-client";
 
 // Die Fehlerseite für alles unterhalb von /[locale]. Greift, wenn beim Rendern einer Seite
@@ -31,6 +31,7 @@ export default function LocaleError({
   reset: () => void;
 }) {
   const t = useTranslations("Error");
+  const locale = useLocale();
 
   // `error` in den Abhängigkeiten, nicht ein leeres Feld: React kann dieselbe Grenze mit
   // einem NEUEN Fehler erneut auslösen, ohne die Komponente dazwischen abzubauen. Mit einem
@@ -59,12 +60,16 @@ export default function LocaleError({
           >
             {t("retry")}
           </button>
-          <Link
-            href="/"
+          {/* Bewusst <a> statt next-intl <Link>: Wer hier steht, steht in einem kaputten
+              React-Zustand – eine Client-Navigation liefe durch genau den. Ein harter
+              Seitenwechsel fängt immer neu an (gleiche Regel wie in not-found.tsx,
+              inkl. getPathname statt handgebautem Pfad). */}
+          <a
+            href={getPathname({ locale, href: "/" })}
             className="sg-hit rounded-full px-6 py-3 text-[15px] font-semibold text-muted transition active:scale-[0.98]"
           >
             {t("home")}
-          </Link>
+          </a>
         </div>
 
         {/* Die Kennung steht auch im Server-Logbuch. Wer sie uns durchgibt, führt uns direkt

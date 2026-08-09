@@ -46,6 +46,7 @@ export const KIND_LABELS: Record<string, string> = {
   about: "Über uns",
   support: "Hilfe",
   legal: "Rechtliches",
+  ai: "KI-Transparenz",
   // „Sonstige" ist KEIN Sammelbecken für vergessene Routen mehr (dafür sorgt der Check),
   // sondern das, was übrig bleibt: aufgerufene Adressen, die es in der App nicht gibt —
   // alte Links von der WordPress-Seite, Tippfehler, Scanner. Dass der Posten gross ist,

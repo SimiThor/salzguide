@@ -12,6 +12,7 @@
     "redirects:check": "node --experimental-strip-types --disable-warning=ExperimentalWarning --env-file=.env.local scripts/redirects-check.ts",
     "analytics:check": "node --experimental-strip-types --disable-warning=ExperimentalWarning --import ./scripts/lib/alias-hook.mjs scripts/analytics-check.ts",
     "ranking:check": "node --experimental-strip-types --disable-warning=ExperimentalWarning --import ./scripts/lib/alias-hook.mjs scripts/ranking-check.ts",
+    "routes:check": "node --experimental-strip-types --disable-warning=ExperimentalWarning --import ./scripts/lib/alias-hook.mjs scripts/routes-check.ts",
     "icons": "node --experimental-strip-types scripts/make-icons.ts",
     "backfill:blur": "node --experimental-strip-types scripts/backfill-blur.ts",
     "render:intro": "node --experimental-strip-types scripts/render-intro.ts",

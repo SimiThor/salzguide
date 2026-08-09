@@ -29,6 +29,13 @@ export const LOCALES: readonly LocaleMeta[] = [
 export const LOCALE_CODES: readonly string[] = LOCALES.map((l) => l.code);
 export const DEFAULT_LOCALE = "de";
 
+// Sprach-Präfix am Pfadanfang (z. B. "/de/spot/x" -> "de"). EINE Quelle für Proxy und
+// Analytics: Eine handkopierte Fassung in analytics.ts hing bis 07/2026 hinter der
+// Sprachliste her, sieben Sprachen liefen als "other". Nur der statische matcher in
+// src/proxy.ts kann nicht hieraus lesen (Next verlangt Literale); dass er deckungsgleich
+// bleibt, prüft npm run routes:check.
+export const LOCALE_PREFIX_RE = new RegExp(`^/(${LOCALE_CODES.join("|")})(?=/|$)`);
+
 // Basis-/Ausgangssprache für KI-Übersetzungen (zuerst generieren, dann in alle anderen).
 export const SOURCE_LOCALE = "de";
 export const TARGET_LOCALES: readonly string[] = LOCALE_CODES.filter((c) => c !== SOURCE_LOCALE);
