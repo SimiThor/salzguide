@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 
 // Auf dem Server gibt es kein Layout, useLayoutEffect warnt dort. Auf dem Client MUSS es
 // useLayoutEffect sein: Ob ein Foto schon etwas zeigt, muss VOR dem ersten Paint
@@ -38,9 +45,37 @@ const WELLE_FRIST_MS = 1200;
 // Animation in globals.css. Die Kurve (--sg-ease-ui) ist für alle Blenden dieselbe.
 const FADE_MS = 500;
 
-// Ist die Seite schon hydriert? Ab dann mounten Komponenten aus dem Router (weiche
-// Navigation), und für die gilt die Gnadenfrist statt des Server-Tors.
-let hydriert = false;
+// Wird DIESES Foto gerade aus Server-HTML hydriert? Ab dann mounten Komponenten aus dem
+// Router (weiche Navigation), und für die gilt die Gnadenfrist statt des Server-Tors.
+//
+// Früher stand hier ein Modul-Flag, das der erste Layout-Effekt IRGENDEINER
+// Bild-Komponente umlegte. Das war falsch: React hydriert die Seite in mehreren Wellen
+// (jede Suspense-Grenze für sich, und die Seite selbst hängt über loading.tsx in einer).
+// Sobald das App-Gerüst vor der gestreamten Seite fertig war und irgendein Foto dort
+// seinen Effekt fuhr, starteten ALLE Fotos der Seite "frei", das Server-HTML sagte aber
+// "zu" -> Hydration-Mismatch. React flickt className bewusst nicht: Die Server-Klassen
+// blieben im DOM stehen, der Client rief nie zeigen() auf, jedes Foto hing bis zum
+// 2s-CSS-Riegel unsichtbar hinter seinem Schimmer, und der Schimmer lief danach für
+// immer weiter (gemessen: 10 von 20 Fotos, 13 Dauer-Schimmer).
+//
+// useSyncExternalStore beantwortet die Frage pro Grenze richtig: getServerSnapshot gilt
+// auf dem Server UND beim Hydrieren von Server-HTML — auch für Grenzen, die erst
+// Sekunden später aus dem Stream kommen. Frische Client-Mounts sehen den Client-Wert.
+const nieAbonnieren = () => () => {};
+function useAusDemServerHtml() {
+  const hydrierend = useSyncExternalStore(
+    nieAbonnieren,
+    () => false, // Client nach der Hydration -> jeder frische Mount startet offen
+    () => true, // Server-Render + Hydrations-Render -> Tor zu, wie im Server-HTML
+  );
+  // Nur der ERSTE Wert zählt: Direkt nach der Hydration gleicht React die Snapshots ab
+  // und rendert einmal mit false nach. Ein Server-Foto bleibt für uns trotzdem eines,
+  // deshalb friert useState den Geburtswert ein — sonst liefe der Layout-Effekt
+  // (ausDemServerHtml steht in den Abhängigkeiten) ein zweites Mal und zöge das eben
+  // geschlossene Tor wieder auf.
+  const [ausDemServerHtml] = useState(hydrierend);
+  return ausDemServerHtml;
+}
 
 type Mode = "frei" | "zu" | "blende";
 
@@ -166,7 +201,7 @@ export function useImageReveal(src: string | null | undefined, priority = false)
   const idle = priority || !src;
   // Server-HTML und der Hydrations-Render müssen dasselbe liefern, sonst verwirft React
   // den Baum. Erst spätere Mounts (weiche Navigation) starten offen.
-  const ausDemServerHtml = typeof window === "undefined" || !hydriert;
+  const ausDemServerHtml = useAusDemServerHtml();
   const ref = useRef<HTMLImageElement | null>(null);
   const [mode, setMode] = useState<Mode>(!idle && ausDemServerHtml ? "zu" : "frei");
   const [skeleton, setSkeleton] = useState(!idle && ausDemServerHtml);
@@ -191,7 +226,6 @@ export function useImageReveal(src: string | null | undefined, priority = false)
   }, []);
 
   useIsoLayoutEffect(() => {
-    hydriert = true;
     const m = mitglied.current;
     verlasse(m);
     clearTimeout(timer.current);
