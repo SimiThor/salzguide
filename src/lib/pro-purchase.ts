@@ -168,10 +168,21 @@ export async function fulfillPaidCheckout(
   const memberId =
     [metaId, refId].find((v): v is string => v !== null && UUID_RE.test(v)) ?? null;
 
-  // Fremder Kauf: Es GIBT eine Zuordnungs-Referenz, nur ist sie keine unserer User-IDs.
-  // Der Kauf stammt aus einem anderen System und wird notiert und in Ruhe gelassen: kein
-  // Konto, kein Pro, keine Mail. Und kein 500, denn Wiederholen ändert daran nichts.
-  if (!memberId && (metaId !== null || refId !== null)) {
+  // Fremder Kauf: Nur was sich als SalzGuide-Session AUSWEIST, wird verbucht. Ausweis ist
+  // eine unserer User-IDs oder der FAGG-Zustimmungs-Marker, den stripe-actions.ts seit
+  // jeher bedingungslos in JEDE Session schreibt (auch bei Gästen). Alles andere stammt
+  // nicht von uns: die SWPM-Referenz der alten WordPress-Seite genauso wie ein
+  // referenzloser Kauf ohne unsere Metadaten, der sonst still den Gast-Pfad durchliefe
+  // und dem fremden Käufer Konto, Pro und Bestätigungsmail verschaffte. Erlaubnis- statt
+  // Verbotsliste, dieselbe Regel wie bei public-routes und declutterBasemap: Was sich
+  // nicht ausweist, existiert für uns nicht. Notiert und in Ruhe gelassen, und kein 500,
+  // denn Wiederholen ändert daran nichts. (Alt-Sessions ohne Marker sind kein Risiko:
+  // Stripe wiederholt höchstens drei Tage, und der Rücksprung sieht nur Session-IDs aus
+  // unserer eigenen success_url.)
+  const isOurs =
+    memberId !== null ||
+    (session.metadata?.withdrawal_waiver_consent as string | undefined) === "true";
+  if (!isOurs) {
     await logOps("stripe_foreign_session", {
       message: "Stripe-Kauf aus einem fremden System ignoriert (keine SalzGuide-Referenz).",
       detail: { stripeSession: session.id },
@@ -467,10 +478,11 @@ async function recordPurchase(
   // Rücksprung gleichzeitig ankommen, und kein Fehler: Es wird nicht gemeldet.
   const code = (error as { code?: string }).code;
   if (code === "23505") return "duplicate";
-  // 23503 = foreign_key_violation auf user_id: Das Konto zum Kauf wurde gelöscht (und die
-  // alte Kaufzeile gleich mit, sonst hätte 23505 zuerst gegriffen). Eigene Meldung mit
-  // eigenem Grund, denn die Antwort darauf ist eine andere: nicht warten, sondern erstatten
-  // oder von Hand klären.
+  // 23503 = foreign_key_violation auf user_id: Das Konto wurde gelöscht, BEVOR dieser
+  // Kauf je verbucht war. (Eine früher verbuchte Kaufzeile überlebt die Kontolöschung —
+  // user_id wird per FK auf null gesetzt, Migration 0053 — und hätte hier 23505
+  // ausgelöst.) Eigene Meldung mit eigenem Grund, denn die Antwort darauf ist eine
+  // andere: nicht warten, sondern erstatten oder von Hand klären.
   const userGone = code === "23503";
   console.error("[pro] Kauf konnte nicht verbucht werden", session.id, error.message);
   await logOps("stripe_fulfillment_failed", {

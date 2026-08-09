@@ -52,6 +52,10 @@ export async function POST(req: Request): Promise<Response> {
       // logOps wirft errorMessage(e) weg, sobald eine feste message übergeben wird. Stripes
       // Fehlertexte („No signatures found matching…", „Timestamp outside the tolerance
       // zone") tragen keine Rohdaten. Der Signatur-Header selbst bleibt draussen.
+      //
+      // stripeAbsender ist nur in EINE Richtung beweiskräftig: Der User-Agent ist frei
+      // wählbar. false entlarvt einen Fremden sicher; true ist bloss eine Behauptung, der
+      // Beweis steht im Stripe-Dashboard (fehlgeschlagene Zustellungen).
       detail: {
         grund: errorMessage(e),
         stripeAbsender: (req.headers.get("user-agent") ?? "").startsWith("Stripe/"),

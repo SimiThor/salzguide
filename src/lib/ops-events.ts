@@ -225,7 +225,7 @@ export const OPS_EVENTS = {
     // jemand schickt uns selbstgebaute Zahlungsereignisse.
     alertAfter: 5,
     quietMinutes: 120,
-    hint: "Wenn das gehäuft kommt, versucht jemand gefälschte Zahlungen einzuspielen. Die Signaturprüfung hält. Prüfen, ob STRIPE_WEBHOOK_SECRET zum Endpunkt passt (Detail: stripeAbsender true = es war Stripe selbst, dann stimmt das Secret nicht).",
+    hint: "Wenn das gehäuft kommt, versucht jemand gefälschte Zahlungen einzuspielen. Die Signaturprüfung hält. Detail stripeAbsender: false heisst sicher NICHT Stripe (Fälschung oder fremdes System); true heisst nur, der Absender behauptet es, den Header kann jeder setzen. Vor einem Tausch von STRIPE_WEBHOOK_SECRET erst im Stripe-Dashboard nachsehen, ob dort wirklich fehlgeschlagene Zustellungen stehen.",
   },
   stripe_foreign_session: {
     area: "payment",
