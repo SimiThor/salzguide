@@ -85,15 +85,31 @@ export async function POST(req: Request) {
   // Woher die Meldung kommt: aus einer React-Fehlergrenze oder von window.onerror.
   const source = body.source === "global" ? "global" : "seite";
   // Herkunft des werfenden Skripts (Beobachtungsfeld, siehe ops-client.ts). Client-
-  // geliefert, also hart validiert: eines der drei Wörter oder etwas, das wie ein
-  // Origin aussieht (Schema + Host, ohne Pfad) — alles andere fliegt kommentarlos raus.
+  // geliefert, also hart validiert — alles andere fliegt kommentarlos raus:
+  //   - eines der drei Wörter (eigen/leer/unlesbar),
+  //   - „opak:<schema>" für opake Herkünfte (z.B. opak:webkit-masked-url — genau der
+  //     gesuchte iOS-Fall; nur das Schema, nie Pfad oder Query),
+  //   - oder ein echter http(s)-Origin, geprüft per Parse + Rückrunde statt Regex:
+  //     URL.origin trägt nie Userinfo, Port-Müll, Query oder Fragment, damit lässt
+  //     sich hier nichts hindurchschmuggeln. Andere Schemata (Browser-Erweiterungen)
+  //     ergeben in Node "null" und fallen bewusst raus — die filtert schon der Client.
   const rawQuelle = typeof body.quelle === "string" ? body.quelle.slice(0, 120) : "";
-  const quelle =
-    rawQuelle === "eigen" || rawQuelle === "leer" || rawQuelle === "unlesbar"
-      ? rawQuelle
-      : /^[a-z][a-z0-9+.-]{0,20}:\/\/[^/\s]{1,100}$/i.test(rawQuelle)
-        ? rawQuelle
-        : null;
+  let quelle: string | null = null;
+  if (rawQuelle === "eigen" || rawQuelle === "leer" || rawQuelle === "unlesbar") {
+    quelle = rawQuelle;
+  } else if (/^opak:[a-z][a-z0-9+.-]{0,40}$/i.test(rawQuelle)) {
+    quelle = rawQuelle;
+  } else if (rawQuelle) {
+    try {
+      const u = new URL(rawQuelle);
+      quelle =
+        (u.protocol === "http:" || u.protocol === "https:") && u.origin === rawQuelle
+          ? rawQuelle
+          : null;
+    } catch {
+      quelle = null;
+    }
+  }
 
   // Die Antwort wartet auf nichts. Ein Browser, der gerade abgestürzt ist, soll nicht auch
   // noch auf unsere Datenbank warten.

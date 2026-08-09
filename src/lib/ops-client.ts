@@ -101,28 +101,40 @@ export function reportClientError(
     // fehlt still — der Besucher merkt nur, dass „nichts passiert". Einmal neu laden holt
     // den frischen Build; die Meldung oben ist dank keepalive trotzdem schon unterwegs.
     //
-    // Drei Riegel gegen eine Schleife oder Schlimmeres:
-    //   1. Nur EINMAL je Tab-Sitzung (sessionStorage). Liegt es nicht am alten Build,
-    //      steht die Seite danach wie vorher, nur mit Logbuch-Eintrag.
+    // Vier Riegel gegen eine Schleife oder verlorene Arbeit:
+    //   1. Abklingzeit statt „einmal für immer": Eine echte Schleife feuert binnen
+    //      Sekunden erneut und bleibt zehn Minuten blockiert; ein SPÄTERER Deploy in
+    //      derselben Tab-Sitzung darf sich danach wieder selbst retten. (Alte Riegel
+    //      mit Wert "1" zählen als uralt und blockieren nicht.)
     //   2. Nicht offline: Sonst tauschte man eine lebende Seite gegen die Fehlerseite
     //      des Browsers. (Der Erkenner feuert auch bei Netz-Abriss, die Meldung ist
     //      dieselbe wie beim 404 auf einen alten Chunk.)
-    //   3. Lässt sich der Riegel nicht SCHREIBEN, wird nicht geladen — lieber gar nicht
-    //      als endlos. Und nicht im Admin: Dort stünde ein halb ausgefülltes Formular
-    //      auf dem Spiel, melden reicht.
+    //   3. Nicht mitten ins Tippen: Steht der Fokus in einem Eingabefeld (Toni-Entwurf,
+    //      Support-Formular), würde der Reload den Text wegwerfen — melden reicht dann.
+    //      Aus demselben Grund nie im Admin, dort sind Formulare der Normalfall.
+    //   4. Lässt sich der Riegel nicht SCHREIBEN, wird nicht geladen — lieber gar nicht
+    //      als endlos.
     if (isChunkLoadError(message)) {
       try {
         const KEY = "sg-chunk-reload";
+        const active = document.activeElement;
+        const typing =
+          active instanceof HTMLElement &&
+          (active.tagName === "INPUT" ||
+            active.tagName === "TEXTAREA" ||
+            active.isContentEditable);
+        const last = Number(sessionStorage.getItem(KEY));
         if (
           navigator.onLine !== false &&
           !/\/admin(\/|$)/.test(window.location.pathname) &&
-          !sessionStorage.getItem(KEY)
+          !typing &&
+          !(last && Date.now() - last < 10 * 60 * 1000)
         ) {
-          sessionStorage.setItem(KEY, "1");
+          sessionStorage.setItem(KEY, String(Date.now()));
           window.location.reload();
         }
       } catch {
-        /* Speicher gesperrt (Privatmodus u.ä.) -> siehe Riegel 3. */
+        /* Speicher gesperrt (Privatmodus u.ä.) -> siehe Riegel 4. */
       }
     }
   } catch {
@@ -153,8 +165,23 @@ export function listenForClientErrors(): () => void {
     let quelle = "leer";
     if (e.filename) {
       try {
-        const origin = new URL(e.filename, window.location.href).origin;
-        quelle = origin === window.location.origin ? "eigen" : origin;
+        // OHNE Basis parsen: Relative Pseudo-Namen („user-script", „<anonymous>",
+        // „eval code") würden mit Basis zur Seiten-URL aufgelöst und fälschlich als
+        // „eigen" etikettiert — die gefährliche Richtung, denn das spätere Tor würde
+        // fremden Lärm dann dauerhaft behalten. Echte Skripte melden immer absolute
+        // URLs; die Pseudo-Namen landen so im catch als „unlesbar".
+        const url = new URL(e.filename);
+        const origin = url.origin;
+        // Opake Herkünfte (data:, blob:null, about:, webkit-masked-url:) sagen als
+        // Origin wörtlich "null". Das SCHEMA ist dort die eigentliche Antwort — bei
+        // maskierten Safari-Skripten steht webkit-masked-url drin, exakt der Fall,
+        // für den diese Beobachtung gebaut wurde. Nur das Schema, nie Pfad oder Query.
+        quelle =
+          origin === "null"
+            ? `opak:${url.protocol.replace(/:$/, "")}`
+            : origin === window.location.origin
+              ? "eigen"
+              : origin;
       } catch {
         quelle = "unlesbar";
       }
