@@ -16,6 +16,9 @@
 //      nennt exakt die Sprachliste aus i18n/locales.ts.
 //   3. Kein public/-Ordner heißt wie eine Sprache: /de/foo.png liefe sonst durch den
 //      Proxy in die 404 statt zur statischen Datei.
+//   4. Der Logbuch-Link in den Alarm-Mails (lib/ops-mail.ts) zeigt auf eine Route, die
+//      es gibt. Er stand seit dem ersten Tag auf /de/admin/system — eine Seite, die nie
+//      existierte — und kein Werkzeug konnte es merken, weil Links in Mails kein tsc prüft.
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { LOCALE_CODES } from "../src/i18n/locales.ts";
@@ -85,6 +88,23 @@ else
     "public/-Kollision",
     `public/${collisions.join(", public/")} würde vom Proxy als 404 abgefangen statt ausgeliefert`,
   );
+
+// ── 4. Jeder Seiten-Link in den Alarm-Mails zeigt auf eine echte Route ──────────────
+// matchAll, nicht match: Kommt je ein zweiter Link in die Mail, wäre der sonst blind.
+const mailSource = readFileSync(join(process.cwd(), "src", "lib", "ops-mail.ts"), "utf8");
+const mailLinks = [...mailSource.matchAll(/\$\{siteUrl\(\)\}\/de(\/[^`]*)`/g)];
+if (mailLinks.length === 0) {
+  bad("ops-mail.ts Logbuch-Link", "Muster `${siteUrl()}/de/…` nicht gefunden – Link umgebaut? Dann diese Prüfung mitziehen.");
+} else {
+  for (const m of mailLinks) {
+    if (isPublicRoute(m[1])) ok(`ops-mail.ts Link ${m[1]} ist eine echte Routen-Form`);
+    else
+      bad(
+        `ops-mail.ts Link ${m[1]}`,
+        "zeigt auf keine bekannte Routen-Form (public-routes.ts) – jeder Klick aus einer Alarm-Mail liefe in die 404",
+      );
+  }
+}
 
 console.log("");
 if (failed > 0) {
