@@ -8,6 +8,10 @@
 // Client-Komponente wirft die GANZE App auf HTTP 500, ohne dass tsc oder ESLint etwas sagen.
 // Deshalb geht die Meldung hier über eine normale Anfrage an /api/ops/client-error, und die
 // Bewertung („wie schlimm ist das, muss eine Mail raus?") passiert erst dort.
+// lib/ops-events.ts dagegen ist absichtlich browser-tauglich (nur Daten + reine Funktionen),
+// von dort kommt der Chunk-Fehler-Erkenner.
+
+import { isChunkLoadError } from "./ops-events";
 
 /**
  * Meldungen, die man WEGWERFEN muss, sonst besteht das Fehlerbild irgendwann nur noch aus
@@ -87,6 +91,37 @@ export function reportClientError(
     }).catch(() => {
       /* Melden ist Kür. Wenn das auch nicht geht, ist ohnehin gerade alles kaputt. */
     });
+
+    // Chunk-Nachladen gescheitert: Meist hält der Besucher einen Tab vom Build VOR dem
+    // letzten Deploy, dessen nachladbare Teile es auf dem CDN nicht mehr gibt. Ohne Hilfe
+    // bleibt die Seite stehen, aber das nachgeladene Stück (Chat, Karte, Login-Status)
+    // fehlt still — der Besucher merkt nur, dass „nichts passiert". Einmal neu laden holt
+    // den frischen Build; die Meldung oben ist dank keepalive trotzdem schon unterwegs.
+    //
+    // Drei Riegel gegen eine Schleife oder Schlimmeres:
+    //   1. Nur EINMAL je Tab-Sitzung (sessionStorage). Liegt es nicht am alten Build,
+    //      steht die Seite danach wie vorher, nur mit Logbuch-Eintrag.
+    //   2. Nicht offline: Sonst tauschte man eine lebende Seite gegen die Fehlerseite
+    //      des Browsers. (Der Erkenner feuert auch bei Netz-Abriss, die Meldung ist
+    //      dieselbe wie beim 404 auf einen alten Chunk.)
+    //   3. Lässt sich der Riegel nicht SCHREIBEN, wird nicht geladen — lieber gar nicht
+    //      als endlos. Und nicht im Admin: Dort stünde ein halb ausgefülltes Formular
+    //      auf dem Spiel, melden reicht.
+    if (isChunkLoadError(message)) {
+      try {
+        const KEY = "sg-chunk-reload";
+        if (
+          navigator.onLine !== false &&
+          !/\/admin(\/|$)/.test(window.location.pathname) &&
+          !sessionStorage.getItem(KEY)
+        ) {
+          sessionStorage.setItem(KEY, "1");
+          window.location.reload();
+        }
+      } catch {
+        /* Speicher gesperrt (Privatmodus u.ä.) -> siehe Riegel 3. */
+      }
+    }
   } catch {
     /* siehe oben */
   }

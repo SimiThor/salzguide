@@ -105,6 +105,21 @@ export const OPS_EVENTS = {
     quietMinutes: 180,
     hint: "Wenn viele Geräte denselben Fehler melden, liegt es an uns. Betrifft es nur eines, ist es meist eine Browser-Erweiterung.",
   },
+  client_chunk_load: {
+    area: "app",
+    severity: "info",
+    title: "Chunk nicht geladen (alter Build oder Netz)",
+    // Nach einem Deploy normal: Ein offener Tab mit altem HTML findet seine nachladbaren
+    // Teile nicht mehr, der Browser lädt einmal neu (ops-client.ts) und steht damit auf
+    // dem frischen Build. Am Umzugstag 09.08.2026 füllte genau das als „Fehler im
+    // Browser" das Logbuch — mit einem NEUEN Fingerabdruck pro Deploy (der Chunk-Name
+    // wechselt), sodass die Schwelle nie griff und echte Fehler darunter verschwanden.
+    // Ein fester Fingerabdruck je Gerät sammelt sie jetzt ein; die Schwelle bleibt hoch,
+    // weil erst eine Häufung OHNE frischen Deploy ein Problem ist.
+    alertAfter: 50,
+    quietMinutes: 180,
+    hint: "Nach einem Deploy normal: Alte Tabs laden sich einmal selbst neu. Häuft es sich, OHNE dass deployt wurde, liefert der aktuelle Build kaputte Chunk-Pfade oder das CDN klemmt.",
+  },
   ops_selftest: {
     area: "app",
     // „Notiz" und trotzdem `alertAfter: 1` — der einzige Eintrag im Katalog, bei dem Stufe
@@ -410,6 +425,29 @@ export function opsPolicy(kind: string): OpsPolicy {
       hint: "Unbekannte Ereignis-Art (vermutlich aus einer älteren Version).",
     }
   );
+}
+
+/**
+ * Sieht diese Browser-Meldung nach einem gescheiterten Chunk-Nachladen aus?
+ *
+ * Reine Funktion, bewusst HIER: Browser (ops-client.ts entscheidet über den einmaligen
+ * Neu-Lade-Versuch) und Server (client-error-Route wählt den Katalog-Eintrag) müssen
+ * dieselbe Frage gleich beantworten, und diese Datei ist die einzige, die beide Seiten
+ * importieren dürfen. Die Muster decken Turbopack („Failed to load chunk … from module …",
+ * exakt so wirft es der Runtime), das alte webpack-Wording und die Browser-Formulierungen
+ * für dynamische import()-Fehler ab. Bewusst NICHT das nackte „Failed to fetch": zu
+ * allgemein, das würde bei jedem Netz-Schluckauf die Seite neu laden.
+ */
+const CHUNK_LOAD_PATTERNS = [
+  /failed to load chunk/i,
+  /chunkloaderror/i,
+  /loading chunk \S+ failed/i,
+  /importing a module script failed/i,
+  /error loading dynamically imported module/i,
+  /failed to fetch dynamically imported module/i,
+];
+export function isChunkLoadError(message: string): boolean {
+  return CHUNK_LOAD_PATTERNS.some((re) => re.test(message));
 }
 
 /** Rangfolge der Stufen. Für „ab error aufwärts" in Filtern und Zusammenfassungen. */

@@ -29,6 +29,7 @@
 // Mails schicken.
 import { NextResponse, after } from "next/server";
 import { logOps, bumpOpsCounter, subjectFromRequest } from "@/lib/ops";
+import { isChunkLoadError } from "@/lib/ops-events";
 import { scrubPath, scrubText } from "@/lib/ops-scrub";
 import { clientIp, classifyDevice } from "@/lib/analytics";
 
@@ -91,13 +92,22 @@ export async function POST(req: Request) {
       const count = await bumpOpsCounter(`ops-client-err:${subject}`, WINDOW_SECONDS);
       if (count > MAX_PER_IP) return;
     }
-    await logOps("client_error", {
+    // Die Art wählt der SERVER aus der Meldung, nie der Client (siehe Kopf dieser Datei).
+    // Chunk-Fehler bekommen einen eigenen, leisen Katalog-Eintrag UND einen festen
+    // Fingerabdruck je Gerät: Der Chunk-Name in der Meldung wechselt mit jedem Deploy
+    // (Buchstaben-Hash, die #-Normalisierung unten greift nicht), sonst zählte jeder
+    // Deploy bei null los und die Schwelle griffe nie. Schlimmstenfalls redet sich ein
+    // Angreifer per passender Meldung LEISER (info statt warn) — die Richtung ist harmlos.
+    const chunk = isChunkLoadError(message);
+    await logOps(chunk ? "client_chunk_load" : "client_error", {
       message,
       path,
       subject,
       // Nach Meldung UND Gerät gruppieren: „geht nur auf iPhones kaputt" ist die halbe
       // Diagnose, und ohne das Gerät im Fingerabdruck fällt sie unter den Tisch.
-      group: `client:${device}:${message.replace(/\d+/g, "#").slice(0, 120)}`,
+      group: chunk
+        ? `chunk-load:${device}`
+        : `client:${device}:${message.replace(/\d+/g, "#").slice(0, 120)}`,
       detail: { geraet: device, herkunft: source, digest },
     });
   });
