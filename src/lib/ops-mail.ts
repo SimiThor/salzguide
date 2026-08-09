@@ -96,7 +96,11 @@ export async function sendOpsAlert(input: OpsAlertInput): Promise<void> {
 
     const look = SEVERITY_LOOK[policy.severity];
     const subject = `[SalzGuide] ${look.label}: ${policy.title}`;
-    const admin = `${siteUrl()}/de/admin/system`;
+    // Der Logbuch-Link. Die Route MUSS existieren: Bis 08/2026 stand hier /de/admin/system,
+    // eine Seite, die es nie gab. Jeder Klick aus einer Alarm-Mail landete damit auf der
+    // Abbruch-Stream-404 (siehe [locale]/[...rest]/page.tsx) und produzierte dort selbst
+    // wieder client_errors, mitten im Vorfall. routes:check prüft diesen Link jetzt mit.
+    const admin = `${siteUrl()}/de/admin/settings/system`;
 
     const ok = await sendEmail({
       to: alertRecipient(),
