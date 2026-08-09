@@ -89,18 +89,21 @@ else
     `public/${collisions.join(", public/")} würde vom Proxy als 404 abgefangen statt ausgeliefert`,
   );
 
-// ── 4. Der Logbuch-Link in den Alarm-Mails zeigt auf eine echte Route ───────────────
+// ── 4. Jeder Seiten-Link in den Alarm-Mails zeigt auf eine echte Route ──────────────
+// matchAll, nicht match: Kommt je ein zweiter Link in die Mail, wäre der sonst blind.
 const mailSource = readFileSync(join(process.cwd(), "src", "lib", "ops-mail.ts"), "utf8");
-const adminLink = mailSource.match(/\$\{siteUrl\(\)\}\/de(\/[^`]*)`/);
-if (!adminLink) {
+const mailLinks = [...mailSource.matchAll(/\$\{siteUrl\(\)\}\/de(\/[^`]*)`/g)];
+if (mailLinks.length === 0) {
   bad("ops-mail.ts Logbuch-Link", "Muster `${siteUrl()}/de/…` nicht gefunden – Link umgebaut? Dann diese Prüfung mitziehen.");
-} else if (isPublicRoute(adminLink[1])) {
-  ok(`ops-mail.ts Logbuch-Link ${adminLink[1]} ist eine echte Routen-Form`);
 } else {
-  bad(
-    `ops-mail.ts Logbuch-Link ${adminLink[1]}`,
-    "zeigt auf keine bekannte Routen-Form (public-routes.ts) – jeder Klick aus einer Alarm-Mail liefe in die 404",
-  );
+  for (const m of mailLinks) {
+    if (isPublicRoute(m[1])) ok(`ops-mail.ts Link ${m[1]} ist eine echte Routen-Form`);
+    else
+      bad(
+        `ops-mail.ts Link ${m[1]}`,
+        "zeigt auf keine bekannte Routen-Form (public-routes.ts) – jeder Klick aus einer Alarm-Mail liefe in die 404",
+      );
+  }
 }
 
 console.log("");
