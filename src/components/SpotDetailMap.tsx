@@ -220,31 +220,38 @@ export default function SpotDetailMap({
 
   return (
     <>
-      {/* Inline-Karte */}
-      <div className={`${CARD} relative h-60 overflow-hidden`}>
-        <SpotMap
-          markers={markers}
-          route={route}
-          highlight={hoverCoord}
-          center={center}
-          zoom={13}
-          padding={mapPadding}
-          mapClass="sg-ctrl-top"
-          onFullscreen={() => setFullscreen(true)}
-          openMapLabel={t("openMap")}
-          {...poiProps}
-        />
-        {shape && shapeLabel && (
-          <RouteShapeBadge shape={shape} label={shapeLabel} className="right-3 top-3" />
-        )}
-        {/* Hier stand das POI-Kärtchen auch für die Vorschau. Es kann nicht mehr
-            auftauchen: Die Vorschau ist eine einzige Schaltfläche, einzelne Punkte
-            lassen sich dort nicht mehr antippen. Die Kärtchen leben im Vollbild
-            weiter, wo sie nicht die halbe Karte verdecken. */}
-      </div>
+      {/* space-y spiegelt den Sektions-Rhythmus der Spot-Seite (space-y-10 md:space-y-12,
+          siehe spot/[slug]/page.tsx): Karte und Höhenprofil sind dort EIN Kind des
+          Sektions-Containers, dessen space-y greift hier drinnen also nicht. Ohne diese
+          Zeile klebten die beiden Karten aneinander, während alle anderen Sektionen
+          ihren grosszügigen Abstand hatten. */}
+      <div className="space-y-10 md:space-y-12">
+        {/* Inline-Karte */}
+        <div className={`${CARD} relative h-60 overflow-hidden`}>
+          <SpotMap
+            markers={markers}
+            route={route}
+            highlight={hoverCoord}
+            center={center}
+            zoom={13}
+            padding={mapPadding}
+            mapClass="sg-ctrl-top"
+            onFullscreen={() => setFullscreen(true)}
+            openMapLabel={t("openMap")}
+            {...poiProps}
+          />
+          {shape && shapeLabel && (
+            <RouteShapeBadge shape={shape} label={shapeLabel} className="right-3 top-3" />
+          )}
+          {/* Hier stand das POI-Kärtchen auch für die Vorschau. Es kann nicht mehr
+              auftauchen: Die Vorschau ist eine einzige Schaltfläche, einzelne Punkte
+              lassen sich dort nicht mehr antippen. Die Kärtchen leben im Vollbild
+              weiter, wo sie nicht die halbe Karte verdecken. */}
+        </div>
 
-      {/* Interaktives Höhenprofil */}
-      {elevation && <ElevationProfile profile={elevation} onHover={setHoverF} />}
+        {/* Interaktives Höhenprofil */}
+        {elevation && <ElevationProfile profile={elevation} onHover={setHoverF} />}
+      </div>
 
       {/* Vollbild-Karte (zum Wandern) */}
       {mounted &&
