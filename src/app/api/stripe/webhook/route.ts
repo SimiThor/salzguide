@@ -2,6 +2,7 @@ import type Stripe from "stripe";
 import { stripe, stripeWebhookSecret } from "@/lib/stripe";
 import { fulfillPaidCheckout, revokePro } from "@/lib/pro-purchase";
 import { logOps, subjectFromRequest } from "@/lib/ops";
+import { errorMessage } from "@/lib/ops-scrub";
 
 // Stripe-Webhook: der verlässliche Weg zur Freischaltung. Sicherheit:
 // - SIGNATUR wird gegen STRIPE_WEBHOOK_SECRET geprüft (nur echte Stripe-Events).
@@ -46,6 +47,15 @@ export async function POST(req: Request): Promise<Response> {
     await logOps("stripe_bad_signature", {
       message: "Webhook mit ungültiger Signatur abgewiesen.",
       error: e,
+      // Ohne diese zwei Felder war am 09.08.2026 nicht zu unterscheiden, ob Stripe selbst
+      // gegen ein falsches Secret lief (Endpoint-Umzug!) oder jemand Ereignisse nachbaut:
+      // logOps wirft errorMessage(e) weg, sobald eine feste message übergeben wird. Stripes
+      // Fehlertexte („No signatures found matching…", „Timestamp outside the tolerance
+      // zone") tragen keine Rohdaten. Der Signatur-Header selbst bleibt draussen.
+      detail: {
+        grund: errorMessage(e),
+        stripeAbsender: (req.headers.get("user-agent") ?? "").startsWith("Stripe/"),
+      },
       path: "/api/stripe/webhook",
       subject: subjectFromRequest(req),
       group: "stripe:bad_signature",

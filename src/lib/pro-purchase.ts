@@ -6,6 +6,7 @@ import { formatProPrice } from "./pro";
 import { LEGAL } from "./legal";
 import { sendEmail } from "./email";
 import { logOps } from "./ops";
+import { errorMessage } from "./ops-scrub";
 import { renderProPurchase } from "./pro-purchase-mail";
 import { trackConversion } from "./analytics";
 import { safeLocale } from "@/i18n/locales";
@@ -99,7 +100,15 @@ export type Fulfillment =
       claimHash: string | null;
       autoLoginUsed: boolean;
     }
-  | { ok: false; reason: "unpaid" | "no_email" | "error" };
+  | {
+      ok: false;
+      // unpaid    — Zahlung (noch) nicht bestätigt. Kein Fehler, siehe Aufrufer.
+      // no_email  — bezahlt, aber ohne Adresse nicht zuzuordnen. Handarbeit.
+      // error     — vorübergehend gescheitert. Der Webhook antwortet 500, Stripe kommt wieder.
+      // foreign   — Kauf aus einem fremden System (alte WordPress-Seite). Geht uns nichts an.
+      // user_gone — das Konto zum Kauf wurde gelöscht. Wiederholen kann nie gelingen.
+      reason: "unpaid" | "no_email" | "error" | "foreign" | "user_gone";
+    };
 
 type PurchaseRow = {
   stripe_session_id: string;
@@ -127,6 +136,9 @@ function paymentIntentOf(session: Stripe.Checkout.Session): string | null {
   return typeof pi === "string" ? pi : pi.id;
 }
 
+/** Sieht der Wert aus wie eine unserer User-IDs? (uuid, wie auth.users sie vergibt) */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 /**
  * Einen bezahlten Checkout in Pro verwandeln. Idempotent, mehrfach aufrufbar.
  *
@@ -143,10 +155,30 @@ export async function fulfillPaidCheckout(
   const customerId = customerIdOf(session.customer);
   // Der eingeloggte Kauf trägt die User-ID zweimal (Metadaten + client_reference_id), damit
   // ein Kauf auch dann zuzuordnen ist, wenn eines von beiden verloren geht.
+  //
+  // ABER: Nur was wie eine unserer User-IDs AUSSIEHT, wird auch als eine behandelt. Das
+  // Stripe-Konto bedient nämlich auch die alte WordPress-Seite, und deren Membership-Plugin
+  // schreibt seine eigene Referenz in client_reference_id („swpm_<hash>|<id>"). Am
+  // 09.08.2026 ist genau so ein Kauf hier gelandet (WP-Kauf vom 07.08., 19,90 EUR): Der
+  // Fallback machte aus der SWPM-Referenz eine „User-ID", der Insert scheiterte am
+  // uuid-Typ der Spalte, und das Log schrie „Bezahlt, aber Pro nicht freigeschaltet" für
+  // einen Kauf, der nie unserer war.
+  const metaId = (session.metadata?.supabase_user_id as string | undefined) ?? null;
+  const refId = session.client_reference_id ?? null;
   const memberId =
-    (session.metadata?.supabase_user_id as string | undefined) ??
-    session.client_reference_id ??
-    null;
+    [metaId, refId].find((v): v is string => v !== null && UUID_RE.test(v)) ?? null;
+
+  // Fremder Kauf: Es GIBT eine Zuordnungs-Referenz, nur ist sie keine unserer User-IDs.
+  // Der Kauf stammt aus einem anderen System und wird notiert und in Ruhe gelassen: kein
+  // Konto, kein Pro, keine Mail. Und kein 500, denn Wiederholen ändert daran nichts.
+  if (!memberId && (metaId !== null || refId !== null)) {
+    await logOps("stripe_foreign_session", {
+      message: "Stripe-Kauf aus einem fremden System ignoriert (keine SalzGuide-Referenz).",
+      detail: { stripeSession: session.id },
+      group: "stripe:foreign",
+    });
+    return { ok: false, reason: "foreign" };
+  }
 
   // ── Fall 1: eingeloggt gekauft ────────────────────────────────────────────────────────
   if (memberId) {
@@ -188,7 +220,7 @@ export async function fulfillPaidCheckout(
     // Renn-Gewinner dasselbe Token schreibt UND mailt; der Verlierer verwirft seines mitsamt
     // seiner nie verschickten Mail.
     const invoiceToken = randomUUID();
-    const firstTime = await recordPurchase(svc, session, {
+    const recorded = await recordPurchase(svc, session, {
       email,
       userId: memberId,
       granted: true,
@@ -196,9 +228,20 @@ export async function fulfillPaidCheckout(
       customerId,
       invoiceToken,
     });
+    // Scheitert das Verbuchen, gibt es kein „trotzdem weiter": Ohne die Zeile in
+    // pro_purchases verlöre eine spätere Rückerstattung ihren Anker (revokePro räumt über
+    // sie ab), und ein stilles 200 bestellte genau die Stripe-Wiederholungen ab, die diesen
+    // Kauf noch retten können. Bis 08/2026 wurde hier weitergemacht, als wäre nichts —
+    // ein DB-Schluckauf im falschen Moment war dann ein bezahlter, nie verbuchter Kauf.
+    if (recorded === "failed") return { ok: false, reason: "error" };
+    // Konto nach dem Kauf gelöscht: Wiederholen kann nie gelingen, die Meldung ist raus
+    // (recordPurchase), ein Mensch entscheidet. 200, damit Stripe nicht tagelang klopft.
+    if (recorded === "user_gone") return { ok: false, reason: "user_gone" };
     // Nur beim ersten Mal: Die Zeile ist neu, also hat noch niemand bestätigt. Beim zweiten
     // Weg (Webhook nach Rücksprung) wäre es dieselbe Mail ein zweites Mal.
-    if (firstTime) await sendPurchaseConfirmation(session, email, false, invoiceToken);
+    if (recorded === "inserted") {
+      await sendPurchaseConfirmation(session, email, false, invoiceToken);
+    }
     await grantPro(memberId, customerId);
     return { ok: true, kind: "member", userId: memberId, email };
   }
@@ -232,7 +275,7 @@ export async function fulfillPaidCheckout(
   // Die Zeile MUSS vor dem Anlegen des Kontos stehen: handle_new_user (Migration 0053)
   // schaut beim Entstehen des Profils genau hier nach und schreibt Pro in derselben
   // Transaktion. Andersherum entstünde ein Konto ohne Pro.
-  const inserted = await recordPurchase(svc, session, {
+  const recorded = await recordPurchase(svc, session, {
     email,
     userId: null,
     granted: false,
@@ -241,10 +284,14 @@ export async function fulfillPaidCheckout(
     claimHash,
     invoiceToken,
   });
-  if (!inserted) {
-    // Kollision mit dem parallel laufenden anderen Weg -> dessen Zustand gilt.
-    const row = await readPurchase(svc, session.id);
-    if (row) return stateOf(row);
+  if (recorded !== "inserted") {
+    // Kollision mit dem parallel laufenden anderen Weg -> dessen Zustand gilt. Alles
+    // andere („failed"; „user_gone" kann ohne user_id nicht vorkommen) -> 500, Stripe
+    // stellt erneut zu.
+    if (recorded === "duplicate") {
+      const row = await readPurchase(svc, session.id);
+      if (row) return stateOf(row);
+    }
     return { ok: false, reason: "error" };
   }
 
@@ -350,9 +397,16 @@ async function readPurchase(
 }
 
 /**
- * Kauf verbuchen. Rückgabe: true = diese Zeile ist neu (wir haben das Rennen gewonnen).
- * Eine Kollision auf dem Primärschlüssel ist kein Fehler, sondern die Antwort „der andere
- * Weg war schneller".
+ * Kauf verbuchen. Die vier Antworten, und was der Aufrufer damit tut:
+ *
+ *   inserted   Die Zeile ist neu, wir haben das Rennen gewonnen. Nur jetzt wird gemailt.
+ *   duplicate  Schon verbucht — der andere Weg (Webhook/Rücksprung) war schneller. Der
+ *              NORMALFALL bei zwei gleichzeitigen Wegen, kein Fehler, keine Meldung.
+ *   user_gone  Die user_id zeigt auf ein Profil, das es nicht mehr gibt (FK 23503, Konto
+ *              nach dem Kauf gelöscht). Wiederholen kann NIE gelingen; gemeldet wird hier,
+ *              entschieden von einem Menschen (erstatten oder von Hand freischalten).
+ *   failed     Alles andere (DB weg, Netz weg). Der Aufrufer muss den Fehler nach oben
+ *              geben, damit der Webhook 500 antwortet und Stripe erneut zustellt.
  */
 async function recordPurchase(
   svc: ReturnType<typeof createServiceClient>,
@@ -368,7 +422,7 @@ async function recordPurchase(
      *  damit dieselbe Zeile und dieselbe Mail dasselbe Token tragen. */
     invoiceToken: string;
   },
-): Promise<boolean> {
+): Promise<"inserted" | "duplicate" | "user_gone" | "failed"> {
   const now = new Date().toISOString();
   const { error } = await svc.from("pro_purchases").insert({
     stripe_session_id: session.id,
@@ -407,20 +461,31 @@ async function recordPurchase(
     // der manchmal nicht zählt. Ein Insert bei einem Kauf, den es ein paar Mal am Tag gibt.
     // Fehler schluckt trackEvent selbst, der Kauf kann daran nicht scheitern.
     await trackConversion({ locale: safeLocale(session.metadata?.locale) });
-    return true;
+    return "inserted";
   }
   // 23505 = unique_violation -> schon verbucht. Das ist der NORMALFALL, wenn Webhook und
   // Rücksprung gleichzeitig ankommen, und kein Fehler: Es wird nicht gemeldet.
-  if ((error as { code?: string }).code !== "23505") {
-    console.error("[pro] Kauf konnte nicht verbucht werden", session.id, error.message);
-    await logOps("stripe_fulfillment_failed", {
-      message: "Ein bezahlter Kauf konnte nicht in die Datenbank geschrieben werden.",
-      error,
-      detail: { stripeSession: session.id },
-      group: "pro:record_failed",
-    });
-  }
-  return false;
+  const code = (error as { code?: string }).code;
+  if (code === "23505") return "duplicate";
+  // 23503 = foreign_key_violation auf user_id: Das Konto zum Kauf wurde gelöscht (und die
+  // alte Kaufzeile gleich mit, sonst hätte 23505 zuerst gegriffen). Eigene Meldung mit
+  // eigenem Grund, denn die Antwort darauf ist eine andere: nicht warten, sondern erstatten
+  // oder von Hand klären.
+  const userGone = code === "23503";
+  console.error("[pro] Kauf konnte nicht verbucht werden", session.id, error.message);
+  await logOps("stripe_fulfillment_failed", {
+    message: userGone
+      ? "Ein bezahlter Kauf gehört zu einem Konto, das es nicht mehr gibt."
+      : "Ein bezahlter Kauf konnte nicht in die Datenbank geschrieben werden.",
+    error,
+    // Der DB-Fehlertext MUSS ins Detail: logOps wirft errorMessage(error) weg, sobald eine
+    // feste message übergeben wird, und der Stack eines PostgREST-Fehlerobjekts ist null.
+    // Ohne diese Zeile war im Logbuch nicht zu unterscheiden, ob die DB kurz weg war oder
+    // ein Constraint verletzt wurde (so geschehen am 09.08.2026).
+    detail: { stripeSession: session.id, fehler: errorMessage(error) },
+    group: userGone ? "pro:user_gone" : "pro:record_failed",
+  });
+  return userGone ? "user_gone" : "failed";
 }
 
 async function profileEmail(
@@ -622,7 +687,7 @@ export async function grantPro(
     .eq("id", id)
     .maybeSingle();
   if (cur?.is_pro && cur?.pro_source === "stripe") return;
-  await svc
+  const { error } = await svc
     .from("profiles")
     .update({
       is_pro: true,
@@ -631,6 +696,17 @@ export async function grantPro(
       ...(customerId ? { stripe_customer_id: customerId } : {}),
     })
     .eq("id", id);
+  if (error) {
+    // Bis 08/2026 wurde dieser Fehler verschluckt: Der Kauf stand verbucht in
+    // pro_purchases, aber der Schalter am Profil blieb aus — und niemand erfuhr davon.
+    console.error("[pro] Pro-Schalter konnte nicht gesetzt werden", id, error.message);
+    await logOps("stripe_fulfillment_failed", {
+      message: "Bezahlt und verbucht, aber der Pro-Schalter liess sich nicht setzen.",
+      error,
+      detail: { userId: id, fehler: errorMessage(error) },
+      group: "pro:grant_failed",
+    });
+  }
 }
 
 /**
