@@ -25,7 +25,25 @@ const PUBLIC_ROUTES: RegExp[] = [
   /^\/touren\/meine\/[^/]+$/,
   /^\/touren\/[^/]+$/, // deckt auch /touren/bauen ab
   /^\/auth\/callback$/,
-  /^\/admin(\/.*)?$/, // hat einen eigenen Wächter, unbekannte Unterpfade fängt er selbst
+  // Admin: echte Pfad-Formen statt Pauschal-Freibrief. Hier stand /^\/admin(\/.*)?$/ mit
+  // der Begründung, der Admin-Wächter fange unbekannte Unterpfade selbst — das war
+  // falsch: Der Wächter prüft nur, WER fragt, nicht OB es die Seite gibt. Einen Pfad wie
+  // /de/admin/system (den toten Logbuch-Link der Alarm-Mails) fing der Catch-all
+  // [locale]/[...rest] — ein GESCHWISTER von admin/, also ohne Wächter davor — mit der
+  // Abbruch-Stream-404, deren kaputte Hydration React-Fehler ins Logbuch warf. Mit
+  // echten Formen landet so ein Pfad im richtigen 404-Handler, bevor React überhaupt
+  // streamt. `npm run routes:check` gleicht die Zeilen mit dem Dateibaum ab; für die
+  // dynamischen [^/]+-Segmente gilt dieselbe Regel wie oben: statische Geschwister
+  // (new, anchors, neu, gebiete) sind mit abgedeckt.
+  /^\/admin$/,
+  /^\/admin\/(events|settings|tours|users)$/,
+  /^\/admin\/events\/[^/]+$/,
+  /^\/admin\/settings\/(analytics|home|intro-videos|mails|system)$/,
+  /^\/admin\/spots\/[^/]+$/,
+  /^\/admin\/tours\/[^/]+$/,
+  /^\/admin\/tours\/gebiete\/[^/]+$/,
+  /^\/admin\/tours\/gebiete\/[^/]+\/punkt\/[^/]+$/,
+  /^\/admin\/users\/(migration|support)$/,
 ];
 
 /** Existiert dieser Pfad (OHNE Locale-Präfix) als öffentliche Route? */
