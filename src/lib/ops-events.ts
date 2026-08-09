@@ -225,7 +225,18 @@ export const OPS_EVENTS = {
     // jemand schickt uns selbstgebaute Zahlungsereignisse.
     alertAfter: 5,
     quietMinutes: 120,
-    hint: "Wenn das gehäuft kommt, versucht jemand gefälschte Zahlungen einzuspielen. Die Signaturprüfung hält. Prüfen, ob STRIPE_WEBHOOK_SECRET zum Endpunkt passt.",
+    hint: "Wenn das gehäuft kommt, versucht jemand gefälschte Zahlungen einzuspielen. Die Signaturprüfung hält. Detail stripeAbsender: false heisst sicher NICHT Stripe (Fälschung oder fremdes System); true heisst nur, der Absender behauptet es, den Header kann jeder setzen. Vor einem Tausch von STRIPE_WEBHOOK_SECRET erst im Stripe-Dashboard nachsehen, ob dort wirklich fehlgeschlagene Zustellungen stehen.",
+  },
+  stripe_foreign_session: {
+    area: "payment",
+    severity: "info",
+    title: "Fremder Stripe-Kauf ignoriert",
+    // Das Stripe-Konto bedient auch die alte WordPress-Seite. Deren Membership-Käufe
+    // (client_reference_id „swpm_…") erreichen denselben Webhook, sind aber keine
+    // SalzGuide-Käufe: nichts verbuchen, niemanden anlegen, nur notieren.
+    alertAfter: 0,
+    quietMinutes: 720,
+    hint: "Ein Kauf aus einem anderen System (alte WordPress-Seite) hat den Webhook erreicht und wurde bewusst nicht verbucht. Nur prüfen, wenn das lange nach dem Ende der alten Seite noch auftaucht.",
   },
 
   // ── KI: hier hängt ebenfalls Geld dran, nur andersherum ───────────────────────────
