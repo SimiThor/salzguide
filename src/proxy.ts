@@ -1,12 +1,53 @@
 import { createServerClient } from "@supabase/ssr";
+import { hasLocale } from "next-intl";
 import createIntlMiddleware from "next-intl/middleware";
-import { type NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
+import { LOCALE_PREFIX_RE } from "./i18n/locales";
 import { routing } from "./i18n/routing";
+import { isPublicRoute } from "./lib/public-routes";
 
 const handleIntl = createIntlMiddleware(routing);
 
+// Unbekannte Adresse -> internes Rewrite auf den 404-Handler (app/404/route.ts). Die
+// Adresszeile im Browser bleibt stehen. Sprache als Request-Header, nicht als Query:
+// request.url trägt hinter einem Rewrite nicht zuverlässig die neue Query, Header
+// kommen garantiert an.
+function rewrite404(request: NextRequest, locale: string) {
+  const url = request.nextUrl.clone();
+  url.pathname = "/404";
+  url.search = "";
+  const headers = new Headers(request.headers);
+  headers.set("x-sg-locale", locale);
+  return NextResponse.rewrite(url, { request: { headers } });
+}
+
 // next-intl (Locale-Routing) + Supabase-Session-Refresh in einem.
 export default async function proxy(request: NextRequest) {
+  // Unbekannte Adressen SOFORT zum 404-Handler, noch vor Locale-Routing und Session:
+  // Nur ein Route Handler kann in Next eine echte 404 liefern (Streaming-Hintergrund
+  // in [locale]/[...rest]/page.tsx, Erlaubnis-Liste in lib/public-routes.ts).
+  // Kein Session-Refresh auf 404s – hier ist nichts personalisiert, und die nächste
+  // echte Seite frischt die Cookies ohnehin auf.
+  const { pathname } = request.nextUrl;
+  const localeMatch = pathname.match(LOCALE_PREFIX_RE);
+  if (localeMatch) {
+    if (!isPublicRoute(pathname.slice(localeMatch[0].length))) {
+      return rewrite404(request, localeMatch[1]);
+    }
+  } else if (!isPublicRoute(pathname)) {
+    // Müll OHNE Sprach-Präfix (/wordpress, /phpmyadmin): direkt 404 statt erst der
+    // Sprach-Umleitung von handleIntl – das spart pro Bot-Sonde einen kompletten
+    // zweiten Middleware-Durchlauf samt Redirect. Gültige präfixlose Pfade (/explore)
+    // laufen weiter unten normal in die Sprach-Umleitung. Die alten WordPress-Pfade
+    // mit Weiterleitungsregel sind hier nie zu sehen: next.config-Redirects laufen
+    // VOR der Middleware. Sprache: NEXT_LOCALE-Cookie (Framework-Parser), sonst Deutsch.
+    const cookieLocale = request.cookies.get("NEXT_LOCALE")?.value;
+    return rewrite404(
+      request,
+      hasLocale(routing.locales, cookieLocale) ? cookieLocale : routing.defaultLocale,
+    );
+  }
+
   const response = handleIntl(request);
 
   const supabase = createServerClient(
@@ -46,8 +87,17 @@ export default async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // Alle Pfade außer API, Next-Internals, Dateien mit Endung (z.B. .png) und der
-  // internen Render-Route (/render/*): die soll KEIN Locale-Präfix bekommen, sie ist
-  // sprachneutral und wird nur vom Intro-Renderer aufgerufen.
-  matcher: "/((?!api|_next|_vercel|render|.*\\..*).*)",
+  // Erster Eintrag: alle Pfade außer API, Next-Internals, Dateien mit Endung (z.B.
+  // .png) und der internen Render-Route (/render/*): die soll KEIN Locale-Präfix
+  // bekommen, sie ist sprachneutral und wird nur vom Intro-Renderer aufgerufen.
+  //
+  // Zweiter Eintrag: Punkt-Pfade UNTER einer Sprache (z.B. /de/wp-login.php von
+  // Bot-Sonden) trotzdem durch den Proxy schicken, damit die 404-Erlaubnisliste auch
+  // sie erwischt – echte Dateien (public/, _next/) tragen nie ein Sprach-Präfix.
+  // Matcher müssen statische Literale sein, darum stehen die Sprachen hier doppelt
+  // zur i18n/routing.ts: neue Sprache dort => auch hier ergänzen.
+  matcher: [
+    "/((?!api|_next|_vercel|render|.*\\..*).*)",
+    "/(de|en|it|nl|ko|fr|zh|es|pt)/:path*",
+  ],
 };

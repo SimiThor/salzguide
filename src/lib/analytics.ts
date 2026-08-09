@@ -5,7 +5,7 @@ import { createHash } from "node:crypto";
 import { headers } from "next/headers";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createServiceClient } from "./supabase/service";
-import { LOCALE_CODES } from "@/i18n/locales";
+import { LOCALE_CODES, LOCALE_PREFIX_RE } from "@/i18n/locales";
 
 export type AnalyticsType =
   | "pageview"
@@ -162,14 +162,14 @@ export function classifySource(
   return host.replace(/^www\./, "");
 }
 
-// Sprach-Präfix aus der ZENTRALEN Config, nicht handgepflegt: hier stand bis 07/2026
-// /^\/(de|en)/ — die sieben anderen Sprachen aus locales.ts fehlten, ihre Aufrufe
-// landeten also allesamt unerkannt in kind:"other".
-const LOCALE_PREFIX = new RegExp(`^/(${LOCALE_CODES.join("|")})(?=/|$)`);
+// Sprach-Präfix aus der ZENTRALEN Config (LOCALE_PREFIX_RE in i18n/locales.ts), nicht
+// handgepflegt: hier stand bis 07/2026 ein eigenes /^\/(de|en)/ — die sieben anderen
+// Sprachen fehlten, ihre Aufrufe landeten also allesamt unerkannt in kind:"other".
+// Seit 08/2026 liest auch der Proxy (404-Erlaubnisliste) dieselbe Regex.
 
 /** Sprach-Präfix eines Pfads, oder null. Eine Quelle für classifyPath und serverEventContext. */
 export function classifyLocalePath(path: string): string | null {
-  return (path || "").match(LOCALE_PREFIX)?.[1] ?? null;
+  return (path || "").match(LOCALE_PREFIX_RE)?.[1] ?? null;
 }
 
 // Pfad (mit optionalem /{locale}-Präfix) -> { kind, target }. /admin wird NICHT
@@ -178,7 +178,7 @@ export function classifyPath(
   rawPath: string,
 ): { kind: string; target: string | null } | null {
   let p = (rawPath || "/").split("?")[0].split("#")[0];
-  p = p.replace(LOCALE_PREFIX, ""); // Locale-Präfix entfernen
+  p = p.replace(LOCALE_PREFIX_RE, ""); // Locale-Präfix entfernen
   // „landing" und „explore" statt des früheren „home": bis 07/2026 war die Wurzel die
   // Karte, kind:"home" heisst in Altdaten also KARTEN-Aufruf. Würde die neue Startseite
   // dieses kind erben, spleisste jede Auswertung zwei verschiedene Seiten in eine Linie.
@@ -212,6 +212,9 @@ export function classifyPath(
   if (p.startsWith("/ueber-uns")) return { kind: "about", target: null };
   if (p.startsWith("/support")) return { kind: "support", target: null };
   if (p.startsWith("/rechtliches")) return { kind: "legal", target: null };
+  // Exakt statt startsWith: /ki hat keine Unterseiten, und seit die 404-Beacons echte
+  // Müll-Adressen melden, darf ein Tippfehler wie /kirche nicht hier einsortiert werden.
+  if (p === "/ki") return { kind: "ai", target: null };
   // Bleibt "other" dauerhaft gross, fehlt oben eine Zeile. scripts/analytics-check.ts
   // schlägt Alarm, sobald eine neue Route hier landet.
   return { kind: "other", target: null };
