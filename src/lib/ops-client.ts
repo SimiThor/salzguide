@@ -55,6 +55,8 @@ function worthReporting(message: string): boolean {
 export function reportClientError(
   error: unknown,
   source: "seite" | "global" = "seite",
+  /** Nur vom window-Listener gesetzt: Origin des werfenden Skripts (siehe unten). */
+  quelle?: string,
 ): void {
   try {
     if (typeof window === "undefined") return;
@@ -87,6 +89,7 @@ export function reportClientError(
         // senden ist besser als hinterher entfernen.
         path: window.location.pathname,
         source,
+        ...(quelle ? { quelle } : {}),
       }),
     }).catch(() => {
       /* Melden ist Kür. Wenn das auch nicht geht, ist ohnehin gerade alles kaputt. */
@@ -137,7 +140,27 @@ export function reportClientError(
  * Gibt eine Aufräum-Funktion zurück (für useEffect).
  */
 export function listenForClientErrors(): () => void {
-  const onError = (e: ErrorEvent) => reportClientError(e.error ?? e.message, "global");
+  const onError = (e: ErrorEvent) => {
+    // BEOBACHTUNGS-RELEASE für die Fremd-Skript-Frage. Am 09.08.2026 stand fünfmal
+    // `document.querySelector("meta[property='og:type']").content` im Logbuch — kein
+    // Code von uns liest og-Tags, das war ein von iOS eingeschleustes Skript (Share-
+    // Extension oder In-App-Browser), das Open-Graph-Daten abgreifen wollte. Filtern
+    // können wir erst, wenn wir WISSEN, wie WebKit solche Skripte meldet: mit leerem
+    // filename oder mit der Dokument-URL. Deshalb reist hier zunächst nur die Herkunft
+    // mit (Origin oder ein Wort, nie Pfad oder Query — die können Tokens tragen).
+    // Zeigt das Logbuch „leer"/fremd für diese Fehler, kommt als zweiter Schritt das
+    // Tor: nur noch melden, was aus unseren eigenen Bundles kommt.
+    let quelle = "leer";
+    if (e.filename) {
+      try {
+        const origin = new URL(e.filename, window.location.href).origin;
+        quelle = origin === window.location.origin ? "eigen" : origin;
+      } catch {
+        quelle = "unlesbar";
+      }
+    }
+    reportClientError(e.error ?? e.message, "global", quelle);
+  };
   const onRejection = (e: PromiseRejectionEvent) => reportClientError(e.reason, "global");
   window.addEventListener("error", onError);
   window.addEventListener("unhandledrejection", onRejection);

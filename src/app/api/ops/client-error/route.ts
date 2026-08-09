@@ -84,6 +84,16 @@ export async function POST(req: Request) {
   const digest = scrubText(body.digest, 40) || null;
   // Woher die Meldung kommt: aus einer React-Fehlergrenze oder von window.onerror.
   const source = body.source === "global" ? "global" : "seite";
+  // Herkunft des werfenden Skripts (Beobachtungsfeld, siehe ops-client.ts). Client-
+  // geliefert, also hart validiert: eines der drei Wörter oder etwas, das wie ein
+  // Origin aussieht (Schema + Host, ohne Pfad) — alles andere fliegt kommentarlos raus.
+  const rawQuelle = typeof body.quelle === "string" ? body.quelle.slice(0, 120) : "";
+  const quelle =
+    rawQuelle === "eigen" || rawQuelle === "leer" || rawQuelle === "unlesbar"
+      ? rawQuelle
+      : /^[a-z][a-z0-9+.-]{0,20}:\/\/[^/\s]{1,100}$/i.test(rawQuelle)
+        ? rawQuelle
+        : null;
 
   // Die Antwort wartet auf nichts. Ein Browser, der gerade abgestürzt ist, soll nicht auch
   // noch auf unsere Datenbank warten.
@@ -108,7 +118,7 @@ export async function POST(req: Request) {
       group: chunk
         ? `chunk-load:${device}`
         : `client:${device}:${message.replace(/\d+/g, "#").slice(0, 120)}`,
-      detail: { geraet: device, herkunft: source, digest },
+      detail: { geraet: device, herkunft: source, digest, ...(quelle ? { quelle } : {}) },
     });
   });
 
