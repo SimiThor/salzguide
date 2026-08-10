@@ -108,7 +108,7 @@ export const OPS_EVENTS = {
   client_chunk_load: {
     area: "app",
     severity: "info",
-    title: "Chunk nicht geladen (alter Build oder Netz)",
+    title: "Nachgeladener Seiten-Teil fehlt (alter Build oder Netz)",
     // Nach einem Deploy normal: Ein offener Tab mit altem HTML findet seine nachladbaren
     // Teile nicht mehr, der Browser lädt einmal neu (ops-client.ts) und steht damit auf
     // dem frischen Build. Am Umzugstag 09.08.2026 füllte genau das als „Fehler im
@@ -118,7 +118,7 @@ export const OPS_EVENTS = {
     // weil erst eine Häufung OHNE frischen Deploy ein Problem ist.
     alertAfter: 50,
     quietMinutes: 180,
-    hint: "Nach einem Deploy normal: Alte Tabs laden sich einmal selbst neu. Häuft es sich, OHNE dass deployt wurde, liefert der aktuelle Build kaputte Chunk-Pfade oder das CDN klemmt.",
+    hint: "Nach einem Deploy normal: Alte Tabs laden sich einmal selbst neu. Häuft es sich, OHNE dass deployt wurde, verweist der aktuelle Build auf nachladbare Teile, die es nicht gibt, oder das CDN klemmt.",
   },
   ops_selftest: {
     area: "app",
@@ -433,13 +433,16 @@ export function opsPolicy(kind: string): OpsPolicy {
  * Reine Funktion, bewusst HIER: Browser (ops-client.ts entscheidet über den einmaligen
  * Neu-Lade-Versuch) und Server (client-error-Route wählt den Katalog-Eintrag) müssen
  * dieselbe Frage gleich beantworten, und diese Datei ist die einzige, die beide Seiten
- * importieren dürfen. Die Muster decken Turbopack („Failed to load chunk … from module …",
- * exakt so wirft es der Runtime), das alte webpack-Wording und die Browser-Formulierungen
- * für dynamische import()-Fehler ab. Bewusst NICHT das nackte „Failed to fetch": zu
- * allgemein, das würde bei jedem Netz-Schluckauf die Seite neu laden.
+ * importieren dürfen. Die Muster decken Turbopacks BEIDE Deploy-Versatz-Würfe ab
+ * („Failed to load chunk … from module …" aus dem Chunk-Lader und „… but the module
+ * factory is not available …" aus instantiateModule, wenn der Chunk zwar lädt, aber
+ * zum alten Graphen gehört), dazu das alte webpack-Wording und die Browser-
+ * Formulierungen für dynamische import()-Fehler. Bewusst NICHT das nackte
+ * „Failed to fetch": zu allgemein, das würde bei jedem Netz-Schluckauf neu laden.
  */
 const CHUNK_LOAD_PATTERNS = [
   /failed to load chunk/i,
+  /module factory is not available/i,
   /chunkloaderror/i,
   /loading chunk \S+ failed/i,
   /importing a module script failed/i,
