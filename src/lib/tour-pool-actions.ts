@@ -544,8 +544,11 @@ export async function synthesizePointVoice(input: {
   const lang = (input.lang || "de").toLowerCase();
 
   try {
+    // 96 kbps statt 128: für gesprochene Stimme nicht unterscheidbar, ein Viertel weniger
+    // Storage und Datenverkehr pro Guide-Punkt. Der Bestand wurde am 10.08.2026 auf
+    // 80 kbps mono umkodiert; neue Dateien kommen mit diesem Format schon sparsam an.
     const res = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${elevenVoiceId(lang)}?output_format=mp3_44100_128`,
+      `https://api.elevenlabs.io/v1/text-to-speech/${elevenVoiceId(lang)}?output_format=mp3_44100_96`,
       {
         method: "POST",
         headers: {

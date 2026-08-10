@@ -261,7 +261,12 @@ async function run() {
     console.log(`   MP4: ${out}  (${(s.size / 1e6).toFixed(1)} MB)`);
 
     // ---- Clean-Variante: dieselben Frames OHNE Text-Overlay, für die eigene Videoproduktion.
-    // Höhere Qualität (CRF 18) zum Weiterschneiden, ohne Tonspur (der Schnitt bringt eigenen Ton).
+    // Zum Weiterschneiden, ohne Tonspur (der Schnitt bringt eigenen Ton).
+    // CRF 23 statt 18: halbe Datei bei gemessen gleicher Optik (SSIM 0,984 am
+    // Aignerpark-Intro, 10,6 -> 5,8 MB). Die Clean-Dateien waren mit 551 MB der grösste
+    // Posten im Storage, und der StoryMaker lädt sie komplett in den Browser - jede MB
+    // zählt doppelt (Speicher UND Ladezeit beim Story-Schneiden). Der Bestand wurde am
+    // 10.08.2026 einmalig auf CRF 23 umkodiert; dieser Wert hält künftige Renders klein.
     console.log("-> ffmpeg baut das Clean-MP4 …");
     await ffmpeg([
       "-y",
@@ -269,7 +274,7 @@ async function run() {
       "-i", join(cleanDir, "frame-%05d.png"),
       "-c:v", "libx264",
       "-preset", "medium",
-      "-crf", "18",
+      "-crf", "23",
       "-pix_fmt", "yuv420p",
       "-movflags", "+faststart",
       "-r", String(fps),
