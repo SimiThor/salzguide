@@ -456,7 +456,7 @@ export default function WaterExplore({
                           className="relative h-12 w-12 shrink-0 overflow-hidden rounded-[12px]"
                           aria-hidden
                         >
-                          <Image src={sp.image} alt="" fill sizes="48px" quality={50} className="object-cover" />
+                          <Image src={sp.image} alt="" fill sizes="48px" quality={62} className="object-cover" />
                         </span>
                       ) : (
                         <span

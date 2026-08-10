@@ -46,6 +46,7 @@ export default function MediaSlot({
       width={image.width}
       height={image.height}
       sizes={sizes}
+      quality={62}
       priority={priority}
       className={className}
     />

@@ -74,6 +74,7 @@ export default function LandingVideo({
                 // Am iPhone volle Spaltenbreite, am Desktop die halbe Spalte. Ohne diese
                 // Angabe lädt next/image auf dem Handy das Desktop-Bild.
                 sizes="(min-width: 768px) 380px, 100vw"
+                quality={62}
                 onError={() => setPosterBroken(true)}
                 className="object-cover"
               />

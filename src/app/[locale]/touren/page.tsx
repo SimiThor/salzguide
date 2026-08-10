@@ -92,6 +92,7 @@ export default async function ToursPage({
                     alt=""
                     fill
                     sizes="(min-width: 640px) 380px, 100vw"
+                    quality={62}
                     // Die ersten Cover sind das LCP dieser Seite -> sofort laden.
                     priority={i < 2}
                     className="object-cover"

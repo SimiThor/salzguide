@@ -227,7 +227,7 @@ function Thumb({ spot }: { spot: AdminHomeSpot }) {
   return (
     <span className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-[8px] bg-black/[0.06] text-[15px]">
       {spot.imageUrl ? (
-        <Image src={spot.imageUrl} alt="" width={36} height={36} className="h-full w-full object-cover" />
+        <Image src={spot.imageUrl} alt="" width={36} height={36} quality={62} className="h-full w-full object-cover" />
       ) : (
         <span aria-hidden>{spot.emoji ?? "📍"}</span>
       )}
