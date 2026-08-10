@@ -2048,6 +2048,55 @@ export async function refreshIntroRenderList(): Promise<IntroRenderItem[]> {
   return getIntroRenderList();
 }
 
+/**
+ * Clean-Fassung eines Intros AUF ABRUF rendern lassen (Workflow export-intro-clean.yml).
+ * Die Datei landet als GitHub-Artefakt am Lauf (5 Tage, dann weg) und NIE im Storage;
+ * warum, steht am Clean-Block in scripts/render-intro.ts. Kein DB-Status wie beim
+ * normalen Render: Es gibt keine Warteschlangen-Anzeige, der Download passiert auf GitHub.
+ */
+export async function triggerIntroCleanExport(
+  slug: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const gate = await requireAdmin();
+  if (!gate.ok) return { ok: false, error: gate.error };
+
+  const token = process.env.GITHUB_ACTIONS_TOKEN;
+  const repo = process.env.GITHUB_REPO; // "owner/name"
+  if (!token || !repo) {
+    return {
+      ok: false,
+      error: "GitHub ist nicht konfiguriert (GITHUB_ACTIONS_TOKEN / GITHUB_REPO fehlen).",
+    };
+  }
+
+  // try/catch wie bei triggerIntroRender: Netzfehler sollen als Meldung zurückkommen,
+  // nicht als geworfener Fehler aus der Action.
+  let res: Response;
+  try {
+    res = await fetch(
+      `https://api.github.com/repos/${repo}/actions/workflows/export-intro-clean.yml/dispatches`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/vnd.github+json",
+          "X-GitHub-Api-Version": "2022-11-28",
+          "User-Agent": "salzguide-admin",
+        },
+        body: JSON.stringify({ ref: "main", inputs: { slug } }),
+        signal: AbortSignal.timeout(15000),
+      },
+    );
+  } catch {
+    return { ok: false, error: "GitHub ist gerade nicht erreichbar. Bitte nochmal versuchen." };
+  }
+
+  if (res.status !== 204) {
+    return { ok: false, error: `Workflow konnte nicht gestartet werden (GitHub ${res.status}).` };
+  }
+  return { ok: true };
+}
+
 // Dasselbe für einen einzelnen Spot (Spot-Unterseite). Gibt eine Liste zurück, damit beide
 // Seiten denselben Nachlade-Haken benutzen können (useIntroRenderItems).
 export async function refreshIntroRenderItem(slug: string): Promise<IntroRenderItem[]> {
