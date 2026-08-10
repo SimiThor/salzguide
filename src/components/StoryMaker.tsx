@@ -39,16 +39,25 @@ export default function StoryMaker({
   route,
   stats,
   introUrl,
+  introPreviewUrl,
   introPosterUrl,
 }: {
   slug: string;
   route: [number, number][];
   stats: { label: string; value: string }[];
   introUrl?: string | null;
+  /**
+   * Kleine 720p-Fassung NUR für das Hintergrund-Autoplay hier (1,9 statt 5,1 MB je
+   * Seitenansicht). Der Story-Schnitt (StoryVideoPanel) bekommt weiter introUrl in
+   * voller Qualität. Fehlt die Vorschau-Datei, fällt onError auf introUrl zurück.
+   */
+  introPreviewUrl?: string | null;
   introPosterUrl?: string | null;
 }) {
   const t = useTranslations("Detail.storyMaker");
   const [open, setOpen] = useState(false);
+  // true = Vorschau-Datei war nicht ladbar -> grosse Fassung als Rückfall.
+  const [previewBroken, setPreviewBroken] = useState(false);
   const [mode, setMode] = useState<Mode>("photo");
   // Vom aktiven Panel gemeldet: expanded (Editor -> Voll) und busy (Verarbeitung -> Umschalten sperren).
   const [ui, setUi] = useState<StoryPanelUi>({ expanded: false, busy: false });
@@ -186,13 +195,16 @@ export default function StoryMaker({
               {videoInView && (
                 <video
                   ref={bgRef}
-                  src={introUrl}
+                  src={!previewBroken && introPreviewUrl ? introPreviewUrl : introUrl}
                   muted
                   loop
                   autoPlay
                   playsInline
                   preload="none"
                   onLoadedData={() => setHeroReady(true)}
+                  onError={() => {
+                    if (!previewBroken && introPreviewUrl) setPreviewBroken(true);
+                  }}
                   className="absolute inset-0 h-full w-full object-cover"
                 />
               )}

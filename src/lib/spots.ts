@@ -669,6 +669,14 @@ export type SpotDetail = {
   // Aus der Route erzeugtes 3D-Intro (scripts/render-intro.ts). Sprachneutral, eigenes
   // Asset, unabhängig vom hand-hochgeladenen videoUrl. Leer/gesperrt = null.
   introVideoUrl: string | null;
+  /**
+   * Kleine 720p-Fassung fürs Hintergrund-Autoplay der Story-Section (1,9 statt 5,1 MB je
+   * Ansicht, Supabase-Egress-Diät 10.08.2026). KEINE eigene DB-Spalte: Der Dateiname ist
+   * deterministisch (<slug>-<hash>-preview.mp4, gleicher Hash wie das Video), also wird
+   * die URL hier abgeleitet. Fehlt die Datei doch einmal, fällt StoryMaker per onError
+   * auf die grosse Fassung zurück.
+   */
+  introVideoPreviewUrl: string | null;
   introVideoPosterUrl: string | null;
 };
 
@@ -818,6 +826,7 @@ async function querySpotDetail(
       videoUrl: null,
       videoPosterUrl: null,
       introVideoUrl: null,
+      introVideoPreviewUrl: null,
       introVideoPosterUrl: null,
     };
   }
@@ -871,6 +880,8 @@ async function querySpotDetail(
     videoUrl: (data.video_url as string | null) ?? null,
     videoPosterUrl: (data.video_poster_url as string | null) ?? null,
     introVideoUrl: (data.intro_video_url as string | null) ?? null,
+    introVideoPreviewUrl:
+      (data.intro_video_url as string | null)?.replace(/\.mp4$/, "-preview.mp4") ?? null,
     introVideoPosterUrl: (data.intro_video_poster_url as string | null) ?? null,
   };
 }

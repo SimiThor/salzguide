@@ -64,6 +64,7 @@ if (!slug) {
 const base = flag("base") || ENV.RENDER_BASE_URL || "http://localhost:3000";
 const out = flag("out") || `intro-${slug}.mp4`;
 const cleanOut = out.replace(/\.mp4$/i, "-clean.mp4"); // saubere Variante ohne Text-Overlay
+const previewOut = out.replace(/\.mp4$/i, "-preview.mp4"); // 720p für die Story-Section
 const seconds = flag("seconds");
 const fpsArg = flag("fps");
 const width = Number(flag("width") || 1080);
@@ -263,6 +264,32 @@ async function run() {
     const s = await stat(out);
     console.log(`   MP4: ${out}  (${(s.size / 1e6).toFixed(1)} MB)`);
 
+    // ---- Vorschau-Fassung (720p, ohne Ton): das, was die Story-Section wirklich lädt ----
+    // Das Hintergrund-Autoplay zeigt nur einen 16:10-Anschnitt in Kartenbreite; 1080p dafür
+    // auszuliefern kostete 5,1 MB Supabase-Egress PRO SEITENANSICHT. 720p/CRF 27 sind
+    // 1,9 MB bei optisch gleichem Ergebnis hinter Scrim und Anschnitt (gemessen 10.08.2026,
+    // Aignerpark). Die volle Fassung lädt nur noch der Story-Schnitt (StoryVideoPanel).
+    // Ohne Tonspur: Das Autoplay ist stumm, und anders als beim Haupt-MP4 hängt hier kein
+    // Schnitt eine Tonspur an. Aus den PNG-Frames statt aus dem MP4: keine zweite
+    // Kodier-Generation.
+    console.log("-> ffmpeg baut die Vorschau …");
+    await ffmpeg([
+      "-y",
+      "-framerate", String(fps),
+      "-i", join(framesDir, "frame-%05d.png"),
+      "-vf", "scale=720:1280",
+      "-c:v", "libx264",
+      "-preset", "medium",
+      "-crf", "27",
+      "-pix_fmt", "yuv420p",
+      "-an",
+      "-movflags", "+faststart",
+      "-r", String(fps),
+      previewOut,
+    ]);
+    const sp = await stat(previewOut);
+    console.log(`   Vorschau: ${previewOut}  (${(sp.size / 1e6).toFixed(1)} MB)`);
+
     // ---- Clean-Variante: dieselben Frames OHNE Text-Overlay, für die eigene Videoproduktion.
     // Zum Weiterschneiden, ohne Tonspur (der Schnitt bringt eigenen Ton).
     //
@@ -311,7 +338,7 @@ async function run() {
       .toBuffer();
 
     if (doUpload) {
-      await upload(slug!, out, posterWebp);
+      await upload(slug!, out, previewOut, posterWebp);
       await writeRenderStatus(slug!, "idle");
     } else {
       // Auch lokal schreiben: Sonst entsteht das Poster zwar, ist aber nirgends anzusehen,
@@ -330,7 +357,7 @@ async function run() {
   }
 }
 
-async function upload(slug: string, mp4Path: string, posterWebp: Buffer) {
+async function upload(slug: string, mp4Path: string, previewPath: string, posterWebp: Buffer) {
   const supaUrl = ENV.NEXT_PUBLIC_SUPABASE_URL;
   const supaKey = ENV.SUPABASE_SERVICE_ROLE_KEY;
   if (!supaUrl || !supaKey) {
@@ -348,9 +375,12 @@ async function upload(slug: string, mp4Path: string, posterWebp: Buffer) {
 
   const hash = introSourceHash(spot.route_geojson);
   const mp4Path2 = `intro/${slug}-${hash}.mp4`;
+  // Dateiname MUSS zur Ableitung in lib/spots.ts passen (introVideoPreviewUrl wird per
+  // String-Ersetzung aus intro_video_url gebildet, es gibt keine eigene DB-Spalte).
+  const previewPath2 = `intro/${slug}-${hash}-preview.mp4`;
   const posterPath = `intro/${slug}-${hash}.webp`;
 
-  console.log("-> lade Video + Poster nach spot-media …");
+  console.log("-> lade Video + Vorschau + Poster nach spot-media …");
   // ACHTUNG: Dies ist die EINZIGE Stelle im Projekt mit festem Pfad + upsert:true +
   // Jahres-Cache (src/lib/storage.ts warnt genau davor). Sicher NUR, weil der Hash im
   // Namen Route + INTRO_STYLE_VERSION einschliesst: Jede OPTIK-Änderung (Titel, Overlay,
@@ -360,6 +390,10 @@ async function upload(slug: string, mp4Path: string, posterWebp: Buffer) {
     .from(BUCKET)
     .upload(mp4Path2, await readFile(mp4Path), { contentType: "video/mp4", upsert: true, cacheControl: IMMUTABLE });
   if (upV.error) throw new Error(`Video-Upload fehlgeschlagen: ${upV.error.message}`);
+  const upPre = await supabase.storage
+    .from(BUCKET)
+    .upload(previewPath2, await readFile(previewPath), { contentType: "video/mp4", upsert: true, cacheControl: IMMUTABLE });
+  if (upPre.error) throw new Error(`Vorschau-Upload fehlgeschlagen: ${upPre.error.message}`);
   const upP = await supabase.storage
     .from(BUCKET)
     .upload(posterPath, posterWebp, { contentType: "image/webp", upsert: true, cacheControl: IMMUTABLE });
@@ -398,7 +432,7 @@ async function upload(slug: string, mp4Path: string, posterWebp: Buffer) {
   // fällt so automatisch weg. Fehlschläge hier sind unkritisch (Video ist schon
   // gespeichert), daher nur geloggt, nie geworfen.
   try {
-    const keep = new Set([`${slug}-${hash}.mp4`, `${slug}-${hash}.webp`]);
+    const keep = new Set([`${slug}-${hash}.mp4`, `${slug}-${hash}-preview.mp4`, `${slug}-${hash}.webp`]);
     const { data: existing } = await supabase.storage.from(BUCKET).list("intro", { limit: 1000 });
     const stale = (existing ?? [])
       .filter((f) => f.name.startsWith(`${slug}-`) && !keep.has(f.name))

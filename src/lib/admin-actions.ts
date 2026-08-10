@@ -986,8 +986,10 @@ export async function deleteSpot(id: string): Promise<SaveResult> {
     s?.video_url,
     s?.video_poster_url,
     // Die gerenderten Intro-Videos (intro/<slug>-<hash>.*) hängen am Spot und wären
-    // sonst für immer verwaist (je Spot zwei MP4 + ein Poster).
+    // sonst für immer verwaist (Video + 720p-Vorschau + Poster). Die Vorschau hat keine
+    // eigene DB-Spalte, ihr Name leitet sich vom Video ab (siehe lib/spots.ts).
     intro?.intro_video_url,
+    intro?.intro_video_url?.replace(/\.mp4$/, "-preview.mp4"),
     intro?.intro_video_clean_url,
     intro?.intro_video_poster_url,
   ]);
