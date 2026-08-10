@@ -57,19 +57,23 @@ const flag = (name: string) => {
 const hasFlag = (name: string) => argv.includes(`--${name}`);
 
 if (!slug) {
-  console.error("Aufruf: npm run render:intro -- <slug> [--out …] [--seconds …] [--fps …] [--upload]");
+  console.error("Aufruf: npm run render:intro -- <slug> [--out …] [--seconds …] [--fps …] [--clean] [--upload]");
   process.exit(1);
 }
 
 const base = flag("base") || ENV.RENDER_BASE_URL || "http://localhost:3000";
 const out = flag("out") || `intro-${slug}.mp4`;
 const cleanOut = out.replace(/\.mp4$/i, "-clean.mp4"); // saubere Variante ohne Text-Overlay
+const previewOut = out.replace(/\.mp4$/i, "-preview.mp4"); // 720p für die Story-Section
 const seconds = flag("seconds");
 const fpsArg = flag("fps");
 const width = Number(flag("width") || 1080);
 const height = Number(flag("height") || 1920);
 const headed = hasFlag("headed");
 const doUpload = hasFlag("upload");
+// Clean-Fassung (ohne Text-Overlay) nur auf ausdrücklichen Wunsch bauen; siehe Kommentar
+// am Clean-Block unten. --upload lädt sie NIE hoch.
+const withClean = hasFlag("clean");
 const ffmpegBin = ENV.FFMPEG_PATH || "ffmpeg";
 
 const url = new URL(`/render/intro/${slug}`, base);
@@ -260,23 +264,60 @@ async function run() {
     const s = await stat(out);
     console.log(`   MP4: ${out}  (${(s.size / 1e6).toFixed(1)} MB)`);
 
-    // ---- Clean-Variante: dieselben Frames OHNE Text-Overlay, für die eigene Videoproduktion.
-    // Höhere Qualität (CRF 18) zum Weiterschneiden, ohne Tonspur (der Schnitt bringt eigenen Ton).
-    console.log("-> ffmpeg baut das Clean-MP4 …");
+    // ---- Vorschau-Fassung (720p, ohne Ton): das, was die Story-Section wirklich lädt ----
+    // Das Hintergrund-Autoplay zeigt nur einen 16:10-Anschnitt in Kartenbreite; 1080p dafür
+    // auszuliefern kostete 5,1 MB Supabase-Egress PRO SEITENANSICHT. 720p/CRF 27 sind
+    // 1,9 MB bei optisch gleichem Ergebnis hinter Scrim und Anschnitt (gemessen 10.08.2026,
+    // Aignerpark). Die volle Fassung lädt nur noch der Story-Schnitt (StoryVideoPanel).
+    // Ohne Tonspur: Das Autoplay ist stumm, und anders als beim Haupt-MP4 hängt hier kein
+    // Schnitt eine Tonspur an. Aus den PNG-Frames statt aus dem MP4: keine zweite
+    // Kodier-Generation.
+    console.log("-> ffmpeg baut die Vorschau …");
     await ffmpeg([
       "-y",
       "-framerate", String(fps),
-      "-i", join(cleanDir, "frame-%05d.png"),
+      "-i", join(framesDir, "frame-%05d.png"),
+      "-vf", "scale=720:1280",
       "-c:v", "libx264",
       "-preset", "medium",
-      "-crf", "18",
+      "-crf", "27",
       "-pix_fmt", "yuv420p",
+      "-an",
       "-movflags", "+faststart",
       "-r", String(fps),
-      cleanOut,
+      previewOut,
     ]);
-    const sc = await stat(cleanOut);
-    console.log(`   Clean-MP4: ${cleanOut}  (${(sc.size / 1e6).toFixed(1)} MB)`);
+    const sp = await stat(previewOut);
+    console.log(`   Vorschau: ${previewOut}  (${(sp.size / 1e6).toFixed(1)} MB)`);
+
+    // ---- Clean-Variante: dieselben Frames OHNE Text-Overlay, für die eigene Videoproduktion.
+    // Zum Weiterschneiden, ohne Tonspur (der Schnitt bringt eigenen Ton).
+    //
+    // NUR mit --clean, und sie wird nie in den Storage geladen: Clean ist reines Rohmaterial
+    // für eigene Werbevideos und deterministisch aus Route + INTRO_STYLE_VERSION neu
+    // erzeugbar. Dauerhaft gespeichert war sie mit 551 MB der grösste Posten im Supabase-
+    // Storage (Entscheidung 10.08.2026: Bestand gelöscht). Der Abruf-Weg ist der Workflow
+    // export-intro-clean.yml: rendert mit --clean und hängt die Datei als GitHub-Artefakt
+    // an den Lauf (verfällt dort von selbst).
+    // CRF 23 statt 18: halbe Datei bei gemessen gleicher Optik (SSIM 0,984 am
+    // Aignerpark-Intro, 10,6 -> 5,8 MB).
+    if (withClean) {
+      console.log("-> ffmpeg baut das Clean-MP4 …");
+      await ffmpeg([
+        "-y",
+        "-framerate", String(fps),
+        "-i", join(cleanDir, "frame-%05d.png"),
+        "-c:v", "libx264",
+        "-preset", "medium",
+        "-crf", "23",
+        "-pix_fmt", "yuv420p",
+        "-movflags", "+faststart",
+        "-r", String(fps),
+        cleanOut,
+      ]);
+      const sc = await stat(cleanOut);
+      console.log(`   Clean-MP4: ${cleanOut}  (${(sc.size / 1e6).toFixed(1)} MB)`);
+    }
 
     // ---- Poster (WebP): der ERSTE Frame, nichts anderes ----
     // Das Poster liegt im StoryMaker unter dem Video, das bei Frame 1 startet. Ein Poster
@@ -297,7 +338,7 @@ async function run() {
       .toBuffer();
 
     if (doUpload) {
-      await upload(slug!, out, cleanOut, posterWebp);
+      await upload(slug!, out, previewOut, posterWebp);
       await writeRenderStatus(slug!, "idle");
     } else {
       // Auch lokal schreiben: Sonst entsteht das Poster zwar, ist aber nirgends anzusehen,
@@ -305,7 +346,9 @@ async function run() {
       const posterOut = out.replace(/\.mp4$/i, ".webp");
       await writeFile(posterOut, posterWebp);
       console.log(`   Poster: ${posterOut}  (${(posterWebp.length / 1e3).toFixed(0)} kB)`);
-      console.log("\nFertig (lokal, beide Varianten + Poster). Mit --upload landet alles in spot-media + der DB.");
+      console.log(
+        `\nFertig (lokal${withClean ? ", inkl. Clean" : ""}). Mit --upload landet Video + Poster in spot-media + der DB (Clean nie).`,
+      );
     }
   } finally {
     await rm(framesDir, { recursive: true, force: true }).catch(() => {});
@@ -314,7 +357,7 @@ async function run() {
   }
 }
 
-async function upload(slug: string, mp4Path: string, cleanMp4Path: string, posterWebp: Buffer) {
+async function upload(slug: string, mp4Path: string, previewPath: string, posterWebp: Buffer) {
   const supaUrl = ENV.NEXT_PUBLIC_SUPABASE_URL;
   const supaKey = ENV.SUPABASE_SERVICE_ROLE_KEY;
   if (!supaUrl || !supaKey) {
@@ -332,10 +375,12 @@ async function upload(slug: string, mp4Path: string, cleanMp4Path: string, poste
 
   const hash = introSourceHash(spot.route_geojson);
   const mp4Path2 = `intro/${slug}-${hash}.mp4`;
-  const cleanPath = `intro/${slug}-${hash}-clean.mp4`;
+  // Dateiname MUSS zur Ableitung in lib/spots.ts passen (introVideoPreviewUrl wird per
+  // String-Ersetzung aus intro_video_url gebildet, es gibt keine eigene DB-Spalte).
+  const previewPath2 = `intro/${slug}-${hash}-preview.mp4`;
   const posterPath = `intro/${slug}-${hash}.webp`;
 
-  console.log("-> lade Video (normal + clean) + Poster nach spot-media …");
+  console.log("-> lade Video + Vorschau + Poster nach spot-media …");
   // ACHTUNG: Dies ist die EINZIGE Stelle im Projekt mit festem Pfad + upsert:true +
   // Jahres-Cache (src/lib/storage.ts warnt genau davor). Sicher NUR, weil der Hash im
   // Namen Route + INTRO_STYLE_VERSION einschliesst: Jede OPTIK-Änderung (Titel, Overlay,
@@ -345,24 +390,25 @@ async function upload(slug: string, mp4Path: string, cleanMp4Path: string, poste
     .from(BUCKET)
     .upload(mp4Path2, await readFile(mp4Path), { contentType: "video/mp4", upsert: true, cacheControl: IMMUTABLE });
   if (upV.error) throw new Error(`Video-Upload fehlgeschlagen: ${upV.error.message}`);
-  const upC = await supabase.storage
+  const upPre = await supabase.storage
     .from(BUCKET)
-    .upload(cleanPath, await readFile(cleanMp4Path), { contentType: "video/mp4", upsert: true, cacheControl: IMMUTABLE });
-  if (upC.error) throw new Error(`Clean-Video-Upload fehlgeschlagen: ${upC.error.message}`);
+    .upload(previewPath2, await readFile(previewPath), { contentType: "video/mp4", upsert: true, cacheControl: IMMUTABLE });
+  if (upPre.error) throw new Error(`Vorschau-Upload fehlgeschlagen: ${upPre.error.message}`);
   const upP = await supabase.storage
     .from(BUCKET)
     .upload(posterPath, posterWebp, { contentType: "image/webp", upsert: true, cacheControl: IMMUTABLE });
   if (upP.error) throw new Error(`Poster-Upload fehlgeschlagen: ${upP.error.message}`);
 
   const videoUrl = supabase.storage.from(BUCKET).getPublicUrl(mp4Path2).data.publicUrl;
-  const cleanUrl = supabase.storage.from(BUCKET).getPublicUrl(cleanPath).data.publicUrl;
   const posterUrl = supabase.storage.from(BUCKET).getPublicUrl(posterPath).data.publicUrl;
 
   const upd = await supabase
     .from("spots")
     .update({
       intro_video_url: videoUrl,
-      intro_video_clean_url: cleanUrl,
+      // Clean wird nicht mehr gespeichert (Abruf über export-intro-clean.yml). null statt
+      // "stehen lassen": Ein alter Wert zeigte auf eine Datei, die es nicht mehr gibt.
+      intro_video_clean_url: null,
       intro_video_poster_url: posterUrl,
       intro_source_hash: hash,
     })
@@ -375,17 +421,18 @@ async function upload(slug: string, mp4Path: string, cleanMp4Path: string, poste
   }
 
   console.log(
-    `\nFertig & gespeichert:\n  Video:  ${videoUrl}\n  Clean:  ${cleanUrl}\n  Poster: ${posterUrl}\n  Hash:   ${hash}`,
+    `\nFertig & gespeichert:\n  Video:  ${videoUrl}\n  Poster: ${posterUrl}\n  Hash:   ${hash}`,
   );
 
   // ---- Aufräumen: alte Intro-Dateien dieses Spots löschen ----
   // Nach jedem Versions-/Routenwechsel bekommt der Spot neue <slug>-<hash>.* Dateien; die
   // alten würden sonst für immer im Bucket liegen bleiben (nach mehreren Iterationen schnell
   // Hunderte MB). Wir listen intro/ und löschen alles, was mit `<slug>-` beginnt, aber NICHT
-  // zu den drei gerade hochgeladenen Dateien gehört. Fehlschläge hier sind unkritisch (Video
-  // ist schon gespeichert), daher nur geloggt, nie geworfen.
+  // zu den zwei gerade hochgeladenen Dateien gehört; auch eine liegengebliebene Clean-Datei
+  // fällt so automatisch weg. Fehlschläge hier sind unkritisch (Video ist schon
+  // gespeichert), daher nur geloggt, nie geworfen.
   try {
-    const keep = new Set([`${slug}-${hash}.mp4`, `${slug}-${hash}-clean.mp4`, `${slug}-${hash}.webp`]);
+    const keep = new Set([`${slug}-${hash}.mp4`, `${slug}-${hash}-preview.mp4`, `${slug}-${hash}.webp`]);
     const { data: existing } = await supabase.storage.from(BUCKET).list("intro", { limit: 1000 });
     const stale = (existing ?? [])
       .filter((f) => f.name.startsWith(`${slug}-`) && !keep.has(f.name))

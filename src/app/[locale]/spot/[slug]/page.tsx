@@ -541,6 +541,7 @@ export default async function SpotPage({
             route={spot.route}
             stats={storyStats}
             introUrl={spot.introVideoUrl}
+            introPreviewUrl={spot.introVideoPreviewUrl}
             introPosterUrl={spot.introVideoPosterUrl}
           />
         )}

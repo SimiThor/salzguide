@@ -1,0 +1,89 @@
+name: Export Intro Clean-Fassung
+
+# Liefert die Clean-Fassung eines Intro-Videos (ohne Text-Overlay, Rohmaterial für die
+# eigene Videoproduktion) AUF ABRUF: rendern, als Artefakt an den Lauf hängen, fertig.
+# Bewusst KEIN Upload nach Supabase und KEIN DB-Schreiben: Clean-Dateien sind
+# deterministisch aus Route + INTRO_STYLE_VERSION reproduzierbar und lagen als
+# Dauergäste mit 551 MB im Storage (Entscheidung 10.08.2026: nur noch auf Abruf).
+# Das Artefakt räumt GitHub nach 5 Tagen selbst weg.
+#
+# Auslösen: Admin-Seite "Intro-Videos" (Knopf je Spot) oder hier per "Run workflow".
+# Herunterladen: diesen Lauf öffnen, Abschnitt "Artifacts" ganz unten.
+#
+# Secrets: dieselben wie render-intro.yml (dort dokumentiert).
+on:
+  workflow_dispatch:
+    inputs:
+      slug:
+        description: "Spot-Slug (z. B. gaisberg)"
+        required: true
+        type: string
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    # Wie der Render-Job: bauen, rendern, kodieren zusammen gut eine halbe Stunde.
+    timeout-minutes: 45
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      NEXT_PUBLIC_MAPBOX_TOKEN: ${{ secrets.NEXT_PUBLIC_MAPBOX_TOKEN }}
+      # Keine echte Adresse: Der Runner ist sein eigener Server. Siehe siteUrl().
+      NEXT_PUBLIC_SITE_URL: http://localhost:3000
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      RENDER_SECRET: ${{ secrets.RENDER_SECRET }}
+      RENDER_BASE_URL: http://localhost:3000
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      # ubuntu-latest bringt ffmpeg NICHT mit (Begründung in render-intro.yml).
+      - name: ffmpeg installieren
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+          ffmpeg -version | head -1
+
+      - run: npm run build
+
+      - name: Server starten
+        run: |
+          npm start &
+          # Nur fragen, ob der Server antwortet (Begründung in render-intro.yml).
+          for i in $(seq 1 60); do
+            if curl -s -o /dev/null http://localhost:3000/; then
+              echo "Server antwortet nach ${i}x2s."
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Server kam in 120s nicht hoch."
+          exit 1
+
+      # Ein Wiederholungsversuch wie beim normalen Render: einmal fehlende Kacheln
+      # dürfen keine Handarbeit auslösen. OHNE --upload: nichts landet im Storage.
+      - name: Clean-Fassung rendern
+        run: |
+          for versuch in 1 2; do
+            echo "::group::Versuch $versuch für ${{ inputs.slug }}"
+            if node --experimental-strip-types scripts/render-intro.ts "${{ inputs.slug }}" --clean; then
+              echo "::endgroup::"
+              exit 0
+            fi
+            echo "::endgroup::"
+            echo "Versuch $versuch gescheitert."
+            sleep 15
+          done
+          exit 1
+
+      - name: Als Artefakt anhängen
+        uses: actions/upload-artifact@v4
+        with:
+          name: salzguide-intro-${{ inputs.slug }}-clean
+          path: intro-${{ inputs.slug }}-clean.mp4
+          retention-days: 5
+          if-no-files-found: error
