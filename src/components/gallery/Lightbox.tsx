@@ -110,7 +110,7 @@ export default function Lightbox({
         alt: "",
         fill: true,
         sizes: "94vw",
-        quality: 75,
+        quality: 62,
       });
       const img = new window.Image();
       if (props.sizes) img.sizes = props.sizes;
@@ -203,7 +203,7 @@ export default function Lightbox({
                 alt: title,
                 fill: true,
                 sizes: "94vw",
-                quality: 75,
+                quality: 62,
               });
               // Nur die Lade-Attribute übernehmen – Position/Styling macht die className.
               return { src: props.src, srcSet: props.srcSet, sizes: props.sizes };
@@ -297,7 +297,7 @@ export default function Lightbox({
                 i === index ? "ring-white" : "opacity-50 ring-transparent"
               }`}
             >
-              <Image src={url} alt="" fill sizes="56px" quality={50} className="object-cover" />
+              <Image src={url} alt="" fill sizes="56px" quality={62} className="object-cover" />
             </button>
           ))}
         </motion.div>

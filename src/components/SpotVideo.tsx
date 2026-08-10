@@ -39,7 +39,7 @@ export default function SpotVideo({
           // weichgezeichnet, es ist nur ein Farbschleier. Schärfe, die hier geladen wird,
           // zeichnet der Filter direkt wieder weg. Spart ~8x Datenmenge, sieht identisch aus.
           sizes="96px"
-          quality={50}
+          quality={62}
           aria-hidden
           onError={() => setPosterBroken(true)}
           className="scale-110 object-cover blur-2xl"
@@ -73,6 +73,7 @@ export default function SpotVideo({
                   alt=""
                   fill
                   sizes="300px"
+                  quality={62}
                   onError={() => setPosterBroken(true)}
                   className="object-cover"
                 />

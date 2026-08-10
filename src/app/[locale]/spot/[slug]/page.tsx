@@ -419,6 +419,7 @@ export default async function SpotPage({
                     width={40}
                     height={40}
                     sizes="40px"
+                    quality={62}
                     className="h-10 w-10 rounded-full object-cover"
                   />
                 ) : (

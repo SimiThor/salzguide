@@ -279,7 +279,7 @@ function ImageSlotRow({
           } ${slot.previewClass}`}
         >
           {value ? (
-            <Image src={value.src} alt="" fill sizes={slot.previewSize} className="object-cover" />
+            <Image src={value.src} alt="" fill sizes={slot.previewSize} quality={62} className="object-cover" />
           ) : (
             <span className="grid h-full w-full place-items-center text-[11px] text-muted" aria-hidden>
               leer

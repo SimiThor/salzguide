@@ -72,25 +72,26 @@ const nextConfig: NextConfig = {
   // lädt ~44px statt 1600px). Quelle = öffentlicher Supabase-Storage.
   images: {
     formats: ["image/avif", "image/webp"],
-    // Erlaubte Qualitätsstufen (Next 16 lässt nur genau diese zu). 75 = Standard für grosse
-    // Bilder; 62 für Galerie/Hero; 50 für winzige Thumbnails/Icons, wo man den Unterschied
-    // ohnehin nicht sieht. Kleinere Zahl = kleinere Datei.
-    qualities: [50, 62, 75],
-    // WICHTIG für die Storage-Rechnung: Jede Kombination aus (Bild-URL, Breite, Qualität)
-    // lädt EINMAL das komplette Original aus Supabase, bevor sie gerechnet wird. Die Zahl
-    // der erlaubten Breiten ist also direkt die Zahl der möglichen Original-Downloads pro
-    // Bild. Next-Standard sind 16 Breiten (8 device + 8 image); die Liste hier ist auf die
-    // Größen eingedampft, die in der App wirklich vorkommen (alle `sizes=`-Angaben in
-    // src/, jeweils für 1x und 2x Pixeldichte durchgerechnet).
+    // EINE Stufe für alles: 62 ist der Wert, den vorher schon Galerie/Hero nutzten, und
+    // bei Thumbnails sieht man den Unterschied zu 50 nicht. Jede Bild-Stelle setzt
+    // quality={62} explizit oder läuft durch SmoothImage/GalleryImage (Default 62).
+    // 75 bleibt NUR als Sicherheitsnetz erlaubt: Es ist der next/image-Standard, und der
+    // Optimizer lehnt nicht gelistete Stufen hart mit 400 ab. Eine künftig vergessene
+    // quality-Angabe lädt so ein etwas größeres Bild statt gar keines.
+    qualities: [62, 75],
+    // KLEIN / MITTEL / GROSS statt 13 Breiten (Entscheidung 10.08.2026, Vercel-Kontingent):
+    // Jede Kombination aus (Bild-URL, Breite, Qualität, Format) ist ein bezahlter
+    // Optimizer-Job. Drei Breiten drücken die Jobs pro Foto auf höchstens 6
+    // (3 Breiten x 2 Formate x 1 Qualität) und decken trotzdem alle Anzeige-Größen:
     //
-    // deviceSizes = für `sizes`-Angaben mit vw (Hero, Galerie, Karten-Sheet).
-    // 3840 ist raus: unsere Masters sind 1600px breit (Hero 2048, siehe image-upload.ts).
-    // Eine 3840er-Anfrage hätte das volle Original geladen, um daraus nichts Größeres
-    // machen zu können. 2048 bleibt, dafür gibt es mit dem Hero eine echte Quelle.
-    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048],
-    // imageSizes = für feste Pixel-Angaben (Thumbnails, Avatare, Listenbilder).
-    // 16 und 32 sind raus: das kleinste Bild der App ist der 40px-Avatar.
-    imageSizes: [48, 64, 96, 128, 256, 384],
+    // deviceSizes = für `sizes`-Angaben mit vw (Hero, Karten, Galerie).
+    //   1200 = MITTEL: Handy-Hero bei 100vw (2x = 780, 3x = 1170) und alle vw-Karten.
+    //   2048 = GROSS: Landing-Hero und Desktop-Vollbild; unsere Masters sind ohnehin
+    //   nur 1600px (Hero 2048, siehe image-upload.ts), mehr gäbe es nicht.
+    deviceSizes: [1200, 2048],
+    // imageSizes = für feste Pixel-Angaben. 384 = KLEIN: deckt jedes feste Thumbnail
+    // der App (40 bis 128px) auch auf 3x-Displays ab (128 x 3 = 384).
+    imageSizes: [384],
     // Jede Quell-URL zeigt für immer auf dasselbe Bild (fester UUID-Pfad, upsert:false,
     // siehe lib/image-upload.ts). Also darf next/image die einmal gerechnete Fassung ein
     // Jahr behalten, statt sie nach wenigen Stunden neu aus dem Storage zu holen.

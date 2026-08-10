@@ -49,7 +49,9 @@ export default function SmoothImage({
   className = "",
   imgClassName = "object-cover",
   eager = false,
-  quality,
+  // 62 = die EINE Qualitätsstufe der App (next.config.ts). Ohne diesen Default fiele
+  // next/image auf 75 zurück und eröffnete eine zweite Varianten-Welt pro Bild.
+  quality = 62,
   aiOrigin,
   ...rest
 }: SmoothImageProps) {

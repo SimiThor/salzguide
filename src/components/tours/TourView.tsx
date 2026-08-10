@@ -247,6 +247,7 @@ export default function TourView({
               alt=""
               fill
               sizes="(min-width: 768px) 27rem, 100vw"
+              quality={62}
               className="object-cover"
             />
           </div>
@@ -294,7 +295,7 @@ export default function TourView({
                 >
                   {s.imageUrl ? (
                     <span className="relative h-11 w-11 shrink-0 overflow-hidden rounded-[12px] bg-black/5">
-                      <Image src={s.imageUrl} alt="" fill sizes="44px" className="object-cover" />
+                      <Image src={s.imageUrl} alt="" fill sizes="44px" quality={62} className="object-cover" />
                       <span className="absolute left-0.5 top-0.5 flex h-[17px] min-w-[17px] items-center justify-center rounded-full bg-black/55 px-1 text-[10px] font-bold text-white">
                         {s.order}
                       </span>

@@ -59,15 +59,15 @@ export default function ToniAvatar({ size = 40 }: { size?: number }) {
       {showImg ? (
         // next/image statt <img>: Der Avatar wird als 512px-Quadrat hochgeladen
         // (AVATAR_DIM in image-upload.ts), angezeigt wird er mit 40px. Als rohes <img>
-        // lud jeder Seitenaufruf die vollen 512px aus dem Storage. quality 50, weil man
-        // bei 40px Kantenlänge keinen Unterschied sieht.
+        // lud jeder Seitenaufruf die vollen 512px aus dem Storage. quality 62 = die eine
+        // Stufe der App (next.config.ts); bei 40px Kantenlänge sieht man eh nichts.
         <Image
           src={url as string}
           alt=""
           width={size}
           height={size}
           sizes={`${size}px`}
-          quality={50}
+          quality={62}
           onError={() => setFailed(true)}
           className="h-full w-full object-cover"
         />

@@ -46,7 +46,7 @@ export default function HeroImage({
     );
   }
 
-  const common = { sizes: "100vw", priority: true, quality: 75 } as const;
+  const common = { sizes: "100vw", priority: true, quality: 62 } as const;
   const hoch = getImageProps({
     ...common,
     src: portrait.src,
