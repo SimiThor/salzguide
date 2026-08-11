@@ -21,6 +21,8 @@ const TITLE: Record<string, string> = {
   zh: "语言",
   es: "Idioma",
   pt: "Idioma",
+  cs: "Jazyk",
+  hu: "Nyelv",
 };
 
 // iOS-Menü-Indikator (chevron.up.chevron.down): das kleine Auf/Ab-Zeichen, das Apple an

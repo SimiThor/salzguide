@@ -76,7 +76,7 @@ export async function generateMetadata({
 
   // Titel-Muster "Nockstein: Wanderung im Salzburger Land": Spot-Name vorn (Marke der
   // Seite), dahinter Art + Region als Suchbegriff. factSubtype ist bereits in allen
-  // 9 Sprachen übersetzt. Lange Spot-Namen bekommen keinen Zusatz, sonst schneidet
+  // 11 Sprachen übersetzt. Lange Spot-Namen bekommen keinen Zusatz, sonst schneidet
   // Google den Titel ab ("%s · SalzGuide" aus dem Layout kommt ja noch dazu).
   const t = await getTranslations({ locale, namespace: "Meta" });
   const kind = spot.subtype ? factSubtype(spot.subtype, locale) : null;

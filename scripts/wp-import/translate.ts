@@ -6,7 +6,7 @@
 //   npm run wp:translate -- --go          geprüfte Dateien in die Datenbank schreiben
 //
 // WARUM KEIN API-AUFRUF: Der Admin-Knopf „In alle Sprachen übersetzen" schickt jeden Spot
-// einzeln an die Anthropic-API und kostet je Aufruf. 95 Spots mal acht Sprachen wären 760
+// einzeln an die Anthropic-API und kostet je Aufruf. 95 Spots mal zehn Sprachen wären 950
 // bezahlte Aufrufe. Hier übersetzt stattdessen die KI in der Sitzung (Abo) und legt das
 // Ergebnis als Datei ab; dieses Skript ist nur Prüfung und Schreiber. Der Prompt-Kern in
 // admin-actions.ts bleibt unangetastet — er ist weiter der Weg für einzelne, spätere Spots.

@@ -98,6 +98,6 @@ export const config = {
   // zur i18n/routing.ts: neue Sprache dort => auch hier ergänzen.
   matcher: [
     "/((?!api|_next|_vercel|render|.*\\..*).*)",
-    "/(de|en|it|nl|ko|fr|zh|es|pt)/:path*",
+    "/(de|en|it|nl|ko|fr|zh|es|pt|cs|hu)/:path*",
   ],
 };

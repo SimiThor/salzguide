@@ -36,7 +36,7 @@ was umgesetzt ist (mit Dateipfaden) und was bewusst nicht. Wer eine KI-Funktion 
 
 | Funktion | Unsere Rolle | Pflicht | Umsetzung |
 |---|---|---|---|
-| Toni-Chat (Claude API, eigene Marke) | Anbieter | 50(1)+(5) sofort, 50(2) spätestens 02.12.2026 | Greeting nennt KI (Ai.greeting, alle 9 Sprachen), Disclaimer in jedem Zustand sichtbar inkl. Paywall (AiAssistant.tsx), Header "dein KI-Local", maschinenlesbar: aiGenerated-Feld + X-AI-Generated-Header (api/ai/chat/route.ts) und data-ai-generated im DOM (AiMessage.tsx) |
+| Toni-Chat (Claude API, eigene Marke) | Anbieter | 50(1)+(5) sofort, 50(2) spätestens 02.12.2026 | Greeting nennt KI (Ai.greeting, alle 11 Sprachen), Disclaimer in jedem Zustand sichtbar inkl. Paywall (AiAssistant.tsx), Header "dein KI-Local", maschinenlesbar: aiGenerated-Feld + X-AI-Generated-Header (api/ai/chat/route.ts) und data-ai-generated im DOM (AiMessage.tsx) |
 | Spot-, Event-, Home-Texte: KI-Entwürfe + 8 KI-Übersetzungen | Betreiber (Redaktion) | 50(4) nicht einschlägig: Reisetipps sind kein "öffentliches Interesse" im Sinn der Kommissions-FAQ, UND es gilt die Ausnahme menschliche Prüfung + redaktionelle Verantwortung (Anton) | Redaktions-Workflow in §4; freiwillige Offenlegung auf /ki |
 | Insider-Tipps in Ich-Form benannter Locals | Betreiber | 50(4) nicht einschlägig, aber Irreführungsrisiko (UWG) | Regel in §4: nur mit Freigabe der benannten Person; Kommentar an generateSpotTexts (admin-actions.ts) |
 | Audio-Touren: synthetische Stimme (ElevenLabs) | Betreiber (ElevenLabs ist TTS-Anbieter) | Kein Deepfake (imitiert keine bestimmte reale Person), Offenlegung trotzdem: Vertrauen + UWG | Sichtbarer Hinweis Tours.aiVoice im Player-Peek (TourView.tsx), ehrliches Tours.subtitle, Abschnitt auf /ki |
@@ -115,7 +115,7 @@ src/lib/ai-origin.ts ('generated' | 'edited' | 'extended' | null = ohne KI).
 - Admin: Kachel-Umschalter im PhotoUploader (Spot-Fotos) und Auswahl je Startseiten-Slot
   (HomeMediaManager).
 - Anzeige: EIN Bauteil AiImageBadge.tsx (dunkle Glas-Pille, Marken-Sparkle, Text aus
-  AiMedia.* in 9 Sprachen, data-ai-origin als maschinenlesbares Attribut).
+  AiMedia.* in 11 Sprachen, data-ai-origin als maschinenlesbares Attribut).
 - VOLLSTÄNDIGE Abdeckung (seit 03.08.2026, zweiter Durchgang): Die Offenlegung muss
   spätestens bei der ERSTEN Exposition stehen (Art. 50(4)+(5)), und die erste Exposition
   eines Hero-Fotos ist meist eine Karte. Deshalb ist imageAiOrigin ein PFLICHTFELD in
@@ -149,7 +149,7 @@ src/lib/ai-origin.ts ('generated' | 'edited' | 'extended' | null = ohne KI).
 
 ## 6. Sichtbare Transparenz (Nutzerseite)
 
-- /ki ("Mit Liebe und KI gemacht"): erklärt alle KI-Hilfen in 9 Sprachen,
+- /ki ("Mit Liebe und KI gemacht"): erklärt alle KI-Hilfen in 11 Sprachen,
   src/app/[locale]/ki/page.tsx, Namensraum AiTransparency. Seit 03.08.2026 sagt der
   Abschnitt "Was ohne KI läuft" ehrlich, dass einzelne Bilder mit KI erweitert und
   am Bild gekennzeichnet sind.
