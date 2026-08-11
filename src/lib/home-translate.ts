@@ -152,7 +152,7 @@ async function translateHomeTo(
       }
       // Platzhalter verloren -> Feld verwerfen. Lieber die deutsche Zeile stehen lassen
       // (das Auffangnetz in home-content.ts greift dann) als „{count}" auf der Seite oder
-      // eine Kachel ohne Zahl. Ein stiller Fehler in acht Sprachen wäre teuer.
+      // eine Kachel ohne Zahl. Ein stiller Fehler in zehn Sprachen wäre teuer.
       if (!keepsPlaceholders(de, out)) {
         rejected.push(k);
         continue;

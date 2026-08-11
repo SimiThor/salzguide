@@ -71,7 +71,7 @@ export default async function AdminSettingsPage({
         description="Fehler, Missbrauchsversuche und die Hintergrund-Läufe."
       />
 
-      {/* Vorschau aller Mails, in allen neun Sprachen. Steht hier und nicht unter Nutzer,
+      {/* Vorschau aller Mails, in allen elf Sprachen. Steht hier und nicht unter Nutzer,
           weil man sie nicht bei einer bestimmten Person braucht, sondern beim Nachschauen,
           was eigentlich rausgeht. Verschickt nichts. */}
       <AdminNavCard

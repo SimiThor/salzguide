@@ -92,7 +92,7 @@ export async function submitWithdrawal(
 
   // 2) Benachrichtigung an den Unternehmer zur Bearbeitung (Antwort geht an den Kunden).
   //    Bleibt nackter Text und bleibt deutsch: Sie geht an uns, nicht an einen Kunden. Eine
-  //    Meldung an den eigenen Schreibtisch braucht kein Design und keine neun Sprachen, sie
+  //    Meldung an den eigenen Schreibtisch braucht kein Design und keine elf Sprachen, sie
   //    muss vollständig und schnell lesbar sein.
   await sendEmail({
     to: LEGAL.email,

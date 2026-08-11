@@ -20,7 +20,7 @@ import { OPS_EVENTS, SEVERITY_LOOK, type OpsKind } from "./ops-events";
 //
 // WARUM NICHT renderMailShell() AUS mail-layout.ts:
 // Der Rahmen dort ist für Nutzer-Mails gebaut: Begrüssung, Unterschrift von Anton, Links zu
-// Instagram und TikTok, Abmelde-Zeile, alles in neun Sprachen. Eine Betriebsmeldung mit
+// Instagram und TikTok, Abmelde-Zeile, alles in elf Sprachen. Eine Betriebsmeldung mit
 // „Liebe Grüsse, Anton" darunter wäre absurd, und der Aufwand, den Rahmen für beides passend
 // zu machen, wäre grösser als diese vierzig Zeilen. Was ÜBERNOMMEN wird, sind die Farben und
 // die Bauweise (Tabellen, Inline-Styles, weil Outlook mit der Word-Engine rendert) — die

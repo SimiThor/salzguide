@@ -1,6 +1,6 @@
 // Kleine, self-contained Wort-Tabellen für die WENIGEN Stellen, die NICHT über next-intl
 // (messages/*.json) laufen können: Datenlabels für den KI-Assistenten „Toni" (werden dem
-// Modell als Fakten übergeben) und Fallback-Namen. Deutsch = Basis/Fallback für alle 9 Sprachen.
+// Modell als Fakten übergeben) und Fallback-Namen. Deutsch = Basis/Fallback für alle 11 Sprachen.
 // Für „echte" UI-Texte gilt weiterhin next-intl – das hier ist nur der Server-Rand.
 import { DEFAULT_LOCALE } from "@/i18n/locales";
 
@@ -21,6 +21,8 @@ export const TODAY: LabelMap = {
   zh: "今天",
   es: "hoy",
   pt: "hoje",
+  cs: "dnes",
+  hu: "ma",
 };
 
 export const TOMORROW: LabelMap = {
@@ -33,6 +35,8 @@ export const TOMORROW: LabelMap = {
   zh: "明天",
   es: "mañana",
   pt: "amanhã",
+  cs: "zítra",
+  hu: "holnap",
 };
 
 export const ALL_DAY: LabelMap = {
@@ -45,6 +49,8 @@ export const ALL_DAY: LabelMap = {
   zh: "全天",
   es: "todo el día",
   pt: "o dia todo",
+  cs: "celý den",
+  hu: "egész nap",
 };
 
 export const CLOSED: LabelMap = {
@@ -57,6 +63,8 @@ export const CLOSED: LabelMap = {
   zh: "休息",
   es: "cerrado",
   pt: "fechado",
+  cs: "zavřeno",
+  hu: "zárva",
 };
 
 // Standard-Ortsname fürs Wetter-Widget (lokalisierte Exonyme der Stadt Salzburg).
@@ -70,6 +78,8 @@ export const WEATHER_PLACE: LabelMap = {
   zh: "萨尔茨堡",
   es: "Salzburgo",
   pt: "Salzburgo",
+  cs: "Salcburk",
+  hu: "Salzburg",
 };
 
 // Fallback-Name einer generierten Audio-Runde (falls die KI keinen Namen liefert).
@@ -83,4 +93,6 @@ export const AUDIO_WALK_FALLBACK: LabelMap = {
   zh: "你的音频漫步",
   es: "Tu paseo en audio",
   pt: "O teu passeio em áudio",
+  cs: "Tvůj audiookruh",
+  hu: "A te audioköröd",
 };

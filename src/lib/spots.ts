@@ -131,6 +131,8 @@ const LOCKED_NAME: Record<string, string> = {
   zh: "秘密景点",
   es: "Lugar secreto",
   pt: "Lugar secreto",
+  cs: "Tajný tip",
+  hu: "Titkos hely",
 };
 // Exportiert: auch die See-Spot-Teaser auf /wasser (lib/water-temp.ts) tragen diesen Namen.
 export function lockedName(locale: string): string {
