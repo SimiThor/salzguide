@@ -425,14 +425,41 @@ export const OPS_EVENTS = {
     //      die Meldestelle überhaupt gibt.
     //   b) Die Richtlinie hat GEHALTEN und etwas Fremdes abgewehrt.
     //
-    // Beides will man sehen, aber keines rechtfertigt eine Mail beim ersten Mal: Der
-    // grösste Teil dessen, was Browser hier melden, sind Erweiterungen im Gerät des
-    // Besuchers. Die filtert die Route schon weg (api/ops/csp-report), aber nie
-    // vollständig. Fünf gleiche Verstösse in drei Stunden sind ein Muster, einer ist
-    // ein Zufall.
-    alertAfter: 5,
+    // ═══════════════════════════════════════════════════════════════════════════════
+    //  DIESE ART MAILT NIE (alertAfter: 0). Zwei Anläufe waren nötig, hier stehen beide.
+    // ═══════════════════════════════════════════════════════════════════════════════
+    //
+    // Am 11.08.2026, Stunden nach dem Umstellen auf scharf, kamen zwei Alarmmails über
+    // `cdn.honey.io` — die Honey-Shopping-Erweiterung in Antons eigenem Browser. Sie lädt
+    // ihre Bilder und Styles per https nach und geht deshalb durch den Schema-Filter der
+    // Route (der fängt nur `chrome-extension:` und Verwandte).
+    //
+    // ERSTER ANLAUF, richtig aber nicht ausreichend: Die Route zählt jede Person je
+    // Fingerabdruck nur EINMAL pro Ruhefenster (siehe api/ops/csp-report). `imFenster`
+    // bedeutet seither „so viele VERSCHIEDENE Besucher" statt „so oft". Antons ein Rechner
+    // ergibt damit eine Zeile statt fünf. Das bleibt so, es ist die ehrlichere Zahl.
+    //
+    // WARUM DAS NICHT REICHT: Honey hat Millionen Nutzer. Sobald echter Verkehr da ist,
+    // bringen fünf verschiedene Besucher mit derselben Erweiterung die Schwelle wieder ins
+    // Rutschen — seltener, aber genauso falsch. Und eine Liste bekannter
+    // Erweiterungs-CDNs zu pflegen ist aussichtslos, es kommen ständig neue dazu.
+    //
+    // WARUM NICHT EINFACH DIE SCHWELLE HOCH: Weil der Unterschied nicht in der Menge
+    // liegt. Das hier ist die EINZIGE Ereignis-Art, deren Meldungen mehrheitlich von
+    // Software erzeugt werden, die uns nicht gehört, auf Geräten, die uns nicht gehören.
+    // Eine Zahl, die fremde Erweiterungen zuverlässig aussperrt UND eine echte Lücke
+    // zuverlässig durchlässt, gibt es nicht.
+    //
+    // ALSO: nur Logbuch, nie Mail. Was dadurch NICHT verloren geht — jeder Verstoß steht
+    // weiterhin vollständig in der Chronik, und das war der eigentliche Zweck: Ohne die
+    // Route wüssten wir von einer Lücke gar nichts, weil eine blockierte Anfrage den
+    // Browser nie verlässt. Was eine echte Lücke stattdessen verrät: Sie trifft ALLE
+    // Besucher, also fällt das kaputte Stück App sofort auf (und meldet sich meist
+    // ohnehin als `client_error`). Nach einem Deploy, der eine neue fremde Quelle
+    // dazunimmt, gehört ein Blick ins Logbuch — so steht es in docs/34 §C3.
+    alertAfter: 0,
     quietMinutes: 180,
-    hint: "Unten steht Direktive und blockierte Herkunft. Ist die Herkunft eine von UNS genutzte (mapbox, supabase, cloudflare, blob), fehlt sie in der CSP in next.config.ts — dann ist dieser Teil der App für Besucher gerade kaputt und gehört sofort ergänzt. Ist sie fremd, hat die Richtlinie getan, was sie soll.",
+    hint: "Nur Logbuch, diese Art verschickt keine Mail. Unten steht Direktive und blockierte Herkunft. Kennst du die Herkunft nicht (honey.io, grammarly und ähnliche), war es eine Browser-Erweiterung eines Besuchers — die Richtlinie hat getan, was sie soll, nichts zu tun. Ist es eine von UNS genutzte Quelle (mapbox, supabase, cloudflare, blob), fehlt sie in der CSP in next.config.ts, und dann ist dieser Teil der App für alle kaputt. „Im Zeitfenster\" zählt verschiedene Besucher: eine hohe Zahl heisst „trifft alle\" und damit uns.",
   },
   config_missing: {
     area: "security",

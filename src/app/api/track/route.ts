@@ -25,7 +25,7 @@ import { NextResponse, after } from "next/server";
 import { createHash } from "node:crypto";
 import { LOCALE_CODES } from "@/i18n/locales";
 import { createServiceClient } from "@/lib/supabase/service";
-import { logOps, subjectFromRequest } from "@/lib/ops";
+import { logOps, subjectFromRequest, isRealSite } from "@/lib/ops";
 import { foreignOrigin } from "@/lib/same-origin";
 import {
   trackEvent,
@@ -116,6 +116,19 @@ export async function POST(req: Request) {
   // Crawl-Aufruf. Ein Textvergleich statt drei Roundtrips. Warum überhaupt: lib/analytics.ts.
   const ua = req.headers.get("user-agent");
   if (isBotUserAgent(ua)) return new NextResponse(null, { status: 204 });
+
+  // Nur die echte Seite zählt — und die Entscheidung fällt HIER, auf dem Server.
+  //
+  // Analytics.tsx prüft schon `NODE_ENV !== "production"` und schickt lokal nichts. Das
+  // reicht aber nicht, weil `NODE_ENV` in einer Client-Komponente beim BUILD eingebacken
+  // wird: Ein Produktions-Build, den man lokal mit `next start` zum Prüfen startet, trägt
+  // "production" im Bündel und feuert den Beacon munter in die ECHTE Tabelle. Genau so sind
+  // am 11.08.2026 beim CSP-Durchlauf Test-Seitenaufrufe in der Reichweitenmessung gelandet.
+  // Dieselbe Wurzel wie beim Logbuch, siehe `isRealSite()` in lib/ops.ts.
+  //
+  // Die Prüfung des Clients bleibt trotzdem stehen: Sie spart im Normalfall den Umweg über
+  // das Netz. Verlassen tun wir uns auf diese hier.
+  if (!isRealSite()) return new NextResponse(null, { status: 204 });
 
   let body: Record<string, unknown>;
   try {

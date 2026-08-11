@@ -141,6 +141,15 @@ Report-Only jahrelang meldet, ohne dass jemand hinsieht.
 Kommentar-Leiste). Bewusst nicht „Vorschau auf Report-Only": Dann prüfte die Vorschau die
 Richtlinie nicht mehr und der erste echte Test wäre die Produktion.
 
+**`csp_violation` mailt NICHT, es steht nur im Logbuch** (Katalog-Eintrag in
+`lib/ops-events.ts`, dort auch die ausführliche Begründung). Kurz: Es ist die einzige
+Ereignis-Art, deren Meldungen mehrheitlich von fremden Browser-Erweiterungen auf fremden
+Geräten stammen — am 11.08.2026 kamen prompt zwei Fehlalarme über `cdn.honey.io`. Die Route
+zählt seither je Person nur einmal, „Im Zeitfenster" bedeutet also **verschiedene Besucher**.
+**Daraus folgt eine Gewohnheit:** Nach jedem Deploy, der eine neue fremde Quelle dazunimmt
+(Kartendienst, Widget, Schriftart, Zahlungs-Widget), einmal ins Logbuch auf `csp_violation`
+schauen. Eine echte Lücke trifft ALLE Besucher, steht dort also mit einer hohen Zahl.
+
 **Bleibt offen:** `script-src` trägt weiter `'unsafe-inline'` (Next.js hängt Hydrations-Daten
 inline ein, JSON-LD ebenso). Gegen eingeschleustes Inline-JavaScript schützt die Policy
 deshalb nicht — wohl aber gegen Abfluss (`connect-src`), fremde Skript-Herkünfte,
