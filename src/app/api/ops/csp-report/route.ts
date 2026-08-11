@@ -44,6 +44,7 @@
 //   · `original-policy` — das ist unser eigener Header, den kennen wir.
 import { NextResponse, after } from "next/server";
 import { logOps, bumpOpsCounter, subjectFromRequest } from "@/lib/ops";
+import { OPS_EVENTS } from "@/lib/ops-events";
 import { scrubPath } from "@/lib/ops-scrub";
 import { clientIp, classifyDevice } from "@/lib/analytics";
 
@@ -52,6 +53,32 @@ export const runtime = "nodejs";
 /** Obergrenze je Adresse und Stunde. Ein Seitenaufruf meldet im Ernstfall mehrere Verstöße. */
 const WINDOW_SECONDS = 3600;
 const MAX_PER_IP = 30;
+
+/**
+ * Je Person und Fingerabdruck EINE Meldung pro Fenster — die Zeile, die aus dem Zähler ein
+ * brauchbares Signal macht.
+ *
+ * ═══════════════════════════════════════════════════════════════════════════════════════
+ *  WARUM: Wiederholungen sagen nichts, VERSCHIEDENE BESUCHER sagen alles
+ * ═══════════════════════════════════════════════════════════════════════════════════════
+ *
+ * Am 11.08.2026, zwei Stunden nach dem Umstellen auf scharf, standen vier Verstöße gegen
+ * `cdn.honey.io` im Logbuch — die Honey-Shopping-Erweiterung in Antons Browser, die ihre
+ * Sachen per https nachlädt und deshalb durch den Schema-Filter oben glatt durchgeht. Bei
+ * `alertAfter: 5` fehlte EIN Aufruf der Explore-Seite bis zur Alarmmail über eine fremde
+ * Browser-Erweiterung. Eine Erweiterungs-CDN-Liste zu pflegen ist aussichtslos, es kommen
+ * ständig neue dazu.
+ *
+ * Der Unterschied, der wirklich trägt, ist ein anderer: **Eine Lücke in UNSERER Policy
+ * trifft jeden Besucher. Eine Browser-Erweiterung trifft genau einen.** Also zählt der
+ * Katalog ab jetzt nicht mehr, wie oft es knallt, sondern bei WIE VIELEN. Honey ergibt eine
+ * einzige Zeile und nie einen Alarm, während eine echte Lücke die Schwelle in Minuten
+ * reisst, weil sie bei allen gleichzeitig auftritt.
+ *
+ * Das Fenster ist bewusst das Ruhefenster aus dem Katalog und keine eigene Zahl: Nur wenn
+ * beide gleich lang sind, bedeutet `imFenster` sauber „so viele verschiedene Leute".
+ */
+const SUBJECT_WINDOW_SECONDS = OPS_EVENTS.csp_violation.quietMinutes * 60;
 
 /** Ein Bericht ist ein paar hundert Byte. Alles darüber ist kein Browser. */
 const MAX_BYTES = 8000;
@@ -194,6 +221,17 @@ export async function POST(req: Request) {
       if (count > MAX_PER_IP) return;
     }
     for (const r of unique.values()) {
+      // Hat DIESE Person denselben Verstoß in diesem Fenster schon gemeldet, ist er
+      // notiert — ein zweites Mal sagt nichts Neues (Begründung bei
+      // SUBJECT_WINDOW_SECONDS). Ohne Subjekt (kein ermittelbarer Absender, auf Vercel
+      // praktisch nie) läuft alles in EINEN Topf: lieber einmal zu wenig melden als eine
+      // Erweiterung als „viele Besucher" auszugeben.
+      const seen = await bumpOpsCounter(
+        `csp-seen:${subject ?? "anon"}:${r.directive}:${r.blocked}`,
+        SUBJECT_WINDOW_SECONDS,
+      );
+      if (seen > 1) continue;
+
       let path: string | null = null;
       try {
         path = scrubPath(new URL(r.documentUri).pathname);
