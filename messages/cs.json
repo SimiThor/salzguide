@@ -141,6 +141,15 @@
     "free": "Zdarma",
     "allDay": "Celý den",
     "today": "Dnes",
+    "dateFilter": {
+      "title": "Vyber termín",
+      "weekend": "Víkend",
+      "next7": "Nejbližších 7 dní",
+      "reset": "Vymazat",
+      "apply": "{count, plural, =0 {Žádné akce} one {Zobrazit 1 akci} few {Zobrazit # akce} other {Zobrazit # akcí}}",
+      "empty": "V tomhle termínu nic není.",
+      "allDates": "Zobrazit všechny termíny"
+    },
     "website": "Oficiální stránka",
     "save": "Uložit",
     "saved": "Uloženo",

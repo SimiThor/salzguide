@@ -141,6 +141,15 @@
     "free": "무료",
     "allDay": "종일",
     "today": "오늘",
+    "dateFilter": {
+      "title": "날짜 선택",
+      "weekend": "주말",
+      "next7": "다음 7일",
+      "reset": "초기화",
+      "apply": "{count, plural, =0 {이벤트 없음} other {이벤트 #개 보기}}",
+      "empty": "이 기간에는 맞는 이벤트가 없어요.",
+      "allDates": "전체 날짜 보기"
+    },
     "website": "공식 페이지",
     "save": "저장",
     "saved": "저장됨",

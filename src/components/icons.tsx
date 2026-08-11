@@ -39,6 +39,21 @@ export const ChevronRight = ({ className }: IconProps) => (
   </Line>
 );
 
+export const ChevronDown = ({ className }: IconProps) => (
+  <Line className={className}>
+    <path d="m6 9 6 6 6-6" />
+  </Line>
+);
+
+// Kalenderblatt: Ringe oben, kräftige Trennlinie unter dem Kopf – so liest es sich auch
+// bei 16px noch als Kalender und nicht als leeres Kästchen.
+export const Calendar = ({ className }: IconProps) => (
+  <Line className={className}>
+    <rect x="3" y="5" width="18" height="16" rx="4" />
+    <path d="M8 2.5v4M16 2.5v4M3 10h18" />
+  </Line>
+);
+
 // Dreieck-Schwerpunkt liegt exakt im viewBox-Zentrum (12,12) -> optisch mittig im
 // runden Button, ganz ohne Margin-Hack. Runde Ecken via Stroke-Linejoin.
 export const Play = ({ className = "h-6 w-6" }: IconProps) => (
