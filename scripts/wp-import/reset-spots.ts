@@ -18,6 +18,7 @@ import { writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { createClient } from "@supabase/supabase-js";
 import { removeSpotMediaFiles } from "../../src/lib/blur-preview.ts";
+import { selectAll } from "./select-all.ts";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -40,7 +41,12 @@ async function main() {
   }
 
   const ids = spots.map((s) => s.id as string);
-  const { data: translations } = await db.from("spot_translations").select("*").in("spot_id", ids);
+  // Seitenweise: 95 Spots mal 13 Sprachen sind 1235 Zeilen, PostgREST liefert ohne range()
+  // nur 1000 (siehe select-all.ts). Eine abgeschnittene Sicherung merkt man erst, wenn man
+  // sie braucht, und dann ist der Bestand gelöscht.
+  const translations = await selectAll<Record<string, unknown>>((from, to) =>
+    db.from("spot_translations").select("*").in("spot_id", ids).range(from, to),
+  );
   const { data: media } = await db.from("media").select("*").in("spot_id", ids);
 
   // Sicherung IMMER schreiben, auch im Trockenlauf. Wer erst löscht und dann merkt, dass

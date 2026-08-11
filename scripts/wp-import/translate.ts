@@ -24,6 +24,7 @@ import { createClient } from "@supabase/supabase-js";
 import { stripEmDashFields } from "../../src/lib/em-dash.ts";
 import { hashSpotTexts, type SpotTextFields } from "../../src/lib/spot-hash.ts";
 import { TARGET_LOCALES, localeMeta } from "../../src/i18n/locales.ts";
+import { selectAll } from "./select-all.ts";
 
 const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPA_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -157,13 +158,18 @@ async function main() {
 
   const { data: spots, error: spotErr } = await db.from("spots").select("id, slug").order("slug");
   if (spotErr) throw spotErr;
-  const { data: rows, error: trErr } = await db
-    .from("spot_translations")
-    .select("spot_id, lang, title, short_desc, general, insider_tip, section_a, section_b, location_text, source_hash");
-  if (trErr) throw trErr;
+  // Seitenweise: die Tabelle ist über 1000 Zeilen (siehe select-all.ts). Ohne das fehlten
+  // vier der 95 deutschen Zeilen, und dieses Skript meldete für sie „kein deutscher Text
+  // in der Datenbank" und übersprang sie stillschweigend.
+  const rows = await selectAll<Record<string, unknown>>((from, to) =>
+    db
+      .from("spot_translations")
+      .select("spot_id, lang, title, short_desc, general, insider_tip, section_a, section_b, location_text, source_hash")
+      .range(from, to),
+  );
 
   const deBySpot = new Map<string, Texts>();
-  for (const r of rows!) {
+  for (const r of rows) {
     if (r.lang !== "de") continue;
     const t = leer();
     for (const f of FIELD_LIST) t[f] = ((r as Record<string, string | null>)[FIELDS[f]] ?? "") as string;
