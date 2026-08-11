@@ -13,6 +13,7 @@ import { runAssistant } from "@/lib/ai-assistant";
 import type { AiChatMessage } from "@/lib/ai-types";
 import { recordAiInsight } from "@/lib/ai-insights";
 import { logOps, subjectFromRequest } from "@/lib/ops";
+import { foreignOrigin } from "@/lib/same-origin";
 import {
   trackEvent,
   visitorHash as analyticsVisitorHash,
@@ -132,27 +133,20 @@ function sanitizeMessages(raw: unknown): AiChatMessage[] {
 
 export async function POST(req: Request) {
   // CSRF/Cross-Site-Schutz: Die App ruft same-origin auf. Ist ein Origin-Header
-  // gesetzt und passt NICHT zum Host, ist es ein Cross-Site-Aufruf -> ablehnen
-  // (verhindert, dass eine fremde Seite fremde KI-Kontingente verbraucht).
-  const originHeader = req.headers.get("origin");
-  if (originHeader) {
-    let originHost = "";
-    try {
-      originHost = new URL(originHeader).host;
-    } catch {
-      /* ungültiger Origin */
-    }
-    if (originHost !== req.headers.get("host")) {
-      // Hier wiegt der Riegel schwerer als bei der Reichweitenmessung: Wer von aussen auf
-      // diesen Endpunkt schreibt, verbraucht unser Claude-Kontingent, also echtes Geld.
-      await logOps("suspicious_request", {
-        message: `KI-Anfrage von fremder Herkunft (${originHost || "unlesbar"}) abgewiesen.`,
-        path: "/api/ai/chat",
-        subject: subjectFromRequest(req),
-        group: "origin:ai",
-      });
-      return NextResponse.json({ error: "forbidden" }, { status: 403 });
-    }
+  // gesetzt und passt NICHT zu unserer Seite, ist es ein Cross-Site-Aufruf -> ablehnen
+  // (verhindert, dass eine fremde Seite fremde KI-Kontingente verbraucht). Die
+  // Entscheidung trifft lib/same-origin.ts — eine Stelle für alle Schreib-Endpunkte.
+  const foreign = foreignOrigin(req);
+  if (foreign) {
+    // Hier wiegt der Riegel schwerer als bei der Reichweitenmessung: Wer von aussen auf
+    // diesen Endpunkt schreibt, verbraucht unser Claude-Kontingent, also echtes Geld.
+    await logOps("suspicious_request", {
+      message: `KI-Anfrage von fremder Herkunft (${foreign}) abgewiesen.`,
+      path: "/api/ai/chat",
+      subject: subjectFromRequest(req),
+      group: "origin:ai",
+    });
+    return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
   // Body-Size-Cap (Speicher-DoS): legitimer Verlauf ist << 100 KB (24 Turns × ~1600 Zeichen).
