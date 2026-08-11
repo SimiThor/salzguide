@@ -150,11 +150,69 @@ zählt seither je Person nur einmal, „Im Zeitfenster" bedeutet also **verschie
 (Kartendienst, Widget, Schriftart, Zahlungs-Widget), einmal ins Logbuch auf `csp_violation`
 schauen. Eine echte Lücke trifft ALLE Besucher, steht dort also mit einer hohen Zahl.
 
-**Bleibt offen:** `script-src` trägt weiter `'unsafe-inline'` (Next.js hängt Hydrations-Daten
-inline ein, JSON-LD ebenso). Gegen eingeschleustes Inline-JavaScript schützt die Policy
-deshalb nicht — wohl aber gegen Abfluss (`connect-src`), fremde Skript-Herkünfte,
-`<base>`-Umbiegen und Formular-Exfiltration. Der Nonce-Umbau (Nonce aus dem Proxy +
-`'strict-dynamic'`) ist ein eigener Schritt.
+### C3a. ⏸️ Nonce statt `'unsafe-inline'` — am 11.08.2026 GEMESSEN und BEWUSST VERTAGT
+
+> ⏸️ heisst hier: **entschieden, nicht offen.** Kein Rest-Punkt, den noch jemand abarbeiten
+> muss (dafür steht ⬜ in diesem Dokument), sondern eine Abwägung mit Zahlen und einem
+> Auslöser, ab dem sie neu zu treffen ist. Wer den Punkt aufgreifen will, liest zuerst
+> „Wann neu prüfen" ganz unten.
+
+`script-src` trägt weiter `'unsafe-inline'` (Next.js hängt Hydrations-Daten inline ein,
+JSON-LD ebenso). Gegen eingeschleustes Inline-JavaScript schützt die Policy deshalb nicht.
+Wohl aber gegen Abfluss (`connect-src`), fremde Skript-Herkünfte, `<base>`-Umbiegen und
+Formular-Exfiltration.
+
+Dieser Abschnitt hielt jahrelang „besser: Nonce statt unsafe-inline" fest, ohne dass jemand
+den Preis kannte. Der ist jetzt gemessen, damit die Frage nicht alle paar Monate von vorn
+beginnt.
+
+**Drei Befunde, die den Umbau bestimmen:**
+
+1. **Eine Nonce kostet das Vorrendern.** Next liest sie aus dem Header der ANFRAGE
+   (`app-render.js`, `getScriptNonceFromHeader`). Was pro Aufruf verschieden ist, kann nicht
+   beim Build gebacken werden. Betroffen: **100 Seiten**, darunter die Startseite in allen 13
+   Sprachen, `/ki` und alle Rechtstexte.
+2. **`style-src 'unsafe-inline'` bliebe trotzdem stehen.** Eine Nonce wirkt auf
+   `<style>`-Blöcke, nicht auf `style="…"`-Attribute. Bei 67 Stellen mit `style={{…}}` plus
+   Framer Motion in 23 Dateien (schreibt Style-Attribute während jeder Animation) ist das
+   nicht erreichbar. „CSP ganz ohne unsafe-inline" ist mit diesem Stack kein mögliches Ziel.
+3. **Der Header käme aus zwei Quellen.** Die Nonce entsteht nur im Proxy, und der läuft
+   bewusst nicht auf `/api`, `/_next`, `/render` und Dateien. Die Policy müsste also nach
+   `src/lib/csp.ts` und von dort in Proxy UND `next.config.ts` gelesen werden, dazu die
+   404-Route (baut ihr HTML selbst und bringt ein eigenes Inline-Skript mit).
+
+**Die Messung** (gleiche Seite, gleicher Produktions-Build, nur der Renderweg getauscht;
+je 40 Aufrufe, Median):
+
+| | TTFB Median | p90 | Cache |
+|---|---|---|---|
+| vorgerendert (heute) | 2,7 ms | 3,5 ms | `x-nextjs-cache: HIT` |
+| pro Aufruf gerendert | 14,6 ms | 17,5 ms | keiner |
+
+Also **rund 12 ms zusätzliche Rechenzeit je Aufruf**, Faktor 5,4. Zwei Vorab-Befürchtungen
+hat die Messung ausgeräumt: Die vier DB-Abfragen der Startseite laufen NICHT pro Aufruf neu
+(14,6 ms sind für eine Supabase-Runde zu schnell, die Daten bleiben gecacht), und gegen die
+echten **230 ms** TTFB von salzguide.com sind 12 ms rund 5 Prozent, also für Besucher nicht
+wahrnehmbar. Nicht gemessen: Verhalten unter paralleler Last.
+
+**Entscheidung (Anton, 11.08.2026): nicht bauen.** Nicht wegen der Geschwindigkeit, die
+Zahlen geben das nicht her, sondern weil dauerhafte Komplexität (zwei Header-Quellen,
+Nonce-Durchreichung, 100 Seiten ohne Cache-Treffer) gegen einen Nutzen steht, für den es
+heute keinen Weg gibt: Fremdes HTML kommt nirgends in eine Seite. React escapet, die zwei
+`dangerouslySetInnerHTML`-Stellen sind JSON-LD (dort wird jede spitze Klammer vor dem
+Einsetzen in ihre Unicode-Escape-Form umgeschrieben, siehe `components/JsonLd.tsx`) und ein
+fest verdrahteter Style-String. Tonis Parser baut React-Knoten statt HTML.
+
+**Wann neu prüfen (der Auslöser, nicht ein Datum):** Sobald irgendwo fremder oder
+nutzergenerierter Text als HTML gerendert wird. Also wenn eine Stelle `dangerouslySetInnerHTML`
+mit nicht-konstantem Inhalt bekommt, eine Markdown-Bibliothek mit HTML-Ausgabe dazukommt, oder
+Nutzer Inhalte beisteuern (Kommentare, Bewertungen, eigene Spots). Dann kippt die Rechnung
+sofort, und die drei Befunde oben sind der Bauplan.
+
+**Was stattdessen gemacht wurde**, weil es dasselbe Risiko billiger trifft: Tonis Links
+laufen seit dem 11.08.2026 über eine Erlaubnis-Liste (`src/lib/ai-links.ts`, PR #229). Der
+Prüfauftrag dorthin kam aus genau dieser Abwägung, und er hat eine echte Lücke gefunden,
+gegen die eine Nonce nichts ausgerichtet hätte.
 
 Anthropic-/Google-/ORS-/ElevenLabs-Calls laufen server-seitig → gehören NICHT in `connect-src`.
 
