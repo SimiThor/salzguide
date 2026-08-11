@@ -23,33 +23,26 @@ function renderInline(
     if (m[1] !== undefined) {
       const label = m[1];
       const url = m[2];
-      if (
-        url.startsWith("/spot/") ||
-        url.startsWith("/events") ||
-        url.startsWith("/wasser")
-      ) {
-        const href = url.startsWith("/events") ? "/events" : url;
+      // Nur Ziele, für die der Server geradesteht. Der eigentliche Riegel sitzt in
+      // lib/ai-links.ts und läuft schon serverseitig; das hier ist der zweite,
+      // unabhängige. Beide fallen auf dieselbe sichere Seite: unbekanntes Ziel ->
+      // die Beschriftung als normaler Text, kein klickbarer Link.
+      //
+      // Der Zweig für externe https-Adressen ist am 11.08.2026 ENTFALLEN. Er rendert
+      // eine fremde Adresse als fetten, rot unterstrichenen Link mitten in einer
+      // SalzGuide-Antwort, und die sieht damit aus wie von uns. Wer ihn wieder
+      // braucht, baut ihn NICHT hier ein, sondern erweitert die Erlaubnis-Liste in
+      // lib/ai-links.ts — sonst gibt es die Entscheidung an zwei Stellen.
+      if (/^\/spot\/[a-z0-9-]+$/.test(url) || url === "/wasser") {
         nodes.push(
           <Link
             key={`${keyPrefix}-l${i}`}
-            href={href}
+            href={url}
             onClick={onNavigate}
             className="font-semibold text-accent underline decoration-accent/40 underline-offset-2"
           >
             {label}
           </Link>,
-        );
-      } else if (/^https?:\/\//.test(url)) {
-        nodes.push(
-          <a
-            key={`${keyPrefix}-a${i}`}
-            href={url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="font-semibold text-accent underline underline-offset-2"
-          >
-            {label}
-          </a>,
         );
       } else {
         nodes.push(label);
