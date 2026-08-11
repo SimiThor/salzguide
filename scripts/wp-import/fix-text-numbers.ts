@@ -12,7 +12,7 @@
 // ungenau, sie widerspricht der Karte auf derselben Bildschirmseite.
 //
 // WARUM DAS SKRIPT AUCH DIE ÜBERSETZUNGEN ANFASST: Die falsche Zahl steht in allen neun
-// Sprachen. Nur Deutsch zu ändern hiesse, den Widerspruch in zehn Sprachen stehen zu lassen
+// Sprachen. Nur Deutsch zu ändern hiesse, den Widerspruch in zwölf Sprachen stehen zu lassen
 // UND alle acht auf „veraltet" zu setzen, weil sich der Quell-Hash ändert. Also wird die
 // Zahl überall ersetzt und die Aktualitäts-Marke neu gesetzt.
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
@@ -78,7 +78,7 @@ const SPALTEN = [
 ] as const;
 
 /**
- * Dieselbe Zahl in allen Schreibweisen, die in den elf Sprachen vorkommen, jeweils mit
+ * Dieselbe Zahl in allen Schreibweisen, die in den dreizehn Sprachen vorkommen, jeweils mit
  * ihrem Ersatz. Zwei Fälle, die man auseinanderhalten muss:
  *   Dezimalzahl  „3,7"   -> „3,7" (de/it/nl/fr/es/pt) und „3.7" (en/ko/zh)
  *   Tausender    „2.300" -> „2.300", „2,300", „2 300" und „2300"

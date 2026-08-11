@@ -11,7 +11,7 @@ export function GET() {
   const base = siteUrl();
   const body = `# SalzGuide
 
-> Ausflugsziele im Salzburger Land auf einer Karte: Wanderungen, Seen, Almen, Aussichtspunkte und Wirtshäuser. Jeden Spot haben wir selbst besucht, zu jedem gibt es einen ehrlichen Tipp. Deutsch ist die Basis, die Seite gibt es in 11 Sprachen.
+> Ausflugsziele im Salzburger Land auf einer Karte: Wanderungen, Seen, Almen, Aussichtspunkte und Wirtshäuser. Jeden Spot haben wir selbst besucht, zu jedem gibt es einen ehrlichen Tipp. Deutsch ist die Basis, die Seite gibt es in 13 Sprachen.
 
 ## Kernseiten (Deutsch)
 
@@ -33,7 +33,7 @@ export function GET() {
 
 ## Weitere Sprachen / More languages
 
-- it, nl, ko, fr, zh, es, pt, cs, hu: gleiche Pfade mit anderem Sprachkürzel, z. B. ${base}/it/explore
+- it, nl, ko, fr, zh, es, pt, pl, cs, hu, sk: gleiche Pfade mit anderem Sprachkürzel, z. B. ${base}/it/explore
 - Vollständige Seitenliste / full page list: ${base}/sitemap.xml
 
 ## KI-Transparenz / AI transparency

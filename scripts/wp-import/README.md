@@ -270,7 +270,7 @@ Sonstige (4). Parks und die Stadt-Sehenswürdigkeiten passen in „City & Nearby
 blieben eine Burg über dem Salzachtal, ein Aussichtspunkt daneben, eine Höhle im Saalachtal
 und der Ortskern von Bad Gastein. Der Winter hat mit „Aussicht & Erholung" längst so eine
 Reihe, dem Sommer fehlte sie. Das Skript legt sie an, schiebt die drei Reihen dahinter um
-eine Position nach hinten und trägt die Titel in allen elf Sprachen ein.
+eine Position nach hinten und trägt die Titel in allen dreizehn Sprachen ein.
 
 **Die Sommerrodelbahn Abtenau bleibt bewusst ohne Reihe.** Sie stand unter „Sonstige" und
 ist weder Aussicht noch Kultur. Sie in die neue Reihe zu legen, wäre genau der Griff, den
@@ -370,9 +370,9 @@ von 95 Kategorien.
 
 Der Lücken-Report (`.wp-cache/report.md`) listet je Spot, wo etwas fehlt.
 
-## Übersetzungen in die zehn Zielsprachen (`wp:translate`)
+## Übersetzungen in die zwölf Zielsprachen (`wp:translate`)
 
-Die 95 deutschen Texte sind 109.000 Zeichen. Mal zehn Sprachen wären das über 900 bezahlte
+Die 95 deutschen Texte sind 109.000 Zeichen. Mal zwölf Sprachen wären das über 1.100 bezahlte
 API-Aufrufe, wenn man den Admin-Knopf „In alle Sprachen übersetzen" 95 Mal drückt. Deshalb
 übersetzt hier die KI in der Sitzung (Abo), und das Skript ist nur Prüfer und Schreiber.
 
@@ -382,7 +382,7 @@ API-Aufrufe, wenn man den Admin-Knopf „In alle Sprachen übersetzen" 95 Mal dr
     npm run wp:translate -- --go             prüfen UND schreiben
     npm run wp:translate -- --only a,b,c ... alles davon auf diese Spots eingegrenzt
 
-Ablage: `.wp-cache/i18n/<slug>.json`, je Datei ein Objekt mit den acht Sprachcodes und
+Ablage: `.wp-cache/i18n/<slug>.json`, je Datei ein Objekt mit den zwölf Sprachcodes und
 darunter denselben sieben Feldern wie in `.wp-cache/drafts/`. `.wp-cache/` ist ausgenommen,
 das Repo ist öffentlich.
 
@@ -454,8 +454,8 @@ niemand mehr an, also löst die Prüfung beide selbst auf.
 
 Zwei Skripte, weil die Fälle verschieden sind:
 
-- **`wp:fix-numbers`** tauscht eine Zahl in ALLEN elf Sprachen und setzt die
-  Aktualitäts-Marke neu. Deutsch allein zu ändern hiesse, den Widerspruch in zehn Sprachen
+- **`wp:fix-numbers`** tauscht eine Zahl in ALLEN dreizehn Sprachen und setzt die
+  Aktualitäts-Marke neu. Deutsch allein zu ändern hiesse, den Widerspruch in zwölf Sprachen
   stehen zu lassen und sie gleichzeitig auf „veraltet" zu setzen. Die Schreibweisen leitet
   das Skript selbst ab: aus „2.300" werden „2,300", „2 300" und „2300".
 - **`wp:fix-claims`** ändert eine Aussage, und zwar NUR auf Deutsch. Deutsch ist die Quelle;

@@ -10,7 +10,9 @@
       "pt": "fácil",
       "zh": "轻松",
       "cs": "lehká",
-      "hu": "könnyű"
+      "hu": "könnyű",
+      "pl": "łatwa",
+      "sk": "ľahká"
     },
     "mittel": {
       "en": "moderate",
@@ -22,7 +24,9 @@
       "pt": "média",
       "zh": "中等",
       "cs": "střední",
-      "hu": "közepes"
+      "hu": "közepes",
+      "pl": "średnia",
+      "sk": "stredná"
     },
     "schwer": {
       "en": "hard",
@@ -34,7 +38,9 @@
       "pt": "difícil",
       "zh": "困难",
       "cs": "těžká",
-      "hu": "nehéz"
+      "hu": "nehéz",
+      "pl": "trudna",
+      "sk": "ťažká"
     }
   },
   "SEASON": {
@@ -48,7 +54,9 @@
       "pt": "Todo o ano",
       "zh": "全年",
       "cs": "Celoročně",
-      "hu": "Egész évben"
+      "hu": "Egész évben",
+      "pl": "Cały rok",
+      "sk": "Celoročne"
     },
     "Frühling bis Herbst": {
       "en": "Spring to autumn",
@@ -60,7 +68,9 @@
       "pt": "Da primavera ao outono",
       "zh": "春至秋",
       "cs": "Od jara do podzimu",
-      "hu": "Tavasztól őszig"
+      "hu": "Tavasztól őszig",
+      "pl": "Od wiosny do jesieni",
+      "sk": "Od jari do jesene"
     },
     "Mai bis Oktober": {
       "en": "May to October",
@@ -72,7 +82,9 @@
       "pt": "De maio a outubro",
       "zh": "5月至10月",
       "cs": "Květen až říjen",
-      "hu": "Májustól októberig"
+      "hu": "Májustól októberig",
+      "pl": "Od maja do października",
+      "sk": "Máj až október"
     },
     "Juni bis September": {
       "en": "June to September",
@@ -84,7 +96,9 @@
       "pt": "De junho a setembro",
       "zh": "6月至9月",
       "cs": "Červen až září",
-      "hu": "Júniustól szeptemberig"
+      "hu": "Júniustól szeptemberig",
+      "pl": "Od czerwca do września",
+      "sk": "Jún až september"
     },
     "April bis Oktober": {
       "en": "April to October",
@@ -96,7 +110,9 @@
       "pt": "De abril a outubro",
       "zh": "4月至10月",
       "cs": "Duben až říjen",
-      "hu": "Áprilistól októberig"
+      "hu": "Áprilistól októberig",
+      "pl": "Od kwietnia do października",
+      "sk": "Apríl až október"
     },
     "Dezember bis März": {
       "en": "December to March",
@@ -108,7 +124,9 @@
       "pt": "De dezembro a março",
       "zh": "12月至3月",
       "cs": "Prosinec až březen",
-      "hu": "Decembertől márciusig"
+      "hu": "Decembertől márciusig",
+      "pl": "Od grudnia do marca",
+      "sk": "December až marec"
     },
     "Sommer": {
       "en": "Summer",
@@ -120,7 +138,9 @@
       "pt": "Verão",
       "zh": "夏季",
       "cs": "Léto",
-      "hu": "Nyár"
+      "hu": "Nyár",
+      "pl": "Lato",
+      "sk": "Leto"
     },
     "Frühling": {
       "en": "Spring",
@@ -132,7 +152,9 @@
       "pt": "Primavera",
       "zh": "春季",
       "cs": "Jaro",
-      "hu": "Tavasz"
+      "hu": "Tavasz",
+      "pl": "Wiosna",
+      "sk": "Jar"
     },
     "Herbst": {
       "en": "Autumn",
@@ -144,7 +166,9 @@
       "pt": "Outono",
       "zh": "秋季",
       "cs": "Podzim",
-      "hu": "Ősz"
+      "hu": "Ősz",
+      "pl": "Jesień",
+      "sk": "Jeseň"
     },
     "Winter": {
       "en": "Winter",
@@ -156,7 +180,9 @@
       "pt": "Inverno",
       "zh": "冬季",
       "cs": "Zima",
-      "hu": "Tél"
+      "hu": "Tél",
+      "pl": "Zima",
+      "sk": "Zima"
     }
   },
   "DURATION": {
@@ -170,7 +196,9 @@
       "pt": "Meio dia",
       "zh": "半天",
       "cs": "Půl dne",
-      "hu": "Fél nap"
+      "hu": "Fél nap",
+      "pl": "Pół dnia",
+      "sk": "Pol dňa"
     },
     "Ganztag": {
       "en": "Full day",
@@ -182,7 +210,9 @@
       "pt": "Dia inteiro",
       "zh": "全天",
       "cs": "Celý den",
-      "hu": "Egész nap"
+      "hu": "Egész nap",
+      "pl": "Cały dzień",
+      "sk": "Celý deň"
     },
     "Tagestour": {
       "en": "Day trip",
@@ -194,7 +224,9 @@
       "pt": "Excursão de um dia",
       "zh": "一日行程",
       "cs": "Celodenní výlet",
-      "hu": "Egynapos túra"
+      "hu": "Egynapos túra",
+      "pl": "Wycieczka całodniowa",
+      "sk": "Celodenný výlet"
     },
     "Mehrtagestour": {
       "en": "Multi-day trip",
@@ -206,7 +238,9 @@
       "pt": "Excursão de vários dias",
       "zh": "多日行程",
       "cs": "Vícedenní výlet",
-      "hu": "Többnapos túra"
+      "hu": "Többnapos túra",
+      "pl": "Wycieczka kilkudniowa",
+      "sk": "Viacdenný výlet"
     }
   },
   "FAME": {
@@ -220,7 +254,9 @@
       "pt": "Joia escondida",
       "zh": "小众宝藏",
       "cs": "Skrytý klenot",
-      "hu": "Rejtett kincs"
+      "hu": "Rejtett kincs",
+      "pl": "Mało znane",
+      "sk": "Skryté miesto"
     },
     "Lokal beliebt": {
       "en": "Local favourite",
@@ -232,7 +268,9 @@
       "pt": "Preferido dos locais",
       "zh": "本地人喜爱",
       "cs": "Oblíbené u místních",
-      "hu": "Helyi kedvenc"
+      "hu": "Helyi kedvenc",
+      "pl": "Lubiane przez lokalsów",
+      "sk": "Obľúbené u miestnych"
     },
     "Bekannt": {
       "en": "Well known",
@@ -244,7 +282,9 @@
       "pt": "Conhecido",
       "zh": "知名",
       "cs": "Známé",
-      "hu": "Ismert"
+      "hu": "Ismert",
+      "pl": "Znane",
+      "sk": "Známe"
     },
     "Institution": {
       "en": "Institution",
@@ -256,7 +296,9 @@
       "pt": "Instituição",
       "zh": "老字号",
       "cs": "Instituce",
-      "hu": "Legendás hely"
+      "hu": "Legendás hely",
+      "pl": "Instytucja",
+      "sk": "Klasika"
     },
     "Touristen-Hotspot": {
       "en": "Tourist hotspot",
@@ -268,7 +310,9 @@
       "pt": "Ponto turístico",
       "zh": "热门景点",
       "cs": "Turistický magnet",
-      "hu": "Turistamágnes"
+      "hu": "Turistamágnes",
+      "pl": "Oblegane przez turystów",
+      "sk": "Turistický magnet"
     }
   },
   "ACCESS": {
@@ -282,7 +326,9 @@
       "es": "Transporte público",
       "pt": "Transportes públicos",
       "cs": "Veřejná doprava",
-      "hu": "Tömegközlekedés"
+      "hu": "Tömegközlekedés",
+      "pl": "Komunikacja publiczna",
+      "sk": "Verejná doprava"
     },
     "auto": {
       "en": "Car",
@@ -294,7 +340,9 @@
       "es": "Coche",
       "pt": "Carro",
       "cs": "Auto",
-      "hu": "Autó"
+      "hu": "Autó",
+      "pl": "Auto",
+      "sk": "Auto"
     },
     "beides": {
       "en": "Transit & Car",
@@ -306,7 +354,9 @@
       "es": "Transporte y coche",
       "pt": "Transportes e carro",
       "cs": "Veřejná doprava i auto",
-      "hu": "Tömegközlekedés és autó"
+      "hu": "Tömegközlekedés és autó",
+      "pl": "Komunikacja publiczna i auto",
+      "sk": "Verejná doprava aj auto"
     }
   },
   "SUBTYPE": {
@@ -320,7 +370,9 @@
       "pt": "Caminhada",
       "zh": "徒步",
       "cs": "Túra",
-      "hu": "Gyalogtúra"
+      "hu": "Gyalogtúra",
+      "pl": "Wędrówka",
+      "sk": "Túra"
     },
     "Rundwanderung": {
       "en": "Loop hike",
@@ -332,7 +384,9 @@
       "pt": "Percurso circular",
       "zh": "环形徒步",
       "cs": "Okružní túra",
-      "hu": "Körtúra"
+      "hu": "Körtúra",
+      "pl": "Trasa w pętli",
+      "sk": "Okružná túra"
     },
     "Bergwanderung": {
       "en": "Mountain hike",
@@ -344,7 +398,9 @@
       "pt": "Caminhada na montanha",
       "zh": "山地徒步",
       "cs": "Horská túra",
-      "hu": "Hegyi túra"
+      "hu": "Hegyi túra",
+      "pl": "Wędrówka górska",
+      "sk": "Horská túra"
     },
     "Bergtour": {
       "en": "Alpine tour",
@@ -356,7 +412,9 @@
       "pt": "Travessia alpina",
       "zh": "登山线路",
       "cs": "Vysokohorská túra",
-      "hu": "Alpesi túra"
+      "hu": "Alpesi túra",
+      "pl": "Wędrówka wysokogórska",
+      "sk": "Vysokohorská túra"
     },
     "Gipfel": {
       "en": "Summit",
@@ -368,7 +426,9 @@
       "pt": "Cume",
       "zh": "山顶",
       "cs": "Vrchol",
-      "hu": "Csúcs"
+      "hu": "Csúcs",
+      "pl": "Szczyt",
+      "sk": "Vrchol"
     },
     "Höhenweg": {
       "en": "High-level trail",
@@ -380,7 +440,9 @@
       "pt": "Trilho de altitude",
       "zh": "高山步道",
       "cs": "Hřebenovka",
-      "hu": "Magashegyi ösvény"
+      "hu": "Magashegyi ösvény",
+      "pl": "Szlak grzbietowy",
+      "sk": "Hrebeňovka"
     },
     "Klettersteig": {
       "en": "Via ferrata",
@@ -392,7 +454,9 @@
       "pt": "Via ferrata",
       "zh": "铁索攀登道",
       "cs": "Via ferrata",
-      "hu": "Via ferrata"
+      "hu": "Via ferrata",
+      "pl": "Via ferrata",
+      "sk": "Ferrata"
     },
     "Themenweg": {
       "en": "Themed trail",
@@ -404,7 +468,9 @@
       "pt": "Trilho temático",
       "zh": "主题步道",
       "cs": "Naučná stezka",
-      "hu": "Tematikus ösvény"
+      "hu": "Tematikus ösvény",
+      "pl": "Ścieżka tematyczna",
+      "sk": "Náučný chodník"
     },
     "Spazierweg": {
       "en": "Walking path",
@@ -416,7 +482,9 @@
       "pt": "Caminho de passeio",
       "zh": "散步小径",
       "cs": "Vycházková trasa",
-      "hu": "Sétaút"
+      "hu": "Sétaút",
+      "pl": "Ścieżka spacerowa",
+      "sk": "Trasa na prechádzku"
     },
     "Spaziergang": {
       "en": "Stroll",
@@ -428,7 +496,9 @@
       "pt": "Passeio",
       "zh": "散步",
       "cs": "Procházka",
-      "hu": "Séta"
+      "hu": "Séta",
+      "pl": "Spacer",
+      "sk": "Prechádzka"
     },
     "Stadtspaziergang": {
       "en": "City walk",
@@ -440,7 +510,9 @@
       "pt": "Passeio pela cidade",
       "zh": "城市漫步",
       "cs": "Procházka městem",
-      "hu": "Városi séta"
+      "hu": "Városi séta",
+      "pl": "Spacer po mieście",
+      "sk": "Prechádzka mestom"
     },
     "See & Baden": {
       "en": "Lake & swimming",
@@ -452,7 +524,9 @@
       "pt": "Lago e banhos",
       "zh": "湖泊与戏水",
       "cs": "Jezero a koupání",
-      "hu": "Tó és fürdőzés"
+      "hu": "Tó és fürdőzés",
+      "pl": "Jezioro i kąpiel",
+      "sk": "Jazero a kúpanie"
     },
     "Bergsee": {
       "en": "Mountain lake",
@@ -464,7 +538,9 @@
       "pt": "Lago de montanha",
       "zh": "高山湖",
       "cs": "Horské jezero",
-      "hu": "Hegyi tó"
+      "hu": "Hegyi tó",
+      "pl": "Jezioro górskie",
+      "sk": "Horské jazero"
     },
     "Badeplatz": {
       "en": "Swimming spot",
@@ -476,7 +552,9 @@
       "pt": "Zona balnear",
       "zh": "戏水点",
       "cs": "Místo ke koupání",
-      "hu": "Fürdőhely"
+      "hu": "Fürdőhely",
+      "pl": "Kąpielisko",
+      "sk": "Miesto na kúpanie"
     },
     "Wasserfall": {
       "en": "Waterfall",
@@ -488,7 +566,9 @@
       "pt": "Cascata",
       "zh": "瀑布",
       "cs": "Vodopád",
-      "hu": "Vízesés"
+      "hu": "Vízesés",
+      "pl": "Wodospad",
+      "sk": "Vodopád"
     },
     "Klamm": {
       "en": "Gorge",
@@ -500,7 +580,9 @@
       "pt": "Desfiladeiro",
       "zh": "峡谷",
       "cs": "Soutěska",
-      "hu": "Szurdok"
+      "hu": "Szurdok",
+      "pl": "Wąwóz",
+      "sk": "Roklina"
     },
     "Freibad": {
       "en": "Outdoor pool",
@@ -512,7 +594,9 @@
       "pt": "Piscina ao ar livre",
       "zh": "露天泳池",
       "cs": "Koupaliště",
-      "hu": "Strandfürdő"
+      "hu": "Strandfürdő",
+      "pl": "Basen odkryty",
+      "sk": "Kúpalisko"
     },
     "Therme": {
       "en": "Thermal spa",
@@ -524,7 +608,9 @@
       "pt": "Termas",
       "zh": "温泉浴场",
       "cs": "Termály",
-      "hu": "Termálfürdő"
+      "hu": "Termálfürdő",
+      "pl": "Termy",
+      "sk": "Termálne kúpele"
     },
     "Schifffahrt": {
       "en": "Boat trip",
@@ -536,7 +622,9 @@
       "pt": "Passeio de barco",
       "zh": "游船",
       "cs": "Plavba lodí",
-      "hu": "Hajókirándulás"
+      "hu": "Hajókirándulás",
+      "pl": "Rejs",
+      "sk": "Plavba loďou"
     },
     "Aussichtspunkt": {
       "en": "Viewpoint",
@@ -548,7 +636,9 @@
       "pt": "Miradouro",
       "zh": "观景点",
       "cs": "Vyhlídka",
-      "hu": "Kilátópont"
+      "hu": "Kilátópont",
+      "pl": "Punkt widokowy",
+      "sk": "Vyhliadka"
     },
     "Fotospot": {
       "en": "Photo spot",
@@ -560,7 +650,9 @@
       "pt": "Ponto fotográfico",
       "zh": "拍照点",
       "cs": "Fotospot",
-      "hu": "Fotópont"
+      "hu": "Fotópont",
+      "pl": "Fotospot",
+      "sk": "Fotospot"
     },
     "Aussichtsturm": {
       "en": "Observation tower",
@@ -572,7 +664,9 @@
       "pt": "Torre panorâmica",
       "zh": "瞭望塔",
       "cs": "Rozhledna",
-      "hu": "Kilátó"
+      "hu": "Kilátó",
+      "pl": "Wieża widokowa",
+      "sk": "Rozhľadňa"
     },
     "Panoramastraße": {
       "en": "Scenic road",
@@ -584,7 +678,9 @@
       "pt": "Estrada panorâmica",
       "zh": "观景公路",
       "cs": "Panoramatická silnice",
-      "hu": "Panorámaút"
+      "hu": "Panorámaút",
+      "pl": "Droga widokowa",
+      "sk": "Panoramatická cesta"
     },
     "Burg & Schloss": {
       "en": "Castle & palace",
@@ -596,7 +692,9 @@
       "pt": "Castelo e palácio",
       "zh": "城堡与宫殿",
       "cs": "Hrad a zámek",
-      "hu": "Vár és kastély"
+      "hu": "Vár és kastély",
+      "pl": "Zamek i pałac",
+      "sk": "Hrad a zámok"
     },
     "Kirche & Dom": {
       "en": "Church & cathedral",
@@ -608,7 +706,9 @@
       "pt": "Igreja e catedral",
       "zh": "教堂与主教座堂",
       "cs": "Kostel a katedrála",
-      "hu": "Templom és dóm"
+      "hu": "Templom és dóm",
+      "pl": "Kościół i katedra",
+      "sk": "Kostol a katedrála"
     },
     "Museum": {
       "en": "Museum",
@@ -620,7 +720,9 @@
       "pt": "Museu",
       "zh": "博物馆",
       "cs": "Muzeum",
-      "hu": "Múzeum"
+      "hu": "Múzeum",
+      "pl": "Muzeum",
+      "sk": "Múzeum"
     },
     "Altstadt & Gasse": {
       "en": "Old town & alleys",
@@ -632,7 +734,9 @@
       "pt": "Centro histórico e vielas",
       "zh": "老城与小巷",
       "cs": "Staré město a uličky",
-      "hu": "Óváros és sikátorok"
+      "hu": "Óváros és sikátorok",
+      "pl": "Starówka i uliczki",
+      "sk": "Staré mesto a uličky"
     },
     "Park & Garten": {
       "en": "Park & garden",
@@ -644,7 +748,9 @@
       "pt": "Parque e jardim",
       "zh": "公园与花园",
       "cs": "Park a zahrada",
-      "hu": "Park és kert"
+      "hu": "Park és kert",
+      "pl": "Park i ogród",
+      "sk": "Park a záhrada"
     },
     "Höhle": {
       "en": "Cave",
@@ -656,7 +762,9 @@
       "pt": "Gruta",
       "zh": "洞穴",
       "cs": "Jeskyně",
-      "hu": "Barlang"
+      "hu": "Barlang",
+      "pl": "Jaskinia",
+      "sk": "Jaskyňa"
     },
     "Schaubetrieb": {
       "en": "Showcase workshop",
@@ -668,7 +776,9 @@
       "pt": "Oficina visitável",
       "zh": "参观工坊",
       "cs": "Provoz s prohlídkou",
-      "hu": "Látványműhely"
+      "hu": "Látványműhely",
+      "pl": "Manufaktura z pokazem",
+      "sk": "Výroba s prehliadkou"
     },
     "Radtour": {
       "en": "Bike tour",
@@ -680,7 +790,9 @@
       "pt": "Passeio de bicicleta",
       "zh": "骑行路线",
       "cs": "Cyklovýlet",
-      "hu": "Bringatúra"
+      "hu": "Bringatúra",
+      "pl": "Trasa rowerowa",
+      "sk": "Cyklovýlet"
     },
     "Mountainbike": {
       "en": "Mountain biking",
@@ -692,7 +804,9 @@
       "pt": "Bicicleta de montanha",
       "zh": "山地车",
       "cs": "Mountainbike",
-      "hu": "Mountain bike"
+      "hu": "Mountain bike",
+      "pl": "Rower górski",
+      "sk": "Horská cyklistika"
     },
     "Klettern": {
       "en": "Climbing",
@@ -704,7 +818,9 @@
       "pt": "Escalada",
       "zh": "攀岩",
       "cs": "Lezení",
-      "hu": "Sziklamászás"
+      "hu": "Sziklamászás",
+      "pl": "Wspinaczka",
+      "sk": "Lezenie"
     },
     "Bergbahn": {
       "en": "Cable car",
@@ -716,7 +832,9 @@
       "pt": "Teleférico",
       "zh": "登山缆车",
       "cs": "Lanovka",
-      "hu": "Hegyi felvonó"
+      "hu": "Hegyi felvonó",
+      "pl": "Kolej linowa",
+      "sk": "Lanovka"
     },
     "Golfplatz": {
       "en": "Golf course",
@@ -728,7 +846,9 @@
       "pt": "Campo de golfe",
       "zh": "高尔夫球场",
       "cs": "Golfové hřiště",
-      "hu": "Golfpálya"
+      "hu": "Golfpálya",
+      "pl": "Pole golfowe",
+      "sk": "Golfové ihrisko"
     },
     "Action & Fun": {
       "en": "Action & fun",
@@ -740,7 +860,9 @@
       "pt": "Ação e diversão",
       "zh": "动感娱乐",
       "cs": "Adrenalin a zábava",
-      "hu": "Kaland és móka"
+      "hu": "Kaland és móka",
+      "pl": "Adrenalina i zabawa",
+      "sk": "Adrenalín a zábava"
     },
     "Winterwanderung": {
       "en": "Winter hike",
@@ -752,7 +874,9 @@
       "pt": "Caminhada de inverno",
       "zh": "冬季徒步",
       "cs": "Zimní túra",
-      "hu": "Téli túra"
+      "hu": "Téli túra",
+      "pl": "Wędrówka zimowa",
+      "sk": "Zimná túra"
     },
     "Schneeschuhwanderung": {
       "en": "Snowshoe hike",
@@ -764,7 +888,9 @@
       "pt": "Caminhada com raquetes",
       "zh": "雪鞋徒步",
       "cs": "Túra na sněžnicích",
-      "hu": "Hótalpas túra"
+      "hu": "Hótalpas túra",
+      "pl": "Wędrówka na rakietach śnieżnych",
+      "sk": "Túra na snežniciach"
     },
     "Rodelbahn": {
       "en": "Toboggan run",
@@ -776,7 +902,9 @@
       "pt": "Pista de trenó",
       "zh": "雪橇道",
       "cs": "Sáňkařská dráha",
-      "hu": "Szánkópálya"
+      "hu": "Szánkópálya",
+      "pl": "Tor saneczkowy",
+      "sk": "Sánkarská dráha"
     },
     "Skigebiet": {
       "en": "Ski resort",
@@ -788,7 +916,9 @@
       "pt": "Estância de esqui",
       "zh": "滑雪场",
       "cs": "Skiareál",
-      "hu": "Síterep"
+      "hu": "Síterep",
+      "pl": "Ośrodek narciarski",
+      "sk": "Lyžiarske stredisko"
     },
     "Langlaufloipe": {
       "en": "Cross-country trail",
@@ -800,7 +930,9 @@
       "pt": "Pista de esqui de fundo",
       "zh": "越野滑雪道",
       "cs": "Běžkařská stopa",
-      "hu": "Sífutópálya"
+      "hu": "Sífutópálya",
+      "pl": "Trasa biegowa",
+      "sk": "Bežecká trať"
     },
     "Eislaufplatz": {
       "en": "Ice rink",
@@ -812,7 +944,9 @@
       "pt": "Pista de gelo",
       "zh": "溜冰场",
       "cs": "Kluziště",
-      "hu": "Korcsolyapálya"
+      "hu": "Korcsolyapálya",
+      "pl": "Lodowisko",
+      "sk": "Klzisko"
     },
     "Spielplatz": {
       "en": "Playground",
@@ -824,7 +958,9 @@
       "pt": "Parque infantil",
       "zh": "游乐场",
       "cs": "Dětské hřiště",
-      "hu": "Játszótér"
+      "hu": "Játszótér",
+      "pl": "Plac zabaw",
+      "sk": "Detské ihrisko"
     },
     "Tierpark & Zoo": {
       "en": "Zoo & wildlife park",
@@ -836,7 +972,9 @@
       "pt": "Zoo e parque de animais",
       "zh": "动物园与野生动物园",
       "cs": "Zoo a obora",
-      "hu": "Állatkert és vadaspark"
+      "hu": "Állatkert és vadaspark",
+      "pl": "Zoo i park dzikich zwierząt",
+      "sk": "Zoo a zvernica"
     },
     "Erlebnisweg": {
       "en": "Adventure trail",
@@ -848,7 +986,9 @@
       "pt": "Trilho de aventura",
       "zh": "探险步道",
       "cs": "Zážitková stezka",
-      "hu": "Élményösvény"
+      "hu": "Élményösvény",
+      "pl": "Ścieżka z atrakcjami",
+      "sk": "Zážitkový chodník"
     },
     "Café": {
       "en": "Café",
@@ -860,7 +1000,9 @@
       "pt": "Café",
       "zh": "咖啡馆",
       "cs": "Kavárna",
-      "hu": "Kávézó"
+      "hu": "Kávézó",
+      "pl": "Kawiarnia",
+      "sk": "Kaviareň"
     },
     "Specialty Coffee": {
       "en": "Specialty Coffee",
@@ -872,7 +1014,9 @@
       "pt": "Specialty Coffee",
       "zh": "精品咖啡",
       "cs": "Výběrová káva",
-      "hu": "Specialty Coffee"
+      "hu": "Specialty Coffee",
+      "pl": "Kawa specialty",
+      "sk": "Výberová káva"
     },
     "Konditorei": {
       "en": "Patisserie",
@@ -884,7 +1028,9 @@
       "pt": "Pastelaria",
       "zh": "西点店",
       "cs": "Cukrárna",
-      "hu": "Cukrászda"
+      "hu": "Cukrászda",
+      "pl": "Cukiernia",
+      "sk": "Cukráreň"
     },
     "Bäckerei": {
       "en": "Bakery",
@@ -896,7 +1042,9 @@
       "pt": "Padaria",
       "zh": "面包店",
       "cs": "Pekárna",
-      "hu": "Pékség"
+      "hu": "Pékség",
+      "pl": "Piekarnia",
+      "sk": "Pekáreň"
     },
     "Eisdiele": {
       "en": "Ice cream parlour",
@@ -908,7 +1056,9 @@
       "pt": "Gelataria",
       "zh": "冰淇淋店",
       "cs": "Zmrzlinárna",
-      "hu": "Fagyizó"
+      "hu": "Fagyizó",
+      "pl": "Lodziarnia",
+      "sk": "Zmrzlináreň"
     },
     "Restaurant": {
       "en": "Restaurant",
@@ -920,7 +1070,9 @@
       "pt": "Restaurante",
       "zh": "餐厅",
       "cs": "Restaurace",
-      "hu": "Étterem"
+      "hu": "Étterem",
+      "pl": "Restauracja",
+      "sk": "Reštaurácia"
     },
     "Gasthof": {
       "en": "Country inn",
@@ -932,7 +1084,9 @@
       "pt": "Estalagem",
       "zh": "乡村客栈餐馆",
       "cs": "Hostinec",
-      "hu": "Fogadó"
+      "hu": "Fogadó",
+      "pl": "Gospoda",
+      "sk": "Hostinec"
     },
     "Wirtshaus": {
       "en": "Tavern",
@@ -944,7 +1098,9 @@
       "pt": "Taberna tradicional",
       "zh": "传统酒馆",
       "cs": "Hospoda",
-      "hu": "Vendéglő"
+      "hu": "Vendéglő",
+      "pl": "Karczma",
+      "sk": "Krčma"
     },
     "Beisl": {
       "en": "Pub",
@@ -956,7 +1112,9 @@
       "pt": "Tasca",
       "zh": "街坊小馆",
       "cs": "Hospůdka",
-      "hu": "Kiskocsma"
+      "hu": "Kiskocsma",
+      "pl": "Knajpa",
+      "sk": "Krčmička"
     },
     "Bistro": {
       "en": "Bistro",
@@ -968,7 +1126,9 @@
       "pt": "Bistrô",
       "zh": "小餐馆",
       "cs": "Bistro",
-      "hu": "Bisztró"
+      "hu": "Bisztró",
+      "pl": "Bistro",
+      "sk": "Bistro"
     },
     "Pizzeria": {
       "en": "Pizzeria",
@@ -980,7 +1140,9 @@
       "pt": "Pizzaria",
       "zh": "披萨店",
       "cs": "Pizzerie",
-      "hu": "Pizzéria"
+      "hu": "Pizzéria",
+      "pl": "Pizzeria",
+      "sk": "Pizzeria"
     },
     "Streetfood": {
       "en": "Street food",
@@ -992,7 +1154,9 @@
       "pt": "Comida de rua",
       "zh": "街头小吃",
       "cs": "Street food",
-      "hu": "Street food"
+      "hu": "Street food",
+      "pl": "Street food",
+      "sk": "Street food"
     },
     "Imbiss": {
       "en": "Snack bar",
@@ -1004,7 +1168,9 @@
       "pt": "Snack-bar",
       "zh": "快餐摊",
       "cs": "Rychlé občerstvení",
-      "hu": "Büfé"
+      "hu": "Büfé",
+      "pl": "Budka z jedzeniem",
+      "sk": "Bufet"
     },
     "Foodtruck": {
       "en": "Food truck",
@@ -1016,7 +1182,9 @@
       "pt": "Food truck",
       "zh": "餐车",
       "cs": "Food truck",
-      "hu": "Food truck"
+      "hu": "Food truck",
+      "pl": "Food truck",
+      "sk": "Food truck"
     },
     "Vegan & Vegetarisch": {
       "en": "Vegan & vegetarian",
@@ -1028,7 +1196,9 @@
       "pt": "Vegano e vegetariano",
       "zh": "素食与纯素",
       "cs": "Veganské a vegetariánské",
-      "hu": "Vegán és vegetáriánus"
+      "hu": "Vegán és vegetáriánus",
+      "pl": "Wegańskie i wegetariańskie",
+      "sk": "Vegánske a vegetariánske"
     },
     "Feinkost": {
       "en": "Deli",
@@ -1040,7 +1210,9 @@
       "pt": "Mercearia gourmet",
       "zh": "精品食材店",
       "cs": "Lahůdky",
-      "hu": "Delikátesz"
+      "hu": "Delikátesz",
+      "pl": "Delikatesy",
+      "sk": "Lahôdky"
     },
     "Bar": {
       "en": "Bar",
@@ -1052,7 +1224,9 @@
       "pt": "Bar",
       "zh": "酒吧",
       "cs": "Bar",
-      "hu": "Bár"
+      "hu": "Bár",
+      "pl": "Bar",
+      "sk": "Bar"
     },
     "Cocktailbar": {
       "en": "Cocktail bar",
@@ -1064,7 +1238,9 @@
       "pt": "Bar de cocktails",
       "zh": "鸡尾酒吧",
       "cs": "Koktejlový bar",
-      "hu": "Koktélbár"
+      "hu": "Koktélbár",
+      "pl": "Bar koktajlowy",
+      "sk": "Kokteilový bar"
     },
     "Weinbar": {
       "en": "Wine bar",
@@ -1076,7 +1252,9 @@
       "pt": "Bar de vinhos",
       "zh": "葡萄酒吧",
       "cs": "Vinný bar",
-      "hu": "Borbár"
+      "hu": "Borbár",
+      "pl": "Bar winny",
+      "sk": "Vínny bar"
     },
     "Heuriger": {
       "en": "Wine tavern",
@@ -1088,7 +1266,9 @@
       "pt": "Taberna de vinho",
       "zh": "新酒酒馆",
       "cs": "Vinný sklípek",
-      "hu": "Borozó"
+      "hu": "Borozó",
+      "pl": "Winiarnia",
+      "sk": "Vínna pivnica"
     },
     "Biergarten": {
       "en": "Beer garden",
@@ -1100,7 +1280,9 @@
       "pt": "Cervejaria ao ar livre",
       "zh": "啤酒花园",
       "cs": "Pivní zahrádka",
-      "hu": "Sörkert"
+      "hu": "Sörkert",
+      "pl": "Ogródek piwny",
+      "sk": "Pivná záhrada"
     },
     "Brauerei": {
       "en": "Brewery",
@@ -1112,7 +1294,9 @@
       "pt": "Fábrica de cerveja",
       "zh": "啤酒厂",
       "cs": "Pivovar",
-      "hu": "Sörfőzde"
+      "hu": "Sörfőzde",
+      "pl": "Browar",
+      "sk": "Pivovar"
     },
     "Berghütte": {
       "en": "Mountain hut",
@@ -1124,7 +1308,9 @@
       "pt": "Refúgio de montanha",
       "zh": "山间小屋",
       "cs": "Horská chata",
-      "hu": "Menedékház"
+      "hu": "Menedékház",
+      "pl": "Schronisko górskie",
+      "sk": "Horská chata"
     },
     "Almhütte": {
       "en": "Alpine hut",
@@ -1136,7 +1322,9 @@
       "pt": "Cabana alpina",
       "zh": "高山牧屋",
       "cs": "Salaš",
-      "hu": "Alpesi kunyhó"
+      "hu": "Alpesi kunyhó",
+      "pl": "Bacówka",
+      "sk": "Salaš"
     },
     "Gipfelrestaurant": {
       "en": "Summit restaurant",
@@ -1148,7 +1336,9 @@
       "pt": "Restaurante no cume",
       "zh": "山顶餐厅",
       "cs": "Restaurace na vrcholu",
-      "hu": "Hegytetői étterem"
+      "hu": "Hegytetői étterem",
+      "pl": "Restauracja na szczycie",
+      "sk": "Reštaurácia na vrchole"
     },
     "Jausenstation": {
       "en": "Snack stop",
@@ -1160,7 +1350,9 @@
       "pt": "Paragem para lanche",
       "zh": "简餐驿站",
       "cs": "Občerstvení u cesty",
-      "hu": "Falatozó"
+      "hu": "Falatozó",
+      "pl": "Bufet na szlaku",
+      "sk": "Občerstvenie na trase"
     }
   },
   "SUBTYPE_GROUPS": {
@@ -1269,7 +1461,9 @@
       "pt": "Cidade de Salzburgo",
       "zh": "萨尔茨堡市",
       "cs": "Město Salcburk",
-      "hu": "Salzburg városa"
+      "hu": "Salzburg városa",
+      "pl": "Miasto Salzburg",
+      "sk": "Mesto Salzburg"
     },
     "Altstadt": {
       "en": "Old Town",
@@ -1281,7 +1475,9 @@
       "pt": "Cidade Velha",
       "zh": "老城区",
       "cs": "Staré město",
-      "hu": "Óváros"
+      "hu": "Óváros",
+      "pl": "Stare Miasto",
+      "sk": "Staré Mesto"
     },
     "Neustadt": {
       "en": "New Town",
@@ -1293,7 +1489,9 @@
       "pt": "Cidade Nova",
       "zh": "新城区",
       "cs": "Nové město",
-      "hu": "Újváros"
+      "hu": "Újváros",
+      "pl": "Nowe Miasto",
+      "sk": "Nové Mesto"
     },
     "Elisabeth-Vorstadt": {
       "en": "Elisabeth Suburb",
@@ -1305,7 +1503,9 @@
       "pt": "Subúrbio de Elisabeth",
       "zh": "伊丽莎白郊区",
       "cs": "Elisabeth-Vorstadt",
-      "hu": "Elisabeth-külváros"
+      "hu": "Elisabeth-külváros",
+      "pl": "Elisabeth-Vorstadt",
+      "sk": "Elisabeth-Vorstadt"
     },
     "Salzburg-Süd": {
       "en": "Salzburg South",
@@ -1317,7 +1517,9 @@
       "pt": "Salzburgo Sul",
       "zh": "萨尔茨堡南区",
       "cs": "Salcburk-jih",
-      "hu": "Dél-Salzburg"
+      "hu": "Dél-Salzburg",
+      "pl": "Salzburg-Południe",
+      "sk": "Salzburg-juh"
     },
     "Salzburger Seenland": {
       "en": "Salzburg Lake District",
@@ -1329,7 +1531,9 @@
       "pt": "Região dos Lagos de Salzburgo",
       "zh": "萨尔茨堡湖区",
       "cs": "Salcburská jezerní oblast",
-      "hu": "Salzburgi tóvidék"
+      "hu": "Salzburgi tóvidék",
+      "pl": "Salzburska Kraina Jezior",
+      "sk": "Salzburská jazerná oblasť"
     },
     "Fuschlseeregion": {
       "en": "Lake Fuschl Region",
@@ -1341,7 +1545,9 @@
       "pt": "Região do Lago Fuschl",
       "zh": "富施尔湖地区",
       "cs": "Region Fuschlsee",
-      "hu": "Fuschlsee környéke"
+      "hu": "Fuschlsee környéke",
+      "pl": "Region Fuschlsee",
+      "sk": "Región Fuschlsee"
     },
     "Wolfgangsee-Region": {
       "en": "Lake Wolfgang Region",
@@ -1353,7 +1559,9 @@
       "pt": "Região do Lago Wolfgang",
       "zh": "沃尔夫冈湖地区",
       "cs": "Region Wolfgangsee",
-      "hu": "Wolfgangsee környéke"
+      "hu": "Wolfgangsee környéke",
+      "pl": "Region Wolfgangsee",
+      "sk": "Región Wolfgangsee"
     },
     "Mondseeland": {
       "en": "Lake Mondsee Region",
@@ -1365,7 +1573,9 @@
       "pt": "Região do Lago Mondsee",
       "zh": "蒙德湖地区",
       "cs": "Region Mondsee",
-      "hu": "Mondsee környéke"
+      "hu": "Mondsee környéke",
+      "pl": "Region Mondsee",
+      "sk": "Región Mondsee"
     },
     "Lammertal": {
       "en": "Lammer Valley",
@@ -1377,7 +1587,9 @@
       "pt": "Vale do Lammer",
       "zh": "拉默尔山谷",
       "cs": "Údolí Lammertal",
-      "hu": "Lammer-völgy"
+      "hu": "Lammer-völgy",
+      "pl": "Dolina Lammer",
+      "sk": "Údolie Lammer"
     },
     "Tennengebirge": {
       "en": "Tennen Mountains",
@@ -1389,7 +1601,9 @@
       "pt": "Montanhas Tennen",
       "zh": "特能山脉",
       "cs": "Pohoří Tennengebirge",
-      "hu": "Tennen-hegység"
+      "hu": "Tennen-hegység",
+      "pl": "Masyw Tennengebirge",
+      "sk": "Pohorie Tennengebirge"
     },
     "Gasteinertal": {
       "en": "Gastein Valley",
@@ -1401,7 +1615,9 @@
       "pt": "Vale de Gastein",
       "zh": "加施泰因山谷",
       "cs": "Údolí Gastein",
-      "hu": "Gastein-völgy"
+      "hu": "Gastein-völgy",
+      "pl": "Dolina Gastein",
+      "sk": "Údolie Gastein"
     },
     "Großarltal": {
       "en": "Großarl Valley",
@@ -1413,7 +1629,9 @@
       "pt": "Vale de Großarl",
       "zh": "格罗萨尔山谷",
       "cs": "Údolí Großarl",
-      "hu": "Großarl-völgy"
+      "hu": "Großarl-völgy",
+      "pl": "Dolina Großarl",
+      "sk": "Údolie Großarl"
     },
     "Raurisertal": {
       "en": "Rauris Valley",
@@ -1425,7 +1643,9 @@
       "pt": "Vale de Rauris",
       "zh": "劳里斯山谷",
       "cs": "Údolí Rauris",
-      "hu": "Rauris-völgy"
+      "hu": "Rauris-völgy",
+      "pl": "Dolina Rauris",
+      "sk": "Údolie Rauris"
     },
     "Region Obertauern": {
       "en": "Obertauern Region",
@@ -1437,7 +1657,9 @@
       "pt": "Região de Obertauern",
       "zh": "上陶恩地区",
       "cs": "Region Obertauern",
-      "hu": "Obertauern környéke"
+      "hu": "Obertauern környéke",
+      "pl": "Region Obertauern",
+      "sk": "Región Obertauern"
     },
     "Salzburger Sonnenterrasse": {
       "en": "Salzburg Sun Terrace",
@@ -1449,7 +1671,9 @@
       "pt": "Terraço Solar de Salzburgo",
       "zh": "萨尔茨堡阳光台地",
       "cs": "Salcburská sluneční terasa",
-      "hu": "Salzburgi Napterasz"
+      "hu": "Salzburgi Napterasz",
+      "pl": "Salzburski Taras Słoneczny",
+      "sk": "Salzburská slnečná terasa"
     },
     "Salzburger Saalachtal": {
       "en": "Salzburg Saalach Valley",
@@ -1461,7 +1685,9 @@
       "pt": "Vale do Saalach de Salzburgo",
       "zh": "萨尔茨堡萨拉赫山谷",
       "cs": "Salcburské údolí Saalach",
-      "hu": "Salzburgi Saalach-völgy"
+      "hu": "Salzburgi Saalach-völgy",
+      "pl": "Salzburska Dolina Saalach",
+      "sk": "Salzburské údolie Saalach"
     },
     "Wildkogel-Arena": {
       "en": "Wildkogel Arena",
@@ -1473,7 +1699,9 @@
       "pt": "Arena Wildkogel",
       "zh": "维尔德科格尔阿雷纳",
       "cs": "Wildkogel-Arena",
-      "hu": "Wildkogel-Arena"
+      "hu": "Wildkogel-Arena",
+      "pl": "Wildkogel-Arena",
+      "sk": "Wildkogel-Arena"
     },
     "Ferienregion Nationalpark Hohe Tauern": {
       "en": "Hohe Tauern National Park Holiday Region",
@@ -1485,7 +1713,9 @@
       "pt": "Região de Férias Parque Nacional Hohe Tauern",
       "zh": "高陶恩国家公园度假区",
       "cs": "Prázdninový region Národní park Vysoké Taury",
-      "hu": "Magas-Tauern Nemzeti Park üdülőrégió"
+      "hu": "Magas-Tauern Nemzeti Park üdülőrégió",
+      "pl": "Region wypoczynkowy Parku Narodowego Wysokie Taury",
+      "sk": "Región Národný park Vysoké Taury"
     },
     "Großglockner Hochalpenstraße": {
       "en": "Großglockner High Alpine Road",
@@ -1497,7 +1727,9 @@
       "pt": "Estrada Alpina do Großglockner",
       "zh": "大格洛克纳高山公路",
       "cs": "Vysokohorská silnice Großglockner",
-      "hu": "Großglockner Magashegyi Alpesi Út"
+      "hu": "Großglockner Magashegyi Alpesi Út",
+      "pl": "Wysokogórska Droga Großglockner",
+      "sk": "Vysokohorská cesta Großglockner"
     },
     "Biosphärenpark Lungau": {
       "en": "Lungau Biosphere Reserve",
@@ -1509,7 +1741,9 @@
       "pt": "Reserva da Biosfera do Lungau",
       "zh": "隆高生物圈保护区",
       "cs": "Biosférická rezervace Lungau",
-      "hu": "Lungaui bioszféra-rezervátum"
+      "hu": "Lungaui bioszféra-rezervátum",
+      "pl": "Rezerwat biosfery Lungau",
+      "sk": "Biosférická rezervácia Lungau"
     },
     "Stille-Nacht-Region": {
       "en": "Silent Night Region",
@@ -1521,7 +1755,9 @@
       "pt": "Região da Noite Feliz",
       "zh": "平安夜之乡",
       "cs": "Region Tiché noci",
-      "hu": "Csendes éj-régió"
+      "hu": "Csendes éj-régió",
+      "pl": "Region Cichej Nocy",
+      "sk": "Región Tichej noci"
     },
     "Wolfgangsee": {
       "en": "Lake Wolfgang",
@@ -1533,7 +1769,9 @@
       "pt": "Lago Wolfgang",
       "zh": "沃尔夫冈湖",
       "cs": "Wolfgangsee",
-      "hu": "Wolfgangsee"
+      "hu": "Wolfgangsee",
+      "pl": "Wolfgangsee",
+      "sk": "Wolfgangsee"
     },
     "Fuschlsee": {
       "en": "Lake Fuschl",
@@ -1545,7 +1783,9 @@
       "pt": "Lago Fuschl",
       "zh": "富施尔湖",
       "cs": "Fuschlsee",
-      "hu": "Fuschlsee"
+      "hu": "Fuschlsee",
+      "pl": "Fuschlsee",
+      "sk": "Fuschlsee"
     },
     "Obertrumer See": {
       "en": "Lake Obertrum",
@@ -1557,7 +1797,9 @@
       "pt": "Lago de Obertrum",
       "zh": "上特鲁姆湖",
       "cs": "Obertrumer See",
-      "hu": "Obertrumer See"
+      "hu": "Obertrumer See",
+      "pl": "Obertrumer See",
+      "sk": "Obertrumer See"
     },
     "Grabensee": {
       "en": "Lake Graben",
@@ -1569,7 +1811,9 @@
       "pt": "Lago Graben",
       "zh": "格拉本湖",
       "cs": "Grabensee",
-      "hu": "Grabensee"
+      "hu": "Grabensee",
+      "pl": "Grabensee",
+      "sk": "Grabensee"
     },
     "Wallersee": {
       "en": "Lake Waller",
@@ -1581,7 +1825,9 @@
       "pt": "Lago Waller",
       "zh": "瓦勒湖",
       "cs": "Wallersee",
-      "hu": "Wallersee"
+      "hu": "Wallersee",
+      "pl": "Wallersee",
+      "sk": "Wallersee"
     },
     "Zeller See": {
       "en": "Lake Zell",
@@ -1593,7 +1839,9 @@
       "pt": "Lago de Zell",
       "zh": "泽尔湖",
       "cs": "Zeller See",
-      "hu": "Zeller See"
+      "hu": "Zeller See",
+      "pl": "Zeller See",
+      "sk": "Zeller See"
     },
     "Ritzensee": {
       "en": "Lake Ritzen",
@@ -1605,7 +1853,9 @@
       "pt": "Lago Ritzen",
       "zh": "里岑湖",
       "cs": "Ritzensee",
-      "hu": "Ritzensee"
+      "hu": "Ritzensee",
+      "pl": "Ritzensee",
+      "sk": "Ritzensee"
     },
     "Bluntausee": {
       "en": "Lake Bluntau",
@@ -1617,7 +1867,9 @@
       "pt": "Lago Bluntau",
       "zh": "布伦陶湖",
       "cs": "Bluntausee",
-      "hu": "Bluntausee"
+      "hu": "Bluntausee",
+      "pl": "Bluntausee",
+      "sk": "Bluntausee"
     },
     "Seewaldsee": {
       "en": "Lake Seewald",
@@ -1629,7 +1881,9 @@
       "pt": "Lago Seewald",
       "zh": "泽瓦尔德湖",
       "cs": "Seewaldsee",
-      "hu": "Seewaldsee"
+      "hu": "Seewaldsee",
+      "pl": "Seewaldsee",
+      "sk": "Seewaldsee"
     },
     "Prebersee": {
       "en": "Lake Preber",
@@ -1641,7 +1895,9 @@
       "pt": "Lago Preber",
       "zh": "普雷贝尔湖",
       "cs": "Prebersee",
-      "hu": "Prebersee"
+      "hu": "Prebersee",
+      "pl": "Prebersee",
+      "sk": "Prebersee"
     },
     "Goldegger See": {
       "en": "Lake Goldegg",
@@ -1653,7 +1909,9 @@
       "pt": "Lago de Goldegg",
       "zh": "戈尔德埃格湖",
       "cs": "Goldegger See",
-      "hu": "Goldegger See"
+      "hu": "Goldegger See",
+      "pl": "Goldegger See",
+      "sk": "Goldegger See"
     },
     "Jägersee": {
       "en": "Lake Jäger",
@@ -1665,7 +1923,9 @@
       "pt": "Lago Jäger",
       "zh": "耶格湖",
       "cs": "Jägersee",
-      "hu": "Jägersee"
+      "hu": "Jägersee",
+      "pl": "Jägersee",
+      "sk": "Jägersee"
     },
     "Königssee": {
       "en": "Lake Königssee",
@@ -1677,7 +1937,9 @@
       "pt": "Lago Königssee",
       "zh": "国王湖",
       "cs": "Königssee",
-      "hu": "Königssee"
+      "hu": "Königssee",
+      "pl": "Königssee",
+      "sk": "Königssee"
     }
   },
   "AREA_NAMES": {

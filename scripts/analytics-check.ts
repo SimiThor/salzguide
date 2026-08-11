@@ -17,6 +17,7 @@ import { join } from "node:path";
 import { classifyPath, classifyLocalePath, isBotUserAgent } from "../src/lib/analytics.ts";
 import { KIND_LABELS, LEGACY_KINDS } from "../src/lib/analytics-labels.ts";
 import { viennaDayStart, bucketRange, bucketStart, dayCount, shiftDay } from "../src/lib/vienna-day.ts";
+import { LOCALE_CODES } from "../src/i18n/locales.ts";
 
 let failed = 0;
 const ok = (name: string) => console.log(`  ok    ${name}`);
@@ -61,10 +62,12 @@ const PATHS: [string, { kind: string; target: string | null } | null][] = [
 ];
 for (const [path, want] of PATHS) eq(path, classifyPath(path), want);
 
-// Sprach-Präfix: alle neun, nicht nur de/en.
-const LOCALES = ["de", "en", "it", "nl", "ko", "fr", "zh", "es", "pt"];
-const missedLocale = LOCALES.filter((l) => classifyLocalePath(`/${l}/events`) !== l);
-eq("alle neun Sprach-Präfixe erkannt", missedLocale, []);
+// Sprach-Präfix: JEDE Sprache, nicht nur de/en. Die Liste kommt aus i18n/locales.ts, nicht
+// aus einer Kopie: Die Kopie hier hing zwei Sprachen hinterher (cs/hu fehlten seit 08/2026),
+// und der Check meldete trotzdem grün. Genau dieser Fall hatte schon einmal sieben Sprachen
+// still als „other" gezählt.
+const missedLocale = LOCALE_CODES.filter((l) => classifyLocalePath(`/${l}/events`) !== l);
+eq(`alle ${LOCALE_CODES.length} Sprach-Präfixe erkannt`, missedLocale, []);
 eq("kein falsches Präfix", classifyLocalePath("/deutschland/x"), null);
 
 // ── 1b. Keine echte Route darf unbemerkt in "other" fallen ──────────────────

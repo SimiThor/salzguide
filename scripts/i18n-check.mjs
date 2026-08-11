@@ -62,7 +62,7 @@ const isBaseOnly = (key) => BASE_ONLY_NAMESPACES.has(key.split(".")[0]);
 // Namensräume, die NICHT über useTranslations/getTranslations gelesen werden.
 //
 // Das betrifft nur den Toten-Keys-Hinweis ganz unten, nicht die Parität-Prüfung: Für
-// „vollständig in allen elf Sprachen" gelten sie wie jeder andere Namensraum, genau
+// „vollständig in allen dreizehn Sprachen" gelten sie wie jeder andere Namensraum, genau
 // deswegen stehen ihre Texte ja hier.
 //
 // `Mail` sind die Texte aller E-Mails. src/lib/mail-i18n.ts lädt die Sprachdatei selbst und
@@ -132,7 +132,7 @@ function checkDashes(locale, entries) {
 checkDashes(BASE, [...base.entries()]);
 
 // Basissprache einmal vorab auf ICU-Syntax prüfen — nicht in der Sprachschleife, sonst
-// stünde derselbe deutsche Fehler zehnmal da (Fehlalarm-Regel, siehe Kopf).
+// stünde derselbe deutsche Fehler zwölfmal da (Fehlalarm-Regel, siehe Kopf).
 for (const [key, value] of base.entries()) {
   if (typeof value === "string" && placeholders(value) === null)
     report(BASE, `ICU-SYNTAX kaputt in  ${key}`);
@@ -196,8 +196,8 @@ const facts = JSON.parse(readFileSync(FACTS_FILE, "utf8"));
 const META = new Set(["ALIAS", "SUBTYPE_GROUPS", "AREA_GROUPS"]);
 
 // AREA_NAMES sind reine Eigennamen („Hallein"). Die brauchen KEINE Übersetzung — nur eine
-// Umschrift für die nichtlateinischen Schriften. Würde der Check hier alle 10 Sprachen
-// verlangen, stünde derselbe Ortsname zehnmal in der Datei und die Meldung „en fehlt" wäre
+// Umschrift für die nichtlateinischen Schriften. Würde der Check hier alle 12 Sprachen
+// verlangen, stünde derselbe Ortsname zwölfmal in der Datei und die Meldung „en fehlt" wäre
 // ein Fehlalarm. Fehlalarme sind der Tod dieses Checks (siehe oben), also: exakt zh + ko.
 const TRANSLITERATE_ONLY = { AREA_NAMES: ["ko", "zh"] };
 
@@ -307,7 +307,7 @@ checkGroups("AREA_GROUPS", ["AREA", "AREA_NAMES"]);
 // UNGELESENE KEYS (Hinweis, kein Fehler)
 //
 // Jeder Key wird in JEDE Sprache übersetzt und landet über getMessages() im HTML JEDER
-// Seite. Einer, den niemand liest, kostet also elfmal Übersetzungsarbeit und auf jedem
+// Seite. Einer, den niemand liest, kostet also dreizehnmal Übersetzungsarbeit und auf jedem
 // Seitenaufruf Bytes.
 //
 // Der naheliegende Weg — Key-Namen im Quelltext suchen — meldet Unsinn. Ein erster

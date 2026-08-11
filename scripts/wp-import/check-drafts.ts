@@ -4,7 +4,7 @@
 // WARUM MASCHINELL: Die Regeln sind einzeln banal (keine Gedankenstriche, ca. 50 Wörter,
 // kein „malerisch"), aber es sind sechs Felder mal 95 Spots. Von Hand gelesen rutscht genau
 // das durch, was man beim zwanzigsten Text nicht mehr sieht. Und ein Text, der einmal in
-// der Datenbank steht, wird in zehn Sprachen übersetzt, bevor jemand ihn nochmal liest.
+// der Datenbank steht, wird in zwölf Sprachen übersetzt, bevor jemand ihn nochmal liest.
 //
 // Der Gedankenstrich-Test importiert `hasEmDash` aus der App, statt die Regel nachzubauen:
 // em-dash.ts unterscheidet den verbotenen Gedankenstrich (U+2014) vom erlaubten

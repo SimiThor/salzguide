@@ -73,7 +73,7 @@ Für **jeden** Dienst, der personenbezogene Daten verarbeitet, **AVV** (Art. 28)
 
 ## 3. EU AI Act (Transparenz — gilt seit 2. Aug 2026): UMGESETZT, Nachweis in docs/39
 - **Erledigt 08/2026:** Chat-Offenlegung (Greeting + Disclaimer in jedem Zustand),
-  maschinenlesbare Kennzeichnung der Chat-Ausgaben, /ki-Transparenzseite (11 Sprachen),
+  maschinenlesbare Kennzeichnung der Chat-Ausgaben, /ki-Transparenzseite (13 Sprachen),
   KI-Stimmen-Hinweis der Audio-Touren, Datenschutz §3d erweitert.
 - Einstufung aller Funktionen, Redaktions-Workflow (Art. 50(4)-Ausnahme), Fristen und
   offene Punkte: **docs/39_RECHT_KI-Transparenz.md** (das ist die eine Quelle; dieser

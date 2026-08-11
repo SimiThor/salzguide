@@ -175,7 +175,7 @@ export async function POST(req: Request) {
   };
 
   // Volle Locale nutzen (nicht mehr auf en/de stauchen!): so antwortet Toni + alle Datum-/
-  // Titel-Lookups in ALLEN 11 Sprachen. Unbekannte Werte -> Deutsch.
+  // Titel-Lookups in ALLEN 13 Sprachen. Unbekannte Werte -> Deutsch.
   const locale = LOCALE_CODES.includes(rawLocale as (typeof LOCALE_CODES)[number])
     ? (rawLocale as string)
     : "de";

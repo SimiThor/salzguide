@@ -2,27 +2,27 @@
 // Oster-basierte bewegliche). Wartungsfrei & exakt für jedes Jahr, keine externe
 // Quelle. Karfreitag ist in AT kein allgemeiner Feiertag -> nicht enthalten.
 
-// Feiertagsname je Locale (alle 11 Sprachen). Deutsch = Basis/Fallback.
+// Feiertagsname je Locale (alle 13 Sprachen). Deutsch = Basis/Fallback.
 type Name = Record<string, string>;
 
 const FIXED: Record<number, Name> = {
-  101: { de: "Neujahr", en: "New Year's Day", it: "Capodanno", nl: "Nieuwjaarsdag", ko: "새해 첫날", fr: "Jour de l’An", zh: "元旦", es: "Año Nuevo", pt: "Ano Novo", cs: "Nový rok", hu: "Újév" },
-  106: { de: "Heilige Drei Könige", en: "Epiphany", it: "Epifania", nl: "Driekoningen", ko: "주현절", fr: "Épiphanie", zh: "主显节", es: "Epifanía", pt: "Dia de Reis", cs: "Tři králové", hu: "Vízkereszt" },
-  501: { de: "Staatsfeiertag", en: "Labour Day", it: "Festa dei lavoratori", nl: "Dag van de Arbeid", ko: "노동절", fr: "Fête du Travail", zh: "劳动节", es: "Día del Trabajo", pt: "Dia do Trabalhador", cs: "Svátek práce", hu: "A munka ünnepe" },
-  815: { de: "Mariä Himmelfahrt", en: "Assumption Day", it: "Assunzione di Maria", nl: "Maria-Tenhemelopneming", ko: "성모 승천 대축일", fr: "Assomption", zh: "圣母升天节", es: "Asunción de María", pt: "Assunção de Maria", cs: "Nanebevzetí Panny Marie", hu: "Nagyboldogasszony" },
-  1026: { de: "Nationalfeiertag", en: "National Day", it: "Festa nazionale", nl: "Nationale feestdag", ko: "국경일", fr: "Fête nationale", zh: "国庆日", es: "Fiesta Nacional", pt: "Dia Nacional", cs: "Národní svátek", hu: "Nemzeti ünnep" },
-  1101: { de: "Allerheiligen", en: "All Saints' Day", it: "Ognissanti", nl: "Allerheiligen", ko: "만성절", fr: "Toussaint", zh: "诸圣节", es: "Día de Todos los Santos", pt: "Dia de Todos os Santos", cs: "Všech svatých", hu: "Mindenszentek" },
-  1208: { de: "Mariä Empfängnis", en: "Immaculate Conception", it: "Immacolata Concezione", nl: "Onbevlekte Ontvangenis", ko: "원죄 없는 잉태 대축일", fr: "Immaculée Conception", zh: "圣母无染原罪瞻礼", es: "Inmaculada Concepción", pt: "Imaculada Conceição", cs: "Neposkvrněné početí Panny Marie", hu: "Szeplőtelen fogantatás" },
-  1225: { de: "Christtag", en: "Christmas Day", it: "Natale", nl: "Eerste Kerstdag", ko: "성탄절", fr: "Noël", zh: "圣诞节", es: "Navidad", pt: "Natal", cs: "Boží hod vánoční", hu: "Karácsony" },
-  1226: { de: "Stefanitag", en: "St Stephen's Day", it: "Santo Stefano", nl: "Tweede Kerstdag", ko: "성 스테파노 축일", fr: "Saint-Étienne", zh: "圣斯德望日", es: "Día de San Esteban", pt: "Dia de Santo Estêvão", cs: "Svatý Štěpán", hu: "Karácsony másnapja" },
+  101: { de: "Neujahr", en: "New Year's Day", it: "Capodanno", nl: "Nieuwjaarsdag", ko: "새해 첫날", fr: "Jour de l’An", zh: "元旦", es: "Año Nuevo", pt: "Ano Novo", cs: "Nový rok", hu: "Újév", pl: "Nowy Rok", sk: "Nový rok" },
+  106: { de: "Heilige Drei Könige", en: "Epiphany", it: "Epifania", nl: "Driekoningen", ko: "주현절", fr: "Épiphanie", zh: "主显节", es: "Epifanía", pt: "Dia de Reis", cs: "Tři králové", hu: "Vízkereszt", pl: "Trzech Króli", sk: "Traja králi" },
+  501: { de: "Staatsfeiertag", en: "Labour Day", it: "Festa dei lavoratori", nl: "Dag van de Arbeid", ko: "노동절", fr: "Fête du Travail", zh: "劳动节", es: "Día del Trabajo", pt: "Dia do Trabalhador", cs: "Svátek práce", hu: "A munka ünnepe", pl: "Święto Pracy", sk: "Sviatok práce" },
+  815: { de: "Mariä Himmelfahrt", en: "Assumption Day", it: "Assunzione di Maria", nl: "Maria-Tenhemelopneming", ko: "성모 승천 대축일", fr: "Assomption", zh: "圣母升天节", es: "Asunción de María", pt: "Assunção de Maria", cs: "Nanebevzetí Panny Marie", hu: "Nagyboldogasszony", pl: "Wniebowzięcie NMP", sk: "Nanebovzatie Panny Márie" },
+  1026: { de: "Nationalfeiertag", en: "National Day", it: "Festa nazionale", nl: "Nationale feestdag", ko: "국경일", fr: "Fête nationale", zh: "国庆日", es: "Fiesta Nacional", pt: "Dia Nacional", cs: "Národní svátek", hu: "Nemzeti ünnep", pl: "Święto Narodowe", sk: "Národný sviatok" },
+  1101: { de: "Allerheiligen", en: "All Saints' Day", it: "Ognissanti", nl: "Allerheiligen", ko: "만성절", fr: "Toussaint", zh: "诸圣节", es: "Día de Todos los Santos", pt: "Dia de Todos os Santos", cs: "Všech svatých", hu: "Mindenszentek", pl: "Wszystkich Świętych", sk: "Sviatok Všetkých svätých" },
+  1208: { de: "Mariä Empfängnis", en: "Immaculate Conception", it: "Immacolata Concezione", nl: "Onbevlekte Ontvangenis", ko: "원죄 없는 잉태 대축일", fr: "Immaculée Conception", zh: "圣母无染原罪瞻礼", es: "Inmaculada Concepción", pt: "Imaculada Conceição", cs: "Neposkvrněné početí Panny Marie", hu: "Szeplőtelen fogantatás", pl: "Niepokalane Poczęcie NMP", sk: "Nepoškvrnené počatie Panny Márie" },
+  1225: { de: "Christtag", en: "Christmas Day", it: "Natale", nl: "Eerste Kerstdag", ko: "성탄절", fr: "Noël", zh: "圣诞节", es: "Navidad", pt: "Natal", cs: "Boží hod vánoční", hu: "Karácsony", pl: "Boże Narodzenie", sk: "Prvý sviatok vianočný" },
+  1226: { de: "Stefanitag", en: "St Stephen's Day", it: "Santo Stefano", nl: "Tweede Kerstdag", ko: "성 스테파노 축일", fr: "Saint-Étienne", zh: "圣斯德望日", es: "Día de San Esteban", pt: "Dia de Santo Estêvão", cs: "Svatý Štěpán", hu: "Karácsony másnapja", pl: "Świętego Szczepana", sk: "Druhý sviatok vianočný" },
 };
 
 // Oster-Offsets (Tage nach Ostersonntag) -> Feiertag
 const MOVABLE: Record<number, Name> = {
-  1: { de: "Ostermontag", en: "Easter Monday", it: "Lunedì dell’Angelo", nl: "Tweede Paasdag", ko: "부활절 월요일", fr: "Lundi de Pâques", zh: "复活节星期一", es: "Lunes de Pascua", pt: "Segunda-feira de Páscoa", cs: "Velikonoční pondělí", hu: "Húsvéthétfő" },
-  39: { de: "Christi Himmelfahrt", en: "Ascension Day", it: "Ascensione", nl: "Hemelvaartsdag", ko: "예수 승천 대축일", fr: "Ascension", zh: "耶稣升天节", es: "Ascensión", pt: "Ascensão", cs: "Nanebevstoupení Páně", hu: "Áldozócsütörtök" },
-  50: { de: "Pfingstmontag", en: "Whit Monday", it: "Lunedì di Pentecoste", nl: "Tweede Pinksterdag", ko: "성령 강림 대축일 다음 월요일", fr: "Lundi de Pentecôte", zh: "圣灵降临节星期一", es: "Lunes de Pentecostés", pt: "Segunda-feira de Pentecostes", cs: "Svatodušní pondělí", hu: "Pünkösdhétfő" },
-  60: { de: "Fronleichnam", en: "Corpus Christi", it: "Corpus Domini", nl: "Sacramentsdag", ko: "성체 성혈 대축일", fr: "Fête-Dieu", zh: "基督圣体圣血节", es: "Corpus Christi", pt: "Corpo de Deus", cs: "Boží tělo", hu: "Úrnapja" },
+  1: { de: "Ostermontag", en: "Easter Monday", it: "Lunedì dell’Angelo", nl: "Tweede Paasdag", ko: "부활절 월요일", fr: "Lundi de Pâques", zh: "复活节星期一", es: "Lunes de Pascua", pt: "Segunda-feira de Páscoa", cs: "Velikonoční pondělí", hu: "Húsvéthétfő", pl: "Poniedziałek Wielkanocny", sk: "Veľkonočný pondelok" },
+  39: { de: "Christi Himmelfahrt", en: "Ascension Day", it: "Ascensione", nl: "Hemelvaartsdag", ko: "예수 승천 대축일", fr: "Ascension", zh: "耶稣升天节", es: "Ascensión", pt: "Ascensão", cs: "Nanebevstoupení Páně", hu: "Áldozócsütörtök", pl: "Wniebowstąpienie Pańskie", sk: "Nanebovstúpenie Pána" },
+  50: { de: "Pfingstmontag", en: "Whit Monday", it: "Lunedì di Pentecoste", nl: "Tweede Pinksterdag", ko: "성령 강림 대축일 다음 월요일", fr: "Lundi de Pentecôte", zh: "圣灵降临节星期一", es: "Lunes de Pentecostés", pt: "Segunda-feira de Pentecostes", cs: "Svatodušní pondělí", hu: "Pünkösdhétfő", pl: "Poniedziałek Zielonych Świątek", sk: "Svätodušný pondelok" },
+  60: { de: "Fronleichnam", en: "Corpus Christi", it: "Corpus Domini", nl: "Sacramentsdag", ko: "성체 성혈 대축일", fr: "Fête-Dieu", zh: "基督圣体圣血节", es: "Corpus Christi", pt: "Corpo de Deus", cs: "Boží tělo", hu: "Úrnapja", pl: "Boże Ciało", sk: "Božie telo" },
 };
 
 // Ostersonntag (Gregorianischer Kalender, Meeus/Jones/Butcher).

@@ -123,7 +123,7 @@ const db = createClient(SUPA_URL, SUPA_KEY, { auth: { persistSession: false } })
 // ── Quelle: Seite laden und `spots`-Array herausziehen ──────────────────────
 
 // Die alte Seite schreibt "Rudolskai" — ein Tippfehler (die MP3 daneben heisst richtig
-// Rudolfskai.mp3). Ein Import, der Tippfehler adoptiert, verewigt sie in elf Sprachen.
+// Rudolfskai.mp3). Ein Import, der Tippfehler adoptiert, verewigt sie in dreizehn Sprachen.
 const TITLE_FIX: Record<string, string> = { Rudolskai: "Rudolfskai" };
 
 function parseStations(html: string): Station[] {
