@@ -24,6 +24,7 @@ import { getWeatherFromToday } from "./weather";
 import { buildMapsLink } from "./maps";
 import { getSpotOpeningWeek } from "./opening-hours-server";
 import { stripEmDash } from "./em-dash";
+import { stripUnvouchedLinks } from "./ai-links";
 import {
   computeStatus,
   viennaNowWM,
@@ -418,6 +419,11 @@ function extractCards(
       return whole;
     },
   );
+
+  // 3) ALLES ANDERE -> Klartext. Der Riegel, ohne den der Prompt-Satz „keine externen
+  //    Links" nur eine Bitte bleibt. Muss NACH 1) und 2) laufen: Erst dort entscheidet
+  //    sich, welche /spot/…-Links zu einem echten Spot gehören. Begründung: lib/ai-links.ts.
+  cleaned = stripUnvouchedLinks(cleaned);
 
   cleaned = cleaned.replace(/\n{3,}/g, "\n\n").trim();
   return { text: cleaned, cards: { spots, events } };
