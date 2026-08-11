@@ -141,6 +141,15 @@
     "free": "Free",
     "allDay": "All day",
     "today": "Today",
+    "dateFilter": {
+      "title": "Select dates",
+      "weekend": "Weekend",
+      "next7": "Next 7 days",
+      "reset": "Clear",
+      "apply": "{count, plural, =0 {No events} one {Show 1 event} other {Show # events}}",
+      "empty": "Nothing to show for these dates.",
+      "allDates": "Show all dates"
+    },
     "website": "Official page",
     "save": "Save",
     "saved": "Saved",

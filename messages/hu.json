@@ -141,6 +141,15 @@
     "free": "Ingyenes",
     "allDay": "Egész nap",
     "today": "Ma",
+    "dateFilter": {
+      "title": "Válassz időpontot",
+      "weekend": "Hétvége",
+      "next7": "Következő 7 nap",
+      "reset": "Törlés",
+      "apply": "{count, plural, =0 {Nincs program} other {# program megjelenítése}}",
+      "empty": "Ebben az időszakban nincs találat.",
+      "allDates": "Összes időpont"
+    },
     "website": "A hivatalos oldalra",
     "save": "Mentés",
     "saved": "Mentve",

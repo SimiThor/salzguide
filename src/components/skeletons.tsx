@@ -29,9 +29,10 @@ export function CardSkeleton({ lines = 3 }: { lines?: number }) {
   );
 }
 
-/** Seitenkopf: h1 (text-2xl) + optional Untertitel (15px, mt-1) + optional die
- *  Status-Pille rechts (Events: Datumsspanne). Spiegelt den Kopf von Events, Touren,
- *  Gespeichert und Profil. */
+/** Seitenkopf: h1 (text-2xl) + optional Untertitel (15px, mt-1) + optional die Pille
+ *  rechts (Events: der Knopf zur Datumsauswahl, 36px hoch — nicht mehr die flache
+ *  Status-Pille von früher, sonst rückt die Zeile beim Laden). Spiegelt den Kopf von
+ *  Events, Touren, Gespeichert und Profil. */
 export function PageHeadSkeleton({
   pill = false,
   subtitle = true,
@@ -43,7 +44,7 @@ export function PageHeadSkeleton({
     <div aria-hidden>
       <div className="flex items-end justify-between gap-2">
         <div className="sg-skeleton h-7 w-40 rounded-lg" />
-        {pill && <div className="sg-skeleton h-6 w-28 rounded-full" />}
+        {pill && <div className="sg-skeleton h-9 w-40 rounded-full" />}
       </div>
       {subtitle && <div className="sg-skeleton mt-2.5 h-4 w-3/4 max-w-[320px] rounded" />}
     </div>

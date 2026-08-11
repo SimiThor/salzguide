@@ -141,6 +141,15 @@
     "free": "Gratis",
     "allDay": "Hele dag",
     "today": "Vandaag",
+    "dateFilter": {
+      "title": "Datums kiezen",
+      "weekend": "Weekend",
+      "next7": "Komende 7 dagen",
+      "reset": "Wissen",
+      "apply": "{count, plural, =0 {Geen events} one {Toon 1 event} other {Toon # events}}",
+      "empty": "Niks gevonden in deze periode.",
+      "allDates": "Alle data tonen"
+    },
     "website": "Naar de officiële pagina",
     "save": "Bewaren",
     "saved": "Bewaard",

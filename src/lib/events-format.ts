@@ -2,6 +2,9 @@
 // KEIN Server-Import -> darf in Client-Components genutzt werden (Filter-Pills
 // gruppieren nach dem Filtern clientseitig neu). Zeitzone durchgehend Europa/Wien.
 
+import { bcp47 } from "@/i18n/locales";
+import { shiftDay } from "./vienna-day";
+
 export type EventCategory = "party" | "tradition" | "kultur" | "sport" | "kids";
 export const EVENT_CATEGORIES: EventCategory[] = [
   "party",
@@ -214,4 +217,115 @@ export function eventTimeLabel(e: EventItem, locale: string): string | null {
 // Ist der Wiener Kalendertag `key` gleich heute (in Wien)?
 export function isToday(key: string, now: Date): boolean {
   return key === viennaDayKey(now.toISOString());
+}
+
+// ─── Zeitraum-Auswahl ─────────────────────────────────────────────────────────
+//
+// Wer wissen will, ob am Donnerstag etwas los ist, soll nicht drei Wochen Liste durchsehen.
+// Alles hier rechnet in Wiener Kalendertagen; die Auswahl selbst steht in DateRangeSheet.tsx.
+
+/** Ein gewählter Zeitraum. Ein einzelner Tag ist `from === to` — kein Sonderfall. */
+export type DayRange = { from: string; to: string };
+
+// Ein Event, das um 02:00 endet, gehört zum ABEND DAVOR und nicht zum nächsten Morgen.
+// Ohne diese Grenze stünde die Freitags-Party unter „Samstag", sobald jemand nur den
+// Samstag auswählt — mit „20:00" in der Zeile darunter. Fünf Uhr, weil davor niemand ein
+// Event beginnt: Was um 03:00 noch läuft, ist die Nacht davor, was um 06:00 anfängt, ist
+// der Sonnenaufgangs-Ausflug. Ganztägige Events sind ausgenommen, die haben keine Uhrzeit.
+const NIGHT_END_HOUR = 5;
+
+const HOUR_FMT = new Intl.DateTimeFormat("en-GB", {
+  timeZone: TZ,
+  hour: "2-digit",
+  hour12: false,
+});
+
+function viennaHour(iso: string): number {
+  const h = Number(HOUR_FMT.format(new Date(iso)));
+  return Number.isFinite(h) ? h % 24 : 12; // "24" ist Mitternacht (siehe tzOffsetMs)
+}
+
+/** Erster und letzter Wiener Kalendertag, an dem ein Event stattfindet. */
+export function eventDaySpan(e: EventItem): { first: string; last: string } {
+  const first = viennaDayKey(e.startsAt);
+  if (!e.endsAt) return { first, last: first };
+  let last = viennaDayKey(e.endsAt);
+  if (!e.allDay && viennaHour(e.endsAt) < NIGHT_END_HOUR) last = shiftDay(last, -1);
+  return { first, last: last < first ? first : last };
+}
+
+/**
+ * Events, die im Zeitraum stattfinden. Entscheidend ist die ÜBERSCHNEIDUNG, nicht der
+ * Starttag: Ein Festival vom 12. bis 20. läuft auch am 15., und wer den 15. auswählt,
+ * will es sehen. (Die Liste zeigt es dann unter dem 15. — groupByDay bekommt dafür den
+ * Zeitraum-Anfang als Klammer statt „heute".)
+ */
+export function eventsInRange(
+  events: EventItem[],
+  range: DayRange | null,
+): EventItem[] {
+  if (!range) return events;
+  return events.filter((e) => {
+    const { first, last } = eventDaySpan(e);
+    return first <= range.to && last >= range.from;
+  });
+}
+
+/**
+ * Wie viele Events an welchem Tag laufen — die Punkte unter den Zahlen im Kalender.
+ * Mehrtägige Events zählen an JEDEM ihrer Tage, sonst stünde ein Festival-Tag leer da.
+ */
+export function eventDayCounts(
+  events: EventItem[],
+  todayKey: string,
+): Map<string, number> {
+  const out = new Map<string, number>();
+  for (const e of events) {
+    const { first, last } = eventDaySpan(e);
+    let day = first < todayKey ? todayKey : first;
+    // Deckel: ein Dauer-Event mit kaputtem Enddatum darf den Render nicht anhalten.
+    for (let i = 0; day <= last && i < 400; i++) {
+      out.set(day, (out.get(day) ?? 0) + 1);
+      day = shiftDay(day, 1);
+    }
+  }
+  return out;
+}
+
+/** Letzter Tag, an dem überhaupt etwas läuft = das Ende des auswählbaren Kalenders. */
+export function lastEventDay(events: EventItem[], todayKey: string): string {
+  let last = todayKey;
+  for (const e of events) {
+    const end = eventDaySpan(e).last;
+    if (end > last) last = end;
+  }
+  return last;
+}
+
+/**
+ * Beschriftung eines Zeitraums für die Pille über der Liste: „15. August" für einen Tag,
+ * „15.–20. August" für eine Spanne.
+ *
+ * formatRange() zieht Gleiches selbst zusammen (der Monat steht nur einmal da) und setzt
+ * das Trennzeichen so, wie es die jeweilige Sprache erwartet — von Hand zusammengebaut
+ * wäre das in dreizehn Sprachen dreizehn Mal falsch. Es liefert einen Halbgeviertstrich,
+ * KEINEN Gedankenstrich; der ist in dieser App verboten.
+ *
+ * ACHTUNG, DER PREIS DAFÜR: Das Ergebnis darf nicht in vorgerenderten Text geraten, den der
+ * Browser danach hydriert. Die Spannen-Muster sind der eine Teil der ICU-Daten, bei dem Node
+ * und Chrome auseinanderliegen — nachgemessen am 11.08.2026: en „11 – 30 August" (Server)
+ * gegen „11–30 August" (Browser), sk unterscheidet sich sogar nur in einem unsichtbaren
+ * Leerzeichen. Beides kostet die Hydration der ganzen Seite. Deshalb formatiert
+ * events/page.tsx die Ausgangs-Beschriftung SERVERSEITIG und reicht sie als Prop durch;
+ * im Client läuft das hier erst, wenn jemand wirklich einen Zeitraum gewählt hat.
+ */
+export function rangeLabel(range: DayRange, locale: string): string {
+  const fmt = new Intl.DateTimeFormat(bcp47(locale), {
+    timeZone: TZ,
+    day: "numeric",
+    month: "long",
+  });
+  const from = new Date(`${range.from}T12:00:00Z`); // Mittag -> Zonenrand-sicher
+  if (range.from === range.to) return fmt.format(from);
+  return fmt.formatRange(from, new Date(`${range.to}T12:00:00Z`));
 }

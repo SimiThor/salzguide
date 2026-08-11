@@ -184,6 +184,15 @@
     "free": "Gratis",
     "allDay": "Ganztägig",
     "today": "Heute",
+    "dateFilter": {
+      "title": "Zeitraum wählen",
+      "weekend": "Wochenende",
+      "next7": "Nächste 7 Tage",
+      "reset": "Zurücksetzen",
+      "apply": "{count, plural, =0 {Keine Events} one {1 Event anzeigen} other {# Events anzeigen}}",
+      "empty": "In diesem Zeitraum ist nichts dabei.",
+      "allDates": "Alle Termine zeigen"
+    },
     "website": "Zur offiziellen Seite",
     "save": "Merken",
     "saved": "Gemerkt",

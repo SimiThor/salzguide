@@ -141,6 +141,15 @@
     "free": "Gratis",
     "allDay": "Tutto il giorno",
     "today": "Oggi",
+    "dateFilter": {
+      "title": "Scegli le date",
+      "weekend": "Weekend",
+      "next7": "Prossimi 7 giorni",
+      "reset": "Cancella",
+      "apply": "{count, plural, =0 {Nessun evento} one {Mostra 1 evento} other {Mostra # eventi}}",
+      "empty": "Niente in questo periodo.",
+      "allDates": "Mostra tutte le date"
+    },
     "website": "Pagina ufficiale",
     "save": "Salva",
     "saved": "Salvato",

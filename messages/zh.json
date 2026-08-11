@@ -141,6 +141,15 @@
     "free": "免费",
     "allDay": "全天",
     "today": "今天",
+    "dateFilter": {
+      "title": "选择日期",
+      "weekend": "周末",
+      "next7": "未来 7 天",
+      "reset": "清除",
+      "apply": "{count, plural, =0 {暂无活动} other {查看 # 个活动}}",
+      "empty": "这段时间没有符合的活动。",
+      "allDates": "查看全部日期"
+    },
     "website": "官方网站",
     "save": "收藏",
     "saved": "已收藏",
