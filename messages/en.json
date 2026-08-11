@@ -40,7 +40,9 @@
     "aboutDescription": "Anton and Simon, two locals from Salzburg: why SalzGuide exists and how we pick our spots.",
     "spotTitle": "{title}: {kind} in the Salzburg region",
     "spotTitlePlain": "{title} in the Salzburg region",
-    "spotDescriptionFallback": "{title} in the Salzburg region: where it is, how to get there and our honest tip."
+    "spotDescriptionFallback": "{title} in the Salzburg region: where it is, how to get there and our honest tip.",
+    "travelInfoTitle": "Salzburg travel basics: what to know before you go",
+    "travelInfoDescription": "Emergency numbers, currency, free public transport for guests, airport, taxis, tipping and what to pack. The practical side of Salzburg, short and honest."
   },
   "Common": {
     "back": "Back",
@@ -60,7 +62,8 @@
     "saved": "Saved",
     "profile": "Profile",
     "water": "Water temperatures",
-    "tours": "Audio tours"
+    "tours": "Audio tours",
+    "info": "Good to know"
   },
   "Tours": {
     "title": "Audio tours",

@@ -40,7 +40,9 @@
     "aboutDescription": "Anton i Simon, dwóch lokalsów z Salzburga: dlaczego powstał SalzGuide i jak wybieramy spoty.",
     "spotTitle": "{title}: {kind} na Ziemi Salzburskiej",
     "spotTitlePlain": "{title} na Ziemi Salzburskiej",
-    "spotDescriptionFallback": "{title} na Ziemi Salzburskiej: położenie, dojazd i nasz szczery tip."
+    "spotDescriptionFallback": "{title} na Ziemi Salzburskiej: położenie, dojazd i nasz szczery tip.",
+    "travelInfoTitle": "Salzburg w praktyce: co warto wiedzieć przed wyjazdem",
+    "travelInfoDescription": "Numery alarmowe, waluta, darmowa komunikacja dla gości, lotnisko, taksówki, napiwki i co spakować. Salzburg od strony praktycznej."
   },
   "Common": {
     "back": "Wróć",
@@ -60,7 +62,8 @@
     "saved": "Zapisane",
     "profile": "Profil",
     "water": "Temperatura wody",
-    "tours": "Audioprzewodniki"
+    "tours": "Audioprzewodniki",
+    "info": "Dobrze wiedzieć"
   },
   "Tours": {
     "title": "Audioprzewodniki",

@@ -40,7 +40,9 @@
     "aboutDescription": "Anton en Simon, twee Salzburgers: waarom SalzGuide bestaat en hoe we onze plekken kiezen.",
     "spotTitle": "{title}: {kind} in het Salzburgerland",
     "spotTitlePlain": "{title} in het Salzburgerland",
-    "spotDescriptionFallback": "{title} in het Salzburgerland: ligging, bereikbaarheid en onze eerlijke tip."
+    "spotDescriptionFallback": "{title} in het Salzburgerland: ligging, bereikbaarheid en onze eerlijke tip.",
+    "travelInfoTitle": "Salzburg voor gasten: goed om te weten voor je komt",
+    "travelInfoDescription": "Alarmnummers, valuta, gratis ov voor gasten, luchthaven, taxi, fooien en wat je inpakt. Het praktische Salzburg, kort en eerlijk."
   },
   "Common": {
     "back": "Terug",
@@ -60,7 +62,8 @@
     "saved": "Bewaard",
     "profile": "Profiel",
     "water": "Watertemperaturen",
-    "tours": "Audiotours"
+    "tours": "Audiotours",
+    "info": "Goed om te weten"
   },
   "Tours": {
     "title": "Audiotours",

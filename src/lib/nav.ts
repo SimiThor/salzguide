@@ -20,7 +20,8 @@ export type NavHref =
   | "/wasser"
   | "/events"
   | "/gespeichert"
-  | "/profil";
+  | "/profil"
+  | "/gut-zu-wissen";
 
 export type NavItem = {
   /** Nav.<key> in den Übersetzungen. */
@@ -46,4 +47,7 @@ export const NAV_ITEMS: NavItem[] = [
   { key: "profile", href: "/profil", emoji: "👤", primary: true },
   { key: "tours", href: "/touren", emoji: "🎧", primary: false },
   { key: "water", href: "/wasser", emoji: "🌊", primary: false },
+  // „Gut zu wissen": Notruf, Währung, Öffis, Packliste. Bewusst der letzte Punkt und
+  // bewusst nicht primary — man liest die Seite einmal vor der Reise, nicht täglich.
+  { key: "info", href: "/gut-zu-wissen", emoji: "💡", primary: false },
 ];

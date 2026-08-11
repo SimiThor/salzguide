@@ -40,7 +40,9 @@
     "aboutDescription": "安东和西蒙，两个萨尔茨堡人：为什么做 SalzGuide，以及我们如何挑选地点。",
     "spotTitle": "{title}：萨尔茨堡的{kind}",
     "spotTitlePlain": "{title}：萨尔茨堡",
-    "spotDescriptionFallback": "萨尔茨堡的{title}：位置、交通和我们的实在建议。"
+    "spotDescriptionFallback": "萨尔茨堡的{title}：位置、交通和我们的实在建议。",
+    "travelInfoTitle": "萨尔茨堡实用信息：出发前需要知道的事",
+    "travelInfoDescription": "紧急电话、货币、住客免费公共交通、机场、出租车、小费和行李清单。萨尔茨堡的实用信息，简短诚实。"
   },
   "Common": {
     "back": "返回",
@@ -60,7 +62,8 @@
     "saved": "收藏",
     "profile": "我的",
     "water": "水温",
-    "tours": "语音导览"
+    "tours": "语音导览",
+    "info": "实用信息"
   },
   "Tours": {
     "title": "语音导览",

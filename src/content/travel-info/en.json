@@ -1,0 +1,200 @@
+{
+  "title": "Good to know",
+  "intro": "Everything practical about Salzburg in one place. Two minutes of reading and you know your way around.",
+  "emergency": {
+    "title": "In an emergency",
+    "note": "All numbers work without an area code and are free. Even without credit and without a SIM card.",
+    "labels": {
+      "euro": "European emergency",
+      "ambulance": "Ambulance",
+      "mountain": "Mountain rescue",
+      "police": "Police",
+      "fire": "Fire brigade",
+      "doctor": "Out-of-hours doctor",
+      "health": "Health advice line"
+    }
+  },
+  "glance": {
+    "title": "At a glance",
+    "items": {
+      "currency": { "label": "Currency", "value": "Euro" },
+      "language": { "label": "Language", "value": "German" },
+      "power": { "label": "Power", "value": "230 V, type F" },
+      "water": { "label": "Tap water", "value": "Drinkable" },
+      "time": { "label": "Time zone", "value": "CET (UTC+1)" },
+      "sunday": { "label": "Sunday", "value": "Shops closed" }
+    }
+  },
+  "blocks": {
+    "arrival": {
+      "title": "Getting here",
+      "hint": "Airport · Train · Car · Coach",
+      "items": {
+        "plane": {
+          "q": "How do I get from the airport into town?",
+          "a": "The airport sits on the western edge of the city, a few kilometres from the old town. Two trolleybuses leave from outside the arrivals hall: the 2 to the main station, the 10 to the town hall right in the old town. Both take about 20 to 25 minutes. The taxi rank is right next to them."
+        },
+        "train": {
+          "q": "Is it worth coming by train?",
+          "a": "It is the most relaxed way to get here. From Munich you are at the main station in about an hour and a half, from Vienna in a good two and a half. From the station it is a fifteen minute walk into the old town, or one stop on the trolleybus."
+        },
+        "car": {
+          "q": "What do I need if I drive?",
+          "a": "A vignette for the motorway. You get it digitally, it is tied to your number plate, and you buy it before the border. From 1 November to 15 April winter equipment is compulsory, so winter tyres or chains. In the old town do not even start looking for a parking space, drive into a garage instead."
+        },
+        "bus": {
+          "q": "Do long-distance coaches come to Salzburg?",
+          "a": "Yes, they stop at the main station. From there the trolleybus or your own feet get you anywhere in the city."
+        }
+      }
+    },
+    "around": {
+      "title": "Getting around",
+      "hint": "Guest card · Trolleybus & train · Taxi · Bike",
+      "items": {
+        "guestcard": {
+          "q": "Is it true that guests travel for free?",
+          "a": "Yes, and this is the best tip on this page. If you stay overnight anywhere in the state of Salzburg, you get the Guest Mobility Ticket on your phone at check-in. It covers every public transport in the whole state for your entire stay, including the journey in and out. It is paid for through the tourist tax on your bill."
+        },
+        "transit": {
+          "q": "How do people get around Salzburg?",
+          "a": "In the city by trolleybus, they come every few minutes. Out into the region by local train and regional bus. The Salzburger Verkehrsverbund app shows you the connections."
+        },
+        "taxi": {
+          "q": "How do taxis work here?",
+          "a": "Taxis run on a meter and wait at ranks, in the old town and at the station. Apps work too: Uber and Bolt dispatch ordinary local taxis here, so the same car shows up as at the rank."
+        },
+        "bike": {
+          "q": "Can I do everything by bike?",
+          "a": "In the city, yes. Salzburg is flat, has unbroken cycle paths along the Salzach and rental bikes on almost every corner. Plenty of locals have no car for exactly that reason."
+        },
+        "carfree": {
+          "q": "Can I reach the spots without a car?",
+          "a": "Many of them, yes. Lake Wallersee is on the local train line, bus 150 takes you to Lake Fuschl, and post buses run into the valleys. With the guest card none of it costs you extra.",
+          "link": "Spots on the map"
+        }
+      }
+    },
+    "money": {
+      "title": "Money & paying",
+      "hint": "Card or cash · Tipping · Tourist tax",
+      "items": {
+        "cash": {
+          "q": "Card or cash?",
+          "a": "In the city you get by on card, in supermarkets and restaurants anyway. Outside it changes: mountain huts, small wine taverns, lake kiosks and some parking machines take cash only. So for a day in the mountains always carry some."
+        },
+        "tipping": {
+          "q": "How much do I tip?",
+          "a": "Round up, or about five to ten percent. Say the total including the tip when you pay. Adding it afterwards to a card payment does not work here."
+        },
+        "atm": {
+          "q": "Where do I get cash?",
+          "a": "There is a cash machine in every town and on every second corner in the city. In small mountain villages the next one can be a way off, so withdraw down in the valley."
+        },
+        "touristtax": {
+          "q": "What is the tourist tax on my bill?",
+          "a": "A charge per night that every place to stay collects. Among other things it pays for your free transport ticket. You do not have to do anything, it is simply on the bill."
+        }
+      }
+    },
+    "mountains": {
+      "title": "Mountains, lakes & weather",
+      "hint": "Weather turns · Mountain rescue · Huts · Lakes",
+      "items": {
+        "weather": {
+          "q": "How reliable is the weather?",
+          "a": "Sun in the morning and a thunderstorm in the afternoon is the summer norm, not the exception. That is why everyone here starts early and is back down by early afternoon. The valley can be bright while the top is in cloud."
+        },
+        "rescue": {
+          "q": "What if something happens in the mountains?",
+          "a": "Mountain rescue is 140. Stay where you are and pass on your location. Modern phones send it along automatically with an emergency call. Turning around is not a defeat, it is the reason most trips end well."
+        },
+        "huts": {
+          "q": "What should I know about mountain huts?",
+          "a": "Bring cash, many take no cards. If you want to stay the night, book ahead and bring a hut sleeping bag. And the season is short: many close in autumn and open again in late spring."
+        },
+        "lakes": {
+          "q": "When can you swim in the lakes?",
+          "a": "The shallow lakes north of the city are warm enough from May, the deep mountain lakes need until July. How warm they actually are right now is on the water temperatures page.",
+          "link": "Water temperatures"
+        },
+        "winter": {
+          "q": "And in winter?",
+          "a": "On the piste you need nothing more than a helmet and respect for how fast the others are going. The moment you leave it, the avalanche report applies, and without gear and experience that is not your place. Cleared winter walking paths exist in almost every village."
+        }
+      }
+    },
+    "everyday": {
+      "title": "Everyday life in Austria",
+      "hint": "Closed Sunday · Greetings · Water · Power · Signal",
+      "items": {
+        "sunday": {
+          "q": "Why is everything closed on Sunday?",
+          "a": "Because Austria closes on Sundays, supermarkets included. On Saturday most shops shut in the early evening. Stations, airports, petrol stations and restaurants stay open. Public holidays work the same way, so do your shopping on Saturday."
+        },
+        "greeting": {
+          "q": "How do people greet each other?",
+          "a": "With Grüß Gott or Servus, and you say it walking into a restaurant, a shop, a cable car. Goodbye is Wiederschauen or Baba. Younger people use first names and the informal you almost always."
+        },
+        "water": {
+          "q": "Can I drink the tap water?",
+          "a": "Yes, and you should. It comes out of the mountains and beats most of what is sold in bottles. Bring a bottle and fill it at the public fountains, even in the middle of the old town."
+        },
+        "power": {
+          "q": "Which plug do I need?",
+          "a": "230 volts, type F, the same two round pins as in Germany. From the UK, the US or Asia you need an adapter."
+        },
+        "roaming": {
+          "q": "What about phone and internet?",
+          "a": "From the EU you call and browse on your normal terms. From Switzerland, the UK or overseas an eSIM is worth it. There is wifi in almost every restaurant, and in the mountains often not even a signal."
+        }
+      }
+    },
+    "health": {
+      "title": "Health & pharmacy",
+      "hint": "Doctor · Night duty · Insurance card · Ticks",
+      "items": {
+        "doctor": {
+          "q": "I need a doctor, what now?",
+          "a": "During the day you walk into a practice, many take you without an appointment. In the evening and at weekends the out-of-hours service on 141 takes over. If you are not sure whether it is a case for a doctor at all, 1450 helps around the clock."
+        },
+        "pharmacy": {
+          "q": "Where do I find a pharmacy in the evening?",
+          "a": "There is always one on night duty, and it changes daily. Which one it is right now is posted on the door of every closed pharmacy."
+        },
+        "insurance": {
+          "q": "What about insurance?",
+          "a": "From the EU bring your e-card or European Health Insurance Card and you are treated like a local. From outside the EU you need travel insurance. A mountain rescue callout is not automatically included anywhere."
+        },
+        "ticks": {
+          "q": "Do I need to worry about ticks?",
+          "a": "Ticks sit in woodland and long grass up to middle altitudes. They can carry tick-borne encephalitis, which is why almost everyone here is vaccinated. Check yourself after a day outdoors, that is usually enough."
+        }
+      }
+    },
+    "packing": {
+      "title": "What to pack",
+      "hint": "Always · Summer · Winter",
+      "items": {
+        "always": {
+          "q": "What goes in every time?",
+          "a": "Solid shoes with grip, a rain jacket, sun cream and a water bottle. Plus some cash for the hut. The weather changes faster here than a jacket back at the hotel can help with."
+        },
+        "summer": {
+          "q": "What do I need in summer?",
+          "a": "Swimwear, from May to September the next lake is never far. Several thin layers beat one thick jacket, because up on the mountain it is cool even in July. And by the water, mosquito repellent in the evening."
+        },
+        "winter": {
+          "q": "What do I need in winter?",
+          "a": "Warm layers, gloves, a hat. For icy paths, micro spikes are the best thing that fits in a jacket pocket. Do not forget sunglasses, snow glares more than sand."
+        }
+      }
+    }
+  },
+  "outro": {
+    "title": "Still got a question?",
+    "body": "Ask Toni, your AI local. Or go straight to what is nearby.",
+    "ai": "Ask Toni",
+    "cta": "To the map"
+  }
+}

@@ -40,7 +40,9 @@
     "aboutDescription": "Anton és Simon, két salzburgi: miért létezik a SalzGuide, és hogyan válogatjuk a spotjainkat.",
     "spotTitle": "{title}: {kind} a Salzburger Landban",
     "spotTitlePlain": "{title} a Salzburger Landban",
-    "spotDescriptionFallback": "{title} a Salzburger Landban: hol találod, hogyan jutsz oda, és az őszinte tippünk."
+    "spotDescriptionFallback": "{title} a Salzburger Landban: hol találod, hogyan jutsz oda, és az őszinte tippünk.",
+    "travelInfoTitle": "Salzburg a gyakorlatban: amit indulás előtt tudni érdemes",
+    "travelInfoDescription": "Segélyhívók, valuta, ingyenes tömegközlekedés vendégeknek, repülőtér, taxi, borravaló és csomaglista. A gyakorlatias Salzburg, röviden."
   },
   "Common": {
     "back": "Vissza",
@@ -60,7 +62,8 @@
     "saved": "Mentések",
     "profile": "Profil",
     "water": "Vízhőmérséklet",
-    "tours": "Audiotúrák"
+    "tours": "Audiotúrák",
+    "info": "Jó tudni"
   },
   "Tours": {
     "title": "Audiotúrák",

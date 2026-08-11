@@ -1,0 +1,200 @@
+{
+  "title": "Dobrze wiedzieć",
+  "intro": "Wszystko, co praktyczne o Salzburgu, w jednym miejscu. Dwie minuty czytania i już się orientujesz.",
+  "emergency": {
+    "title": "W nagłym wypadku",
+    "note": "Wszystkie numery działają bez kierunkowego i są bezpłatne. Także bez doładowania i bez karty SIM.",
+    "labels": {
+      "euro": "Europejski numer alarmowy",
+      "ambulance": "Pogotowie",
+      "mountain": "Ratownictwo górskie",
+      "police": "Policja",
+      "fire": "Straż pożarna",
+      "doctor": "Nocna pomoc lekarska",
+      "health": "Infolinia zdrowotna"
+    }
+  },
+  "glance": {
+    "title": "W skrócie",
+    "items": {
+      "currency": { "label": "Waluta", "value": "Euro" },
+      "language": { "label": "Język", "value": "Niemiecki" },
+      "power": { "label": "Prąd", "value": "230 V, typ F" },
+      "water": { "label": "Woda z kranu", "value": "Zdatna do picia" },
+      "time": { "label": "Strefa czasowa", "value": "CET (UTC+1)" },
+      "sunday": { "label": "Niedziela", "value": "Sklepy zamknięte" }
+    }
+  },
+  "blocks": {
+    "arrival": {
+      "title": "Dojazd",
+      "hint": "Lotnisko · Pociąg · Samochód · Autokar",
+      "items": {
+        "plane": {
+          "q": "Jak dostanę się z lotniska do miasta?",
+          "a": "Lotnisko leży na zachodnim skraju miasta, kilka kilometrów od starówki. Przed halą przylotów odjeżdżają dwa trolejbusy: dwójka na dworzec główny, dziesiątka pod ratusz w samym sercu starówki. Oba jadą jakieś 20 do 25 minut. Postój taksówek jest tuż obok."
+        },
+        "train": {
+          "q": "Czy warto przyjechać pociągiem?",
+          "a": "To najspokojniejszy sposób. Z Monachium jesteś na dworcu głównym w jakieś półtorej godziny, z Wiednia w dobre dwie i pół. Z dworca na starówkę idzie się kwadrans, albo jedziesz jeden przystanek trolejbusem."
+        },
+        "car": {
+          "q": "Czego potrzebuję, jadąc samochodem?",
+          "a": "Na autostradę winiety. Jest w wersji cyfrowej, przypisujesz ją do numeru rejestracyjnego i kupujesz przed granicą. Od 1 listopada do 15 kwietnia obowiązuje wyposażenie zimowe, czyli opony zimowe albo łańcuchy. Na starówce nie szukaj miejsca na ulicy, tylko wjedź od razu do parkingu podziemnego."
+        },
+        "bus": {
+          "q": "Czy jeżdżą tu autokary dalekobieżne?",
+          "a": "Tak, zatrzymują się na dworcu głównym. Stamtąd trolejbusem albo pieszo dotrzesz wszędzie po mieście."
+        }
+      }
+    },
+    "around": {
+      "title": "Na miejscu",
+      "hint": "Karta gościa · Trolejbus i kolej · Taksówka · Rower",
+      "items": {
+        "guestcard": {
+          "q": "To prawda, że goście jeżdżą komunikacją za darmo?",
+          "a": "Prawda, i to najlepsza wskazówka na tej stronie. Jeśli nocujesz na Ziemi Salzburskiej, przy zameldowaniu dostajesz na telefon Guest Mobility Ticket. Jeździsz z nim za darmo całą komunikacją publiczną w całym landzie przez cały pobyt, razem z dojazdem i powrotem. Płacisz za to opłatą klimatyczną, która i tak jest na rachunku."
+        },
+        "transit": {
+          "q": "Czym się jeździ w Salzburgu?",
+          "a": "Po mieście trolejbusami, które przyjeżdżają co kilka minut. W okolicę kolejką miejską S-Bahn i autobusami regionalnymi. Połączenia pokaże ci aplikacja salzburskiego związku komunikacyjnego."
+        },
+        "taxi": {
+          "q": "Jak to jest z taksówkami?",
+          "a": "Taksówki jeżdżą na taksometr i stoją na postojach, na starówce i przy dworcu. Przez aplikację też się da: Uber i Bolt podsyłają tu zwykłe lokalne taksówki, więc przyjedzie ten sam samochód co z postoju."
+        },
+        "bike": {
+          "q": "Czy da się wszystko załatwić rowerem?",
+          "a": "W mieście tak. Salzburg jest płaski, wzdłuż Salzach biegną ciągłe ścieżki rowerowe, a rowery do wypożyczenia stoją prawie na każdym rogu. Wielu mieszkańców właśnie dlatego nie ma samochodu."
+        },
+        "carfree": {
+          "q": "Dojadę na spoty bez samochodu?",
+          "a": "Na wiele tak. Jezioro Wallersee leży przy linii S-Bahn, nad Fuschlsee dowozi autobus 150, a w doliny jeżdżą autobusy pocztowe. Z kartą gościa nic cię to dodatkowo nie kosztuje.",
+          "link": "Spoty na mapie"
+        }
+      }
+    },
+    "money": {
+      "title": "Pieniądze i płatności",
+      "hint": "Karta czy gotówka · Napiwek · Opłata klimatyczna",
+      "items": {
+        "cash": {
+          "q": "Karta czy gotówka?",
+          "a": "W mieście poradzisz sobie kartą, w sklepie i w lokalu na pewno. Poza miastem bywa inaczej: schroniska i bacówki, małe wiejskie knajpki, kasy nad jeziorami i część parkomatów biorą tylko gotówkę. Na dzień w górach zawsze weź coś w banknotach."
+        },
+        "tipping": {
+          "q": "Ile daje się napiwku?",
+          "a": "Zaokrągla się w górę albo daje jakieś pięć do dziesięciu procent. Kwotę z napiwkiem podaj od razu przy płaceniu. Dopisanie go później do płatności kartą tutaj nie działa."
+        },
+        "atm": {
+          "q": "Gdzie wypłacę gotówkę?",
+          "a": "Bankomaty są w każdej miejscowości, w mieście co drugi róg. W małych górskich wsiach najbliższy potrafi być daleko, więc lepiej wypłacić jeszcze w dolinie."
+        },
+        "touristtax": {
+          "q": "Co to za opłata klimatyczna na rachunku?",
+          "a": "Opłata za każdy nocleg, którą pobiera każdy obiekt. To z niej finansowany jest między innymi twój darmowy bilet na komunikację. Nic nie musisz robić, po prostu jest na rachunku."
+        }
+      }
+    },
+    "mountains": {
+      "title": "Góry, jeziora i pogoda",
+      "hint": "Zmiana pogody · Ratownictwo · Schroniska · Jeziora",
+      "items": {
+        "weather": {
+          "q": "Czy pogodzie można ufać?",
+          "a": "Słońce rano i burza po południu to latem norma, nie wyjątek. Dlatego wszyscy wychodzą tu wcześnie i wczesnym popołudniem są już na dole. W dolinie może świecić słońce, kiedy na górze stoi mgła."
+        },
+        "rescue": {
+          "q": "Co, jeśli coś się stanie w górach?",
+          "a": "Ratownictwo górskie: 140. Zostań tam, gdzie jesteś, i podaj swoją pozycję. Nowsze telefony wysyłają ją automatycznie razem z połączeniem alarmowym. Zawrócenie to nie porażka, tylko powód, dla którego większość wyjść kończy się dobrze."
+        },
+        "huts": {
+          "q": "Na co uważać w schroniskach?",
+          "a": "Weź gotówkę, wiele miejsc nie przyjmuje kart. Jeśli chcesz przenocować, zarezerwuj wcześniej i zabierz śpiwór bieliźniany. Sezon jest krótki: sporo schronisk zamyka jesienią i otwiera dopiero późną wiosną."
+        },
+        "lakes": {
+          "q": "Kiedy można pływać w jeziorach?",
+          "a": "Płytkie jeziora na nizinie są dostatecznie ciepłe od maja, głębokie jeziora górskie potrzebują czasu aż do lipca. Ile jest naprawdę w tej chwili, sprawdzisz przy temperaturach wody.",
+          "link": "Temperatury wody"
+        },
+        "winter": {
+          "q": "A zimą?",
+          "a": "Na trasie nie potrzebujesz nic poza kaskiem i szacunkiem dla tempa innych. Gdy tylko z niej zjedziesz, obowiązuje komunikat lawinowy, a bez sprzętu i doświadczenia nie ma tam czego szukać. Odśnieżone zimowe szlaki spacerowe są prawie w każdej miejscowości."
+        }
+      }
+    },
+    "everyday": {
+      "title": "Codzienność w Austrii",
+      "hint": "Niedziela zamknięte · Powitania · Woda · Prąd · Zasięg",
+      "items": {
+        "sunday": {
+          "q": "Dlaczego w niedzielę wszystko jest zamknięte?",
+          "a": "Bo w Austrii w niedzielę się nie handluje, ze sklepami spożywczymi włącznie. W sobotę większość sklepów zamyka wczesnym wieczorem. Otwarte zostają dworzec, lotnisko, stacje benzynowe i lokale. W święta jest tak samo, więc zakupy zrób w sobotę."
+        },
+        "greeting": {
+          "q": "Jak się tu wita?",
+          "a": "Mówi się Grüß Gott albo Servus, i to od razu przy wejściu do lokalu, do sklepu, do gondoli. Na pożegnanie Wiederschauen albo Baba. Wśród młodszych ludzi prawie zawsze mówi się sobie po imieniu."
+        },
+        "water": {
+          "q": "Czy mogę pić wodę z kranu?",
+          "a": "Możesz i powinieneś. Płynie prosto z gór i jest lepsza niż większość tego, co sprzedają w butelkach. Weź butelkę i nalewaj przy fontannach, także w samym środku starówki."
+        },
+        "power": {
+          "q": "Jakie gniazdko jest potrzebne?",
+          "a": "230 woltów, typ F, te same dwa okrągłe bolce co w Polsce. Adapter przyda się tylko sprzętowi z Wielkiej Brytanii, USA albo Azji."
+        },
+        "roaming": {
+          "q": "Jak jest z telefonem i internetem?",
+          "a": "Z Unii dzwonisz i korzystasz z danych na swoich zwykłych warunkach. Ze Szwajcarii, Wielkiej Brytanii czy zza oceanu opłaca się eSIM. Wi-fi jest prawie w każdym lokalu, a w górach często nie ma nawet zasięgu."
+        }
+      }
+    },
+    "health": {
+      "title": "Zdrowie i apteka",
+      "hint": "Lekarz · Dyżur nocny · EKUZ · Kleszcze",
+      "items": {
+        "doctor": {
+          "q": "Potrzebuję lekarza, co teraz?",
+          "a": "W ciągu dnia idziesz do gabinetu, wiele przyjmuje też bez umówienia. Wieczorem i w weekend przejmuje to dyżur lekarski pod numerem 141. Jeśli nie wiesz, czy to w ogóle sprawa dla lekarza, całodobowo pomoże numer 1450."
+        },
+        "pharmacy": {
+          "q": "Gdzie znajdę aptekę wieczorem?",
+          "a": "Zawsze jedna ma dyżur nocny i zmienia się to codziennie. Która akurat dyżuruje, wisi na drzwiach każdej zamkniętej apteki."
+        },
+        "insurance": {
+          "q": "A co z ubezpieczeniem?",
+          "a": "Z Unii weź swoją kartę EKUZ, wtedy leczą cię jak miejscowego. Spoza Unii potrzebujesz ubezpieczenia podróżnego. Akcja ratownictwa górskiego nigdzie nie jest wliczona automatycznie."
+        },
+        "ticks": {
+          "q": "Czy trzeba uważać na kleszcze?",
+          "a": "Kleszcze siedzą w lesie i wysokiej trawie, aż po średnie wysokości. Mogą przenosić kleszczowe zapalenie mózgu, dlatego tutaj prawie wszyscy są zaszczepieni. Po dniu na łonie natury obejrzyj się dokładnie, zwykle to wystarczy."
+        }
+      }
+    },
+    "packing": {
+      "title": "Co spakować",
+      "hint": "Zawsze · Lato · Zima",
+      "items": {
+        "always": {
+          "q": "Co pakuje się za każdym razem?",
+          "a": "Solidne buty z bieżnikiem, kurtkę przeciwdeszczową, krem z filtrem i bidon. Do tego trochę gotówki na schronisko. Pogoda zmienia się tu szybciej, niż zdąży pomóc kurtka zostawiona w hotelu."
+        },
+        "summer": {
+          "q": "Czego potrzeba latem?",
+          "a": "Stroju kąpielowego, bo od maja do września następne jezioro nigdy nie jest daleko. Lepiej kilka cienkich warstw niż jedna gruba kurtka, bo na górze i w lipcu bywa chłodno. A nad wodą wieczorem środek na komary."
+        },
+        "winter": {
+          "q": "Czego potrzeba zimą?",
+          "a": "Ciepłych warstw, rękawic, czapki. Na oblodzone ścieżki raczki są najlepszą rzeczą, jaka mieści się w kieszeni. Nie zapomnij okularów przeciwsłonecznych, śnieg oślepia bardziej niż piasek."
+        }
+      }
+    }
+  },
+  "outro": {
+    "title": "Zostało jakieś pytanie?",
+    "body": "Zapytaj Toniego, twojego lokalsa z AI. Albo od razu zobacz, co masz w pobliżu.",
+    "ai": "Zapytaj Toniego",
+    "cta": "Na mapę"
+  }
+}

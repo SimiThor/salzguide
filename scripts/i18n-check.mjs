@@ -304,6 +304,68 @@ checkGroups("SUBTYPE_GROUPS", ["SUBTYPE"]);
 checkGroups("AREA_GROUPS", ["AREA", "AREA_NAMES"]);
 
 // ---------------------------------------------------------------------------
+// „Gut zu wissen" (src/content/travel-info/<sprache>.json)
+//
+// Die dritte Übersetzungstabelle neben messages/ und facts-i18n.json. Sie steht dort und
+// nicht in messages/, weil app/[locale]/layout.tsx den GANZEN Nachrichtenbaum an den
+// NextIntlClientProvider gibt: Jeder Schlüssel in messages/ wird auf JEDER Seite der App
+// mitgeliefert, auch auf der Karte und auf jedem Spot. Rund 100 Antworten dieser einen
+// Seite hätten dort jeden Seitenaufruf verteuert. Die Begründung im Langtext steht in
+// src/lib/travel-info.ts.
+//
+// Genau deshalb braucht es hier eine Prüfung: Die Dateien laufen an der Parität-Prüfung
+// oben komplett vorbei. Und ihre Lücken sind unsichtbar, denn getTravelInfo() legt jede
+// Sprache über Deutsch (dasselbe Netz wie i18n/request.ts) — eine fehlende Übersetzung
+// sieht auf der Seite also nach Deutsch aus, nicht nach einem Fehler.
+//
+// Geprüft wird dasselbe wie oben: jede Sprache vollständig, nichts Überzähliges, keine
+// leeren Werte, kein Gedankenstrich. Platzhalter und Rich-Text-Tags gibt es hier nicht,
+// das ist reiner Fliesstext.
+const TRAVEL_DIR = "src/content/travel-info";
+const travelReport = (msg) => {
+  problems++;
+  console.error(`  ${TRAVEL_DIR}: ${msg}`);
+};
+
+const travelFiles = readdirSync(TRAVEL_DIR)
+  .filter((f) => f.endsWith(".json"))
+  .map((f) => f.replace(/\.json$/, ""));
+
+// Eine Sprache ohne Datei fällt zur Laufzeit auf Deutsch zurück (getTravelInfo fängt das
+// ab, damit eine vergessene Datei keinen Fehlerschirm baut). Genau diese Stille ist der
+// Grund, warum es hier auffallen MUSS.
+for (const locale of [BASE, ...locales]) {
+  if (!travelFiles.includes(locale)) travelReport(`${locale}.json fehlt`);
+}
+for (const f of travelFiles) {
+  if (f !== BASE && !locales.includes(f)) travelReport(`${f}.json gehört zu keiner Sprache`);
+}
+
+const travelBase = new Map(flatten(JSON.parse(readFileSync(join(TRAVEL_DIR, `${BASE}.json`), "utf8"))));
+for (const [key, value] of travelBase.entries()) {
+  if (typeof value !== "string" || value.trim() === "") travelReport(`${BASE} · ${key} ist leer`);
+  if (typeof value === "string" && value.includes("—")) travelReport(`GEDANKENSTRICH in ${BASE} · ${key}`);
+}
+
+for (const locale of locales) {
+  if (!travelFiles.includes(locale)) continue; // schon gemeldet
+  const target = new Map(flatten(JSON.parse(readFileSync(join(TRAVEL_DIR, `${locale}.json`), "utf8"))));
+  for (const key of travelBase.keys()) {
+    const v = target.get(key);
+    if (v == null) travelReport(`${locale} · ${key} fehlt`);
+    else if (typeof v !== "string" || v.trim() === "") travelReport(`${locale} · ${key} ist leer`);
+  }
+  for (const key of target.keys()) {
+    if (!travelBase.has(key)) travelReport(`${locale} · ${key} ist überzählig (nicht in ${BASE}.json)`);
+  }
+  if (!DASH_OK_LOCALES.has(locale)) {
+    for (const [key, value] of target.entries()) {
+      if (typeof value === "string" && value.includes("—")) travelReport(`GEDANKENSTRICH in ${locale} · ${key}`);
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
 // UNGELESENE KEYS (Hinweis, kein Fehler)
 //
 // Jeder Key wird in JEDE Sprache übersetzt und landet über getMessages() im HTML JEDER
@@ -401,6 +463,7 @@ if (problems > 0) {
   process.exit(1);
 }
 console.log(
-  `✓ ${locales.length} Sprachen stimmen mit ${BASE}.json überein (${base.size} Keys) ` +
-    `und ${FACTS_FILE} ist vollständig (${categories.length} Kategorien, ${factValues} Werte).`,
+  `✓ ${locales.length} Sprachen stimmen mit ${BASE}.json überein (${base.size} Keys), ` +
+    `${FACTS_FILE} ist vollständig (${categories.length} Kategorien, ${factValues} Werte) ` +
+    `und ${TRAVEL_DIR} ebenfalls (${travelBase.size} Texte je Sprache).`,
 );

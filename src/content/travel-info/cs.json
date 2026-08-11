@@ -1,0 +1,200 @@
+{
+  "title": "Dobré vědět",
+  "intro": "Všechno praktické o Salcburku na jednom místě. Dvě minuty čtení a vyznáš se.",
+  "emergency": {
+    "title": "V nouzi",
+    "note": "Všechna čísla fungují bez předvolby a jsou zdarma. I bez kreditu a bez SIM karty.",
+    "labels": {
+      "euro": "Evropské tísňové číslo",
+      "ambulance": "Záchranka",
+      "mountain": "Horská služba",
+      "police": "Policie",
+      "fire": "Hasiči",
+      "doctor": "Lékařská pohotovost",
+      "health": "Zdravotní poradna"
+    }
+  },
+  "glance": {
+    "title": "Ve zkratce",
+    "items": {
+      "currency": { "label": "Měna", "value": "Euro" },
+      "language": { "label": "Jazyk", "value": "Němčina" },
+      "power": { "label": "Elektřina", "value": "230 V, typ F" },
+      "water": { "label": "Voda z kohoutku", "value": "Pitná" },
+      "time": { "label": "Časové pásmo", "value": "SEČ (UTC+1)" },
+      "sunday": { "label": "Neděle", "value": "Obchody zavřené" }
+    }
+  },
+  "blocks": {
+    "arrival": {
+      "title": "Cesta sem",
+      "hint": "Letiště · Vlak · Auto · Autobus",
+      "items": {
+        "plane": {
+          "q": "Jak se dostanu z letiště do města?",
+          "a": "Letiště leží na západním okraji města, pár kilometrů od starého města. Před příletovou halou stojí dva trolejbusy: dvojka jede na hlavní nádraží, desítka k radnici přímo ve starém městě. Oba to zvládnou za nějakých 20 až 25 minut. Stanoviště taxi je hned vedle."
+        },
+        "train": {
+          "q": "Vyplatí se přijet vlakem?",
+          "a": "Je to nejklidnější způsob. Z Mnichova jsi na hlavním nádraží za zhruba hodinu a půl, z Vídně za dobré dvě a půl. Z nádraží do starého města je to čtvrt hodiny pěšky, nebo jedna zastávka trolejbusem."
+        },
+        "car": {
+          "q": "Co potřebuju, když přijedu autem?",
+          "a": "Na dálnici dálniční známku. Existuje v digitální podobě, váže se na registrační značku a koupíš ji před hranicí. Od 1. listopadu do 15. dubna platí povinná zimní výbava, tedy zimní pneumatiky nebo řetězy. Ve starém městě ani nezkoušej hledat místo na ulici, zajeď rovnou do garáže."
+        },
+        "bus": {
+          "q": "Jezdí do Salcburku dálkové autobusy?",
+          "a": "Ano, staví na hlavním nádraží. Odtud se trolejbusem nebo pěšky dostaneš kamkoli po městě."
+        }
+      }
+    },
+    "around": {
+      "title": "Doprava na místě",
+      "hint": "Karta hosta · Trolejbus a vlak · Taxi · Kolo",
+      "items": {
+        "guestcard": {
+          "q": "Je pravda, že hosté jezdí zadarmo?",
+          "a": "Je, a je to nejlepší tip na téhle stránce. Kdo přenocuje v Salcbursku, dostane při ubytování do telefonu Guest Mobility Ticket. S ním jezdíš po celou dobu pobytu zdarma veškerou veřejnou dopravou v celé spolkové zemi, včetně cesty tam a zpět. Je zaplacený z lázeňského poplatku, který máš na účtu."
+        },
+        "transit": {
+          "q": "Čím se v Salcburku jezdí?",
+          "a": "Po městě trolejbusy, které jezdí každých pár minut. Do okolí příměstskými vlaky S-Bahn a regionálními autobusy. Spojení najdeš v aplikaci salcburského dopravního svazu."
+        },
+        "taxi": {
+          "q": "Jak to chodí s taxíky?",
+          "a": "Taxíky jezdí na taxametr a stojí na stanovištích, ve starém městě a u nádraží. Přes aplikaci to jde taky: Uber i Bolt tady posílají běžné místní taxíky, takže přijede stejné auto jako ze stanoviště."
+        },
+        "bike": {
+          "q": "Dá se všechno zvládnout na kole?",
+          "a": "Ve městě ano. Salcburk je rovina, podél Salzachu vedou nepřerušené cyklostezky a kola na půjčení stojí skoro na každém rohu. Spousta místních právě proto auto nemá."
+        },
+        "carfree": {
+          "q": "Dostanu se na spoty bez auta?",
+          "a": "Na spoustu z nich ano. Jezero Wallersee leží na trati S-Bahn, k jezeru Fuschlsee tě doveze autobus 150 a do údolí jezdí poštovní autobusy. S kartou hosta tě to nestojí nic navíc.",
+          "link": "Spoty na mapě"
+        }
+      }
+    },
+    "money": {
+      "title": "Peníze a placení",
+      "hint": "Karta nebo hotovost · Spropitné · Lázeňský poplatek",
+      "items": {
+        "cash": {
+          "q": "Karta, nebo hotovost?",
+          "a": "Ve městě si vystačíš s kartou, v obchodě a v hospodě určitě. Venku je to jinak: salaše, malé vinné sklípky, pokladny u koupacích jezer a některé parkovací automaty berou jen hotovost. Na den v horách si proto vždycky vezmi něco v hotovosti."
+        },
+        "tipping": {
+          "q": "Kolik se dává spropitné?",
+          "a": "Zaokrouhluje se nahoru, nebo se dává zhruba pět až deset procent. Částku i se spropitným řekni rovnou při placení. Přidat ho dodatečně k platbě kartou tady nejde."
+        },
+        "atm": {
+          "q": "Kde vyberu hotovost?",
+          "a": "Bankomaty jsou v každé obci, ve městě na každém druhém rohu. V malých horských vesnicích může být nejbližší dost daleko, takže radši vybírej dole v údolí."
+        },
+        "touristtax": {
+          "q": "Co je ten lázeňský poplatek na účtu?",
+          "a": "Poplatek za každou noc, který vybírá každé ubytování. Mimo jiné se z něj platí tvoje jízdenka na veřejnou dopravu zdarma. Nemusíš pro to nic dělat, prostě je na účtu."
+        }
+      }
+    },
+    "mountains": {
+      "title": "Hory, jezera a počasí",
+      "hint": "Změna počasí · Horská služba · Chaty · Jezera",
+      "items": {
+        "weather": {
+          "q": "Dá se počasí věřit?",
+          "a": "Dopoledne slunce a odpoledne bouřka je v létě běžný stav, ne výjimka. Proto tady všichni vyrážejí brzy a v časném odpoledni jsou zpátky dole. V údolí může svítit slunce, zatímco nahoře stojí mlha."
+        },
+        "rescue": {
+          "q": "Co když se v horách něco stane?",
+          "a": "Horská služba: 140. Zůstaň, kde jsi, a nahlas svou polohu. Novější telefony ji při tísňovém volání posílají automaticky. Otočit se není prohra, je to důvod, proč většina výletů dopadne dobře."
+        },
+        "huts": {
+          "q": "Na co si dát pozor na chatách?",
+          "a": "Vezmi hotovost, hodně horských chat kartu nebere. Jestli chceš přespat, rezervuj předem a vezmi si spací pytel na chatu. A sezona je krátká: spousta chat zavírá na podzim a otevírá až v pozdním jaru."
+        },
+        "lakes": {
+          "q": "Kdy se dá v jezerech koupat?",
+          "a": "Mělká jezera v nížině jsou dost teplá od května, hluboká horská jezera potřebují až do července. Kolik je právě teď, uvidíš u teplot vody.",
+          "link": "Teploty vody"
+        },
+        "winter": {
+          "q": "A v zimě?",
+          "a": "Na sjezdovce nepotřebuješ nic než helmu a respekt k tempu ostatních. Jakmile z ní sjedeš, platí lavinová zpráva, a bez vybavení a zkušeností tam nemáš co dělat. Prohrnuté zimní stezky jsou skoro v každé obci."
+        }
+      }
+    },
+    "everyday": {
+      "title": "Všední den v Rakousku",
+      "hint": "Neděle zavřeno · Pozdravy · Voda · Zásuvky · Signál",
+      "items": {
+        "sunday": {
+          "q": "Proč je v neděli všechno zavřené?",
+          "a": "Protože v Rakousku se v neděli zavírá, supermarkety včetně. V sobotu většina obchodů končí v podvečer. Otevřeno zůstává na nádraží, na letišti, u benzinek a v hospodách. Ve svátek je to stejné, takže nákupy si udělej v sobotu."
+        },
+        "greeting": {
+          "q": "Jak se tady zdraví?",
+          "a": "Řekne se Grüß Gott nebo Servus, a to hned při vstupu do hospody, do obchodu, do kabinky lanovky. Na rozloučenou Wiederschauen nebo Baba. Mezi mladšími se skoro vždycky tyká."
+        },
+        "water": {
+          "q": "Můžu pít vodu z kohoutku?",
+          "a": "Můžeš a měl bys. Teče z hor a je lepší než většina toho, co se prodává v lahvích. Vezmi si láhev a doplňuj ji u kašen, i přímo ve starém městě."
+        },
+        "power": {
+          "q": "Jakou zásuvku potřebuju?",
+          "a": "230 voltů, typ F, stejné dva kulaté kolíky jako v Česku. Adaptér potřebuješ jen na přístroje z Británie, USA nebo Asie."
+        },
+        "roaming": {
+          "q": "Jak je to s telefonem a internetem?",
+          "a": "Z Evropské unie voláš a surfuješ za svých obvyklých podmínek. Ze Švýcarska, Británie nebo zámoří se vyplatí eSIM. Wi-fi je skoro v každé hospodě, v horách často není ani signál."
+        }
+      }
+    },
+    "health": {
+      "title": "Zdraví a lékárna",
+      "hint": "Lékař · Noční služba · Evropský průkaz · Klíšťata",
+      "items": {
+        "doctor": {
+          "q": "Potřebuju lékaře, co teď?",
+          "a": "Přes den zajdeš do ordinace, spousta jich bere i bez objednání. Večer a o víkendu přebírá službu lékařská pohotovost na čísle 141. Když si nejsi jistý, jestli je to vůbec případ pro lékaře, nonstop poradí číslo 1450."
+        },
+        "pharmacy": {
+          "q": "Kde najdu večer lékárnu?",
+          "a": "Vždycky má jedna noční službu a střídají se každý den. Která je zrovna na řadě, visí na dveřích každé zavřené lékárny."
+        },
+        "insurance": {
+          "q": "A co pojištění?",
+          "a": "Z Evropské unie si vezmi svůj evropský průkaz zdravotního pojištění, ošetří tě pak jako místního. Ze zemí mimo unii potřebuješ cestovní pojištění. Zásah horské služby v něm nikde není automaticky."
+        },
+        "ticks": {
+          "q": "Musím se chránit před klíšťaty?",
+          "a": "Klíšťata sedí v lese a ve vysoké trávě až do středních poloh. Můžou přenášet klíšťovou encefalitidu, proto je tady skoro každý naočkovaný. Po dni v přírodě se prohlédni, většinou to stačí."
+        }
+      }
+    },
+    "packing": {
+      "title": "Co sbalit",
+      "hint": "Vždycky · Léto · Zima",
+      "items": {
+        "always": {
+          "q": "Co patří do batohu pokaždé?",
+          "a": "Pevné boty s podrážkou, nepromokavou bundu, opalovací krém a láhev na vodu. K tomu něco v hotovosti na chatu. Počasí se tady mění rychleji, než ti pomůže bunda nechaná v hotelu."
+        },
+        "summer": {
+          "q": "Co je potřeba v létě?",
+          "a": "Plavky, od května do září není další jezero nikdy daleko. Radši několik tenkých vrstev než jednu tlustou bundu, protože nahoře je chladno i v červenci. A u vody večer repelent na komáry."
+        },
+        "winter": {
+          "q": "Co je potřeba v zimě?",
+          "a": "Teplé vrstvy, rukavice, čepice. Na zledovatělé cesty jsou nesmeky to nejlepší, co se vejde do kapsy. Nezapomeň sluneční brýle, sníh oslňuje víc než písek."
+        }
+      }
+    }
+  },
+  "outro": {
+    "title": "Zbývá otázka?",
+    "body": "Zeptej se Toniho, tvého místního s umělou inteligencí. Nebo se rovnou podívej, co máš poblíž.",
+    "ai": "Zeptat se Toniho",
+    "cta": "Na mapu"
+  }
+}

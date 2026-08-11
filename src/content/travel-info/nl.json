@@ -1,0 +1,200 @@
+{
+  "title": "Goed om te weten",
+  "intro": "Alles praktisch over Salzburg op één plek. Twee minuten lezen en je weet de weg.",
+  "emergency": {
+    "title": "Bij nood",
+    "note": "Alle nummers werken zonder netnummer en zijn gratis. Ook zonder beltegoed en zonder simkaart.",
+    "labels": {
+      "euro": "Europees alarmnummer",
+      "ambulance": "Ambulance",
+      "mountain": "Bergredding",
+      "police": "Politie",
+      "fire": "Brandweer",
+      "doctor": "Huisartsenpost",
+      "health": "Gezondheidsadvies"
+    }
+  },
+  "glance": {
+    "title": "In het kort",
+    "items": {
+      "currency": { "label": "Valuta", "value": "Euro" },
+      "language": { "label": "Taal", "value": "Duits" },
+      "power": { "label": "Stroom", "value": "230 V, type F" },
+      "water": { "label": "Kraanwater", "value": "Drinkbaar" },
+      "time": { "label": "Tijdzone", "value": "CET (UTC+1)" },
+      "sunday": { "label": "Zondag", "value": "Winkels dicht" }
+    }
+  },
+  "blocks": {
+    "arrival": {
+      "title": "Heenreis",
+      "hint": "Luchthaven · Trein · Auto · Bus",
+      "items": {
+        "plane": {
+          "q": "Hoe kom ik van de luchthaven naar de stad?",
+          "a": "De luchthaven ligt aan de westrand van de stad, een paar kilometer van de oude binnenstad. Voor de aankomsthal vertrekken twee trolleybussen: de 2 naar het centraal station, de 10 naar het stadhuis midden in de oude stad. Allebei doen er zo'n 20 tot 25 minuten over. De taxistandplaats ligt er pal naast."
+        },
+        "train": {
+          "q": "Is met de trein komen de moeite waard?",
+          "a": "Dat is de meest ontspannen manier. Vanuit München sta je in ongeveer anderhalf uur op het centraal station, vanuit Wenen in ruim tweeënhalf. Van het station loop je in een kwartier de oude stad in, of je pakt de trolleybus."
+        },
+        "car": {
+          "q": "Wat heb ik nodig als ik met de auto kom?",
+          "a": "Voor de snelweg een vignet. Dat bestaat digitaal, hangt aan je kenteken en koop je vóór de grens. Van 1 november tot 15 april geldt winteruitrusting verplicht, dus winterbanden of kettingen. In de oude stad hoef je niet naar een parkeerplek te zoeken, daar rij je een garage in."
+        },
+        "bus": {
+          "q": "Rijden er langeafstandsbussen naar Salzburg?",
+          "a": "Ja, die stoppen bij het centraal station. Vanaf daar kom je met de trolleybus of te voet overal in de stad."
+        }
+      }
+    },
+    "around": {
+      "title": "Ter plekke onderweg",
+      "hint": "Gastenkaart · Trolleybus en trein · Taxi · Fiets",
+      "items": {
+        "guestcard": {
+          "q": "Klopt het dat gasten gratis met het ov reizen?",
+          "a": "Ja, en dit is de beste tip op deze pagina. Wie in de deelstaat Salzburg overnacht, krijgt bij het inchecken het Guest Mobility Ticket op de telefoon. Daarmee reis je je hele verblijf gratis met al het openbaar vervoer in de hele deelstaat, heen- en terugreis inbegrepen. Het is betaald via de toeristenbelasting op je rekening."
+        },
+        "transit": {
+          "q": "Hoe reis je in Salzburg?",
+          "a": "In de stad met trolleybussen, die om de paar minuten komen. Naar het ommeland met de S-Bahn en streekbussen. Verbindingen vind je in de app van het Salzburger vervoersverbond."
+        },
+        "taxi": {
+          "q": "Hoe gaat dat met taxi's?",
+          "a": "Taxi's rijden op de meter en staan op standplaatsen, in de oude stad en bij het station. Via een app kan ook: Uber en Bolt sturen hier gewone lokale taxi's, dus je krijgt dezelfde wagen als op de standplaats."
+        },
+        "bike": {
+          "q": "Kan ik alles met de fiets doen?",
+          "a": "In de stad wel. Salzburg is vlak, heeft doorlopende fietspaden langs de Salzach en huurfietsen op bijna elke hoek. Veel inwoners hebben precies daarom geen auto."
+        },
+        "carfree": {
+          "q": "Kom ik zonder auto bij de spots?",
+          "a": "Bij veel wel. De Wallersee ligt aan de S-Bahn, naar de Fuschlsee brengt bus 150 je, en de postbussen rijden de dalen in. Met de gastenkaart kost het je niets extra.",
+          "link": "Spots op de kaart"
+        }
+      }
+    },
+    "money": {
+      "title": "Geld en betalen",
+      "hint": "Pas of contant · Fooi · Toeristenbelasting",
+      "items": {
+        "cash": {
+          "q": "Pinpas of contant?",
+          "a": "In de stad red je het met de pas, in de supermarkt en het restaurant sowieso. Daarbuiten wordt het anders: berghutten, kleine wijnboeren, kassa's bij zwemmeren en sommige parkeerautomaten nemen alleen contant. Voor een dag in de bergen dus altijd wat cash mee."
+        },
+        "tipping": {
+          "q": "Hoeveel fooi?",
+          "a": "Naar boven afronden, of ongeveer vijf tot tien procent. Noem het bedrag inclusief fooi meteen bij het afrekenen. Er achteraf iets bij doen op een kaartbetaling kan hier niet."
+        },
+        "atm": {
+          "q": "Waar haal ik contant geld?",
+          "a": "Geldautomaten staan in elk dorp, in de stad om de andere hoek. In kleine bergdorpen kan de dichtstbijzijnde een eind weg zijn, dus neem beneden in het dal geld op."
+        },
+        "touristtax": {
+          "q": "Wat is die toeristenbelasting op mijn rekening?",
+          "a": "Een heffing per nacht die elk logies int. Daarvan wordt onder meer je gratis ov-ticket betaald. Je hoeft er niets voor te doen, het staat gewoon op de rekening."
+        }
+      }
+    },
+    "mountains": {
+      "title": "Bergen, meren en weer",
+      "hint": "Weersomslag · Bergredding · Hutten · Meren",
+      "items": {
+        "weather": {
+          "q": "Hoe betrouwbaar is het weer?",
+          "a": "'s Ochtends zon en 's middags onweer is in de zomer de regel, niet de uitzondering. Daarom vertrekt hier iedereen vroeg en is in de vroege middag weer beneden. In het dal kan de zon schijnen terwijl het boven in de mist hangt."
+        },
+        "rescue": {
+          "q": "En als er in de bergen iets gebeurt?",
+          "a": "Bergredding 140. Blijf waar je bent en geef je locatie door. Moderne telefoons sturen die bij een noodoproep automatisch mee. Omdraaien is geen nederlaag, het is de reden dat de meeste tochten goed aflopen."
+        },
+        "huts": {
+          "q": "Waar moet ik bij hutten op letten?",
+          "a": "Neem contant geld mee, veel hutten hebben geen kaartbetaling. Wil je blijven slapen, reserveer dan vooraf en neem een hutslaapzak mee. En het seizoen is kort: veel sluiten in de herfst en gaan pas laat in het voorjaar weer open."
+        },
+        "lakes": {
+          "q": "Wanneer kun je in de meren zwemmen?",
+          "a": "De ondiepe meren in het vlakke land zijn vanaf mei warm genoeg, de diepe bergmeren hebben tot juli nodig. Hoe warm het nu echt is, staat bij de watertemperaturen.",
+          "link": "Watertemperaturen"
+        },
+        "winter": {
+          "q": "En in de winter?",
+          "a": "Op de piste heb je niet meer nodig dan een helm en respect voor het tempo van de anderen. Zodra je ernaast gaat, geldt het lawinebericht, en zonder uitrusting en ervaring hoor je daar niet. Geveegde winterwandelpaden zijn er in bijna elk dorp."
+        }
+      }
+    },
+    "everyday": {
+      "title": "Dagelijks leven in Oostenrijk",
+      "hint": "Zondag dicht · Groeten · Water · Stroom · Bereik",
+      "items": {
+        "sunday": {
+          "q": "Waarom is op zondag alles dicht?",
+          "a": "Omdat Oostenrijk op zondag sluit, supermarkten inbegrepen. Op zaterdag gaan de meeste winkels in de vroege avond dicht. Open blijven station, luchthaven, tankstations en de horeca. Op feestdagen is het net zo, dus doe je boodschappen op zaterdag."
+        },
+        "greeting": {
+          "q": "Hoe groet je hier?",
+          "a": "Met Grüß Gott of Servus, en wel als je een café, een winkel of een gondel binnenstapt. Bij het weggaan Wiederschauen of Baba. Onder jongere mensen wordt bijna altijd getutoyeerd."
+        },
+        "water": {
+          "q": "Kan ik kraanwater drinken?",
+          "a": "Ja, en dat moet je ook doen. Het komt uit de bergen en is beter dan het meeste dat in flessen wordt verkocht. Neem een fles mee en vul hem bij de fonteinen, ook midden in de oude stad."
+        },
+        "power": {
+          "q": "Welk stopcontact heb ik nodig?",
+          "a": "230 volt, type F, dezelfde twee ronde pennen als in Nederland en België. Uit Groot-Brittannië, de VS of Azië heb je een adapter nodig."
+        },
+        "roaming": {
+          "q": "Hoe zit het met telefoon en internet?",
+          "a": "Vanuit de EU bel en surf je tegen je normale voorwaarden. Vanuit Zwitserland, Groot-Brittannië of overzee loont een eSIM. Wifi is er in bijna elke gelegenheid, in de bergen vaak niet eens bereik."
+        }
+      }
+    },
+    "health": {
+      "title": "Gezondheid en apotheek",
+      "hint": "Arts · Nachtdienst · e-card · Teken",
+      "items": {
+        "doctor": {
+          "q": "Ik heb een arts nodig, wat nu?",
+          "a": "Overdag loop je een praktijk binnen, veel nemen je ook zonder afspraak. 's Avonds en in het weekend neemt de artsennooddienst op 141 het over. Weet je niet zeker of het überhaupt iets voor een arts is, dan helpt 1450 dag en nacht."
+        },
+        "pharmacy": {
+          "q": "Waar vind ik 's avonds een apotheek?",
+          "a": "Er is altijd één met nachtdienst, en die wisselt dagelijks. Welke dat op dit moment is, hangt op de deur van elke gesloten apotheek."
+        },
+        "insurance": {
+          "q": "En de verzekering?",
+          "a": "Uit de EU neem je je EHIC mee, dan word je behandeld als een inwoner. Van buiten de EU heb je een reisverzekering nodig. Een inzet van de bergredding zit nergens automatisch in."
+        },
+        "ticks": {
+          "q": "Moet ik oppassen voor teken?",
+          "a": "Teken zitten in bos en hoog gras tot in middelhoge lagen. Ze kunnen tekenencefalitis overbrengen, daarom is hier bijna iedereen gevaccineerd. Controleer jezelf na een dag in het groen, dat is meestal genoeg."
+        }
+      }
+    },
+    "packing": {
+      "title": "Wat inpakken",
+      "hint": "Altijd · Zomer · Winter",
+      "items": {
+        "always": {
+          "q": "Wat moet er altijd in?",
+          "a": "Stevige schoenen met profiel, een regenjas, zonnebrand en een drinkfles. Plus wat contant geld voor de hut. Het weer verandert hier sneller dan een jas in het hotel je helpt."
+        },
+        "summer": {
+          "q": "Wat heb ik in de zomer nodig?",
+          "a": "Zwemspullen, van mei tot september is het volgende meer nooit ver. Liever meerdere dunne lagen dan één dikke jas, want boven op de berg is het ook in juli fris. En aan het water 's avonds muggenspray."
+        },
+        "winter": {
+          "q": "Wat heb ik in de winter nodig?",
+          "a": "Warme lagen, handschoenen, muts. Voor bevroren paden zijn schoenspikes het beste wat in een jaszak past. Vergeet je zonnebril niet, sneeuw verblindt meer dan zand."
+        }
+      }
+    }
+  },
+  "outro": {
+    "title": "Nog een vraag?",
+    "body": "Vraag het Toni, jouw AI-local. Of kijk meteen wat er in de buurt is.",
+    "ai": "Toni vragen",
+    "cta": "Naar de kaart"
+  }
+}

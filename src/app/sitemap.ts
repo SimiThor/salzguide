@@ -21,6 +21,7 @@ const STATIC_PATHS = [
   "/events",
   "/pro",
   "/ueber-uns",
+  "/gut-zu-wissen",
   "/support",
   "/ki",
 ];

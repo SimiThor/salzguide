@@ -1,0 +1,200 @@
+{
+  "title": "Gut zu wissen",
+  "intro": "Alles Praktische für Salzburg an einem Ort. Zwei Minuten lesen, dann kennst du dich aus.",
+  "emergency": {
+    "title": "Im Notfall",
+    "note": "Alle Nummern gehen ohne Vorwahl und kosten nichts. Auch ohne Guthaben und ohne SIM-Karte.",
+    "labels": {
+      "euro": "Euro-Notruf",
+      "ambulance": "Rettung",
+      "mountain": "Bergrettung",
+      "police": "Polizei",
+      "fire": "Feuerwehr",
+      "doctor": "Ärztenotdienst",
+      "health": "Gesundheitsberatung"
+    }
+  },
+  "glance": {
+    "title": "Auf einen Blick",
+    "items": {
+      "currency": { "label": "Währung", "value": "Euro" },
+      "language": { "label": "Sprache", "value": "Deutsch" },
+      "power": { "label": "Strom", "value": "230 V, Typ F" },
+      "water": { "label": "Leitungswasser", "value": "Trinkbar" },
+      "time": { "label": "Zeitzone", "value": "MEZ (UTC+1)" },
+      "sunday": { "label": "Sonntag", "value": "Läden zu" }
+    }
+  },
+  "blocks": {
+    "arrival": {
+      "title": "Anreise",
+      "hint": "Flughafen · Zug · Auto · Fernbus",
+      "items": {
+        "plane": {
+          "q": "Wie komme ich vom Flughafen in die Stadt?",
+          "a": "Der Flughafen liegt am westlichen Stadtrand, ein paar Kilometer von der Altstadt. Vor der Ankunftshalle fahren zwei Obusse: die 2 zum Hauptbahnhof, die 10 zum Rathaus mitten in der Altstadt. Beide brauchen etwa 20 bis 25 Minuten. Der Taxistand ist gleich daneben."
+        },
+        "train": {
+          "q": "Lohnt sich die Anreise mit dem Zug?",
+          "a": "Das ist der entspannteste Weg. Aus München bist du in rund anderthalb Stunden am Hauptbahnhof, aus Wien in gut zweieinhalb. Vom Bahnhof gehst du in einer Viertelstunde in die Altstadt oder nimmst den Obus."
+        },
+        "car": {
+          "q": "Was brauche ich, wenn ich mit dem Auto komme?",
+          "a": "Für die Autobahn eine Vignette. Es gibt sie digital, sie hängt am Kennzeichen, und du kaufst sie vor der Grenze. Von 1. November bis 15. April gilt Winterausrüstungspflicht, also Winterreifen oder Ketten. In der Altstadt gar nicht erst nach einem Parkplatz suchen, dort fährst du in eine Garage."
+        },
+        "bus": {
+          "q": "Fahren Fernbusse nach Salzburg?",
+          "a": "Ja, sie halten am Hauptbahnhof. Von dort bist du mit dem Obus oder zu Fuß überall in der Stadt."
+        }
+      }
+    },
+    "around": {
+      "title": "Vor Ort unterwegs",
+      "hint": "Gästekarte · Obus & S-Bahn · Taxi · Rad",
+      "items": {
+        "guestcard": {
+          "q": "Stimmt es, dass Gäste gratis Öffi fahren?",
+          "a": "Ja, und das ist der beste Tipp auf dieser Seite. Wer im Land Salzburg übernachtet, bekommt beim Check-in das Guest Mobility Ticket aufs Handy. Damit fährst du den ganzen Aufenthalt lang gratis mit allen Öffis im ganzen Bundesland, An- und Abreise inklusive. Bezahlt ist es über die Ortstaxe auf deiner Rechnung."
+        },
+        "transit": {
+          "q": "Wie fährt man in Salzburg?",
+          "a": "In der Stadt mit Obussen, die alle paar Minuten kommen. Ins Umland mit S-Bahn und Regionalbussen. Verbindungen zeigt dir die App vom Salzburger Verkehrsverbund."
+        },
+        "taxi": {
+          "q": "Wie läuft das mit Taxis?",
+          "a": "Taxis fahren mit Taxameter und stehen an Standplätzen, in der Altstadt und am Bahnhof. Per App geht es auch: Uber und Bolt vermitteln hier an ganz normale lokale Taxis, es kommt also derselbe Wagen wie vom Standplatz."
+        },
+        "bike": {
+          "q": "Kann ich alles mit dem Rad machen?",
+          "a": "In der Stadt ja. Salzburg ist flach, hat durchgehende Radwege an der Salzach und Leihräder an fast jeder Ecke. Viele Einheimische haben genau deshalb kein Auto."
+        },
+        "carfree": {
+          "q": "Komme ich ohne Auto zu den Spots?",
+          "a": "Zu vielen ja. Der Wallersee hängt an der S-Bahn, an den Fuschlsee bringt dich der Bus 150, in die Täler fahren Postbusse. Mit der Gästekarte kostet dich das nichts extra.",
+          "link": "Spots auf der Karte"
+        }
+      }
+    },
+    "money": {
+      "title": "Geld & Bezahlen",
+      "hint": "Karte oder bar · Trinkgeld · Ortstaxe",
+      "items": {
+        "cash": {
+          "q": "Karte oder Bargeld?",
+          "a": "In der Stadt kommst du mit Karte durch, im Supermarkt und im Lokal sowieso. Draußen wird es anders: Almhütten, kleine Buschenschänken, Badeseen-Kassen und manche Parkautomaten nehmen nur Bargeld. Für einen Tag in den Bergen also immer etwas Bares einstecken."
+        },
+        "tipping": {
+          "q": "Wie viel Trinkgeld?",
+          "a": "Aufrunden oder rund fünf bis zehn Prozent. Sag die Summe mit Trinkgeld beim Zahlen gleich an. Nachträglich auf eine Kartenzahlung draufgeben geht hier nicht."
+        },
+        "atm": {
+          "q": "Wo bekomme ich Bargeld?",
+          "a": "Bankomaten stehen in jedem Ort, in der Stadt an jeder zweiten Ecke. In kleinen Bergdörfern kann der nächste ein Stück weg sein, deshalb lieber unten im Tal abheben."
+        },
+        "touristtax": {
+          "q": "Was ist die Ortstaxe auf meiner Rechnung?",
+          "a": "Eine Abgabe pro Nacht, die jede Unterkunft einhebt. Davon wird unter anderem dein Gratis-Öffi-Ticket bezahlt. Du musst dafür nichts tun, sie steht einfach auf der Rechnung."
+        }
+      }
+    },
+    "mountains": {
+      "title": "Berge, Seen & Wetter",
+      "hint": "Wetterumschwung · Bergrettung · Hütten · Seen",
+      "items": {
+        "weather": {
+          "q": "Wie verlässlich ist das Wetter?",
+          "a": "Vormittags Sonne, nachmittags Gewitter ist im Sommer der Normalfall und nicht die Ausnahme. Deshalb starten hier alle früh und sind am frühen Nachmittag wieder unten. Im Tal kann die Sonne scheinen, während oben Nebel steht."
+        },
+        "rescue": {
+          "q": "Was, wenn am Berg etwas passiert?",
+          "a": "Bergrettung 140. Bleib, wo du bist, und gib deinen Standort durch. Moderne Handys schicken ihn beim Notruf automatisch mit. Umdrehen ist keine Niederlage, sondern der Grund, warum die meisten Touren gut ausgehen."
+        },
+        "huts": {
+          "q": "Worauf muss ich bei Hütten achten?",
+          "a": "Bargeld mitnehmen, viele haben keine Kartenzahlung. Wer übernachten will, reserviert vorher und bringt einen Hüttenschlafsack mit. Und die Saison ist kurz: Viele sperren im Herbst zu und erst im späten Frühjahr wieder auf."
+        },
+        "lakes": {
+          "q": "Wann kann man in den Seen schwimmen?",
+          "a": "Die flachen Seen im Flachgau sind ab Mai warm genug, die tiefen Bergseen brauchen bis in den Juli. Wie warm es gerade wirklich ist, steht bei den Wassertemperaturen.",
+          "link": "Wassertemperaturen"
+        },
+        "winter": {
+          "q": "Und im Winter?",
+          "a": "Auf der Piste brauchst du nichts weiter als einen Helm und Respekt vor dem Tempo der anderen. Sobald du daneben unterwegs bist, gilt der Lawinenlagebericht, und ohne Ausrüstung und Erfahrung gehört man da nicht hin. Geräumte Winterwanderwege gibt es in fast jedem Ort."
+        }
+      }
+    },
+    "everyday": {
+      "title": "Alltag in Österreich",
+      "hint": "Sonntag zu · Grüßen · Wasser · Strom · Empfang",
+      "items": {
+        "sunday": {
+          "q": "Warum hat am Sonntag alles zu?",
+          "a": "Weil in Österreich sonntags geschlossen ist, Supermärkte inklusive. Samstag sperren die meisten Läden am frühen Abend zu. Offen bleiben Bahnhof, Flughafen, Tankstellen und die Lokale. An Feiertagen ist es genauso, also am Samstag einkaufen."
+        },
+        "greeting": {
+          "q": "Wie grüßt man hier?",
+          "a": "Mit „Grüß Gott“ oder „Servus“, und zwar beim Reingehen ins Lokal, in den Laden, in die Gondel. Zum Abschied „Wiederschauen“ oder „Baba“. Unter jüngeren Leuten wird fast immer geduzt."
+        },
+        "water": {
+          "q": "Kann ich Leitungswasser trinken?",
+          "a": "Ja, und du solltest. Das Wasser kommt aus den Bergen und ist besser als das meiste, was in Flaschen verkauft wird. Flasche mitnehmen und an den Brunnen auffüllen, auch mitten in der Altstadt."
+        },
+        "power": {
+          "q": "Welche Steckdose brauche ich?",
+          "a": "230 Volt, Typ F, also dieselben zwei runden Stifte wie in Deutschland. Aus Großbritannien, den USA oder Asien brauchst du einen Adapter."
+        },
+        "roaming": {
+          "q": "Wie ist das mit Handy und Internet?",
+          "a": "Aus der EU telefonierst und surfst du zu deinen normalen Konditionen weiter. Aus der Schweiz, Großbritannien oder Übersee lohnt sich eine eSIM. WLAN gibt es in fast jedem Lokal, in den Bergen dafür oft nicht einmal Empfang."
+        }
+      }
+    },
+    "health": {
+      "title": "Gesundheit & Apotheke",
+      "hint": "Arzt · Nachtdienst · e-card · Zecken",
+      "items": {
+        "doctor": {
+          "q": "Ich brauche einen Arzt, was jetzt?",
+          "a": "Tagsüber gehst du in eine Ordination, viele nehmen auch ohne Termin. Abends und am Wochenende übernimmt der Ärztenotdienst unter 141. Wenn du nicht sicher bist, ob es überhaupt ein Fall für den Arzt ist, hilft 1450 rund um die Uhr weiter."
+        },
+        "pharmacy": {
+          "q": "Wo finde ich am Abend eine Apotheke?",
+          "a": "Es gibt immer eine mit Nachtdienst, der wechselt täglich. Welche gerade dran ist, hängt an der Tür jeder geschlossenen Apotheke."
+        },
+        "insurance": {
+          "q": "Was ist mit der Versicherung?",
+          "a": "Aus der EU nimm deine e-card oder die Europäische Krankenversicherungskarte mit, damit wirst du behandelt wie ein Einheimischer. Von außerhalb der EU brauchst du eine Reiseversicherung. Ein Bergrettungseinsatz ist dabei nirgends automatisch mit drin."
+        },
+        "ticks": {
+          "q": "Muss ich mich vor Zecken schützen?",
+          "a": "Zecken sitzen in Wald und hohem Gras bis in mittlere Höhen. Sie können FSME übertragen, deshalb sind hier fast alle geimpft. Nach einem Tag im Grünen absuchen, das reicht meistens."
+        }
+      }
+    },
+    "packing": {
+      "title": "Was einpacken",
+      "hint": "Immer dabei · Sommer · Winter",
+      "items": {
+        "always": {
+          "q": "Was gehört immer rein?",
+          "a": "Feste Schuhe mit Profil, eine Regenjacke, Sonnencreme und eine Trinkflasche. Dazu etwas Bargeld für die Hütte. Das Wetter wechselt hier schneller, als eine Jacke im Hotel nützt."
+        },
+        "summer": {
+          "q": "Was brauche ich im Sommer?",
+          "a": "Badesachen, von Mai bis September ist der nächste See nie weit. Lieber mehrere dünne Schichten als eine dicke Jacke, oben am Berg ist es auch im Juli frisch. Und am Wasser abends Mückenschutz."
+        },
+        "winter": {
+          "q": "Was brauche ich im Winter?",
+          "a": "Warme Schichten, Handschuhe, Mütze. Für vereiste Wege sind Grödel das Beste, was in eine Jackentasche passt. Sonnenbrille nicht vergessen, Schnee blendet mehr als Sand."
+        }
+      }
+    }
+  },
+  "outro": {
+    "title": "Noch was offen?",
+    "body": "Frag Toni, deinen KI-Local. Oder schau gleich, was in der Nähe ist.",
+    "ai": "Toni fragen",
+    "cta": "Zur Karte"
+  }
+}

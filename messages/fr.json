@@ -40,7 +40,9 @@
     "aboutDescription": "Anton et Simon, deux Salzbourgeois : pourquoi SalzGuide existe et comment on choisit nos spots.",
     "spotTitle": "{title} : {kind} dans la région de Salzbourg",
     "spotTitlePlain": "{title}, région de Salzbourg",
-    "spotDescriptionFallback": "{title} dans la région de Salzbourg : où c'est, comment y aller et notre conseil honnête."
+    "spotDescriptionFallback": "{title} dans la région de Salzbourg : où c'est, comment y aller et notre conseil honnête.",
+    "travelInfoTitle": "Salzbourg pratique : à savoir avant de partir",
+    "travelInfoDescription": "Numéros d'urgence, monnaie, transports gratuits pour les hôtes, aéroport, taxis, pourboires et valise. Le Salzbourg pratique, en bref."
   },
   "Common": {
     "back": "Retour",
@@ -60,7 +62,8 @@
     "saved": "Enregistrés",
     "profile": "Profil",
     "water": "Températures de l'eau",
-    "tours": "Visites audio"
+    "tours": "Visites audio",
+    "info": "Bon à savoir"
   },
   "Tours": {
     "title": "Visites audio",
