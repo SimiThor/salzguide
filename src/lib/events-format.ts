@@ -271,27 +271,6 @@ export function eventsInRange(
   });
 }
 
-/**
- * Wie viele Events an welchem Tag laufen — die Punkte unter den Zahlen im Kalender.
- * Mehrtägige Events zählen an JEDEM ihrer Tage, sonst stünde ein Festival-Tag leer da.
- */
-export function eventDayCounts(
-  events: EventItem[],
-  todayKey: string,
-): Map<string, number> {
-  const out = new Map<string, number>();
-  for (const e of events) {
-    const { first, last } = eventDaySpan(e);
-    let day = first < todayKey ? todayKey : first;
-    // Deckel: ein Dauer-Event mit kaputtem Enddatum darf den Render nicht anhalten.
-    for (let i = 0; day <= last && i < 400; i++) {
-      out.set(day, (out.get(day) ?? 0) + 1);
-      day = shiftDay(day, 1);
-    }
-  }
-  return out;
-}
-
 /** Letzter Tag, an dem überhaupt etwas läuft = das Ende des auswählbaren Kalenders. */
 export function lastEventDay(events: EventItem[], todayKey: string): string {
   let last = todayKey;
