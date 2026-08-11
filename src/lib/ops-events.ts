@@ -408,6 +408,32 @@ export const OPS_EVENTS = {
     quietMinutes: 120,
     hint: "Jemand schickt Daten von einer fremden Seite aus an unsere Endpunkte. Der Same-Origin-Riegel hält. Nur bei anhaltenden Wellen genauer hinsehen.",
   },
+  csp_violation: {
+    area: "security",
+    severity: "warn",
+    title: "Inhalts-Richtlinie hat etwas blockiert",
+    // ═══════════════════════════════════════════════════════════════════════════════
+    //  WARUM WARN UND NICHT INFO — dieses Signal zeigt in ZWEI Richtungen
+    // ═══════════════════════════════════════════════════════════════════════════════
+    //
+    // Seit dem 11.08.2026 ist die CSP scharf (next.config.ts): Was nicht in der Liste
+    // steht, lädt der Browser nicht. Eine Meldung hier heisst also entweder
+    //
+    //   a) UNSERE Liste hat eine Lücke — dann ist gerade ein Stück der App bei echten
+    //      Besuchern kaputt, und zwar still: Der Server sieht davon nichts, weil die
+    //      Anfrage den Browser nie verlässt. Genau dieser Fall ist der Grund, warum es
+    //      die Meldestelle überhaupt gibt.
+    //   b) Die Richtlinie hat GEHALTEN und etwas Fremdes abgewehrt.
+    //
+    // Beides will man sehen, aber keines rechtfertigt eine Mail beim ersten Mal: Der
+    // grösste Teil dessen, was Browser hier melden, sind Erweiterungen im Gerät des
+    // Besuchers. Die filtert die Route schon weg (api/ops/csp-report), aber nie
+    // vollständig. Fünf gleiche Verstösse in drei Stunden sind ein Muster, einer ist
+    // ein Zufall.
+    alertAfter: 5,
+    quietMinutes: 180,
+    hint: "Unten steht Direktive und blockierte Herkunft. Ist die Herkunft eine von UNS genutzte (mapbox, supabase, cloudflare, blob), fehlt sie in der CSP in next.config.ts — dann ist dieser Teil der App für Besucher gerade kaputt und gehört sofort ergänzt. Ist sie fremd, hat die Richtlinie getan, was sie soll.",
+  },
   config_missing: {
     area: "security",
     severity: "critical",
