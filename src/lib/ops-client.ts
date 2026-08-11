@@ -27,6 +27,19 @@ import { isChunkLoadError } from "./ops-events";
  *                             Besuchers. Wir können nichts daran ändern, und es sind viele.
  *   AbortError / cancelled    Ein Ladevorgang, den der Nutzer selbst abgebrochen hat, indem
  *                             er weitergeklickt hat. Genau so soll es sein.
+ *   Failed to fetch u.ä.      Das NACKTE Netz-Wegbrech-Wort der drei Engines — Safari sagt
+ *                             „Load failed", Chrome „Failed to fetch", Firefox „NetworkError
+ *                             when attempting to fetch a resource". Ohne Datei und Stack ist
+ *                             das nicht diagnostizierbar (Funkloch, Werbeblocker, Schlafmodus)
+ *                             und stand im Logbuch bisher nur für Chrome. Alle drei anchored
+ *                             als GANZE Meldung: „Failed to fetch dynamically imported
+ *                             module …" (ein Chunk-Fehler, siehe unten) läuft weiter durch.
+ *                             Fehlschläge unserer eigenen Anfragen sind davon unberührt —
+ *                             die behandeln die Aufrufstellen selbst (Toni zeigt eine
+ *                             Antwort-Panne an, der Upload meldet upload_failed usw.).
+ *   Java object is gone       Android-WebView (Instagram/Facebook-In-App-Browser): Die vom
+ *                             WebView selbst eingepflanzte postMessage-Brücke verliert ihr
+ *                             Java-Objekt beim Aufräumen der App. Kein Code von uns beteiligt.
  */
 const IGNORE = [
   /^script error\.?$/i,
@@ -34,6 +47,9 @@ const IGNORE = [
   /^(chrome|moz|safari|webkit)-extension:/i,
   /\b(aborterror|the operation was aborted|cancelled|canceled)\b/i,
   /^load failed$/i, // Safari, wenn das Netz während einer Anfrage wegbricht
+  /^failed to fetch\.?$/i, // Chrome/Edge, dasselbe Wegbrechen
+  /^networkerror when attempting to fetch a resource\.?$/i, // Firefox, dasselbe
+  /java object is gone/i, // Android-WebView-Brücke (In-App-Browser)
 ];
 
 function worthReporting(message: string): boolean {
