@@ -11,6 +11,7 @@ import { Link } from "@/i18n/navigation";
 import BottomSheet from "./BottomSheet";
 import LockedMedia from "./LockedMedia";
 import { MapLoadingScreen, useMapLoading } from "./MapLoading";
+import { MapUnavailableScreen, tryCreateMap } from "./MapUnavailable";
 import MobileSheet from "./MobileSheet";
 import { useProGate } from "./ProGate";
 import PartnerCredits from "./PartnerCredits";
@@ -112,6 +113,8 @@ export default function WaterExplore({
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<Record<string, mapboxgl.Marker>>({});
   const { bindMap, loading } = useMapLoading();
+  // Kein WebGL auf diesem Gerät -> Hinweis statt Karte (siehe MapUnavailable.tsx).
+  const [mapDead, setMapDead] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
   // Stabile Viewport-Höhe fürs Karten-Padding (siehe lib/viewport.ts).
   const vh = useViewportHeight();
@@ -168,7 +171,9 @@ export default function WaterExplore({
     // von einem Spot-Link zurückkommt, landet wieder im selben Ausschnitt. Nur ohne
     // gemerkten Ausschnitt passt die Karte beim Laden auf alle Seen ein (unten).
     const savedView = readMapView("water");
-    const map = new mapboxgl.Map({
+    // Über tryCreateMap statt `new mapboxgl.Map`: Ohne WebGL gibt es `null` und einen
+    // Hinweis statt der Karte (Begründung in MapUnavailable.tsx).
+    const map = tryCreateMap({
       container: mapEl.current,
       style: "mapbox://styles/mapbox/outdoors-v12",
       center: savedView?.center ?? [13.25, 47.72],
@@ -185,6 +190,10 @@ export default function WaterExplore({
       // ausgeschriebene Text, während der Rest den „i"-Knopf zeigte.
       attributionControl: false,
     });
+    if (!map) {
+      setMapDead(true);
+      return;
+    }
     map.addControl(new mapboxgl.AttributionControl({ compact: true }));
     // Gleiche aufgeräumte Karte wie überall sonst (Begründung in map-declutter.ts).
     declutterBasemap(map);
@@ -345,7 +354,8 @@ export default function WaterExplore({
         {TOKEN ? (
           <div className="relative isolate h-full w-full">
             <div ref={mapEl} className="h-full w-full" />
-            <MapLoadingScreen {...loading} />
+            {/* Ohne WebGL ersetzt der Hinweis den Ladeschirm (siehe MapUnavailable.tsx). */}
+            {mapDead ? <MapUnavailableScreen /> : <MapLoadingScreen {...loading} />}
           </div>
         ) : (
           <div className="flex h-full items-center justify-center text-sm text-muted">

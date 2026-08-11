@@ -1,0 +1,73 @@
+"use client";
+
+import mapboxgl from "mapbox-gl";
+import { useTranslations } from "next-intl";
+import { reportClientError } from "@/lib/ops-client";
+import { isWebglInitError } from "@/lib/ops-events";
+
+/**
+ * Karte ohne WebGL: EIN Fangnetz und EIN Hinweis für alle Karten der Seite.
+ *
+ * Das Problem: `new mapboxgl.Map()` wirft „Failed to initialize WebGL.", wenn der
+ * Browser keinen WebGL-Kontext hergibt (Hardware-Beschleunigung abgeschaltet, uralte
+ * Treiber, Bots ohne Grafik). Der Wurf passiert im Karten-Effekt, läuft also in die
+ * React-Fehlergrenze — und der Besucher sah statt einer Spot-Seite mit einem grauen
+ * Kartenkasten die KOMPLETTE Fehlerseite (so geschehen am 10./11.08.2026, Logbuch
+ * „Failed to initialize WebGL" auf /en/spot/*).
+ *
+ * Die Lösung in zwei Teilen, beide hier, damit keine Karte sie anders baut:
+ *
+ *   tryCreateMap()          statt `new mapboxgl.Map()`. Gibt bei fehlendem WebGL `null`
+ *                           zurück und meldet den Fall EINMAL leise (der Server sortiert
+ *                           ihn per isWebglInitError als Notiz ein, nicht als Fehler).
+ *                           Jeder ANDERE Wurf (fehlender Container, kaputte Optionen)
+ *                           bleibt laut — das wären echte Fehler von uns.
+ *
+ *   MapUnavailableScreen    der Hinweis an der Stelle der Karte. Gehört wie der
+ *                           Ladeschirm als letztes Kind in den `relative isolate`-
+ *                           Kasten der Karte, ANSTELLE des MapLoadingScreen (der würde
+ *                           ohne Karte für immer schimmern).
+ *
+ * Benutzung (identisch in jeder Karte):
+ *
+ *   const [mapDead, setMapDead] = useState(false);
+ *   // im Effekt:
+ *   const map = tryCreateMap({ container, ... });
+ *   if (!map) { setMapDead(true); return; }
+ *   // im Markup:
+ *   {mapDead ? <MapUnavailableScreen /> : <MapLoadingScreen {...loading} />}
+ */
+export function tryCreateMap(options: mapboxgl.MapOptions): mapboxgl.Map | null {
+  try {
+    return new mapboxgl.Map(options);
+  } catch (err) {
+    if (err instanceof Error && isWebglInitError(err.message)) {
+      // Der gescheiterte Konstruktor räumt nicht hinter sich auf: Er hat dem Container
+      // schon Kind-Elemente und die mapboxgl-map-Klasse verpasst, bevor er wirft (im
+      // Dev-StrictMode sichtbar als „container should be empty"-Warnung beim zweiten
+      // Anlauf). Zurücklassen wollen wir einen sauberen, leeren Kasten.
+      if (options.container instanceof HTMLElement) {
+        options.container.replaceChildren();
+        options.container.classList.remove("mapboxgl-map");
+      }
+      reportClientError(err);
+      return null;
+    }
+    throw err;
+  }
+}
+
+/** Ruhige Fläche statt Karte. Gleiche Lage im Kasten wie der Ladeschirm (z-30). */
+export function MapUnavailableScreen() {
+  const t = useTranslations("Map");
+  return (
+    <div className="absolute inset-0 z-30 flex items-center justify-center bg-cream p-6">
+      <div className="max-w-[30ch] text-center">
+        <div aria-hidden className="mb-2 text-2xl">
+          🗺️
+        </div>
+        <p className="text-sm leading-snug text-muted">{t("unavailable")}</p>
+      </div>
+    </div>
+  );
+}

@@ -221,6 +221,9 @@
     "close": "Close",
     "empty": "No spots for this season yet."
   },
+  "Map": {
+    "unavailable": "The map can't be shown on this device right now."
+  },
   "Detail": {
     "routeShape": {
       "loop": "Loop",

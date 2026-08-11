@@ -221,6 +221,9 @@
     "close": "Sluiten",
     "empty": "Voor dit seizoen zijn er nog geen spots."
   },
+  "Map": {
+    "unavailable": "De kaart kan op dit apparaat nu niet worden getoond."
+  },
   "Detail": {
     "routeShape": {
       "loop": "Rondje",

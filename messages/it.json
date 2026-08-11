@@ -221,6 +221,9 @@
     "close": "Chiudi",
     "empty": "Ancora nessuno spot per questa stagione."
   },
+  "Map": {
+    "unavailable": "Al momento la mappa non può essere visualizzata su questo dispositivo."
+  },
   "Detail": {
     "routeShape": {
       "loop": "Ad anello",

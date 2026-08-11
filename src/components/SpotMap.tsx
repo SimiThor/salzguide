@@ -3,8 +3,9 @@
 import mapboxgl from "mapbox-gl";
 
 import "mapbox-gl/dist/mapbox-gl.css";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MapLoadingScreen, useMapLoading } from "./MapLoading";
+import { MapUnavailableScreen, tryCreateMap } from "./MapUnavailable";
 import { RecenterControl } from "./mapControls";
 import { useLatestRef } from "@/lib/use-latest-ref";
 import { bindMapViewMemory, readMapView } from "@/lib/map-view-memory";
@@ -148,6 +149,8 @@ export default function SpotMap({
   const containerRef = useRef<HTMLDivElement>(null);
   // Ladeschirm über der Karte, bis das erste fertige Kartenbild steht (siehe unten).
   const { bindMap, loading } = useMapLoading();
+  // Kein WebGL auf diesem Gerät -> Hinweis statt Karte (siehe MapUnavailable.tsx).
+  const [mapDead, setMapDead] = useState(false);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markerObjs = useRef<mapboxgl.Marker[]>([]);
   const hlMarker = useRef<mapboxgl.Marker | null>(null);
@@ -384,7 +387,10 @@ export default function SpotMap({
     // direkt dort, wo sie zuletzt stand — kein Flug, kein Umspringen.
     const savedView = viewKey ? readMapView(viewKey) : null;
     if (savedView) skipFirstFit.current = true;
-    const map = new mapboxgl.Map({
+    // Über tryCreateMap statt `new mapboxgl.Map`: Ohne WebGL gibt es `null` und einen
+    // Hinweis statt der Karte — vorher warf der Konstruktor bis in die Fehlergrenze
+    // und riss die ganze Seite mit (Begründung in MapUnavailable.tsx).
+    const map = tryCreateMap({
       container: containerRef.current,
       style: "mapbox://styles/mapbox/outdoors-v12",
       center: savedView?.center ?? center,
@@ -415,6 +421,10 @@ export default function SpotMap({
       pitchWithRotate: false,
       touchPitch: false,
     });
+    if (!map) {
+      setMapDead(true);
+      return;
+    }
     map.addControl(new mapboxgl.AttributionControl({ compact: true }));
     // Fremde POIs, Gipfel- und Seenamen raus (Begründung in map-declutter.ts):
     // Auf einer Spot-Karte soll unser Marker der einzige Punkt sein — und der Name des
@@ -724,7 +734,9 @@ export default function SpotMap({
         </button>
       )}
 
-      <MapLoadingScreen {...loading} />
+      {/* Ohne WebGL ersetzt der Hinweis den Ladeschirm — der würde ohne Karte für
+          immer schimmern (sein Sicherheitsnetz hängt an bindMap, das nie lief). */}
+      {mapDead ? <MapUnavailableScreen /> : <MapLoadingScreen {...loading} />}
     </div>
   );
 }

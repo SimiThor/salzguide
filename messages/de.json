@@ -264,6 +264,9 @@
     "close": "Schließen",
     "empty": "Für diese Saison gibt es noch keine Spots."
   },
+  "Map": {
+    "unavailable": "Die Karte kann auf diesem Gerät gerade nicht angezeigt werden."
+  },
   "Detail": {
     "routeShape": {
       "loop": "Rundweg",

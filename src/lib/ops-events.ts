@@ -120,6 +120,19 @@ export const OPS_EVENTS = {
     quietMinutes: 180,
     hint: "Nach einem Deploy normal: Alte Tabs laden sich einmal selbst neu. Häuft es sich, OHNE dass deployt wurde, verweist der aktuelle Build auf nachladbare Teile, die es nicht gibt, oder das CDN klemmt.",
   },
+  client_webgl: {
+    area: "app",
+    severity: "info",
+    title: "Karte nicht darstellbar (WebGL fehlt)",
+    // Geräte-Realität, kein Fehler von uns: Hardware-Beschleunigung abgeschaltet, uralte
+    // Treiber, Bots ohne Grafik. Die Karten fangen das seit 08/2026 selbst ab
+    // (tryCreateMap in MapUnavailable.tsx) und zeigen einen Hinweis statt der Karte —
+    // vorher fiel die GANZE Seite auf die Fehlergrenze. Notiert wird es trotzdem,
+    // denn eine plötzliche Häufung hieße: WIR haben WebGL für alle gekippt.
+    alertAfter: 20,
+    quietMinutes: 360,
+    hint: "Einzelne Treffer sind normal (Hardware-Beschleunigung aus, alte Treiber, Bots). Der Besucher sieht einen Hinweis statt der Karte. Häuft es sich direkt nach einem Deploy, hat eine Änderung (CSP, Mapbox-Update) WebGL für ALLE gekippt: dorthin zurückrollen.",
+  },
   ops_selftest: {
     area: "app",
     // „Notiz" und trotzdem `alertAfter: 1` — der einzige Eintrag im Katalog, bei dem Stufe
@@ -451,6 +464,20 @@ const CHUNK_LOAD_PATTERNS = [
 ];
 export function isChunkLoadError(message: string): boolean {
   return CHUNK_LOAD_PATTERNS.some((re) => re.test(message));
+}
+
+/**
+ * Sieht diese Browser-Meldung nach fehlendem WebGL aus?
+ *
+ * Gleiche Arbeitsteilung wie beim Chunk-Erkenner: Der Browser (tryCreateMap in
+ * MapUnavailable.tsx) entscheidet damit, ob er den Karten-Hinweis zeigt statt den
+ * Fehler weiterzuwerfen, der Server (client-error-Route) wählt damit den leisen
+ * Katalog-Eintrag — auch für Meldungen aus Builds von VOR dem Abfangen.
+ * „Failed to initialize WebGL." ist Mapbox' Wortlaut; das breitere Muster fängt
+ * auch die Kontext-Varianten der Browser („Error creating WebGL context").
+ */
+export function isWebglInitError(message: string): boolean {
+  return /webgl/i.test(message) && /initiali[sz]|creat|unsupported|not supported/i.test(message);
 }
 
 /** Rangfolge der Stufen. Für „ab error aufwärts" in Filtern und Zusammenfassungen. */

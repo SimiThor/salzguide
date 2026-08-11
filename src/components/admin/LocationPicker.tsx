@@ -4,6 +4,7 @@ import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { useEffect, useRef, useState } from "react";
 import { MapLoadingScreen, useMapLoading } from "../MapLoading";
+import { MapUnavailableScreen, tryCreateMap } from "../MapUnavailable";
 import { RecenterControl } from "../mapControls";
 import { useLatestRef } from "@/lib/use-latest-ref";
 import { declutterBasemap } from "@/lib/map-declutter";
@@ -81,6 +82,8 @@ export default function LocationPicker({
   const ref = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const { bindMap, loading } = useMapLoading();
+  // Kein WebGL auf diesem Gerät -> Hinweis statt Karte (siehe MapUnavailable.tsx).
+  const [mapDead, setMapDead] = useState(false);
   const pointMarkers = useRef<Record<"spot" | "parking", mapboxgl.Marker | null>>({
     spot: null,
     parking: null,
@@ -177,7 +180,10 @@ export default function LocationPicker({
   useEffect(() => {
     if (!TOKEN || !ref.current || mapRef.current) return;
     mapboxgl.accessToken = TOKEN;
-    const map = new mapboxgl.Map({
+    // Über tryCreateMap statt `new mapboxgl.Map`: Ohne WebGL gibt es `null` und einen
+    // Hinweis statt der Karte (Begründung in MapUnavailable.tsx) — auch im Admin, sonst
+    // sähe ausgerechnet der Admin die einzige andersartige Fehlerseite.
+    const map = tryCreateMap({
       container: ref.current,
       style: "mapbox://styles/mapbox/outdoors-v12",
       center: [13.05, 47.6],
@@ -192,6 +198,10 @@ export default function LocationPicker({
       pitchWithRotate: false,
       touchPitch: false,
     });
+    if (!map) {
+      setMapDead(true);
+      return;
+    }
     map.addControl(new mapboxgl.AttributionControl({ compact: true }));
     // Auch hier aufgeräumt (Begründung in map-declutter.ts): Der Admin soll den Punkt auf
     // derselben Karte setzen, die der Gast später sieht — sonst sitzt der Marker an einem
@@ -433,7 +443,8 @@ export default function LocationPicker({
       <div className="relative">
         <div className="relative isolate h-72 w-full overflow-hidden rounded-[14px]">
           <div ref={ref} className="h-full w-full" />
-          <MapLoadingScreen {...loading} />
+          {/* Ohne WebGL ersetzt der Hinweis den Ladeschirm (siehe MapUnavailable.tsx). */}
+          {mapDead ? <MapUnavailableScreen /> : <MapLoadingScreen {...loading} />}
         </div>
 
         {/* Ortssuche */}

@@ -168,6 +168,10 @@ export default function IntroRenderMap({
     const keyframes = buildIntroCameraPath(animRoute, cfg);
     const first = keyframes[0];
 
+    // BEWUSST der nackte Konstruktor, NICHT tryCreateMap aus MapUnavailable.tsx: Diese
+    // Karte läuft nur im Render-Browser auf dem GitHub-Runner. Fehlt DORT WebGL, muss
+    // der Lauf laut scheitern (das Render-Skript wertet genau das aus) — ein leiser
+    // Hinweis statt Karte ergäbe ein leeres Video, das erst im Live-Betrieb auffällt.
     const map = new mapboxgl.Map({
       container: el,
       style: BASEMAP_STYLE,

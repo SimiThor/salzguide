@@ -29,8 +29,9 @@
 // Mails schicken.
 import { NextResponse, after } from "next/server";
 import { logOps, bumpOpsCounter, subjectFromRequest } from "@/lib/ops";
-import { isChunkLoadError } from "@/lib/ops-events";
+import { isChunkLoadError, isWebglInitError } from "@/lib/ops-events";
 import { scrubPath, scrubText } from "@/lib/ops-scrub";
+import { foreignOrigin } from "@/lib/same-origin";
 import { clientIp, classifyDevice } from "@/lib/analytics";
 
 export const runtime = "nodejs";
@@ -40,25 +41,19 @@ const WINDOW_SECONDS = 3600;
 const MAX_PER_IP = 20;
 
 export async function POST(req: Request) {
-  const origin = req.headers.get("origin");
-  if (origin) {
-    let host = "";
-    try {
-      host = new URL(origin).host;
-    } catch {
-      /* ungültig -> passt unten nicht und wird abgelehnt */
-    }
-    if (host !== req.headers.get("host")) {
-      after(() =>
-        logOps("suspicious_request", {
-          message: `Fehlermeldung von fremder Herkunft (${host || "unlesbar"}) abgewiesen.`,
-          path: "/api/ops/client-error",
-          subject: subjectFromRequest(req),
-          group: "origin:client-error",
-        }),
-      );
-      return new NextResponse(null, { status: 403 });
-    }
+  // Same-Origin über lib/same-origin.ts — eine Entscheidung für alle Schreib-Endpunkte
+  // (dort steht auch, warum www zu uns gehört).
+  const foreign = foreignOrigin(req);
+  if (foreign) {
+    after(() =>
+      logOps("suspicious_request", {
+        message: `Fehlermeldung von fremder Herkunft (${foreign}) abgewiesen.`,
+        path: "/api/ops/client-error",
+        subject: subjectFromRequest(req),
+        group: "origin:client-error",
+      }),
+    );
+    return new NextResponse(null, { status: 403 });
   }
   if (Number(req.headers.get("content-length") ?? 0) > 4000) {
     return new NextResponse(null, { status: 413 });
@@ -119,13 +114,14 @@ export async function POST(req: Request) {
       if (count > MAX_PER_IP) return;
     }
     // Die Art wählt der SERVER aus der Meldung, nie der Client (siehe Kopf dieser Datei).
-    // Chunk-Fehler bekommen einen eigenen, leisen Katalog-Eintrag UND einen festen
-    // Fingerabdruck je Gerät: Der Chunk-Name in der Meldung wechselt mit jedem Deploy
+    // Chunk- und WebGL-Fehler bekommen eigene, leise Katalog-Einträge UND feste
+    // Fingerabdrücke je Gerät: Der Chunk-Name in der Meldung wechselt mit jedem Deploy
     // (Buchstaben-Hash, die #-Normalisierung unten greift nicht), sonst zählte jeder
     // Deploy bei null los und die Schwelle griffe nie. Schlimmstenfalls redet sich ein
     // Angreifer per passender Meldung LEISER (info statt warn) — die Richtung ist harmlos.
     const chunk = isChunkLoadError(message);
-    await logOps(chunk ? "client_chunk_load" : "client_error", {
+    const webgl = !chunk && isWebglInitError(message);
+    await logOps(chunk ? "client_chunk_load" : webgl ? "client_webgl" : "client_error", {
       message,
       path,
       subject,
@@ -133,7 +129,9 @@ export async function POST(req: Request) {
       // Diagnose, und ohne das Gerät im Fingerabdruck fällt sie unter den Tisch.
       group: chunk
         ? `chunk-load:${device}`
-        : `client:${device}:${message.replace(/\d+/g, "#").slice(0, 120)}`,
+        : webgl
+          ? `webgl:${device}`
+          : `client:${device}:${message.replace(/\d+/g, "#").slice(0, 120)}`,
       detail: { geraet: device, herkunft: source, digest, ...(quelle ? { quelle } : {}) },
     });
   });
