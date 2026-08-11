@@ -163,15 +163,29 @@ function release(): string | null {
  *
  * `VERCEL_ENV` unterscheidet sauber: "production" | "preview" | "development".
  *
- * DER RÜCKFALL IST ABSICHT: Ist `VERCEL_ENV` nicht da (System-Variablen im Projekt nicht
- * freigegeben, oder ein ganz anderer Hoster), zählt wieder `NODE_ENV`. Lieber ein Preview zu
- * viel gemeldet als die echte Seite stumm — ein Meldewesen, das sich bei einer fehlenden
- * Variable selbst abschaltet, wäre der schlimmere Fehler.
+ * DER FRÜHERE RÜCKFALL AUF `NODE_ENV` IST AM 11.08.2026 RAUS, und zwar weil er genau das
+ * angerichtet hat, wovor der Kommentar unter `active()` warnt:
+ *
+ * `next start` — also ein Produktions-Build, den man LOKAL zum Prüfen startet — setzt
+ * `NODE_ENV` auf "production". Der Rückfall hat den eigenen Rechner damit für die echte
+ * Seite gehalten, und zwei Testberichte aus einem lokalen CSP-Durchlauf standen im echten
+ * Logbuch. Das trifft jeden lokalen Prod-Test, nicht nur diesen einen, und es ist die
+ * unauffälligste Sorte Fehler: Es sieht wie ein echter Vorfall aus.
+ *
+ * Die alte Begründung („lieber ein Preview zu viel gemeldet als die echte Seite stumm")
+ * beschreibt einen Fall, den es hier nicht geben kann. Wären Vercels System-Variablen nicht
+ * freigegeben, fehlte auch `VERCEL_PROJECT_PRODUCTION_URL` — und dann liefert `siteUrl()`
+ * (src/lib/site-url.ts) die falsche Adresse in Canonicals, Mails und Anmeldelinks. Diesen
+ * Zustand überlebt die Seite ohnehin nicht still; ihn hier abzufedern schützt vor nichts
+ * und kostet den lokalen Schutz.
+ *
+ * Lokal ausdrücklich mitschreiben: `OPS_LOCAL=1` in .env.local (siehe `active()`).
+ *
+ * Wird auch von api/track benutzt: Dieselbe Frage („zählt das hier echt?") darf es nicht
+ * zweimal verschieden beantwortet geben.
  */
-function isRealSite(): boolean {
-  const vercelEnv = process.env.VERCEL_ENV?.trim();
-  if (vercelEnv) return vercelEnv === "production";
-  return process.env.NODE_ENV === "production";
+export function isRealSite(): boolean {
+  return process.env.VERCEL_ENV?.trim() === "production";
 }
 
 /**
