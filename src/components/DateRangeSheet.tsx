@@ -5,7 +5,6 @@ import { useLocale, useTranslations } from "next-intl";
 import { bcp47 } from "@/i18n/locales";
 import { isoWeekdayIndex, monthGrid, monthsBetween } from "@/lib/calendar";
 import {
-  eventDayCounts,
   eventsInRange,
   type DayRange,
   type EventItem,
@@ -36,9 +35,14 @@ import ScrollStrip from "./ScrollStrip";
 // leer zurückkommt, würde die App wie eine Fehlanzeige aussehen lassen, obwohl dort nur
 // noch niemand recherchiert hat.
 //
-// Der Punkt unter der Zahl heisst „da ist was los" — und er richtet sich nach dem aktiven
-// Kategorie-Filter. Wer auf „Party" gestellt hat, sieht die Party-Tage. Deshalb kommen die
-// Events hier schon gefiltert an; dieselbe Menge steht auch im Knopf unten.
+// SONST NICHTS. Unter den Zahlen stand einmal ein Punkt für „da ist was los". Er ist wieder
+// weg: An fast jedem Tag läuft etwas, also markierte er beinahe alles — und die paar Tage
+// OHNE Punkt sahen dadurch nach Lücke aus statt nach Ruhetag. Ein Zeichen, das fast immer
+// erscheint, sagt nichts; es macht das Raster nur unruhig. Was an einem Tag los ist, steht
+// eine Sekunde später in der Liste, und wie viel es ist, sagt schon der Knopf unten.
+//
+// Der Knopf zählt dabei mit dem aktiven Kategorie-Filter: Wer auf „Party" gestellt hat,
+// bekommt die Party-Zahl. Deshalb kommen die Events hier schon gefiltert an.
 
 /** Auswahl im Aufbau: `to === null` heisst „bisher nur ein Tag". */
 type Draft = { from: string; to: string | null } | null;
@@ -88,10 +92,6 @@ export default function DateRangeSheet({
     ? { from: draft.from, to: draft.to ?? draft.from }
     : null;
 
-  const counts = useMemo(
-    () => eventDayCounts(events, todayKey),
-    [events, todayKey],
-  );
   const months = useMemo(
     () => monthsBetween(todayKey, maxDay),
     [todayKey, maxDay],
@@ -276,7 +276,9 @@ export default function DateRangeSheet({
                       range != null && day > range.from && day < range.to;
                     // Der Balken liegt HINTER der Zahl und reicht bei den Endpunkten nur
                     // bis zur Mitte — sonst schwämme der volle Kreis auf einer Fläche, die
-                    // links und rechts ins Leere läuft.
+                    // links und rechts ins Leere läuft. Seine Höhe ist auf 4px genau die des
+                    // Kreises (48er Zelle minus 2×4 = 40 = h-10): Der gefüllte Kreis sitzt
+                    // dadurch bündig im Balken statt darauf zu liegen.
                     const band = inside
                       ? "inset-x-0"
                       : spans && isFrom
@@ -295,16 +297,16 @@ export default function DateRangeSheet({
                         )}
                         aria-pressed={isFrom || isTo || inside}
                         aria-current={day === todayKey ? "date" : undefined}
-                        className="relative flex h-12 w-full cursor-pointer flex-col items-center justify-center disabled:cursor-default"
+                        className="relative flex h-12 w-full cursor-pointer items-center justify-center disabled:cursor-default"
                       >
                         {band && (
                           <span
-                            className={`absolute inset-y-0.5 bg-accent/12 ${band}`}
+                            className={`absolute inset-y-1 bg-accent/12 ${band}`}
                             aria-hidden
                           />
                         )}
                         <span
-                          className={`relative flex h-9 w-9 items-center justify-center rounded-full text-[15px] transition ${
+                          className={`relative flex h-10 w-10 items-center justify-center rounded-full text-[15px] transition ${
                             isFrom || isTo
                               ? "bg-accent font-semibold text-white"
                               : disabled
@@ -316,14 +318,6 @@ export default function DateRangeSheet({
                         >
                           {Number(day.slice(8))}
                         </span>
-                        {/* Der Punkt steht IMMER, nur unsichtbar ohne Events: So sitzen
-                            alle Zahlen auf derselben Linie. */}
-                        <span
-                          className={`relative mt-0.5 h-1 w-1 rounded-full ${
-                            counts.has(day) && !disabled ? "bg-accent" : "bg-transparent"
-                          }`}
-                          aria-hidden
-                        />
                       </button>
                     );
                   })}
