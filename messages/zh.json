@@ -221,6 +221,9 @@
     "close": "关闭",
     "empty": "本季还没有地点。"
   },
+  "Map": {
+    "unavailable": "目前无法在此设备上显示地图。"
+  },
   "Detail": {
     "routeShape": {
       "loop": "环线",

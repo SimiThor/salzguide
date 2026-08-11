@@ -221,6 +221,9 @@
     "close": "Cerrar",
     "empty": "Todavía no hay lugares para esta temporada."
   },
+  "Map": {
+    "unavailable": "El mapa no se puede mostrar en este dispositivo en este momento."
+  },
   "Detail": {
     "routeShape": {
       "loop": "Circular",

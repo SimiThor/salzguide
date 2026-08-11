@@ -221,6 +221,9 @@
     "close": "닫기",
     "empty": "이 시즌에는 아직 스팟이 없어요."
   },
+  "Map": {
+    "unavailable": "지금은 이 기기에서 지도를 표시할 수 없습니다."
+  },
   "Detail": {
     "routeShape": {
       "loop": "순환",

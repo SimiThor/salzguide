@@ -221,6 +221,9 @@
     "close": "Fechar",
     "empty": "Ainda não há spots para esta estação."
   },
+  "Map": {
+    "unavailable": "O mapa não pode ser mostrado neste dispositivo agora."
+  },
   "Detail": {
     "routeShape": {
       "loop": "Circular",

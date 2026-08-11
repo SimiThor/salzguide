@@ -221,6 +221,9 @@
     "close": "Fermer",
     "empty": "Pas encore de spots pour cette saison."
   },
+  "Map": {
+    "unavailable": "La carte ne peut pas s'afficher sur cet appareil pour le moment."
+  },
   "Detail": {
     "routeShape": {
       "loop": "Boucle",
