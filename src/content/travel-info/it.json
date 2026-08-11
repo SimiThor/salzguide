@@ -1,0 +1,200 @@
+{
+  "title": "Buono a sapere",
+  "intro": "Tutto il pratico su Salisburgo in un posto solo. Due minuti di lettura e ti muovi da solo.",
+  "emergency": {
+    "title": "In caso di emergenza",
+    "note": "Tutti i numeri funzionano senza prefisso e sono gratuiti. Anche senza credito e senza SIM.",
+    "labels": {
+      "euro": "Numero unico europeo",
+      "ambulance": "Ambulanza",
+      "mountain": "Soccorso alpino",
+      "police": "Polizia",
+      "fire": "Vigili del fuoco",
+      "doctor": "Guardia medica",
+      "health": "Consulenza sanitaria"
+    }
+  },
+  "glance": {
+    "title": "In breve",
+    "items": {
+      "currency": { "label": "Valuta", "value": "Euro" },
+      "language": { "label": "Lingua", "value": "Tedesco" },
+      "power": { "label": "Corrente", "value": "230 V, tipo F" },
+      "water": { "label": "Acqua del rubinetto", "value": "Potabile" },
+      "time": { "label": "Fuso orario", "value": "CET (UTC+1)" },
+      "sunday": { "label": "Domenica", "value": "Negozi chiusi" }
+    }
+  },
+  "blocks": {
+    "arrival": {
+      "title": "Come arrivare",
+      "hint": "Aeroporto · Treno · Auto · Autobus",
+      "items": {
+        "plane": {
+          "q": "Come arrivo dall'aeroporto in città?",
+          "a": "L'aeroporto è al margine ovest della città, a pochi chilometri dal centro storico. Davanti all'uscita degli arrivi partono due filobus: il 2 per la stazione centrale, il 10 per il municipio, in pieno centro storico. Entrambi impiegano circa 20 o 25 minuti. Il posteggio dei taxi è lì accanto."
+        },
+        "train": {
+          "q": "Conviene arrivare in treno?",
+          "a": "È il modo più rilassato. Da Monaco arrivi alla stazione centrale in circa un'ora e mezza, da Vienna in due ore e mezza abbondanti. Dalla stazione al centro storico sono un quarto d'ora a piedi, oppure prendi il filobus."
+        },
+        "car": {
+          "q": "Cosa mi serve se vengo in auto?",
+          "a": "Per l'autostrada la vignetta. Esiste in versione digitale, è legata alla targa e la compri prima del confine. Dal 1 novembre al 15 aprile vale l'obbligo di equipaggiamento invernale, quindi gomme invernali o catene. Nel centro storico non cercare parcheggio, entra direttamente in un garage."
+        },
+        "bus": {
+          "q": "Ci sono autobus a lunga percorrenza per Salisburgo?",
+          "a": "Sì, fermano alla stazione centrale. Da lì con il filobus o a piedi raggiungi tutta la città."
+        }
+      }
+    },
+    "around": {
+      "title": "Muoversi sul posto",
+      "hint": "Card ospiti · Filobus e treni · Taxi · Bici",
+      "items": {
+        "guestcard": {
+          "q": "È vero che gli ospiti viaggiano gratis?",
+          "a": "Sì, ed è il consiglio migliore di questa pagina. Se pernotti nel Land di Salisburgo, al check-in ricevi sul telefono il Guest Mobility Ticket. Con quello viaggi gratis su tutti i mezzi pubblici di tutto il Land per l'intero soggiorno, andata e ritorno compresi. È già pagato con la tassa di soggiorno che trovi in conto."
+        },
+        "transit": {
+          "q": "Come ci si sposta a Salisburgo?",
+          "a": "In città con i filobus, che passano ogni pochi minuti. Verso i dintorni con la S-Bahn e gli autobus regionali. Gli orari li trovi nell'app del consorzio dei trasporti di Salisburgo."
+        },
+        "taxi": {
+          "q": "Come funzionano i taxi?",
+          "a": "I taxi hanno il tassametro e stazionano ai posteggi, nel centro storico e alla stazione. Funziona anche con le app: qui Uber e Bolt chiamano normalissimi taxi locali, quindi arriva la stessa auto del posteggio."
+        },
+        "bike": {
+          "q": "Posso fare tutto in bici?",
+          "a": "In città sì. Salisburgo è pianeggiante, ha piste ciclabili continue lungo la Salzach e bici a noleggio quasi a ogni angolo. Molti abitanti non hanno l'auto proprio per questo."
+        },
+        "carfree": {
+          "q": "Raggiungo gli spot senza auto?",
+          "a": "Molti sì. Il lago Wallersee è sulla linea della S-Bahn, al Fuschlsee ti porta il bus 150 e nelle valli vanno le corriere postali. Con la card ospiti non ti costa nulla in più.",
+          "link": "Gli spot sulla mappa"
+        }
+      }
+    },
+    "money": {
+      "title": "Soldi e pagamenti",
+      "hint": "Carta o contanti · Mancia · Tassa di soggiorno",
+      "items": {
+        "cash": {
+          "q": "Carta o contanti?",
+          "a": "In città te la cavi con la carta, al supermercato e al ristorante di sicuro. Fuori cambia tutto: malghe, piccole osterie di campagna, casse dei laghi balneabili e certi parcometri prendono solo contanti. Per una giornata in montagna tieni sempre qualcosa in tasca."
+        },
+        "tipping": {
+          "q": "Quanta mancia si lascia?",
+          "a": "Si arrotonda, oppure dal cinque al dieci per cento. Di' subito la cifra totale con la mancia mentre paghi. Aggiungerla dopo su un pagamento con carta qui non si può."
+        },
+        "atm": {
+          "q": "Dove prelevo contanti?",
+          "a": "Bancomat ce ne sono in ogni paese, in città a ogni secondo angolo. Nei piccoli borghi di montagna il più vicino può essere lontano, quindi meglio prelevare a valle."
+        },
+        "touristtax": {
+          "q": "Cos'è la tassa di soggiorno in conto?",
+          "a": "Un contributo per notte che ogni struttura incassa. Serve anche a pagare il tuo biglietto gratuito per i mezzi. Non devi fare nulla, compare semplicemente in conto."
+        }
+      }
+    },
+    "mountains": {
+      "title": "Montagne, laghi e meteo",
+      "hint": "Cambi di tempo · Soccorso alpino · Rifugi · Laghi",
+      "items": {
+        "weather": {
+          "q": "Quanto è affidabile il meteo?",
+          "a": "D'estate sole la mattina e temporale il pomeriggio è la norma, non l'eccezione. Per questo qui si parte presto e si è già giù nel primo pomeriggio. A valle può splendere il sole mentre in alto c'è nebbia."
+        },
+        "rescue": {
+          "q": "E se succede qualcosa in montagna?",
+          "a": "Soccorso alpino 140. Resta dove sei e comunica la tua posizione. I telefoni recenti la mandano automaticamente insieme alla chiamata di emergenza. Tornare indietro non è una sconfitta, è il motivo per cui quasi tutte le gite finiscono bene."
+        },
+        "huts": {
+          "q": "A cosa devo fare attenzione nei rifugi?",
+          "a": "Porta contanti, molti non accettano carte. Se vuoi dormire, prenota prima e porta un sacco lenzuolo. E la stagione è corta: molti chiudono in autunno e riaprono a tarda primavera."
+        },
+        "lakes": {
+          "q": "Quando si può fare il bagno nei laghi?",
+          "a": "I laghi bassi della pianura a nord sono abbastanza caldi da maggio, quelli profondi di montagna ci mettono fino a luglio. Quanto sono caldi davvero adesso lo vedi nelle temperature dell'acqua.",
+          "link": "Temperature dell'acqua"
+        },
+        "winter": {
+          "q": "E d'inverno?",
+          "a": "In pista non ti serve altro che il casco e rispetto per la velocità degli altri. Appena esci dalla pista vale il bollettino valanghe, e senza attrezzatura ed esperienza lì non ci si va. Sentieri invernali battuti ce ne sono quasi in ogni paese."
+        }
+      }
+    },
+    "everyday": {
+      "title": "Vita quotidiana in Austria",
+      "hint": "Domenica chiuso · Saluti · Acqua · Corrente · Segnale",
+      "items": {
+        "sunday": {
+          "q": "Perché la domenica è tutto chiuso?",
+          "a": "Perché in Austria la domenica si chiude, supermercati compresi. Il sabato la maggior parte dei negozi abbassa la saracinesca nel primo pomeriggio inoltrato. Restano aperti stazione, aeroporto, distributori e i locali. Nei giorni festivi è uguale, quindi fai la spesa il sabato."
+        },
+        "greeting": {
+          "q": "Come ci si saluta qui?",
+          "a": "Con Grüß Gott oppure Servus, e lo dici entrando in un locale, in un negozio, in cabinovia. Per andarsene, Wiederschauen o Baba. Tra i più giovani ci si dà del tu quasi sempre."
+        },
+        "water": {
+          "q": "Posso bere l'acqua del rubinetto?",
+          "a": "Sì, e dovresti. Arriva dalle montagne ed è migliore di quasi tutto quello che si vende in bottiglia. Porta una borraccia e riempila alle fontane, anche in pieno centro storico."
+        },
+        "power": {
+          "q": "Che presa mi serve?",
+          "a": "230 volt, tipo F, gli stessi due spinotti tondi della Germania. Le spine italiane sottili entrano, quelle grosse o gli schuko italiani a volte no, quindi un adattatore in valigia non guasta."
+        },
+        "roaming": {
+          "q": "Come funziona con telefono e internet?",
+          "a": "Dall'UE telefoni e navighi alle tue solite condizioni. Da Svizzera, Regno Unito o oltreoceano conviene una eSIM. Il wifi c'è quasi in ogni locale, in montagna spesso manca perfino il segnale."
+        }
+      }
+    },
+    "health": {
+      "title": "Salute e farmacia",
+      "hint": "Medico · Turno notturno · Tessera sanitaria · Zecche",
+      "items": {
+        "doctor": {
+          "q": "Mi serve un medico, e adesso?",
+          "a": "Di giorno vai in ambulatorio, molti ti prendono anche senza appuntamento. La sera e nel fine settimana subentra la guardia medica al 141. Se non sei sicuro che serva davvero un medico, il 1450 ti aiuta a qualsiasi ora."
+        },
+        "pharmacy": {
+          "q": "Dove trovo una farmacia di sera?",
+          "a": "Ce n'è sempre una di turno, e cambia ogni giorno. Quale sia in questo momento è affisso alla porta di ogni farmacia chiusa."
+        },
+        "insurance": {
+          "q": "E l'assicurazione?",
+          "a": "Dall'UE porta la tua tessera sanitaria europea e vieni curato come un residente. Da fuori UE ti serve un'assicurazione di viaggio. Un intervento del soccorso alpino non è compreso in automatico da nessuna parte."
+        },
+        "ticks": {
+          "q": "Devo proteggermi dalle zecche?",
+          "a": "Le zecche stanno nei boschi e nell'erba alta fino a quote medie. Possono trasmettere la TBE, per questo qui sono quasi tutti vaccinati. Dopo una giornata nel verde controllati addosso, di solito basta."
+        }
+      }
+    },
+    "packing": {
+      "title": "Cosa mettere in valigia",
+      "hint": "Sempre · Estate · Inverno",
+      "items": {
+        "always": {
+          "q": "Cosa non deve mai mancare?",
+          "a": "Scarpe robuste con suola scolpita, una giacca antipioggia, crema solare e una borraccia. E un po' di contanti per il rifugio. Qui il tempo cambia più in fretta di quanto serva una giacca rimasta in hotel."
+        },
+        "summer": {
+          "q": "Cosa serve d'estate?",
+          "a": "Il costume, da maggio a settembre il lago più vicino non è mai lontano. Meglio più strati leggeri di una giacca pesante, perché in quota fa fresco anche a luglio. E in riva all'acqua, la sera, un repellente per le zanzare."
+        },
+        "winter": {
+          "q": "Cosa serve d'inverno?",
+          "a": "Strati caldi, guanti, berretto. Per i sentieri ghiacciati i ramponcini sono la cosa migliore che entri in tasca. Non dimenticare gli occhiali da sole, la neve abbaglia più della sabbia."
+        }
+      }
+    }
+  },
+  "outro": {
+    "title": "Ti resta un dubbio?",
+    "body": "Chiedi a Toni, il tuo local con l'intelligenza artificiale. Oppure guarda subito cosa hai vicino.",
+    "ai": "Chiedi a Toni",
+    "cta": "Vai alla mappa"
+  }
+}

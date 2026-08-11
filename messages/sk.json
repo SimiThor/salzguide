@@ -40,7 +40,9 @@
     "aboutDescription": "Anton a Simon, dvaja Salzburčania: prečo SalzGuide existuje a ako vyberáme svoje spoty.",
     "spotTitle": "{title}: {kind} v Salzbursku",
     "spotTitlePlain": "{title} v Salzbursku",
-    "spotDescriptionFallback": "{title} v Salzbursku: poloha, cesta tam a náš úprimný tip."
+    "spotDescriptionFallback": "{title} v Salzbursku: poloha, cesta tam a náš úprimný tip.",
+    "travelInfoTitle": "Salzburg prakticky: čo vedieť pred cestou",
+    "travelInfoDescription": "Tiesňové čísla, mena, MHD zadarmo pre hostí, letisko, taxi, prepitné a čo si zbaliť. Praktický Salzburg, krátko a úprimne."
   },
   "Common": {
     "back": "Späť",
@@ -60,7 +62,8 @@
     "saved": "Uložené",
     "profile": "Profil",
     "water": "Teplota vody",
-    "tours": "Audioprehliadky"
+    "tours": "Audioprehliadky",
+    "info": "Dobré vedieť"
   },
   "Tours": {
     "title": "Audioprehliadky",

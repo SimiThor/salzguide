@@ -1,0 +1,200 @@
+{
+  "title": "Bon à savoir",
+  "intro": "Tout le pratique sur Salzbourg au même endroit. Deux minutes de lecture et tu te débrouilles.",
+  "emergency": {
+    "title": "En cas d'urgence",
+    "note": "Tous ces numéros s'appellent sans indicatif et sont gratuits. Même sans crédit et sans carte SIM.",
+    "labels": {
+      "euro": "Numéro d'urgence européen",
+      "ambulance": "Ambulance",
+      "mountain": "Secours en montagne",
+      "police": "Police",
+      "fire": "Pompiers",
+      "doctor": "Médecin de garde",
+      "health": "Conseil santé"
+    }
+  },
+  "glance": {
+    "title": "En bref",
+    "items": {
+      "currency": { "label": "Monnaie", "value": "Euro" },
+      "language": { "label": "Langue", "value": "Allemand" },
+      "power": { "label": "Électricité", "value": "230 V, type F" },
+      "water": { "label": "Eau du robinet", "value": "Potable" },
+      "time": { "label": "Fuseau horaire", "value": "CET (UTC+1)" },
+      "sunday": { "label": "Dimanche", "value": "Magasins fermés" }
+    }
+  },
+  "blocks": {
+    "arrival": {
+      "title": "Y aller",
+      "hint": "Aéroport · Train · Voiture · Autocar",
+      "items": {
+        "plane": {
+          "q": "Comment rejoindre le centre depuis l'aéroport ?",
+          "a": "L'aéroport est à l'ouest de la ville, à quelques kilomètres de la vieille ville. Devant le hall d'arrivée partent deux trolleybus : le 2 vers la gare centrale, le 10 vers l'hôtel de ville, en plein cœur historique. Comptez 20 à 25 minutes pour les deux. La station de taxis est juste à côté."
+        },
+        "train": {
+          "q": "Est-ce que le train vaut le coup ?",
+          "a": "C'est la façon la plus tranquille d'arriver. Depuis Munich, tu es à la gare centrale en une heure et demie environ, depuis Vienne en deux heures et demie et des poussières. De la gare, la vieille ville est à un quart d'heure à pied, ou un arrêt de trolleybus."
+        },
+        "car": {
+          "q": "Que faut-il pour venir en voiture ?",
+          "a": "Une vignette pour l'autoroute. Elle existe en version numérique, elle est liée à la plaque et tu l'achètes avant la frontière. Du 1er novembre au 15 avril, l'équipement hivernal est obligatoire, donc pneus hiver ou chaînes. Dans la vieille ville, ne cherche même pas de place, entre directement dans un parking couvert."
+        },
+        "bus": {
+          "q": "Y a-t-il des autocars longue distance ?",
+          "a": "Oui, ils s'arrêtent à la gare centrale. De là, le trolleybus ou tes pieds t'emmènent partout en ville."
+        }
+      }
+    },
+    "around": {
+      "title": "Se déplacer sur place",
+      "hint": "Carte d'hôte · Trolleybus et train · Taxi · Vélo",
+      "items": {
+        "guestcard": {
+          "q": "C'est vrai que les transports sont gratuits pour les visiteurs ?",
+          "a": "Oui, et c'est le meilleur conseil de cette page. Si tu passes la nuit dans le Land de Salzbourg, tu reçois à l'enregistrement le Guest Mobility Ticket sur ton téléphone. Il couvre tous les transports publics de tout le Land pendant tout ton séjour, trajets aller et retour compris. C'est payé par la taxe de séjour qui figure sur ta note."
+        },
+        "transit": {
+          "q": "Comment circule-t-on à Salzbourg ?",
+          "a": "En ville avec les trolleybus, qui passent toutes les quelques minutes. Vers les alentours avec le train régional et les bus. L'appli du réseau de transport de Salzbourg te donne les correspondances."
+        },
+        "taxi": {
+          "q": "Comment ça marche, les taxis ?",
+          "a": "Les taxis roulent au compteur et stationnent aux bornes, dans la vieille ville et à la gare. Par appli aussi : ici, Uber et Bolt envoient de vrais taxis locaux, tu récupères donc la même voiture qu'à la borne."
+        },
+        "bike": {
+          "q": "Est-ce que je peux tout faire à vélo ?",
+          "a": "En ville, oui. Salzbourg est plate, avec des pistes cyclables continues le long de la Salzach et des vélos en libre-service à presque chaque coin. Beaucoup d'habitants n'ont pas de voiture pour cette raison précise."
+        },
+        "carfree": {
+          "q": "Puis-je rejoindre les spots sans voiture ?",
+          "a": "Beaucoup, oui. Le lac Wallersee est sur la ligne du train régional, le bus 150 t'emmène au lac de Fuschl, et les cars postaux montent dans les vallées. Avec la carte d'hôte, ça ne te coûte rien de plus.",
+          "link": "Les spots sur la carte"
+        }
+      }
+    },
+    "money": {
+      "title": "Argent et paiement",
+      "hint": "Carte ou espèces · Pourboire · Taxe de séjour",
+      "items": {
+        "cash": {
+          "q": "Carte ou espèces ?",
+          "a": "En ville, la carte suffit, au supermarché et au restaurant à coup sûr. Dehors, ça change : les refuges d'alpage, les petites guinguettes, les caisses des lacs de baignade et certains horodateurs ne prennent que des espèces. Pour une journée en montagne, garde toujours un peu de liquide sur toi."
+        },
+        "tipping": {
+          "q": "Combien de pourboire ?",
+          "a": "On arrondit, ou on donne environ cinq à dix pour cent. Annonce la somme pourboire compris au moment de payer. L'ajouter après coup sur un paiement par carte ne marche pas ici."
+        },
+        "atm": {
+          "q": "Où retirer de l'argent ?",
+          "a": "Il y a un distributeur dans chaque village, et un coin de rue sur deux en ville. Dans les petits villages de montagne, le plus proche peut être loin, alors retire plutôt dans la vallée."
+        },
+        "touristtax": {
+          "q": "C'est quoi la taxe de séjour sur ma note ?",
+          "a": "Une contribution par nuit que chaque hébergement encaisse. Elle finance entre autres ton titre de transport gratuit. Tu n'as rien à faire, elle apparaît simplement sur la note."
+        }
+      }
+    },
+    "mountains": {
+      "title": "Montagnes, lacs et météo",
+      "hint": "Changements de temps · Secours · Refuges · Lacs",
+      "items": {
+        "weather": {
+          "q": "La météo est-elle fiable ?",
+          "a": "Soleil le matin et orage l'après-midi, c'est la norme en été, pas l'exception. C'est pour ça qu'ici tout le monde part tôt et redescend en début d'après-midi. Il peut faire grand soleil dans la vallée pendant qu'il y a du brouillard en haut."
+        },
+        "rescue": {
+          "q": "Et s'il arrive quelque chose en montagne ?",
+          "a": "Secours en montagne : 140. Reste où tu es et transmets ta position. Les téléphones récents l'envoient automatiquement avec l'appel d'urgence. Faire demi-tour n'est pas un échec, c'est la raison pour laquelle la plupart des sorties se terminent bien."
+        },
+        "huts": {
+          "q": "À quoi faire attention dans les refuges ?",
+          "a": "Prends des espèces, beaucoup ne prennent pas la carte. Si tu veux dormir, réserve avant et emporte un sac à viande. Et la saison est courte : beaucoup ferment à l'automne et rouvrent seulement en fin de printemps."
+        },
+        "lakes": {
+          "q": "Quand peut-on se baigner dans les lacs ?",
+          "a": "Les lacs peu profonds de la plaine sont assez chauds dès mai, les lacs de montagne profonds attendent juillet. La température réelle du moment est sur la page des températures de l'eau.",
+          "link": "Températures de l'eau"
+        },
+        "winter": {
+          "q": "Et en hiver ?",
+          "a": "Sur les pistes, il te faut un casque et du respect pour la vitesse des autres, rien de plus. Dès que tu sors des pistes, c'est le bulletin d'avalanche qui commande, et sans matériel ni expérience, ce n'est pas ta place. Des chemins de randonnée hivernale déneigés, il y en a dans presque chaque village."
+        }
+      }
+    },
+    "everyday": {
+      "title": "Le quotidien en Autriche",
+      "hint": "Dimanche fermé · Salutations · Eau · Prises · Réseau",
+      "items": {
+        "sunday": {
+          "q": "Pourquoi tout est fermé le dimanche ?",
+          "a": "Parce qu'en Autriche on ferme le dimanche, supermarchés compris. Le samedi, la plupart des commerces baissent le rideau en début de soirée. Restent ouverts la gare, l'aéroport, les stations-service et les restaurants. Les jours fériés, c'est pareil, alors fais tes courses le samedi."
+        },
+        "greeting": {
+          "q": "Comment se salue-t-on ici ?",
+          "a": "Avec Grüß Gott ou Servus, et on le dit en entrant dans un café, un magasin, une télécabine. Pour partir, Wiederschauen ou Baba. Entre jeunes, on se tutoie presque toujours."
+        },
+        "water": {
+          "q": "Puis-je boire l'eau du robinet ?",
+          "a": "Oui, et tu devrais. Elle vient des montagnes et vaut mieux que la plupart de ce qui se vend en bouteille. Prends une gourde et remplis-la aux fontaines, même en plein cœur historique."
+        },
+        "power": {
+          "q": "Quelle prise faut-il ?",
+          "a": "230 volts, type F, les mêmes deux broches rondes qu'en Allemagne. Les prises françaises à broche de terre n'entrent pas toujours, donc un adaptateur dans la valise ne fait pas de mal."
+        },
+        "roaming": {
+          "q": "Et le téléphone et internet ?",
+          "a": "Depuis l'UE, tu appelles et navigues aux conditions habituelles. Depuis la Suisse, le Royaume-Uni ou l'outre-mer, une eSIM vaut le coup. Il y a du wifi dans presque tous les établissements, et en montagne souvent même pas de réseau."
+        }
+      }
+    },
+    "health": {
+      "title": "Santé et pharmacie",
+      "hint": "Médecin · Garde de nuit · Carte européenne · Tiques",
+      "items": {
+        "doctor": {
+          "q": "J'ai besoin d'un médecin, je fais quoi ?",
+          "a": "En journée, tu vas dans un cabinet, beaucoup te prennent sans rendez-vous. Le soir et le week-end, le service de garde prend le relais au 141. Si tu ne sais pas si ça relève d'un médecin, le 1450 te répond jour et nuit."
+        },
+        "pharmacy": {
+          "q": "Où trouver une pharmacie le soir ?",
+          "a": "Il y en a toujours une de garde, et elle change chaque jour. Laquelle c'est en ce moment est affiché sur la porte de chaque pharmacie fermée."
+        },
+        "insurance": {
+          "q": "Et l'assurance ?",
+          "a": "Depuis l'UE, emporte ta carte européenne d'assurance maladie et tu es soigné comme un résident. Hors UE, il te faut une assurance voyage. Une intervention des secours en montagne n'est incluse automatiquement nulle part."
+        },
+        "ticks": {
+          "q": "Faut-il se protéger des tiques ?",
+          "a": "Les tiques vivent en forêt et dans les herbes hautes jusqu'aux altitudes moyennes. Elles peuvent transmettre l'encéphalite à tiques, c'est pourquoi presque tout le monde est vacciné ici. Inspecte-toi après une journée dehors, ça suffit la plupart du temps."
+        }
+      }
+    },
+    "packing": {
+      "title": "Quoi emporter",
+      "hint": "Toujours · Été · Hiver",
+      "items": {
+        "always": {
+          "q": "Qu'est-ce qui part à chaque fois ?",
+          "a": "Des chaussures solides avec des crampons, une veste de pluie, de la crème solaire et une gourde. Plus un peu d'espèces pour le refuge. Ici, le temps change plus vite qu'une veste restée à l'hôtel ne peut aider."
+        },
+        "summer": {
+          "q": "Que faut-il en été ?",
+          "a": "Un maillot, de mai à septembre le lac suivant n'est jamais loin. Plutôt plusieurs couches fines qu'une grosse veste, parce qu'en altitude il fait frais même en juillet. Et au bord de l'eau, un anti-moustiques le soir."
+        },
+        "winter": {
+          "q": "Que faut-il en hiver ?",
+          "a": "Des couches chaudes, des gants, un bonnet. Pour les chemins verglacés, les crampons légers sont ce qu'il y a de mieux à glisser dans une poche. N'oublie pas les lunettes de soleil, la neige éblouit plus que le sable."
+        }
+      }
+    }
+  },
+  "outro": {
+    "title": "Il te reste une question ?",
+    "body": "Demande à Toni, ton local en version IA. Ou regarde tout de suite ce qu'il y a à côté.",
+    "ai": "Demander à Toni",
+    "cta": "Voir la carte"
+  }
+}

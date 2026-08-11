@@ -90,6 +90,30 @@ export function breadcrumbLd(locale: string, items: { name: string; path?: strin
 }
 
 /**
+ * Frage-Antwort-Seiten als FAQPage („Gut zu wissen").
+ *
+ * Genau dafür ist der Typ gedacht: eine Seite, die aus Fragen mit je EINER Antwort
+ * besteht. Google zeigt daraus zwar nur noch selten Rich Results, aber die KI-Suchen
+ * lesen die Liste als fertige Antwort auf „Braucht man in Salzburg Bargeld?" — und
+ * genau diese Fragen tippt unsere Zielgruppe heute in ChatGPT statt in Google.
+ *
+ * Voraussetzung von schema.org: Die Antworten müssen auch SICHTBAR auf der Seite stehen.
+ * Das tun sie, deshalb klappt die Seite mit <details> auf und nicht über JavaScript
+ * (siehe components/Disclosure.tsx).
+ */
+export function faqLd(items: { q: string; a: string }[]) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: items.map((it) => ({
+      "@type": "Question",
+      name: it.q,
+      acceptedAnswer: { "@type": "Answer", text: it.a },
+    })),
+  };
+}
+
+/**
  * Die Event-Liste als ItemList aus schema.org-Events. Ohne Strassenadresse in der DB
  * gibt es keine Rich-Result-Garantie von Google — für KI-Suchen ist die Liste trotzdem
  * die maschinenlesbare Antwort auf "Was ist los in Salzburg?".

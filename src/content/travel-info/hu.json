@@ -1,0 +1,200 @@
+{
+  "title": "Jó tudni",
+  "intro": "Minden gyakorlati tudnivaló Salzburgról egy helyen. Két perc olvasás és kiismered magad.",
+  "emergency": {
+    "title": "Vészhelyzetben",
+    "note": "Minden szám körzetszám nélkül hívható és ingyenes. Egyenleg és SIM-kártya nélkül is.",
+    "labels": {
+      "euro": "Európai segélyhívó",
+      "ambulance": "Mentők",
+      "mountain": "Hegyimentők",
+      "police": "Rendőrség",
+      "fire": "Tűzoltóság",
+      "doctor": "Ügyeletes orvos",
+      "health": "Egészségügyi tanácsadás"
+    }
+  },
+  "glance": {
+    "title": "Röviden",
+    "items": {
+      "currency": { "label": "Fizetőeszköz", "value": "Euró" },
+      "language": { "label": "Nyelv", "value": "Német" },
+      "power": { "label": "Áram", "value": "230 V, F típus" },
+      "water": { "label": "Csapvíz", "value": "Iható" },
+      "time": { "label": "Időzóna", "value": "CET (UTC+1)" },
+      "sunday": { "label": "Vasárnap", "value": "Boltok zárva" }
+    }
+  },
+  "blocks": {
+    "arrival": {
+      "title": "Odautazás",
+      "hint": "Repülőtér · Vonat · Autó · Távolsági busz",
+      "items": {
+        "plane": {
+          "q": "Hogyan jutok a repülőtérről a városba?",
+          "a": "A repülőtér a város nyugati szélén van, pár kilométerre az óvárostól. Az érkezési csarnok előtt két trolibusz indul: a 2-es a főpályaudvarhoz, a 10-es a városházához, egyenesen az óváros közepére. Mindkettő nagyjából 20 vagy 25 perc. A taxidrosztya közvetlenül mellette van."
+        },
+        "train": {
+          "q": "Megéri vonattal jönni?",
+          "a": "Ez a legnyugodtabb út. Münchenből másfél óra alatt a főpályaudvaron vagy, Bécsből jó két és fél alatt. Az állomástól az óváros negyedóra séta, vagy egy megálló trolival."
+        },
+        "car": {
+          "q": "Mire van szükségem, ha autóval jövök?",
+          "a": "Az autópályára matricára. Digitálisan is van, a rendszámhoz kötik, és a határ előtt megveszed. November 1-től április 15-ig kötelező a téli felszerelés, tehát téli gumi vagy lánc. Az óvárosban ne is kezdj el parkolóhelyet keresni, hajts be egy garázsba."
+        },
+        "bus": {
+          "q": "Jár távolsági busz Salzburgba?",
+          "a": "Igen, a főpályaudvaron állnak meg. Onnan trolival vagy gyalog a város bármely pontjára eljutsz."
+        }
+      }
+    },
+    "around": {
+      "title": "Közlekedés a helyszínen",
+      "hint": "Vendégkártya · Troli és vonat · Taxi · Kerékpár",
+      "items": {
+        "guestcard": {
+          "q": "Igaz, hogy a vendégek ingyen közlekednek?",
+          "a": "Igaz, és ez a legjobb tipp ezen az oldalon. Aki Salzburg tartományban éjszakázik, bejelentkezéskor megkapja a telefonjára a Guest Mobility Ticketet. Ezzel a teljes tartózkodás alatt ingyen utazol az egész tartomány összes tömegközlekedési eszközén, az oda- és visszaút is benne van. Az idegenforgalmi adóból van kifizetve, ami amúgy is ott van a számlán."
+        },
+        "transit": {
+          "q": "Mivel közlekednek Salzburgban?",
+          "a": "A városban trolibusszal, ami néhány percenként jön. A környékre S-Bahnnal és regionális buszokkal. A járatokat a salzburgi közlekedési szövetség alkalmazása mutatja."
+        },
+        "taxi": {
+          "q": "Hogy megy ez a taxikkal?",
+          "a": "A taxik órával mennek, és drosztokon állnak, az óvárosban és az állomásnál. Alkalmazással is működik: az Uber és a Bolt itt egészen hétköznapi helyi taxikat küld, tehát ugyanaz a kocsi jön, mint a drosztról."
+        },
+        "bike": {
+          "q": "Mindent meg tudok oldani biciklivel?",
+          "a": "A városban igen. Salzburg sík, a Salzach mentén összefüggő bicikliutak vannak, kölcsönbringa meg majdnem minden sarkon. Sok helyinek pont ezért nincs autója."
+        },
+        "carfree": {
+          "q": "Eljutok a spotokhoz autó nélkül?",
+          "a": "Sokhoz igen. A Wallersee az S-Bahn vonalán fekszik, a Fuschlseehez a 150-es busz visz, a völgyekbe pedig postabuszok járnak. A vendégkártyával mindez nem kerül külön semmibe.",
+          "link": "Spotok a térképen"
+        }
+      }
+    },
+    "money": {
+      "title": "Pénz és fizetés",
+      "hint": "Kártya vagy készpénz · Borravaló · Idegenforgalmi adó",
+      "items": {
+        "cash": {
+          "q": "Kártya vagy készpénz?",
+          "a": "A városban elboldogulsz kártyával, a boltban és a vendéglőben biztosan. Kint már más a helyzet: a havasi menedékházak, a kis borozók, a fürdőtavak pénztárai és néhány parkolóautomata csak készpénzt fogad. Egy hegyi napra tehát mindig tegyél el valamennyi készpénzt."
+        },
+        "tipping": {
+          "q": "Mennyi borravalót adnak?",
+          "a": "Felfelé kerekítesz, vagy adsz nagyjából öt-tíz százalékot. Fizetéskor mondd meg rögtön a borravalóval együtti összeget. Utólag rátenni a kártyás fizetésre itt nem lehet."
+        },
+        "atm": {
+          "q": "Hol veszek fel készpénzt?",
+          "a": "Bankautomata minden településen van, a városban minden második sarkon. Kis hegyi falvakban a legközelebbi messze eshet, úgyhogy inkább lent a völgyben vegyél fel."
+        },
+        "touristtax": {
+          "q": "Mi az az idegenforgalmi adó a számlámon?",
+          "a": "Éjszakánkénti díj, amit minden szálláshely beszed. Többek között ebből fizetik az ingyenes közlekedési jegyedet. Nem kell érte tenned semmit, egyszerűen ott van a számlán."
+        }
+      }
+    },
+    "mountains": {
+      "title": "Hegyek, tavak és időjárás",
+      "hint": "Időjárás-fordulat · Hegyimentők · Menedékházak · Tavak",
+      "items": {
+        "weather": {
+          "q": "Mennyire megbízható az időjárás?",
+          "a": "Nyáron délelőtt nap, délután zivatar, ez a szokásos állapot, nem a kivétel. Ezért indul itt mindenki korán, és kora délutánra már lent van. A völgyben süthet a nap, miközben fent köd ül."
+        },
+        "rescue": {
+          "q": "Mi van, ha a hegyen történik valami?",
+          "a": "Hegyimentők: 140. Maradj ott, ahol vagy, és add meg a helyzetedet. Az újabb telefonok segélyhíváskor automatikusan elküldik. Visszafordulni nem vereség, hanem az oka annak, hogy a legtöbb túra jól végződik."
+        },
+        "huts": {
+          "q": "Mire figyeljek a menedékházakban?",
+          "a": "Vigyél készpénzt, sok helyen nincs kártyás fizetés. Ha aludni is szeretnél, foglalj előre, és hozz hálózsáklepedőt. A szezon pedig rövid: sok ház ősszel bezár, és csak késő tavasszal nyit újra."
+        },
+        "lakes": {
+          "q": "Mikor lehet a tavakban fürödni?",
+          "a": "Az északi síkság sekély tavai májustól elég melegek, a mély hegyi tavak júliusig kérnek időt. Hogy most éppen mennyi, a vízhőmérsékleteknél látod.",
+          "link": "Vízhőmérsékletek"
+        },
+        "winter": {
+          "q": "És télen?",
+          "a": "A pályán nem kell más, mint sisak és tisztelet a többiek tempója iránt. Amint lelépsz róla, a lavinajelentés a mérvadó, és felszerelés meg tapasztalat nélkül ott nincs keresnivalód. Letakarított téli sétautak majdnem minden faluban vannak."
+        }
+      }
+    },
+    "everyday": {
+      "title": "Hétköznapok Ausztriában",
+      "hint": "Vasárnap zárva · Köszönés · Víz · Konnektor · Térerő",
+      "items": {
+        "sunday": {
+          "q": "Miért van vasárnap minden zárva?",
+          "a": "Mert Ausztriában vasárnap zárva tartanak, az élelmiszerboltok is. Szombaton a legtöbb üzlet kora este lehúzza a redőnyt. Nyitva marad a pályaudvar, a repülőtér, a benzinkutak és a vendéglátóhelyek. Ünnepnapokon ugyanez a helyzet, szóval szombaton vásárolj be."
+        },
+        "greeting": {
+          "q": "Hogyan köszönnek itt?",
+          "a": "Grüß Gott vagy Servus, mégpedig rögtön belépéskor a vendéglőbe, a boltba, a kabinos felvonóba. Búcsúzáskor Wiederschauen vagy Baba. A fiatalabbak között szinte mindig tegeződnek."
+        },
+        "water": {
+          "q": "Ihatom a csapvizet?",
+          "a": "Igen, sőt érdemes. A hegyekből jön, és jobb, mint a palackozott víz nagy része. Vigyél kulacsot, és töltsd meg a köztéri kutaknál, akár az óváros közepén is."
+        },
+        "power": {
+          "q": "Milyen konnektor kell?",
+          "a": "230 volt, F típus, ugyanaz a két kerek érintkező, mint Magyarországon. Átalakító csak a brit, amerikai vagy ázsiai készülékekhez kell."
+        },
+        "roaming": {
+          "q": "Mi a helyzet a telefonnal és az internettel?",
+          "a": "Az EU-ból a megszokott feltételekkel telefonálsz és netezel. Svájcból, az Egyesült Királyságból vagy a tengerentúlról megéri egy eSIM. Wifi majdnem minden vendéglátóhelyen van, a hegyekben viszont sokszor még térerő sincs."
+        }
+      }
+    },
+    "health": {
+      "title": "Egészség és gyógyszertár",
+      "hint": "Orvos · Éjszakai ügyelet · Európai kártya · Kullancsok",
+      "items": {
+        "doctor": {
+          "q": "Orvosra van szükségem, most mi legyen?",
+          "a": "Nappal bemész egy rendelőbe, sok helyen időpont nélkül is fogadnak. Este és hétvégén az ügyeleti szolgálat veszi át a 141-es számon. Ha nem vagy biztos benne, hogy egyáltalán orvosi eset-e, az 1450 éjjel-nappal segít."
+        },
+        "pharmacy": {
+          "q": "Hol találok este gyógyszertárat?",
+          "a": "Mindig van egy éjszakai ügyeletes, és naponta váltják egymást. Hogy épp melyik, az minden zárva tartó patika ajtaján ki van függesztve."
+        },
+        "insurance": {
+          "q": "És a biztosítás?",
+          "a": "Az EU-ból hozd magaddal az Európai Egészségbiztosítási Kártyádat, akkor úgy látnak el, mint egy helyit. Az EU-n kívülről utasbiztosítás kell. Hegyimentő bevetése sehol nincs automatikusan benne."
+        },
+        "ticks": {
+          "q": "Kell védekeznem a kullancsok ellen?",
+          "a": "A kullancsok az erdőben és a magas fűben ülnek, közepes magasságokig. Terjeszthetik a kullancsencephalitist, ezért itt szinte mindenki be van oltva. Egy zöldben töltött nap után nézd át magad, ez általában elég."
+        }
+      }
+    },
+    "packing": {
+      "title": "Mit vigyél",
+      "hint": "Mindig · Nyár · Tél",
+      "items": {
+        "always": {
+          "q": "Mi kerül be minden alkalommal?",
+          "a": "Strapabíró, mintázott talpú cipő, esőkabát, naptej és egy kulacs. Mellé némi készpénz a menedékházra. Az időjárás itt gyorsabban fordul, mint amennyit egy szállodában hagyott kabát ér."
+        },
+        "summer": {
+          "q": "Mi kell nyáron?",
+          "a": "Fürdőruha, májustól szeptemberig sosincs messze a következő tó. Több vékony réteg jobb, mint egy vastag kabát, mert fent a hegyen júliusban is hűvös van. A víz mellett pedig este szúnyogriasztó."
+        },
+        "winter": {
+          "q": "Mi kell télen?",
+          "a": "Meleg rétegek, kesztyű, sapka. Jeges ösvényekre a hócipőre húzható lábvas a legjobb, ami zsebre megy. A napszemüveget se hagyd otthon, a hó jobban vakít, mint a homok."
+        }
+      }
+    }
+  },
+  "outro": {
+    "title": "Maradt kérdésed?",
+    "body": "Kérdezd Tonit, az MI-helyidet. Vagy nézd meg rögtön, mi van a közelben.",
+    "ai": "Kérdezd Tonit",
+    "cta": "Irány a térkép"
+  }
+}

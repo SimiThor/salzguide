@@ -40,7 +40,9 @@
     "aboutDescription": "Anton e Simon, due salisburghesi: perché esiste SalzGuide e come scegliamo i nostri posti.",
     "spotTitle": "{title}: {kind} nel Salisburghese",
     "spotTitlePlain": "{title} nel Salisburghese",
-    "spotDescriptionFallback": "{title} nel Salisburghese: dove si trova, come arrivarci e il nostro consiglio sincero."
+    "spotDescriptionFallback": "{title} nel Salisburghese: dove si trova, come arrivarci e il nostro consiglio sincero.",
+    "travelInfoTitle": "Salisburgo per chi arriva: cosa sapere prima di partire",
+    "travelInfoDescription": "Numeri d'emergenza, valuta, mezzi pubblici gratis per gli ospiti, aeroporto, taxi, mance e cosa mettere in valigia. Salisburgo pratico, in breve."
   },
   "Common": {
     "back": "Indietro",
@@ -60,7 +62,8 @@
     "saved": "Salvati",
     "profile": "Profilo",
     "water": "Temperature dell'acqua",
-    "tours": "Audio-tour"
+    "tours": "Audio-tour",
+    "info": "Buono a sapere"
   },
   "Tours": {
     "title": "Audio-tour",

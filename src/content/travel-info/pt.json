@@ -1,0 +1,200 @@
+{
+  "title": "Bom saber",
+  "intro": "Tudo o que é prático sobre Salzburgo num só sítio. Dois minutos de leitura e já te desenrascas.",
+  "emergency": {
+    "title": "Em caso de emergência",
+    "note": "Todos os números funcionam sem indicativo e são gratuitos. Mesmo sem saldo e sem cartão SIM.",
+    "labels": {
+      "euro": "Emergência europeu",
+      "ambulance": "Ambulância",
+      "mountain": "Socorro em montanha",
+      "police": "Polícia",
+      "fire": "Bombeiros",
+      "doctor": "Médico de urgência",
+      "health": "Aconselhamento de saúde"
+    }
+  },
+  "glance": {
+    "title": "Num relance",
+    "items": {
+      "currency": { "label": "Moeda", "value": "Euro" },
+      "language": { "label": "Língua", "value": "Alemão" },
+      "power": { "label": "Corrente", "value": "230 V, tipo F" },
+      "water": { "label": "Água da torneira", "value": "Potável" },
+      "time": { "label": "Fuso horário", "value": "CET (UTC+1)" },
+      "sunday": { "label": "Domingo", "value": "Lojas fechadas" }
+    }
+  },
+  "blocks": {
+    "arrival": {
+      "title": "Como chegar",
+      "hint": "Aeroporto · Comboio · Carro · Autocarro",
+      "items": {
+        "plane": {
+          "q": "Como vou do aeroporto para a cidade?",
+          "a": "O aeroporto fica na ponta oeste da cidade, a poucos quilómetros do centro histórico. À saída das chegadas partem dois tróleis: o 2 para a estação central, o 10 para a câmara municipal, em pleno centro histórico. Ambos demoram cerca de 20 a 25 minutos. A praça de táxis é logo ao lado."
+        },
+        "train": {
+          "q": "Vale a pena vir de comboio?",
+          "a": "É a maneira mais descansada de chegar. De Munique estás na estação central em cerca de hora e meia, de Viena em duas horas e meia largas. Da estação ao centro histórico são quinze minutos a pé, ou uma paragem de trólei."
+        },
+        "car": {
+          "q": "Do que preciso se vier de carro?",
+          "a": "Para a autoestrada, a vinheta. Existe em versão digital, fica ligada à matrícula e compra-se antes da fronteira. De 1 de novembro a 15 de abril há obrigação de equipamento de inverno, ou seja pneus de inverno ou correntes. No centro histórico nem comeces a procurar lugar, entra logo num parque coberto."
+        },
+        "bus": {
+          "q": "Há autocarros de longo curso para Salzburgo?",
+          "a": "Sim, param na estação central. Dali chegas a qualquer ponto da cidade de trólei ou a pé."
+        }
+      }
+    },
+    "around": {
+      "title": "Andar por lá",
+      "hint": "Cartão de hóspede · Tróleis e comboios · Táxi · Bicicleta",
+      "items": {
+        "guestcard": {
+          "q": "É verdade que os hóspedes andam de graça?",
+          "a": "É, e esta é a melhor dica desta página. Quem pernoita no estado de Salzburgo recebe no check-in o Guest Mobility Ticket no telemóvel. Com ele andas de graça em todos os transportes públicos de todo o estado durante a estadia inteira, ida e volta incluídas. Está pago pela taxa turística que aparece na tua conta."
+        },
+        "transit": {
+          "q": "Como é que se anda em Salzburgo?",
+          "a": "Na cidade de trólei, que passa de poucos em poucos minutos. Para os arredores de comboio suburbano e autocarro regional. Os horários estão na app do consórcio de transportes de Salzburgo."
+        },
+        "taxi": {
+          "q": "Como funcionam os táxis?",
+          "a": "Os táxis andam a taxímetro e ficam nas praças, no centro histórico e na estação. Por app também dá: aqui a Uber e a Bolt chamam táxis locais normais, portanto aparece o mesmo carro da praça."
+        },
+        "bike": {
+          "q": "Posso fazer tudo de bicicleta?",
+          "a": "Na cidade, sim. Salzburgo é plana, tem ciclovias contínuas ao longo do Salzach e bicicletas de aluguer quase em cada esquina. Muita gente daqui não tem carro exatamente por isso."
+        },
+        "carfree": {
+          "q": "Chego aos spots sem carro?",
+          "a": "A muitos, sim. O lago Wallersee fica na linha do comboio suburbano, ao Fuschlsee leva-te o autocarro 150, e para os vales sobem as camionetas dos correios. Com o cartão de hóspede não te custa nada a mais.",
+          "link": "Spots no mapa"
+        }
+      }
+    },
+    "money": {
+      "title": "Dinheiro e pagamentos",
+      "hint": "Cartão ou notas · Gorjeta · Taxa turística",
+      "items": {
+        "cash": {
+          "q": "Cartão ou dinheiro?",
+          "a": "Na cidade safas-te com cartão, no supermercado e no restaurante de certeza. Lá fora muda: refúgios de montanha, tabernas pequenas, bilheteiras dos lagos e alguns parquímetros só aceitam dinheiro. Para um dia na montanha leva sempre algum trocado."
+        },
+        "tipping": {
+          "q": "Quanto se dá de gorjeta?",
+          "a": "Arredonda-se, ou deixa-se cerca de cinco a dez por cento. Diz o valor com gorjeta logo no momento de pagar. Acrescentá-la depois a um pagamento com cartão aqui não dá."
+        },
+        "atm": {
+          "q": "Onde levanto dinheiro?",
+          "a": "Há multibanco em qualquer localidade e, na cidade, a cada duas esquinas. Em aldeias pequenas de montanha o mais próximo pode ficar longe, por isso levanta ainda no vale."
+        },
+        "touristtax": {
+          "q": "O que é a taxa turística na minha conta?",
+          "a": "Um valor por noite que qualquer alojamento cobra. É com ele que se paga, entre outras coisas, o teu bilhete gratuito de transportes. Não tens de fazer nada, aparece simplesmente na conta."
+        }
+      }
+    },
+    "mountains": {
+      "title": "Montanha, lagos e tempo",
+      "hint": "Mudanças de tempo · Socorro · Refúgios · Lagos",
+      "items": {
+        "weather": {
+          "q": "O tempo é de confiança?",
+          "a": "Sol de manhã e trovoada à tarde é o normal no verão, não a exceção. Por isso aqui toda a gente sai cedo e ao início da tarde já está em baixo. No vale pode estar sol enquanto lá em cima há nevoeiro."
+        },
+        "rescue": {
+          "q": "E se acontecer alguma coisa na montanha?",
+          "a": "Socorro em montanha, 140. Fica onde estás e passa a tua localização. Os telemóveis atuais enviam-na automaticamente com a chamada de emergência. Dar meia-volta não é derrota, é a razão pela qual quase todas as saídas acabam bem."
+        },
+        "huts": {
+          "q": "A que devo estar atento nos refúgios?",
+          "a": "Leva dinheiro, muitos não têm pagamento com cartão. Se quiseres dormir, reserva antes e leva um saco-lençol. E a época é curta: muitos fecham no outono e só reabrem no fim da primavera."
+        },
+        "lakes": {
+          "q": "Quando é que se pode nadar nos lagos?",
+          "a": "Os lagos rasos da planície já estão bons a partir de maio, os lagos fundos de montanha só lá para julho. Quanto está agora mesmo vês nas temperaturas da água.",
+          "link": "Temperaturas da água"
+        },
+        "winter": {
+          "q": "E no inverno?",
+          "a": "Na pista não precisas de mais do que capacete e respeito pela velocidade dos outros. Assim que sais dela manda o boletim de avalanches, e sem equipamento nem experiência não é ali o teu lugar. Caminhos de inverno limpos há em quase todas as aldeias."
+        }
+      }
+    },
+    "everyday": {
+      "title": "O dia a dia na Áustria",
+      "hint": "Domingo fechado · Cumprimentos · Água · Tomadas · Rede",
+      "items": {
+        "sunday": {
+          "q": "Porque é que ao domingo está tudo fechado?",
+          "a": "Porque na Áustria fecha-se ao domingo, supermercados incluídos. Ao sábado a maioria das lojas baixa a portada ao início da noite. Mantêm-se abertos a estação, o aeroporto, as bombas de gasolina e os restaurantes. Nos feriados é igual, por isso faz as compras ao sábado."
+        },
+        "greeting": {
+          "q": "Como é que se cumprimenta aqui?",
+          "a": "Com Grüß Gott ou Servus, e diz-se ao entrar num café, numa loja, numa telecabina. Para sair, Wiederschauen ou Baba. Entre gente mais nova trata-se por tu quase sempre."
+        },
+        "water": {
+          "q": "Posso beber água da torneira?",
+          "a": "Podes, e deves. Vem das montanhas e é melhor do que quase tudo o que se vende engarrafado. Leva uma garrafa e enche-a nos chafarizes, mesmo em pleno centro histórico."
+        },
+        "power": {
+          "q": "Que tomada preciso?",
+          "a": "230 volts, tipo F, os mesmos dois pinos redondos que em Portugal. Vindo do Reino Unido, dos Estados Unidos ou da Ásia precisas de adaptador."
+        },
+        "roaming": {
+          "q": "Como é com telemóvel e internet?",
+          "a": "Vindo da UE falas e navegas nas condições do costume. Da Suíça, do Reino Unido ou de fora da Europa compensa um eSIM. Wi-fi há em quase todos os estabelecimentos, na montanha muitas vezes nem rede."
+        }
+      }
+    },
+    "health": {
+      "title": "Saúde e farmácia",
+      "hint": "Médico · Serviço noturno · Cartão europeu · Carraças",
+      "items": {
+        "doctor": {
+          "q": "Preciso de um médico, e agora?",
+          "a": "De dia vais a um consultório, muitos atendem sem marcação. À noite e ao fim de semana assume o serviço de urgência no 141. Se não tens a certeza de que é caso para médico, o 1450 esclarece a qualquer hora."
+        },
+        "pharmacy": {
+          "q": "Onde encontro farmácia à noite?",
+          "a": "Há sempre uma de serviço, e muda todos os dias. Qual é neste momento está afixado na porta de qualquer farmácia fechada."
+        },
+        "insurance": {
+          "q": "E o seguro?",
+          "a": "Vindo da UE leva o teu Cartão Europeu de Seguro de Doença e és tratado como um residente. De fora da UE precisas de seguro de viagem. Um resgate em montanha não vem incluído automaticamente em lado nenhum."
+        },
+        "ticks": {
+          "q": "Tenho de me proteger das carraças?",
+          "a": "As carraças estão na mata e na erva alta até altitudes médias. Podem transmitir encefalite, por isso aqui quase toda a gente está vacinada. Depois de um dia no verde examina-te, normalmente chega."
+        }
+      }
+    },
+    "packing": {
+      "title": "O que levar",
+      "hint": "Sempre · Verão · Inverno",
+      "items": {
+        "always": {
+          "q": "O que entra sempre na mochila?",
+          "a": "Calçado firme com boa sola, um corta-vento impermeável, protetor solar e um cantil. E algum dinheiro para o refúgio. Aqui o tempo muda mais depressa do que serve um casaco deixado no hotel."
+        },
+        "summer": {
+          "q": "Do que preciso no verão?",
+          "a": "Fato de banho, de maio a setembro o lago seguinte nunca está longe. Antes várias camadas finas do que um casaco grosso, porque lá em cima refresca mesmo em julho. E à beira de água, repelente ao fim do dia."
+        },
+        "winter": {
+          "q": "Do que preciso no inverno?",
+          "a": "Camadas quentes, luvas, gorro. Para caminhos gelados, umas grampas leves são o melhor que cabe num bolso. Não te esqueças dos óculos de sol, a neve encandeia mais do que a areia."
+        }
+      }
+    }
+  },
+  "outro": {
+    "title": "Ficou alguma dúvida?",
+    "body": "Pergunta ao Toni, o teu local com IA. Ou vê já o que tens por perto.",
+    "ai": "Perguntar ao Toni",
+    "cta": "Ir para o mapa"
+  }
+}

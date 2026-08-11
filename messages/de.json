@@ -40,7 +40,9 @@
     "aboutDescription": "Anton und Simon, zwei Salzburger: warum es SalzGuide gibt und wie wir unsere Spots auswählen.",
     "spotTitle": "{title}: {kind} im Salzburger Land",
     "spotTitlePlain": "{title} im Salzburger Land",
-    "spotDescriptionFallback": "{title} im Salzburger Land: Lage, Anfahrt und unser ehrlicher Tipp."
+    "spotDescriptionFallback": "{title} im Salzburger Land: Lage, Anfahrt und unser ehrlicher Tipp.",
+    "travelInfoTitle": "Salzburg für Gäste: gut zu wissen vor der Reise",
+    "travelInfoDescription": "Notruf, Währung, Gratis-Öffis für Gäste, Flughafen, Taxi, Trinkgeld und Packliste. Das Praktische für Salzburg, kurz und ehrlich."
   },
   "Common": {
     "back": "Zurück",
@@ -103,7 +105,8 @@
     "saved": "Gespeichert",
     "profile": "Profil",
     "water": "Wassertemperaturen",
-    "tours": "Audio-Touren"
+    "tours": "Audio-Touren",
+    "info": "Gut zu wissen"
   },
   "Tours": {
     "title": "Audio-Touren",

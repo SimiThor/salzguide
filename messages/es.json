@@ -40,7 +40,9 @@
     "aboutDescription": "Anton y Simon, dos salzburgueses: por qué existe SalzGuide y cómo elegimos nuestros sitios.",
     "spotTitle": "{title}: {kind} en la región de Salzburgo",
     "spotTitlePlain": "{title}, región de Salzburgo",
-    "spotDescriptionFallback": "{title} en la región de Salzburgo: dónde está, cómo llegar y nuestro consejo honesto."
+    "spotDescriptionFallback": "{title} en la región de Salzburgo: dónde está, cómo llegar y nuestro consejo honesto.",
+    "travelInfoTitle": "Salzburgo en la práctica: lo que conviene saber antes de ir",
+    "travelInfoDescription": "Números de emergencia, moneda, transporte público gratis para huéspedes, aeropuerto, taxis, propinas y qué llevar. Salzburgo práctico, en corto."
   },
   "Common": {
     "back": "Atrás",
@@ -60,7 +62,8 @@
     "saved": "Guardados",
     "profile": "Perfil",
     "water": "Temperaturas del agua",
-    "tours": "Audioguías"
+    "tours": "Audioguías",
+    "info": "Info práctica"
   },
   "Tours": {
     "title": "Audioguías",

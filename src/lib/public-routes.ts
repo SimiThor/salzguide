@@ -17,7 +17,7 @@
 // brauchen KEINE eigene Zeile, das Slug-Muster deckt ihre Form mit ab.
 const PUBLIC_ROUTES: RegExp[] = [
   /^\/$/, // Startseite
-  /^\/(explore|events|wasser|ki|gespeichert|support|ueber-uns|touren|pro|profil)$/,
+  /^\/(explore|events|wasser|ki|gespeichert|support|ueber-uns|gut-zu-wissen|touren|pro|profil)$/,
   /^\/pro\/(aktivieren|rechnung)$/,
   /^\/profil\/daten$/,
   /^\/rechtliches\/(agb|datenschutz|impressum|widerruf)$/,

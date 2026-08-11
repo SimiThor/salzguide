@@ -40,7 +40,9 @@
     "aboutDescription": "잘츠부르크 사람 안톤과 지몬: SalzGuide를 만든 이유와 명소를 고르는 방식.",
     "spotTitle": "{title}: 잘츠부르크 {kind}",
     "spotTitlePlain": "{title}: 잘츠부르크",
-    "spotDescriptionFallback": "잘츠부르크의 {title}: 위치, 가는 방법, 그리고 우리의 솔직한 팁."
+    "spotDescriptionFallback": "잘츠부르크의 {title}: 위치, 가는 방법, 그리고 우리의 솔직한 팁.",
+    "travelInfoTitle": "잘츠부르크 여행 기본 정보: 오기 전에 알아둘 것",
+    "travelInfoDescription": "긴급 전화, 화폐, 숙박객 무료 대중교통, 공항, 택시, 팁, 준비물까지. 잘츠부르크의 실용 정보를 짧고 솔직하게."
   },
   "Common": {
     "back": "뒤로",
@@ -60,7 +62,8 @@
     "saved": "저장됨",
     "profile": "프로필",
     "water": "수온",
-    "tours": "오디오 투어"
+    "tours": "오디오 투어",
+    "info": "알아두면 좋은 정보"
   },
   "Tours": {
     "title": "오디오 투어",

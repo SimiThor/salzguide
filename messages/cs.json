@@ -40,7 +40,9 @@
     "aboutDescription": "Anton a Simon, dva Salcburčané: proč SalzGuide existuje a jak vybíráme svoje spoty.",
     "spotTitle": "{title}: {kind} v Salcbursku",
     "spotTitlePlain": "{title} v Salcbursku",
-    "spotDescriptionFallback": "{title} v Salcbursku: kde to je, jak se tam dostat a náš upřímný tip."
+    "spotDescriptionFallback": "{title} v Salcbursku: kde to je, jak se tam dostat a náš upřímný tip.",
+    "travelInfoTitle": "Salcburk prakticky: co vědět před cestou",
+    "travelInfoDescription": "Tísňová čísla, měna, MHD zdarma pro hosty, letiště, taxi, spropitné a co sbalit. Praktický Salcburk, krátce a upřímně."
   },
   "Common": {
     "back": "Zpět",
@@ -60,7 +62,8 @@
     "saved": "Uložené",
     "profile": "Profil",
     "water": "Teplota vody",
-    "tours": "Audioprohlídky"
+    "tours": "Audioprohlídky",
+    "info": "Dobré vědět"
   },
   "Tours": {
     "title": "Audioprohlídky",
