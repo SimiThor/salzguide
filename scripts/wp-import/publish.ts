@@ -28,6 +28,7 @@
 // Entscheidung sichtbar getroffen wird statt versehentlich.
 import { createClient } from "@supabase/supabase-js";
 import { TARGET_LOCALES } from "../../src/i18n/locales.ts";
+import { selectAll } from "./select-all.ts";
 import {
   hashSpotTexts,
   translationStatus,
@@ -96,12 +97,15 @@ async function main() {
     .order("slug");
   if (sErr) throw new Error(`spots lesen: ${sErr.message}`);
 
-  const { data: trans, error: tErr } = await db
-    .from("spot_translations")
-    .select(
-      "spot_id, lang, title, short_desc, general, insider_tip, section_a, section_b, location_text, source_hash",
-    );
-  if (tErr) throw new Error(`spot_translations lesen: ${tErr.message}`);
+  // Seitenweise, die Tabelle ist über 1000 Zeilen (siehe select-all.ts).
+  const trans = await selectAll<Record<string, unknown>>((from, to) =>
+    db
+      .from("spot_translations")
+      .select(
+        "spot_id, lang, title, short_desc, general, insider_tip, section_a, section_b, location_text, source_hash",
+      )
+      .range(from, to),
+  );
 
   // Bilder nur zählen, nicht bewerten: ein Spot ohne Foto darf live, sieht aber leer aus.
   const { data: media, error: mErr } = await db.from("media").select("spot_id");

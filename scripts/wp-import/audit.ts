@@ -14,6 +14,7 @@
 // sollten, aber auseinanderlaufen, findet nur ein Vergleich, der rechnet.
 import { createClient } from "@supabase/supabase-js";
 import { TARGET_LOCALES } from "../../src/i18n/locales.ts";
+import { selectAll } from "./select-all.ts";
 
 /**
  * Die Regel steht in `src/lib/brand-voice.ts`, dort aber als Prosa im Prompt-Text und nicht
@@ -113,9 +114,13 @@ type Befund = { slug: string; feld: string; was: string };
  */
 async function dump(lang: string) {
   const { data: spots } = await db.from("spots").select("id, slug").order("slug");
-  const { data: rows } = await db
-    .from("spot_translations")
-    .select("spot_id, lang, title, short_desc, general, insider_tip, section_a, section_b, location_text");
+  // Seitenweise, die Tabelle ist über 1000 Zeilen (siehe select-all.ts).
+  const rows = await selectAll<Record<string, unknown>>((from, to) =>
+    db
+      .from("spot_translations")
+      .select("spot_id, lang, title, short_desc, general, insider_tip, section_a, section_b, location_text")
+      .range(from, to),
+  );
   const F = [
     ["title", "title"],
     ["shortDesc", "short_desc"],
@@ -153,10 +158,13 @@ async function main() {
     .select("id, slug, duration, difficulty, best_season, elevation_profile, route_geojson")
     .order("slug");
   if (error) throw error;
-  const { data: rows, error: e2 } = await db
-    .from("spot_translations")
-    .select("spot_id, lang, title, short_desc, general, insider_tip, section_a, section_b, location_text");
-  if (e2) throw e2;
+  // Seitenweise, die Tabelle ist über 1000 Zeilen (siehe select-all.ts).
+  const rows = await selectAll<Record<string, unknown>>((from, to) =>
+    db
+      .from("spot_translations")
+      .select("spot_id, lang, title, short_desc, general, insider_tip, section_a, section_b, location_text")
+      .range(from, to),
+  );
 
   const FELDER = ["title", "short_desc", "general", "insider_tip", "section_a", "section_b", "location_text"] as const;
   const text = (r: Record<string, unknown>) => FELDER.map((f) => (r[f] as string) ?? "").join("\n");

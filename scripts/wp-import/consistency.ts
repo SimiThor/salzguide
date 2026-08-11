@@ -13,6 +13,7 @@
 // die man wegzuschauen lernt, oder er schweigt bei den Fällen, auf die es ankommt. Die
 // Extraktion ist mechanisch, das Urteil nicht.
 import { createClient } from "@supabase/supabase-js";
+import { selectAll } from "./select-all.ts";
 
 const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPA_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -59,10 +60,14 @@ async function main() {
     .from("spots")
     .select("id, slug, type, duration, difficulty, best_season, access, price_level, route_geojson")
     .order("slug");
-  const { data: trs } = await db
-    .from("spot_translations")
-    .select("spot_id, general, insider_tip, section_a, section_b, location_text");
-  if (!spots || !trs) throw new Error("Lesen fehlgeschlagen");
+  // Seitenweise, die Tabelle ist über 1000 Zeilen (siehe select-all.ts).
+  const trs = await selectAll<Record<string, unknown>>((from, to) =>
+    db
+      .from("spot_translations")
+      .select("spot_id, general, insider_tip, section_a, section_b, location_text")
+      .range(from, to),
+  );
+  if (!spots) throw new Error("Lesen fehlgeschlagen");
   const byId = new Map(trs.map((t) => [t.spot_id, t as unknown as Record<string, string>]));
 
   const BLOCKS: { name: string; field: (s: Record<string, unknown>) => string; re: RegExp }[] = [
