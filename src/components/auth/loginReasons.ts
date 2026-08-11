@@ -3,7 +3,7 @@
 // Vorher hatte jede Fläche ihre eigene Überschrift und ihren eigenen Erklärtext:
 // /profil sagte "Anmelden oder Konto erstellen", /gespeichert sagte etwas anderes, die
 // Pro-Seite ein Drittes und das Login-Gate ein Viertes. Vier Texte, die dasselbe meinen,
-// in elf Sprachen. Jetzt wechselt nur noch Emoji + Überschrift, alles darunter ist überall
+// in dreizehn Sprachen. Jetzt wechselt nur noch Emoji + Überschrift, alles darunter ist überall
 // gleich — und wer eine neue login-pflichtige Stelle baut, hängt einen Eintrag hier an.
 export type LoginReason =
   | "default"

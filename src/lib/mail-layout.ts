@@ -68,7 +68,7 @@ export function brandify(headline: string): string {
 }
 
 // GRUSS UND UNTERSCHRIFT stehen jetzt in messages/*.json unter `Mail.greeting` und
-// `Mail.signoff`, in allen elf Sprachen (siehe mail-i18n.ts). Die Begründungen dahinter
+// `Mail.signoff`, in allen dreizehn Sprachen (siehe mail-i18n.ts). Die Begründungen dahinter
 // gelten unverändert und deshalb hier, wo der Rahmen sie benutzt:
 //
 // UNTERSCHRIFT: Ein Mensch, kein Absender-Block. Hier stand zuerst LEGAL.company ("Anton

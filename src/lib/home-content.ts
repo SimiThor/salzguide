@@ -60,7 +60,7 @@ type Row = {
 // derselbe, ein Cookie ändert daran nichts. Der Cookie-Client hat ihn aber trotzdem gelesen,
 // und sobald eine Seite Cookies liest, muss Next sie bei jedem einzelnen Aufruf neu rendern.
 // Die Startseite war deshalb `ƒ` (pro Request), obwohl sie eine Verkaufsseite ist, die sich
-// selten ändert: 269ms und drei DB-Abfragen für jeden Besucher, mal elf Sprachen, mal jeden
+// selten ändert: 269ms und drei DB-Abfragen für jeden Besucher, mal dreizehn Sprachen, mal jeden
 // Crawler. Ohne Cookie kann Next sie vorrendern und aus dem Cache ausliefern.
 //
 // Aktuell bleibt sie trotzdem: Die vier Speicher-Aktionen im Admin (saveHomeTexts,

@@ -36,7 +36,7 @@ function deepMerge(base: Messages, override: Messages): Messages {
 // zur Laufzeit gar nicht ändern. Trotzdem lief der rekursive Durchlauf über den ganzen
 // Nachrichtenbaum (477 Schlüssel) bei JEDEM Seitenaufruf in jeder Nicht-Standard-Sprache
 // neu, um jedes Mal exakt dasselbe Objekt zu bauen. Einmal pro Sprache und Instanz reicht;
-// höchstens elf Einträge, also auch kein Speicherproblem.
+// höchstens dreizehn Einträge, also auch kein Speicherproblem.
 const merged = new Map<string, Messages>();
 
 function messagesFor(locale: string, translated: Messages): Messages {

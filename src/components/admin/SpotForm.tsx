@@ -768,7 +768,7 @@ export default function SpotForm({
           </div>
           <div>
             {/* Auswahl statt Freitext: Die Unterkategorie steht auf der Detailseite und muss
-                in 11 Sprachen erscheinen. Frei getippt entstand genau der Fehler, den das hier
+                in 13 Sprachen erscheinen. Frei getippt entstand genau der Fehler, den das hier
                 verhindert („Cafe" ohne Akzent, „See" statt „See & Baden"). */}
             <label className={labelCls}>Unterkategorie (Label)</label>
             <select className={input} value={form.subtype} onChange={(e) => set({ subtype: e.target.value })}>
@@ -1574,7 +1574,7 @@ export default function SpotForm({
           </p>
           {!factIsKnown("area", form.area) && (
             <p className="mt-1 text-[12px] leading-snug text-accent">
-              „{form.area}&ldquo; steht in keiner Gegend-Liste und bleibt in allen 11 Sprachen deutsch.
+              „{form.area}&ldquo; steht in keiner Gegend-Liste und bleibt in allen 13 Sprachen deutsch.
               Wähle einen Vorschlag oder trag den Ort in facts-i18n.json nach.
             </p>
           )}

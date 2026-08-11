@@ -23,6 +23,7 @@ import {
   factSubtype,
   type FactField,
 } from "../src/lib/facts-i18n.ts";
+import { LOCALE_CODES } from "../src/i18n/locales.ts";
 
 const env = Object.fromEntries(
   readFileSync(".env.local", "utf8")
@@ -34,7 +35,9 @@ const env = Object.fromEntries(
     }),
 );
 
-const LOCALES = ["cs", "de", "en", "es", "fr", "hu", "it", "ko", "nl", "pt", "zh"];
+// Aus der zentralen Sprachliste, nicht danebengetippt: Eine handgepflegte Kopie hängt beim
+// nächsten Sprachzuwachs hinterher, und dieses Skript prüft dann still eine Sprache zu wenig.
+const LOCALES = LOCALE_CODES;
 
 const sb = createClient(env.NEXT_PUBLIC_SUPABASE_URL!, env.SUPABASE_SERVICE_ROLE_KEY!);
 const { data, error } = await sb

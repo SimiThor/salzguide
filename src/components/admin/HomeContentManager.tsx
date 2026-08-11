@@ -189,7 +189,7 @@ export default function HomeContentManager({
             loadingLabel="Übersetzt …"
             onClick={translate}
             // Übersetzt wird, was in der DATENBANK steht. Bei ungespeicherten Änderungen
-            // würde also der alte Stand in zehn Sprachen wandern, und der Knopf hätte
+            // würde also der alte Stand in zwölf Sprachen wandern, und der Knopf hätte
             // trotzdem „fertig" gemeldet.
             disabled={dirty || pending || !fromDb}
             title={

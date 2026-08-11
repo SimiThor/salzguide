@@ -24,8 +24,10 @@ export const LOCALES: readonly LocaleMeta[] = [
   { code: "zh", name: "简体中文", english: "Chinese (Simplified)", flag: "🇨🇳", bcp47: "zh-CN", dir: "ltr" },
   { code: "es", name: "Español", english: "Spanish", flag: "🇪🇸", bcp47: "es-ES", dir: "ltr" },
   { code: "pt", name: "Português", english: "Portuguese", flag: "🇵🇹", bcp47: "pt-PT", dir: "ltr" },
+  { code: "pl", name: "Polski", english: "Polish", flag: "🇵🇱", bcp47: "pl-PL", dir: "ltr" },
   { code: "cs", name: "Čeština", english: "Czech", flag: "🇨🇿", bcp47: "cs-CZ", dir: "ltr" },
   { code: "hu", name: "Magyar", english: "Hungarian", flag: "🇭🇺", bcp47: "hu-HU", dir: "ltr" },
+  { code: "sk", name: "Slovenčina", english: "Slovak", flag: "🇸🇰", bcp47: "sk-SK", dir: "ltr" },
 ] as const;
 
 export const LOCALE_CODES: readonly string[] = LOCALES.map((l) => l.code);

@@ -153,11 +153,11 @@ export const factSubtype = (v: string | null | undefined, locale: string) =>
 
 // Gegend: zwei Tabellen, weil Ortsangaben zwei verschiedene Dinge sind.
 //   AREA       — enthält ein übersetzbares Gattungswort („Altstadt", „Zeller See",
-//                „Nationalpark Hohe Tauern"). Volle 10 Sprachen.
+//                „Nationalpark Hohe Tauern"). Volle 12 Sprachen.
 //   AREA_NAMES — reiner Eigenname („Hallein", „Flachau"). Der heisst auf Spanisch wie auf
 //                Deutsch; nur zh/ko bekommen eine Umschrift. Alle anderen Sprachen fallen
 //                über das `?? key` in pick() auf den deutschen Namen zurück.
-// Ohne diese Trennung stünden ~150 Ortsnamen zehnmal identisch in der Tabelle — viel Fläche
+// Ohne diese Trennung stünden ~150 Ortsnamen zwölfmal identisch in der Tabelle — viel Fläche
 // für Tippfehler, ohne eine einzige echte Übersetzung.
 // Frei getippte Gegenden ohne Eintrag bleiben Deutsch; deshalb warnt das Admin-Formular.
 export const factArea = (v: string | null | undefined, locale: string) =>

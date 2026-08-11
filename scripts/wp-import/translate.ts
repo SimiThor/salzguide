@@ -1,4 +1,4 @@
-// Übersetzungen der 95 Spot-Texte in die acht Zielsprachen: ausgeben, prüfen, einspielen.
+// Übersetzungen der 95 Spot-Texte in die zwölf Zielsprachen: ausgeben, prüfen, einspielen.
 //
 //   npm run wp:translate                  Stand: welche Spots fehlen noch
 //   npm run wp:translate -- --todo 3      die nächsten 3 offenen Spots mit deutschem Text
@@ -6,12 +6,12 @@
 //   npm run wp:translate -- --go          geprüfte Dateien in die Datenbank schreiben
 //
 // WARUM KEIN API-AUFRUF: Der Admin-Knopf „In alle Sprachen übersetzen" schickt jeden Spot
-// einzeln an die Anthropic-API und kostet je Aufruf. 95 Spots mal zehn Sprachen wären 950
+// einzeln an die Anthropic-API und kostet je Aufruf. 95 Spots mal zwölf Sprachen wären 1.140
 // bezahlte Aufrufe. Hier übersetzt stattdessen die KI in der Sitzung (Abo) und legt das
 // Ergebnis als Datei ab; dieses Skript ist nur Prüfung und Schreiber. Der Prompt-Kern in
 // admin-actions.ts bleibt unangetastet — er ist weiter der Weg für einzelne, spätere Spots.
 //
-// ABLAGE: .wp-cache/i18n/<slug>.json, je Datei ein Objekt mit den acht Sprachcodes und
+// ABLAGE: .wp-cache/i18n/<slug>.json, je Datei ein Objekt mit den zwölf Sprachcodes und
 // darunter denselben sieben Feldern wie in .wp-cache/drafts/. .wp-cache/ ist ausgenommen
 // (das Repo ist öffentlich), die Texte gehören nur in die Datenbank.
 //
