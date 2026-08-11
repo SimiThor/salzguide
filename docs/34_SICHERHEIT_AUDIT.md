@@ -122,27 +122,32 @@ Im Supabase-Dashboard die erlaubten Redirect-URLs strikt auf `https://salzguide.
 (+ lokal `http://localhost:3000/**`) begrenzen. Das ist die eigentliche Sperre gegen
 Magic-Link-Phishing (der Code härtet bereits, die DB-Allowlist ist maßgeblich).
 
-### C3. 🟡 Content-Security-Policy — Report-Only umgesetzt, enforce ausstehend
-**Umgesetzt:** `Content-Security-Policy-Report-Only` in `next.config.ts` (nur Produktion,
-verifiziert ausgeliefert). Bricht nichts, meldet Verstöße in der Browser-Konsole.
-**TODO vor Launch:** In Produktion normal nutzen (Karte, Login, KI, Foto-Upload) und die
-Konsole auf CSP-Verstöße prüfen; wenn sauber → Header-Key auf `Content-Security-Policy`
-(ohne `-Report-Only`) umstellen = enforce. Falls Mapbox/Next Verstöße zeigt, betroffene
-Quelle ergänzen (häufig `script-src`/`worker-src`).
-Aktuelle Policy:
-```
-default-src 'self';
-script-src 'self' 'unsafe-inline';        # besser: Nonce statt unsafe-inline
-style-src 'self' 'unsafe-inline';
-img-src 'self' data: blob: https://*.supabase.co https://*.mapbox.com;
-connect-src 'self' https://*.supabase.co https://*.mapbox.com https://events.mapbox.com;
-worker-src blob:;                          # Mapbox GL braucht blob-Worker
-frame-ancestors 'none';
-base-uri 'self';
-form-action 'self';
-upgrade-insecure-requests;
-```
-Anthropic-/Google-/ORS-Calls laufen server-seitig → gehören NICHT in `connect-src`.
+### C3. ✅ Content-Security-Policy — ENFORCING seit 11.08.2026
+**Umgesetzt:** `Content-Security-Policy` (ohne `-Report-Only`) in `next.config.ts`, nur in
+Produktion. Die vollständige Liste steht dort samt Begründung je Direktive; sie hier zu
+wiederholen hiesse, zwei Fassungen zu pflegen. `report-uri` schickt jeden Verstoß an
+`/api/ops/csp-report` und damit in den Ops-Katalog (`csp_violation`) — ohne diese Zeile
+bräche eine Lücke in der Liste STILL, weil die blockierte Anfrage den Browser nie verlässt.
+
+**Was das Umstellen gefunden hat.** Gemessen an einem Produktions-Build, nicht geraten:
+`script-src` und `connect-src` fehlte `blob:`. ffmpeg.wasm (`lib/ffmpeg.ts`) lädt seinen
+Core zwar selbst-gehostet, reicht ihn aber als blob:-URL an einen `type: "module"`-Worker
+weiter, der ihn per `await import()` holt; danach zieht der Core sein `.wasm` per fetch von
+einer zweiten blob:-URL. Ohne beide Einträge wäre der Video-Tab im Story-Maker stehen
+geblieben — auf der ÖFFENTLICHEN Spot-Seite, nicht nur im Admin. Genau die Art Lücke, die
+Report-Only jahrelang meldet, ohne dass jemand hinsieht.
+
+**Vorschau-Deployments** erzwingen dieselbe Policy plus `vercel.live` (Vercels
+Kommentar-Leiste). Bewusst nicht „Vorschau auf Report-Only": Dann prüfte die Vorschau die
+Richtlinie nicht mehr und der erste echte Test wäre die Produktion.
+
+**Bleibt offen:** `script-src` trägt weiter `'unsafe-inline'` (Next.js hängt Hydrations-Daten
+inline ein, JSON-LD ebenso). Gegen eingeschleustes Inline-JavaScript schützt die Policy
+deshalb nicht — wohl aber gegen Abfluss (`connect-src`), fremde Skript-Herkünfte,
+`<base>`-Umbiegen und Formular-Exfiltration. Der Nonce-Umbau (Nonce aus dem Proxy +
+`'strict-dynamic'`) ist ein eigener Schritt.
+
+Anthropic-/Google-/ORS-/ElevenLabs-Calls laufen server-seitig → gehören NICHT in `connect-src`.
 
 ### C4. 🟡 Bot-Schutz & Burst-Rate-Limit
 - **✅ Burst-Limit umgesetzt:** `hit_ai_burst`-RPC + Tabelle `ai_burst`

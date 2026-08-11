@@ -20,39 +20,126 @@ const securityHeaders = [
   },
 ];
 
-// Content-Security-Policy (docs/34 §C3) — vorerst REPORT-ONLY: bricht nichts,
-// meldet Verstöße nur in der Browser-Konsole. Nach dem Testen (keine Verstöße bei
-// normaler Nutzung inkl. Karte/Login/KI) auf enforce umstellen (Header-Key ohne
-// "-Report-Only"). Nur in Produktion, damit das Dev-HMR (eval) nicht zuspammt.
-// Quellen: Supabase (REST/Realtime/Storage), Mapbox (Tiles/Worker/Events).
-const cspReportOnly = [
-  "default-src 'self'",
-  "base-uri 'self'",
-  "object-src 'none'",
-  "frame-ancestors 'none'",
-  "form-action 'self'",
-  "img-src 'self' data: blob: https://*.supabase.co https://*.mapbox.com https://*.tiles.mapbox.com https://*.wien.gv.at",
-  "media-src 'self' blob: https://*.supabase.co",
-  "font-src 'self'",
-  "style-src 'self' 'unsafe-inline'",
-  // 'wasm-unsafe-eval' erlaubt WebAssembly (ffmpeg.wasm für die Admin-Videokompression).
-  // challenges.cloudflare.com = Turnstile-Widget (Bot-Schutz am Login).
-  "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://challenges.cloudflare.com",
-  "worker-src 'self' blob:",
-  "child-src 'self' blob:",
+// ═══════════════════════════════════════════════════════════════════════════════════════
+//  Content-Security-Policy (docs/34 §C3) — ENFORCING seit 11.08.2026.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+//
+// Bis hierher lief der Header als `-Report-Only`: Er meldete Verstöße in der Konsole und
+// blockierte nichts, war also wirkungslos. Jetzt gilt: Was hier nicht steht, lädt der
+// Browser nicht.
+//
+// WAS DIESE POLICY WIRKLICH KAUFT. `script-src` trägt 'unsafe-inline' (Next.js hängt seine
+// Hydrations-Daten inline in die Seite, und JSON-LD ist ebenfalls ein Inline-Skript). Gegen
+// eingeschleustes Inline-JavaScript schützt sie deshalb NICHT. Was sie schützt:
+//   · `connect-src` — eingeschleuster Code kann Daten nirgendwohin abfliessen lassen.
+//   · `script-src`-Herkunft — ein untergeschobenes <script src="//fremde.tld"> lädt nicht.
+//   · `base-uri` — kein <base>-Tag, das alle relativen URLs umbiegt.
+//   · `form-action`/`object-src`/`frame-ancestors` — kein Formular-Abfluss, kein Plugin,
+//     kein Framing.
+// Der nächste Schritt wäre eine Nonce statt 'unsafe-inline' (docs/34 §C3 nennt sie); die
+// braucht einen Nonce aus dem Proxy plus 'strict-dynamic' und ist ein eigener Umbau.
+//
+// NUR IN PRODUKTION. Der Dev-Server baut mit eval (HMR) und würde die Konsole zuspammen.
+// Folge fürs Testen: `npm run dev` beweist hier NICHTS. Wer diese Liste anfasst, prüft mit
+// `npm run build && npx next start` und klickt Karte, Spot-Seite (Story-Maker!), Login und
+// Admin-Upload durch.
+//
+// WARUM `blob:` IN script-src UND connect-src STEHT — die Zeile, die beim Umstellen fast
+// gefehlt hätte: ffmpeg.wasm (lib/ffmpeg.ts) lädt seinen Core selbst-gehostet aus /ffmpeg,
+// reicht ihn aber als blob:-URL weiter. @ffmpeg/ffmpeg startet einen Worker mit
+// `type: "module"`, dort scheitert importScripts und die Bibliothek fällt auf
+// `await import(blob:…)` zurück — das prüft `script-src`. Danach holt der Core sein .wasm
+// per fetch von einer zweiten blob:-URL — das prüft `connect-src`. Ohne beide Einträge
+// bleibt der Video-Tab im Story-Maker stumm stehen, und zwar auf der ÖFFENTLICHEN
+// Spot-Seite, nicht nur im Admin. Gemessen am Produktions-Build, nicht geraten.
+//
+// `report-uri` schickt jeden Verstoß an api/ops/csp-report und damit in den Ops-Katalog.
+// Ohne diese Zeile bräche eine Lücke in dieser Liste STILL: Die blockierte Anfrage verlässt
+// den Browser nie, der Server sieht also nichts. Bewusst `report-uri` und nicht die neuere
+// Reporting-API — `report-uri` können alle drei Browser-Familien, `Reporting-Endpoints` nur
+// Chrome, und die Route liest ohnehin schon beide Formate.
+const cspDirectives: Record<string, string[]> = {
+  "default-src": ["'self'"],
+  "base-uri": ["'self'"],
+  "object-src": ["'none'"],
+  "frame-ancestors": ["'none'"],
+  "form-action": ["'self'"],
+  "img-src": [
+    "'self'",
+    "data:",
+    "blob:",
+    "https://*.supabase.co",
+    "https://*.mapbox.com",
+    "https://*.tiles.mapbox.com",
+    "https://*.wien.gv.at",
+  ],
+  "media-src": ["'self'", "blob:", "https://*.supabase.co"],
+  // Inter kommt über next/font/google und liegt nach dem Build bei UNS — kein Google-Host.
+  "font-src": ["'self'"],
+  "style-src": ["'self'", "'unsafe-inline'"],
+  // 'wasm-unsafe-eval' erlaubt WebAssembly (ffmpeg.wasm). blob: = der Core-Import oben.
+  // challenges.cloudflare.com = Turnstile-Widget (Bot-Schutz an Login/Formularen).
+  "script-src": [
+    "'self'",
+    "'unsafe-inline'",
+    "'wasm-unsafe-eval'",
+    "blob:",
+    "https://challenges.cloudflare.com",
+  ],
+  "worker-src": ["'self'", "blob:"],
+  "child-src": ["'self'", "blob:"],
   // Turnstile rendert in einem iframe von challenges.cloudflare.com.
-  "frame-src 'self' https://challenges.cloudflare.com",
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.mapbox.com https://*.tiles.mapbox.com https://events.mapbox.com https://challenges.cloudflare.com https://*.wien.gv.at",
-  "manifest-src 'self'",
-  "upgrade-insecure-requests",
-].join("; ");
+  "frame-src": ["'self'", "https://challenges.cloudflare.com"],
+  // blob: = das .wasm des ffmpeg-Cores (siehe oben). Anthropic/Google/ORS/ElevenLabs laufen
+  // serverseitig und gehören deshalb NICHT hierher.
+  "connect-src": [
+    "'self'",
+    "blob:",
+    "https://*.supabase.co",
+    "wss://*.supabase.co",
+    "https://*.mapbox.com",
+    "https://*.tiles.mapbox.com",
+    "https://events.mapbox.com",
+    "https://challenges.cloudflare.com",
+    "https://*.wien.gv.at",
+  ],
+  "manifest-src": ["'self'"],
+  "report-uri": ["/api/ops/csp-report"],
+  "upgrade-insecure-requests": [],
+};
+
+// ───────────────────────────────────────────────────────────────────────────────────────
+//  Vorschau-Deployments: dieselbe Policy, plus Vercels eigene Werkzeugleiste
+// ───────────────────────────────────────────────────────────────────────────────────────
+//
+// Auf Vercel ist NODE_ENV auch bei einer Vorschau "production" — der scharfe Header gilt
+// dort also mit. Vercel spritzt in Vorschauen aber seine Kommentar-Leiste von vercel.live
+// ein (plus Pusher für die Live-Kommentare), und die wäre blockiert.
+//
+// Die Wahl ist bewusst NICHT „Vorschau auf Report-Only": Dann prüfte die Vorschau die
+// Richtlinie nicht mehr, und der erste echte Test wäre die Produktion. So erzwingt die
+// Vorschau EXAKT dieselbe Liste, nur mit vercel.live obendrauf — und salzguide.com sieht
+// von Vercels Hosts nichts.
+const previewOnly: Record<string, string[]> = {
+  "script-src": ["https://vercel.live"],
+  "connect-src": ["https://vercel.live", "wss://ws-us3.pusher.com"],
+  "img-src": ["https://vercel.live", "https://vercel.com"],
+  "frame-src": ["https://vercel.live"],
+  "style-src": ["https://vercel.live"],
+  "font-src": ["https://vercel.live", "https://assets.vercel.com"],
+};
+
+const isPreview = process.env.VERCEL_ENV === "preview";
+
+const csp = Object.entries(cspDirectives)
+  .map(([directive, sources]) =>
+    [directive, ...sources, ...(isPreview ? (previewOnly[directive] ?? []) : [])].join(" "),
+  )
+  .join("; ");
 
 const headers =
   process.env.NODE_ENV === "production"
-    ? [
-        ...securityHeaders,
-        { key: "Content-Security-Policy-Report-Only", value: cspReportOnly },
-      ]
+    ? [...securityHeaders, { key: "Content-Security-Policy", value: csp }]
     : securityHeaders;
 
 const nextConfig: NextConfig = {

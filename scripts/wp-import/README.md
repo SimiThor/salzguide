@@ -4,27 +4,30 @@ Einmaliger Import der 95 Spots von `salzguide.com` (WordPress) in die neue App.
 Die Skripte sind bewusst als eigener Ordner abgelegt: Sie gehören nicht zur App,
 sondern zu einem Umzug, der einmal stattfindet und danach nachvollziehbar bleiben soll.
 
-## Zugang
+## Die Quelle gibt es nicht mehr (Stand 11.08.2026)
 
-In `.env.local` (gitignoriert):
+Die alte WordPress-Seite ist mit dem Domain-Umzug am 09.08.2026 abgeschaltet, das
+Anwendungspasswort war schon am 27.07.2026 widerrufen. Damit sind die beiden abholenden
+Schritte **gelöscht**, und mit ihnen die drei Variablen `WP_USER`, `WP_APP_PASSWORD` und
+`WP_BASE_URL` — sie standen bis dahin in `.env.local` und konnten nichts mehr aufmachen.
 
-```
-WP_USER=<WordPress-Benutzername oder E-Mail>
-WP_APP_PASSWORD="xxxx xxxx xxxx xxxx xxxx xxxx"
-WP_BASE_URL=https://www.salzguide.com
-```
+| gelöscht am 11.08.2026 | was es tat | Ersatz |
+|---|---|---|
+| `wp:fetch` (`fetch.ts`) | alte Seite → `.wp-cache/` | keiner, `.wp-cache/` ist vollständig |
+| `wp:media` (`media.ts`) | Fotos+Videos → Supabase Storage | keiner, die Dateien liegen im Bucket |
 
-Das Anwendungspasswort entsteht in WordPress unter *Benutzer → Profil →
-Anwendungspasswörter*. Es ist kein Kontopasswort und jederzeit einzeln widerrufbar.
-Gebraucht wird ein Konto mit Bearbeitungsrechten (Begründung unten bei `context=edit`).
-**Nach dem Import widerrufen.**
+**`.wp-cache/` ist jetzt die einzige Quelle**, ist gitignoriert und liegt nur lokal. Wer
+den Ordner verliert, bekommt ihn nicht wieder — der Rest dieser Datei beschreibt dann nur
+noch, wie es einmal war. Die Begründungen zum Abruf selbst (warum `context=edit` nötig war,
+wie die 40 Pro-Spots erkannt wurden) stehen weiter unten unter *Warum es so gebaut ist*; der
+gelöschte Code steht in der Git-Historie.
+
+Alles, was auf dem Cache aufsetzt, läuft unverändert weiter.
 
 ## Ablauf
 
 ```bash
-npm run wp:fetch          # alte Seite  -> .wp-cache/     102 Beiträge, 775 Dateien, 2 Karten
 npm run wp:extract        # .wp-cache/  -> source/*.json + report.md
-npm run wp:media          # Fotos+Videos -> Supabase Storage, media-map.json
 npm run wp:routes         # Linien an echte Wege snappen -> routes.json
 npm run wp:import -- --go # source + drafts + routes -> Spot-ENTWÜRFE in der DB
 ```
@@ -33,12 +36,10 @@ Dazwischen entstehen die deutschen Texte von Hand als `.wp-cache/drafts/<slug>.j
 Ohne Entwurf überspringt der Import den Spot: Die Textfelder sind das Einzige, was hier
 niemand automatisch ableiten kann.
 
-Alle Schritte sind **wiederholbar**. `wp:media` und `wp:routes` merken sich in ihren
-Karten, was fertig ist, und überspringen es (bei knapp 1 GB Download und einem
-ORS-Tageslimit ist ein Lauf, der von vorn anfängt, unbenutzbar). `wp:import` legt an oder
-aktualisiert über den Slug, statt am eindeutigen Schlüssel zu scheitern.
-
-An der alten Seite ändert nichts etwas: Es wird ausschliesslich gelesen.
+Alle Schritte sind **wiederholbar**. `wp:routes` merkt sich in seiner Karte, was fertig
+ist, und überspringt es (bei einem ORS-Tageslimit ist ein Lauf, der von vorn anfängt,
+unbenutzbar). `wp:import` legt an oder aktualisiert über den Slug, statt am eindeutigen
+Schlüssel zu scheitern.
 
 ### Aufräumen (einmalig, destruktiv)
 

@@ -11,7 +11,7 @@
 import { mkdirSync, writeFileSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseSpot, type WpPost, type WpSource } from "./parse.ts";
-import { readCache, POSTS_FILE, MEDIA_FILE, PRO_FILE, MAPS_FILE, CACHE_DIR } from "./fetch.ts";
+import { readCache, POSTS_FILE, MEDIA_FILE, PRO_FILE, MAPS_FILE, CACHE_DIR } from "./cache.ts";
 import { routeLengthKm, hikingTimeMinutes, haversineMeters } from "../../src/lib/geo.ts";
 import { LAKES } from "../../src/lib/lakes.ts";
 
