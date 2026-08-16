@@ -58,7 +58,7 @@ const supabase = createClient(supaUrl, supaKey, { auth: { persistSession: false 
 // Spot-Unterseite bietet den Knopf dort ebenfalls an.
 const listQuery = supabase
   .from("spots")
-  .select("slug, route_geojson, intro_video_url, intro_source_hash")
+  .select("slug, route_geojson, duration, intro_video_url, intro_source_hash")
   .not("route_geojson", "is", null)
   .order("sort_weight", { ascending: false });
 
@@ -74,6 +74,7 @@ if (error) {
 type Row = {
   slug: string;
   route_geojson: { type?: string } | null;
+  duration: string | null;
   intro_video_url: string | null;
   intro_source_hash: string | null;
 };
@@ -83,7 +84,7 @@ const rows = ((data ?? []) as Row[]).filter((s) => s.route_geojson?.type === "Li
 // Dieselbe Funktion, die auch die Admin-Liste befragt (introNeedsRender). Nur so können
 // Knopf und Workflow nicht auseinanderlaufen.
 const needsRender = (s: Row) =>
-  introNeedsRender(s.route_geojson, s.intro_video_url, s.intro_source_hash);
+  introNeedsRender(s.route_geojson, s.intro_video_url, s.intro_source_hash, s.duration);
 
 let picked: string[];
 if (only) {

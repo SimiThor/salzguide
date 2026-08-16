@@ -15,6 +15,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { TARGET_LOCALES } from "../../src/i18n/locales.ts";
 import { selectAll } from "./select-all.ts";
+import { hoursInText, hourMatches, fieldHours } from "./hours-i18n.ts";
 
 /**
  * Die Regel steht in `src/lib/brand-voice.ts`, dort aber als Prosa im Prompt-Text und nicht
@@ -91,14 +92,9 @@ function stundenImText(t: string): number[] {
   return out;
 }
 
-/** „5 Std 55 min" -> 5.92 */
-function feldStunden(d: string | null): number | null {
-  if (!d) return null;
-  const h = /(\d+)\s*Std/.exec(d);
-  const m = /(\d+)\s*min/.exec(d);
-  if (!h && !m) return null;
-  return (h ? Number(h[1]) : 0) + (m ? Number(m[1]) / 60 : 0);
-}
+// Die Feld-Lesart steht in hours-i18n.ts (`fieldHours`). Die Fassung, die hier stand, las
+// „1,5 Std" als 5 Stunden, weil ihr `(\d+)` an der Nachkommastelle ansetzte — die
+// Lammerklamm stand deshalb als einziger Widerspruch im Protokoll, und der war keiner.
 
 /** Passt eine der Text-Zahlen zur gemessenen? Toleranz, weil der Text „gut" und „knapp" sagt. */
 function trifft(werte: number[], soll: number, relativ: number, absolut: number): boolean {
@@ -168,6 +164,8 @@ async function main() {
 
   const FELDER = ["title", "short_desc", "general", "insider_tip", "section_a", "section_b", "location_text"] as const;
   const text = (r: Record<string, unknown>) => FELDER.map((f) => (r[f] as string) ?? "").join("\n");
+  /** Die Felder, die die Tour selbst beschreiben — ohne Anreise und ohne Nebenwege. */
+  const TOUR_FELDER = ["short_desc", "general", "section_a", "section_b"] as const;
 
   const widerspruch: Befund[] = [];
   const nachschlagen: Befund[] = [];
@@ -200,16 +198,38 @@ async function main() {
         });
     }
 
-    // ---- 2. Dauer-Feld gegen die Zahlen im Text ----
-    const soll = feldStunden(s.duration as string | null);
+    // ---- 2. Dauer-Feld gegen die Zahlen im Text, in ALLEN Sprachen ----
+    // Nur Deutsch zu prüfen hiess: eine richtige Zahl im Feld und zwölf Sprachen, in denen
+    // die alte danebensteht. Der Parser je Sprache liegt in hours-i18n.ts.
+    //
+    // NUR DIE TOUR-FELDER: `location_text` beschreibt die Anreise („eine Stunde von
+    // Salzburg"), `insider_tip` Nebenwege („eine halbe Stunde zur Hütte"). Beides sind
+    // richtige Zahlen, die nichts mit der Tourdauer zu tun haben.
+    //
+    // GEMELDET WIRD, WENN DER TEXT MEHR ZEIT VERSPRICHT ALS DAS FELD und keine der Zahlen
+    // zum Feld passt. Diese Richtung ist die, in der Texte veralten: Das Feld rechnet neu,
+    // der Satz daneben bleibt stehen. Zahlen UNTER dem Feld bleiben still, weil man sie
+    // nicht von Teilzeiten unterscheiden kann — „eine halbe Stunde bis zur Scharte" steht
+    // in einem Sieben-Stunden-Text genauso richtig da wie in einem Einstündigen. Wer sie
+    // trotzdem meldet, produziert achtzig Fehlalarme, und eine Liste mit achtzig
+    // Fehlalarmen liest beim zweiten Mal niemand mehr.
+    const soll = fieldHours(s.duration as string | null);
     if (soll !== null && soll >= 1) {
-      const std = stundenImText(deText);
-      if (std.length && !trifft(std, soll, 0.2, 0.35))
-        widerspruch.push({
-          slug: s.slug as string,
-          feld: "Dauer",
-          was: `Text: ${std.join(" / ")} Std · Feld: ${s.duration}`,
-        });
+      for (const r of meine) {
+        const lang = r.lang as string;
+        const t = TOUR_FELDER.map((f) => ((r as Record<string, unknown>)[f] as string) ?? "").join("\n");
+        // Deutsch zusätzlich mit den hier gewachsenen Sonderfällen (Auslassung, Viertelstunde).
+        const std = [...hoursInText(t, lang), ...(lang === "de" ? stundenImText(t) : [])];
+        if (!std.length) continue;
+        const passt = trifft(std, soll, 0.2, 0.35);
+        const zuViel = std.some((w) => w > soll * 1.2 + 0.35);
+        if (!passt && zuViel)
+          widerspruch.push({
+            slug: s.slug as string,
+            feld: `Dauer ${lang}`,
+            was: `Text: ${hourMatches(t, lang).join(" | ")} · Feld: ${s.duration}`,
+          });
+      }
     }
 
     // ---- 3. Dieselbe Grösse zweimal im Text, mit verschiedenen Zahlen ----

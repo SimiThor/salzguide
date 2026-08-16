@@ -367,13 +367,13 @@ async function upload(slug: string, mp4Path: string, previewPath: string, poster
 
   const { data: spot, error: selErr } = await supabase
     .from("spots")
-    .select("id, route_geojson")
+    .select("id, route_geojson, duration")
     .eq("slug", slug)
     .maybeSingle();
   if (selErr) throw new Error(`Spot laden fehlgeschlagen: ${selErr.message}`);
   if (!spot) throw new Error(`Kein Spot mit slug "${slug}".`);
 
-  const hash = introSourceHash(spot.route_geojson);
+  const hash = introSourceHash(spot.route_geojson, spot.duration as string | null);
   const mp4Path2 = `intro/${slug}-${hash}.mp4`;
   // Dateiname MUSS zur Ableitung in lib/spots.ts passen (introVideoPreviewUrl wird per
   // String-Ersetzung aus intro_video_url gebildet, es gibt keine eigene DB-Spalte).

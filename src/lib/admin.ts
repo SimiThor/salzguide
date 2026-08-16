@@ -491,8 +491,9 @@ export type IntroRenderItem = {
   startedAt: string | null;
 };
 
+// `duration` gehört dazu, weil sie im Titelbild steht und damit in den Render-Hash.
 const INTRO_COLS =
-  "slug, route_geojson, intro_video_url, intro_video_poster_url, intro_source_hash, spot_translations(title, lang)";
+  "slug, route_geojson, duration, intro_video_url, intro_video_poster_url, intro_source_hash, spot_translations(title, lang)";
 const INTRO_COLS_STATUS = `${INTRO_COLS}, intro_render_status, intro_render_error, intro_render_started_at`;
 
 // Alle veröffentlichten Wanderungen (Aktivität + LineString-Route) mit ihrem Intro-Render-
@@ -568,11 +569,13 @@ function mapIntroRow(s: Record<string, unknown>): IntroRenderItem {
     videoUrl: (s.intro_video_url as string | null) ?? null,
     outdated:
       hasVideo &&
-      introSourceHash(s.route_geojson) !== ((s.intro_source_hash as string | null) ?? ""),
+      introSourceHash(s.route_geojson, s.duration as string | null) !==
+        ((s.intro_source_hash as string | null) ?? ""),
     due: introNeedsRender(
       s.route_geojson,
       s.intro_video_url as string | null,
       s.intro_source_hash as string | null,
+      s.duration as string | null,
     ),
     status,
     error: statusError,

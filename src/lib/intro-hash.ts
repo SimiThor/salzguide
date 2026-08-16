@@ -1,7 +1,7 @@
-// Erkennt, ob ein gespeichertes Intro-Video noch zur aktuellen Route passt.
-// Ändert sich die Route (oder der Look des Renderers), ändert sich der Hash, und der
-// Admin sieht "Intro veraltet, neu rendern". Bewusst geteilt zwischen dem Render-Skript
-// (schreibt den Hash) und der App (vergleicht), damit beide Seiten dasselbe rechnen.
+// Erkennt, ob ein gespeichertes Intro-Video noch zum aktuellen Spot passt.
+// Ändert sich die Route, die eingeblendete Dauer oder der Look des Renderers, ändert sich
+// der Hash, und der Admin sieht "Intro veraltet, neu rendern". Bewusst geteilt zwischen dem
+// Render-Skript (schreibt den Hash) und der App (vergleicht), damit beide dasselbe rechnen.
 
 // Hochzählen, wenn sich die OPTIK des Renderers ändert (z.B. Terrain-Überhöhung, Zoom,
 // Wasserzeichen), damit bestehende Intros als veraltet gelten und neu gerendert werden.
@@ -9,8 +9,13 @@ export const INTRO_STYLE_VERSION = "23";
 
 // FNV-1a (32-bit): stabil, deterministisch, ohne Abhängigkeit und identisch in Node und
 // Browser (kein crypto nötig). Reicht als Änderungs-Erkennung völlig.
-export function introSourceHash(routeGeojson: unknown): string {
-  const s = `${INTRO_STYLE_VERSION}:${JSON.stringify(routeGeojson ?? null)}`;
+//
+// WARUM DIE DAUER MIT IM HASH STEHT: Sie wird im Titelbild eingeblendet
+// (IntroRenderMap.tsx, statsParts). Der Hash kannte nur die Route — als die Gehzeit-Formel
+// korrigiert wurde, hätten 47 Videos still die alte Zahl weitergezeigt, und nichts hätte
+// sie als veraltet gemeldet. Was im Video steht, muss im Hash stehen.
+export function introSourceHash(routeGeojson: unknown, duration?: string | null): string {
+  const s = `${INTRO_STYLE_VERSION}:${JSON.stringify(routeGeojson ?? null)}:${duration ?? ""}`;
   let h = 0x811c9dc5;
   for (let i = 0; i < s.length; i++) {
     h ^= s.charCodeAt(i);
@@ -27,6 +32,7 @@ export function introNeedsRender(
   routeGeojson: unknown,
   videoUrl: string | null | undefined,
   storedHash: string | null | undefined,
+  duration?: string | null,
 ): boolean {
-  return !videoUrl || introSourceHash(routeGeojson) !== (storedHash ?? "");
+  return !videoUrl || introSourceHash(routeGeojson, duration) !== (storedHash ?? "");
 }
