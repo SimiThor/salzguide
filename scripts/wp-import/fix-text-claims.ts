@@ -12,14 +12,26 @@
 // betroffenen Felder werden danach neu übersetzt und über `wp:apply-review` eingespielt.
 // Eine Übersetzung hier mitzuschreiben hiesse, sie an einer zweiten Stelle zu pflegen.
 //
-// WAS BEWUSST NICHT DRINSTEHT: Die Höhe des Schuhflickersees. Der Text sagt rund 2.100
-// Meter, die POI-Datenbank der Region 2.042, andere Quellen 2.050. Eine unbelegte Zahl
-// gegen eine andere unbelegte zu tauschen ist keine Korrektur, sondern nur eine andere
-// Behauptung. Das klärt eine Karte, nicht dieses Skript.
+// ERLEDIGT, ANDERSWO: Die Höhe des Schuhflickersees stand hier lange als offener Punkt, weil
+// 2.100 gegen 2.042 nur Behauptung gegen Behauptung war. Inzwischen gibt es eine Messung:
+// Der amtliche Höhendienst des Bundesamts für Eich- und Vermessungswesen liefert für die
+// Seemitte 2.041,6 m und trifft mit derselben Abfrage am Gipfel darüber die amtlichen
+// 2.214 m, ist also kalibriert. Korrigiert auf 2.040 in fix-text-numbers.ts, wo die Zahlen
+// wohnen.
+//
+// ZWEI LISTEN, ZWEI FÄLLE:
+//   FIXES       — der Satz wird neu geschrieben. Dann ändert sich nur Deutsch, die
+//                 Übersetzungen gelten danach als veraltet und werden neu gemacht.
+//   FIXES_I18N  — es wird nur ein Eigenname oder eine Zahl getauscht, der Satz bleibt
+//                 stehen. Dafür eine ganze Übersetzung neu zu erzeugen wäre unverhältnismässig,
+//                 und bis dahin stünde die falsche Angabe in zwölf Sprachen weiter da. Solche
+//                 Korrekturen tragen ihre Fassung je Sprache mit und setzen die
+//                 Aktualitäts-Marke überall neu.
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { createClient } from "@supabase/supabase-js";
 import { hashSpotTexts } from "../../src/lib/spot-hash.ts";
+import { widersprichtDenFeldern } from "./facts-in-text.ts";
 
 const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPA_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -161,9 +173,59 @@ const FIXES: Fix[] = [
       "geht er sich auch: kein Fels, kein Klettern, dafür knapp 1.600 Höhenmeter am Stück. " +
       "Los geht es beim Hoteldorf Grüner Baum in Bad Gastein, über die Poserhöhe hinauf. Am " +
       "Gipfel steht die Gamskarkogelhütte, und von dort schaust du einmal rundum über das " +
-      "Gasteinertal und die Tauern. Hin und zurück sind das dreizehneinhalb Stunden, also " +
-      "ein sehr langer Bergtag.",
-    warum: "Dieselbe Zuschreibung wie im Kurztext, aus derselben Begründung entschärft.",
+      "Gasteinertal und die Tauern. Hin und zurück sind das neun Stunden, also ein sehr " +
+      "langer Bergtag.",
+    warum:
+      "Dieselbe Zuschreibung wie im Kurztext, aus derselben Begründung entschärft. ACHTUNG, " +
+      "hier steht ein GANZER Absatz: Er trug bis 08/2026 die alte Gehzeit von dreizehneinhalb " +
+      "Stunden mit sich und hat sie beim Ausführen wieder in die Datenbank geschrieben, " +
+      "nachdem die Formel korrigiert war. Wer einen Absatz hier ablegt, legt eine zweite " +
+      "Fassung derselben Sätze an; sie muss mitgepflegt werden. Der Riegel unten fängt das " +
+      "jetzt ab, bevor geschrieben wird.",
+  },
+];
+
+/**
+ * Korrekturen, die in JEDER Sprache dieselbe sind: ein Eigenname, eine Linie, eine Zahl.
+ * Die Fassung je Sprache steht dabei, weil Präposition und Fall sich unterscheiden
+ * („bis zur Haltestelle X", „do przystanku X", „fino alla fermata X").
+ */
+type I18nFix = {
+  slug: string;
+  feld: keyof typeof ENTWURF;
+  /** je Sprache [alt, neu]; alt muss wörtlich im Text stehen. */
+  texte: Record<string, [string, string]>;
+  warum: string;
+};
+
+const FIXES_I18N: I18nFix[] = [
+  {
+    slug: "almgreisslerei",
+    feld: "location_text",
+    texte: {
+      de: ["bis zur Birkensiedlung", "bis zur Haltestelle Georg-von-Nissen-Straße"],
+      en: ["to Birkensiedlung", "to the Georg-von-Nissen-Straße stop"],
+      it: ["fino a Birkensiedlung", "fino alla fermata Georg-von-Nissen-Straße"],
+      nl: ["tot Birkensiedlung", "tot halte Georg-von-Nissen-Straße"],
+      fr: ["Birkensiedlung", "l'arrêt Georg-von-Nissen-Straße"],
+      es: ["hasta Birkensiedlung", "hasta la parada Georg-von-Nissen-Straße"],
+      pt: ["até Birkensiedlung", "até à paragem Georg-von-Nissen-Straße"],
+      pl: ["do Birkensiedlung", "do przystanku Georg-von-Nissen-Straße"],
+      cs: ["do Birkensiedlung", "na zastávku Georg-von-Nissen-Straße"],
+      sk: ["zastávku Birkensiedlung", "zastávku Georg-von-Nissen-Straße"],
+      hu: ["Birkensiedlung megálló", "Georg-von-Nissen-Straße megálló"],
+      ko: ["Birkensiedlung 정류장", "Georg-von-Nissen-Straße 정류장"],
+      zh: ["Birkensiedlung 站", "Georg-von-Nissen-Straße 站"],
+    },
+    warum:
+      "Der Text schickte Gäste mit der Obuslinie 5 zur Birkensiedlung. Die liegt vier " +
+      "Haltestellen weiter südlich (Santnergasse, Höglwörthweg, Dossenweg, " +
+      "Eichethofsiedlung dazwischen), rund anderthalb Kilometer vom Lokal. Die richtige " +
+      "Haltestelle heisst Georg-von-Nissen-Straße und liegt in der Berchtesgadner Straße an " +
+      "der Kreuzung mit der Georg-Nikolaus-von-Nissen-Straße, also direkt davor; dieselbe " +
+      "Linie 5 hält dort (Salzburgwiki, Haltestelle Georg-von-Nissen-Straße und Obuslinie 5). " +
+      "Das Wort für Haltestelle steht in jeder Sprache jetzt dabei, weil die Adresse im " +
+      "selben Satz fast gleich heisst und der blosse Name sonst wie die Straße liest.",
   },
 ];
 
@@ -179,9 +241,12 @@ const FELD_FIXES: { slug: string; spalte: string; neu: string; warum: string }[]
 
 const SPALTEN = ["title", "short_desc", "general", "insider_tip", "section_a", "section_b", "location_text"] as const;
 
+
 async function main() {
   const go = process.argv.includes("--go");
-  const { data: spots, error } = await db.from("spots").select("id, slug");
+  const { data: spots, error } = await db
+    .from("spots")
+    .select("id, slug, duration, difficulty, route_geojson");
   if (error) throw error;
 
   const betroffen = new Set<string>();
@@ -200,6 +265,13 @@ async function main() {
       console.log(`  schon gesetzt  ${fix.slug} / ${fix.feld}`);
       continue;
     }
+    const konflikt = widersprichtDenFeldern(fix.neu, spot as never);
+    if (konflikt)
+      throw new Error(
+        `${fix.slug} / ${fix.feld}: Der hier abgelegte Text ${konflikt}. Dieses Skript würde ` +
+          `damit eine Korrektur überschreiben, die woanders schon gemacht wurde. Erst den ` +
+          `Text hier auf den aktuellen Stand bringen, dann noch einmal laufen lassen.`,
+      );
     console.log(`\n=== ${fix.slug} / ${fix.feld}`);
     console.log(`    ALT: ${alt}`);
     console.log(`    NEU: ${fix.neu}`);
@@ -220,6 +292,44 @@ async function main() {
       const entwurf = JSON.parse(readFileSync(pfad, "utf8")) as Record<string, string>;
       entwurf[ENTWURF[fix.feld]] = fix.neu;
       writeFileSync(pfad, JSON.stringify(entwurf, null, 1) + "\n");
+    }
+  }
+
+  // Zweite Liste: Eigennamen und Zahlen, die in jeder Sprache gleich lauten. Hier wird die
+  // Übersetzung MITGESCHRIEBEN statt auf „veraltet" gesetzt, weil ein einziges getauschtes
+  // Wort keine Neuübersetzung des ganzen Feldes rechtfertigt und die falsche Angabe sonst
+  // bis dahin in zwölf Sprachen weiterstünde.
+  const i18nBetroffen = new Set<string>();
+  for (const fix of FIXES_I18N) {
+    const spot = spots!.find((s) => s.slug === fix.slug);
+    if (!spot) throw new Error(`Spot ${fix.slug} gibt es nicht`);
+    const { data: rows, error: e6 } = await db
+      .from("spot_translations")
+      .select(`lang, ${fix.feld}`)
+      .eq("spot_id", spot.id);
+    if (e6) throw e6;
+
+    console.log(`\n=== ${fix.slug} / ${fix.feld} (alle Sprachen)`);
+    console.log(`    ${fix.warum}`);
+    for (const r of rows as unknown as Record<string, string | null>[]) {
+      const lang = r.lang as string;
+      const paar = fix.texte[lang];
+      const wert = r[fix.feld];
+      if (!paar || !wert) continue;
+      if (!wert.includes(paar[0])) {
+        console.log(`    ${lang.padEnd(3)} keine Fundstelle`);
+        continue;
+      }
+      const neuerText = wert.split(paar[0]).join(paar[1]);
+      console.log(`    ${lang.padEnd(3)} ${neuerText}`);
+      i18nBetroffen.add(fix.slug);
+      if (!go) continue;
+      const { error: e7 } = await db
+        .from("spot_translations")
+        .update({ [fix.feld]: neuerText })
+        .eq("spot_id", spot.id)
+        .eq("lang", lang);
+      if (e7) throw e7;
     }
   }
 
@@ -264,6 +374,34 @@ async function main() {
       .eq("spot_id", spot.id)
       .eq("lang", "de");
     if (e5) throw e5;
+  }
+
+  // Bei den i18n-Korrekturen wurde jede Sprache mitgeschrieben. Deshalb bekommen sie den
+  // neuen deutschen Hash ALLE, sonst stünden sie fälschlich auf „veraltet“, obwohl sie
+  // gerade nachgezogen wurden.
+  for (const slug of i18nBetroffen) {
+    const spot = spots!.find((s) => s.slug === slug)!;
+    const { data: de } = await db
+      .from("spot_translations")
+      .select(SPALTEN.join(", "))
+      .eq("spot_id", spot.id)
+      .eq("lang", "de")
+      .single();
+    const d = de as unknown as Record<string, string | null>;
+    const hash = hashSpotTexts({
+      title: d.title ?? "",
+      shortDesc: d.short_desc ?? "",
+      general: d.general ?? "",
+      insiderTip: d.insider_tip ?? "",
+      sectionA: d.section_a ?? "",
+      sectionB: d.section_b ?? "",
+      locationText: d.location_text ?? "",
+    });
+    const { error: e8 } = await db
+      .from("spot_translations")
+      .update({ source_hash: hash })
+      .eq("spot_id", spot.id);
+    if (e8) throw e8;
   }
 
   console.log(`\n${betroffen.size} Spots geändert. Die acht Übersetzungen stehen jetzt auf „veraltet“.`);

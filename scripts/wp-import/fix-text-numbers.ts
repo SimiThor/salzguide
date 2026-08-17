@@ -80,6 +80,47 @@ const FIXES: Fix[] = [
       "widerspricht ihm. Gerundet auf 2.040, weil die Formel für eine Seehöhe keine " +
       "Nachkommastelle hergibt.",
   },
+  // ---- Ab hier: Längen, die der gesnappten Linie widersprechen (zweite Runde, 08/2026) ----
+  // Dieselbe Ursache wie bei den ersten dreien ganz oben: Die Zahl stammt aus der alten
+  // Quelle, die Linie auf der Karte ist die gemessene. Gefunden erst, nachdem die Toleranz
+  // von 0,3 auf 0,2 km geschärft wurde — der Schuhflickersee lag mit 0,37 knapp darunter und
+  // sagte 4,1 Kilometer über einem Höhenprofil, das 3,7 zeichnet.
+  {
+    slug: "ellmautal",
+    alt: "5,3",
+    neu: "5",
+    warum: "gemessen 4,96 km; die Route liegt seit dem Snapping fest, die 5,3 stammen aus der alten Quelle",
+  },
+  {
+    slug: "krimmler-wasserfalle",
+    alt: "3,4",
+    neu: "3,2",
+    warum: "gemessen 3,18 km",
+  },
+  {
+    slug: "schuhflickersee",
+    alt: "4,1",
+    neu: "3,7",
+    warum: "gemessen 3,73 km; das Höhenprofil auf derselben Seite zeichnet 3,7",
+  },
+  {
+    slug: "sound-of-music-trail",
+    alt: "2,3",
+    neu: "2",
+    warum: "gemessen 2,03 km",
+  },
+  {
+    slug: "spinnerin",
+    alt: "7,3",
+    neu: "6,9",
+    warum: "gemessen 6,90 km",
+  },
+  {
+    slug: "vorderkaserklamm",
+    alt: "1,8",
+    neu: "1,6",
+    warum: "gemessen 1,59 km",
+  },
 ];
 
 const SPALTEN = [

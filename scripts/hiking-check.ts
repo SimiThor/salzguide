@@ -27,8 +27,9 @@ import {
   HIKE_ASCENT_MH,
   HIKE_DESCENT_MH,
 } from "../src/lib/geo.ts";
-import { hoursInText, fieldHours, difficultyInText } from "./wp-import/facts-in-text.ts";
+import { hoursInText, fieldHours, difficultyInText, widersprichtDenFeldern } from "./wp-import/facts-in-text.ts";
 import { factDuration } from "../src/lib/facts-i18n.ts";
+
 import { LOCALES } from "../src/i18n/locales.ts";
 
 let failed = 0;
@@ -394,6 +395,37 @@ console.log("\n9. Wie die Dauer angezeigt wird (facts-i18n.ts)");
     const got = factDuration("35 min", l.code);
     if (got === "35 min") ok(`${l.code} 35 min unverändert`);
     else bad(`${l.code} Minutenangabe`, `bekommen "${got}"`);
+  }
+}
+
+
+console.log("\n10. Riegel gegen zurückgeschriebene Korrekturen (fix-text-claims.ts)");
+{
+  // Am 17.08.2026 hat ein Eintrag in fix-text-claims.ts einen ganzen Absatz zurückgeschrieben,
+  // der noch die alte Gehzeit trug, und damit eine frisch korrigierte Zahl überschrieben.
+  // Aufgefallen ist es nur, weil der Audit danach lief. Seitdem prüft das Skript jeden Text
+  // vor dem Schreiben gegen die Felder des Spots. Diese Prüfung prüft den Riegel.
+  const spot = { duration: "9 Std", difficulty: "schwer", route_geojson: {} };
+  const faelle: [string, string, boolean][] = [
+    [
+      "alte Dauer im Absatz",
+      "Hin und zurück sind das dreizehneinhalb Stunden, also ein sehr langer Bergtag.",
+      true,
+    ],
+    ["aktuelle Dauer", "Hin und zurück sind das neun Stunden, also ein sehr langer Bergtag.", false],
+    ["alte Stufe", "Neun Stunden für hin und zurück. Mittelschwer, technisch harmlos.", true],
+    ["aktuelle Stufe", "Neun Stunden für hin und zurück. Schwer, technisch harmlos.", false],
+    ["gar keine Angabe", "Am Gipfel steht die Gamskarkogelhütte.", false],
+    [
+      "Teilzeit darunter ist erlaubt",
+      "Neun Stunden für hin und zurück. Auf der Hütte reicht eine halbe Stunde.",
+      false,
+    ],
+  ];
+  for (const [name, text, sollGreifen] of faelle) {
+    const k = widersprichtDenFeldern(text, spot);
+    if (Boolean(k) === sollGreifen) ok(`${name}: ${k ? "abgefangen" : "durchgelassen"}`);
+    else bad(`Riegel bei "${name}"`, sollGreifen ? "hätte greifen müssen" : `greift fälschlich: ${k}`);
   }
 }
 

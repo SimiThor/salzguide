@@ -527,3 +527,35 @@ export function difficultyInText(text: string, lang: string): Grade[] {
   }
   return [...out];
 }
+
+/**
+ * Riegel gegen die zweite Wahrheit: Ein Eintrag in diesem Skript ist eine ABGELEGTE KOPIE
+ * eines Absatzes. Ändert sich derselbe Absatz woanders — etwa weil die Gehzeit neu gerechnet
+ * wurde und `wp:fix-hiking-texts` die Sätze nachgezogen hat — dann schreibt dieses Skript
+ * beim nächsten Lauf die alte Fassung zurück. Genau das ist am 17.08.2026 passiert: Der
+ * Gamskarkogel-Absatz trug noch „dreizehneinhalb Stunden“ und überschrieb die korrigierten
+ * neun. Aufgefallen ist es nur, weil `wp:audit` danach lief.
+ *
+ * Deshalb wird jeder Text VOR dem Schreiben gegen die Felder des Spots geprüft. Bei einem
+ * Widerspruch bricht der Lauf ab, statt ihn still einzutragen.
+ */
+export function widersprichtDenFeldern(
+  text: string,
+  spot: { duration: string | null; difficulty: string | null; route_geojson: unknown },
+): string | null {
+  const soll = fieldHours(spot.duration);
+  if (soll !== null) {
+    const werte = hoursInText(text, "de");
+    const passt = werte.some((w) => Math.abs(w - soll) <= Math.max(soll < 1 ? 4 / 60 : 15 / 60, soll * 0.05));
+    const zuViel = werte.some((w) => w > soll * 1.05 + (soll < 1 ? 4 / 60 : 15 / 60));
+    if (werte.length && !passt && (spot.route_geojson ? zuViel : zuViel))
+      return `nennt ${werte.map((w) => Math.round(w * 60) + " min").join("/")}, das Feld sagt ${spot.duration}`;
+  }
+  const stufe = (spot.difficulty ?? "").trim().toLowerCase();
+  if (stufe) {
+    const genannt = difficultyInText(text, "de");
+    if (genannt.length && !genannt.includes(stufe as Grade))
+      return `nennt die Stufe ${genannt.join("/")}, das Feld sagt ${stufe}`;
+  }
+  return null;
+}

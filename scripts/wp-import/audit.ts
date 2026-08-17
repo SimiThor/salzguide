@@ -197,18 +197,25 @@ async function main() {
     const prof = s.elevation_profile as { ascent?: number; distanceKm?: number } | null;
 
     // ---- 1. Gemessene Route gegen die Zahlen im Text ----
+    // Toleranz 0,2 km statt 0,3: Die Seite zeigt die gemessene Länge im Höhenprofil auf eine
+    // Nachkommastelle an, der Satz daneben soll dieselbe Zahl nennen. Mit 0,3 rutschte der
+    // Schuhflickersee um zwei Hundertstel durch und sagte 4,1 Kilometer über einem Profil,
+    // das 3,7 zeichnet.
     if (prof?.distanceKm) {
       const km = kmImText(deText);
-      if (km.length && !trifft(km, prof.distanceKm, 0.1, 0.3))
+      if (km.length && !trifft(km, prof.distanceKm, 0.05, 0.2))
         widerspruch.push({
           slug: s.slug as string,
           feld: "Länge",
           was: `Text: ${km.join(" / ")} km · gemessen: ${Math.round(prof.distanceKm * 10) / 10} km`,
         });
     }
+    // Höhenmeter: 25 statt 30 absolut, weil die Texte in Fünfziger- und Hunderterschritten
+    // runden („knapp 400", „rund 260"). Grösser gedacht wäre eine Rundung, die schon eine
+    // Stufe danebenliegt, noch richtig.
     if (prof?.ascent) {
       const hm = hmImText(deText);
-      if (hm.length && !trifft(hm, prof.ascent, 0.1, 30))
+      if (hm.length && !trifft(hm, prof.ascent, 0.1, 25))
         widerspruch.push({
           slug: s.slug as string,
           feld: "Höhenmeter",
