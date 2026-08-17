@@ -65,6 +65,21 @@ const FIXES: Fix[] = [
     neu: "1.522",
     warum: "offiziell 1.522 m (Wikipedia, SalzburgerLand, TVB Wolfgangsee); für 1.521 gibt es keine Quelle",
   },
+  {
+    slug: "schuhflickersee",
+    alt: "2.100",
+    neu: "2.040",
+    warum:
+      "Der amtliche Höhendienst des Bundesamts für Eich- und Vermessungswesen gibt für die " +
+      "Seemitte 2.041,6 m; dieselbe Abfrage trifft am Gipfel Schuhflicker die amtlichen " +
+      "2.214 m, ist also kalibriert. Salzburgwiki und das Tourenportal des TVB Großarltal " +
+      "nennen 2.042 m, Wikidata 2.041 m. Unser eigenes Höhenprofil stützt es von der anderen " +
+      "Seite: Der Wendepunkt der Route liegt bei 2.080 m und der höchste Punkt der Tour (die " +
+      "Scharte) bei 2.111 m, der See also darunter. Die 2.100 stammen aus dem Fliesstext von " +
+      "grossarltal.info, den Blogs abgeschrieben haben; das Tourenportal desselben Verbands " +
+      "widerspricht ihm. Gerundet auf 2.040, weil die Formel für eine Seehöhe keine " +
+      "Nachkommastelle hergibt.",
+  },
 ];
 
 const SPALTEN = [

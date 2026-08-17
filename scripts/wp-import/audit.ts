@@ -16,6 +16,7 @@ import { createClient } from "@supabase/supabase-js";
 import { TARGET_LOCALES } from "../../src/i18n/locales.ts";
 import { selectAll } from "./select-all.ts";
 import { hoursInText, hourMatches, fieldHours, difficultyInText, type Grade } from "./facts-in-text.ts";
+import { istGeprueft } from "./geprueft.ts";
 
 /**
  * Die Regel steht in `src/lib/brand-voice.ts`, dort aber als Prosa im Prompt-Text und nicht
@@ -390,16 +391,22 @@ async function main() {
 
   block("WIDERSPRUCH gegen gemessene Daten", widerspruch);
   block("SPRACHLICHE MÄNGEL", sprache);
+  // Schon nachgeschlagene Behauptungen fallen raus (geprueft.ts). Ohne das stuenden
+  // dieselben vierunddreissig Zeilen bei jedem Lauf da, und in einer Liste, die sich nie
+  // leert, faellt die eine neue Zeile nicht mehr auf.
+  const offen = nachschlagen.filter((b) => !istGeprueft(b.slug, b.feld));
+  const erledigt = nachschlagen.length - offen.length;
   console.log(
-    `\n── NACHSCHLAGEN (${nachschlagen.length}) ──\n` +
+    `\n── NACHSCHLAGEN (${offen.length}) ──\n` +
       "Das System kennt diese Angaben nicht, es kann sie also weder bestätigen noch\n" +
-      "widerlegen. Sie stehen hier, damit ein Mensch sie prüft.",
+      "widerlegen. Sie stehen hier, damit ein Mensch sie prüft." +
+      (erledigt ? `\n${erledigt} weitere sind laut geprueft.ts bereits belegt und stehen deshalb nicht hier.` : ""),
   );
-  for (const b of nachschlagen) console.log(`  ${b.slug.padEnd(34)} ${b.feld.padEnd(14)} ${b.was}`);
+  for (const b of offen) console.log(`  ${b.slug.padEnd(34)} ${b.feld.padEnd(14)} ${b.was}`);
 
   console.log(
     `\n${spots!.length} Spots, ${TARGET_LOCALES.length + 1} Sprachen. ` +
-      `${widerspruch.length} Widersprüche, ${sprache.length} sprachliche Mängel, ${nachschlagen.length} zum Nachschlagen.`,
+      `${widerspruch.length} Widersprüche, ${sprache.length} sprachliche Mängel, ${offen.length} zum Nachschlagen.`,
   );
 }
 
