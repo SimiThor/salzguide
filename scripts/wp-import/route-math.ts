@@ -5,9 +5,14 @@
 // README beim Import warnt: Sie laufen auseinander, sobald jemand nur eine davon anfasst,
 // und die Datei, die dann falsch rechnet, sieht genauso richtig aus wie vorher.
 //
-// Die DAV-Gehzeit selbst steht NICHT hier, sondern in `src/lib/geo.ts`, weil der Admin sie
-// beim Snappen ebenfalls benutzt. Hier steht nur, was um sie herum passiert.
+// Die Gehzeit-Formel, `ascentDescent` und die Dauer-Schreibweise stehen NICHT hier, sondern
+// in `src/lib/geo.ts`, weil der Admin sie beim Snappen ebenfalls braucht. Hier steht nur,
+// was um sie herum passiert; die drei werden weitergereicht, damit die Import-Skripte ihre
+// gewohnten Namen behalten und trotzdem nur EINE Fassung existiert.
 import { haversineMeters, routeLengthKm } from "../../src/lib/geo.ts";
+
+export { ascentDescent, formatHikingDuration as formatDuration } from "../../src/lib/geo.ts";
+import { ascentDescent } from "../../src/lib/geo.ts";
 
 /** Gleichmässig auf n Punkte eindampfen, erster und letzter bleiben. */
 export function downsample<T>(arr: T[], n: number): T[] {
@@ -16,24 +21,6 @@ export function downsample<T>(arr: T[], n: number): T[] {
   const step = (arr.length - 1) / (n - 1);
   for (let i = 0; i < n; i++) out.push(arr[Math.round(i * step)]);
   return out;
-}
-
-/**
- * Auf- und Abstieg aus den Höhenwerten. Zacken unter 3 m werden verschluckt, sonst
- * summiert sich das Rauschen der Höhendaten zu Höhenmetern, die niemand geht.
- */
-export function ascentDescent(el: number[]): { ascent: number; descent: number } {
-  let ascent = 0;
-  let descent = 0;
-  let ref = el[0];
-  for (const e of el.slice(1)) {
-    const d = e - ref;
-    if (Math.abs(d) < 3) continue;
-    if (d > 0) ascent += d;
-    else descent -= d;
-    ref = e;
-  }
-  return { ascent: Math.round(ascent), descent: Math.round(descent) };
 }
 
 /**
@@ -86,16 +73,4 @@ export function elevationProfile(coords: [number, number][], el: number[]) {
     max: Math.round(Math.max(...el)),
     distanceKm: cum / 1000,
   };
-}
-
-/**
- * „5 h 47" wäre für eine Wanderung falsche Genauigkeit: Die DAV-Formel ist eine Schätzung,
- * keine Messung. Auf fünf Minuten gerundet, und ab einer Stunde in Stunden.
- */
-export function formatDuration(min: number): string {
-  const r = Math.round(min / 5) * 5;
-  if (r < 60) return `${r} min`;
-  const h = Math.floor(r / 60);
-  const m = r % 60;
-  return m ? `${h} Std ${m} min` : `${h} Std`;
 }

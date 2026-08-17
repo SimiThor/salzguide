@@ -55,28 +55,40 @@ export function routeLengthKm(route: [number, number][] | null | undefined): num
   return m / 1000;
 }
 
-// --- Realistische Tour-Dauer (DAV-Gehzeit + Pausen) ------------------------------------
-// Ziel: eine ehrliche Zeit für einen NORMALEN Wanderer (kein Sportler), die die Höhenmeter
-// wirklich mitrechnet UND normale Pausen (Foto, Jause) einschließt. ORS' foot-hiking-Dauer
-// war dafür zu optimistisch (rechnet Berge zu schwach ein). Wir rechnen stattdessen selbst.
+// --- Realistische Tour-Dauer (SAC-Gehzeit + gedeckelte Pause) --------------------------
+// Ziel: eine Zahl, die ein normaler Wanderer wirklich braucht — nicht knapp, aber auch nicht
+// so lang, dass sie neben jedem Wegweiser und jedem Tourenportal falsch aussieht.
 //
-// Reine Gehzeit nach der im Alpenraum üblichen DAV-/DIN-33466-Methode:
+// Reine Gehzeit nach den SAC-Werten (Schweizer Alpen-Club, Marschzeitberechnung):
 //   - 4 km/h in der Ebene (Wander-, kein Marschtempo)
-//   - 300 Höhenmeter/Stunde im Aufstieg
-//   - 500 Höhenmeter/Stunde im Abstieg
+//   - 400 Höhenmeter/Stunde im Aufstieg
+//   - 800 Höhenmeter/Stunde im Abstieg
 //   - Horizontal- und Vertikalzeit überlagern sich nur teilweise: die GRÖSSERE der beiden
 //     zählt voll, die kleinere nur zur Hälfte.
-// Darauf ein Pausen-Puffer von ~10 Min/Stunde -> realistische Tour-Dauer, wie sie ein
-// normaler Wanderer wirklich braucht (reine Gehzeit wäre für die echte Tour zu optimistisch).
+//
+// WARUM NICHT MEHR DAV/DIN 33466 (300 auf, 500 ab): Das ist die konservative Fassung, und
+// mit dem alten Pausen-Puffer obendrauf lag die App 50 bis 70 Prozent über allem, was der
+// Gast sonst liest — Schafberg 10 Std statt 6, Gamskarkogel 13,5 statt 8. Ein Gast hat genau
+// das gemeldet. Mit den SAC-Werten treffen UNSERE gemessenen Routen die veröffentlichten
+// Zeiten fast punktgenau; nachgerechnet wird das bei jedem Lauf von `npm run hiking:check`,
+// dort stehen auch die Referenztouren mit Quelle.
+//
+// PAUSEN: Zehn Prozent, aber höchstens eine halbe Stunde. Der Zuschlag ist der Unterschied
+// zwischen „durchgehen" und „ankommen": kurz stehen bleiben, fotografieren, Jause. Er ist
+// GEDECKELT, weil er sonst linear mitwächst und der langen Tour zwei Stunden reine Pause
+// aufschlägt — genau der Fehler, der die 13 Stunden erzeugt hat. Wer oben eine Stunde sitzt,
+// plant das selbst dazu; wir versprechen keine Rast, sondern eine Gehzeit mit Luft.
 //
 // Hin & zurück und Rundwege sind automatisch abgedeckt, weil die VOLLE Route eingegeben wird
 // (mit Auf- UND Abstieg): der Rückweg bringt seine eigenen Höhen-/Streckenmeter mit.
 export const HIKE_SPEED_KMH = 4;
-export const HIKE_ASCENT_MH = 300;
-export const HIKE_DESCENT_MH = 500;
-export const HIKE_BREAK_MIN_PER_HOUR = 10; // Pausen-Puffer auf die reine Gehzeit
+export const HIKE_ASCENT_MH = 400;
+export const HIKE_DESCENT_MH = 800;
+export const HIKE_BREAK_SHARE = 0.1; // Pausen-Zuschlag auf die reine Gehzeit
+export const HIKE_BREAK_MAX_MIN = 30; // ... aber nie mehr als das
 
-export function hikingTimeMinutes(
+/** Reine Gehzeit in Minuten, ohne jede Pause. Basis für alles andere. */
+export function walkingTimeMinutes(
   distanceKm: number,
   ascentM: number,
   descentM: number,
@@ -86,9 +98,69 @@ export function hikingTimeMinutes(
   const down = Math.max(0, descentM || 0);
   const tHoriz = km / HIKE_SPEED_KMH; // Stunden
   const tVert = up / HIKE_ASCENT_MH + down / HIKE_DESCENT_MH; // Stunden
-  const gehzeitHours = Math.max(tHoriz, tVert) + 0.5 * Math.min(tHoriz, tVert);
-  const withBreaks = gehzeitHours * (1 + HIKE_BREAK_MIN_PER_HOUR / 60);
-  return Math.round(withBreaks * 60);
+  return (Math.max(tHoriz, tVert) + 0.5 * Math.min(tHoriz, tVert)) * 60;
+}
+
+export function hikingTimeMinutes(
+  distanceKm: number,
+  ascentM: number,
+  descentM: number,
+): number {
+  const walking = walkingTimeMinutes(distanceKm, ascentM, descentM);
+  return Math.round(walking + Math.min(HIKE_BREAK_MAX_MIN, walking * HIKE_BREAK_SHARE));
+}
+
+/**
+ * Auf- und Abstieg aus einer Höhenreihe. Zacken unter 3 m werden verschluckt, sonst
+ * summiert sich das Rauschen der Höhendaten zu Höhenmetern, die niemand geht.
+ *
+ * EINE Quelle für beide Seiten: Der Admin snappt über `snapRoute`, die Import-Skripte über
+ * `route-math.ts`. Vorher nahm der Admin die rohen ORS-Summen und der Import diese Funktion
+ * — dieselbe Route ergab je nach Weg andere Höhenmeter und damit eine andere Dauer.
+ */
+export function ascentDescent(el: number[]): { ascent: number; descent: number } {
+  if (!el || el.length < 2) return { ascent: 0, descent: 0 };
+  let ascent = 0;
+  let descent = 0;
+  let ref = el[0];
+  for (const e of el.slice(1)) {
+    const d = e - ref;
+    if (Math.abs(d) < 3) continue;
+    if (d > 0) ascent += d;
+    else descent -= d;
+    ref = e;
+  }
+  return { ascent: Math.round(ascent), descent: Math.round(descent) };
+}
+
+/**
+ * Die EINE Schreibweise für eine Tour-Dauer. „5 Std 47 min" wäre falsche Genauigkeit: Die
+ * Formel ist eine Schätzung, keine Messung. Unter einer Stunde in 5-Minuten-Schritten, ab
+ * einer Stunde in halben Stunden.
+ *
+ * Vorher gab es zwei Fassungen (`durationFromMin` im Formular, `formatDuration` im Import),
+ * und beide Formen stehen bis heute in der Datenbank.
+ */
+export function formatHikingDuration(min: number): string {
+  const min5 = Math.max(5, Math.round(min / 5) * 5);
+  if (min5 < 60) return `${min5} min`;
+  const h = Math.round(min / 30) / 2; // auf halbe Stunden
+  return `${String(h).replace(".", ",")} Std`;
+}
+
+/**
+ * Vorschlag für die Schwierigkeit aus den gemessenen Zahlen der GANZEN Tour (bei hin/retour
+ * also Hin- und Rückweg zusammen). Grenzen an den 48 gemessenen Routen geeicht: „leicht" ist
+ * ein Spaziergang, den man in Turnschuhen macht, „schwer" eine Tour, für die man den Tag
+ * einplant. Was die Zahlen NICHT wissen (Ausgesetztheit, Klettersteig, Trittsicherheit),
+ * kann nur ein Mensch — deshalb ist das ein Vorschlag und keine Wahrheit.
+ */
+export function suggestDifficulty(distanceKm: number, ascentM: number): string {
+  const km = Math.max(0, distanceKm || 0);
+  const up = Math.max(0, ascentM || 0);
+  if (up <= 350 && km <= 7) return "leicht";
+  if (up <= 800 && km <= 14) return "mittel";
+  return "schwer";
 }
 
 // Punkt auf der Route bei Bruchteil f ∈ [0..1] der Gesamtlänge (interpoliert).

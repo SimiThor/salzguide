@@ -22,7 +22,7 @@ Warum ORS `foot-hiking` als Primärlösung:
 - **Höhenprofil inklusive:** `elevation=true` liefert `[lng,lat,ele]` — exakt unser bestehendes Format → Höhenprofil-Diagramm direkt möglich.
 - **Bis zu 50 Waypoints** pro Route (Start + Ziel + Zwischenstops) — mehr als genug.
 - **Großzügiger Free-Tier**, Routen-Erstellung ist admin-selten → effektiv **kostenlos**. ([Restrictions](https://openrouteservice.org/restrictions/), [Services](https://openrouteservice.org/services/))
-- Bonus aus der Antwort: **Distanz + Aufstieg (Höhenmeter)** werden mitgeliefert → können Quick-Facts **automatisch vorbefüllen** (Distanz, ↑Hm) und sogar eine **Gehzeit-Schätzung** (DAV/SAC-Formel aus Distanz + Aufstieg) für das „⏳ Dauer"-Fact vorschlagen.
+- Bonus aus der Antwort: **Distanz + Höhenreihe** werden mitgeliefert → Quick-Facts **automatisch vorbefüllen** (Distanz, ↑Hm) und eine **Gehzeit-Schätzung** für das „⏳ Dauer"-Fact vorschlagen. Die Formel dafür steht in Abschnitt 7; ORS' eigene `duration` wird bewusst NICHT benutzt, sie rechnet Berge zu schwach ein.
 
 **Alternative:** Mapbox **Directions `walking`** (Mapbox ist eh im Stack). Einfacher zu integrieren, aber: weniger bergtauglich und **keine Höhen** pro Punkt (Elevation müsste separat über Mapbox Tilequery/Terrain geholt werden). → Für Stadt-Spaziergänge okay, für alpine Touren schlechter. Empfehlung daher ORS primär.
 
@@ -49,4 +49,93 @@ Spot-Felder ergänzen/bestätigen:
 - ✅ **Routing-Anbieter: OpenRouteService `foot-hiking`** (mit Höhenprofil). Mapbox `walking` bleibt optionaler Fallback.
 - ✅ **Auto-Vorschlag von Gehzeit & Schwierigkeit** aus Distanz + Höhenmetern — vorbefüllt & überschreibbar. → beim Anlegen aus ORS-Antwort berechnen.
 
-Quellen: [openrouteservice.org/restrictions](https://openrouteservice.org/restrictions/), [openrouteservice.org/services](https://openrouteservice.org/services/), [Elevation/Altitude (ORS Forum)](https://ask.openrouteservice.org/t/how-to-get-the-api-to-return-altitude/3563)
+## 7. Die Gehzeit-Formel (2026-08-17, nach Gast-Rückmeldung korrigiert)
+
+Ein Gast hat gemeldet, dass die Zeiten unrealistisch lang sind: Gamskarkogel 13,5 Stunden,
+Schafberg über 10. Er war selbst am Schafberg und hat mit langer Gipfelpause knapp unter 6
+Stunden gebraucht. Nachgemessen: Die App lag auf **allen 48 Routen-Spots** 50 bis 70 Prozent
+über den veröffentlichten Tourenzeiten.
+
+**Die Rohdaten waren nicht schuld.** Schafberg gemessen 15,6 km / 1253 hm gegen 16 km /
+1220 hm in der Referenz. Es war die Formel.
+
+Was falsch war, in der Reihenfolge des Gewichts:
+
+1. **DIN 33466 / DAV** (300 Hm/h auf, 500 Hm/h ab) ist die konservative Fassung. Die
+   österreichischen Portale und die Wegweiser entsprechen den **SAC-Werten**.
+2. **Pausen-Puffer von 10 min je Stunde, ungedeckelt.** Er wuchs linear mit und schlug der
+   13-Stunden-Tour fast zwei Stunden reine Pause auf.
+3. **Zwei Quellen für die Höhenmeter**: Der Admin nahm die rohen ORS-Summen
+   (`props.ascent`), die Import-Skripte die 3-m-gefilterte `ascentDescent`. Dieselbe Route,
+   zwei Ergebnisse.
+
+**Jetzt gilt** (`hikingTimeMinutes` in `src/lib/geo.ts`, die EINE Quelle):
+
+- 4 km/h eben, **400 Hm/h im Aufstieg, 800 Hm/h im Abstieg** (SAC)
+- Überlagerung: die grössere Teilzeit voll, die kleinere zur Hälfte
+- darauf **10 % Pause, höchstens 30 Minuten** — gedeckelt, damit der Fehler von oben nicht
+  in anderer Form zurückkommt
+- Höhenmeter immer über `ascentDescent` (3-m-Schwelle gegen Höhen-Rauschen), im Admin wie im Import
+
+Ergebnis gegen die veröffentlichten Zeiten: Schafberg 7 statt 10 Std (Referenz ~6–6,5),
+Gamskarkogel 9 statt 13,5 (Referenz 8). Wir liegen bewusst 10 bis 20 Prozent über den
+Portalen — das ist der Unterschied zwischen „durchgehen" und „mit Pausen ankommen".
+
+**Nachgeprüft wird das maschinell**, nicht durch Hinschauen:
+
+| Befehl | prüft |
+|---|---|
+| `npm run hiking:check` | Formel gegen fünf veröffentlichte Referenztouren (Quellen stehen im Skript, Toleranz 25 %) **und** den Sprach-Parser gegen 58 echte Sätze aus dem Bestand |
+| `npm run wp:hiking-times` | rechnet den Bestand nach (Dauer + Schwierigkeit), trocken; `-- --go` schreibt |
+| `npm run wp:audit` | Dauer UND Schwierigkeit in den Fliesstexten gegen das Feld, in **allen 13 Sprachen** (`facts-in-text.ts`) |
+| `npm run wp:fix-hiking-texts` | zieht die Sätze nach, wenn sich Dauer oder Stufe ändert |
+
+**Die Regel, auf der der Dauer-Abgleich steht:** Bei einer Route ist das Feld die Dauer der
+GANZEN Tour, und dann kann kein Teilstück länger sein als das Ganze. Jede Zeit über dem Feld
+ist dort ein Fund, auch wenn woanders im Text eine passende Zahl steht. Ohne Route ist das
+Feld eine kuratierte Besuchsdauer, und der Text darf eine Spanne nennen („eine Stunde reicht,
+drei wenn du alles anschaust"); dort wird nur gemeldet, wenn KEINE Zahl passt.
+
+Zahlen UNTER dem Feld bleiben still, weil man sie nicht von Teilzeiten unterscheiden kann.
+Ab 60 Prozent des Feldwerts landen sie unter NACHSCHLAGEN, damit auch die gefährlichere
+Richtung sichtbar bleibt.
+
+**Die Schwierigkeit wird am Satzanfang gelesen.** Die Einstufung eröffnet in diesen Texten
+immer ihren Satz („Mittelschwer: markiert und ...", „Dificultad alta: ..."). Mitten im Satz
+stehen dieselben Wörter in anderer Bedeutung: das spanische „y media" ist die halbe Stunde,
+„technisch einfach" beschreibt das Gelände und nicht die Stufe, und „Hardly anyone" fängt nur
+zufällig mit „hard" an. Spannen („Leicht bis mittel", „Facile à moyen") werden als beide
+Stufen gelesen.
+
+Vier Fehler, die genau hier schon gesessen haben und die jetzt als Testfälle in
+`hiking:check` liegen:
+
+- **Zwei Toleranzen für dieselbe Frage.** Die Widerspruchs-Schwelle hatte einen zusätzlichen
+  absoluten Zuschlag, den die Treffer-Prüfung nicht kannte. In dem Band dazwischen sassen
+  elf Spots mit ihrer alten Zahl (Feld 1 Std, Text „anderthalb Stunden"), und der Lauf meldete
+  null. Ein Prüfer, der nichts findet, ist erst dann ein gutes Zeichen, wenn er beweisbar
+  hinschaut.
+- **Eine passende Zahl deckt eine falsche zu.** Die Sigmund-Thun-Klamm nannte im ersten Satz
+  die alte Gesamtdauer und im zweiten eine Teilzeit. Weil die Teilzeit zum neuen Feld passte,
+  galt der Spot als in Ordnung. Deshalb die Tour-Logik oben.
+- **Wortgrenzen in Sprachen ohne Leerzeichen.** Eine pauschale CJK-Sperre nach links sollte
+  verhindern, dass „열세 시간" (13) als „세 시간" (3) gelesen wird, verschluckte im
+  Chinesischen aber jede Angabe, vor der ein Han-Zeichen steht („开车的话一小时"). Geblockt
+  wird jetzt nur ein vorangehendes ZAHLZEICHEN derselben Sprache.
+- **Ein Wort zwischen Zahl und Einheit.** Französisch („trois bonnes heures"), Deutsch („in
+  einer knappen Stunde"), Englisch („a good hour and a half") und die niederländischen
+  Trema-Formen („tweeënhalf") fielen alle durch. Vier französische Texte, der englische
+  Nockstein und der Hochkeil-Spiegelsee standen deshalb nie auf der Liste.
+
+**Wie die Texte in 13 Sprachen korrigiert wurden.** Nicht durch Zahlentausch: „Sechs Stunden"
+wird auf Polnisch zu „Cztery i pół godziny", weil das Zahlwort den Fall des Substantivs
+regiert. Je Sprache wurde formuliert und von einem zweiten, unabhängigen Leser Satz für Satz
+abgenommen. Drei Stellen brauchten eine Entscheidung statt einer Ersetzung, und die steht auf
+Deutsch in `fix-hiking-texts.ts`. Die wichtigste: Wenn die neue Gesamtdauer einen zweiten Satz
+im selben Absatz sinnlos macht („ohne den See in einer knappen Stunde", während die ganze
+Runde jetzt eine Stunde dauert), kommt dort KEINE geschätzte Zahl hin, sondern gar keine.
+
+Die Dauer steht ausserdem im **Intro-Video** (Titelbild) und deshalb seit dieser Änderung im
+`introSourceHash`. Ändert sich die Dauer, meldet der Admin „Intro veraltet".
+
+Quellen: [openrouteservice.org/restrictions](https://openrouteservice.org/restrictions/), [openrouteservice.org/services](https://openrouteservice.org/services/), [Elevation/Altitude (ORS Forum)](https://ask.openrouteservice.org/t/how-to-get-the-api-to-return-altitude/3563), [SAC Marschzeitberechnung](https://www.sac-cas.ch/de/die-alpen/marschzeitberechnung-5310/), [Bergwelten Gamskarkogel](https://www.bergwelten.com/t/w/12754), [bergfex Schafbergspitze](https://www.bergfex.com/sommer/oberoesterreich/touren/wanderung/8804,schafbergspitze-am-wolfgangsee/)

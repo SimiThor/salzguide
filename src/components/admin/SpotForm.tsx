@@ -16,7 +16,7 @@ import {
 import { routing } from "@/i18n/routing";
 import { localeMeta } from "@/i18n/locales";
 import { hashSpotTexts } from "@/lib/spot-hash";
-import { isClosedRoute } from "@/lib/geo";
+import { isClosedRoute, formatHikingDuration, suggestDifficulty } from "@/lib/geo";
 import type { AdminCategory, AdminLocal, IntroRenderItem } from "@/lib/admin";
 import { emptyManualWeek, type DayHours } from "@/lib/opening-hours";
 import type { MapPoi } from "@/lib/geo";
@@ -128,26 +128,13 @@ const DAY_NAMES = [
 const EMOJIS_ACTIVITY = ["🥾", "🏔️", "⛰️", "🌲", "🌊", "🏊", "💦", "🚠", "⛷️", "🛶", "🚲", "🏰", "🗻", "🌅"];
 const EMOJIS_FOOD = ["🍽️", "☕", "🍺", "🥨", "🍦", "🍰", "🍕", "🥐", "🍷", "🫖", "🍔", "🧁"];
 
-function parseDuration(s: string): { value: string; unit: "Std" | "Min" } {
+function parseDuration(s: string): { value: string; unit: "Std" | "min" } {
   const m = s.match(/([\d.,]+)\s*(min|std|h|stunde)/i);
-  if (m) return { value: m[1], unit: /min/i.test(m[2]) ? "Min" : "Std" };
+  if (m) return { value: m[1], unit: /min/i.test(m[2]) ? "min" : "Std" };
   return { value: "", unit: "Std" };
 }
-function composeDuration(value: string, unit: "Std" | "Min"): string {
+function composeDuration(value: string, unit: "Std" | "min"): string {
   return value.trim() === "" ? "" : `${value.trim()} ${unit}`;
-}
-function durationFromMin(min: number): string {
-  // Unter einer Stunde in 5-Min-Schritten; ab 60 in 0,5-Std-Schritten. Wichtig: erst runden,
-  // dann entscheiden -> 58 Min rundet auf 60 und wird zu "1 Std" (nicht dem hässlichen "60 Min").
-  const min5 = Math.max(5, Math.round(min / 5) * 5);
-  if (min5 < 60) return `${min5} Min`;
-  const h = Math.round((min / 60) * 2) / 2; // auf 0,5 runden
-  return `${String(h).replace(".", ",")} Std`;
-}
-function suggestDifficulty(distanceKm: number, ascent: number): string {
-  if (ascent <= 350 && distanceKm <= 7) return "leicht";
-  if (ascent <= 800 && distanceKm <= 14) return "mittel";
-  return "schwer";
 }
 
 export default function SpotForm({
@@ -213,7 +200,7 @@ export default function SpotForm({
   // Dauer: Zahl + Einheit in eigenem State (robust, keine verlustbehaftete Ableitung)
   const initDur = parseDuration(form.duration);
   const [durValue, setDurValue] = useState(initDur.value);
-  const [durUnit, setDurUnit] = useState<"Std" | "Min">(initDur.unit);
+  const [durUnit, setDurUnit] = useState<"Std" | "min">(initDur.unit);
   const [placeQ, setPlaceQ] = useState("");
   const [placeHits, setPlaceHits] = useState<PlaceHit[]>([]);
   const [placeMsg, setPlaceMsg] = useState("");
@@ -282,7 +269,7 @@ export default function SpotForm({
   const removeBreak = (i: number) =>
     editWeek(i, (d) => ({ closed: false, ranges: d.ranges.slice(0, 1) }));
 
-  function applyDuration(value: string, unit: "Std" | "Min") {
+  function applyDuration(value: string, unit: "Std" | "min") {
     setDurValue(value);
     setDurUnit(unit);
     set({ duration: composeDuration(value, unit) });
@@ -378,7 +365,7 @@ export default function SpotForm({
           };
           const auto: string[] = [];
           if ((forceDuration || !form.duration.trim()) && r.durationMin) {
-            const lbl = durationFromMin(r.durationMin);
+            const lbl = formatHikingDuration(r.durationMin);
             const p = parseDuration(lbl);
             setDurValue(p.value);
             setDurUnit(p.unit);
@@ -394,7 +381,7 @@ export default function SpotForm({
           const hm = r.profile ? ` · ↑${r.profile.ascent} ↓${r.profile.descent} hm` : "";
           // Berechnete Gehzeit der GANZEN Route immer zeigen -> eine schon gesetzte (evtl.
           // veraltete) Dauer fällt sofort auf, sobald man z.B. auf hin+zurück umstellt.
-          const time = r.durationMin ? ` · ~${durationFromMin(r.durationMin)}` : "";
+          const time = r.durationMin ? ` · ~${formatHikingDuration(r.durationMin)}` : "";
           const autoMsg = auto.length ? ` · ${auto.join(" & ")} übernommen` : "";
           setSnapMsg({ ok: true, text: `Angepasst · ${km}${hm}${time}${autoMsg}` });
         } else {
@@ -1507,10 +1494,10 @@ export default function SpotForm({
                   className={input}
                   value={durUnit}
                   disabled={Boolean(durWord)}
-                  onChange={(e) => applyDuration(durValue, e.target.value as "Std" | "Min")}
+                  onChange={(e) => applyDuration(durValue, e.target.value as "Std" | "min")}
                 >
                   <option value="Std">Std</option>
-                  <option value="Min">Min</option>
+                  <option value="min">min</option>
                 </select>
               </div>
               <select

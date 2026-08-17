@@ -17,7 +17,7 @@ import { writeSpotImages } from "./spot-images";
 import { parseAiOrigin, type AiOrigin } from "./ai-origin";
 import { stripEmDashFields } from "./em-dash";
 import { guardStorageUrl } from "./storage-guard";
-import { parsePois, hikingTimeMinutes, type MapPoi } from "./geo";
+import { parsePois, hikingTimeMinutes, ascentDescent, type MapPoi } from "./geo";
 import { HOME_KEYS, homeFieldLabel } from "./home-fields";
 import { HOME_FILE_TEXTS } from "./home-source";
 import { keepsPlaceholders, translateHomeTextsWith } from "./home-translate";
@@ -624,21 +624,25 @@ export async function snapRoute(
         pts.push({ d: cum / 1000, e: raw[i][2] });
       }
       const eles = pts.map((p) => p.e);
-      const sum = (n: unknown) => (typeof n === "number" ? Math.round(n) : 0);
+      // Auf-/Abstieg aus der Höhenreihe, NICHT aus props.ascent/descent: ORS summiert dort
+      // jede Zacke der Höhendaten mit, auch die, die nur Rauschen ist. `ascentDescent`
+      // verschluckt Zacken unter 3 m und ist dieselbe Funktion, mit der die Import-Skripte
+      // rechnen — sonst hat dieselbe Route je nach Weg zwei verschiedene Höhenmeter.
+      const { ascent, descent } = ascentDescent(eles);
       profile = {
         points: downsample(pts, 100).map((p) => ({
           d: Math.round(p.d * 100) / 100,
           e: Math.round(p.e),
         })),
-        ascent: sum(props.ascent),
-        descent: sum(props.descent),
+        ascent,
+        descent,
         min: Math.round(Math.min(...eles)),
         max: Math.round(Math.max(...eles)),
         distanceKm: distanceKm ?? cum / 1000,
       };
     }
 
-    // Gehzeit SELBST rechnen (DAV, siehe hikingTimeMinutes) statt ORS' optimistischer Dauer:
+    // Gehzeit SELBST rechnen (SAC, siehe hikingTimeMinutes) statt ORS' optimistischer Dauer:
     // ehrlich für einen normalen Wanderer, mit echten Höhenmetern (Auf- UND Abstieg). Ohne
     // Höhenprofil (kein ORS-Höhe) bleibt nur die Horizontalzeit -> immer noch nachvollziehbar.
     const km = distanceKm ?? profile?.distanceKm;
