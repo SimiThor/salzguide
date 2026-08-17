@@ -15,7 +15,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { TARGET_LOCALES } from "../../src/i18n/locales.ts";
 import { selectAll } from "./select-all.ts";
-import { hoursInText, hourMatches, fieldHours } from "./hours-i18n.ts";
+import { hoursInText, hourMatches, fieldHours, difficultyInText, type Grade } from "./facts-in-text.ts";
 
 /**
  * Die Regel steht in `src/lib/brand-voice.ts`, dort aber als Prosa im Prompt-Text und nicht
@@ -92,7 +92,7 @@ function stundenImText(t: string): number[] {
   return out;
 }
 
-// Die Feld-Lesart steht in hours-i18n.ts (`fieldHours`). Die Fassung, die hier stand, las
+// Die Feld-Lesart steht in facts-in-text.ts (`fieldHours`). Die Fassung, die hier stand, las
 // „1,5 Std" als 5 Stunden, weil ihr `(\d+)` an der Nachkommastelle ansetzte — die
 // Lammerklamm stand deshalb als einziger Widerspruch im Protokoll, und der war keiner.
 
@@ -200,7 +200,7 @@ async function main() {
 
     // ---- 2. Dauer-Feld gegen die Zahlen im Text, in ALLEN Sprachen ----
     // Nur Deutsch zu prüfen hiess: eine richtige Zahl im Feld und zwölf Sprachen, in denen
-    // die alte danebensteht. Der Parser je Sprache liegt in hours-i18n.ts.
+    // die alte danebensteht. Der Parser je Sprache liegt in facts-in-text.ts.
     //
     // NUR DIE TOUR-FELDER: `location_text` beschreibt die Anreise („eine Stunde von
     // Salzburg"), `insider_tip` Nebenwege („eine halbe Stunde zur Hütte"). Beides sind
@@ -222,12 +222,58 @@ async function main() {
         const std = [...hoursInText(t, lang), ...(lang === "de" ? stundenImText(t) : [])];
         if (!std.length) continue;
         const passt = trifft(std, soll, 0.2, 0.35);
-        const zuViel = std.some((w) => w > soll * 1.2 + 0.35);
-        if (!passt && zuViel)
+        // „Zu viel" ist GENAU das Gegenstück zu „passt": über dem Feld und ausserhalb der
+        // Toleranz. Hier stand einmal `w > soll * 1.2 + 0.35` — dieser zusätzliche absolute
+        // Zuschlag öffnete ein Band, in dem elf Spots mit ihrer alten Zahl unentdeckt
+        // sassen (Feld 1 Std, Text „anderthalb Stunden": 1,5 lag unter 1,55 und galt als
+        // in Ordnung). Zwei verschiedene Toleranzen für dieselbe Frage sind immer ein Loch.
+        const zuViel = std.some((w) => w > soll && !trifft([w], soll, 0.2, 0.35));
+        // Bei einer Route ist `soll` die Dauer der GANZEN Tour, und dann gilt eine harte
+        // Logik: kein Teilstück kann länger dauern als das Ganze. Eine Zeit über dem Feld
+        // ist dort immer ein Fund, auch wenn woanders im Text eine passende Zahl steht.
+        // Ohne das blieb die Sigmund-Thun-Klamm stumm: Der erste Satz nannte die alte
+        // Gesamtdauer (anderthalb Stunden), der zweite eine Teilzeit (knappe Stunde), und
+        // weil die Teilzeit zum neuen Feld passte, galt der Spot als in Ordnung.
+        // Ohne Route ist `soll` eine kuratierte Besuchsdauer, und ein Text darf dort eine
+        // Spanne nennen („eine Stunde reicht, drei wenn du alles anschaust").
+        const hatRoute = Boolean(s.route_geojson);
+        if (zuViel && (hatRoute || !passt))
           widerspruch.push({
             slug: s.slug as string,
             feld: `Dauer ${lang}`,
             was: `Text: ${hourMatches(t, lang).join(" | ")} · Feld: ${s.duration}`,
+          });
+        // Die Gegenrichtung KANN man nicht als Widerspruch melden (siehe oben), aber sie
+        // ganz zu verschweigen hiesse: ein Text, der die Tour zu kurz darstellt, fällt nie
+        // auf, und das ist die gefährliche Richtung. Deshalb landet sie zum Nachschlagen
+        // auf der Liste, sobald die grösste genannte Zeit nah genug am Feld liegt, um als
+        // Gesamtdauer gemeint zu sein (ab 60 %), aber nicht dazu passt.
+        else if (!passt) {
+          const groesste = Math.max(...std);
+          if (groesste >= soll * 0.6)
+            nachschlagen.push({
+              slug: s.slug as string,
+              feld: `Dauer ${lang}`,
+              was: `Text nennt höchstens ${hourMatches(t, lang).join(" | ")}, Feld sagt ${s.duration} (Teilzeit oder zu kurz dargestellt?)`,
+            });
+        }
+      }
+    }
+
+    // ---- 2b. Schwierigkeits-Feld gegen den Fliesstext, in ALLEN Sprachen ----
+    // Beim Nachrechnen der Formel wanderten sechs Spots eine Stufe hoch, und in dreizehn
+    // Sprachen stand darunter weiter die alte. Die Dauer wurde geprüft, die Stufe nicht.
+    const stufeFeld = ((s.difficulty as string | null) ?? "").trim().toLowerCase();
+    if (stufeFeld) {
+      for (const r of meine) {
+        const lang = r.lang as string;
+        const t = TOUR_FELDER.map((f) => ((r as Record<string, unknown>)[f] as string) ?? "").join("\n");
+        const genannt = difficultyInText(t, lang);
+        if (genannt.length && !genannt.includes(stufeFeld as Grade))
+          widerspruch.push({
+            slug: s.slug as string,
+            feld: `Stufe ${lang}`,
+            was: `Text sagt ${genannt.join("/")} · Feld: ${stufeFeld}`,
           });
       }
     }

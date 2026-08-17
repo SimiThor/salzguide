@@ -85,10 +85,55 @@ Portalen — das ist der Unterschied zwischen „durchgehen" und „mit Pausen a
 
 | Befehl | prüft |
 |---|---|
-| `npm run hiking:check` | Formel gegen fünf veröffentlichte Referenztouren (Quellen stehen im Skript), Toleranz 25 % |
+| `npm run hiking:check` | Formel gegen fünf veröffentlichte Referenztouren (Quellen stehen im Skript, Toleranz 25 %) **und** den Sprach-Parser gegen 58 echte Sätze aus dem Bestand |
 | `npm run wp:hiking-times` | rechnet den Bestand nach (Dauer + Schwierigkeit), trocken; `-- --go` schreibt |
-| `npm run wp:audit` | Zahlen in den Fliesstexten gegen das Feld, in **allen 13 Sprachen** (`hours-i18n.ts`) |
-| `npm run wp:fix-hiking-texts` | zieht die Sätze nach, wenn sich die Dauer ändert |
+| `npm run wp:audit` | Dauer UND Schwierigkeit in den Fliesstexten gegen das Feld, in **allen 13 Sprachen** (`facts-in-text.ts`) |
+| `npm run wp:fix-hiking-texts` | zieht die Sätze nach, wenn sich Dauer oder Stufe ändert |
+
+**Die Regel, auf der der Dauer-Abgleich steht:** Bei einer Route ist das Feld die Dauer der
+GANZEN Tour, und dann kann kein Teilstück länger sein als das Ganze. Jede Zeit über dem Feld
+ist dort ein Fund, auch wenn woanders im Text eine passende Zahl steht. Ohne Route ist das
+Feld eine kuratierte Besuchsdauer, und der Text darf eine Spanne nennen („eine Stunde reicht,
+drei wenn du alles anschaust"); dort wird nur gemeldet, wenn KEINE Zahl passt.
+
+Zahlen UNTER dem Feld bleiben still, weil man sie nicht von Teilzeiten unterscheiden kann.
+Ab 60 Prozent des Feldwerts landen sie unter NACHSCHLAGEN, damit auch die gefährlichere
+Richtung sichtbar bleibt.
+
+**Die Schwierigkeit wird am Satzanfang gelesen.** Die Einstufung eröffnet in diesen Texten
+immer ihren Satz („Mittelschwer: markiert und ...", „Dificultad alta: ..."). Mitten im Satz
+stehen dieselben Wörter in anderer Bedeutung: das spanische „y media" ist die halbe Stunde,
+„technisch einfach" beschreibt das Gelände und nicht die Stufe, und „Hardly anyone" fängt nur
+zufällig mit „hard" an. Spannen („Leicht bis mittel", „Facile à moyen") werden als beide
+Stufen gelesen.
+
+Vier Fehler, die genau hier schon gesessen haben und die jetzt als Testfälle in
+`hiking:check` liegen:
+
+- **Zwei Toleranzen für dieselbe Frage.** Die Widerspruchs-Schwelle hatte einen zusätzlichen
+  absoluten Zuschlag, den die Treffer-Prüfung nicht kannte. In dem Band dazwischen sassen
+  elf Spots mit ihrer alten Zahl (Feld 1 Std, Text „anderthalb Stunden"), und der Lauf meldete
+  null. Ein Prüfer, der nichts findet, ist erst dann ein gutes Zeichen, wenn er beweisbar
+  hinschaut.
+- **Eine passende Zahl deckt eine falsche zu.** Die Sigmund-Thun-Klamm nannte im ersten Satz
+  die alte Gesamtdauer und im zweiten eine Teilzeit. Weil die Teilzeit zum neuen Feld passte,
+  galt der Spot als in Ordnung. Deshalb die Tour-Logik oben.
+- **Wortgrenzen in Sprachen ohne Leerzeichen.** Eine pauschale CJK-Sperre nach links sollte
+  verhindern, dass „열세 시간" (13) als „세 시간" (3) gelesen wird, verschluckte im
+  Chinesischen aber jede Angabe, vor der ein Han-Zeichen steht („开车的话一小时"). Geblockt
+  wird jetzt nur ein vorangehendes ZAHLZEICHEN derselben Sprache.
+- **Ein Wort zwischen Zahl und Einheit.** Französisch („trois bonnes heures"), Deutsch („in
+  einer knappen Stunde"), Englisch („a good hour and a half") und die niederländischen
+  Trema-Formen („tweeënhalf") fielen alle durch. Vier französische Texte, der englische
+  Nockstein und der Hochkeil-Spiegelsee standen deshalb nie auf der Liste.
+
+**Wie die Texte in 13 Sprachen korrigiert wurden.** Nicht durch Zahlentausch: „Sechs Stunden"
+wird auf Polnisch zu „Cztery i pół godziny", weil das Zahlwort den Fall des Substantivs
+regiert. Je Sprache wurde formuliert und von einem zweiten, unabhängigen Leser Satz für Satz
+abgenommen. Drei Stellen brauchten eine Entscheidung statt einer Ersetzung, und die steht auf
+Deutsch in `fix-hiking-texts.ts`. Die wichtigste: Wenn die neue Gesamtdauer einen zweiten Satz
+im selben Absatz sinnlos macht („ohne den See in einer knappen Stunde", während die ganze
+Runde jetzt eine Stunde dauert), kommt dort KEINE geschätzte Zahl hin, sondern gar keine.
 
 Die Dauer steht ausserdem im **Intro-Video** (Titelbild) und deshalb seit dieser Änderung im
 `introSourceHash`. Ändert sich die Dauer, meldet der Admin „Intro veraltet".

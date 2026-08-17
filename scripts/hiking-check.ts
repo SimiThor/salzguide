@@ -27,6 +27,7 @@ import {
   HIKE_ASCENT_MH,
   HIKE_DESCENT_MH,
 } from "../src/lib/geo.ts";
+import { hoursInText, fieldHours, difficultyInText } from "./wp-import/facts-in-text.ts";
 
 let failed = 0;
 const ok = (name: string) => console.log(`  ok    ${name}`);
@@ -186,6 +187,134 @@ console.log("\n6. Schwierigkeit");
     const got = suggestDifficulty(km, up);
     if (got === want) ok(`${km} km / ${up} hm -> ${got}`);
     else bad(`${km} km / ${up} hm`, `erwartet "${want}", bekommen "${got}"`);
+  }
+}
+
+console.log("\n7. Zeitangaben in allen 13 Sprachen finden (facts-in-text.ts)");
+{
+  // JEDE Zeile hier stand einmal ungefunden in der Datenbank. Ein Parser, der eine Angabe
+  // übersieht, meldet keinen Widerspruch — die Prüfung sagt dann „alles gut" und der falsche
+  // Satz bleibt stehen. Genau so sind vierzehn Spots mit alten Zahlen durchgerutscht.
+  const F: [string, string, number][] = [
+    // Grundformen: Ziffer und Zahlwort
+    ["de", "Gut sieben Stunden für hin und zurück.", 7],
+    ["en", "A good seven hours there and back.", 7],
+    ["it", "Sette ore abbondanti tra andata e ritorno.", 7],
+    ["nl", "Ruim zeven uur heen en terug.", 7],
+    ["es", "Siete horas largas ida y vuelta.", 7],
+    ["pt", "Umas boas sete horas ida e volta.", 7],
+    ["pl", "Dobre siedem godzin tam i z powrotem.", 7],
+    ["cs", "Dobrých sedm hodin tam a zpátky.", 7],
+    ["sk", "Dobrých sedem hodín tam a späť.", 7],
+    ["hu", "Jó hét óra oda-vissza.", 7],
+    ["ko", "왕복 일곱 시간입니다.", 7],
+    ["zh", "往返七小时。", 7],
+    // „und ein halb": dreizehn Sprachen, dreizehn Bauweisen
+    ["de", "Hin und zurück sind das dreizehneinhalb Stunden.", 13.5],
+    ["en", "There and back that is thirteen and a half hours.", 13.5],
+    // Englisch stellt die Einheit auch VOR die Haelfte, mit oder ohne Artikel.
+    ["en", "A good hour and a half there and back.", 1.5],
+    ["en", "An hour and a half there and back.", 1.5],
+    // Deutsch schiebt das Beiwort zwischen Zahl und Einheit.
+    ["de", "Ohne den See bist du in einer knappen Stunde durch.", 1],
+    ["de", "Rechne eine gute Stunde fuer den Rundweg.", 1],
+    ["it", "Andata e ritorno sono tredici ore e mezza.", 13.5],
+    ["nl", "Heen en terug zijn dat dertieneneenhalf uur.", 13.5],
+    // Niederlaendisch baut die halbe Stunde auf vier Arten zusammen. Die Trema-Formen
+    // fielen durch, und der Hochkeil-Spiegelsee stand deshalb gar nicht auf der Liste.
+    ["nl", "Ruim tweeenhalf uur heen en terug.".replace("tweeenhalf", "twee\u00ebnhalf"), 2.5],
+    ["nl", "Drieeneenhalf uur.".replace("Drieeneenhalf", "Drie\u00ebneenhalf"), 3.5],
+    ["nl", "Viereneenhalf uur heen en terug.", 4.5],
+    ["fr", "Aller-retour, ça fait treize heures et demie.", 13.5],
+    ["es", "Ida y vuelta son trece horas y media.", 13.5],
+    ["pt", "Ida e volta são treze horas e meia.", 13.5],
+    ["pl", "Tam i z powrotem to trzynaście i pół godziny.", 13.5],
+    ["cs", "Tam a zpátky je to třináct a půl hodiny.", 13.5],
+    ["sk", "Tam a späť je to trinásť a pol hodiny.", 13.5],
+    ["hu", "Oda-vissza ez tizenhárom és fél óra.", 13.5],
+    ["ko", "왕복 열세 시간 반입니다.", 13.5],
+    ["zh", "往返十三个半小时。", 13.5],
+    // Französisch stellt das Adjektiv ZWISCHEN Zahl und Einheit und elidiert das Substantiv.
+    // Vier französische Texte behielten deshalb stumm die alte Zahl.
+    ["fr", "On revient par le même chemin, trois bonnes heures en tout.", 3],
+    ["fr", "À pied, une bonne dizaine d'heures aller-retour.", 10],
+    ["fr", "Presque quatre heures aller-retour.", 4],
+    // Chinesisch: vor der Zahl steht fast immer ein Han-Zeichen. Eine pauschale CJK-Sperre
+    // verschluckte die Angabe komplett.
+    ["zh", "开车的话一小时，每人五欧。", 1],
+    ["zh", "往返十一小时。", 11],
+    // Koreanisch: „열세" (13) darf nicht als „세" (3) gelesen werden.
+    ["ko", "왕복 열세 시간, 아주 긴 산행입니다.", 13],
+    ["ko", "위에서 두 시간 걷습니다.", 2],
+  ];
+  for (const [lang, satz, wert] of F) {
+    const werte = hoursInText(satz, lang);
+    const treffer = werte.some((w) => Math.abs(w - wert) < 0.01);
+    if (treffer) ok(`${lang} ${wert} in "${satz.slice(0, 42)}…"`);
+    else bad(`${lang} findet ${wert} nicht`, `"${satz}" -> ${JSON.stringify(werte)}`);
+  }
+
+  // Gegenprobe: „열세 시간" darf NICHT zusätzlich als 3 gelesen werden, sonst passt am Ende
+  // irgendein Wert immer und die Prüfung wird blind.
+  if (!hoursInText("왕복 열세 시간입니다.", "ko").includes(3)) ok("ko liest 열세 nicht als 세");
+  else bad("ko liest 열세 als 세", "Wortgrenze nach links fehlt");
+
+  // Feldwert lesen: „1,5 Std" wurde einmal als 5 Stunden gelesen (Regex ohne Dezimalstelle).
+  const felder: [string, number][] = [
+    ["1,5 Std", 1.5],
+    ["7 Std", 7],
+    ["4,5 Std", 4.5],
+    ["45 min", 0.75],
+    ["1 Std 30 min", 1.5],
+  ];
+  for (const [f, want] of felder) {
+    const got = fieldHours(f);
+    if (got !== null && Math.abs(got - want) < 0.01) ok(`Feld "${f}" -> ${got}`);
+    else bad(`Feld "${f}"`, `erwartet ${want}, bekommen ${got}`);
+  }
+}
+
+
+console.log("\n8. Schwierigkeit im Fliesstext (facts-in-text.ts)");
+{
+  // Die Einstufung eroeffnet ihren Satz. Alles andere ist eine Aussage ueber das Gelaende,
+  // und die darf NICHT als Einstufung zaehlen. Jede Zeile hier stand so in der Datenbank.
+  const JA: [string, string, string[]][] = [
+    ["de", "Mittelschwer: markiert und ohne technische Stellen.", ["mittel"]],
+    ["de", "Schwer, technisch harmlos, aber die Kondition musst du mitbringen.", ["schwer"]],
+    ["de", "Leicht bis mittel: Kondition brauchst du kaum.", ["leicht", "mittel"]],
+    ["en", "Hard, technically harmless.", ["schwer"]],
+    ["it", "Difficolt\u00e0 alta: alcuni tratti ripidi.", ["schwer"]],
+    ["fr", "Facile \u00e0 moyen : il ne faut presque pas de condition.", ["leicht", "mittel"]],
+    ["es", "Dificultad alta: algunos tramos empinados.", ["schwer"]],
+    ["nl", "Makkelijk tot middelzwaar, de klim is gematigd.", ["leicht", "mittel"]],
+    ["pl", "\u0141atwa do \u015bredniej: kondycji prawie nie potrzebujesz.", ["leicht", "mittel"]],
+    ["pl", "\u015arednio trudna: oznakowana.", ["mittel"]],
+    ["cs", "T\u011b\u017ek\u00e9: p\u00e1r strm\u00fdch pas\u00e1\u017e\u00ed.", ["schwer"]],
+    ["ko", "\uc26c\uc6c0\uc5d0\uc11c \ubcf4\ud1b5 \uc0ac\uc774\uc785\ub2c8\ub2e4.", ["leicht", "mittel"]],
+    ["zh", "\u96be\u5ea6\u5927\uff1a\u867d\u7136\u6709\u6807\u8bb0\u3002", ["schwer"]],
+  ];
+  for (const [lang, satz, want] of JA) {
+    const got = difficultyInText(satz, lang).sort();
+    if (JSON.stringify(got) === JSON.stringify([...want].sort())) ok(`${lang} ${got.join("+")} in "${satz.slice(0, 34)}\u2026"`);
+    else bad(`${lang} "${satz.slice(0, 40)}"`, `erwartet ${JSON.stringify(want)}, bekommen ${JSON.stringify(got)}`);
+  }
+
+  // Und die Gegenprobe: Gelaende-Aussagen, Halbstunden und Verneinungen sind KEINE Stufe.
+  const NEIN: [string, string][] = [
+    ["en", "Hardly anyone goes down to the crypt."],
+    ["en", "There is nothing strenuous about it."],
+    ["en", "Technically easy, but alpine terrain: basic fitness."],
+    ["es", "Media hora basta para la nave."],
+    ["it", "Il sentiero in s\u00e9 \u00e8 tecnicamente facile e ben segnato."],
+    ["fr", "Le chemin lui-m\u00eame est techniquement facile et bien balis\u00e9."],
+    ["hu", "Maga az \u00fat technikailag k\u00f6nny\u0171 \u00e9s j\u00f3l jelzett."],
+    ["ko", "\uc2ac\ub85c\ud504\ub294 \ub300\uccb4\ub85c \uc911\uae09\uc774\uace0 \uace0\uc0b0 \uc9c0\ub300\uc785\ub2c8\ub2e4."],
+  ];
+  for (const [lang, satz] of NEIN) {
+    const got = difficultyInText(satz, lang);
+    if (!got.length) ok(`${lang} keine Stufe in "${satz.slice(0, 34)}\u2026"`);
+    else bad(`${lang} liest eine Stufe, wo keine steht`, `"${satz}" -> ${JSON.stringify(got)}`);
   }
 }
 

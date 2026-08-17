@@ -1,4 +1,5 @@
-// Zeitangaben in einem Fliesstext finden — in allen dreizehn Sprachen.
+// Fakten in einem Fliesstext finden (Zeitangaben und Schwierigkeit) — in allen dreizehn
+// Sprachen. Hiess einmal hours-i18n.ts, bis die Schwierigkeit dazukam.
 //
 // WARUM DAS HIER STEHT: Die Dauer einer Wanderung steht nicht nur im Feld, sondern auch im
 // Text („Rechne fünf Stunden für die Runde"), und zwar in jeder Sprache in ihren eigenen
@@ -53,6 +54,10 @@ const HOURS: Record<string, HourLang> = {
     },
     phrases: { "halbe Stunde": 0.5, "halben Stunde": 0.5, Viertelstunde: 0.25, Dreiviertelstunde: 0.75 },
     half: "%N%einhalb\\s*(?:Stunden|Stunde)",
+    // Deutsch stellt das Beiwort ebenfalls dazwischen: "eine knappe Stunde", "eine gute
+    // Stunde". Ohne das blieb der zweite Satz der Sigmund-Thun-Klamm unsichtbar, und der
+    // stand nach der Korrektur im Widerspruch zur neuen Gesamtdauer.
+    filler: "(?:\\s+(?:knappe?[nrs]?|gute?[nrs]?|volle?[nrs]?|starke?[nrs]?|reichliche?[nrs]?))?\\s*",
   },
   en: {
     unit: "hours|hour|hrs|hr",
@@ -62,7 +67,10 @@ const HOURS: Record<string, HourLang> = {
       nine: 9, ten: 10, eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15,
     },
     phrases: {
-      "half an hour": 0.5, "an hour and a half": 1.5, "one and a half hours": 1.5,
+      // "hour and a half" OHNE Artikel, damit auch "a good hour and a half" greift. Genau
+      // daran ist der englische Nockstein-Text durch die Pruefung gerutscht.
+      "hour and a half": 1.5,
+      "half an hour": 0.5, "one and a half hours": 1.5,
       "two and a half hours": 2.5, "three and a half hours": 3.5, "four and a half hours": 4.5,
       "five and a half hours": 5.5, "six and a half hours": 6.5, "seven and a half hours": 7.5,
       "quarter of an hour": 0.25,
@@ -91,8 +99,11 @@ const HOURS: Record<string, HourLang> = {
       acht: 8, negen: 9, tien: 10, elf: 11, twaalf: 12, dertien: 13, veertien: 14,
     },
     phrases: { "half uur": 0.5, halfuur: 0.5, kwartier: 0.25 },
-    // Niederländisch schreibt das zusammen: „dertieneneenhalf uur", „tweeënhalf uur".
-    half: "%N%e?[në]\\s?(?:een)?half\\s*(?:uren|uur)",
+    // Niederländisch schreibt das zusammen, mit zwei Fugen und optionalem „een":
+    // dertien+en+een+half, vier+en+een+half, drie+ën+een+half, twee+ën+half.
+    // Eine Zeichenklasse reicht dafür nicht: „tweeënhalf" hat nach dem Trema noch ein n,
+    // und genau daran ist der Hochkeil-Spiegelsee durch die Prüfung gerutscht.
+    half: "%N%(?:en|ën)(?:een)?half\\s*(?:uren|uur)",
   },
   fr: {
     unit: "heures|heure",
@@ -226,6 +237,11 @@ function esc(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+/** Alle Zeichen, aus denen die Zahlwoerter dieser Sprache bestehen (nur fuer CJK noetig). */
+function zahlzeichen(L: HourLang): string {
+  return [...new Set(Object.keys(L.words).join(""))].map(esc).join("");
+}
+
 /**
  * Das Muster für „dreizehneinhalb Stunden" mit dem Zahlwort an der Stelle `%N%`, fertig
  * zusammengesetzt. Diese Formen als feste Wendungen aufzulisten wäre ein Fass ohne Boden:
@@ -254,10 +270,12 @@ export function hoursInText(text: string, lang: string): number[] {
   const L = HOURS[lang];
   if (!L || !text) return [];
   const out: number[] = [];
-  // CJK kennt keine Wortgrenzen. Ohne den Blick nach links fände „열세 시간" (13) auch
+  // CJK kennt keine Wortgrenzen, aber geblockt wird NUR ein vorangehendes ZAHLZEICHEN
+  // dieser Sprache. Eine pauschale Han-Sperre verschluckte im Chinesischen die halbe
+  // Datenlage, weil dort vor der Zahl fast immer ein Han-Zeichen steht.
+  // Ohne den Blick nach links fände „열세 시간" (13) auch
   // das „세 시간" (3) in sich selbst.
-  const grenze = (s: string) =>
-    L.cjk ? `(?<![\\p{sc=Hangul}\\p{sc=Han}])${s}` : `(?<![\\p{L}])${s}(?![\\p{L}])`;
+  const grenze = (s: string) => (L.cjk ? `(?<![${zahlzeichen(L)}])${s}` : `(?<![\\p{L}])${s}(?![\\p{L}])`);
 
   // 1. Ziffern vor dem Einheitswort: „5 Stunden", „1,5 ore", „5시간"
   for (const m of text.matchAll(new RegExp(`(\\d[\\d.,]*)\\s*(?:${L.unit})`, "giu")))
@@ -293,10 +311,12 @@ export function hourMatches(text: string, lang: string): string[] {
   const L = HOURS[lang];
   if (!L || !text) return [];
   const out: string[] = [];
-  // CJK kennt keine Wortgrenzen. Ohne den Blick nach links fände „열세 시간" (13) auch
+  // CJK kennt keine Wortgrenzen, aber geblockt wird NUR ein vorangehendes ZAHLZEICHEN
+  // dieser Sprache. Eine pauschale Han-Sperre verschluckte im Chinesischen die halbe
+  // Datenlage, weil dort vor der Zahl fast immer ein Han-Zeichen steht.
+  // Ohne den Blick nach links fände „열세 시간" (13) auch
   // das „세 시간" (3) in sich selbst.
-  const grenze = (s: string) =>
-    L.cjk ? `(?<![\\p{sc=Hangul}\\p{sc=Han}])${s}` : `(?<![\\p{L}])${s}(?![\\p{L}])`;
+  const grenze = (s: string) => (L.cjk ? `(?<![${zahlzeichen(L)}])${s}` : `(?<![\\p{L}])${s}(?![\\p{L}])`);
   for (const m of text.matchAll(new RegExp(`(\\d[\\d.,]*)\\s*(?:${L.unit}|${L.minute})`, "giu")))
     out.push(m[0].trim());
   for (const w of Object.keys(L.words)) {
@@ -319,4 +339,115 @@ export function fieldHours(d: string | null | undefined): number | null {
   const m = /(\d+)\s*min/i.exec(d);
   if (!h && !m) return null;
   return (h ? zahl(h[1]) : 0) + (m ? Number(m[1]) / 60 : 0);
+}
+
+// ── Schwierigkeit im Fliesstext ────────────────────────────────────────────────
+// Das Faktenfeld sagt leicht/mittel/schwer, und der Absatz daneben sagt es noch einmal in
+// Prosa. Laufen die beiden auseinander, sieht der Gast im selben Bildschirm zwei Urteile.
+// Genau das ist passiert, als die Schwierigkeit neu gerechnet wurde: Gamskarkogel, Schafberg
+// und Tristkogel standen auf "schwer", darunter stand "Mittelschwer", in dreizehn Sprachen.
+//
+// GEPRUEFT WIRD NUR AM SATZANFANG. Die Einstufung eroeffnet in diesen Texten immer ihren
+// Satz ("Mittelschwer: markiert und ...", "Dificultad alta: ..."). Mitten im Satz stehen
+// dieselben Woerter in ganz anderer Bedeutung: das spanische "y media" ist die halbe Stunde,
+// nicht die mittlere Schwierigkeit, und "tecnicamente facile" beschreibt das Gelaende, nicht
+// die Stufe. Wer ueberall sucht, bekommt eine Liste voller Fehlalarme.
+export type Grade = "leicht" | "mittel" | "schwer";
+
+const GRADES: Record<string, Record<Grade, string[]>> = {
+  de: { leicht: ["leicht"], mittel: ["mittelschwer", "mittelschwierig", "mittel"], schwer: ["schwer", "anspruchsvoll"] },
+  en: { leicht: ["easy"], mittel: ["moderate", "moderately"], schwer: ["hard", "demanding", "strenuous"] },
+  it: { leicht: ["facile", "difficoltà bassa"], mittel: ["difficoltà media", "mediamente"], schwer: ["difficile", "difficoltà alta"] },
+  nl: { leicht: ["makkelijk", "eenvoudig"], mittel: ["middelzwaar", "gemiddeld"], schwer: ["zwaar", "pittig"] },
+  fr: { leicht: ["facile"], mittel: ["difficulté moyenne"], schwer: ["difficile", "difficulté élevée"] },
+  // Kein blosses "media": "Media hora" ist die halbe Stunde und eroeffnet reihenweise Saetze.
+  es: { leicht: ["fácil", "dificultad baja"], mittel: ["dificultad media"], schwer: ["difícil", "dificultad alta"] },
+  pt: { leicht: ["fácil", "dificuldade baixa"], mittel: ["dificuldade média"], schwer: ["difícil", "dificuldade alta"] },
+  pl: { leicht: ["łatwa", "łatwe"], mittel: ["średnio trudna", "średnia"], schwer: ["trudna", "trudne"] },
+  cs: { leicht: ["lehká", "lehké"], mittel: ["středně těžké", "středně těžká", "střední"], schwer: ["těžké", "těžká", "náročné"] },
+  sk: { leicht: ["ľahká", "ľahké"], mittel: ["stredne ťažké", "stredne ťažká", "stredná"], schwer: ["ťažké", "ťažká", "náročné"] },
+  hu: { leicht: ["könnyű"], mittel: ["közepes", "közepesen"], schwer: ["nehéz"] },
+  ko: { leicht: ["초급", "쉬움"], mittel: ["중급", "보통"], schwer: ["상급", "어려움"] },
+  zh: { leicht: ["轻松"], mittel: ["中等"], schwer: ["困难", "难度大", "强度大"] },
+};
+
+
+/**
+ * Blosse Eigenschaftswoerter fuer die zweite Haelfte einer SPANNE ("Leicht bis mittel",
+ * "Facile a moyen"). Sie werden NUR gesucht, wenn vorne schon eine Stufe gefunden wurde:
+ * allein stehen sie viel zu oft in anderer Bedeutung, "Media hora" ist die halbe Stunde.
+ */
+const SPANNE: Record<string, Record<Grade, string[]>> = {
+  de: { leicht: ["leicht"], mittel: ["mittel"], schwer: ["schwer"] },
+  en: { leicht: ["easy"], mittel: ["moderate"], schwer: ["hard"] },
+  it: { leicht: ["facile", "bassa"], mittel: ["media"], schwer: ["difficile", "alta"] },
+  nl: { leicht: ["makkelijk"], mittel: ["gemiddeld", "middelzwaar"], schwer: ["zwaar"] },
+  fr: { leicht: ["facile"], mittel: ["moyen", "moyenne"], schwer: ["difficile"] },
+  es: { leicht: ["fácil", "baja"], mittel: ["media"], schwer: ["difícil", "alta"] },
+  pt: { leicht: ["fácil", "baixa"], mittel: ["média"], schwer: ["difícil", "alta"] },
+  // Polnisch beugt in der Spanne ("Łatwa do średniej"), deshalb beide Formen.
+  pl: { leicht: ["łatwa", "łatwej"], mittel: ["średnia", "średnio", "średniej"], schwer: ["trudna", "trudnej"] },
+  cs: { leicht: ["lehká"], mittel: ["střední"], schwer: ["těžká", "těžké"] },
+  sk: { leicht: ["ľahká"], mittel: ["stredná"], schwer: ["ťažká", "ťažké"] },
+  hu: { leicht: ["könnyű"], mittel: ["közepes"], schwer: ["nehéz"] },
+  // Koreanisch schreibt die Spanne mit den FAKTEN-Woertern ("쉬움에서 보통 사이"),
+  // nicht mit den Kurs-Stufen 초급/중급/상급.
+  ko: { leicht: ["초급", "쉬움"], mittel: ["중급", "보통"], schwer: ["상급", "어려움"] },
+  zh: { leicht: ["轻松"], mittel: ["中等"], schwer: ["困难"] },
+};
+
+/**
+ * Die Stufen, die ein Text am Satzanfang behauptet. Mehrere sind moeglich, wenn der Text
+ * mehrere Varianten beschreibt; entschieden wird draussen.
+ */
+export function difficultyInText(text: string, lang: string): Grade[] {
+  const G = GRADES[lang];
+  if (!G || !text) return [];
+  const cjk = HOURS[lang]?.cjk ?? false;
+  const out = new Set<Grade>();
+  for (const satz of text.split(/(?<=[.!?。！？\n])\s*/)) {
+    // Nur die ERSTE Teilaussage: dort steht die Einstufung ("Leicht bis mittel: ...",
+    // "Dificultad alta: ..."). Weiter hinten im Satz stehen dieselben Woerter als
+    // Beschreibung des Gelaendes und meinen dann etwas anderes.
+    // Nur die ersten Zeichen: Die Einstufung steht ganz vorne. Weiter hinten beschreibt
+    // dasselbe Wort das Gelaende ("Il sentiero in se e tecnicamente facile") und meint
+    // nicht mehr die Stufe.
+    const kopf = satz.trimStart().split(/[,:;.!?—–]/)[0];
+    if (!kopf) continue;
+    // Das Stufenwort muss GANZ VORNE anfangen. Ungarisch stellt das Adjektiv ans Ende
+    // ("Maga az ut technikailag koennyu"), und ohne diese Grenze zaehlte das als Einstufung.
+    const idx = (w: string, wo: string) =>
+      cjk
+        ? wo.indexOf(w)
+        : (new RegExp(`(?<![\\p{L}])${w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\p{L}])`, "iu").exec(wo)?.index ?? -1);
+
+    // Erste Runde: Die Einstufung EROEFFNET ihren Satz. Steht das Wort weiter hinten, ist es
+    // eine Aussage ueber das Gelaende und nicht die Stufe: "Technisch einfach, aber alpines
+    // Gelaende" stuft nicht ein, und "There is nothing strenuous about it" verneint sogar.
+    // Auch im Koreanischen eroeffnet die Einstufung ihren Satz ("상급이고 ..."); steht sie
+    // weiter hinten, meint sie etwas anderes (bei der Goldbergbahn die Pisten).
+    const treffer: { g: Grade; von: number; bis: number }[] = [];
+    for (const [g, ws] of Object.entries(G) as [Grade, string[]][])
+      for (const w of ws) {
+        const i = idx(w, kopf);
+        if (i === 0) treffer.push({ g, von: i, bis: i + w.length });
+      }
+    if (!treffer.length) continue;
+
+    // Zweite Runde: die andere Haelfte einer Spanne ("Leicht bis mittel", "Facile a moyen").
+    // Laeuft nur, wenn vorne schon eine Stufe stand, sonst waeren die blossen
+    // Eigenschaftswoerter eine Fehlalarm-Maschine.
+    for (const [g, ws] of Object.entries(SPANNE[lang] ?? {}) as [Grade, string[]][])
+      for (const w of ws) {
+        const i = idx(w, kopf);
+        if (i >= 0) treffer.push({ g, von: i, bis: i + w.length });
+      }
+
+    // Ein Treffer INNERHALB eines anderen ist keiner: Im polnischen "Srednio trudna"
+    // (mittel) steckt "trudna" (schwer). Zwei Stufen NEBENEINANDER sind dagegen beide
+    // gemeint, wie im deutschen "Leicht bis mittel".
+    for (const t of treffer)
+      if (!treffer.some((o) => o !== t && (o.von !== t.von || o.bis !== t.bis) && o.von <= t.von && o.bis >= t.bis)) out.add(t.g);
+  }
+  return [...out];
 }
