@@ -22,6 +22,13 @@ type HourLang = {
   minute: string;
   /** Zahlwort -> Stunden. */
   words: Record<string, number>;
+  /**
+   * Zahlwort -> MINUTEN. Eigene Liste, weil die Minuten-Zahlwoerter andere sind als die
+   * Stunden-Zahlwoerter ("fuenfzig Minuten" gibt es, "fuenfzig Stunden" nicht). Gedeckt sind
+   * die Vielfachen von fuenf bis 55, also genau das, was `formatHikingDuration` erzeugt.
+   * Ordnungszahlen stehen bewusst NICHT drin: "in der ersten Minute" ist keine Dauer.
+   */
+  minuteWords: Record<string, number>;
   /** Feste Wendungen -> Stunden. Werden als ganze Zeichenkette gesucht. */
   phrases: Record<string, number>;
   /**
@@ -58,27 +65,34 @@ const HOURS: Record<string, HourLang> = {
     // Stunde". Ohne das blieb der zweite Satz der Sigmund-Thun-Klamm unsichtbar, und der
     // stand nach der Korrektur im Widerspruch zur neuen Gesamtdauer.
     filler: "(?:\\s+(?:knappe?[nrs]?|gute?[nrs]?|volle?[nrs]?|starke?[nrs]?|reichliche?[nrs]?))?\\s*",
+    minuteWords: { "fünf": 5, "zehn": 10, "fünfzehn": 15, "zwanzig": 20, "fünfundzwanzig": 25, "dreißig": 30, "dreissig": 30, "fünfunddreißig": 35, "vierzig": 40, "fünfundvierzig": 45, "fünfzig": 50, "fünfundfünfzig": 55 },
   },
   en: {
     unit: "hours|hour|hrs|hr",
     minute: "minutes|minute|mins|min",
     words: {
-      an: 1, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8,
+      a: 1, an: 1, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8,
       nine: 9, ten: 10, eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15,
     },
     phrases: {
       // "hour and a half" OHNE Artikel, damit auch "a good hour and a half" greift. Genau
       // daran ist der englische Nockstein-Text durch die Pruefung gerutscht.
-      "hour and a half": 1.5,
+      "hour and a half": 1.5, "half hour": 0.5,
       "half an hour": 0.5, "one and a half hours": 1.5,
       "two and a half hours": 2.5, "three and a half hours": 3.5, "four and a half hours": 4.5,
       "five and a half hours": 5.5, "six and a half hours": 6.5, "seven and a half hours": 7.5,
       "quarter of an hour": 0.25,
     },
     half: "%N%\\s+and\\s+a\\s+half\\s+(?:hours|hour)",
+    // "a good hour", "a full hour": das Beiwort steht zwischen Artikel und Einheit. Ohne das
+    // sah der Parser bei Asitz und Kapuzinerberg NICHTS und meldete folglich auch nichts.
+    filler: "(?:\\s+(?:good|full|solid|short|scant|long))?\\s*",
+    minuteWords: { "five": 5, "ten": 10, "fifteen": 15, "twenty": 20, "twenty-five": 25, "thirty": 30, "thirty-five": 35, "forty": 40, "forty-five": 45, "fifty": 50, "fifty-five": 55 },
   },
   it: {
-    unit: "ore|ora",
+    // „un'oretta" ist die Verkleinerungsform und im Italienischen die übliche Art, eine
+    // knappe Stunde zu sagen. Ohne sie war die Richterhöhe auf Italienisch stumm.
+    unit: "orette|oretta|ore|ora",
     minute: "minuti|minuto|min",
     words: {
       un: 1, una: 1, "un'": 1, due: 2, tre: 3, quattro: 4, cinque: 5, sei: 6, sette: 7,
@@ -90,6 +104,7 @@ const HOURS: Record<string, HourLang> = {
       "sei ore e mezza": 6.5, "sette ore e mezza": 7.5,
     },
     half: "%N%\\s+(?:ore|ora)\\s+e\\s+mezza",
+    minuteWords: { "cinque": 5, "dieci": 10, "quindici": 15, "venti": 20, "venticinque": 25, "trenta": 30, "trentacinque": 35, "quaranta": 40, "quarantacinque": 45, "cinquanta": 50, "cinquantacinque": 55 },
   },
   nl: {
     unit: "uren|uur",
@@ -99,11 +114,13 @@ const HOURS: Record<string, HourLang> = {
       acht: 8, negen: 9, tien: 10, elf: 11, twaalf: 12, dertien: 13, veertien: 14,
     },
     phrases: { "half uur": 0.5, halfuur: 0.5, kwartier: 0.25 },
+    filler: "(?:\\s+(?:ruim|krap|goed|dik|klein|kleine))?\\s*",
     // Niederländisch schreibt das zusammen, mit zwei Fugen und optionalem „een":
     // dertien+en+een+half, vier+en+een+half, drie+ën+een+half, twee+ën+half.
     // Eine Zeichenklasse reicht dafür nicht: „tweeënhalf" hat nach dem Trema noch ein n,
     // und genau daran ist der Hochkeil-Spiegelsee durch die Prüfung gerutscht.
     half: "%N%(?:en|ën)(?:een)?half\\s*(?:uren|uur)",
+    minuteWords: { "vijf": 5, "tien": 10, "vijftien": 15, "twintig": 20, "vijfentwintig": 25, "dertig": 30, "vijfendertig": 35, "veertig": 40, "vijfenveertig": 45, "vijftig": 50, "vijfenvijftig": 55 },
   },
   fr: {
     unit: "heures|heure",
@@ -122,6 +139,7 @@ const HOURS: Record<string, HourLang> = {
       "quart d'heure": 0.25,
     },
     half: "%N%\\s+(?:heures|heure)\\s+et\\s+demie",
+    minuteWords: { "cinq": 5, "dix": 10, "quinze": 15, "vingt": 20, "vingt-cinq": 25, "trente": 30, "trente-cinq": 35, "quarante": 40, "quarante-cinq": 45, "cinquante": 50, "cinquante-cinq": 55 },
   },
   es: {
     unit: "horas|hora",
@@ -136,6 +154,7 @@ const HOURS: Record<string, HourLang> = {
       "seis horas y media": 6.5, "siete horas y media": 7.5, "cuarto de hora": 0.25,
     },
     half: "%N%\\s+(?:horas|hora)\\s+y\\s+media",
+    minuteWords: { "cinco": 5, "diez": 10, "quince": 15, "veinte": 20, "veinticinco": 25, "treinta": 30, "treinta y cinco": 35, "cuarenta": 40, "cuarenta y cinco": 45, "cincuenta": 50, "cincuenta y cinco": 55 },
   },
   pt: {
     unit: "horas|hora",
@@ -150,6 +169,7 @@ const HOURS: Record<string, HourLang> = {
       "sete horas e meia": 7.5, "quarto de hora": 0.25,
     },
     half: "%N%\\s+(?:horas|hora)\\s+e\\s+meia",
+    minuteWords: { "cinco": 5, "dez": 10, "quinze": 15, "vinte": 20, "vinte e cinco": 25, "trinta": 30, "trinta e cinco": 35, "quarenta": 40, "quarenta e cinco": 45, "cinquenta": 50, "cinquenta e cinco": 55 },
   },
   pl: {
     unit: "godzinami|godzinach|godziny|godzinę|godzina|godzin",
@@ -162,8 +182,9 @@ const HOURS: Record<string, HourLang> = {
     // „Eine Stunde" heisst im Polnischen schlicht „godzina", ohne Zahlwort davor. Ohne diese
     // Zeile findet der Parser die Angabe nicht — und meldete die Festung als Widerspruch,
     // weil er nur noch das „trzy godziny" im selben Absatz sah.
-    phrases: { "pół godziny": 0.5, "półtorej godziny": 1.5, kwadrans: 0.25, godzina: 1, godzinę: 1 },
+    phrases: { "pół godziny": 0.5, "półgodziny": 0.5, "około godziny": 1, "koło godziny": 1, "półtorej godziny": 1.5, kwadrans: 0.25, godzina: 1, godzinę: 1 },
     half: "%N%\\s+i\\s+pół\\s+godziny",
+    minuteWords: { "pięć": 5, "dziesięć": 10, "piętnaście": 15, "dwadzieścia": 20, "dwadzieścia pięć": 25, "trzydzieści": 30, "trzydzieści pięć": 35, "czterdzieści": 40, "czterdzieści pięć": 45, "pięćdziesiąt": 50, "pięćdziesiąt pięć": 55 },
   },
   cs: {
     unit: "hodinami|hodinách|hodiny|hodinu|hodina|hodin",
@@ -173,8 +194,9 @@ const HOURS: Record<string, HourLang> = {
       osm: 8, devět: 9, deset: 10, jedenáct: 11, dvanáct: 12, třináct: 13, čtrnáct: 14,
     },
     // Wie im Polnischen: „eine Stunde" ist blosses „hodina" (siehe pl).
-    phrases: { "půl hodiny": 0.5, "hodina a půl": 1.5, "hodinu a půl": 1.5, "čtvrt hodiny": 0.25, hodina: 1, hodinu: 1 },
+    phrases: { "půl hodiny": 0.5, "půlhodina": 0.5, "půlhodinu": 0.5, "půlhodiny": 0.5, "hodina a půl": 1.5, "hodinu a půl": 1.5, "čtvrt hodiny": 0.25, hodina: 1, hodinu: 1 },
     half: "%N%\\s+a\\s+půl\\s+hodiny",
+    minuteWords: { "pět": 5, "deset": 10, "patnáct": 15, "dvacet": 20, "dvacet pět": 25, "pětadvacet": 25, "třicet": 30, "třicet pět": 35, "pětatřicet": 35, "čtyřicet": 40, "čtyřicet pět": 45, "pětačtyřicet": 45, "padesát": 50, "padesát pět": 55, "pětapadesát": 55 },
   },
   sk: {
     unit: "hodinami|hodinách|hodiny|hodinu|hodina|hodín",
@@ -184,8 +206,9 @@ const HOURS: Record<string, HourLang> = {
       osem: 8, deväť: 9, desať: 10, jedenásť: 11, dvanásť: 12, trinásť: 13, štrnásť: 14,
     },
     // Wie im Polnischen: „eine Stunde" ist blosses „hodina" (siehe pl).
-    phrases: { "pol hodiny": 0.5, "hodina a pol": 1.5, "hodinu a pol": 1.5, "štvrť hodiny": 0.25, hodina: 1, hodinu: 1 },
+    phrases: { "pol hodiny": 0.5, "polhodina": 0.5, "polhodinu": 0.5, "polhodiny": 0.5, "hodina a pol": 1.5, "hodinu a pol": 1.5, "štvrť hodiny": 0.25, hodina: 1, hodinu: 1 },
     half: "%N%\\s+a\\s+pol\\s+hodiny",
+    minuteWords: { "päť": 5, "desať": 10, "pätnásť": 15, "dvadsať": 20, "dvadsať päť": 25, "dvadsaťpäť": 25, "tridsať": 30, "tridsať päť": 35, "tridsaťpäť": 35, "štyridsať": 40, "štyridsať päť": 45, "štyridsaťpäť": 45, "päťdesiat": 50, "päťdesiat päť": 55, "päťdesiatpäť": 55 },
   },
   hu: {
     unit: "órányi|órára|órát|órás|óráig|órakor|óra",
@@ -196,6 +219,7 @@ const HOURS: Record<string, HourLang> = {
     },
     phrases: { "fél óra": 0.5, "fél órát": 0.5, "másfél óra": 1.5, "másfél órát": 1.5, "negyedóra": 0.25 },
     half: "%N%\\s+és\\s+fél\\s+(?:órát|óra)",
+    minuteWords: { "öt": 5, "tíz": 10, "tizenöt": 15, "húsz": 20, "huszonöt": 25, "harminc": 30, "harmincöt": 35, "negyven": 40, "negyvenöt": 45, "ötven": 50, "ötvenöt": 55 },
   },
   ko: {
     unit: "시간",
@@ -211,17 +235,21 @@ const HOURS: Record<string, HourLang> = {
     phrases: { "한 시간": 1, "두 시간": 2, "세 시간": 3, "네 시간": 4, "다섯 시간": 5, "여섯 시간": 6 },
     cjk: true,
     half: "%N%\\s*시간\\s*반",
+    minuteWords: { "오": 5, "십": 10, "십오": 15, "이십": 20, "이십오": 25, "삼십": 30, "삼십오": 35, "사십": 40, "사십오": 45, "오십": 50, "오십오": 55 },
   },
   zh: {
-    unit: "个小时|小时|小時",
+    // „个多小时" ist „gut eine Stunde", „个半小时" anderthalb. Ohne diese Formen im
+    // Einheitswort verschluckte der Parser jede gerundete chinesische Angabe.
+    unit: "个多小时|个半小时|个小时|多小时|小时|小時",
     minute: "分钟|分鐘",
     words: {
       一: 1, 两: 2, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9, 十: 10,
       十一: 11, 十二: 12, 十三: 13,
     },
-    phrases: { "半小时": 0.5, "半個小時": 0.5, "一个半小时": 1.5, "一小时半": 1.5 },
+    phrases: { "半小时": 0.5, "半個小時": 0.5, "半个小时": 0.5, "半个多小时": 0.5, "一个半小时": 1.5, "一小时半": 1.5 },
     cjk: true,
     half: "%N%\\s*个?半\\s*(?:小时|小時)",
+    minuteWords: { "五": 5, "十": 10, "十五": 15, "二十": 20, "二十五": 25, "三十": 30, "三十五": 35, "四十": 40, "四十五": 45, "五十": 50, "五十五": 55 },
   },
 };
 
@@ -239,7 +267,7 @@ function esc(s: string): string {
 
 /** Alle Zeichen, aus denen die Zahlwoerter dieser Sprache bestehen (nur fuer CJK noetig). */
 function zahlzeichen(L: HourLang): string {
-  return [...new Set(Object.keys(L.words).join(""))].map(esc).join("");
+  return [...new Set((Object.keys(L.words).join("") + Object.keys(L.minuteWords).join("")))].map(esc).join("");
 }
 
 /**
@@ -281,6 +309,11 @@ export function hoursInText(text: string, lang: string): number[] {
   for (const m of text.matchAll(new RegExp(`(\\d[\\d.,]*)\\s*(?:${L.unit})`, "giu")))
     out.push(zahl(m[1]));
 
+  // 1b. Uhrzeit-Schreibweise „1h30". Im Französischen die übliche Kurzform, und dort stand
+  // an der Lammerklamm die alte Zahl, die keine der anderen Regeln je gesehen hätte.
+  for (const m of text.matchAll(/(\d{1,2})\s*h\s*(\d{2})(?![\d])/gi))
+    out.push(Number(m[1]) + Number(m[2]) / 60);
+
   // 2. Minuten als Bruchteil: „30 Minuten", „45 min"
   for (const m of text.matchAll(new RegExp(`(\\d[\\d.,]*)\\s*(?:${L.minute})`, "giu")))
     out.push(zahl(m[1]) / 60);
@@ -288,6 +321,13 @@ export function hoursInText(text: string, lang: string): number[] {
   // 3. Zahlwörter vor dem Einheitswort: „fünf Stunden", „cinque ore", „öt óra"
   for (const [w, v] of Object.entries(L.words))
     if (new RegExp(grenze(`${esc(w)}${L.filler ?? "\\s*"}(?:${L.unit})`), "iu").test(text)) out.push(v);
+
+  // 3b. Zahlwörter vor dem MINUTEN-Wort: „Fünfzig Minuten", „Forty minutes", „사십 분".
+  // Ohne diese Zeile war jeder Spot unter einer Stunde blind: Die Nonnberggasse trug in
+  // dreizehn Sprachen die alte Zahl im Text, und der Lauf meldete null.
+  for (const [w, v] of Object.entries(L.minuteWords))
+    if (new RegExp(grenze(`${esc(w)}${L.filler ?? "\\s*"}(?:${L.minute})`), "iu").test(text))
+      out.push(v / 60);
 
   // 4. Zahlwort plus halbe Stunde: „dreizehneinhalb Stunden", „sei ore e mezza"
   const halb = halbMuster(L);
@@ -319,8 +359,13 @@ export function hourMatches(text: string, lang: string): string[] {
   const grenze = (s: string) => (L.cjk ? `(?<![${zahlzeichen(L)}])${s}` : `(?<![\\p{L}])${s}(?![\\p{L}])`);
   for (const m of text.matchAll(new RegExp(`(\\d[\\d.,]*)\\s*(?:${L.unit}|${L.minute})`, "giu")))
     out.push(m[0].trim());
+  for (const m of text.matchAll(/(\d{1,2})\s*h\s*(\d{2})(?![\d])/gi)) out.push(m[0].trim());
   for (const w of Object.keys(L.words)) {
     const m = new RegExp(grenze(`${esc(w)}${L.filler ?? "\\s*"}(?:${L.unit})`), "iu").exec(text);
+    if (m) out.push(m[0].trim());
+  }
+  for (const w of Object.keys(L.minuteWords)) {
+    const m = new RegExp(grenze(`${esc(w)}${L.filler ?? "\\s*"}(?:${L.minute})`), "iu").exec(text);
     if (m) out.push(m[0].trim());
   }
   const halb = halbMuster(L);
