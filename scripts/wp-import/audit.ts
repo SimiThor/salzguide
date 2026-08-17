@@ -16,6 +16,7 @@ import { createClient } from "@supabase/supabase-js";
 import { TARGET_LOCALES } from "../../src/i18n/locales.ts";
 import { selectAll } from "./select-all.ts";
 import { hoursInText, hourMatches, fieldHours, difficultyInText, type Grade } from "./facts-in-text.ts";
+import { istGeprueft } from "./geprueft.ts";
 
 /**
  * Die Regel steht in `src/lib/brand-voice.ts`, dort aber als Prosa im Prompt-Text und nicht
@@ -196,18 +197,25 @@ async function main() {
     const prof = s.elevation_profile as { ascent?: number; distanceKm?: number } | null;
 
     // ---- 1. Gemessene Route gegen die Zahlen im Text ----
+    // Toleranz 0,2 km statt 0,3: Die Seite zeigt die gemessene Länge im Höhenprofil auf eine
+    // Nachkommastelle an, der Satz daneben soll dieselbe Zahl nennen. Mit 0,3 rutschte der
+    // Schuhflickersee um zwei Hundertstel durch und sagte 4,1 Kilometer über einem Profil,
+    // das 3,7 zeichnet.
     if (prof?.distanceKm) {
       const km = kmImText(deText);
-      if (km.length && !trifft(km, prof.distanceKm, 0.1, 0.3))
+      if (km.length && !trifft(km, prof.distanceKm, 0.05, 0.2))
         widerspruch.push({
           slug: s.slug as string,
           feld: "Länge",
           was: `Text: ${km.join(" / ")} km · gemessen: ${Math.round(prof.distanceKm * 10) / 10} km`,
         });
     }
+    // Höhenmeter: 25 statt 30 absolut, weil die Texte in Fünfziger- und Hunderterschritten
+    // runden („knapp 400", „rund 260"). Grösser gedacht wäre eine Rundung, die schon eine
+    // Stufe danebenliegt, noch richtig.
     if (prof?.ascent) {
       const hm = hmImText(deText);
-      if (hm.length && !trifft(hm, prof.ascent, 0.1, 30))
+      if (hm.length && !trifft(hm, prof.ascent, 0.1, 25))
         widerspruch.push({
           slug: s.slug as string,
           feld: "Höhenmeter",
@@ -390,16 +398,22 @@ async function main() {
 
   block("WIDERSPRUCH gegen gemessene Daten", widerspruch);
   block("SPRACHLICHE MÄNGEL", sprache);
+  // Schon nachgeschlagene Behauptungen fallen raus (geprueft.ts). Ohne das stuenden
+  // dieselben vierunddreissig Zeilen bei jedem Lauf da, und in einer Liste, die sich nie
+  // leert, faellt die eine neue Zeile nicht mehr auf.
+  const offen = nachschlagen.filter((b) => !istGeprueft(b.slug, b.feld));
+  const erledigt = nachschlagen.length - offen.length;
   console.log(
-    `\n── NACHSCHLAGEN (${nachschlagen.length}) ──\n` +
+    `\n── NACHSCHLAGEN (${offen.length}) ──\n` +
       "Das System kennt diese Angaben nicht, es kann sie also weder bestätigen noch\n" +
-      "widerlegen. Sie stehen hier, damit ein Mensch sie prüft.",
+      "widerlegen. Sie stehen hier, damit ein Mensch sie prüft." +
+      (erledigt ? `\n${erledigt} weitere sind laut geprueft.ts bereits belegt und stehen deshalb nicht hier.` : ""),
   );
-  for (const b of nachschlagen) console.log(`  ${b.slug.padEnd(34)} ${b.feld.padEnd(14)} ${b.was}`);
+  for (const b of offen) console.log(`  ${b.slug.padEnd(34)} ${b.feld.padEnd(14)} ${b.was}`);
 
   console.log(
     `\n${spots!.length} Spots, ${TARGET_LOCALES.length + 1} Sprachen. ` +
-      `${widerspruch.length} Widersprüche, ${sprache.length} sprachliche Mängel, ${nachschlagen.length} zum Nachschlagen.`,
+      `${widerspruch.length} Widersprüche, ${sprache.length} sprachliche Mängel, ${offen.length} zum Nachschlagen.`,
   );
 }
 

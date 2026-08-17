@@ -44,6 +44,14 @@ type HourLang = {
    * vier französische Texte behielten stumm die alte Zahl.
    */
   filler?: string;
+  /**
+   * Wörter, die ALLEIN einen Bruchteil meinen, ohne Einheitswort daneben: „raczej półtorej",
+   * „inkább másfél", „eerder anderhalf". So schreiben die Texte die zweite Hälfte einer
+   * Auslassung („rund eine Stunde …, mit Pausen eher anderthalb"). Gezählt werden sie NUR,
+   * wenn im selben Text ohnehin von Stunden die Rede ist, sonst wäre jedes „anderhalf
+   * kilometer" eine Zeitangabe.
+   */
+  loneHalf?: Record<string, number>;
   /** Sprachen ohne Wortgrenzen (CJK): dort darf nicht auf Buchstabenränder geprüft werden. */
   cjk?: boolean;
 };
@@ -66,6 +74,7 @@ const HOURS: Record<string, HourLang> = {
     // stand nach der Korrektur im Widerspruch zur neuen Gesamtdauer.
     filler: "(?:\\s+(?:knappe?[nrs]?|gute?[nrs]?|volle?[nrs]?|starke?[nrs]?|reichliche?[nrs]?))?\\s*",
     minuteWords: { "fünf": 5, "zehn": 10, "fünfzehn": 15, "zwanzig": 20, "fünfundzwanzig": 25, "dreißig": 30, "dreissig": 30, "fünfunddreißig": 35, "vierzig": 40, "fünfundvierzig": 45, "fünfzig": 50, "fünfundfünfzig": 55 },
+    loneHalf: { anderthalb: 1.5, eineinhalb: 1.5, zweieinhalb: 2.5, dreieinhalb: 3.5 },
   },
   en: {
     unit: "hours|hour|hrs|hr",
@@ -121,6 +130,7 @@ const HOURS: Record<string, HourLang> = {
     // und genau daran ist der Hochkeil-Spiegelsee durch die Prüfung gerutscht.
     half: "%N%(?:en|ën)(?:een)?half\\s*(?:uren|uur)",
     minuteWords: { "vijf": 5, "tien": 10, "vijftien": 15, "twintig": 20, "vijfentwintig": 25, "dertig": 30, "vijfendertig": 35, "veertig": 40, "vijfenveertig": 45, "vijftig": 50, "vijfenvijftig": 55 },
+    loneHalf: { anderhalf: 1.5, "anderhalve": 1.5 },
   },
   fr: {
     unit: "heures|heure",
@@ -133,7 +143,7 @@ const HOURS: Record<string, HourLang> = {
     },
     filler: "(?:\\s+(?:bonnes?|petites?|grosses?))?\\s*(?:d['\u2019])?\\s*",
     phrases: {
-      "demi-heure": 0.5, "demie heure": 0.5, "une heure et demie": 1.5,
+      "demi-heure": 0.5, "demie heure": 0.5, "heure et demie": 1.5,
       "deux heures et demie": 2.5, "trois heures et demie": 3.5, "quatre heures et demie": 4.5,
       "cinq heures et demie": 5.5, "six heures et demie": 6.5, "sept heures et demie": 7.5,
       "quart d'heure": 0.25,
@@ -185,6 +195,7 @@ const HOURS: Record<string, HourLang> = {
     phrases: { "pół godziny": 0.5, "półgodziny": 0.5, "około godziny": 1, "koło godziny": 1, "półtorej godziny": 1.5, kwadrans: 0.25, godzina: 1, godzinę: 1 },
     half: "%N%\\s+i\\s+pół\\s+godziny",
     minuteWords: { "pięć": 5, "dziesięć": 10, "piętnaście": 15, "dwadzieścia": 20, "dwadzieścia pięć": 25, "trzydzieści": 30, "trzydzieści pięć": 35, "czterdzieści": 40, "czterdzieści pięć": 45, "pięćdziesiąt": 50, "pięćdziesiąt pięć": 55 },
+    loneHalf: { "półtorej": 1.5, "półtora": 1.5 },
   },
   cs: {
     unit: "hodinami|hodinách|hodiny|hodinu|hodina|hodin",
@@ -197,6 +208,7 @@ const HOURS: Record<string, HourLang> = {
     phrases: { "půl hodiny": 0.5, "půlhodina": 0.5, "půlhodinu": 0.5, "půlhodiny": 0.5, "hodina a půl": 1.5, "hodinu a půl": 1.5, "čtvrt hodiny": 0.25, hodina: 1, hodinu: 1 },
     half: "%N%\\s+a\\s+půl\\s+hodiny",
     minuteWords: { "pět": 5, "deset": 10, "patnáct": 15, "dvacet": 20, "dvacet pět": 25, "pětadvacet": 25, "třicet": 30, "třicet pět": 35, "pětatřicet": 35, "čtyřicet": 40, "čtyřicet pět": 45, "pětačtyřicet": 45, "padesát": 50, "padesát pět": 55, "pětapadesát": 55 },
+    loneHalf: { "půldruhé": 1.5, "hodinu a půl": 1.5 },
   },
   sk: {
     unit: "hodinami|hodinách|hodiny|hodinu|hodina|hodín",
@@ -209,6 +221,7 @@ const HOURS: Record<string, HourLang> = {
     phrases: { "pol hodiny": 0.5, "polhodina": 0.5, "polhodinu": 0.5, "polhodiny": 0.5, "hodina a pol": 1.5, "hodinu a pol": 1.5, "štvrť hodiny": 0.25, hodina: 1, hodinu: 1 },
     half: "%N%\\s+a\\s+pol\\s+hodiny",
     minuteWords: { "päť": 5, "desať": 10, "pätnásť": 15, "dvadsať": 20, "dvadsať päť": 25, "dvadsaťpäť": 25, "tridsať": 30, "tridsať päť": 35, "tridsaťpäť": 35, "štyridsať": 40, "štyridsať päť": 45, "štyridsaťpäť": 45, "päťdesiat": 50, "päťdesiat päť": 55, "päťdesiatpäť": 55 },
+    loneHalf: { "polodruha": 1.5, "hodinu a pol": 1.5 },
   },
   hu: {
     unit: "órányi|órára|órát|órás|óráig|órakor|óra",
@@ -220,6 +233,7 @@ const HOURS: Record<string, HourLang> = {
     phrases: { "fél óra": 0.5, "fél órát": 0.5, "másfél óra": 1.5, "másfél órát": 1.5, "negyedóra": 0.25 },
     half: "%N%\\s+és\\s+fél\\s+(?:órát|óra)",
     minuteWords: { "öt": 5, "tíz": 10, "tizenöt": 15, "húsz": 20, "huszonöt": 25, "harminc": 30, "harmincöt": 35, "negyven": 40, "negyvenöt": 45, "ötven": 50, "ötvenöt": 55 },
+    loneHalf: { "másfél": 1.5 },
   },
   ko: {
     unit: "시간",
@@ -337,6 +351,13 @@ export function hoursInText(text: string, lang: string): number[] {
   // 5. Feste Wendungen: „halbe Stunde", „hora y media", „másfél óra"
   for (const [p, v] of Object.entries(L.phrases))
     sammeln(new RegExp(grenze(esc(p)), "giu"), () => v, 2);
+
+  // 5b. Auslassung: „Rund eine Stunde …, mit Pausen eher anderthalb". Das Einheitswort steht
+  // nur beim ersten Mal, die zweite Zahl steht allein da. Nur zulässig, wenn im selben Text
+  // ohnehin von Stunden die Rede ist — sonst wäre „anderhalve kilometer" eine Zeitangabe.
+  if (L.loneHalf && new RegExp(`(?:${L.unit})`, "iu").test(text))
+    for (const [w, v] of Object.entries(L.loneHalf))
+      sammeln(new RegExp(grenze(esc(w)), "giu"), () => v, 2);
 
   // Eine Fundstelle INNERHALB einer anderen zählt nicht.
   return funde
@@ -505,4 +526,36 @@ export function difficultyInText(text: string, lang: string): Grade[] {
       if (!treffer.some((o) => o !== t && (o.von !== t.von || o.bis !== t.bis) && o.von <= t.von && o.bis >= t.bis)) out.add(t.g);
   }
   return [...out];
+}
+
+/**
+ * Riegel gegen die zweite Wahrheit: Ein Eintrag in diesem Skript ist eine ABGELEGTE KOPIE
+ * eines Absatzes. Ändert sich derselbe Absatz woanders — etwa weil die Gehzeit neu gerechnet
+ * wurde und `wp:fix-hiking-texts` die Sätze nachgezogen hat — dann schreibt dieses Skript
+ * beim nächsten Lauf die alte Fassung zurück. Genau das ist am 17.08.2026 passiert: Der
+ * Gamskarkogel-Absatz trug noch „dreizehneinhalb Stunden“ und überschrieb die korrigierten
+ * neun. Aufgefallen ist es nur, weil `wp:audit` danach lief.
+ *
+ * Deshalb wird jeder Text VOR dem Schreiben gegen die Felder des Spots geprüft. Bei einem
+ * Widerspruch bricht der Lauf ab, statt ihn still einzutragen.
+ */
+export function widersprichtDenFeldern(
+  text: string,
+  spot: { duration: string | null; difficulty: string | null; route_geojson: unknown },
+): string | null {
+  const soll = fieldHours(spot.duration);
+  if (soll !== null) {
+    const werte = hoursInText(text, "de");
+    const passt = werte.some((w) => Math.abs(w - soll) <= Math.max(soll < 1 ? 4 / 60 : 15 / 60, soll * 0.05));
+    const zuViel = werte.some((w) => w > soll * 1.05 + (soll < 1 ? 4 / 60 : 15 / 60));
+    if (werte.length && !passt && (spot.route_geojson ? zuViel : zuViel))
+      return `nennt ${werte.map((w) => Math.round(w * 60) + " min").join("/")}, das Feld sagt ${spot.duration}`;
+  }
+  const stufe = (spot.difficulty ?? "").trim().toLowerCase();
+  if (stufe) {
+    const genannt = difficultyInText(text, "de");
+    if (genannt.length && !genannt.includes(stufe as Grade))
+      return `nennt die Stufe ${genannt.join("/")}, das Feld sagt ${stufe}`;
+  }
+  return null;
 }
