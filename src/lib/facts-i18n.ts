@@ -25,6 +25,7 @@
 // jede Auswahlliste in jeder Sprache vollständig ist.
 import facts from "./facts-i18n.json" with { type: "json" };
 import { normalizeText } from "./normalize-text";
+import { localeMeta } from "@/i18n/locales";
 
 type LangMap = Record<string, string>;
 type Table = Record<string, LangMap>;
@@ -175,9 +176,24 @@ export function factPrice(v: string | null | undefined): string | null {
   return raw;
 }
 
-// Dauer: "3 Std" -> "3 h", "30 Min" -> "30 min", "1,5 Std" -> "1.5 h" (h/min sind
-// international gebräuchlich, Deutsch behält "Std"/"Min"). Wort-Dauern wie "Halbtag" haben
-// keine Zahl und liefen früher ungefiltert in jede Sprache — die stehen jetzt in DURATION.
+/**
+ * Das Dezimaltrennzeichen der Sprache, aus `Intl` statt aus einer Liste im Kopf.
+ *
+ * WARUM DAS HIER STEHT: Die Dauer lief früher pauschal durch `,` -> `.`, weil „international"
+ * mit „englisch" verwechselt wurde. Neun der dreizehn Sprachen schreiben aber mit Komma. Auf
+ * der polnischen Spot-Seite stand damit „5.5 h" im Faktenkasten und „12,8 kilometra" im Satz
+ * darunter: dieselbe Seite, zwei Zahlenformate. Das Höhenprofil daneben rechnet längst über
+ * `Intl.NumberFormat`, hier fehlte es.
+ */
+function dezimaltrenner(locale: string): string {
+  const tag = localeMeta(locale)?.bcp47 ?? locale;
+  return new Intl.NumberFormat(tag).format(1.5).replace(/\d/g, "");
+}
+
+// Dauer: "3 Std" -> "3 h", "30 Min" -> "30 min", "1,5 Std" -> "1,5 h" bzw. "1.5 h", je nach
+// Sprache (h/min sind international gebräuchlich, Deutsch behält "Std"/"Min"). Wort-Dauern
+// wie "Halbtag" haben keine Zahl und liefen früher ungefiltert in jede Sprache — die stehen
+// jetzt in DURATION.
 export function factDuration(
   v: string | null | undefined,
   locale: string,
@@ -186,9 +202,10 @@ export function factDuration(
   const word = resolve(["DURATION"], v.trim());
   if (word) return locale === "de" ? word.key : DATA.DURATION?.[word.key]?.[locale] ?? word.key;
   if (locale === "de") return v.trim();
+  const sep = dezimaltrenner(locale);
   return v
     .trim()
-    .replace(/,(\d)/g, ".$1") // Dezimalkomma -> Punkt
+    .replace(/(\d),(\d)/g, `$1${sep}$2`) // Dezimalkomma in die Schreibweise der Sprache
     .replace(/\bStd\b\.?/gi, "h")
     .replace(/\bMin\b\.?/gi, "min");
 }

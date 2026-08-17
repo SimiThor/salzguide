@@ -147,6 +147,13 @@ Sechs Fehler, die genau hier schon gesessen haben und die jetzt als Testfälle i
 - **Minuten nur als Ziffer.** „Fünfzig Minuten" fand der Parser in keiner Sprache. Selbst ohne
   die Sperre oben hätte er dort nichts gemeldet.
 
+**Die Anzeige selbst gehört dazu.** Die Zahl geht durch `factDuration` in
+`src/lib/facts-i18n.ts`, und die hat das Dezimalkomma lange pauschal durch einen Punkt
+ersetzt, weil „international" mit „englisch" verwechselt wurde. Neun der dreizehn Sprachen
+schreiben mit Komma; auf der polnischen Spot-Seite stand deshalb „5.5 h" im Faktenkasten und
+„12,8 kilometra" im Satz darunter. Das Trennzeichen kommt jetzt aus `Intl`, wie im
+Höhenprofil daneben. Geprüft wird es in `hiking:check` für alle dreizehn Sprachen.
+
 **Wie die Texte in 13 Sprachen korrigiert wurden.** Nicht durch Zahlentausch: „Sechs Stunden"
 wird auf Polnisch zu „Cztery i pół godziny", weil das Zahlwort den Fall des Substantivs
 regiert. Je Sprache wurde formuliert und von einem zweiten, unabhängigen Leser Satz für Satz
