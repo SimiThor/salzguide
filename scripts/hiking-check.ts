@@ -271,6 +271,12 @@ console.log("\n7. Zeitangaben in allen 13 Sprachen finden (facts-in-text.ts)");
     // Uhrzeit-Kurzform und polnischer Genitiv, beide drei Durchgaenge lang unsichtbar.
     ["fr", "1,9 km, environ 1h30, 219 m\u00e8tres.", 1.5],
     ["pl", "1,9 km, oko\u0142o godziny, 219 metr\u00f3w.", 1],
+    // Auslassung: die zweite Zahl steht ohne Einheitswort da. Deutsch konnte das laengst,
+    // die anderen Sprachen nicht, und der Pruefer meldete vier richtige Uebersetzungen.
+    ["fr", "En boucle compl\u00e8te, une bonne heure et demie.", 1.5],
+    ["hu", "Nagyj\u00e1b\u00f3l egy \u00f3ra, fot\u00f3sz\u00fcnetekkel ink\u00e1bb m\u00e1sf\u00e9l.", 1.5],
+    ["pl", "Jaka\u015b godzina, z postojami raczej p\u00f3\u0142torej.", 1.5],
+    ["nl", "Ongeveer een uur, met fotostops eerder anderhalf.", 1.5],
     ["zh", "\u4ece\u4e0a\u7ad9\u8d70\u4e00\u5708\u4e00\u4e2a\u591a\u5c0f\u65f6\u3002", 1],
     ["zh", "\u7ed5\u6e56\u4e00\u5708\u534a\u4e2a\u591a\u5c0f\u65f6\u3002", 0.5],
     // Koreanisch: „열세" (13) darf nicht als „세" (3) gelesen werden.
@@ -353,6 +359,7 @@ console.log("\n8. Schwierigkeit im Fliesstext (facts-in-text.ts)");
   const NEIN: [string, string][] = [
     ["en", "Hardly anyone goes down to the crypt."],
     ["en", "In the first minute it gets steep."],
+    ["nl", "Het pad is anderhalve kilometer lang."],
     ["en", "There is nothing strenuous about it."],
     ["en", "Technically easy, but alpine terrain: basic fitness."],
     ["es", "Media hora basta para la nave."],
