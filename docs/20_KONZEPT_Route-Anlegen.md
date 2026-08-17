@@ -85,16 +85,31 @@ Portalen — das ist der Unterschied zwischen „durchgehen" und „mit Pausen a
 
 | Befehl | prüft |
 |---|---|
-| `npm run hiking:check` | Formel gegen fünf veröffentlichte Referenztouren (Quellen stehen im Skript, Toleranz 25 %) **und** den Sprach-Parser gegen 58 echte Sätze aus dem Bestand |
+| `npm run hiking:check` | Formel gegen fünf veröffentlichte Referenztouren (Quellen stehen im Skript, Toleranz 25 %) **und** den Sprach-Parser gegen 90 echte Sätze aus dem Bestand |
 | `npm run wp:hiking-times` | rechnet den Bestand nach (Dauer + Schwierigkeit), trocken; `-- --go` schreibt |
 | `npm run wp:audit` | Dauer UND Schwierigkeit in den Fliesstexten gegen das Feld, in **allen 13 Sprachen** (`facts-in-text.ts`) |
 | `npm run wp:fix-hiking-texts` | zieht die Sätze nach, wenn sich Dauer oder Stufe ändert |
 
-**Die Regel, auf der der Dauer-Abgleich steht:** Bei einer Route ist das Feld die Dauer der
-GANZEN Tour, und dann kann kein Teilstück länger sein als das Ganze. Jede Zeit über dem Feld
-ist dort ein Fund, auch wenn woanders im Text eine passende Zahl steht. Ohne Route ist das
-Feld eine kuratierte Besuchsdauer, und der Text darf eine Spanne nennen („eine Stunde reicht,
-drei wenn du alles anschaust"); dort wird nur gemeldet, wenn KEINE Zahl passt.
+**Die Regel, auf der der Dauer-Abgleich steht:** Bei einer Tour **ab einer Stunde** ist das
+Feld die Dauer der GANZEN Tour, und dann kann kein Teilstück länger sein als das Ganze. Jede
+Zeit über dem Feld ist dort ein Fund, auch wenn woanders im Text eine passende Zahl steht.
+
+**Unter einer Stunde gilt sie nicht**, und das ist kein Nachlassen: Dort ist das Feld der
+WEG, nicht der Besuch, und die Texte sagen das ausdrücklich dazu („Zehn Minuten braucht der
+Weg durch die Gassen, ein bis zwei Stunden brauchst du, wenn du dich treiben lässt"). Die
+längere Zahl ist da richtig. Gemeldet wird dort nur, wenn KEINE Zahl im Text zum Feld passt.
+
+**Die Toleranz hängt an der Grössenordnung**, weil die Dauer so geschrieben wird: unter einer
+Stunde in Fünf-Minuten-Schritten, darüber in halben Stunden. Vier Minuten unter der Stunde,
+fünfzehn darüber. Vorher stand dort pauschal 0,35 Std, und bei einem Feld von 35 Minuten galt
+damit alles zwischen 14 und 56 Minuten als richtig.
+
+**Und der Audit fragt zusätzlich, ob jede Sprache die Dauer überhaupt NENNT.** Diese Frage
+stellt der Widerspruchs-Teil nicht, denn ein Text darf schweigen. Findet der Parser in einer
+Sprache aber gar nichts, meldet er dort auch nie einen Widerspruch, und eine falsche Zahl
+kann beliebig lange stehen bleiben. Genau so haben „a good hour", „一个多小时",
+„dvadsaťpäť minút", „un'oretta abbondante" und das französische „1h30" drei Durchgänge
+überlebt: nicht weil sie richtig waren, sondern weil niemand hinsah.
 
 Zahlen UNTER dem Feld bleiben still, weil man sie nicht von Teilzeiten unterscheiden kann.
 Ab 60 Prozent des Feldwerts landen sie unter NACHSCHLAGEN, damit auch die gefährlichere
@@ -107,7 +122,7 @@ stehen dieselben Wörter in anderer Bedeutung: das spanische „y media" ist die
 zufällig mit „hard" an. Spannen („Leicht bis mittel", „Facile à moyen") werden als beide
 Stufen gelesen.
 
-Vier Fehler, die genau hier schon gesessen haben und die jetzt als Testfälle in
+Sechs Fehler, die genau hier schon gesessen haben und die jetzt als Testfälle in
 `hiking:check` liegen:
 
 - **Zwei Toleranzen für dieselbe Frage.** Die Widerspruchs-Schwelle hatte einen zusätzlichen
@@ -123,9 +138,14 @@ Vier Fehler, die genau hier schon gesessen haben und die jetzt als Testfälle in
   Chinesischen aber jede Angabe, vor der ein Han-Zeichen steht („开车的话一小时"). Geblockt
   wird jetzt nur ein vorangehendes ZAHLZEICHEN derselben Sprache.
 - **Ein Wort zwischen Zahl und Einheit.** Französisch („trois bonnes heures"), Deutsch („in
-  einer knappen Stunde"), Englisch („a good hour and a half") und die niederländischen
-  Trema-Formen („tweeënhalf") fielen alle durch. Vier französische Texte, der englische
-  Nockstein und der Hochkeil-Spiegelsee standen deshalb nie auf der Liste.
+  einer knappen Stunde"), Englisch („a good hour", „a good hour and a half"), Niederländisch
+  („een ruim uur") und die Trema-Formen („tweeënhalf") fielen alle durch. Vier französische
+  Texte, der englische Nockstein und der Hochkeil-Spiegelsee standen deshalb nie auf der Liste.
+- **Ein ganzer Grössenbereich ausgelassen.** Der Dauer-Abgleich begann bei einer Stunde, also
+  waren vierzehn Wanderungen darunter nie geprüft. Aufgefallen ist es einem Menschen, der die
+  Nonnberggasse aufgemacht hat: oben 35 Minuten, im Absatz darunter fünfzig.
+- **Minuten nur als Ziffer.** „Fünfzig Minuten" fand der Parser in keiner Sprache. Selbst ohne
+  die Sperre oben hätte er dort nichts gemeldet.
 
 **Wie die Texte in 13 Sprachen korrigiert wurden.** Nicht durch Zahlentausch: „Sechs Stunden"
 wird auf Polnisch zu „Cztery i pół godziny", weil das Zahlwort den Fall des Substantivs

@@ -1129,6 +1129,848 @@ const FIXES_RUNDE2: Fix[] = [
   },
 ];
 
+
+/**
+ * DRITTE RUNDE, die vierzehn Spots UNTER einer Stunde.
+ *
+ * Sie standen nie auf einer Liste, weil die Prüfung sie gar nicht ansah: In `wp:audit` stand
+ * `soll >= 1`, der Dauer-Abgleich begann also erst bei einer Stunde. Dazu las der Parser
+ * Minuten nur als Ziffer, „Fünfzig Minuten" fand er in keiner Sprache. Aufgefallen ist es
+ * einem Menschen, der die Nonnberggasse aufgemacht hat: oben 35 min, im Absatz darunter
+ * fünfzig.
+ *
+ * Dass es wirklich die alten Werte sind und keine Fehlalarme, ist nachgerechnet: In zehn von
+ * vierzehn Fällen nennt der Text exakt das Ergebnis der ALTEN Formel, die vier übrigen
+ * runden es („knapp eine Stunde" für 55 Minuten).
+ *
+ * WAS HIER NICHT ANGEFASST WIRD: Diese Texte trennen sauber zwischen dem Weg und dem
+ * Aufenthalt („Zehn Minuten braucht der Weg durch die Gassen, ein bis zwei Stunden brauchst
+ * du, wenn du dich treiben lässt"), nennen Teilstrecken („in einer Viertelstunde hin") und
+ * verweisen auf andere Touren („der Aufstieg von Schloss Aigen dauert gut zwei Stunden").
+ * Die längeren Zahlen sind dort richtig. Geändert wird nur die Angabe, die DIESE Runde meint.
+ */
+const FIXES_RUNDE3: Fix[] = [
+  {
+    slug: "aignerpark",
+    alt: "55 min",
+    neu: "40 min",
+    texte: {
+      de: [
+        ["Knapp eine Stunde", "Vierzig Minuten"],
+      ],
+      en: [
+        ["Just under an hour", "Forty minutes"],
+      ],
+      it: [
+        ["Poco meno di un'ora per il giro", "Quaranta minuti per il giro"],
+      ],
+      nl: [
+        ["Krap een uur", "Veertig minuten"],
+      ],
+      fr: [
+        ["Une petite heure", "Quarante minutes"],
+      ],
+      es: [
+        ["Poco menos de una hora", "Cuarenta minutos"],
+      ],
+      pt: [
+        ["Pouco menos de uma hora para a volta", "Quarenta minutos para a volta"],
+      ],
+      pl: [
+        ["Niecała godzina", "Czterdzieści minut"],
+      ],
+      cs: [
+        ["Necelá hodina", "Čtyřicet minut"],
+      ],
+      sk: [
+        ["Necelá hodina", "Štyridsať minút"],
+      ],
+      hu: [
+        ["Alig egy óra a kör", "Negyven perc a kör"],
+      ],
+      ko: [
+        ["한 바퀴에 한 시간이 채 안 걸리고", "한 바퀴에 사십 분 걸리고"],
+      ],
+      zh: [
+        ["一圈不到一小时", "一圈四十分钟"],
+      ],
+    },
+  },
+  {
+    slug: "asitz",
+    alt: "1 Std 10 min",
+    neu: "55 min",
+    texte: {
+      de: [
+        ["Gut eine Stunde", "Fünfundfünfzig Minuten"],
+      ],
+      it: [
+        ["Un'ora abbondante", "Cinquantacinque minuti"],
+      ],
+      nl: [
+        ["Ruim een uur", "Vijfenvijftig minuten"],
+      ],
+      fr: [
+        ["Une bonne heure", "Cinquante-cinq minutes"],
+      ],
+      es: [
+        ["Poco más de una hora", "Cincuenta y cinco minutos"],
+      ],
+      pt: [
+        ["Uma hora larga para a volta", "Cinquenta e cinco minutos para a volta"],
+      ],
+      pl: [
+        ["Dobra godzina", "Pięćdziesiąt pięć minut"],
+      ],
+      cs: [
+        ["Dobrá hodina", "Padesát pět minut"],
+      ],
+      sk: [
+        ["Dobrá hodina", "Päťdesiatpäť minút"],
+      ],
+      hu: [
+        ["Bő egy óra a kör", "Ötvenöt perc a kör"],
+      ],
+      ko: [
+        ["한 바퀴에 한 시간 남짓", "한 바퀴에 오십오 분"],
+      ],
+    },
+  },
+  {
+    slug: "bad-gastein",
+    alt: "55 min",
+    neu: "40 min",
+    texte: {
+      de: [
+        ["eine knappe Stunde", "vierzig Minuten"],
+        ["Knapp eine Stunde", "Vierzig Minuten"],
+      ],
+      en: [
+        ["just under an hour", "forty minutes"],
+        ["Just under an hour", "Forty minutes"],
+      ],
+      it: [
+        ["poco meno di un'ora", "quaranta minuti"],
+        ["Poco meno di un'ora", "Quaranta minuti"],
+      ],
+      nl: [
+        ["in krap een uur", "in veertig minuten"],
+        ["Krap een uur", "Veertig minuten"],
+      ],
+      fr: [
+        ["une petite heure", "quarante minutes"],
+        ["Une petite heure", "Quarante minutes"],
+      ],
+      es: [
+        ["poco menos de una hora", "cuarenta minutos"],
+        ["Poco menos de una hora", "Cuarenta minutos"],
+      ],
+      pt: [
+        ["em pouco menos de uma hora", "em quarenta minutos"],
+        ["Pouco menos de uma hora para o percurso", "Quarenta minutos para o percurso"],
+      ],
+      pl: [
+        ["niecałą godzinę", "czterdzieści minut"],
+        ["Niecała godzina", "Czterdzieści minut"],
+      ],
+      cs: [
+        ["za necelou hodinu", "za čtyřicet minut"],
+        ["Necelá hodina", "Čtyřicet minut"],
+      ],
+      sk: [
+        ["za necelú hodinu", "za štyridsať minút"],
+        ["Necelá hodina", "Štyridsať minút"],
+      ],
+      hu: [
+        ["Alig egy óra alatt sétálsz", "Negyven perc alatt sétálsz"],
+        ["Alig egy óra a séta", "Negyven perc a séta"],
+      ],
+      ko: [
+        ["위에서 아래까지 한 시간이 채 안 걸리고", "위에서 아래까지 사십 분 걸리고"],
+        ["길이 한 시간이 채 안 되고", "길이 사십 분 걸리고"],
+      ],
+      zh: [
+        ["从上走到下不到一小时", "从上走到下四十分钟"],
+        ["穿过镇子不到一小时", "穿过镇子四十分钟"],
+      ],
+    },
+  },
+  {
+    slug: "burg-hohenwerfen",
+    alt: "40 min",
+    neu: "35 min",
+    texte: {
+      de: [
+        ["Vierzig Minuten", "Fünfunddreißig Minuten"],
+      ],
+      en: [
+        ["Forty minutes", "Thirty-five minutes"],
+      ],
+      it: [
+        ["Quaranta minuti", "Trentacinque minuti"],
+      ],
+      nl: [
+        ["Veertig minuten", "Vijfendertig minuten"],
+      ],
+      fr: [
+        ["Quarante minutes", "Trente-cinq minutes"],
+      ],
+      es: [
+        ["Cuarenta minutos", "Treinta y cinco minutos"],
+      ],
+      pt: [
+        ["Quarenta minutos para subir", "Trinta e cinco minutos para subir"],
+      ],
+      pl: [
+        ["Czterdzieści minut", "Trzydzieści pięć minut"],
+      ],
+      cs: [
+        ["Čtyřicet minut", "Třicet pět minut"],
+      ],
+      sk: [
+        ["Štyridsať minút", "Tridsaťpäť minút"],
+      ],
+      hu: [
+        ["Negyven perc az út fel és vissza", "Harmincöt perc az út fel és vissza"],
+      ],
+      ko: [
+        ["오르내리는 데 사십 분", "오르내리는 데 삼십오 분"],
+      ],
+      zh: [
+        ["上下来回四十分钟", "上下来回三十五分钟"],
+      ],
+    },
+  },
+  {
+    slug: "fuschlsee-steg",
+    alt: "30 min",
+    neu: "25 min",
+    texte: {
+      de: [
+        ["dreißig Minuten", "fünfundzwanzig Minuten"],
+        ["Dreißig Minuten", "Fünfundzwanzig Minuten"],
+      ],
+      en: [
+        ["thirty minutes", "twenty-five minutes"],
+        ["Thirty minutes", "Twenty-five minutes"],
+      ],
+      it: [
+        ["sono trenta minuti", "sono venticinque minuti"],
+        ["Trenta minuti", "Venticinque minuti"],
+      ],
+      nl: [
+        ["heen en terug is dertig minuten", "heen en terug is vijfentwintig minuten"],
+        ["Dertig minuten heen en terug", "Vijfentwintig minuten heen en terug"],
+      ],
+      fr: [
+        ["trente minutes", "vingt-cinq minutes"],
+        ["Trente minutes", "Vingt-cinq minutes"],
+      ],
+      es: [
+        ["treinta minutos", "veinticinco minutos"],
+        ["Treinta minutos", "Veinticinco minutos"],
+      ],
+      pt: [
+        ["ida e volta são trinta minutos", "ida e volta são vinte e cinco minutos"],
+        ["Trinta minutos ida e volta", "Vinte e cinco minutos ida e volta"],
+      ],
+      pl: [
+        ["trzydzieści minut", "dwadzieścia pięć minut"],
+        ["Trzydzieści minut", "Dwadzieścia pięć minut"],
+      ],
+      cs: [
+        ["třicet minut", "dvacet pět minut"],
+        ["Třicet minut", "Dvacet pět minut"],
+      ],
+      sk: [
+        ["tridsať minút", "dvadsaťpäť minút"],
+        ["Tridsať minút", "Dvadsaťpäť minút"],
+      ],
+      hu: [
+        ["oda-vissza harminc perc", "oda-vissza huszonöt perc"],
+        ["Harminc perc oda-vissza", "Huszonöt perc oda-vissza"],
+      ],
+      ko: [
+        ["왕복은 삼십 분입니다", "왕복은 이십오 분입니다"],
+        ["왕복 삼십 분,", "왕복 이십오 분,"],
+      ],
+      zh: [
+        ["来回三十分钟", "来回二十五分钟"],
+        ["往返三十分钟", "往返二十五分钟"],
+      ],
+    },
+  },
+  {
+    slug: "gaisberg",
+    alt: "50 min",
+    neu: "35 min",
+    texte: {
+      de: [
+        ["einer knappen Stunde", "fünfunddreißig Minuten"],
+        ["Knapp eine Stunde", "Fünfunddreißig Minuten"],
+      ],
+      en: [
+        ["just under an hour", "thirty-five minutes"],
+        ["Just under an hour", "Thirty-five minutes"],
+      ],
+      it: [
+        ["un'ora scarsa", "trentacinque minuti"],
+        ["Un'ora scarsa", "Trentacinque minuti"],
+      ],
+      nl: [
+        ["in krap een uur", "in vijfendertig minuten"],
+        ["Krap een uur voor de topronde", "Vijfendertig minuten voor de topronde"],
+      ],
+      fr: [
+        ["une petite heure", "trente-cinq minutes"],
+        ["Une petite heure", "Trente-cinq minutes"],
+      ],
+      es: [
+        ["poco menos de una hora", "treinta y cinco minutos"],
+        ["Poco menos de una hora", "Treinta y cinco minutos"],
+      ],
+      pt: [
+        ["faz-se em menos de uma hora", "faz-se em trinta e cinco minutos"],
+        ["Menos de uma hora para a volta do cume", "Trinta e cinco minutos para a volta do cume"],
+      ],
+      pl: [
+        ["w niecałą godzinę", "w trzydzieści pięć minut"],
+        ["Niecała godzina", "Trzydzieści pięć minut"],
+      ],
+      cs: [
+        ["za necelou hodinu", "za třicet pět minut"],
+        ["Necelá hodina", "Třicet pět minut"],
+      ],
+      sk: [
+        ["za necelú hodinu", "za tridsaťpäť minút"],
+        ["Necelá hodina", "Tridsaťpäť minút"],
+      ],
+      hu: [
+        ["alig egy óra alatt megjárod", "harmincöt perc alatt megjárod"],
+        ["Alig egy óra a csúcskör", "Harmincöt perc a csúcskör"],
+      ],
+      ko: [
+        ["평평해서 한 시간이 채 걸리지 않습니다", "평평해서 삼십오 분이면 됩니다"],
+        ["정상 둘레길은 한 시간이 채 안 되고", "정상 둘레길은 삼십오 분이고"],
+      ],
+      zh: [
+        ["不到一小时就走完", "三十五分钟就走完"],
+        ["山顶环线不到一小时", "山顶环线三十五分钟"],
+      ],
+    },
+  },
+  {
+    slug: "hintersee-pinzgau",
+    alt: "50 min",
+    neu: "45 min",
+    texte: {
+      de: [
+        ["Fünfzig Minuten", "Fünfundvierzig Minuten"],
+        ["Fünfzig Minuten", "Fünfundvierzig Minuten"],
+      ],
+      en: [
+        ["Fifty minutes for the loop.", "Forty-five minutes for the loop."],
+        ["Fifty minutes for the loop around the lake", "Forty-five minutes for the loop around the lake"],
+      ],
+      it: [
+        ["Cinquanta minuti", "Quarantacinque minuti"],
+      ],
+      nl: [
+        ["Vijftig minuten", "Vijfenveertig minuten"],
+      ],
+      fr: [
+        ["Cinquante minutes", "Quarante-cinq minutes"],
+        ["Cinquante minutes", "Quarante-cinq minutes"],
+      ],
+      es: [
+        ["Cincuenta minutos", "Cuarenta y cinco minutos"],
+        ["Cincuenta minutos", "Cuarenta y cinco minutos"],
+      ],
+      pt: [
+        ["Cinquenta minutos", "Quarenta e cinco minutos"],
+      ],
+      pl: [
+        ["Pięćdziesiąt minut", "Czterdzieści pięć minut"],
+        ["Pięćdziesiąt minut", "Czterdzieści pięć minut"],
+      ],
+      cs: [
+        ["Padesát minut", "Čtyřicet pět minut"],
+      ],
+      sk: [
+        ["Päťdesiat minút", "Štyridsaťpäť minút"],
+      ],
+      hu: [
+        ["Ötven perc a kör.", "Negyvenöt perc a kör."],
+        ["Ötven perc a tó körüli kör", "Negyvenöt perc a tó körüli kör"],
+      ],
+      ko: [
+        ["한 바퀴에 오십 분입니다.", "한 바퀴에 사십오 분입니다."],
+        ["도는 데 오십 분", "도는 데 사십오 분"],
+      ],
+      zh: [
+        ["绕一圈五十分钟", "绕一圈四十五分钟"],
+        ["绕湖一圈五十分钟", "绕湖一圈四十五分钟"],
+      ],
+    },
+  },
+  {
+    slug: "innersbachklamm",
+    alt: "25 min",
+    neu: "20 min",
+    texte: {
+      de: [
+        ["fünfundzwanzig Minuten", "zwanzig Minuten"],
+        ["Fünfundzwanzig Minuten", "Zwanzig Minuten"],
+      ],
+      en: [
+        ["twenty-five minutes", "twenty minutes"],
+        ["Twenty-five minutes", "Twenty minutes"],
+      ],
+      it: [
+        ["venticinque minuti", "venti minuti"],
+        ["Venticinque minuti", "Venti minuti"],
+      ],
+      nl: [
+        ["vijfentwintig minuten", "twintig minuten"],
+        ["Vijfentwintig minuten heen en terug", "Twintig minuten heen en terug"],
+      ],
+      fr: [
+        ["vingt-cinq minutes", "vingt minutes"],
+        ["Vingt-cinq minutes", "Vingt minutes"],
+      ],
+      es: [
+        ["veinticinco minutos", "veinte minutos"],
+        ["Veinticinco minutos", "Veinte minutos"],
+      ],
+      pt: [
+        ["vinte e cinco minutos", "vinte minutos"],
+        ["Vinte e cinco minutos", "Vinte minutos"],
+      ],
+      pl: [
+        ["dwadzieścia pięć minut", "dwadzieścia minut"],
+        ["Dwadzieścia pięć minut", "Dwadzieścia minut"],
+      ],
+      cs: [
+        ["dvacet pět minut", "dvacet minut"],
+        ["Dvacet pět minut", "Dvacet minut"],
+      ],
+      hu: [
+        ["Rövid, huszonöt perc", "Rövid, húsz perc"],
+        ["Huszonöt perc oda-vissza", "Húsz perc oda-vissza"],
+      ],
+      ko: [
+        ["이십오 분이면 들어갔다 나옵니다.", "이십 분이면 들어갔다 나옵니다."],
+        ["왕복 이십오 분,", "왕복 이십 분,"],
+      ],
+      zh: [
+        ["二十五分钟就能进去再出来", "二十分钟就能进去再出来"],
+        ["来回二十五分钟", "来回二十分钟"],
+      ],
+    },
+  },
+  {
+    slug: "jagersee",
+    alt: "45 min",
+    neu: "40 min",
+    texte: {
+      de: [
+        ["fünfundvierzig Minuten", "vierzig Minuten"],
+        ["Fünfundvierzig Minuten", "Vierzig Minuten"],
+      ],
+      en: [
+        ["forty-five minutes", "forty minutes"],
+        ["Forty-five minutes", "Forty minutes"],
+      ],
+      it: [
+        ["quarantacinque minuti", "quaranta minuti"],
+        ["Quarantacinque minuti", "Quaranta minuti"],
+      ],
+      nl: [
+        ["vijfenveertig minuten", "veertig minuten"],
+        ["Vijfenveertig minuten", "Veertig minuten"],
+      ],
+      fr: [
+        ["quarante-cinq minutes", "quarante minutes"],
+        ["Quarante-cinq minutes", "Quarante minutes"],
+      ],
+      es: [
+        ["cuarenta y cinco minutos", "cuarenta minutos"],
+        ["Cuarenta y cinco minutos", "Cuarenta minutos"],
+      ],
+      pt: [
+        ["quarenta e cinco minutos", "quarenta minutos"],
+        ["Quarenta e cinco minutos", "Quarenta minutos"],
+      ],
+      pl: [
+        ["czterdzieści pięć minut", "czterdzieści minut"],
+        ["Czterdzieści pięć minut", "Czterdzieści minut"],
+      ],
+      cs: [
+        ["čtyřicet pět minut", "čtyřicet minut"],
+        ["Čtyřicet pět minut", "Čtyřicet minut"],
+      ],
+      hu: [
+        ["negyvenöt perc, sík és erdőn át", "negyven perc, sík és erdőn át"],
+        ["Negyvenöt perc a tó körüli kör", "Negyven perc a tó körüli kör"],
+      ],
+      ko: [
+        ["나 있는데 사십오 분", "나 있는데 사십 분"],
+        ["한 바퀴에 사십오 분", "한 바퀴에 사십 분"],
+      ],
+      zh: [
+        ["四十五分钟", "四十分钟"],
+      ],
+    },
+  },
+  {
+    slug: "kapuzinerberg",
+    alt: "1 Std 15 min",
+    neu: "55 min",
+    texte: {
+      de: [
+        ["Gut eine Stunde", "Fünfundfünfzig Minuten"],
+        ["Gut eine Stunde", "Fünfundfünfzig Minuten"],
+      ],
+      it: [
+        ["Ti serve un'ora abbondante", "Ti servono cinquantacinque minuti"],
+        ["Un'ora abbondante", "Cinquantacinque minuti"],
+      ],
+      nl: [
+        ["ruim een uur", "vijfenvijftig minuten"],
+        ["Ruim een uur", "Vijfenvijftig minuten"],
+      ],
+      fr: [
+        ["une bonne heure", "cinquante-cinq minutes"],
+        ["Une bonne heure", "Cinquante-cinq minutes"],
+      ],
+      es: [
+        ["una hora larga", "cincuenta y cinco minutos"],
+        ["Una hora larga", "Cincuenta y cinco minutos"],
+      ],
+      pt: [
+        ["Precisas de uma hora larga", "Precisas de cinquenta e cinco minutos"],
+        ["Uma hora larga para a subida", "Cinquenta e cinco minutos para a subida"],
+      ],
+      pl: [
+        ["Dobra godzina", "Pięćdziesiąt pięć minut"],
+      ],
+      cs: [
+        ["dobrou hodinu", "padesát pět minut"],
+        ["Dobrá hodina", "Padesát pět minut"],
+      ],
+      sk: [
+        ["dobrú hodinu", "päťdesiatpäť minút"],
+        ["Dobrá hodina", "Päťdesiatpäť minút"],
+      ],
+      hu: [
+        ["Jó egy óra kell hozzá", "Ötvenöt perc kell hozzá"],
+        ["Jó egy óra a felfelé út", "Ötvenöt perc az út felfelé"],
+      ],
+      ko: [
+        ["한 시간 남짓 걸리지만", "오십오 분 걸리지만"],
+        ["올라가는 데 한 시간 남짓,", "올라가는 데 오십오 분,"],
+      ],
+    },
+  },
+  {
+    slug: "leopoldskroner-weiher",
+    alt: "35 min",
+    neu: "30 min",
+    texte: {
+      de: [
+        ["fünfunddreißig Minuten", "dreißig Minuten"],
+        ["Fünfunddreißig Minuten", "Dreißig Minuten"],
+      ],
+      en: [
+        ["thirty-five minutes", "thirty minutes"],
+        ["Thirty-five minutes", "Thirty minutes"],
+      ],
+      it: [
+        ["trentacinque minuti", "trenta minuti"],
+        ["Trentacinque minuti", "Trenta minuti"],
+      ],
+      nl: [
+        ["in vijfendertig minuten", "in dertig minuten"],
+        ["Vijfendertig minuten", "Dertig minuten"],
+      ],
+      fr: [
+        ["trente-cinq minutes", "trente minutes"],
+        ["Trente-cinq minutes", "Trente minutes"],
+      ],
+      es: [
+        ["treinta y cinco minutos", "treinta minutos"],
+        ["Treinta y cinco minutos", "Treinta minutos"],
+      ],
+      pt: [
+        ["trinta e cinco minutos", "trinta minutos"],
+        ["Trinta e cinco minutos", "Trinta minutos"],
+      ],
+      pl: [
+        ["trzydzieści pięć minut", "trzydzieści minut"],
+        ["Trzydzieści pięć minut", "Trzydzieści minut"],
+      ],
+      cs: [
+        ["za třicet pět minut", "za třicet minut"],
+        ["Třicet pět minut", "Třicet minut"],
+      ],
+      hu: [
+        ["harmincöt perc alatt körbeérsz", "harminc perc alatt körbeérsz"],
+        ["Harmincöt perc a kör", "Harminc perc a kör"],
+      ],
+      ko: [
+        ["평평해서 삼십오 분이면 끝나고", "평평해서 삼십 분이면 끝나고"],
+        ["한 바퀴에 삼십오 분,", "한 바퀴에 삼십 분,"],
+      ],
+      zh: [
+        ["三十五分钟走完", "三十分钟走完"],
+        ["一圈三十五分钟", "一圈三十分钟"],
+      ],
+    },
+  },
+  {
+    slug: "maria-plain",
+    alt: "1 Std",
+    neu: "50 min",
+    texte: {
+      de: [
+        ["eine Stunde", "fünfzig Minuten"],
+        ["Eine Stunde", "Fünfzig Minuten"],
+      ],
+      en: [
+        ["an hour for the loop", "fifty minutes for the loop"],
+        ["An hour for the ridge loop", "Fifty minutes for the ridge loop"],
+      ],
+      it: [
+        ["un'ora per l'anello", "cinquanta minuti per l'anello"],
+        ["Un'ora per l'anello", "Cinquanta minuti per l'anello"],
+      ],
+      nl: [
+        ["een uur voor de ronde", "vijftig minuten voor de ronde"],
+        ["Een uur voor het rondje", "Vijftig minuten voor het rondje"],
+      ],
+      fr: [
+        ["une heure pour la boucle", "cinquante minutes pour la boucle"],
+        ["Une heure pour la boucle de crête", "Cinquante minutes pour la boucle de crête"],
+      ],
+      es: [
+        ["una hora", "cincuenta minutos"],
+        ["Una hora", "Cincuenta minutos"],
+      ],
+      pt: [
+        ["uma hora para a volta", "cinquenta minutos para a volta"],
+        ["Uma hora para o circuito", "Cinquenta minutos para o circuito"],
+      ],
+      pl: [
+        ["godzina na pętlę", "pięćdziesiąt minut na pętlę"],
+        ["Godzina na pętlę", "Pięćdziesiąt minut na pętlę"],
+      ],
+      cs: [
+        ["hodina na okruh", "padesát minut na okruh"],
+        ["Hodina na hřebenový okruh", "Padesát minut na hřebenový okruh"],
+      ],
+      sk: [
+        ["hodina na okruh", "päťdesiat minút na okruh"],
+        ["Hodina na hrebeňový okruh", "Päťdesiat minút na hrebeňový okruh"],
+      ],
+      hu: [
+        ["egy óra a kör", "ötven perc a kör"],
+        ["Egy óra a magaslati körút", "Ötven perc a magaslati körút"],
+      ],
+      ko: [
+        ["한 바퀴 나 있는데 한 시간이 걸리고", "한 바퀴 나 있는데 오십 분이 걸리고"],
+        ["능선 순환길은 한 시간,", "능선 순환길은 오십 분,"],
+      ],
+      zh: [
+        ["走一圈一小时", "走一圈五十分钟"],
+        ["环山步道一小时", "环山步道五十分钟"],
+      ],
+    },
+  },
+  {
+    slug: "nonnberggasse",
+    alt: "50 min",
+    neu: "35 min",
+    texte: {
+      de: [
+        ["Fünfzig Minuten", "Fünfunddreißig Minuten"],
+      ],
+      en: [
+        ["Fifty minutes", "Thirty-five minutes"],
+      ],
+      it: [
+        ["Cinquanta minuti", "Trentacinque minuti"],
+      ],
+      nl: [
+        ["Vijftig minuten", "Vijfendertig minuten"],
+      ],
+      fr: [
+        ["Cinquante minutes", "Trente-cinq minutes"],
+      ],
+      es: [
+        ["Cincuenta minutos", "Treinta y cinco minutos"],
+      ],
+      pt: [
+        ["Cinquenta minutos ida e volta", "Trinta e cinco minutos ida e volta"],
+      ],
+      pl: [
+        ["Pięćdziesiąt minut", "Trzydzieści pięć minut"],
+      ],
+      cs: [
+        ["Padesát minut", "Třicet pět minut"],
+      ],
+      sk: [
+        ["Päťdesiat minút", "Tridsaťpäť minút"],
+      ],
+      hu: [
+        ["Ötven perc oda-vissza", "Harmincöt perc oda-vissza"],
+      ],
+      ko: [
+        ["왕복 50분", "왕복 35분"],
+      ],
+      zh: [
+        ["往返五十分钟", "往返三十五分钟"],
+      ],
+    },
+  },
+  {
+    slug: "vorderkaserklamm",
+    alt: "1 Std 20 min",
+    neu: "55 min",
+    texte: {
+      de: [
+        ["eine Stunde zwanzig", "fünfundfünfzig Minuten"],
+        ["Eine Stunde zwanzig", "Fünfundfünfzig Minuten"],
+      ],
+      en: [
+        ["an hour and twenty", "fifty-five minutes"],
+        ["An hour and twenty", "Fifty-five minutes"],
+      ],
+      it: [
+        ["un'ora e venti", "cinquantacinque minuti"],
+        ["Un'ora e venti", "Cinquantacinque minuti"],
+      ],
+      nl: [
+        ["een uur en twintig", "vijfenvijftig minuten"],
+        ["Een uur en twintig", "Vijfenvijftig minuten"],
+      ],
+      fr: [
+        ["une heure vingt", "cinquante-cinq minutes"],
+        ["Une heure vingt", "Cinquante-cinq minutes"],
+      ],
+      es: [
+        ["una hora y veinte", "cincuenta y cinco minutos"],
+        ["Una hora y veinte", "Cincuenta y cinco minutos"],
+      ],
+      pt: [
+        ["uma hora e vinte para a volta toda", "cinquenta e cinco minutos para a volta toda"],
+        ["Uma hora e vinte para a volta", "Cinquenta e cinco minutos para a volta"],
+      ],
+      pl: [
+        ["godzina dwadzieścia", "pięćdziesiąt pięć minut"],
+        ["Godzina dwadzieścia", "Pięćdziesiąt pięć minut"],
+      ],
+      cs: [
+        ["hodina dvacet na celý okruh", "padesát pět minut na celý okruh"],
+        ["Hodina dvacet na okruh", "Padesát pět minut na okruh"],
+      ],
+      sk: [
+        ["hodinu dvadsať", "päťdesiatpäť minút"],
+        ["Hodinu dvadsať", "Päťdesiatpäť minút"],
+      ],
+      hu: [
+        ["egy óra húsz perc az egész kör", "ötvenöt perc az egész kör"],
+        ["Egy óra húsz perc a kör", "Ötvenöt perc a kör"],
+      ],
+      ko: [
+        ["한 바퀴에 한 시간 이십 분 걸립니다.", "한 바퀴에 오십오 분 걸립니다."],
+        ["한 바퀴에 한 시간 이십 분,", "한 바퀴에 오십오 분,"],
+      ],
+      zh: [
+        ["整圈要一小时二十分", "整圈要五十五分钟"],
+        ["一圈一小时二十分", "一圈五十五分钟"],
+      ],
+    },
+  },
+];
+
+
+/**
+ * VIERTE RUNDE, die letzten acht. Sie standen in Runde drei nicht auf der Liste, weil der
+ * Parser sie nicht sehen konnte: Englisch und Chinesisch schreiben „a good hour" und
+ * „一个多小时" mit einem Wort zwischen Zahl und Einheit, Slowakisch schreibt „dvadsaťpäť"
+ * zusammen statt getrennt. Ein Prüfer, der eine Formulierung nicht kennt, meldet dort
+ * dauerhaft null, und genau so überlebt eine falsche Zahl drei Durchgänge.
+ *
+ * Gefunden hat sie eine Gegenprobe, die nicht nach Widersprüchen sucht, sondern danach, ob
+ * jede Sprache die Feld-Dauer überhaupt NENNT. Diese Frage stellt der Audit von sich aus
+ * nicht, weil ein Text auch schweigen darf.
+ */
+const FIXES_RUNDE4: Fix[] = [
+  {
+    slug: "asitz",
+    alt: "1 Std 10 min",
+    neu: "55 min",
+    texte: {
+      en: [["A good hour for the loop", "Fifty-five minutes for the loop"]],
+      zh: [["从上站走一圈一个多小时", "从上站走一圈五十五分钟"]],
+    },
+  },
+  {
+    slug: "kapuzinerberg",
+    alt: "1 Std 15 min",
+    neu: "55 min",
+    texte: {
+      en: [
+        ["You need a good hour", "You need fifty-five minutes"],
+        ["A good hour for the way up", "Fifty-five minutes for the way up"],
+      ],
+      zh: [["要走一个多小时", "要走五十五分钟"], ["上山一个多小时", "上山五十五分钟"]],
+    },
+  },
+  {
+    slug: "krimmler-wasserfalle",
+    alt: "2 Std 10 min",
+    neu: "1,5 Std",
+    texte: {
+      zh: [["来回两个多小时", "来回一个半小时"]],
+    },
+  },
+  {
+    // Französisch schreibt die Uhrzeit-Kurzform „1h30". Keine der Wort- und Ziffernregeln
+    // hat sie gesehen, also stand hier drei Durchgänge lang die alte Dauer.
+    slug: "lammerklamm",
+    alt: "1,5 Std",
+    neu: "1 Std",
+    texte: {
+      fr: [["environ 1h30", "environ une heure"]],
+    },
+  },
+  {
+    slug: "innersbachklamm",
+    alt: "25 min",
+    neu: "20 min",
+    texte: {
+      sk: [["dvadsaťpäť minút", "dvadsať minút"], ["Dvadsaťpäť minút", "Dvadsať minút"]],
+    },
+  },
+  {
+    slug: "jagersee",
+    alt: "45 min",
+    neu: "40 min",
+    texte: {
+      sk: [["štyridsaťpäť minút", "štyridsať minút"], ["Štyridsaťpäť minút", "Štyridsať minút"]],
+    },
+  },
+  {
+    slug: "leopoldskroner-weiher",
+    alt: "35 min",
+    neu: "30 min",
+    texte: {
+      sk: [["tridsaťpäť minút", "tridsať minút"], ["Tridsaťpäť minút", "Tridsať minút"]],
+    },
+  },
+];
+
 const SPALTEN = [
   "title",
   "short_desc",
@@ -1146,7 +1988,7 @@ async function main() {
 
   let ersetzt = 0;
   let ohneFund = 0;
-  for (const fix of [...FIXES, ...FIXES_RUNDE2]) {
+  for (const fix of [...FIXES, ...FIXES_RUNDE2, ...FIXES_RUNDE3, ...FIXES_RUNDE4]) {
     const spot = spots!.find((s) => s.slug === fix.slug);
     if (!spot) throw new Error(`Spot ${fix.slug} gibt es nicht`);
     // Sicherung: Die Liste ist auf einen bestimmten neuen Feldwert geschrieben. Steht dort

@@ -243,6 +243,34 @@ console.log("\n7. Zeitangaben in allen 13 Sprachen finden (facts-in-text.ts)");
     // verschluckte die Angabe komplett.
     ["zh", "开车的话一小时，每人五欧。", 1],
     ["zh", "往返十一小时。", 11],
+    // Minuten als WORT. Jeder Spot unter einer Stunde war blind, bis das hier ging.
+    ["de", "F\u00fcnfzig Minuten f\u00fcr hin und zur\u00fcck.", 50 / 60],
+    ["en", "Forty minutes there and back.", 40 / 60],
+    ["it", "Quaranta minuti andata e ritorno.", 40 / 60],
+    ["nl", "Veertig minuten heen en terug.", 40 / 60],
+    ["fr", "Quarante minutes aller-retour.", 40 / 60],
+    ["es", "Cuarenta minutos ida y vuelta.", 40 / 60],
+    ["pt", "Quarenta minutos ida e volta.", 40 / 60],
+    ["pl", "Czterdzie\u015bci minut tam i z powrotem.", 40 / 60],
+    ["cs", "\u010cty\u0159icet minut tam a zp\u00e1tky.", 40 / 60],
+    ["sk", "\u0160tyridsa\u0165 min\u00fat tam a sp\u00e4\u0165.", 40 / 60],
+    ["hu", "Negyven perc oda-vissza.", 40 / 60],
+    ["ko", "\uc655\ubcf5 \uc0ac\uc2ed \ubd84.", 40 / 60],
+    ["zh", "\u5f80\u8fd4\u56db\u5341\u5206\u949f\u3002", 40 / 60],
+    // Slowakisch und Tschechisch schreiben die Zusammensetzung ohne Leerzeichen.
+    ["sk", "Dvadsa\u0165p\u00e4\u0165 min\u00fat tam a sp\u00e4\u0165.", 25 / 60],
+    // Ein Beiwort ZWISCHEN Zahl und Einheit, in jeder Sprache anders gebaut.
+    ["en", "A good hour for the loop from the top station.", 1],
+    ["en", "a good half hour, flat and easy", 0.5],
+    ["nl", "Een ruim uur heen en terug.", 1],
+    ["cs", "dobr\u00e1 p\u016flhodina, po rovin\u011b", 0.5],
+    ["sk", "dobr\u00e1 polhodina, po rovine", 0.5],
+    ["it", "Un'oretta abbondante andata e ritorno.", 1],
+    // Uhrzeit-Kurzform und polnischer Genitiv, beide drei Durchgaenge lang unsichtbar.
+    ["fr", "1,9 km, environ 1h30, 219 m\u00e8tres.", 1.5],
+    ["pl", "1,9 km, oko\u0142o godziny, 219 metr\u00f3w.", 1],
+    ["zh", "\u4ece\u4e0a\u7ad9\u8d70\u4e00\u5708\u4e00\u4e2a\u591a\u5c0f\u65f6\u3002", 1],
+    ["zh", "\u7ed5\u6e56\u4e00\u5708\u534a\u4e2a\u591a\u5c0f\u65f6\u3002", 0.5],
     // Koreanisch: „열세" (13) darf nicht als „세" (3) gelesen werden.
     ["ko", "왕복 열세 시간, 아주 긴 산행입니다.", 13],
     ["ko", "위에서 두 시간 걷습니다.", 2],
@@ -303,6 +331,7 @@ console.log("\n8. Schwierigkeit im Fliesstext (facts-in-text.ts)");
   // Und die Gegenprobe: Gelaende-Aussagen, Halbstunden und Verneinungen sind KEINE Stufe.
   const NEIN: [string, string][] = [
     ["en", "Hardly anyone goes down to the crypt."],
+    ["en", "In the first minute it gets steep."],
     ["en", "There is nothing strenuous about it."],
     ["en", "Technically easy, but alpine terrain: basic fitness."],
     ["es", "Media hora basta para la nave."],

@@ -96,6 +96,23 @@ function stundenImText(t: string): number[] {
 // „1,5 Std" als 5 Stunden, weil ihr `(\d+)` an der Nachkommastelle ansetzte — die
 // Lammerklamm stand deshalb als einziger Widerspruch im Protokoll, und der war keiner.
 
+/**
+ * Wie weit darf die Zahl im Text von der im Feld abweichen? Beides soll dieselbe gerechnete
+ * Dauer ausdrücken, die Toleranz muss also nur die Formulierung auffangen, nicht die Rechnung.
+ *
+ * Sie hängt an der Grössenordnung, weil die Dauer selbst so geschrieben wird: unter einer
+ * Stunde in Fünf-Minuten-Schritten, darüber in halben Stunden. Vier Minuten sind darum unter
+ * der Stunde die richtige Grenze — knapp unter einem Schritt, damit eine veraltete Angabe
+ * eine Stufe daneben (25 statt 20, 40 statt 35) auffällt und eine blosse Umschreibung nicht.
+ *
+ * Vorher stand hier pauschal 0,35 Std. Bei einem Feld von 35 Minuten galt damit alles
+ * zwischen 14 und 56 Minuten als richtig, und die Nonnberggasse sagte in dreizehn Sprachen
+ * fünfzig Minuten, ohne dass es jemand gemerkt hätte.
+ */
+function toleranzH(soll: number): number {
+  return soll < 1 ? 4 / 60 : 15 / 60;
+}
+
 /** Passt eine der Text-Zahlen zur gemessenen? Toleranz, weil der Text „gut" und „knapp" sagt. */
 function trifft(werte: number[], soll: number, relativ: number, absolut: number): boolean {
   return werte.some((w) => Math.abs(w - soll) <= Math.max(absolut, soll * relativ));
@@ -213,31 +230,38 @@ async function main() {
     // in einem Sieben-Stunden-Text genauso richtig da wie in einem Einstündigen. Wer sie
     // trotzdem meldet, produziert achtzig Fehlalarme, und eine Liste mit achtzig
     // Fehlalarmen liest beim zweiten Mal niemand mehr.
+    // KEINE Untergrenze mehr. Hier stand `soll >= 1`, und damit war jeder Spot unter einer
+    // Stunde ungeprüft: sechzehn Wanderungen mit Route, darunter die Nonnberggasse, die in
+    // dreizehn Sprachen weiter fünfzig Minuten sagte, während im Feld fünfunddreissig stand.
+    // Eine Prüfung, die einen ganzen Grössenbereich auslässt, meldet dort immer null.
     const soll = fieldHours(s.duration as string | null);
-    if (soll !== null && soll >= 1) {
+    if (soll !== null) {
       for (const r of meine) {
         const lang = r.lang as string;
         const t = TOUR_FELDER.map((f) => ((r as Record<string, unknown>)[f] as string) ?? "").join("\n");
         // Deutsch zusätzlich mit den hier gewachsenen Sonderfällen (Auslassung, Viertelstunde).
         const std = [...hoursInText(t, lang), ...(lang === "de" ? stundenImText(t) : [])];
         if (!std.length) continue;
-        const passt = trifft(std, soll, 0.2, 0.35);
+        const passt = trifft(std, soll, 0.05, toleranzH(soll));
         // „Zu viel" ist GENAU das Gegenstück zu „passt": über dem Feld und ausserhalb der
         // Toleranz. Hier stand einmal `w > soll * 1.2 + 0.35` — dieser zusätzliche absolute
         // Zuschlag öffnete ein Band, in dem elf Spots mit ihrer alten Zahl unentdeckt
         // sassen (Feld 1 Std, Text „anderthalb Stunden": 1,5 lag unter 1,55 und galt als
         // in Ordnung). Zwei verschiedene Toleranzen für dieselbe Frage sind immer ein Loch.
-        const zuViel = std.some((w) => w > soll && !trifft([w], soll, 0.2, 0.35));
-        // Bei einer Route ist `soll` die Dauer der GANZEN Tour, und dann gilt eine harte
-        // Logik: kein Teilstück kann länger dauern als das Ganze. Eine Zeit über dem Feld
-        // ist dort immer ein Fund, auch wenn woanders im Text eine passende Zahl steht.
-        // Ohne das blieb die Sigmund-Thun-Klamm stumm: Der erste Satz nannte die alte
-        // Gesamtdauer (anderthalb Stunden), der zweite eine Teilzeit (knappe Stunde), und
-        // weil die Teilzeit zum neuen Feld passte, galt der Spot als in Ordnung.
-        // Ohne Route ist `soll` eine kuratierte Besuchsdauer, und ein Text darf dort eine
-        // Spanne nennen („eine Stunde reicht, drei wenn du alles anschaust").
-        const hatRoute = Boolean(s.route_geojson);
-        if (zuViel && (hatRoute || !passt))
+        const zuViel = std.some((w) => w > soll && !trifft([w], soll, 0.05, toleranzH(soll)));
+        // Bei einer TOUR ab einer Stunde gilt eine harte Logik: kein Teilstück kann länger
+        // dauern als das Ganze. Eine Zeit über dem Feld ist dort immer ein Fund, auch wenn
+        // woanders im Text eine passende Zahl steht. Ohne das blieb die Sigmund-Thun-Klamm
+        // stumm: Der erste Satz nannte die alte Gesamtdauer (anderthalb Stunden), der zweite
+        // eine Teilzeit (knappe Stunde), und weil die Teilzeit passte, galt der Spot als in
+        // Ordnung.
+        //
+        // UNTER einer Stunde gilt sie NICHT, und das ist keine Bequemlichkeit: Dort ist das
+        // Feld der Weg, nicht der Besuch, und die Texte sagen das ausdrücklich dazu („Zehn
+        // Minuten braucht der Weg durch die Gassen, ein bis zwei Stunden brauchst du, wenn
+        // du dich treiben lässt"). Die längere Zahl ist da richtig, nicht veraltet.
+        const langeTour = Boolean(s.route_geojson) && soll >= 1;
+        if (zuViel && (langeTour || !passt))
           widerspruch.push({
             slug: s.slug as string,
             feld: `Dauer ${lang}`,
@@ -258,6 +282,33 @@ async function main() {
             });
         }
       }
+    }
+
+    // ---- 2a. Nennt jede Sprache die Dauer, die Deutsch nennt? ----
+    // Diese Frage stellt der Widerspruchs-Teil NICHT, denn ein Text darf schweigen. Findet
+    // der Parser in einer Sprache aber gar nichts, meldet er dort auch nie einen
+    // Widerspruch, und eine falsche Zahl kann beliebig lange stehen bleiben. Genau so haben
+    // „a good hour", „一个多小时", „dvadsaťpäť" und „un'oretta" drei Durchgänge überlebt:
+    // nicht weil sie richtig waren, sondern weil niemand hinsah.
+    //
+    // Gemeldet wird nur, wenn DEUTSCH die Feld-Dauer nennt und eine Zielsprache nicht. Dann
+    // ist entweder die Übersetzung unvollständig oder der Parser kennt eine Formulierung
+    // nicht. Beides gehört angeschaut, beides bleibt sonst unsichtbar.
+    if (soll !== null && s.route_geojson) {
+      const deText = TOUR_FELDER.map((f) => ((de as Record<string, unknown>)[f] as string) ?? "").join("\n");
+      const deNennt = trifft(hoursInText(deText, "de"), soll, 0.05, toleranzH(soll));
+      if (deNennt)
+        for (const r of meine) {
+          const lang = r.lang as string;
+          if (lang === "de") continue;
+          const t = TOUR_FELDER.map((f) => ((r as Record<string, unknown>)[f] as string) ?? "").join("\n");
+          if (!trifft(hoursInText(t, lang), soll, 0.05, toleranzH(soll)))
+            nachschlagen.push({
+              slug: s.slug as string,
+              feld: `Dauer ${lang}`,
+              was: `nennt die Dauer nicht (Feld ${s.duration}, gefunden: ${hourMatches(t, lang).join(" | ") || "nichts"})`,
+            });
+        }
     }
 
     // ---- 2b. Schwierigkeits-Feld gegen den Fliesstext, in ALLEN Sprachen ----
