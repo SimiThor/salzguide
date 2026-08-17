@@ -28,6 +28,8 @@ import {
   HIKE_DESCENT_MH,
 } from "../src/lib/geo.ts";
 import { hoursInText, fieldHours, difficultyInText } from "./wp-import/facts-in-text.ts";
+import { factDuration } from "../src/lib/facts-i18n.ts";
+import { LOCALES } from "../src/i18n/locales.ts";
 
 let failed = 0;
 const ok = (name: string) => console.log(`  ok    ${name}`);
@@ -282,6 +284,25 @@ console.log("\n7. Zeitangaben in allen 13 Sprachen finden (facts-in-text.ts)");
     else bad(`${lang} findet ${wert} nicht`, `"${satz}" -> ${JSON.stringify(werte)}`);
   }
 
+  // Gegenprobe: Eine kurze Fundstelle INNERHALB einer langen darf nicht mitzaehlen. In
+  // „half an hour" steckt „an hour", in „un'ora e mezza" steckt „un'ora". Zaehlte die kurze
+  // mit, haette der Text eine Stunde, die niemand geschrieben hat, und ein echter
+  // Widerspruch koennte sich dahinter verstecken.
+  {
+    const paare: [string, string, number[]][] = [
+      ["en", "It takes half an hour there and back.", [0.5]],
+      ["it", "Un'ora e mezza per l'anello.", [1.5]],
+      ["zh", "\u5f80\u8fd4\u5341\u4e09\u4e2a\u534a\u5c0f\u65f6\u3002", [13.5]],
+    ];
+    for (const [lang, satz, want] of paare) {
+      const got = hoursInText(satz, lang).map((x) => Math.round(x * 60));
+      const soll = want.map((x) => Math.round(x * 60));
+      const gleich = got.length > 0 && got.every((x) => soll.includes(x));
+      if (gleich) ok(`${lang} nur ${soll.join("/")} min in "${satz.slice(0, 30)}\u2026"`);
+      else bad(`${lang} liest zu viel`, `"${satz}" -> ${JSON.stringify(got)} statt ${JSON.stringify(soll)}`);
+    }
+  }
+
   // Gegenprobe: „열세 시간" darf NICHT zusätzlich als 3 gelesen werden, sonst passt am Ende
   // irgendein Wert immer und die Prüfung wird blind.
   if (!hoursInText("왕복 열세 시간입니다.", "ko").includes(3)) ok("ko liest 열세 nicht als 세");
@@ -344,6 +365,28 @@ console.log("\n8. Schwierigkeit im Fliesstext (facts-in-text.ts)");
     const got = difficultyInText(satz, lang);
     if (!got.length) ok(`${lang} keine Stufe in "${satz.slice(0, 34)}\u2026"`);
     else bad(`${lang} liest eine Stufe, wo keine steht`, `"${satz}" -> ${JSON.stringify(got)}`);
+  }
+}
+
+
+console.log("\n9. Wie die Dauer angezeigt wird (facts-i18n.ts)");
+{
+  // Die Zahl im Faktenkasten muss in derselben Schreibweise stehen wie die Kilometer im
+  // Höhenprofil daneben. Neun der dreizehn Sprachen schreiben mit Komma; vorher lief alles
+  // ausser Deutsch pauschal auf den Punkt, und die polnische Seite zeigte „5.5 h" über
+  // „12,8 kilometra".
+  for (const l of LOCALES) {
+    const erwartet = new Intl.NumberFormat(l.bcp47).format(5.5);
+    const got = factDuration("5,5 Std", l.code) ?? "";
+    const einheit = l.code === "de" ? "Std" : "h";
+    if (got === `${erwartet} ${einheit}`) ok(`${l.code} 5,5 Std -> ${got}`);
+    else bad(`${l.code} Dauer-Schreibweise`, `erwartet "${erwartet} ${einheit}", bekommen "${got}"`);
+  }
+  // Ganze Minuten haben keine Nachkommastelle und dürfen sich nicht verändern.
+  for (const l of LOCALES) {
+    const got = factDuration("35 min", l.code);
+    if (got === "35 min") ok(`${l.code} 35 min unverändert`);
+    else bad(`${l.code} Minutenangabe`, `bekommen "${got}"`);
   }
 }
 

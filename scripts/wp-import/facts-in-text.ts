@@ -297,50 +297,60 @@ function wortWert(L: HourLang, w: string): number | undefined {
 export function hoursInText(text: string, lang: string): number[] {
   const L = HOURS[lang];
   if (!L || !text) return [];
-  const out: number[] = [];
-  // CJK kennt keine Wortgrenzen, aber geblockt wird NUR ein vorangehendes ZAHLZEICHEN
-  // dieser Sprache. Eine pauschale Han-Sperre verschluckte im Chinesischen die halbe
-  // Datenlage, weil dort vor der Zahl fast immer ein Han-Zeichen steht.
-  // Ohne den Blick nach links fände „열세 시간" (13) auch
-  // das „세 시간" (3) in sich selbst.
-  const grenze = (s: string) => (L.cjk ? `(?<![${zahlzeichen(L)}])${s}` : `(?<![\\p{L}])${s}(?![\\p{L}])`);
+  const grenze = (x: string) => (L.cjk ? `(?<![${zahlzeichen(L)}])${x}` : `(?<![\\p{L}])${x}(?![\\p{L}])`);
+  const fill = L.filler ?? "\\s*";
+  // Fundstellen MIT Position, weil eine kurze in einer langen stecken kann: In „half an
+  // hour" (0,5) steckt „an hour" (1), in „un'ora e mezza" (1,5) steckt „un'ora" (1). Zählt
+  // die kurze mit, hat der Text plötzlich eine Stunde, die niemand geschrieben hat — und die
+  // kann einen echten Widerspruch zudecken, weil dann irgendein Wert immer passt.
+  // `rang` trennt die Fälle, in denen zwei Regeln GENAU dieselbe Stelle treffen: Im
+  // chinesischen „十三个半小时" liest die allgemeine Regel dreizehn Stunden und die
+  // Halbe-Regel dreizehneinhalb. Die genauere gewinnt.
+  const funde: { wert: number; von: number; bis: number; rang: number }[] = [];
+  const sammeln = (re: RegExp, wert: (m: RegExpMatchArray) => number | undefined, rang = 1) => {
+    for (const m of text.matchAll(re)) {
+      const w = wert(m);
+      if (w !== undefined && Number.isFinite(w))
+        funde.push({ wert: w, von: m.index ?? 0, bis: (m.index ?? 0) + m[0].length, rang });
+    }
+  };
 
   // 1. Ziffern vor dem Einheitswort: „5 Stunden", „1,5 ore", „5시간"
-  for (const m of text.matchAll(new RegExp(`(\\d[\\d.,]*)\\s*(?:${L.unit})`, "giu")))
-    out.push(zahl(m[1]));
-
-  // 1b. Uhrzeit-Schreibweise „1h30". Im Französischen die übliche Kurzform, und dort stand
-  // an der Lammerklamm die alte Zahl, die keine der anderen Regeln je gesehen hätte.
-  for (const m of text.matchAll(/(\d{1,2})\s*h\s*(\d{2})(?![\d])/gi))
-    out.push(Number(m[1]) + Number(m[2]) / 60);
-
+  sammeln(new RegExp(`(\\d[\\d.,]*)\\s*(?:${L.unit})`, "giu"), (m) => zahl(m[1]));
+  // 1b. Uhrzeit-Schreibweise „1h30", im Französischen die übliche Kurzform.
+  sammeln(/(\d{1,2})\s*h\s*(\d{2})(?![\d])/gi, (m) => Number(m[1]) + Number(m[2]) / 60);
   // 2. Minuten als Bruchteil: „30 Minuten", „45 min"
-  for (const m of text.matchAll(new RegExp(`(\\d[\\d.,]*)\\s*(?:${L.minute})`, "giu")))
-    out.push(zahl(m[1]) / 60);
-
+  sammeln(new RegExp(`(\\d[\\d.,]*)\\s*(?:${L.minute})`, "giu"), (m) => zahl(m[1]) / 60);
   // 3. Zahlwörter vor dem Einheitswort: „fünf Stunden", „cinque ore", „öt óra"
   for (const [w, v] of Object.entries(L.words))
-    if (new RegExp(grenze(`${esc(w)}${L.filler ?? "\\s*"}(?:${L.unit})`), "iu").test(text)) out.push(v);
-
-  // 3b. Zahlwörter vor dem MINUTEN-Wort: „Fünfzig Minuten", „Forty minutes", „사십 분".
-  // Ohne diese Zeile war jeder Spot unter einer Stunde blind: Die Nonnberggasse trug in
-  // dreizehn Sprachen die alte Zahl im Text, und der Lauf meldete null.
+    sammeln(new RegExp(grenze(`${esc(w)}${fill}(?:${L.unit})`), "giu"), () => v);
+  // 3b. Zahlwörter vor dem MINUTEN-Wort: „Fünfzig Minuten", „사십 분"
   for (const [w, v] of Object.entries(L.minuteWords))
-    if (new RegExp(grenze(`${esc(w)}${L.filler ?? "\\s*"}(?:${L.minute})`), "iu").test(text))
-      out.push(v / 60);
-
+    sammeln(new RegExp(grenze(`${esc(w)}${fill}(?:${L.minute})`), "giu"), () => v / 60);
   // 4. Zahlwort plus halbe Stunde: „dreizehneinhalb Stunden", „sei ore e mezza"
   const halb = halbMuster(L);
-  if (halb) for (const m of text.matchAll(halb)) {
-    const v = wortWert(L, m[1]);
-    if (v !== undefined) out.push(v + 0.5);
-  }
-
+  if (halb)
+    sammeln(halb, (m) => {
+      const v = wortWert(L, m[1]);
+      return v === undefined ? undefined : v + 0.5;
+    }, 2);
   // 5. Feste Wendungen: „halbe Stunde", „hora y media", „másfél óra"
   for (const [p, v] of Object.entries(L.phrases))
-    if (new RegExp(grenze(esc(p)), "iu").test(text)) out.push(v);
+    sammeln(new RegExp(grenze(esc(p)), "giu"), () => v, 2);
 
-  return out;
+  // Eine Fundstelle INNERHALB einer anderen zählt nicht.
+  return funde
+    .filter(
+      (f) =>
+        !funde.some(
+          (o) =>
+            o !== f &&
+            o.von <= f.von &&
+            o.bis >= f.bis &&
+            (o.von !== f.von || o.bis !== f.bis ? true : o.rang > f.rang),
+        ),
+    )
+    .map((f) => f.wert);
 }
 
 /**
