@@ -125,13 +125,23 @@ export const OPS_EVENTS = {
     severity: "info",
     title: "Karte nicht darstellbar (WebGL fehlt)",
     // Geräte-Realität, kein Fehler von uns: Hardware-Beschleunigung abgeschaltet, uralte
-    // Treiber, Bots ohne Grafik. Die Karten fangen das seit 08/2026 selbst ab
-    // (tryCreateMap in MapUnavailable.tsx) und zeigen einen Hinweis statt der Karte —
-    // vorher fiel die GANZE Seite auf die Fehlergrenze. Notiert wird es trotzdem,
+    // Treiber, nur WebGL 1 (Mapbox 3 verlangt WebGL 2). Die Karten fangen das seit 08/2026
+    // selbst ab (tryCreateMap in MapUnavailable.tsx) und zeigen einen Hinweis statt der
+    // Karte — vorher fiel die GANZE Seite auf die Fehlergrenze. Notiert wird es trotzdem,
     // denn eine plötzliche Häufung hieße: WIR haben WebGL für alle gekippt.
+    //
+    // SEIT 20.08.2026 STEHEN HIER NUR NOCH ECHTE GERÄTE. Bis dahin kamen rund 37 Meldungen
+    // am Tag herein und die Schwelle unten mailte regelmässig, obwohl nichts kaputt war:
+    // Der Löwenanteil stammte von Maschinen, die die Sitemap über alle 13 Sprachen abgehen
+    // (nachgemessen in api/ops/client-error, dort steht die Rechnung). Die werden jetzt
+    // schon dort abgewiesen. Damit trägt die Schwelle wieder, was sie tragen soll: Echte
+    // Geräte scheitern nur zu wenigen Prozent, zwanzig davon in sechs Stunden gibt es nur,
+    // wenn WIR etwas gekippt haben. Kommen trotzdem weiter Mails, hat der Absender-Filter
+    // die Maschinen nicht erwischt (sie geben sich als Browser aus), DANN erst die Schwelle
+    // anheben — nicht vorher, sonst versteckt sie beides auf einmal.
     alertAfter: 20,
     quietMinutes: 360,
-    hint: "Einzelne Treffer sind normal (Hardware-Beschleunigung aus, alte Treiber, Bots). Der Besucher sieht einen Hinweis statt der Karte. Häuft es sich direkt nach einem Deploy, hat eine Änderung (CSP, Mapbox-Update) WebGL für ALLE gekippt: dorthin zurückrollen.",
+    hint: "Einzelne Treffer sind normal (Hardware-Beschleunigung aus, alte Treiber, zu altes Gerät für WebGL 2). Der Besucher sieht einen Hinweis statt der Karte. Maschinen sind hier schon aussortiert, eine Häufung meint also echte Geräte: Kommt sie direkt nach einem Deploy, hat eine Änderung (CSP, Mapbox-Update) WebGL für ALLE gekippt, dorthin zurückrollen.",
   },
   ops_selftest: {
     area: "app",

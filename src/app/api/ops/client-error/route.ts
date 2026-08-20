@@ -23,6 +23,9 @@
 //                     einer Stunde keine zwanzig verschiedenen Abstürze; ein Skript schon.
 //   4. Der Katalog  — `client_error` schreibt höchstens 20 Zeilen je Fingerabdruck und
 //                     Fenster (siehe ROWS_PER_WINDOW in lib/ops.ts), zählt aber weiter.
+//   5. Maschinen    — nur bei der fehlenden Karte (client_webgl): Ein Roboter ohne
+//                     Grafikkarte meldet eine Selbstverständlichkeit. Begründung und
+//                     Messung stehen unten an der Prüfung.
 //
 // Was NICHT hereinkommt: Der Client bestimmt die Ereignis-Art nicht. Er darf genau eine
 // melden. Sonst könnte jemand einen „Kritisch"-Alarm auslösen und uns per Fernbedienung
@@ -32,7 +35,7 @@ import { logOps, bumpOpsCounter, subjectFromRequest } from "@/lib/ops";
 import { isChunkLoadError, isWebglInitError } from "@/lib/ops-events";
 import { scrubPath, scrubText } from "@/lib/ops-scrub";
 import { foreignOrigin } from "@/lib/same-origin";
-import { clientIp, classifyDevice } from "@/lib/analytics";
+import { clientIp, classifyDevice, isBotUserAgent } from "@/lib/analytics";
 
 export const runtime = "nodejs";
 
@@ -74,7 +77,8 @@ export async function POST(req: Request) {
   // api/track/route.ts).
   const ip = clientIp(req);
   const subject = subjectFromRequest(req);
-  const device = classifyDevice(req.headers.get("user-agent"));
+  const ua = req.headers.get("user-agent");
+  const device = classifyDevice(ua);
   const path = scrubPath(typeof body.path === "string" ? body.path : null);
   const digest = scrubText(body.digest, 40) || null;
   // Woher die Meldung kommt: aus einer React-Fehlergrenze oder von window.onerror.
@@ -106,6 +110,36 @@ export async function POST(req: Request) {
     }
   }
 
+  // Die Art wählt der SERVER aus der Meldung, nie der Client (siehe Kopf dieser Datei).
+  // Chunk- und WebGL-Fehler bekommen eigene, leise Katalog-Einträge UND feste
+  // Fingerabdrücke je Gerät: Der Chunk-Name in der Meldung wechselt mit jedem Deploy
+  // (Buchstaben-Hash, die #-Normalisierung unten greift nicht), sonst zählte jeder
+  // Deploy bei null los und die Schwelle griffe nie. Schlimmstenfalls redet sich ein
+  // Angreifer per passender Meldung LEISER (info statt warn), die Richtung ist harmlos.
+  const chunk = isChunkLoadError(message);
+  const webgl = !chunk && isWebglInitError(message);
+
+  // ── MASCHINEN OHNE GRAFIK SIND KEINE NACHRICHT ────────────────────────────────────────
+  //
+  // Eine fehlende Karte ist Geräte-Wirklichkeit, kein Fehler von uns (siehe Katalog). Bei
+  // einem Roboter ist sie nicht einmal das: Wer ohne Grafikkarte rendert, KANN kein WebGL
+  // haben, und dass er es nicht hat, sagt über die App nichts.
+  //
+  // Nachgemessen am 20.08.2026, 30 Tage Logbuch gegen 30 Tage Reichweitenmessung: 355
+  // Meldungen, 123 verschiedene Absender, verteilt über acht Releases (also kein Deploy).
+  // Die Sprachen verraten die Herkunft: 26 Meldungen auf /pl gegen 6 gezählte Aufrufe, 22
+  // auf /sk gegen 2, 18 auf /fr gegen 6. So sieht kein Publikum aus, so sieht eine Maschine
+  // aus, die die Sitemap über alle Sprachen abgeht. Übrig blieben rund 3 % echte
+  // Desktop-Besucher, und genau die soll das Logbuch zeigen.
+  //
+  // Gefiltert wird NUR diese eine Art. Bei einem echten Fehler ist die teure Richtung die
+  // umgekehrte: Eine verworfene Meldung fällt nie auf, sie fehlt einfach (dieselbe
+  // Überlegung wie in lib/analytics.ts, dort für die Reichweitenmessung).
+  //
+  // Der Alarm bleibt scharf: Hätten WIR WebGL gekippt, meldeten es die echten Geräte, und
+  // die zählen weiter mit.
+  if (webgl && isBotUserAgent(ua)) return new NextResponse(null, { status: 204 });
+
   // Die Antwort wartet auf nichts. Ein Browser, der gerade abgestürzt ist, soll nicht auch
   // noch auf unsere Datenbank warten.
   after(async () => {
@@ -113,14 +147,6 @@ export async function POST(req: Request) {
       const count = await bumpOpsCounter(`ops-client-err:${subject}`, WINDOW_SECONDS);
       if (count > MAX_PER_IP) return;
     }
-    // Die Art wählt der SERVER aus der Meldung, nie der Client (siehe Kopf dieser Datei).
-    // Chunk- und WebGL-Fehler bekommen eigene, leise Katalog-Einträge UND feste
-    // Fingerabdrücke je Gerät: Der Chunk-Name in der Meldung wechselt mit jedem Deploy
-    // (Buchstaben-Hash, die #-Normalisierung unten greift nicht), sonst zählte jeder
-    // Deploy bei null los und die Schwelle griffe nie. Schlimmstenfalls redet sich ein
-    // Angreifer per passender Meldung LEISER (info statt warn) — die Richtung ist harmlos.
-    const chunk = isChunkLoadError(message);
-    const webgl = !chunk && isWebglInitError(message);
     await logOps(chunk ? "client_chunk_load" : webgl ? "client_webgl" : "client_error", {
       message,
       path,
