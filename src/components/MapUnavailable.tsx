@@ -38,9 +38,32 @@ import { isWebglInitError } from "@/lib/ops-events";
  *   {mapDead ? <MapUnavailableScreen /> : <MapLoadingScreen {...loading} />}
  */
 export function tryCreateMap(options: mapboxgl.MapOptions): mapboxgl.Map | null {
+  // ERST FRAGEN, DANN BAUEN.
+  //
+  // `mapboxgl.supported()` ist Mapbox' eigene Prüfung (ist das ein Browser, kann er Canvas
+  // und getImageData, gibt er WebGL 2 her) und beantwortet genau die Frage, an der der
+  // Konstruktor sonst zerbricht. Sie zu stellen ist keine Kosmetik: Der werfende
+  // Konstruktor hinterlässt einen halb bemalten Container, den der Fang unten wieder
+  // leerräumen muss. Der gefragte Weg fasst den Container nie an.
+  //
+  // Mapbox 3 verlangt WebGL 2. Auf einem Gerät, das nur WebGL 1 kann, sagt diese Prüfung
+  // nein, und das ist die richtige Antwort: Die Karte käme dort auch nach dem Bauen nicht.
+  //
+  // Das `typeof` davor ist kein Zierrat. `supported()` kommt aus einem Paket, das gar nicht
+  // installiert ist (mapbox-gl liefert es mitgebündelt), seine Typen laufen deshalb ins
+  // Leere — tsc würde es NICHT merken, wenn Mapbox die Funktion eines Tages entfernt. Ohne
+  // die Prüfung stünde dann ein „supported is not a function" an der einen Stelle, die
+  // ausdrücklich dafür da ist, dass eine Karte nie die ganze Seite mitreisst.
+  if (typeof mapboxgl.supported === "function" && !mapboxgl.supported()) {
+    reportClientError(new Error("WebGL not supported by this browser (mapbox pre-check)."));
+    return null;
+  }
   try {
     return new mapboxgl.Map(options);
   } catch (err) {
+    // Zweiter Riegel, und er bleibt nötig: Die Prüfung oben sagt nur, ob der Browser WebGL
+    // GRUNDSÄTZLICH kann. Scheitern kann das Bauen trotzdem, etwa wenn auf einer Seite zu
+    // viele Kontexte gleichzeitig leben oder der Grafiktreiber mittendrin aussteigt.
     if (err instanceof Error && isWebglInitError(err.message)) {
       // Der gescheiterte Konstruktor räumt nicht hinter sich auf: Er hat dem Container
       // schon Kind-Elemente und die mapboxgl-map-Klasse verpasst, bevor er wirft (im
