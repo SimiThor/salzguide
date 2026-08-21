@@ -59,6 +59,39 @@ function worthReporting(message: string): boolean {
 }
 
 /**
+ * Gehört der fehlende Teil zu einem ANDEREN Deployment als die Seite selbst?
+ *
+ * WARUM DIESE FRAGE ÜBERHAUPT GESTELLT WIRD. Das Neuladen weiter unten ist für genau einen
+ * Fall gebaut: Ein Tab hält noch das HTML von VOR dem letzten Deploy und fragt nach einem
+ * Stück, das auf dem CDN nicht mehr liegt. Am 21.08.2026 nachgemessen, alle 104 Meldungen
+ * der letzten Wochen: In 104 von 104 Fällen trug der fehlende Teil die Kennung GENAU DES
+ * DEPLOYMENTS, aus dem auch die Seite kam. Kein einziger alter Tab, nicht ein Mal.
+ *
+ * Was stattdessen passierte: Der Teil fehlte (abgebrochene Anfrage, mobiles Netz, ein
+ * Skript, das sofort weiterklickt), wir luden die Seite neu, eine Sekunde später fehlte er
+ * wieder. Daher die Paare im Logbuch und die „Besucher" mit exakt zwei Aufrufen: Die zweite
+ * Hälfte davon haben wir selbst erzeugt, samt doppelter Zeile in der Reichweitenmessung.
+ *
+ * Vercel hängt an JEDE Datei-Adresse `?dpl=<Deployment>`, im ausgelieferten HTML steht sie
+ * über hundertmal. Damit lässt sich die Frage im Browser beantworten, ohne Server:
+ *
+ *   true   Versatz. Der Fall, für den das Neuladen gebaut ist. Es bleibt.
+ *   false  Gleiches Deployment. Netz oder Abbruch, Neuladen holt dieselbe Datei nochmal.
+ *   null   Nicht feststellbar (Meldung ohne Kennung, lokale Entwicklung). Dann wie bisher
+ *          neu laden: Ein überflüssiger Reload ist ärgerlich, ein steckengebliebener Tab
+ *          nach einem Deploy ist schlimmer.
+ */
+function versionsVersatz(message: string): boolean | null {
+  const KENNUNG = /[?&]dpl=([A-Za-z0-9_]+)/;
+  const fehlt = message.match(KENNUNG)?.[1];
+  if (!fehlt) return null;
+  // Irgendein Script-Tag der Seite genügt, sie tragen alle dieselbe Kennung.
+  const eigen = document.querySelector('script[src*="dpl="]')?.getAttribute("src")?.match(KENNUNG)?.[1];
+  if (!eigen) return null;
+  return fehlt !== eigen;
+}
+
+/**
  * Einen Fehler melden. Wirft nie und gibt nichts zurück.
  *
  * `keepalive: true` ist der Kern: Ein Fehler passiert oft genau dann, wenn die Seite gerade
@@ -117,7 +150,10 @@ export function reportClientError(
     // fehlt still — der Besucher merkt nur, dass „nichts passiert". Einmal neu laden holt
     // den frischen Build; die Meldung oben ist dank keepalive trotzdem schon unterwegs.
     //
-    // Vier Riegel gegen eine Schleife oder verlorene Arbeit:
+    // Fünf Riegel gegen eine Schleife, verlorene Arbeit und sinnloses Nachladen:
+    //   0. NUR bei echtem Versions-Versatz, siehe versionsVersatz() oben. Das ist der
+    //      wirksamste Riegel von allen: Gemessen traf keine einzige Meldung den Fall,
+    //      für den das Neuladen gebaut ist.
     //   1. Abklingzeit statt „einmal für immer": Eine echte Schleife feuert binnen
     //      Sekunden erneut und bleibt zehn Minuten blockiert; ein SPÄTERER Deploy in
     //      derselben Tab-Sitzung darf sich danach wieder selbst retten. (Alte Riegel
@@ -141,6 +177,7 @@ export function reportClientError(
             active.isContentEditable);
         const last = Number(sessionStorage.getItem(KEY));
         if (
+          versionsVersatz(message) !== false &&
           navigator.onLine !== false &&
           !/\/admin(\/|$)/.test(window.location.pathname) &&
           !typing &&
