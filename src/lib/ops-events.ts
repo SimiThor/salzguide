@@ -116,9 +116,15 @@ export const OPS_EVENTS = {
     // wechselt), sodass die Schwelle nie griff und echte Fehler darunter verschwanden.
     // Ein fester Fingerabdruck je Gerät sammelt sie jetzt ein; die Schwelle bleibt hoch,
     // weil erst eine Häufung OHNE frischen Deploy ein Problem ist.
+    //
+    // NACHGEMESSEN AM 21.08.2026: Von 104 Meldungen trug in 104 Fällen der fehlende Teil
+    // die Kennung genau des Deployments, aus dem auch die Seite kam. Der alte Tab, für den
+    // das Neuladen gebaut ist, kam also NIE vor. Es waren abgebrochene Anfragen (Maschinen,
+    // die im Sekundentakt weiterklicken) und mobiles Netz. Seither lädt ops-client.ts nur
+    // noch bei echtem Versatz neu, siehe versionsVersatz() dort.
     alertAfter: 50,
     quietMinutes: 180,
-    hint: "Nach einem Deploy normal: Alte Tabs laden sich einmal selbst neu. Häuft es sich, OHNE dass deployt wurde, verweist der aktuelle Build auf nachladbare Teile, die es nicht gibt, oder das CDN klemmt.",
+    hint: "In der Meldung steht ?dpl=<Deployment>. Ist das dasselbe wie der Stand der Zeile, war es KEIN alter Tab, sondern eine abgebrochene Anfrage oder mobiles Netz (der Normalfall, wir laden dann auch nicht mehr neu). Nur eine ANDERE Kennung heisst Versions-Versatz. Häuft sich das ohne frischen Deploy, verweist der aktuelle Build auf Teile, die es nicht gibt, oder das CDN klemmt.",
   },
   client_webgl: {
     area: "app",
