@@ -52,13 +52,29 @@ export default function ProNotice() {
     // den Vermerk erst noch schreibt.
     if (settled.current) return;
     let alive = true;
-    getPendingProNotice().then((r) => {
-      if (!alive || settled.current) return;
-      // Gast: kann ohne Anmeldung kein Pro bekommen, und Anmelden ist ein echter
-      // Seitenaufruf. Ab hier schweigen wir, statt bei jedem Tippen zu fragen.
-      if (r.guest) settled.current = true;
-      setSource(r.source);
-    });
+    getPendingProNotice()
+      .then((r) => {
+        if (!alive || settled.current) return;
+        // Gast: kann ohne Anmeldung kein Pro bekommen, und Anmelden ist ein echter
+        // Seitenaufruf. Ab hier schweigen wir, statt bei jedem Tippen zu fragen.
+        if (r.guest) settled.current = true;
+        setSource(r.source);
+      })
+      .catch(() => {
+        // Der WEG zur Action kann scheitern, auch wenn die Action selbst fehlertolerant
+        // ist (siehe pro-notice-actions.ts, dort fängt jeder Datenbank-Fehler intern).
+        // Kommt auf die POST-Anfrage etwas zurück, das kein RSC-Payload ist, wirft Next
+        // „An unexpected response was received from the server." Ohne dieses catch wird
+        // daraus eine unbehandelte Promise, die der Melder in lib/ops-client.ts als
+        // „Fehler im Browser" ins Logbuch schreibt — Stufe auffällig, Alarmmail ab zehn
+        // Stück in drei Stunden.
+        //
+        // Am 23.08.2026 standen so acht Zeilen binnen 17 Sekunden im Logbuch, von acht
+        // verschiedenen Adressen auf derselben Spot-Seite. Ein Gruss, der nicht ankommt,
+        // ist aber kein Fehler: Beim nächsten Seitenwechsel wird ohnehin neu gefragt.
+        // Deshalb NICHT settled setzen — wer eingeloggt ist, soll seinen Gruss noch
+        // bekommen.
+      });
     return () => {
       alive = false;
     };
