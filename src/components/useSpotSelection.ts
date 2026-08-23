@@ -69,9 +69,17 @@ export function useSpotSelection<T extends SelectableSpot>(spots: T[]) {
     if (!s || s.type !== "activity" || s.locked) return;
     if (slug in routeCache) return; // schon geladen (auch null wird gecacht)
     let alive = true;
-    getSpotRoute(slug).then((coords) => {
-      if (alive) setRouteCache((c) => ({ ...c, [slug]: coords }));
-    });
+    getSpotRoute(slug)
+      .then((coords) => {
+        if (alive) setRouteCache((c) => ({ ...c, [slug]: coords }));
+      })
+      .catch(() => {
+        // Dieselbe Lücke wie in ProNotice.tsx, dort steht die ausführliche Begründung:
+        // Scheitert der WEG zur Server Action, wirft Next, und ohne catch wird daraus
+        // eine unbehandelte Promise, die als „Fehler im Browser" im Logbuch landet.
+        // Hier bleibt dann eben die Linie aus, der Rest der Karte steht. Bewusst NICHT
+        // in den Cache schreiben: Beim nächsten Antippen darf es neu versucht werden.
+      });
     return () => {
       alive = false;
     };
