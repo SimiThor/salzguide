@@ -817,6 +817,28 @@ body {
   }
 }
 
+/* Die Frist des Ladeschirms: Nach 20 Sekunden ohne Karte wird aus dem Schimmern ein Satz.
+   WARUM HIER UND NICHT IN REACT: Kommt die Mapbox-Datei nicht an (490 KB, mobil ein
+   Brocken), hydriert React diesen Teil der Seite nie — der Schirm, den man dann sieht,
+   ist noch der aus dem Server-HTML. Ein Timer in JavaScript liefe in genau dem Fall gar
+   nicht los, für den er gedacht wäre. Am 23.08.2026 gegen die Produktion nachgestellt:
+   Datei blockiert, Verbindung mittendrin abgerissen, Portal schickt HTML statt Skript —
+   dreimal blieb ein endlos schimmernder Schirm ohne ein Wort stehen.
+   Zwanzig Sekunden sind bewusst grosszügig: Einer langsamen, aber funktionierenden
+   Verbindung zu sagen „die Karte geht nicht", wäre der teurere Fehler. Lädt die Karte
+   doch noch, verschwindet der ganze Schirm samt Hinweis.
+   Die Einblendung läuft auch bei prefers-reduced-motion: Das ist keine Bewegung,
+   sondern eine Auskunft. */
+.sg-map-stall {
+  opacity: 0;
+  animation: sg-map-stall-in 400ms ease-out 20s forwards;
+}
+@keyframes sg-map-stall-in {
+  to {
+    opacity: 1;
+  }
+}
+
 /* Reader-Modus fürs Transkript: angenehm lesbar (Lesebreite, Zeilenhöhe, Trennung). */
 .sg-reader {
   max-inline-size: 62ch;

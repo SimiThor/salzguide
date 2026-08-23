@@ -1,9 +1,14 @@
 "use client";
 
 import mapboxgl from "mapbox-gl";
-import { useTranslations } from "next-intl";
 import { reportClientError } from "@/lib/ops-client";
 import { isWebglInitError } from "@/lib/ops-events";
+
+// Der Hinweis selbst wohnt seit 23.08.2026 in einer eigenen Datei, OHNE mapbox-gl im
+// Gepäck: MapLoading.tsx zeigt ihn auch dann, wenn die Mapbox-Datei gar nicht ankommt,
+// und darf dafür nicht ausgerechnet an ihr hängen. Hier nur weitergereicht, damit die
+// Karten ihn weiterhin zusammen mit tryCreateMap von einer Stelle holen.
+export { MapUnavailableScreen } from "./MapUnavailableScreen";
 
 /**
  * Karte ohne WebGL: EIN Fangnetz und EIN Hinweis für alle Karten der Seite.
@@ -78,19 +83,4 @@ export function tryCreateMap(options: mapboxgl.MapOptions): mapboxgl.Map | null 
     }
     throw err;
   }
-}
-
-/** Ruhige Fläche statt Karte. Gleiche Lage im Kasten wie der Ladeschirm (z-30). */
-export function MapUnavailableScreen() {
-  const t = useTranslations("Map");
-  return (
-    <div className="absolute inset-0 z-30 flex items-center justify-center bg-cream p-6">
-      <div className="max-w-[30ch] text-center">
-        <div aria-hidden className="mb-2 text-2xl">
-          🗺️
-        </div>
-        <p className="text-sm leading-snug text-muted">{t("unavailable")}</p>
-      </div>
-    </div>
-  );
 }
