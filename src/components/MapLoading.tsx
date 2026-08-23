@@ -2,6 +2,7 @@
 
 import type mapboxgl from "mapbox-gl";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { MapUnavailableScreen } from "./MapUnavailableScreen";
 
 /**
  * Ladeschirm für ALLE Karten der Seite (docs/02 §8).
@@ -48,6 +49,29 @@ const FADE_MS = 500;
 // Sicherheitsnetz: Bliebe `idle` je aus (tote Kacheln, kein Netz, WebGL-Zicken), läge
 // der Schirm für immer über der Karte. Lieber die halbe Karte zeigen als gar keine.
 const SAFETY_MS = 3000;
+
+// ── DAS ZWEITE SICHERHEITSNETZ, UND ES DECKT DEN FALL AB, DEN DAS ERSTE NICHT KANN ──────
+//
+// SAFETY_MS oben hängt an `bindMap`, wird also erst scharf, wenn es schon eine Karte GIBT.
+// Kommt die Mapbox-Datei gar nicht an (490 KB, mobil ist das ein Brocken), wird bindMap nie
+// aufgerufen, und der Besucher schaut in einen Schirm, der nie weggeht: kein Wort, kein
+// Knopf, kein Hinweis. Am 23.08.2026 gegen die Produktion nachgestellt, in allen drei
+// Ausfall-Arten (Datei kommt nicht, Verbindung reisst mittendrin ab, Portal schickt HTML
+// statt Skript) sah es genau so aus. Die Seite drumherum lebt dabei weiter.
+//
+// Diese Frist läuft deshalb ab dem MOMENT, in dem der Schirm erscheint, und `bindMap`
+// löscht sie. Danach steht dort derselbe ruhige Satz wie bei fehlendem WebGL.
+//
+// Warum so grosszügig: Der teure Fehler ist der umgekehrte. Einer langsamen, aber
+// funktionierenden Verbindung zu sagen „die Karte geht nicht", während sie noch lädt,
+// wäre eine Lüge, die der Besucher sofort bemerkt. Zwanzig Sekunden liegen weit über
+// jedem normalen Laden und immer noch unter „der ist längst weg".
+// Die Frist steht in CSS (.sg-map-stall in globals.css), NICHT hier. Der Grund ist der
+// entscheidende Befund vom 23.08.2026: Kommt die Mapbox-Datei nicht an, hydriert React
+// diesen Teil der Seite nie. Der Ladeschirm, den man dann sieht, stammt noch aus dem
+// Server-HTML — ein Timer in JavaScript läuft in genau dem Fall überhaupt nicht los, für
+// den er gedacht wäre. CSS läuft trotzdem. (Dieselbe Regel wie bei der Sheet-Ruheposition
+// und dem Handy/Desktop-Umschalten: Was ohne JavaScript stimmen muss, gehört in CSS.)
 
 export type MapLoadingState = {
   /** Karte ist fertig — der Schirm blendet gerade weg. */
@@ -162,14 +186,19 @@ export function MapLoadingScreen({ done, gone, barRef }: MapLoadingState) {
   if (gone) return null;
   return (
     <div
-      aria-hidden
       className={`sg-map-loading pointer-events-none absolute inset-0 z-30 flex items-center justify-center motion-safe:transition-opacity motion-safe:duration-500 motion-safe:ease-out ${
         done ? "opacity-0" : "opacity-100"
       }`}
     >
-      <div className="sg-map-shimmer absolute inset-0" />
-      <div className="relative h-[3px] w-[104px] overflow-hidden rounded-full bg-black/10">
+      <div aria-hidden className="sg-map-shimmer absolute inset-0" />
+      <div aria-hidden className="relative h-[3px] w-[104px] overflow-hidden rounded-full bg-black/10">
         <div ref={barRef} className="sg-map-bar h-full w-full rounded-full bg-accent" />
+      </div>
+      {/* Der Hinweis liegt von Anfang an im DOM und ist unsichtbar; erst die Frist
+          (.sg-map-stall) blendet ihn ein. Nur so steht er auch dann da, wenn die Seite nie
+          hydriert. Kommt die Karte doch noch, ist der ganze Schirm samt Hinweis weg. */}
+      <div className="sg-map-stall absolute inset-0">
+        <MapUnavailableScreen />
       </div>
     </div>
   );
