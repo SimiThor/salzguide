@@ -35,6 +35,7 @@ export function useGoogleBikeNavigation(
   stops: [number, number][],
   fix: GeoFix | null,
   apiKey: string,
+  locale: string,
 ): UseGoogleBikeNavigation {
   const [currentStopIndex, setCurrentStopIndex] = useState(0);
   const [leg, setLeg] = useState<NavLeg | null>(null);
@@ -49,6 +50,7 @@ export function useGoogleBikeNavigation(
   const stopIndexRef = useLatestRef(currentStopIndex);
   const stopsRef = useLatestRef(stops);
   const apiKeyRef = useLatestRef(apiKey);
+  const localeRef = useLatestRef(locale);
   const fixRef = useLatestRef(fix);
 
   const reqRef = useRef(0);
@@ -61,7 +63,12 @@ export function useGoogleBikeNavigation(
       if (isReroute) setRerouting(true);
       else setStatus("loading-leg");
       setLegError(null);
-      void fetchGoogleBikeLeg([originFix.lng, originFix.lat], target, apiKeyRef.current).then(
+      void fetchGoogleBikeLeg(
+        [originFix.lng, originFix.lat],
+        target,
+        apiKeyRef.current,
+        localeRef.current,
+      ).then(
         (r) => {
           if (myReq !== reqRef.current) return; // veraltete Antwort verwerfen
           setRerouting(false);
@@ -78,7 +85,7 @@ export function useGoogleBikeNavigation(
         },
       );
     },
-    [stopsRef, apiKeyRef],
+    [stopsRef, apiKeyRef, localeRef],
   );
 
   const startedRef = useRef(false);

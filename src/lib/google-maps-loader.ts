@@ -58,6 +58,28 @@ function runBootstrap(opts: GoogleBootstrapOptions): void {
 let bootstrapped = false;
 let apiKeyUsed: string | null = null;
 
+// Googles eingebauter Alarm für GENAU diese Fehlerklasse (falscher/fehlender Key, eine
+// HTTP-Referrer-Beschränkung, die diese Domain nicht erlaubt, oder Abrechnung aus) – er
+// ruft `window.gm_authFailure()` auf, wenn es die definiert. Ohne diesen Haken bleibt so
+// ein Fehler unsichtbar: Die Karte selbst kann noch grau/leer laden, während jede Anfrage
+// (auch DirectionsService) im Stillen abgelehnt wird. Besonders wichtig für "geht lokal,
+// nicht auf Prod" – lokale und Prod-Domain haben fast immer unterschiedliche Referrer-
+// Freigaben.
+function hookAuthFailure(): void {
+  const w = window as unknown as { gm_authFailure?: () => void };
+  if (w.gm_authFailure) return;
+  w.gm_authFailure = () => {
+    console.error(
+      "[google-maps-loader] gm_authFailure: Google lehnt den API-Key auf DIESER Domain " +
+        `(${window.location.origin}) ab. Häufigste Ursachen: der Key hat eine HTTP-Referrer-` +
+        "Beschränkung, die diese Domain nicht enthält (Google Cloud Console -> APIs & Dienste " +
+        "-> Anmeldedaten -> Key -> Anwendungseinschränkungen), oder Abrechnung ist im Projekt " +
+        "nicht aktiv. Das erklärt auch \"geht lokal, nicht auf Prod\": localhost und die Prod-" +
+        "Domain brauchen dort JEWEILS einen eigenen erlaubten Eintrag.",
+    );
+  };
+}
+
 type LoadedLibraries = {
   Map: typeof google.maps.Map;
   DirectionsService: typeof google.maps.DirectionsService;
@@ -70,6 +92,7 @@ type LoadedLibraries = {
 // und "marker" (klassische Marker + Symbol-Pfeile für Positions-Punkt/Stopp-Pins).
 export async function loadGoogleMapsLibraries(apiKey: string): Promise<LoadedLibraries> {
   if (typeof window === "undefined") throw new Error("Google Maps braucht den Browser.");
+  hookAuthFailure();
   if (!bootstrapped) {
     runBootstrap({ key: apiKey, v: "weekly" });
     bootstrapped = true;

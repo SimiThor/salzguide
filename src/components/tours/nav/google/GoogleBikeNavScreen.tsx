@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import BackButton from "@/components/BackButton";
 import GoogleNavMap from "./GoogleNavMap";
 import GoogleArrivalPopup from "./GoogleArrivalPopup";
@@ -30,6 +30,7 @@ const GOOGLE_MAP_ID = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID;
 // (/touren/[slug]) führt – wie im Testauftrag verlangt.
 export default function GoogleBikeNavScreen({ tour }: { tour: TourDetail }) {
   const t = useTranslations("Tours");
+  const locale = useLocale();
 
   const geoStops = useMemo(() => tour.stops.filter((s) => s.lat != null && s.lng != null), [
     tour.stops,
@@ -45,7 +46,7 @@ export default function GoogleBikeNavScreen({ tour }: { tour: TourDetail }) {
 
   const { fix, status: gpsStatus, start } = useGeolocationWatch();
   useWakeLock(gpsStatus === "requesting" || gpsStatus === "watching" || gpsStatus === "signal-lost");
-  const bike = useGoogleBikeNavigation(stopCoords, fix, GOOGLE_API_KEY);
+  const bike = useGoogleBikeNavigation(stopCoords, fix, GOOGLE_API_KEY, locale);
 
   const showStartGate = gpsStatus === "idle" || gpsStatus === "denied" || gpsStatus === "unavailable";
   const currentStop = geoStops[bike.currentStopIndex] ?? null;
