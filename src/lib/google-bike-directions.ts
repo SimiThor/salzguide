@@ -58,6 +58,7 @@ async function fetchGoogleLeg(
   travelMode: google.maps.TravelMode,
   from: [number, number],
   to: [number, number],
+  locale: string,
 ): Promise<{ leg: NavLeg; distanceM: number; durationS: number } | null> {
   let res: google.maps.DirectionsResult;
   try {
@@ -68,8 +69,17 @@ async function fetchGoogleLeg(
       // Nur der eine, direkte Weg – für "Navigation zum nächsten Stopp" gibt es keine
       // sinnvolle Alternative zum Auswählen (kein UI dafür, siehe Prioritäten des Tests).
       provideRouteAlternatives: false,
+      // Ohne das antwortet Google in der Browser-/Geräte-Spracheinstellung statt in der
+      // Sprache der Seite (bike-directions.ts macht dasselbe für Mapbox).
+      language: locale,
     });
-  } catch {
+  } catch (err) {
+    // Googles echte Fehlermeldung (z.B. "REQUEST_DENIED: ... RefererNotAllowedMapError")
+    // steckt in `err`, ging bisher aber im stillen `null` unter – sichtbar nur noch in der
+    // Browser-Konsole (F12), aber sichtbar. Kein reportClientError o.ä.: Diese Testseite
+    // hat keine eigene Fehler-Meldestelle, und ein swallowed catch wäre genau das Problem,
+    // das sich hier schon einmal als "Gerade nicht erreichbar" ohne Grund gezeigt hat.
+    console.error("[google-bike-directions] DirectionsService.route() fehlgeschlagen:", err);
     return null;
   }
   const route = res.routes?.[0];
@@ -77,7 +87,16 @@ async function fetchGoogleLeg(
   if (!route || !rLeg) return null;
 
   const geometry: [number, number][] = route.overview_path.map((p) => [p.lng(), p.lat()]);
-  if (geometry.length < 2) return null;
+  // Steht der Nutzer schon (fast) auf dem Zielpunkt – z.B. direkt nach dem Start oder kurz
+  // vor einer Ankunft –, liefert Google eine "Route" mit nur einem einzigen Wegpunkt statt
+  // einer Linie. Das ist eine ECHTE, nur sehr kurze Etappe, kein Fehler: bike-nav-core.ts
+  // (nearestPointOnRoute in geo.ts) braucht mindestens zwei Punkte, deshalb hier auf die
+  // beiden Endpunkte auffüllen statt die Etappe zu verwerfen – sonst zeigt das HUD an genau
+  // dieser Stelle fälschlich "Gerade nicht erreichbar".
+  if (geometry.length < 2) {
+    geometry.length = 0;
+    geometry.push(from, to);
+  }
 
   // Jedes Google-Step-Objekt trägt (anders als bei Mapbox) das Manöver, mit dem es ENDET
   // (der Abbiege-Punkt liegt am Ende des Steps, nicht am Anfang) – alongM ist deshalb die
@@ -110,6 +129,7 @@ export async function fetchGoogleBikeLeg(
   from: [number, number],
   to: [number, number],
   apiKey: string,
+  locale: string,
 ): Promise<GoogleBikeLegResult> {
   if (!apiKey) return { ok: false, error: "no-key" };
   try {
@@ -120,9 +140,10 @@ export async function fetchGoogleBikeLeg(
       google.maps.TravelMode.BICYCLING,
       from,
       to,
+      locale,
     );
     if (bike) return { ok: true, ...bike };
-    const walk = await fetchGoogleLeg(service, google.maps.TravelMode.WALKING, from, to);
+    const walk = await fetchGoogleLeg(service, google.maps.TravelMode.WALKING, from, to, locale);
     if (walk) return { ok: true, ...walk };
     return { ok: false, error: "no-route" };
   } catch {
