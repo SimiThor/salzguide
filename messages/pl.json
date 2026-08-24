@@ -135,6 +135,7 @@
     "navDoneTitle": "Trasa ukończona",
     "navDoneBody": "Wysłuchano {heard} z {total} przystanków.",
     "navDoneBack": "Powrót do trasy",
+    "navDoneContinue": "Jedź dalej",
     "navOffline": "Chwilowo niedostępne – ostatnia trasa pozostaje aktywna.",
     "navNoGps": "Brak sygnału GPS",
     "navDenied": "Odmówiono dostępu do lokalizacji – włącz go w ustawieniach.",

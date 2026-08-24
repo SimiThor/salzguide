@@ -178,6 +178,7 @@
     "navDoneTitle": "Runde geschafft",
     "navDoneBody": "{heard} von {total} Stationen gehört.",
     "navDoneBack": "Zurück zur Tour",
+    "navDoneContinue": "Weiterfahren",
     "navOffline": "Gerade nicht erreichbar – letzte Route bleibt aktiv.",
     "navNoGps": "Kein GPS-Signal",
     "navDenied": "Standortzugriff verweigert – bitte in den Einstellungen erlauben.",

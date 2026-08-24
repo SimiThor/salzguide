@@ -393,5 +393,129 @@ console.log("\n11. Nach einer Neuberechnung bleiben gehörte Spots gehört");
   else bad("Fahrtrichtung zurückgesetzt", `${next.bearingDeg}`);
 }
 
+
+// ═══════════════════════════════════════════════════════════════════════════════════
+//  RUNDTOUREN
+//
+//  Alle Pruefungen oben fahren offene Strecken ab, meist gerade. Eine Rundtour ist aber
+//  der Normalfall des Produkts, und sie hat eine Eigenschaft, die alles aendert: Ihr ENDE
+//  liegt am ANFANG. Jeder falsche Schnappschuss in Startnaehe sieht deshalb aus wie ein
+//  Zieleinlauf, und weil die Linie sich selbst nahe kommt, kann der Fortschritt an vielen
+//  Stellen auf den falschen Ast springen.
+// ═══════════════════════════════════════════════════════════════════════════════════
+
+// Quadratische Runde, Ende exakt am Start. Kantenlaenge so gewaehlt, dass Hin- und
+// Rueckweg der ersten Kante nur `versatzM` auseinanderliegen, wie in einer Gasse.
+function loopRoute(kanteM: number, spotsAtM: number[] = []): NavRoute {
+  const pts: [number, number][] = [];
+  const step = 20;
+  for (let d = 0; d <= kanteM; d += step) pts.push(alongRoute(d));
+  for (let d = step; d <= kanteM; d += step) pts.push(offsetNorth(alongRoute(kanteM), d));
+  for (let d = step; d <= kanteM; d += step) pts.push(offsetNorth(alongRoute(kanteM - d), kanteM));
+  for (let d = step; d <= kanteM; d += step) pts.push(offsetNorth(alongRoute(0), kanteM - d));
+  return { geometry: pts, steps: [], spotAlongM: spotsAtM, totalM: kanteM * 4 };
+}
+
+console.log("\n12. Rundtour: ein Ausreisser in Startnaehe beendet die Runde NICHT");
+{
+  // Der Gast faehrt 200 m, dann sperrt sich der Bildschirm (Safari drosselt die Ortung,
+  // docs/40). Nach drei Minuten kommt ein Fix mit maessiger Genauigkeit 25 m neben dem
+  // Startpunkt. Weil dort auch das ENDE der Runde liegt, sah das bisher wie ein
+  // Zieleinlauf aus: alongM sprang auf fast die volle Rundenlaenge, alle Spots wurden
+  // auf einen Schlag verbucht und "Runde geschafft" stand auf dem Schirm, 200 m nach dem
+  // Start und ohne Weg zurueck.
+  const route = loopRoute(400, [100, 500, 900, 1300]);
+  const fixes: GeoFix[] = [];
+  let t = 1000;
+  for (let d = 0; d <= 200; d += 10) {
+    t += 1000;
+    fixes.push(fix(alongRoute(d), t));
+  }
+  // Ortungsluecke von drei Minuten, dann ein Fix nahe am Start.
+  t += 180_000;
+  fixes.push(fix(offsetNorth(alongRoute(0), 25), t, { accuracyM: 30 }));
+
+  const { states, events } = runOn(route, fixes);
+  const last = states[states.length - 1];
+  if (!last.finished) ok("kein Zieleinlauf aus einem Ausreisser in Startnaehe");
+  else bad("Runde faelschlich beendet", `remainingM ${last.remainingM.toFixed(0)}, alongM ${last.alongM.toFixed(0)}`);
+
+  const passed = events.filter((e) => e.type === "spot-passed").length;
+  if (passed === 0) ok("kein Spot wird dabei faelschlich verbucht");
+  else bad("Spot-Lawine durch den Ausreisser", `${passed} spot-passed-Ereignisse`);
+}
+
+console.log("\n13. Am Start stehen und seitlich abdriften beendet die Runde NICHT");
+{
+  // Der Gast schiebt sein Rad ueber den Platz zur Ampel, bevor er losfaehrt. Die Ortung
+  // streut dabei bis 50 m. Direkt neben ihm liegt der Rueckweg der Runde, also die
+  // Stelle mit dem groessten alongM.
+  const route = loopRoute(400, [100, 500, 900, 1300]);
+  const fixes: GeoFix[] = [];
+  let t = 1000;
+  for (let i = 0; i < 8; i++) {
+    t += 2000;
+    fixes.push(fix(offsetNorth(alongRoute(0), i * 7), t, { accuracyM: 45, speedMps: 0.6 }));
+  }
+  const { states } = runOn(route, fixes);
+  const last = states[states.length - 1];
+  if (!last.finished) ok("kein Zieleinlauf vor dem ersten gefahrenen Meter");
+  else bad("Runde beendet, bevor sie begann", `alongM ${last.alongM.toFixed(0)} von ${route.totalM}`);
+  if (last.spotPhase.every((p) => p !== "done")) ok("alle Spots bleiben offen");
+  else bad("Spots verbucht, obwohl nicht gefahren", JSON.stringify(last.spotPhase));
+}
+
+console.log("\n14. Falschabbiegung auf der Rundtour springt nicht auf den Rueckweg");
+{
+  // Die Runde benutzt dieselbe Gasse hin und zurueck (8 m versetzt). Der Gast biegt kurz
+  // nach dem Start falsch ab und faehrt 90 m seitlich weg. Der Rueckweg liegt dann naeher
+  // an ihm als sein eigener Streckenabschnitt, und genau dorthin sprang der Fortschritt.
+  const outbound: [number, number][] = [];
+  for (let d = 0; d <= 400; d += 20) outbound.push(alongRoute(d));
+  const back: [number, number][] = [];
+  for (let d = 400; d >= 0; d -= 20) back.push(offsetNorth(alongRoute(d), 8));
+  const geometry = [...outbound, ...back];
+  const route: NavRoute = { geometry, steps: [], spotAlongM: [200, 600], totalM: 800 };
+
+  const path: [number, number][] = [];
+  for (let d = 0; d <= 25; d += 5) path.push(alongRoute(d));
+  for (let n = 10; n <= 90; n += 10) path.push(offsetNorth(alongRoute(25), -n));
+
+  const { states, events } = ride({ route, path, seed: 14, stopOn: "reroute" });
+  const last = states[states.length - 1];
+  if (!last.finished) ok("kein Zieleinlauf durch die Falschabbiegung");
+  else bad("Runde durch Falschabbiegung beendet", `alongM ${last.alongM.toFixed(0)}`);
+  if (countOf(events, "spot-passed") === 0) ok("kein Spot wird verbucht, der noch vor dem Gast liegt");
+  else bad("Spots faelschlich verbucht", `${countOf(events, "spot-passed")} Ereignis(se)`);
+  if (countOf(events, "reroute") === 1) ok("genau eine Neuberechnung");
+  else bad("Neuberechnung", `${countOf(events, "reroute")} statt 1`);
+}
+
+console.log("\n15. Ein falsches \"fertig\" ist umkehrbar");
+{
+  // Selbst wenn der Zustand einmal auf fertig faellt, darf er nicht kleben: Wer sich
+  // wieder deutlich vom Ziel entfernt, faehrt weiter. Ohne das ist jeder Fehlalarm ein
+  // Totalausfall mitten auf dem Rad.
+  const route = straightRoute(600, [300]);
+  const fixes: GeoFix[] = [];
+  let t = 1000;
+  for (let d = 0; d <= 600; d += 20) {
+    t += 2000;
+    fixes.push(fix(alongRoute(d), t));
+  }
+  // Und dann faehrt der Gast weiter, ueber das Ende hinaus zurueck auf die Route.
+  for (let d = 580; d >= 400; d -= 20) {
+    t += 2000;
+    fixes.push(fix(alongRoute(d), t));
+  }
+  const { states } = runOn(route, fixes);
+  const amEnde = states.find((s) => s.finished);
+  const last = states[states.length - 1];
+  if (amEnde) ok("am echten Ende wird die Runde als gefahren gemeldet");
+  else bad("Ende wird gar nicht erkannt", "kein finished auf der ganzen Fahrt");
+  if (!last.finished) ok("und wieder aufgehoben, sobald der Gast weiterfaehrt");
+  else bad("fertig klebt", `remainingM ${last.remainingM.toFixed(0)}`);
+}
+
 console.log(failed ? `\n${failed} Prüfung(en) fehlgeschlagen.` : "\nAlles grün.");
 process.exitCode = failed ? 1 : 0;

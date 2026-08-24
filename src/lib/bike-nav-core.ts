@@ -27,6 +27,27 @@ export const NAV = {
 
   // ——— Ende der Runde ———
   FINISH_M: 35, // so nah am Ende gilt die Runde als gefahren
+  FINISH_FIXES: 2, // ...aber erst nach so vielen guten Fixen hintereinander
+  // Wie nah der Fortschritt VORHER schon am Ende gelegen haben muss. Ein Sprung von der
+  // halben Runde auf 20 m Rest ist per Definition kein Zieleinlauf, sondern ein
+  // fehlgeschnappter Fix. Auf einer Rundtour liegt das Ende am Start, dort sieht jeder
+  // Ausreisser in Startnaehe wie ein Ziel aus.
+  FINISH_APPROACH_M: 250,
+  // Hysterese: So weit muss man sich wieder entfernen, damit "gefahren" zurueckgenommen
+  // wird. Ohne das flackert die Anzeige am Ziel, mit einem klebrigen Wert dagegen ist
+  // jeder Fehlalarm ein Totalausfall mitten auf dem Rad.
+  FINISH_RELEASE_M: 90,
+
+  // Wie weit der Fortschritt in EINEM Schritt hoechstens springen darf. Gerechnet aus der
+  // verstrichenen Zeit, aber gedeckelt: Nach einer langen Ortungsluecke (Safari drosselt
+  // bei gesperrtem Bildschirm) wissen wir ohnehin nicht mehr, wo der Gast ist. Dann ist
+  // die sichere Antwort, beim alten Stand zu bleiben und die Off-Route-Erkennung eine
+  // Neuberechnung ab der echten Position ausloesen zu lassen, statt blind auf einen
+  // fernen Ast der Runde zu springen. Genau dort lag der schwerste Fehler: Ein einziger
+  // Fix in Startnaehe liess eine Rundtour auf alongM 1579 springen, verbuchte vier Spots
+  // auf einen Schlag und meldete "Runde geschafft" nach 200 gefahrenen Metern.
+  MAX_JUMP_M: 400,
+  JUMP_SLACK_M: 50, // Zugabe auf das Zeitbudget, fuer Rauschen und Snapping
 
   // ——— Off-Route ———
   OFF_ROUTE_M: 40, // Radweg neben der Fahrbahn + normale Häuserschlucht-Ungenauigkeit
@@ -85,6 +106,7 @@ export type NavState = {
   nextSpotIndex: number; // nächster noch nicht abgehakter Spot, -1 = keiner mehr
   distanceToNextSpotM: number | null; // entlang der Route, nicht Luftlinie
   remainingM: number; // bis zum Ende der Runde
+  finishStreak: number; // so viele gute Fixe hintereinander in Zielnaehe
   finished: boolean;
   lastFixAt: number | null;
   lastFixCoord: [number, number] | null;
@@ -103,6 +125,7 @@ export function initNavState(spotCount = 0): NavState {
     nextSpotIndex: spotCount > 0 ? 0 : -1,
     distanceToNextSpotM: null,
     remainingM: 0,
+    finishStreak: 0,
     finished: false,
     lastFixAt: null,
     lastFixCoord: null,
@@ -164,8 +187,23 @@ export function stepNav(
   // scripts/nav-check.ts). Auf einer GANZEN Runde ist das kein Randfall mehr, sondern
   // die Regel: Eine Rundtour endet dort, wo sie beginnt.
   const nearest = nearestPointOnRoute(route.geometry, here, { nearAlongM: state.alongM });
-  const alongM = nearest?.alongM ?? state.alongM;
   const crossTrackM = nearest?.crossTrackM ?? state.crossTrackM;
+
+  // Stetigkeits-Riegel: Der Fortschritt darf nur so weit springen, wie in der vergangenen
+  // Zeit fahrbar war. Ohne ihn reicht EIN Fix, um auf einen ganz anderen Ast der Runde zu
+  // rutschen, sobald nearestPointOnRoute auf die globale Suche zurueckfaellt (geo.ts) --
+  // und auf einer Rundtour liegt das Ende am Start, das Sprungziel ist also ausgerechnet
+  // die Ziellinie. Wird der Sprung verworfen, bleibt der alte Fortschritt stehen und
+  // crossTrackM bleibt gross: Die vorhandene Entprellung loest dann nach drei Fixen eine
+  // Neuberechnung ab der echten Position aus. Das ist die saubere Selbstheilung.
+  const dtS = state.lastFixAt != null ? Math.max(0, (fix.at - state.lastFixAt) / 1000) : 0;
+  const maxJumpM =
+    state.lastFixAt == null
+      ? Infinity // erster Fix der Route: es gibt noch nichts, wovon er springen koennte
+      : Math.min(NAV.MAX_JUMP_M, dtS * NAV.MAX_SPEED_MPS + NAV.JUMP_SLACK_M);
+  const proposedAlongM = nearest?.alongM ?? state.alongM;
+  const alongM =
+    Math.abs(proposedAlongM - state.alongM) > maxJumpM ? state.alongM : proposedAlongM;
 
   // Nächste noch bevorstehende Abbiegung: die erste, deren Punkt noch vor uns liegt.
   let stepIndex = -1;
@@ -233,9 +271,31 @@ export function stepNav(
   let offRouteStreak = state.offRouteStreak;
   let lastRerouteAt = state.lastRerouteAt;
   const remainingM = Math.max(0, route.totalM - alongM);
-  const finished = state.finished || remainingM <= NAV.FINISH_M;
 
-  if (fix.accuracyM <= NAV.DECIDE_ACCURACY_M && !finished) {
+  // ——— Ende der Runde ————————————————————————————————————————————————————————
+  // Frueher stand hier `state.finished || remainingM <= FINISH_M`: ein einziger Fix, fuer
+  // immer klebend, und er sperrte zusaetzlich die Neuberechnung. Auf einer Rundtour reichte
+  // damit ein Ausreisser in Startnaehe, um die Fahrt nach 200 Metern zu beenden, ohne Weg
+  // zurueck. Jetzt drei Bedingungen, und alle drei sind noetig:
+  //   ein wirklich sauberer Fix (schlechte werden gar nicht erst gezaehlt),
+  //   der Fortschritt lag VORHER schon in Zielnaehe (ein Sprung ist kein Zieleinlauf),
+  //   und das ueber mehrere Fixe hintereinander.
+  const nearFinish = remainingM <= NAV.FINISH_M;
+  const approached = state.remainingM <= NAV.FINISH_M + NAV.FINISH_APPROACH_M || state.finished;
+  const finishStreak =
+    nearFinish && approached && fix.accuracyM <= NAV.DECIDE_ACCURACY_M ? state.finishStreak + 1 : 0;
+  // Reversibel mit Hysterese: Wer sich wieder deutlich entfernt, faehrt weiter. Ohne das
+  // waere jeder Fehlalarm endgueltig.
+  const finished = state.finished
+    ? remainingM <= NAV.FINISH_RELEASE_M
+    : finishStreak >= NAV.FINISH_FIXES;
+
+  // Die Neuberechnung haengt BEWUSST nicht mehr an `finished`: Ein falsches "fertig" darf
+  // nicht auch noch die einzige Selbstheilung abschalten. Sie ruht nur, wenn der Gast
+  // wirklich am Ziel steht, und das heisst hier: nah dran UND kein Spot mehr offen.
+  const reallyDone = finished && nextSpotIndex < 0;
+
+  if (fix.accuracyM <= NAV.DECIDE_ACCURACY_M && !reallyDone) {
     offRouteStreak = crossTrackM > NAV.OFF_ROUTE_M ? offRouteStreak + 1 : 0;
     const cooldownOk = lastRerouteAt == null || fix.at - lastRerouteAt >= NAV.REROUTE_COOLDOWN_MS;
     if (offRouteStreak >= NAV.OFF_ROUTE_FIXES && cooldownOk) {
@@ -259,6 +319,7 @@ export function stepNav(
       nextSpotIndex,
       distanceToNextSpotM,
       remainingM,
+      finishStreak,
       finished,
       lastFixAt: fix.at,
       lastFixCoord: here,

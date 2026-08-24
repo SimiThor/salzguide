@@ -135,6 +135,7 @@
     "navDoneTitle": "Okruh dokončený",
     "navDoneBody": "Vypočul si {heard} z {total} zastávok.",
     "navDoneBack": "Späť na trasu",
+    "navDoneContinue": "Pokračovať v jazde",
     "navOffline": "Momentálne nedostupné – posledná trasa zostáva aktívna.",
     "navNoGps": "Žiadny signál GPS",
     "navDenied": "Prístup k polohe zamietnutý – povoľte ho v nastaveniach.",

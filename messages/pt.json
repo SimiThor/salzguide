@@ -135,6 +135,7 @@
     "navDoneTitle": "Volta concluída",
     "navDoneBody": "Ouviste {heard} de {total} paragens.",
     "navDoneBack": "Voltar ao percurso",
+    "navDoneContinue": "Continuar a pedalar",
     "navOffline": "Sem ligação agora – a última rota continua ativa.",
     "navNoGps": "Sem sinal de GPS",
     "navDenied": "Acesso à localização negado – ative-o nas definições.",

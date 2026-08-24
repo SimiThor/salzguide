@@ -135,6 +135,7 @@
     "navDoneTitle": "Giro completato",
     "navDoneBody": "Hai ascoltato {heard} tappe su {total}.",
     "navDoneBack": "Torna al tour",
+    "navDoneContinue": "Continua a pedalare",
     "navOffline": "Al momento non raggiungibile – resta attivo l'ultimo percorso.",
     "navNoGps": "Nessun segnale GPS",
     "navDenied": "Accesso alla posizione negato – abilitalo nelle impostazioni.",

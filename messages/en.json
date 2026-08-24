@@ -135,6 +135,7 @@
     "navDoneTitle": "Round complete",
     "navDoneBody": "You heard {heard} of {total} stops.",
     "navDoneBack": "Back to the tour",
+    "navDoneContinue": "Keep riding",
     "navOffline": "Not reachable right now – last route stays active.",
     "navNoGps": "No GPS signal",
     "navDenied": "Location access denied – please allow it in settings.",

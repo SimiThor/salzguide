@@ -30,6 +30,10 @@ export type UseBikeNavigation = {
   dismissOffer: () => void;
   rerouting: boolean;
   finished: boolean;
+  // Das Ende der Runde zuruecknehmen. Der Kern entscheidet inzwischen entprellt und
+  // plausibel (bike-nav-core), aber kein Verfahren ist unfehlbar: Wer faelschlich am Ziel
+  // steht, muss weiterfahren koennen, statt mitten in der Stadt ohne Fuehrung dazustehen.
+  clearFinished: () => void;
   retry: () => void;
 };
 
@@ -222,6 +226,11 @@ export function useBikeNavigation(
 
   const dismissOffer = useCallback(() => setOfferedSpotId(null), []);
 
+  const clearFinished = useCallback(() => {
+    navRef.current = { ...navRef.current, finished: false, finishStreak: 0 };
+    setNavSnapshot(navRef.current);
+  }, []);
+
   const retry = useCallback(() => {
     const f = fixRef.current;
     if (!f) return;
@@ -250,6 +259,7 @@ export function useBikeNavigation(
     dismissOffer,
     rerouting,
     finished: navSnapshot.finished,
+    clearFinished,
     retry,
   };
 }

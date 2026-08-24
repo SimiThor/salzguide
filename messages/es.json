@@ -135,6 +135,7 @@
     "navDoneTitle": "Ruta completada",
     "navDoneBody": "Has escuchado {heard} de {total} paradas.",
     "navDoneBack": "Volver a la ruta",
+    "navDoneContinue": "Seguir pedaleando",
     "navOffline": "No disponible ahora mismo – sigue activa la última ruta.",
     "navNoGps": "Sin señal GPS",
     "navDenied": "Acceso a la ubicación denegado – actívalo en los ajustes.",

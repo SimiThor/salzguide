@@ -135,6 +135,7 @@
     "navDoneTitle": "骑行完成",
     "navDoneBody": "您收听了 {total} 个站点中的 {heard} 个。",
     "navDoneBack": "返回路线",
+    "navDoneContinue": "继续骑行",
     "navOffline": "暂时无法连接——将继续使用上一条路线。",
     "navNoGps": "无 GPS 信号",
     "navDenied": "定位权限被拒绝——请在设置中允许。",

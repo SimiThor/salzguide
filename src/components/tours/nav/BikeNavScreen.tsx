@@ -221,6 +221,17 @@ export default function BikeNavScreen({ tour }: { tour: TourDetail }) {
             >
               {t("navDoneBack")}
             </Link>
+            {/* Der Ausweg. Ohne ihn war jeder Fehlalarm ein Totalausfall mitten auf dem
+                Rad: Der Vorhang legte sich ueber die ganze Fuehrung und der einzige Knopf
+                fuehrte aus der Navigation heraus. Der Kern entscheidet inzwischen
+                entprellt und plausibel, aber unfehlbar ist kein Verfahren. */}
+            <button
+              type="button"
+              onClick={bike.clearFinished}
+              className="w-full rounded-full px-5 py-2.5 text-[14px] font-semibold text-muted transition active:scale-[0.98]"
+            >
+              {t("navDoneContinue")}
+            </button>
           </div>
         </div>
       )}
