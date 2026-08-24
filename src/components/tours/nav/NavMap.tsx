@@ -9,7 +9,7 @@ import { useLatestRef } from "@/lib/use-latest-ref";
 import { declutterBasemap } from "@/lib/map-declutter";
 import {
   addRouteSourceAndLayers,
-  setTrim,
+  setNavTrim,
   routeFC,
   ROUTE_SOURCE,
   reducedMotion,
@@ -33,6 +33,7 @@ export type NavStopPoint = { lat: number; lng: number; order: number };
 
 export default function NavMap({
   route,
+  progress,
   fix,
   bearingDeg,
   stops,
@@ -41,6 +42,10 @@ export default function NavMap({
   recenterLabel,
 }: {
   route: [number, number][] | null;
+  // Anteil der Runde, der schon gefahren ist (0..1). Der Teil dahinter wird ausgegraut,
+  // der davor bleibt farbig – das ist Wunsch 1 aus docs/40 und der Grund, warum die
+  // Karte die GANZE Runde zeichnet und nicht mehr nur die nächste Etappe.
+  progress: number;
   fix: { lng: number; lat: number } | null;
   bearingDeg: number;
   // ALLE Stationen der Runde, nicht nur die aktuell angesteuerte – "ein Zielpunkt für
@@ -62,6 +67,8 @@ export default function NavMap({
   const [mapDead, setMapDead] = useState(false);
   const [following, setFollowing] = useState(true);
   const paddingBottomRef = useLatestRef(paddingBottom);
+  const routeRef = useLatestRef(route);
+  const progressRef = useLatestRef(progress);
 
   // Karte einmalig aufbauen.
   useEffect(() => {
@@ -89,7 +96,19 @@ export default function NavMap({
       addRouteSourceAndLayers(map, []);
       // Kein Zeichnen-Draw-in wie auf den Übersichtskarten: Im HUD steht die Linie
       // sofort, ihre Animation würde vom eigentlichen Signal (wohin geht's) ablenken.
-      setTrim(map, 1);
+      setNavTrim(map, 0);
+      // Die Route kann VOR dem Style da sein: der Effekt unten bricht dann ab, weil es
+      // die Quelle noch nicht gibt, und ohne dieses Nachziehen bliebe die Linie leer, bis
+      // sich die Route das nächste Mal ändert. Beim Start liegen dazwischen der
+      // Erlaubnis-Dialog und der erste GPS-Fix, es fällt also selten auf – aber bei
+      // langsamem Netz und schon erteilter Erlaubnis eben doch.
+      const pending = routeRef.current;
+      if (pending && pending.length > 1) {
+        (map.getSource(ROUTE_SOURCE) as mapboxgl.GeoJSONSource | undefined)?.setData(
+          routeFC(pending),
+        );
+        setNavTrim(map, progressRef.current);
+      }
     });
     // "dragstart" feuert in Mapbox GL JS AUSSCHLIESSLICH aus der eingebauten
     // Zieh-Bedienung (Finger/Maus) – ein programmatischer easeTo/flyTo löst es nie
@@ -166,10 +185,20 @@ export default function NavMap({
     const map = mapRef.current;
     if (!map) return;
     const src = map.getSource(ROUTE_SOURCE) as mapboxgl.GeoJSONSource | undefined;
-    if (!src) return;
+    if (!src) return; // Style noch nicht da -> der load-Handler oben zieht es nach
     src.setData(routeFC(route ?? []));
+    setNavTrim(map, progressRef.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [routeSig]);
+
+  // Fortschritt: nur umfärben, nie die Geometrie neu setzen. Mapbox hält die Linie
+  // bewusst konstant und rechnet den Trim im Shader – setData bei jedem GPS-Signal wäre
+  // um ein Vielfaches teurer und würde auf dem Handy sichtbar ruckeln.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    setNavTrim(map, progress);
+  }, [progress]);
 
   // Positions-Punkt: eigener DOM-Marker statt GeolocateControl. GeolocateControl zeigt
   // nur seinen eigenen internen Fix an und gibt der App keinen Zugriff auf den

@@ -1,86 +1,29 @@
-// Etappen-Routing für die S-Bike-Navigation: von der AKTUELLEN Position zu GENAU EINEM
-// Tour-Stopp, mit Manöver-Schritten (steps=true) für die Abbiege-Anzeige. Bewusst je
-// Etappe statt der ganzen Runde auf einmal (siehe docs/40): kürzere Schrittlisten,
-// bleibt unter dem 25-Koordinaten-Limit der Directions API auch bei langen Touren, und
-// eine neue Etappe entsteht ohnehin bei jedem erreichten Stopp und jedem Reroute.
+// Routing für den Rad-Audioguide: die GANZE Runde in einer Anfrage, mit den Audio-Spots
+// als stillen Wegpunkten (docs/40). Bis 24.08.2026 stand hier das Gegenteil, ein eigener
+// Abruf je Etappe von der aktuellen Position zum nächsten Stopp. Das war als erster Wurf
+// richtig, kann aber drei Dinge grundsätzlich nicht: die Route vor dem Gast farbig und
+// hinter ihm ausgegraut zeigen (eine Etappe kennt die Runde nicht), einen exakten
+// Audio-Vorlauf liefern, und beim Neu-Routen nach vorn an den offenen Spots vorbeiführen.
+// Nebenbei kostete es rund 40 statt rund 11 Anfragen je Fahrt.
 //
-// Läuft im BROWSER mit dem öffentlichen, URL-beschränkten Token: der Request trägt
-// einen Referer (anders als die serverseitigen Aufrufe in tour-actions.ts/tour-
-// generate.ts), und ein Reroute während der Fahrt darf keinen zusätzlichen Server-Hop
-// kosten.
-//
-// PROFIL "cycling" UND "walking", das kürzere gewinnt: In Salzburg-Parsch (Testrunde,
-// docs/40) nimmt "cycling" allein wilde Umwege über die Hauptstrasse, weil mehrere
-// kurze Verbindungswege nicht als radtauglich getaggt sind – gemessen 1747m statt
-// 345m für eine 160m-Luftlinie. Dieselbe Lücke kann jede echte Runde treffen, nicht
-// nur diese eine, deshalb hier und nicht nur in der Vorschau-Linie (test-sbike-
-// tour.ts) behoben. Bewusste Abwägung: das kann eine Fahrt auf einen nicht als
-// radtauglich markierten Fussweg führen (Nutzer-Entscheidung, siehe Konversation).
+// Läuft im BROWSER mit dem öffentlichen, URL-beschränkten Token: der Request trägt einen
+// Referer (anders als serverseitige Aufrufe), und eine Neuberechnung während der Fahrt
+// darf keinen zusätzlichen Server-Hop kosten.
 import { cleanRouteGeo } from "./tour-route";
 import { routeCumulativeMeters } from "./geo";
-import type { NavLeg, NavStep } from "./bike-nav-core";
+import type { NavStep } from "./bike-nav-core";
 
 const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
 export type BikeLegError = "no-token" | "network" | "no-route";
-
-export type BikeLegResult =
-  | { ok: true; leg: NavLeg; distanceM: number; durationS: number }
-  | { ok: false; error: BikeLegError };
 
 type MapboxStep = {
   distance: number;
   maneuver: { instruction: string; type: string; modifier?: string };
 };
 
-type ProfileLeg = { leg: NavLeg; distanceM: number; durationS: number };
-
-async function fetchProfileLeg(
-  profile: "cycling" | "walking",
-  from: [number, number],
-  to: [number, number],
-  locale: string,
-  signal?: AbortSignal,
-): Promise<ProfileLeg | null> {
-  const coordStr = `${from[0]},${from[1]};${to[0]},${to[1]}`;
-  const url =
-    `https://api.mapbox.com/directions/v5/mapbox/${profile}/${coordStr}` +
-    `?steps=true&geometries=geojson&overview=full&language=${encodeURIComponent(locale)}` +
-    `&access_token=${TOKEN}`;
-  const res = await fetch(url, { signal });
-  if (!res.ok) return null;
-  const j = await res.json();
-  const route = Array.isArray(j.routes) ? j.routes[0] : null;
-  const geometry = cleanRouteGeo(route?.geometry?.coordinates);
-  if (j.code !== "Ok" || !route || !geometry) return null;
-
-  // Jedes Step-Objekt trägt das Manöver, mit dem es BEGINNT (Step 0 = "Losfahren",
-  // kein Abbiege-Hinweis). alongM eines Manövers = Summe der Distanzen aller Steps
-  // DAVOR – der Punkt, an dem man dieses Manöver erreicht.
-  const rawSteps = (route.legs?.[0]?.steps ?? []) as MapboxStep[];
-  let cum = 0;
-  const steps: NavStep[] = [];
-  for (let i = 0; i < rawSteps.length; i++) {
-    if (i > 0) {
-      steps.push({
-        alongM: cum,
-        instruction: rawSteps[i].maneuver.instruction,
-        type: rawSteps[i].maneuver.type,
-        modifier: rawSteps[i].maneuver.modifier,
-      });
-    }
-    cum += rawSteps[i].distance ?? 0;
-  }
-
-  return {
-    leg: { geometry, steps, stop: to },
-    distanceM: typeof route.distance === "number" ? route.distance : cum,
-    durationS: typeof route.duration === "number" ? route.duration : 0,
-  };
-}
-
 // ——— Die ganze Runde in EINER Anfrage ————————————————————————————————————————
-// Ablösung für das Etappen-Routing darunter (docs/40). Alle Spots gehen als STILLE
+// Alle Spots gehen als STILLE
 // Wegpunkte mit: `waypoints=0;<letzter>` sagt Mapbox, dass nur Start und Ziel echte
 // Zwischenhalte sind, alles dazwischen wird durchfahren. Die Antwort hat deshalb genau
 // ein Leg mit durchgehender Geometrie und einer Schrittliste über die ganze Runde, plus
@@ -119,8 +62,8 @@ export async function fetchBikeRoute(
   const coords = [from, ...spots].slice(0, MAX_COORDS);
   const last = coords.length - 1;
   const coordStr = coords.map((c) => `${c[0]},${c[1]}`).join(";");
-  // Bewusst NUR "cycling", nicht zusätzlich "walking" wie beim Etappen-Routing unten
-  // (docs/40): Das kürzere von beiden zu nehmen kann den Gast auf eine Treppe oder in
+  // Bewusst NUR "cycling". Der Vorgänger fragte zusätzlich "walking" ab und nahm das
+  // kürzere von beiden (docs/40); das kann den Gast auf eine Treppe oder in
   // eine Fussgängerzone führen. Wo ein Fussweg die bessere Verbindung ist, gehört er als
   // Schiebestelle markiert, nicht still als Radweg ausgegeben.
   const url =
@@ -144,8 +87,8 @@ export async function fetchBikeRoute(
     const mapboxLeg = route.legs?.[0];
     if (!mapboxLeg) return { ok: false, error: "no-route" };
 
-    // Schritte wie beim Etappen-Routing: Ein Step trägt das Manöver, mit dem er BEGINNT,
-    // seine `distance` ist die Strecke danach. Der erste ist das Losfahren, kein Hinweis.
+    // Ein Step trägt das Manöver, mit dem er BEGINNT, seine `distance` ist die Strecke
+    // danach. Der erste ist das Losfahren und damit kein Abbiege-Hinweis.
     const rawSteps = (mapboxLeg.steps ?? []) as MapboxStep[];
     let cum = 0;
     const steps: NavStep[] = [];
@@ -190,36 +133,6 @@ export async function fetchBikeRoute(
         durationS: typeof route.duration === "number" ? route.duration : 0,
       },
     };
-  } catch (err) {
-    if (err instanceof DOMException && err.name === "AbortError") throw err;
-    return { ok: false, error: "network" };
-  }
-}
-
-export async function fetchBikeLeg(
-  from: [number, number],
-  to: [number, number],
-  locale: string,
-  signal?: AbortSignal,
-): Promise<BikeLegResult> {
-  if (!TOKEN) return { ok: false, error: "no-token" };
-  try {
-    const [cycling, walking] = await Promise.all([
-      fetchProfileLeg("cycling", from, to, locale, signal),
-      fetchProfileLeg("walking", from, to, locale, signal),
-    ]);
-    const best =
-      !cycling && !walking
-        ? null
-        : !cycling
-          ? walking
-          : !walking
-            ? cycling
-            : walking.distanceM < cycling.distanceM
-              ? walking
-              : cycling;
-    if (!best) return { ok: false, error: "no-route" };
-    return { ok: true, ...best };
   } catch (err) {
     if (err instanceof DOMException && err.name === "AbortError") throw err;
     return { ok: false, error: "network" };

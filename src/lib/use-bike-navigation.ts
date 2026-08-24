@@ -4,158 +4,243 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   stepNav,
   initNavState,
-  resetForNewLeg,
+  resetForNewRoute,
   type NavState,
-  type NavLeg,
+  type NavRoute,
   type GeoFix,
+  type SpotPhase,
 } from "./bike-nav-core";
-import { fetchBikeLeg, type BikeLegError } from "./bike-directions";
+import { fetchBikeRoute, type BikeRoute, type BikeLegError } from "./bike-directions";
 import { useLatestRef } from "./use-latest-ref";
 
-export type BikeNavStatus = "idle" | "loading-leg" | "ready" | "leg-error";
+export type BikeNavStatus = "idle" | "loading" | "ready" | "error";
 
 export type UseBikeNavigation = {
   status: BikeNavStatus;
-  legError: BikeLegError | null;
-  currentStopIndex: number;
-  leg: NavLeg | null;
+  error: BikeLegError | null;
+  route: BikeRoute | null;
   nav: NavState;
+  // Welcher Tour-Stopp steckt an welcher Stelle der AKTUELLEN Route? Nach einer
+  // Neuberechnung enthält die Route nur noch die offenen Spots, die Positionen
+  // verschieben sich also. Diese Liste ist die Brücke zurück auf die Tour.
+  spotIds: number[];
+  // Der Stopp, für den gerade der Play-Knopf gilt (Index in der Tour), oder null.
+  offeredSpotId: number | null;
+  // Angebot wegtippen, ohne den Spot als gehört zu markieren.
+  dismissOffer: () => void;
   rerouting: boolean;
-  arrivedIndex: number | null;
-  // Nach dem Schliessen des Ankunfts-Sheets: eine Etappe weiter.
-  advance: () => void;
-  // Nach einem Fehler erneut versuchen (gleicher Stopp, aktuelle Position).
+  finished: boolean;
   retry: () => void;
 };
 
-// Verbindet den reinen Kern (bike-nav-core.ts) mit echten GPS-Fixen und der Directions-
-// API: holt bei Bedarf eine neue Etappe (erster Start, Ankunft -> nächster Stopp,
-// Reroute-Ereignis) und schickt jeden Fix durch stepNav(). `stops` sind die Tour-Stopps
-// in Reihenfolge als [lng,lat] – die Etappen-Ziele.
+// Eine hängende Anfrage darf den Gast nicht dauerhaft im Ladezustand stehen lassen. 15
+// Sekunden sind grosszügig für eine Directions-Antwort und kurz genug, dass ein Radl an
+// der Kreuzung nicht ratlos wartet.
+const FETCH_TIMEOUT_MS = 15_000;
+// Nach einem Fehler von selbst nachfassen: Auf dem Rad ist "tippe hier, um es erneut zu
+// versuchen" die falsche Antwort, der Gast hat die Hände am Lenker. Abstände wachsen,
+// damit ein längerer Funkloch-Abschnitt nicht zu Dauerfeuer wird.
+const RETRY_DELAYS_MS = [2_000, 5_000, 10_000, 20_000];
+
 export function useBikeNavigation(
+  // Alle Stopps der Runde in Reihenfolge, als [lng,lat].
   stops: [number, number][],
   fix: GeoFix | null,
   locale: string,
 ): UseBikeNavigation {
-  const [currentStopIndex, setCurrentStopIndex] = useState(0);
-  const [leg, setLeg] = useState<NavLeg | null>(null);
+  const [route, setRoute] = useState<BikeRoute | null>(null);
+  const [spotIds, setSpotIds] = useState<number[]>(() => stops.map((_, i) => i));
   const [status, setStatus] = useState<BikeNavStatus>("idle");
-  const [legError, setLegError] = useState<BikeLegError | null>(null);
+  const [error, setError] = useState<BikeLegError | null>(null);
   const [rerouting, setRerouting] = useState(false);
-  const [navSnapshot, setNavSnapshot] = useState<NavState>(() => initNavState());
-  const [arrivedIndex, setArrivedIndex] = useState<number | null>(null);
+  const [navSnapshot, setNavSnapshot] = useState<NavState>(() => initNavState(stops.length));
+  const [offeredSpotId, setOfferedSpotId] = useState<number | null>(null);
 
   // Kanonischer Zustand in Refs: der Fix-Effekt unten läuft bei JEDEM neuen Fix und darf
-  // dabei nie einen veralteten Stand aus einem React-Closure lesen (siehe useLatestRef.ts
-  // für dieselbe Begründung bei SpotMap). Die State-Variablen oben sind nur fürs Rendern.
+  // dabei nie einen veralteten Stand aus einem React-Closure lesen.
   const navRef = useRef<NavState>(navSnapshot);
-  const legRef = useLatestRef(leg);
-  const stopIndexRef = useLatestRef(currentStopIndex);
+  const routeRef = useLatestRef(route);
+  const spotIdsRef = useLatestRef(spotIds);
   const stopsRef = useLatestRef(stops);
   const localeRef = useLatestRef(locale);
   const fixRef = useLatestRef(fix);
 
   const reqRef = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
+  const retryRef = useRef<{ timer: ReturnType<typeof setTimeout> | null; attempt: number }>({
+    timer: null,
+    attempt: 0,
+  });
 
-  // `originFix` ist der VOLLE Fix (nicht nur [lng,lat]): sobald die Etappe da ist, wird
-  // sofort ein stepNav()-Durchlauf damit gerechnet (siehe unten) – ohne das blieb
-  // distanceToStopM/bearingDeg auf ihren initNavState()-Anfangswerten (u.a. Infinity)
-  // stehen, bis zufällig der NÄCHSTE GPS-Fix hereinkam. Der Fix-Effekt weiter unten
-  // reagiert nur auf einen GEÄNDERTEN `fix`, nicht auf eine neu geladene Etappe – bei
-  // langsamem GPS-Takt (oder im Test ganz ohne Bewegung) zeigte die HUD-Leiste bis
-  // dahin "Ankunft in Infinity Min".
-  const loadLeg = useCallback(
-    (originFix: GeoFix, stopIndex: number, isReroute: boolean) => {
-      const target = stopsRef.current[stopIndex];
-      if (!target) return;
+  // Ref auf loadRoute selbst, damit die Wiederholung unten sich rekursiv aufrufen kann,
+  // ohne dass eine der beiden Funktionen vor der anderen deklariert sein müsste.
+  const loadRouteRef = useRef<((f: GeoFix, keep: number[], phases: SpotPhase[], reroute: boolean) => void) | null>(null);
+
+  const clearRetry = useCallback(() => {
+    if (retryRef.current.timer) clearTimeout(retryRef.current.timer);
+    retryRef.current = { timer: null, attempt: 0 };
+  }, []);
+
+  // Route holen: beim Start über alle Stopps, nach einer Neuberechnung nur noch über die
+  // offenen. `keep` sind die Tour-Indizes, die in die Anfrage gehen.
+  const loadRoute = useCallback(
+    (originFix: GeoFix, keep: number[], keptPhases: SpotPhase[], isReroute: boolean) => {
+      const targets = keep.map((id) => stopsRef.current[id]).filter(Boolean) as [number, number][];
+      if (targets.length === 0) return;
+
       abortRef.current?.abort();
       const ac = new AbortController();
       abortRef.current = ac;
+      const timeout = setTimeout(() => ac.abort(), FETCH_TIMEOUT_MS);
       const myReq = ++reqRef.current;
+
       if (isReroute) setRerouting(true);
-      else setStatus("loading-leg");
-      setLegError(null);
-      void fetchBikeLeg([originFix.lng, originFix.lat], target, localeRef.current, ac.signal)
+      else setStatus("loading");
+      setError(null);
+
+      // Von selbst nachfassen statt auf einen Tipp zu warten: Auf dem Rad hat der Gast
+      // die Hände am Lenker. Beim Nachfassen wird der AKTUELLE Fix genommen, nicht der
+      // alte – in zwanzig Sekunden ist er weitergefahren, und eine Route ab seiner
+      // Position von vorhin würde ihn zurückschicken.
+      const retryLater = () => {
+        const attempt = retryRef.current.attempt;
+        if (attempt >= RETRY_DELAYS_MS.length) return; // danach hilft nur noch der Knopf
+        if (retryRef.current.timer) clearTimeout(retryRef.current.timer);
+        retryRef.current = {
+          attempt: attempt + 1,
+          timer: setTimeout(() => {
+            loadRouteRef.current?.(fixRef.current ?? originFix, keep, keptPhases, isReroute);
+          }, RETRY_DELAYS_MS[attempt]),
+        };
+      };
+
+      void fetchBikeRoute([originFix.lng, originFix.lat], targets, localeRef.current, ac.signal)
         .then((r) => {
+          clearTimeout(timeout);
           if (myReq !== reqRef.current) return; // veraltete Antwort verwerfen
           setRerouting(false);
-          if (r.ok) {
-            // Sofort mit dem AUSLÖSENDEN Fix rechnen statt auf den nächsten zu warten.
-            // Ereignisse aus diesem einen Schritt bleiben bewusst unbeachtet:
-            // resetForNewLeg setzt armed=false, eine frische Etappe kann also nicht im
-            // selben Schritt schon "angekommen" melden (siehe bike-nav-core.ts), und
-            // ein Reroute direkt nach dem Laden der Etappe wäre kein sinnvoller
-            // Zustand, sondern ein Anzeichen für einen Fehler in der Geometrie.
-            const seeded = stepNav(resetForNewLeg(navRef.current), originFix, r.leg);
-            navRef.current = seeded.state;
-            setNavSnapshot(seeded.state);
-            setLeg(r.leg);
-            setStatus("ready");
-          } else {
-            setLegError(r.error);
-            setStatus((s) => (s === "ready" ? s : "leg-error"));
+          if (!r.ok) {
+            setError(r.error);
+            setStatus((s) => (s === "ready" ? s : "error"));
+            retryLater();
+            return;
           }
+          clearRetry();
+          // Sofort mit dem AUSLÖSENDEN Fix rechnen statt auf den nächsten zu warten:
+          // sonst stünden Restdistanz und Fahrtrichtung bis zum nächsten GPS-Signal auf
+          // ihren Anfangswerten, und die Anzeige zeigte Unsinn.
+          const seededBase = resetForNewRoute(navRef.current, keptPhases);
+          const seeded = stepNav(seededBase, originFix, toNavRoute(r.route));
+          navRef.current = seeded.state;
+          setNavSnapshot(seeded.state);
+          setRoute(r.route);
+          setSpotIds(keep);
+          setStatus("ready");
         })
         .catch((err: unknown) => {
-          if (err instanceof DOMException && err.name === "AbortError") return;
+          clearTimeout(timeout);
           if (myReq !== reqRef.current) return;
           setRerouting(false);
-          setLegError("network");
-          setStatus((s) => (s === "ready" ? s : "leg-error"));
+          // Ein Abbruch durch die Zeitüberschreitung sieht aus wie ein Abbruch durch eine
+          // neuere Anfrage. Unterschieden wird über reqRef oben: kommen wir hier an, war
+          // es die Zeitüberschreitung, und dann gehört nachgefasst.
+          if (err instanceof DOMException && err.name === "AbortError" && ac.signal.aborted) {
+            setError("network");
+            setStatus((s) => (s === "ready" ? s : "error"));
+            retryLater();
+            return;
+          }
+          setError("network");
+          setStatus((s) => (s === "ready" ? s : "error"));
+          retryLater();
         });
     },
-    [stopsRef, localeRef],
+    [stopsRef, localeRef, clearRetry, fixRef],
   );
 
-  // Erste Etappe, sobald der erste Fix da ist (nicht früher – ohne Startposition gibt
-  // es nichts zu routen).
+  // Die Ref auf den aktuellen Stand bringen, damit eine Wiederholung nicht eine alte
+  // Fassung aufruft.
+  useEffect(() => {
+    loadRouteRef.current = loadRoute;
+  }, [loadRoute]);
+
+  // Erste Route, sobald der erste Fix da ist (vorher gibt es nichts zu routen).
   const startedRef = useRef(false);
   useEffect(() => {
     if (!fix || startedRef.current) return;
     startedRef.current = true;
-    loadLeg(fix, 0, false);
-  }, [fix, loadLeg]);
+    const all = stopsRef.current.map((_, i) => i);
+    loadRoute(fix, all, all.map(() => "open" as SpotPhase), false);
+  }, [fix, loadRoute, stopsRef]);
 
   // Jeden neuen Fix durch den reinen Kern schicken. Bewusst nur `fix` als Abhängigkeit:
   // alles andere kommt aus Refs, sonst würde jedes setNavSnapshot den Effekt erneut
   // auslösen (derselbe Fix ein zweites Mal ausgewertet).
   useEffect(() => {
-    if (!fix || !legRef.current) return;
-    const r = stepNav(navRef.current, fix, legRef.current);
-    navRef.current = r.state;
-    setNavSnapshot(r.state);
-    for (const ev of r.events) {
-      if (ev.type === "arrived") setArrivedIndex(stopIndexRef.current);
-      else if (ev.type === "reroute") loadLeg(fix, stopIndexRef.current, true);
+    const r = routeRef.current;
+    if (!fix || !r) return;
+    const result = stepNav(navRef.current, fix, toNavRoute(r));
+    navRef.current = result.state;
+    setNavSnapshot(result.state);
+
+    for (const ev of result.events) {
+      if (ev.type === "spot-near") {
+        setOfferedSpotId(spotIdsRef.current[ev.index] ?? null);
+      } else if (ev.type === "spot-passed") {
+        // Das Angebot verschwindet mit dem Spot, für den es galt. Läuft das Audio noch,
+        // bleibt es laufen (der Player lebt in BikeNavScreen, nicht hier).
+        setOfferedSpotId((cur) => (cur === spotIdsRef.current[ev.index] ? null : cur));
+      } else if (ev.type === "reroute") {
+        const phases = navRef.current.spotPhase;
+        const keep = spotIdsRef.current.filter((_, i) => phases[i] !== "done");
+        const keptPhases = phases.filter((p) => p !== "done");
+        if (keep.length > 0) loadRouteRef.current?.(fix, keep, keptPhases, true);
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fix]);
 
-  const advance = useCallback(() => {
-    const next = stopIndexRef.current + 1;
-    setArrivedIndex(null);
-    setCurrentStopIndex(next);
-    const f = fixRef.current;
-    if (f && stopsRef.current[next]) loadLeg(f, next, false);
-  }, [loadLeg, stopIndexRef, stopsRef, fixRef]);
+  const dismissOffer = useCallback(() => setOfferedSpotId(null), []);
 
   const retry = useCallback(() => {
     const f = fixRef.current;
-    if (f) loadLeg(f, stopIndexRef.current, rerouting);
-  }, [loadLeg, stopIndexRef, rerouting, fixRef]);
+    if (!f) return;
+    clearRetry();
+    const phases = navRef.current.spotPhase;
+    const keep = spotIdsRef.current.filter((_, i) => phases[i] !== "done");
+    const keptPhases = phases.filter((p) => p !== "done");
+    loadRouteRef.current?.(f, keep.length ? keep : spotIdsRef.current, keptPhases, false);
+  }, [fixRef, spotIdsRef, loadRouteRef, clearRetry]);
 
-  useEffect(() => () => abortRef.current?.abort(), []);
+  useEffect(
+    () => () => {
+      abortRef.current?.abort();
+      if (retryRef.current.timer) clearTimeout(retryRef.current.timer);
+    },
+    [],
+  );
 
   return {
     status,
-    legError,
-    currentStopIndex,
-    leg,
+    error,
+    route,
     nav: navSnapshot,
+    spotIds,
+    offeredSpotId,
+    dismissOffer,
     rerouting,
-    arrivedIndex,
-    advance,
+    finished: navSnapshot.finished,
     retry,
+  };
+}
+
+// BikeRoute (was der Abruf liefert) und NavRoute (was der Kern braucht) sind bewusst
+// getrennt: Der Kern soll nichts über Mapbox wissen. Die Umrechnung ist eine Zeile.
+function toNavRoute(r: BikeRoute): NavRoute {
+  return {
+    geometry: r.geometry,
+    steps: r.steps,
+    spotAlongM: r.spotAlongM,
+    totalM: r.distanceM,
   };
 }
