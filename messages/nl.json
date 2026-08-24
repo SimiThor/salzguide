@@ -143,6 +143,9 @@
     "arrivedTitle": "Je bent er",
     "toNextStop": "Verder naar de volgende stop",
     "navRemaining": "Tot bestemming",
+    "navNextStop": "Volgende halte",
+    "navNextStopIn": "Volgende halte over {distance}",
+    "navToFinish": "Terug naar de start",
     "navEta": "Aankomst over"
   },
   "Water": {

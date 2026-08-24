@@ -17,6 +17,10 @@ export type TourAudioApi = {
   toggle: () => void;
   seek: (v: number) => void;
   go: (i: number) => void;
+  // Auf einen Stopp wechseln UND ihn im selben Tastendruck starten. Fuer den Play-Knopf
+  // im Fahrmodus: go() allein ist ein React-Zustandswechsel, der erst im naechsten Render
+  // greift, ein toggle() direkt danach spricht also noch die ALTE Datei an.
+  playAt: (i: number) => void;
   beginSeek: () => void;
   endSeek: () => void;
 };
@@ -35,6 +39,9 @@ export function useTourAudio(
   onIndex: (i: number) => void,
 ): TourAudioApi {
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  // Welcher Stopp steckt GERADE im Element? Trennt "der Aufrufer hat den Index gewechselt"
+  // von "die Quelle haengt schon richtig", was playAt() unten braucht.
+  const srcIndexRef = useRef<number>(-1);
   const [playing, setPlaying] = useState(false);
   const [time, setTime] = useState(0);
   const [duration, setDuration] = useState(stops[index]?.durationSec ?? 0);
@@ -91,6 +98,10 @@ export function useTourAudio(
   useEffect(() => {
     const a = audioRef.current;
     if (!a) return;
+    // Haengt die Quelle schon auf diesem Stopp, weil playAt() sie gerade synchron gesetzt
+    // und gestartet hat? Dann hier nichts tun. Ohne diese Zeile pausiert der Effekt genau
+    // die Geschichte wieder weg, die der Gast eben angetippt hat.
+    if (srcIndexRef.current === index) return;
     const s = stops[index];
     a.pause();
     // Zustand hier DIREKT setzen statt auf das "pause"-Event zu warten: Der
@@ -101,10 +112,12 @@ export function useTourAudio(
     if (!s || s.locked || !s.audioUrl) {
       a.removeAttribute("src");
       a.load();
+      srcIndexRef.current = -1;
       return;
     }
     a.src = s.audioUrl;
     a.load();
+    srcIndexRef.current = index;
     // Bewusst KEIN play(): Der Guide startet nie von selbst – egal ob der Track
     // ausgelaufen ist, der User die Pfeile nutzt oder einen Stopp in Liste/Karte
     // antippt. Man geht erst zum Ort und drückt dort selbst Play.
@@ -131,6 +144,26 @@ export function useTourAudio(
     },
     go(i: number) {
       onIndex(Math.max(0, Math.min(stops.length - 1, i)));
+    },
+    // Wechseln und starten in EINEM Tastendruck. Die Quelle wird hier synchron gesetzt,
+    // nicht erst im Effekt: Nur so bleibt der Nutzergesten-Kontext erhalten, den iOS fuer
+    // play() verlangt, und nur so spricht das play() die richtige Datei an.
+    //
+    // Die Grundregel bleibt unangetastet: Abgespielt wird ausschliesslich auf Druck des
+    // Users. playAt() wird nur aus dem Play-Knopf gerufen, kein Weg, der bloss den Stopp
+    // wechselt (Pfeile, Track zu Ende, Antippen in Liste oder Karte), landet hier.
+    playAt(i: number) {
+      const idx = Math.max(0, Math.min(stops.length - 1, i));
+      const target = stops[idx];
+      const a = audioRef.current;
+      onIndex(idx);
+      if (!a || !target || target.locked || !target.audioUrl) return;
+      if (srcIndexRef.current !== idx) {
+        a.src = target.audioUrl;
+        a.load();
+        srcIndexRef.current = idx;
+      }
+      void a.play().catch(() => setPlaying(false));
     },
     beginSeek() {
       seekingRef.current = true;

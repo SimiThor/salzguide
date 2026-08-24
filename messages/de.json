@@ -186,6 +186,9 @@
     "arrivedTitle": "Angekommen",
     "toNextStop": "Weiter zur nächsten Station",
     "navRemaining": "Bis zum Ziel",
+    "navNextStop": "Nächster Halt",
+    "navNextStopIn": "Nächster Halt in {distance}",
+    "navToFinish": "Zurück zum Start",
     "navEta": "Ankunft in"
   },
   "Water": {

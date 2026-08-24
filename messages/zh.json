@@ -143,6 +143,9 @@
     "arrivedTitle": "已到达",
     "toNextStop": "前往下一站",
     "navRemaining": "距目的地",
+    "navNextStop": "下一站",
+    "navNextStopIn": "距下一站 {distance}",
+    "navToFinish": "返回起点",
     "navEta": "预计到达"
   },
   "Water": {

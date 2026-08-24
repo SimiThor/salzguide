@@ -91,24 +91,34 @@ export default function BikeNavScreen({ tour }: { tour: TourDetail }) {
     start(); // MUSS synchron im Klick-Handler bleiben (siehe use-geolocation-watch.ts)
   };
 
-  // Play am Angebot: Der Player springt auf diesen Spot UND startet. Das ist die einzige
-  // Stelle, an der Audio von selbst losläuft, und sie hängt an einem echten Fingertipp.
-  const playOffered = useCallback(() => {
-    const id = bike.offeredSpotId;
-    if (id == null) return;
-    if (activeAudioIndex !== id) {
-      audio.go(id);
-      // go() wechselt die Quelle; der Start gehört in denselben Tastendruck, sonst
-      // verweigert iOS die Wiedergabe (kein Nutzergesten-Kontext mehr).
-      audio.toggle();
-      return;
-    }
-    audio.toggle();
-  }, [bike.offeredSpotId, activeAudioIndex, audio]);
 
   const showStartGate = gpsStatus === "idle" || gpsStatus === "denied" || gpsStatus === "unavailable";
 
-  const offeredStop = bike.offeredSpotId != null ? (geoStops[bike.offeredSpotId] ?? null) : null;
+  // Welcher Spot steht im Streifen? Normalerweise der angebotene. Läuft aber gerade eine
+  // Geschichte, gewinnt DIESE, auch wenn ihr Spot schon hinter uns liegt.
+  //
+  // Vorher verschwand der Streifen 100 m nach dem Spot (dort verbucht der Kern ihn als
+  // passiert), während das Audio weiterlief: Die Geschichte erzählte weiter, und es gab im
+  // ganzen Bildschirm keinen Pause-Knopf mehr. Eine dreiminütige Geschichte überlebt bei
+  // 18 km/h locker die 100 m, das war also der Normalfall und kein Randfall.
+  const shownSpotId =
+    bike.offeredSpotId ?? (audio.playing || audio.time > 0 ? activeAudioIndex : null);
+  const offeredStop = shownSpotId != null ? (geoStops[shownSpotId] ?? null) : null;
+
+  // Play am Angebot. Steht der Player schon auf diesem Spot, ist es ein einfaches
+  // Umschalten; sonst muss die Quelle im SELBEN Tastendruck mitwechseln (audio.playAt).
+  //
+  // Hier stand vorher go() gefolgt von toggle(). go() ist aber nur ein React-Zustands-
+  // wechsel, der erst im naechsten Render greift: toggle() sprach damit noch die ALTE
+  // Datei an, kurz lief die vorige Geschichte los, dann pausierte der Quellen-Effekt sie
+  // weg. Es blieb still, und der Gast haette ein zweites Mal tippen muessen -- bei
+  // 18 km/h ist der Spot dann vorbei. Nur der allererste Spot funktionierte.
+  const playOffered = useCallback(() => {
+    const id = shownSpotId;
+    if (id == null) return;
+    if (activeAudioIndex !== id) audio.playAt(id);
+    else audio.toggle();
+  }, [shownSpotId, activeAudioIndex, audio]);
   const nextRouteSpot = bike.nav.nextSpotIndex >= 0 ? bike.spotIds[bike.nav.nextSpotIndex] : -1;
   const nextStop = nextRouteSpot >= 0 ? (geoStops[nextRouteSpot] ?? null) : null;
 
@@ -185,23 +195,22 @@ export default function BikeNavScreen({ tour }: { tour: TourDetail }) {
           {offeredStop && (
             <SpotOffer
               stop={offeredStop}
-              distanceM={bike.nav.distanceToNextSpotM}
+              distanceM={shownSpotId === bike.offeredSpotId ? bike.nav.distanceToNextSpotM : null}
               audio={audio}
-              isCurrent={activeAudioIndex === bike.offeredSpotId}
+              isCurrent={activeAudioIndex === shownSpotId}
               onPlay={playOffered}
               onDismiss={bike.dismissOffer}
               onOpenDetails={() => setDetailsOpen(true)}
             />
           )}
 
-          {nextStop && (
-            <NextStopBar
-              stopEmoji={nextStop.emoji}
-              stopTitle={nextStop.title}
-              distanceM={bike.nav.remainingM}
-              etaMin={etaMin}
-            />
-          )}
+          <NextStopBar
+            stopEmoji={nextStop?.emoji ?? null}
+            stopTitle={nextStop?.title ?? null}
+            toStopM={bike.nav.distanceToNextSpotM}
+            remainingM={bike.nav.remainingM}
+            etaMin={etaMin}
+          />
         </div>
       )}
 

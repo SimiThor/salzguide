@@ -143,6 +143,9 @@
     "arrivedTitle": "Jsi na místě",
     "toNextStop": "Pokračovat k další zastávce",
     "navRemaining": "Do cíle",
+    "navNextStop": "Další zastávka",
+    "navNextStopIn": "Další zastávka za {distance}",
+    "navToFinish": "Zpět na start",
     "navEta": "Příjezd za"
   },
   "Water": {
