@@ -875,280 +875,58 @@ body {
    auf jeder Kartenfarbe erkennbar. rotationAlignment:"viewport" am Marker hält den Pfeil
    IMMER fensteraufrecht -> zeigt er nach oben, zeigt die Karte selbst (via Kamera-Bearing
    in NavMap.tsx) bereits in Fahrtrichtung; der Pfeil muss sich also nie selbst drehen. */
-/* Positions-Punkt im Fahrmodus, nachempfunden dem von Mapbox (GeolocateControl), den wir
-   nicht selbst benutzen können: Der Control zeigt nur seinen EIGENEN Fix und gibt der App
-   keinen Zugriff auf den Strom, den die Navigation braucht. Also dieselbe Optik von Hand,
-   mit denselben Werten wie im Original (15px Punkt, 2px weisser Ring, aufgefaecherter
-   Richtungskegel).
+/* ——— Positions-Anzeige im Fahrmodus ——————————————————————————————————————————
+   ZWEI Marker an derselben Stelle (siehe NavMap.tsx), weil Neigung und Ausrichtung hier
+   Gegensaetzliches verlangen:
 
-   ZURZEIT OHNE RICHTUNGSANZEIGE. Hier stand ein Kegel aus zwei geschrägten Dreiecken,
-   Mapbox nachempfunden. Er sah nicht gut aus: abgetrennt vom Punkt, schief, "abgehakt".
-   Ursache war die Kombination aus geneigter Kamera (58 Grad) und einem DOM-Marker, der
-   Drehung und Neigung unterschiedlich ausrichten muss, plus von Mapbox übernommenen
-   Zahlen, deren Bezugspunkt hier ein anderer ist. Statt weiter daran zu schrauben ist er
-   am 24.08.2026 ausgebaut worden; die Richtungsanzeige kommt neu, sobald die Recherche
-   zu den Vorbildern und zum richtigen technischen Weg ausgewertet ist. */
-.sg-nav-puck {
-  position: relative;
-  width: 19px;
-  height: 19px;
-}
+   .sg-nav-cone liegt FLACH auf der Strasse (pitchAlignment "map"). Ein weicher Sichtkegel
+     mit Verlauf nach aussen, kein hartes Dreieck: flach liegend liest er sich wie ein
+     Scheinwerfer in Fahrtrichtung, waehrend ein Dreieck bei 58 Grad Neigung eine schiefe,
+     abgehackte Kante bekommt.
+   .sg-nav-puck steht AUFRECHT zum Betrachter (pitchAlignment "viewport") und bleibt
+     dadurch immer ein sauberer Kreis.
 
-.sg-nav-puck__dot {
-  position: absolute;
-  left: 2px;
-  top: 2px;
-  width: 15px;
-  height: 15px;
-  border-radius: 50%;
-  background: #1da1f2;
-  box-shadow: 0 0 3px rgba(0, 0, 0, 0.35);
-}
-.sg-nav-puck__dot::after {
-  content: "";
-  position: absolute;
-  left: -2px;
-  top: -2px;
-  width: 19px;
-  height: 19px;
-  box-sizing: border-box;
-  border: 2px solid #fff;
-  border-radius: 50%;
-}
+   Mapbox legt seinen ganzen Puck flach (dist/mapbox-gl.js, _createUserLocationMarkers:
+   rotationAlignment "map", pitchAlignment "map"), was bei ihren flacheren Kameras stimmt.
+   Bei unseren 58 Grad wird der Punkt dabei zur gequetschten Ellipse, gemessen 68x36 statt
+   rund. Google Maps trennt beides, und das ist bei geneigter Kamera die bessere Lesart.
 
-/* Position des Kärtchens, das beim Antippen eines Kartenpunkts erscheint (MapPopover:
-   Gespeichert-Karte und Spot-Detailkarte). Die Ruheposition gehört ins CSS, nicht in
-   JS — sonst rechnet sie sich bei jedem Rendern neu aus und das Kärtchen springt.
-
-   Ebene 15: über den Mapbox-Buttons (10), unter der Scroll-Schutzfläche (20) — siehe
-   die Leiter weiter unten. Das Punkt-Kärtchen lag vorher auf 5 und damit UNTER dem
-   Attribution-Button: Der fing Tipper ab, die dem ✕ galten. */
-.sg-map-popover {
-  position: absolute;
-  right: 0.75rem;
-  bottom: 12px;
-  left: 0.75rem;
-  z-index: 15;
+   Farbe: Blau, nicht Marken-Rot. Die Route IST rot (#cc2924), ein roter Punkt darauf
+   verschwindet. Und Blau ist bei jeder Navi-App das Zeichen fuer "hier bist du". Der Ton
+   ist tiefer und waermer als das uebliche Signalblau, damit er neben Creme und Rot nicht
+   klinisch wirkt. */
+.sg-nav-cone {
+  width: 180px;
+  height: 180px;
   pointer-events: none;
 }
-/* Vollbild: Hier ist Platz, also deckt das Kärtchen Mapbox-Logo und Attribution nicht
-   mehr ab (die beiden sind Lizenzpflicht, siehe unten) und bekommt Luft nach unten —
-   tief genug, um das Bild frei zu lassen, hoch genug, um nicht am Rand zu kleben.
-   34px = Logo/Attribution samt Mapbox' eigenem Abstand, dazu die Safe-Area, unter der
-   auf dem iPhone der Home-Indicator liegt. */
-.sg-map-popover--full {
-  bottom: calc(env(safe-area-inset-bottom) + 34px + 16px);
-}
-/* Am Desktop ist der Bildschirm hoch — dort darf das Kärtchen etwas weiter herauf. */
-@media (min-width: 768px) {
-  .sg-map-popover--full {
-    bottom: 64px;
-  }
-}
-
-/* Punkt-Kärtchen (getöntes Symbol + Text). Erscheint unten, wenn man einen Kartenpunkt
-   antippt (Start/Ziel, Wasser, Hütte, Parkplatz, der Spot selbst). Die Glas-/Schatten-
-   Hülle liefert MapPopover; hier nur die Innen-Optik. Einheitlich mit den App-Cards. */
-.sg-poi-card {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  padding: 0.5rem 0.7rem 0.5rem 0.5rem;
-  min-height: 2.75rem; /* bequemes Antippen (Mobile) */
-}
-/* Symbolkreis, je Typ dezent getönt (gleiche Farben wie im Admin -> einheitlich). */
-.sg-poi-card__icon {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  border-radius: 9999px;
-  font-size: 1.05rem;
-  line-height: 1;
-  background: rgba(0, 0, 0, 0.05);
-}
-.sg-poi-card--water .sg-poi-card__icon {
-  background: rgba(14, 165, 233, 0.14);
-}
-.sg-poi-card--hut .sg-poi-card__icon {
-  background: rgba(180, 83, 9, 0.14);
-}
-.sg-poi-card--parking .sg-poi-card__icon {
-  background: rgba(37, 99, 235, 0.14);
-}
-.sg-poi-card--start .sg-poi-card__icon {
-  background: rgba(22, 163, 74, 0.14);
-}
-.sg-poi-card--finish .sg-poi-card__icon {
-  background: rgba(204, 41, 36, 0.12);
-}
-/* Der Spot selbst — neutral getönt, sein Emoji trägt die Farbe schon. */
-.sg-poi-card--spot .sg-poi-card__icon {
-  background: rgba(0, 0, 0, 0.05);
-}
-.sg-poi-card__text {
-  display: flex;
-  flex-direction: column;
-  min-width: 0; /* erlaubt Umbruch/Ellipse statt Überlauf */
-  line-height: 1.25;
-  padding-right: 0.15rem;
-}
-.sg-poi-card__name {
-  font-size: 0.95rem;
-  font-weight: 650;
-  color: #111;
-  letter-spacing: -0.01em;
-}
-/* Gattung nur als Beiwerk, wenn ein Name darüber steht. */
-.sg-poi-card__type {
-  margin-top: 0.05rem;
-  font-size: 0.8rem;
-  font-weight: 500;
-  color: var(--color-muted, #6c5b57);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .sg-marker {
-    animation: none;
-    transition: none;
-  }
-}
-
-/* Mapbox-Controls im SalzGuide-Stil (Glas, rund, weicher Schatten) */
-.mapboxgl-ctrl-group {
-  border-radius: 11px !important;
-  /* KEIN overflow:hidden: Es würde die unsichtbare 44er-Trefferfläche der Knöpfe
-     wieder auf die gezeichneten 40 zurückschneiden. Dass die Optik gleich bleibt,
-     ist geprüft, nicht vermutet: Screenshots mit und ohne diese Zeile waren
-     byte-identisch. Gezeichnet wird der Hintergrund der Gruppe, und der ist selbst
-     gerundet; nur der Hover-Schimmer am Desktop braucht eigene Ecken (siehe unten). */
+.sg-nav-cone svg {
+  display: block;
+  width: 100%;
+  height: 100%;
   overflow: visible;
-  background: rgba(255, 255, 255, 0.82) !important;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(0, 0, 0, 0.05) !important;
-  box-shadow: 0 3px 14px -4px rgba(0, 0, 0, 0.22) !important;
-}
-/* 44x44 ist Apples Mindestmass für alles, was ein Finger trifft (Human Interface
-   Guidelines, "Layout"). Vorher waren es 32px, und daneben getippt heisst hier: die
-   Karte verschiebt sich, statt zu zoomen — für den Menschen sieht das aus, als hätte
-   der Knopf nicht reagiert.
-   Die Zahl steht hier und NUR hier: Sie hängt an --sg-map-ctrl, weil der fitBounds-
-   Rand der Karten damit rechnen muss (sonst landen Marker unter den Knöpfen). */
-.mapboxgl-ctrl-group button {
-  width: var(--sg-map-ctrl) !important;
-  height: var(--sg-map-ctrl) !important;
-  background-color: transparent !important;
-  color: var(--color-ink);
-}
-.mapboxgl-ctrl-group button + button {
-  border-top: 1px solid rgba(0, 0, 0, 0.07) !important;
-}
-/* Auch hier: Hover nur mit echtem Zeiger, sonst bleibt der graue Schimmer auf dem
-   zuletzt angetippten Knopf kleben (WebKit-Bug 158517). */
-@media (hover: hover) {
-  .mapboxgl-ctrl-group button:hover {
-    background-color: rgba(0, 0, 0, 0.05) !important;
-  }
-}
-/* NUR AM FINGER: die letzten 4px zu Apples 44, unsichtbar, damit die Knöpfe schlank
-   bleiben. `overflow` muss dafür auf BEIDEN Ebenen offen sein — Mapbox setzt es auch
-   auf dem Knopf selbst, und ihr Stylesheet wird nach unserem geladen, daher !important.
-   Am Zeiger entfällt beides: Dort sind die Knöpfe 32px und treffen sich von selbst,
-   eine unsichtbare Fläche darüber würde nur mit dem Nachbarn im Stapel streiten. */
-@media (hover: none) {
-  .mapboxgl-ctrl-group button {
-    position: relative;
-    overflow: visible !important;
-  }
-  .mapboxgl-ctrl-group button::after {
-    content: "";
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    width: 44px;
-    height: 44px;
-    transform: translate(-50%, -50%);
-  }
+  /* Weichzeichner ueber die Sektor-Kanten: Der Verlauf blendet nach aussen aus, die beiden
+     GERADEN Flanken bleiben davon unberuehrt und schneiden hart ab. 3 px nehmen ihnen die
+     Kante, ohne dass die Richtung unklar wird. */
+  filter: blur(3px);
 }
 
-/* Zeigegeräte: zurück auf die kompakte Grösse, die die Karten vorher hatten. */
-@media (hover: hover) {
-  :root {
-    --sg-map-ctrl: 32px;
-  }
+.sg-nav-puck {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #2563d9;
+  /* Weisser Ring plus weicher Schatten: Der Ring haelt ihn auf dunklem Asphalt und heller
+     Wiese gleich gut lesbar, der Schatten hebt ihn von der Flaeche ab. */
+  box-shadow:
+    0 0 0 3px #fff,
+    0 1px 5px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+  /* Auf derselben Sprosse wie der normale Standort-Punkt (Ebenen-Leiter weiter unten):
+     sonst deckt der Ziel-Pin eines Spots, der genau hier liegt, ihn komplett zu. */
+  z-index: 8;
 }
 
-/* PLUS UND MINUS IN DERSELBEN HANDSCHRIFT.
-   Mapbox' eigene Zeichen sind deutlich fetter als unser Icon-Set. Auf dem Handy fiel
-   das nicht auf, weil es sie dort nicht mehr gibt — am Desktop stand die Säule aber
-   halb in fremder, halb in eigener Strichstärke da. Nur das Bild wird ersetzt, das
-   Verhalten bleibt Mapbox'. */
-.mapboxgl-ctrl-group button.mapboxgl-ctrl-zoom-in .mapboxgl-ctrl-icon {
-  background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23111111%22%20stroke-width%3D%222.6%22%20stroke-linecap%3D%22round%22%3E%3Cpath%20d%3D%22M12%206v12%22%2F%3E%3Cpath%20d%3D%22M6%2012h12%22%2F%3E%3C%2Fsvg%3E") !important;
-  background-size: 19px 19px;
-}
-.mapboxgl-ctrl-group button.mapboxgl-ctrl-zoom-out .mapboxgl-ctrl-icon {
-  background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23111111%22%20stroke-width%3D%222.6%22%20stroke-linecap%3D%22round%22%3E%3Cpath%20d%3D%22M6%2012h12%22%2F%3E%3C%2Fsvg%3E") !important;
-  background-size: 19px 19px;
-}
-
-/* STANDORT-SYMBOL IN DER HAUSSCHRIFT.
-   Mapbox liefert ein gefülltes Fadenkreuz mit dickem Strich. Daneben stand unser
-   Zentrieren-Knopf als feine Linienzeichnung — zwei Symbole, die nicht wie
-   Geschwister aussehen, und auf dem Handy sind sie die einzigen beiden.
-   Ersetzt wird deshalb nur das BILD, nicht das Verhalten: 24er-Raster,
-   stroke-width 1.75, runde Enden — dieselben Werte wie components/icons.tsx.
-   Der aktive Zustand bekommt das Akzentrot, wie überall in der App („aktiv = rot").
-   Die übrigen Zustände (waiting, error) lässt Mapbox unverändert: Sie sind selten,
-   und ein falsch nachgebautes Fehlerbild ist schlimmer als ein fremdes. */
-.mapboxgl-ctrl-geolocate .mapboxgl-ctrl-icon {
-  background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22M19.71%204.09%205.52%209.96a.98.98%200%200%200%20.1%201.84l5.19%201.46%201.46%205.19a.98.98%200%200%200%201.84.1Z%22%20fill%3D%22%23111111%22%20stroke%3D%22%23111111%22%20stroke-width%3D%221.4%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E") !important;
-  background-size: 19px 19px;
-}
-.mapboxgl-ctrl-geolocate.mapboxgl-ctrl-geolocate-active .mapboxgl-ctrl-icon,
-.mapboxgl-ctrl-geolocate.mapboxgl-ctrl-geolocate-background .mapboxgl-ctrl-icon {
-  background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22M19.71%204.09%205.52%209.96a.98.98%200%200%200%20.1%201.84l5.19%201.46%201.46%205.19a.98.98%200%200%200%201.84.1Z%22%20fill%3D%22%23cc2924%22%20stroke%3D%22%23cc2924%22%20stroke-width%3D%221.4%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E") !important;
-  background-size: 19px 19px;
-}
-
-/* AM FINGER GIBT ES KEINE ZOOM-KNÖPFE.
-   Zwei Finger zoomen die Karte seit jeher, das kann jedes Handy und es kann es
-   besser: stufenlos und dort, wo die Finger sind. Die Knöpfe daneben sind eine
-   Maus-Krücke — sie kosten zwei von vier Plätzen in der Säule und verdecken Karte,
-   ohne etwas zu können, was der Finger nicht schon kann. Übrig bleibt, was ohne
-   Knopf NICHT geht: „zeig mir wieder alles" und „wo bin ich".
-   Versteckt wird die ganze Gruppe, nicht nur die Knöpfe — sonst bliebe ihr Glas-
-   Hintergrund als leere Pille stehen. */
-@media (hover: none) {
-  .mapboxgl-ctrl-group:has(> .mapboxgl-ctrl-zoom-in) {
-    display: none;
-  }
-}
-/* Übernimmt, was das weggefallene overflow:hidden am Desktop noch tat: den
-   Hover-Schimmer an den Ecken der Gruppe abschneiden. */
-.mapboxgl-ctrl-group button:first-child {
-  border-radius: 11px 11px 0 0;
-}
-.mapboxgl-ctrl-group button:last-child {
-  border-radius: 0 0 11px 11px;
-}
-.mapboxgl-ctrl-group button:only-child {
-  border-radius: 11px;
-}
-.mapboxgl-ctrl-group button:focus:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: -2px;
-}
-/* Saubere Karten-Ebenen (auf JEDER Karte gleich):
-   Marker/Badges (z-index bis 6) < Standort-Punkt (8) < Bedien-Buttons (10).
-   WICHTIG: Der z-index MUSS auf dem Marker-WRAPPER `.mapboxgl-user-location`
-   liegen (nicht auf dem inneren `.mapboxgl-user-location-dot`). Der Wrapper hat
-   `will-change:transform` -> eigener Stacking-Context; ein z-index am inneren
-   Punkt bleibt darin eingesperrt und tritt nie gegen die Badges an. Nur der
-   Wrapper konkurriert als Geschwister im Canvas-Container mit den Markern. */
 /* Der Fahrmodus-Puck ist ein EIGENER Marker (nicht Mapbox' GeolocateControl, siehe
    .sg-nav-puck oben) und fiel deshalb nicht unter die Regel darunter: Auf der Testrunde
    liegt der erste Spot genau am Start, und seine Zielflagge deckte den Positions-Punkt

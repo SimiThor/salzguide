@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { MapLoadingScreen, useMapLoading } from "@/components/MapLoading";
 import { MapUnavailableScreen, tryCreateMap } from "@/components/MapUnavailable";
 import { useLatestRef } from "@/lib/use-latest-ref";
+import { unwrapDegrees } from "@/lib/geo";
 import { declutterBasemap } from "@/lib/map-declutter";
 import {
   addRouteSourceAndLayers,
@@ -81,6 +82,7 @@ export default function NavMap({
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const puckRef = useRef<mapboxgl.Marker | null>(null);
+  const coneRef = useRef<mapboxgl.Marker | null>(null);
   const stopMarkersRef = useRef<Map<number, mapboxgl.Marker>>(new Map());
   const { bindMap, loading } = useMapLoading();
   const [mapDead, setMapDead] = useState(false);
@@ -145,6 +147,7 @@ export default function NavMap({
       map.off("dragstart", onDragStart);
       unbindLoading();
       puckRef.current?.remove();
+      coneRef.current?.remove();
       stopMarkers.forEach((m) => m.remove());
       stopMarkers.clear();
       map.remove();
@@ -227,24 +230,122 @@ export default function NavMap({
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !fix) return;
+    const at: [number, number] = [fix.lng, fix.lat];
+
+    // ZWEI Marker an derselben Stelle, und das ist der Kern der Sache. Mapbox legt seinen
+    // ganzen Puck flach in die Kartenebene (pitchAlignment "map"), was bei ihren flacheren
+    // Kameras stimmig ist; bei unseren 58 Grad wird der Punkt dabei zur gequetschten
+    // Ellipse (am Bildschirm nachgesehen). Google Maps trennt stattdessen, und das ist die
+    // bessere Lesart:
+    //   Der KEGEL liegt flach auf der Strasse ("map"/"map") und zeigt perspektivisch nach
+    //     vorn, wie ein Scheinwerfer. Nur so gehoert er zur Szene.
+    //   Der PUNKT steht aufrecht zum Betrachter ("viewport") und bleibt dadurch immer ein
+    //     sauberer Kreis, egal wie steil die Kamera steht.
+    if (!coneRef.current) {
+      const coneEl = document.createElement("div");
+      coneEl.className = "sg-nav-cone";
+      // Radius 90 statt 34: Die 58 Grad Neigung druecken die Laenge auf cos(58) zusammen,
+      // aus 34 px wurden am Bildschirm gemessene 18 px und der Kegel verschwand hinter dem
+      // Punkt (der mit Ring 24 px misst). Bei 90 bleiben 48 px sichtbare Laenge.
+      //
+      // Der Verlauf laeuft ueber gradientUnits="userSpaceOnUse" von der SPITZE (0,0) nach
+      // aussen. Mit den Standard-Einheiten bezieht sich cx/cy auf die Bounding-Box des
+      // Pfads, der hellste Punkt saesse dann mitten im Kegel statt am Radl.
+      coneEl.innerHTML = `<svg viewBox="-90 -90 180 180" aria-hidden="true">
+          <defs>
+            <radialGradient id="sg-nav-cone-grad" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="90">
+              <stop offset="0%" stop-color="#2563d9" stop-opacity="0.9" />
+              <stop offset="35%" stop-color="#2563d9" stop-opacity="0.5" />
+              <stop offset="100%" stop-color="#2563d9" stop-opacity="0" />
+            </radialGradient>
+          </defs>
+          <path d="M 0 0 L -38 -81.6 A 90 90 0 0 1 38 -81.6 Z" fill="url(#sg-nav-cone-grad)" />
+        </svg>`;
+      coneRef.current = new mapboxgl.Marker({
+        element: coneEl,
+        rotationAlignment: "map",
+        pitchAlignment: "map",
+      })
+        .setLngLat(at)
+        .addTo(map);
+    } else {
+      coneRef.current.setLngLat(at);
+    }
+
     if (!puckRef.current) {
       const el = document.createElement("div");
       el.className = "sg-nav-puck";
-      const dot = document.createElement("span");
-      dot.className = "sg-nav-puck__dot";
-      el.append(dot);
-      // pitchAlignment "viewport": Der Punkt bleibt rund und steht dem Betrachter zugewandt.
-      // Mit der Voreinstellung liegt er flach in der Kartenebene und wird von den 58 Grad
-      // Neigung zu einer Ellipse gequetscht (am Bildschirm nachgesehen).
-      // Eine Richtungsanzeige gibt es zurzeit nicht, siehe .sg-nav-puck in globals.css.
       puckRef.current = new mapboxgl.Marker({ element: el, pitchAlignment: "viewport" })
-        .setLngLat([fix.lng, fix.lat])
+        .setLngLat(at)
         .addTo(map);
     } else {
-      puckRef.current.setLngLat([fix.lng, fix.lat]);
+      puckRef.current.setLngLat(at);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fix?.lng, fix?.lat]);
+
+  // ——— Kurs des Kegels: weich, und im Gleichschritt mit der Kamera ————————————
+  // Der Kurs wird nur einmal je GPS-Signal berechnet, etwa einmal pro Sekunde. Ihn direkt
+  // zu setzen liesse den Kegel springen, waehrend die Kamera daneben noch eine Sekunde
+  // weiterdreht (easeTo, FOLLOW_EASE_MS) – beide liefen gegeneinander. Deshalb eine eigene
+  // Bild-fuer-Bild-Schleife, deren ZIEL davon abhaengt, wer gerade fuehrt:
+  //
+  //   Folge-Modus: Ziel ist map.getBearing() bei JEDEM Bild. Weil der Marker mit
+  //     rotationAlignment "map" laeuft, rechnet Mapbox Kurs minus Karten-Ausrichtung, und
+  //     die bleibt exakt null: Der Kegel liegt ruhig nach vorn, waehrend sich die Karte
+  //     unter ihm dreht. Kein Zittern, weil beide dieselbe Zahl benutzen.
+  //   Frei verschoben: Ziel ist der geglaettete Kurs aus bike-nav-core, dem der Kegel
+  //     weich nachzieht. Hier SOLL man ihn sich drehen sehen.
+  //
+  // Die Schleife haelt an, sobald sie angekommen ist, und startet neu, wenn ein neuer Kurs
+  // hereinkommt: sie laeuft also nur, waehrend sich wirklich etwas bewegt.
+  const shownBearingRef = useRef(bearingDeg);
+  const bearingRafRef = useRef<number | null>(null);
+  const bearingTargetRef = useLatestRef(bearingDeg);
+  const followingRef = useLatestRef(following);
+
+  useEffect(() => {
+    if (!mapRef.current) return;
+    if (reducedMotion()) {
+      shownBearingRef.current = bearingDeg;
+      coneRef.current?.setRotation(bearingDeg);
+      return;
+    }
+    if (bearingRafRef.current != null) return; // laeuft schon, das neue Ziel reicht
+
+    const step = () => {
+      const m = mapRef.current;
+      if (!m || !coneRef.current) {
+        bearingRafRef.current = null;
+        return;
+      }
+      const goal = followingRef.current ? m.getBearing() : bearingTargetRef.current;
+      const from = shownBearingRef.current;
+      // Ueber den kurzen Bogen, sonst dreht der Kegel bei 359 -> 1 einmal ganz herum.
+      const delta = unwrapDegrees(from, goal) - from;
+      if (Math.abs(delta) < 0.2) {
+        shownBearingRef.current = ((goal % 360) + 360) % 360;
+        coneRef.current.setRotation(shownBearingRef.current);
+        bearingRafRef.current = null;
+        return;
+      }
+      // 0,14 je Bild: bei 60 Bildern/s rund 95 Prozent nach etwa 350 ms. Schnell genug, um
+      // der Kamera zu folgen, langsam genug, um nicht zu huepfen.
+      const next = from + delta * 0.14;
+      shownBearingRef.current = ((next % 360) + 360) % 360;
+      coneRef.current.setRotation(shownBearingRef.current);
+      bearingRafRef.current = requestAnimationFrame(step);
+    };
+    bearingRafRef.current = requestAnimationFrame(step);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bearingDeg, following]);
+
+  useEffect(
+    () => () => {
+      if (bearingRafRef.current != null) cancelAnimationFrame(bearingRafRef.current);
+    },
+    [],
+  );
 
   // Kamera folgt dem Kurs: EIN easeTo je akzeptiertem Fix, verkettet statt als
   // rAF-Dauerschleife – GPS aktualisiert ohnehin nur etwa im Sekundentakt, ein Frame
