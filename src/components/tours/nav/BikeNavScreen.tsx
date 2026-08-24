@@ -17,8 +17,6 @@ import { useTourAudio, type PlayerStop } from "@/components/tours/useTourAudio";
 import { estimateEtaMin } from "@/lib/nav-format";
 import type { TourDetail } from "@/lib/tour-types";
 
-const SAFETY_SEEN_KEY = "sg-bike-nav-safety-seen";
-
 // Signierte Audio-URLs (getTourDetail, tour-audio-Bucket) laufen nach 2h ab. Eine lange
 // Ausfahrt kann das überschreiten – 100 statt 120 Min als Sicherheitsabstand, damit die
 // URL nicht GENAU in der Sekunde zwischen "noch gültig" und "schon 403" angetippt wird.
@@ -89,27 +87,7 @@ export default function BikeNavScreen({ tour }: { tour: TourDetail }) {
     }
   }, [bike.offeredSpotId, router]);
 
-  // Sicherheitshinweis einmal pro Gerät (StVO §102(3a): die Halterung macht die Nutzung
-  // während der Fahrt erst zulässig). Start false, damit auch der ALLERERSTE Aufbau –
-  // vor dem Lesen aus localStorage – lieber einmal zu oft hinweist als einmal zu wenig.
-  const [safetySeen, setSafetySeen] = useState(false);
-  useEffect(() => {
-    void Promise.resolve().then(() => {
-      try {
-        setSafetySeen(localStorage.getItem(SAFETY_SEEN_KEY) === "1");
-      } catch {
-        setSafetySeen(true);
-      }
-    });
-  }, []);
-
   const beginNavigation = () => {
-    try {
-      localStorage.setItem(SAFETY_SEEN_KEY, "1");
-    } catch {
-      /* privater Modus o.ä. – dann eben nächstes Mal wieder der Hinweis */
-    }
-    setSafetySeen(true);
     start(); // MUSS synchron im Klick-Handler bleiben (siehe use-geolocation-watch.ts)
   };
 
@@ -251,26 +229,24 @@ export default function BikeNavScreen({ tour }: { tour: TourDetail }) {
           startet deshalb nie von selbst. */}
       {showStartGate && (
         <div className="absolute inset-0 z-[50] flex flex-col items-center justify-end gap-4 bg-black/40 p-6 pb-[calc(env(safe-area-inset-bottom)+32px)] backdrop-blur-sm">
-          {!safetySeen ? (
-            <div className="w-full max-w-sm space-y-3 rounded-[22px] bg-cream p-5 text-center shadow-2xl">
-              <p className="text-[15px] font-semibold text-ink">⚠️ {t("navSafetyHint")}</p>
-              <button
-                type="button"
-                onClick={beginNavigation}
-                className="w-full rounded-full bg-accent px-5 py-3 text-[15px] font-semibold text-white active:scale-[0.98]"
-              >
-                🧭 {t("startNavigation")}
-              </button>
-            </div>
-          ) : (
+          {/* Der Hinweis steht IMMER da, nicht nur beim ersten Mal.
+              Vorher hing das an einem localStorage-Merker, der erst nach dem ersten Bild
+              gelesen wurde: Der Hinweis erschien, wurde einen Wimpernschlag später vom
+              gelesenen Wert überstimmt und verschwand wieder. Das ist derselbe Fehler wie
+              jeder aufblitzende Zustand, der aus dem Speicher nachgereicht wird.
+              Ihn zu behalten kostet nichts: Der Knopf darunter ist in beiden Fällen
+              derselbe, es war nie ein zusätzlicher Tipp, nur ein zusätzlicher Satz. Und
+              bei einer StVO-Sache ist "jedes Mal" ohnehin die richtige Antwort. */}
+          <div className="w-full max-w-sm space-y-3 rounded-[22px] bg-cream p-5 text-center shadow-2xl">
+            <p className="text-[15px] font-semibold text-ink">⚠️ {t("navSafetyHint")}</p>
             <button
               type="button"
               onClick={beginNavigation}
-              className="w-full max-w-sm rounded-full bg-accent px-6 py-4 text-[16px] font-semibold text-white shadow-xl active:scale-[0.98]"
+              className="w-full rounded-full bg-accent px-5 py-3 text-[15px] font-semibold text-white active:scale-[0.98]"
             >
               🧭 {t("startNavigation")}
             </button>
-          )}
+          </div>
           {(gpsStatus === "denied" || gpsStatus === "unavailable") && (
             <p className="max-w-sm text-center text-[13px] text-white/90">
               {gpsStatus === "denied" ? t("navDenied") : t("navNoGps")}

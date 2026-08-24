@@ -875,24 +875,62 @@ body {
    auf jeder Kartenfarbe erkennbar. rotationAlignment:"viewport" am Marker hält den Pfeil
    IMMER fensteraufrecht -> zeigt er nach oben, zeigt die Karte selbst (via Kamera-Bearing
    in NavMap.tsx) bereits in Fahrtrichtung; der Pfeil muss sich also nie selbst drehen. */
+/* Positions-Punkt im Fahrmodus, nachempfunden dem von Mapbox (GeolocateControl), den wir
+   nicht selbst benutzen können: Der Control zeigt nur seinen EIGENEN Fix und gibt der App
+   keinen Zugriff auf den Strom, den die Navigation braucht. Also dieselbe Optik von Hand,
+   mit denselben Werten wie im Original (15px Punkt, 2px weisser Ring, aufgefaecherter
+   Richtungskegel).
+
+   Der Kegel dreht sich WIRKLICH mit: Der Marker läuft mit rotationAlignment "map" und
+   bekommt den geglätteten Kurs per setRotation (NavMap.tsx). Mapbox rechnet daraus die
+   Bildschirm-Drehung aus Kurs minus Karten-Ausrichtung. Im Folgemodus zeigt der Kegel
+   damit nach oben, weil die Karte selbst mitdreht; sobald der Gast die Karte verschiebt,
+   zeigt er die echte Fahrtrichtung. Vorher stand er auf "viewport" ohne Rotation und
+   zeigte immer stur nach Norden. */
 .sg-nav-puck {
   position: relative;
-  width: 20px;
-  height: 20px;
-  border-radius: 999px;
-  background: #1a73e8;
-  border: 3px solid #fff;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+  width: 19px;
+  height: 19px;
 }
-.sg-nav-puck::after {
+
+/* Der Kegel liegt UNTER dem Punkt, damit der Punkt seine saubere runde Kante behält. */
+.sg-nav-puck__cone::before,
+.sg-nav-puck__cone::after {
   content: "";
   position: absolute;
   left: 50%;
-  top: -13px;
-  transform: translateX(-50%);
-  border-left: 6px solid transparent;
-  border-right: 6px solid transparent;
-  border-bottom: 11px solid #1a73e8;
+  top: 50%;
+  border-bottom: 7.5px solid #4aa1eb;
+}
+.sg-nav-puck__cone::before {
+  border-left: 7.5px solid transparent;
+  transform: translateY(-28px) skewY(-20deg);
+}
+.sg-nav-puck__cone::after {
+  border-right: 7.5px solid transparent;
+  transform: translate(7.5px, -28px) skewY(20deg);
+}
+
+.sg-nav-puck__dot {
+  position: absolute;
+  left: 2px;
+  top: 2px;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: #1da1f2;
+  box-shadow: 0 0 3px rgba(0, 0, 0, 0.35);
+}
+.sg-nav-puck__dot::after {
+  content: "";
+  position: absolute;
+  left: -2px;
+  top: -2px;
+  width: 19px;
+  height: 19px;
+  box-sizing: border-box;
+  border: 2px solid #fff;
+  border-radius: 50%;
 }
 
 /* Position des Kärtchens, das beim Antippen eines Kartenpunkts erscheint (MapPopover:
@@ -1128,6 +1166,13 @@ body {
    `will-change:transform` -> eigener Stacking-Context; ein z-index am inneren
    Punkt bleibt darin eingesperrt und tritt nie gegen die Badges an. Nur der
    Wrapper konkurriert als Geschwister im Canvas-Container mit den Markern. */
+/* Der Fahrmodus-Puck ist ein EIGENER Marker (nicht Mapbox' GeolocateControl, siehe
+   .sg-nav-puck oben) und fiel deshalb nicht unter die Regel darunter: Auf der Testrunde
+   liegt der erste Spot genau am Start, und seine Zielflagge deckte den Positions-Punkt
+   vollständig zu. Er gehört auf dieselbe Sprosse wie der normale Standort-Punkt. */
+.sg-nav-puck {
+  z-index: 8;
+}
 .mapboxgl-user-location {
   z-index: 8;
 }
@@ -1292,11 +1337,29 @@ input[type="number"] {
    Formen (Radius 22, Blur, Schatten) bleiben, nur die Werte drehen sich um. */
 .sg-nav {
   --nav-surface: rgba(24, 20, 16, 0.92);
-  --nav-ink: #f6f1e7;
-  --nav-muted: #b6a89b;
-  /* Heller als der Marken-Akzent #cc2924: Auf dunklem Grund braucht Rot mehr
-     Helligkeit, sonst verschwindet es. Kontrast gegen --nav-surface rund 5,5:1. */
-  --nav-accent: #ff6b60;
+
+  /* Die MARKEN-Variablen werden hier ueberschrieben, nicht nur eigene daneben gestellt.
+     Damit stimmen text-ink, text-muted, bg-cream, text-accent und bg-accent im Fahrmodus
+     automatisch, in JEDER Komponente, auch in kuenftigen.
+
+     Der erste Anlauf machte es anders: eigene --nav-*-Variablen und dann Komponente fuer
+     Komponente von Hand umgestellt. Dabei blieben die Restdistanz und die Ankunftszeit in
+     NextStopBar auf text-ink (#111) und text-muted (#6c5b57) stehen, also fast schwarz und
+     dunkelbraun auf dunklem Grund. Anton hat es am Handy gesehen, nicht der Compiler und
+     nicht der Linter: Vergessen kann man nur, was man von Hand pflegen muss. */
+  --color-ink: #f6f1e7;
+  --color-muted: #b6a89b;
+  --color-cream: #181410;
+  /* Heller als der Marken-Akzent #cc2924: Auf dunklem Grund braucht Rot mehr Helligkeit,
+     sonst verschwindet es. Kontrast gegen --nav-surface rund 5,5:1. */
+  --color-accent: #ff6b60;
+
+  /* Aliasse fuer die Stellen, die eine Farbe direkt setzen muessen (Inline-Style auf einem
+     SVG, eine Flaeche mit Transparenz). Sie zeigen bewusst auf dieselben Werte, damit es
+     nur EINE Wahrheit gibt. */
+  --nav-ink: var(--color-ink);
+  --nav-muted: var(--color-muted);
+  --nav-accent: var(--color-accent);
   --nav-accent-soft: rgba(255, 107, 96, 0.16);
 }
 

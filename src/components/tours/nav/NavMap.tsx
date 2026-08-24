@@ -18,6 +18,24 @@ import {
 const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 const NAV_PITCH = 58;
 const NAV_ZOOM = 17;
+// Wo im Bild der Positions-Punkt sitzen soll, als Anteil der Kartenhöhe von oben. NICHT
+// die Mitte: Beim Fahren zählt allein, was VOR einem liegt, und ein zentrierter Punkt
+// verschenkt die halbe Fläche an die Strecke, die man schon hinter sich hat. Google Maps
+// und Apple Karten setzen ihn ebenfalls ins untere Drittel.
+//
+// Ohne diese Rechnung war es sogar verkehrt herum: Der untere Innenabstand für die
+// HUD-Leiste schob das Kartenzentrum nach OBEN, gemessen auf Position 327 von 844.
+const PUCK_AT = 0.68;
+
+// Mapbox zentriert in dem Rechteck, das der Innenabstand übrig lässt, also auf
+// (top + (H - bottom)) / 2. Nach `top` aufgelöst, damit der Punkt genau auf PUCK_AT
+// landet. Gedeckelt, damit ein sehr flaches Fenster (Querformat) nicht in absurde Werte
+// läuft und die Kamera unbrauchbar macht.
+function topPaddingFor(heightPx: number, bottomPx: number): number {
+  if (!heightPx) return 0;
+  const wanted = 2 * PUCK_AT * heightPx - heightPx + bottomPx;
+  return Math.max(0, Math.min(wanted, heightPx * 0.62));
+}
 const FOLLOW_EASE_MS = 1000;
 const RECENTER_EASE_MS = 500;
 
@@ -210,7 +228,24 @@ export default function NavMap({
     if (!puckRef.current) {
       const el = document.createElement("div");
       el.className = "sg-nav-puck";
-      puckRef.current = new mapboxgl.Marker({ element: el, rotationAlignment: "viewport" })
+      const cone = document.createElement("span");
+      cone.className = "sg-nav-puck__cone";
+      const dot = document.createElement("span");
+      dot.className = "sg-nav-puck__dot";
+      el.append(cone, dot);
+      // Drehung und Neigung bewusst UNTERSCHIEDLICH ausgerichtet:
+      //   rotationAlignment "map"  -> der Kegel dreht sich mit der Karte, setRotation
+      //     unten gibt ihm den Kurs, Mapbox rechnet Kurs minus Karten-Ausrichtung. Vorher
+      //     stand hier "viewport" ganz ohne Rotation, der Kegel zeigte also stur nach
+      //     oben, egal wohin die Fahrt ging.
+      //   pitchAlignment "viewport" -> der Punkt bleibt rund und steht dem Betrachter
+      //     zugewandt. Mit der Voreinstellung liegt er flach in der Kartenebene und wird
+      //     von den 58 Grad Neigung zu einer Ellipse gequetscht (am Bildschirm nachgesehen).
+      puckRef.current = new mapboxgl.Marker({
+        element: el,
+        rotationAlignment: "map",
+        pitchAlignment: "viewport",
+      })
         .setLngLat([fix.lng, fix.lat])
         .addTo(map);
     } else {
@@ -218,6 +253,15 @@ export default function NavMap({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fix?.lng, fix?.lat]);
+
+  // Kurs des Pucks getrennt von seiner Position: Er ändert sich auch, wenn der Gast steht
+  // (dann liefert bike-nav-core die Richtung der Route statt des Geräte-Kompasses), und
+  // der Wert ist dort bereits geglättet. Keine CSS-Transition darauf: Mapbox schreibt bei
+  // rotationAlignment "map" in jedem Frame ein eigenes transform, eine Überblendung würde
+  // dagegen anlaufen und den Punkt schlittern lassen.
+  useEffect(() => {
+    puckRef.current?.setRotation(bearingDeg);
+  }, [bearingDeg]);
 
   // Kamera folgt dem Kurs: EIN easeTo je akzeptiertem Fix, verkettet statt als
   // rAF-Dauerschleife – GPS aktualisiert ohnehin nur etwa im Sekundentakt, ein Frame
@@ -239,7 +283,12 @@ export default function NavMap({
       // (kürzere, aber nicht abgeschaltete) Reduzierung zu verlassen.
       duration: reducedMotion() ? 0 : FOLLOW_EASE_MS,
       easing: (t) => t,
-      padding: { top: 0, right: 0, left: 0, bottom: paddingBottomRef.current },
+      padding: {
+        top: topPaddingFor(map.getContainer().clientHeight, paddingBottomRef.current),
+        right: 0,
+        left: 0,
+        bottom: paddingBottomRef.current,
+      },
       essential: true,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -255,7 +304,12 @@ export default function NavMap({
         pitch: NAV_PITCH,
         zoom: NAV_ZOOM,
         duration: reducedMotion() ? 0 : RECENTER_EASE_MS,
-        padding: { top: 0, right: 0, left: 0, bottom: paddingBottomRef.current },
+        padding: {
+          top: topPaddingFor(map.getContainer().clientHeight, paddingBottomRef.current),
+          right: 0,
+          left: 0,
+          bottom: paddingBottomRef.current,
+        },
         essential: true,
       });
     }

@@ -74,16 +74,16 @@ export default function ManeuverBanner({
           // 34px statt 20px: Diese Zahl wird bei Fahrtwind und Vibration gelesen, aus
           // etwa 60 cm Abstand, oft mit Sonne auf dem Glas.
           <span
-            className="block text-[34px] font-bold leading-none tabular-nums"
-            style={{ color: level === "far" ? "var(--nav-ink)" : "var(--nav-accent)" }}
+            className={`block text-[34px] font-bold leading-none tabular-nums ${
+              level === "far" ? "text-ink" : "text-accent"
+            }`}
           >
             {formatNavDistanceM(distanceM)}
           </span>
         )}
         <span
-          className="mt-1 block text-[15px] font-semibold leading-tight"
+          className="mt-1 block text-[15px] font-semibold leading-tight text-ink"
           style={{
-            color: "var(--nav-ink)",
             display: "-webkit-box",
             WebkitLineClamp: 2,
             WebkitBoxOrient: "vertical",
