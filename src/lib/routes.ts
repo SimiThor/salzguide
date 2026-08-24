@@ -54,7 +54,5 @@ export function isFullscreenMapRoute(pathname: string): boolean {
 // Wer einen weiteren so immersiven Screen baut, ergänzt ihn HIER statt an AppChrome/
 // ToniLauncher einzeln vorbeizuprüfen – siehe die Begründung bei isFullscreenMapRoute.
 export function isImmersiveRoute(pathname: string): boolean {
-  // "google-navigation": TESTHAKEN – NICHT DAUERHAFT, die Google-Maps-Testversion derselben
-  // S-Bike-Navigation (lib/test-sbike-tour.ts), braucht dieselbe chromlose Bühne.
-  return /^\/touren\/[^/]+\/(navigation|google-navigation)$/.test(pathname);
+  return /^\/touren\/[^/]+\/navigation$/.test(pathname);
 }

@@ -88,6 +88,40 @@ export function setTrim(map: MapboxMap, p: number) {
   }
 }
 
+// ——— Fahrmodus: gefahren wird grau, kommend bleibt farbig ————————————————————
+// Das Gegenstück zu setTrim() oben, und bewusst eine eigene Funktion: setTrim zeichnet
+// die Linie VON VORNE HEREIN (trim [p,1] blendet alles hinter p aus), das ist der
+// Einführungs-Effekt der Übersichtskarten. Im Fahrmodus soll nichts verschwinden, sondern
+// der zurückgelegte Teil zurücktreten – Google-Maps-Bild. Dafür trimmt man [0,p] UND
+// setzt line-trim-color, sonst wäre der gefahrene Teil unsichtbar statt grau.
+//
+// line-trim-color gibt es erst ab Mapbox GL JS 3.x (geprüft: 3.25 kennt es, ebenso
+// line-trim-fade-range). Die Abhängigkeit steht als "^3.25.0" und wandert damit, also
+// nach einem Mapbox-Update am Gerät nachsehen, ob die Linie noch stimmt.
+export const ROUTE_DONE = "#9a8b84";
+
+// Sehr schmale Blende statt harter Kante: 0.002 der Gesamtlänge sind auf einer 5-km-Runde
+// rund 10 m. Ohne das springt die Farbgrenze bei jedem GPS-Signal sichtbar weiter.
+const NAV_FADE = 0.002;
+
+export function setNavTrim(map: MapboxMap, progress: number) {
+  const p = Math.min(Math.max(progress, 0), 1);
+  const trim: [number, number] = [0, p];
+  try {
+    if (!map.getLayer(ROUTE_LAYER_LINE)) return;
+    for (const id of [ROUTE_LAYER_OUT, ROUTE_LAYER_LINE]) {
+      map.setPaintProperty(id, "line-trim-offset", trim);
+      map.setPaintProperty(id, "line-trim-fade-range", [0, NAV_FADE]);
+    }
+    // Die Kontur wird heller grau als die Linie, damit der gefahrene Teil eine Spur
+    // behält statt zu einem Strich zu verschmelzen.
+    map.setPaintProperty(ROUTE_LAYER_OUT, "line-trim-color", "#d9d0c4");
+    map.setPaintProperty(ROUTE_LAYER_LINE, "line-trim-color", ROUTE_DONE);
+  } catch {
+    /* Karte nicht mehr bereit -> Schritt auslassen */
+  }
+}
+
 export function setRouteOpacity(map: MapboxMap, o: number) {
   try {
     if (!map.getLayer(ROUTE_LAYER_LINE)) return;
