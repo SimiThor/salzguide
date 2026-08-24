@@ -881,40 +881,17 @@ body {
    mit denselben Werten wie im Original (15px Punkt, 2px weisser Ring, aufgefaecherter
    Richtungskegel).
 
-   Der Kegel dreht sich WIRKLICH mit: Der Marker läuft mit rotationAlignment "map" und
-   bekommt den geglätteten Kurs per setRotation (NavMap.tsx). Mapbox rechnet daraus die
-   Bildschirm-Drehung aus Kurs minus Karten-Ausrichtung. Im Folgemodus zeigt der Kegel
-   damit nach oben, weil die Karte selbst mitdreht; sobald der Gast die Karte verschiebt,
-   zeigt er die echte Fahrtrichtung. Vorher stand er auf "viewport" ohne Rotation und
-   zeigte immer stur nach Norden. */
+   ZURZEIT OHNE RICHTUNGSANZEIGE. Hier stand ein Kegel aus zwei geschrägten Dreiecken,
+   Mapbox nachempfunden. Er sah nicht gut aus: abgetrennt vom Punkt, schief, "abgehakt".
+   Ursache war die Kombination aus geneigter Kamera (58 Grad) und einem DOM-Marker, der
+   Drehung und Neigung unterschiedlich ausrichten muss, plus von Mapbox übernommenen
+   Zahlen, deren Bezugspunkt hier ein anderer ist. Statt weiter daran zu schrauben ist er
+   am 24.08.2026 ausgebaut worden; die Richtungsanzeige kommt neu, sobald die Recherche
+   zu den Vorbildern und zum richtigen technischen Weg ausgewertet ist. */
 .sg-nav-puck {
   position: relative;
   width: 19px;
   height: 19px;
-}
-
-/* Der Kegel liegt UNTER dem Punkt, damit der Punkt seine saubere runde Kante behält. */
-.sg-nav-puck__cone::before,
-.sg-nav-puck__cone::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  border-bottom: 7.5px solid #4aa1eb;
-}
-/* -16px, nicht Mapbox' -28px: Dort bezieht sich die Zahl auf ein 0x0-Element an anderer
-   Stelle im Marker. Blind uebernommen ergab sie hier 11 px Luft zwischen Kegelspitze und
-   Punkt, der Pfeil schwebte sichtbar losgeloest darueber (am Bildschirm nachgemessen).
-   Bei -16 sitzt die Kegelbasis 1 px ueber dem weissen Ring, also genau so, wie es bei
-   Mapbox aussieht. Wer den Punkt vergroessert, rechnet hier mit:
-   Basis = 50% der Containerhoehe - X + 7.5. */
-.sg-nav-puck__cone::before {
-  border-left: 7.5px solid transparent;
-  transform: translateY(-16px) skewY(-20deg);
-}
-.sg-nav-puck__cone::after {
-  border-right: 7.5px solid transparent;
-  transform: translate(7.5px, -16px) skewY(20deg);
 }
 
 .sg-nav-puck__dot {

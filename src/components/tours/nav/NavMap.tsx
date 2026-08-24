@@ -6,7 +6,6 @@ import { useEffect, useRef, useState } from "react";
 import { MapLoadingScreen, useMapLoading } from "@/components/MapLoading";
 import { MapUnavailableScreen, tryCreateMap } from "@/components/MapUnavailable";
 import { useLatestRef } from "@/lib/use-latest-ref";
-import { unwrapDegrees } from "@/lib/geo";
 import { declutterBasemap } from "@/lib/map-declutter";
 import {
   addRouteSourceAndLayers,
@@ -231,24 +230,14 @@ export default function NavMap({
     if (!puckRef.current) {
       const el = document.createElement("div");
       el.className = "sg-nav-puck";
-      const cone = document.createElement("span");
-      cone.className = "sg-nav-puck__cone";
       const dot = document.createElement("span");
       dot.className = "sg-nav-puck__dot";
-      el.append(cone, dot);
-      // Drehung und Neigung bewusst UNTERSCHIEDLICH ausgerichtet:
-      //   rotationAlignment "map"  -> der Kegel dreht sich mit der Karte, setRotation
-      //     unten gibt ihm den Kurs, Mapbox rechnet Kurs minus Karten-Ausrichtung. Vorher
-      //     stand hier "viewport" ganz ohne Rotation, der Kegel zeigte also stur nach
-      //     oben, egal wohin die Fahrt ging.
-      //   pitchAlignment "viewport" -> der Punkt bleibt rund und steht dem Betrachter
-      //     zugewandt. Mit der Voreinstellung liegt er flach in der Kartenebene und wird
-      //     von den 58 Grad Neigung zu einer Ellipse gequetscht (am Bildschirm nachgesehen).
-      puckRef.current = new mapboxgl.Marker({
-        element: el,
-        rotationAlignment: "map",
-        pitchAlignment: "viewport",
-      })
+      el.append(dot);
+      // pitchAlignment "viewport": Der Punkt bleibt rund und steht dem Betrachter zugewandt.
+      // Mit der Voreinstellung liegt er flach in der Kartenebene und wird von den 58 Grad
+      // Neigung zu einer Ellipse gequetscht (am Bildschirm nachgesehen).
+      // Eine Richtungsanzeige gibt es zurzeit nicht, siehe .sg-nav-puck in globals.css.
+      puckRef.current = new mapboxgl.Marker({ element: el, pitchAlignment: "viewport" })
         .setLngLat([fix.lng, fix.lat])
         .addTo(map);
     } else {
@@ -256,78 +245,6 @@ export default function NavMap({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fix?.lng, fix?.lat]);
-
-  // ——— Kurs des Pucks: weich, und im Gleichschritt mit der Kamera ————————————
-  // Der Kurs wird nur einmal je GPS-Signal neu berechnet, also etwa einmal pro Sekunde.
-  // Ihn direkt zu setzen liess den Pfeil sichtbar springen, während die Kamera daneben
-  // noch eine Sekunde lang weiterdrehte (easeTo, FOLLOW_EASE_MS). Beides lief gegeneinander.
-  //
-  // Deshalb läuft die Drehung über eine eigene Bild-für-Bild-Schleife, und ihr ZIEL hängt
-  // davon ab, wer gerade führt:
-  //
-  //   Folge-Modus: Ziel ist map.getBearing() bei JEDEM Bild. Weil der Marker mit
-  //     rotationAlignment "map" läuft, rechnet Mapbox Kurs minus Karten-Ausrichtung, und
-  //     die bleibt damit exakt null: Der Pfeil steht ruhig nach vorn, während sich die
-  //     Karte unter ihm dreht. Kein Zittern, weil beide dieselbe Zahl benutzen.
-  //   Frei verschoben: Ziel ist der geglättete Kurs aus bike-nav-core, dem der Pfeil
-  //     weich nachzieht. Hier SOLL man ihn sich drehen sehen, das ist seine einzige
-  //     Aussage, solange die Karte stillsteht.
-  //
-  // Die Schleife hält von selbst an, sobald sie angekommen ist, und startet neu, wenn ein
-  // neuer Kurs hereinkommt. Sie läuft also nur, während sich wirklich etwas bewegt.
-  const shownBearingRef = useRef(bearingDeg);
-  const bearingRafRef = useRef<number | null>(null);
-  const bearingTargetRef = useLatestRef(bearingDeg);
-  const followingRef = useLatestRef(following);
-
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
-
-    // "Bewegung reduzieren": ohne Zwischenschritte, sonst ist genau das die Dauerbewegung,
-    // die die Einstellung abstellen soll.
-    if (reducedMotion()) {
-      shownBearingRef.current = bearingDeg;
-      puckRef.current?.setRotation(bearingDeg);
-      return;
-    }
-    if (bearingRafRef.current != null) return; // Schleife läuft schon, Ziel reicht
-
-    const step = () => {
-      const m = mapRef.current;
-      if (!m || !puckRef.current) {
-        bearingRafRef.current = null;
-        return;
-      }
-      const goal = followingRef.current ? m.getBearing() : bearingTargetRef.current;
-      const from = shownBearingRef.current;
-      // Über den kurzen Bogen, sonst dreht der Pfeil bei 359 -> 1 einmal ganz herum.
-      const unwrapped = unwrapDegrees(from, goal);
-      const delta = unwrapped - from;
-
-      if (Math.abs(delta) < 0.2) {
-        shownBearingRef.current = ((goal % 360) + 360) % 360;
-        puckRef.current.setRotation(shownBearingRef.current);
-        bearingRafRef.current = null; // angekommen, Schleife anhalten
-        return;
-      }
-      // 0,14 je Bild: bei 60 Bildern/s sind rund 95 Prozent nach etwa 350 ms erreicht.
-      // Schnell genug, um der Kamera zu folgen, langsam genug, um nicht zu hüpfen.
-      const next = from + delta * 0.14;
-      shownBearingRef.current = ((next % 360) + 360) % 360;
-      puckRef.current.setRotation(shownBearingRef.current);
-      bearingRafRef.current = requestAnimationFrame(step);
-    };
-    bearingRafRef.current = requestAnimationFrame(step);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bearingDeg, following]);
-
-  useEffect(
-    () => () => {
-      if (bearingRafRef.current != null) cancelAnimationFrame(bearingRafRef.current);
-    },
-    [],
-  );
 
   // Kamera folgt dem Kurs: EIN easeTo je akzeptiertem Fix, verkettet statt als
   // rAF-Dauerschleife – GPS aktualisiert ohnehin nur etwa im Sekundentakt, ein Frame
@@ -345,8 +262,7 @@ export default function NavMap({
       // "Bewegung reduzieren": Sprung statt Gleiten. essential:true (unten) sorgt zwar
       // dafür, dass Mapbox die Bewegung nicht selbst kürzt, aber ein wiederkehrendes
       // Gleiten bei jedem Fix ist genau die Art Dauerbewegung, die die Einstellung
-      // eigentlich abstellen soll – deshalb hier explizit auf 0 statt Mapbox' eigene
-      // (kürzere, aber nicht abgeschaltete) Reduzierung zu verlassen.
+      // eigentlich abstellen soll – deshalb hier explizit auf 0.
       duration: reducedMotion() ? 0 : FOLLOW_EASE_MS,
       easing: (t) => t,
       padding: {
