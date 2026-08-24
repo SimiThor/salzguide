@@ -72,42 +72,26 @@ const cspDirectives: Record<string, string[]> = {
     "https://*.mapbox.com",
     "https://*.tiles.mapbox.com",
     "https://*.wien.gv.at",
-    // TESTHAKEN – NICHT DAUERHAFT (lib/google-maps-loader.ts): Kartenkacheln/Icons der
-    // isolierten Google-Maps-Testnavigation. Entfernen, sobald der Test entfernt wird.
-    "https://*.googleapis.com",
-    "https://*.gstatic.com",
   ],
   "media-src": ["'self'", "blob:", "https://*.supabase.co"],
   // Inter kommt über next/font/google und liegt nach dem Build bei UNS — kein Google-Host.
-  // TESTHAKEN: fonts.gstatic.com dazu — Googles eigene Kartensteuerung (Attribution/Logo)
-  // lädt ihre Beschriftung von dort, unabhängig von next/font/google.
-  "font-src": ["'self'", "https://fonts.gstatic.com"],
-  // TESTHAKEN: fonts.googleapis.com dazu — die Google-Maps-Bibliothek hängt dafür ein
-  // eigenes <link rel="stylesheet">-Tag ein, das reicht 'unsafe-inline' allein nicht ab.
-  "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+  "font-src": ["'self'"],
+  "style-src": ["'self'", "'unsafe-inline'"],
   // 'wasm-unsafe-eval' erlaubt WebAssembly (ffmpeg.wasm). blob: = der Core-Import oben.
   // challenges.cloudflare.com = Turnstile-Widget (Bot-Schutz an Login/Formularen).
-  // TESTHAKEN: maps.googleapis.com dazu — Googles Bootstrap-Loader lädt sein <script> von
-  // dort (google-maps-loader.ts), und DirectionsService.route() läuft technisch selbst
-  // über ein nachgeladenes <script> (JSONP), zählt also ebenfalls als script-src.
   "script-src": [
     "'self'",
     "'unsafe-inline'",
     "'wasm-unsafe-eval'",
     "blob:",
     "https://challenges.cloudflare.com",
-    "https://maps.googleapis.com",
   ],
   "worker-src": ["'self'", "blob:"],
   "child-src": ["'self'", "blob:"],
   // Turnstile rendert in einem iframe von challenges.cloudflare.com.
   "frame-src": ["'self'", "https://challenges.cloudflare.com"],
-  // blob: = das .wasm des ffmpeg-Cores (siehe oben). Anthropic/ORS/ElevenLabs laufen
-  // serverseitig und gehören deshalb NICHT hierher — Google Maps hier ist die EINE
-  // Ausnahme, weil die Testnavigation absichtlich im Browser gegen Google spricht
-  // (lib/google-bike-directions.ts), nicht über einen eigenen Server-Aufruf.
-  // TESTHAKEN – NICHT DAUERHAFT: maps.googleapis.com/maps.gstatic.com entfernen, sobald
-  // der Google-Maps-Test entfernt wird.
+  // blob: = das .wasm des ffmpeg-Cores (siehe oben). Anthropic/Google/ORS/ElevenLabs laufen
+  // serverseitig und gehören deshalb NICHT hierher.
   "connect-src": [
     "'self'",
     "blob:",
@@ -118,8 +102,6 @@ const cspDirectives: Record<string, string[]> = {
     "https://events.mapbox.com",
     "https://challenges.cloudflare.com",
     "https://*.wien.gv.at",
-    "https://maps.googleapis.com",
-    "https://maps.gstatic.com",
   ],
   "manifest-src": ["'self'"],
   "report-uri": ["/api/ops/csp-report"],
