@@ -13,16 +13,24 @@ import type { NavStopPoint } from "../NavMap";
 //
 // KAMERA-FÜHRUNG, ZWEI STUFEN:
 //   - Mit `mapId` (NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID, eine "Vector Map" aus der Google Cloud
-//     Console): echte 3D-Kamera mit Neigung + Fahrtrichtung, per `map.moveCamera()` – die
-//     Mapbox-Anmutung (geneigt, dreht sich mit dem Kurs).
-//   - Ohne `mapId`: Google rendert dann eine klassische Raster-Karte, die `tilt`/`heading`
-//     NICHT unterstützt (das ist eine Google-Einschränkung, keine dieser Datei: Neigung/
-//     Drehung sind Vector-Maps vorbehalten). Die Karte bleibt Nord-oben, dafür zeigt der
-//     Positions-Pfeil selbst die Fahrtrichtung (Rotation am Symbol).
+//     Console -> Kartenverwaltung -> Karten-ID anlegen, Kartentyp "Vektor"): echte 3D-Kamera
+//     mit Neigung + Fahrtrichtung, per `map.moveCamera()` – die Mapbox-Anmutung (geneigt,
+//     dreht sich mit dem Kurs). OHNE diese Variable bleibt die Karte Nord-oben (Google
+//     unterstützt `tilt`/`heading` NUR auf Vector-Maps, das ist eine Google-Einschränkung,
+//     keine dieser Datei) – dafür dreht sich dann wenigstens der Positions-Pfeil.
 // Recherche-Ergebnis (siehe Zusammenfassung im PR/Chat): Google bietet für Web KEIN
 // eigenständiges "Navigation SDK" mit eingebauter Turn-by-Turn-Führung (das gibt es nur für
 // Android/iOS/Flutter) – die hier gebaute Kombination aus Maps JavaScript API + Directions
 // Service + eigener Kern (bike-nav-core.ts) IST die technisch beste verfügbare Variante.
+//
+// OVERLAYS: Google bringt zoomControl/rotateControl (Kompass, taucht nur mit `mapId`/Neigung
+// auf) selbst mit – die sind hier AN, statt sie nachzubauen ("möglichst die echte Google-
+// Anmutung", siehe Testauftrag). NUR den "zur Position zurück"-Knopf gibt es in der Maps
+// JavaScript API nicht eingebaut (das ist ein Feature der Google-Maps-App, nicht der
+// Web-API) – der wird hier als EIGENE Custom Control gebaut, aber über Googles eigenes
+// `map.controls[...]`-Regal eingehängt statt als React-Overlay über der Karte zu schweben:
+// so reiht Google ihn optisch selbst neben seine eigenen Knöpfe ein (Marge, Schatten,
+// Anordnung), statt dass zwei verschiedene Knopf-Stile nebeneinander stehen.
 const NAV_ZOOM = 17;
 const NAV_TILT = 45; // nur wirksam mit Vector-Map (mapId)
 
@@ -52,10 +60,13 @@ export default function GoogleNavMap({
   const polylineRef = useRef<google.maps.Polyline | null>(null);
   const puckRef = useRef<google.maps.Marker | null>(null);
   const stopMarkersRef = useRef<Map<number, google.maps.Marker>>(new Map());
+  const recenterBtnRef = useRef<HTMLButtonElement | null>(null);
   const [ready, setReady] = useState(false);
   const [mapDead, setMapDead] = useState(false);
   const [following, setFollowing] = useState(true);
   const paddingBottomRef = useLatestRef(paddingBottom);
+  const fixRef = useLatestRef(fix);
+  const bearingRef = useLatestRef(bearingDeg);
   const vector = !!mapId;
 
   // Karte einmalig aufbauen (dasselbe Muster wie NavMap.tsx: EIN Effekt ohne Deps, Aufräumen
@@ -72,15 +83,57 @@ export default function GoogleNavMap({
           heading: vector ? bearingDeg : 0,
           tilt: vector ? NAV_TILT : 0,
           mapId,
-          disableDefaultUI: true,
           gestureHandling: "greedy",
           clickableIcons: false,
           keyboardShortcuts: false,
+          // Googles EIGENE Bedienelemente an, statt sie nachzubauen (siehe Datei-Kopf).
+          // mapTypeControl/streetViewControl/fullscreenControl bleiben aus: Satelliten-
+          // Ansicht, Pegman und Vollbild passen nicht auf eine Bike-Nav-HUD-Fläche.
+          disableDefaultUI: false,
+          zoomControl: true,
+          zoomControlOptions: { position: google.maps.ControlPosition.RIGHT_CENTER },
+          rotateControl: true,
+          rotateControlOptions: { position: google.maps.ControlPosition.RIGHT_CENTER },
+          mapTypeControl: false,
+          streetViewControl: false,
+          fullscreenControl: false,
         });
         // "dragstart" feuert bei Google Maps JS nur aus echter Finger-/Maus-Bedienung, nie
         // aus einem programmatischen moveCamera/panTo – derselbe verlässliche Schalter
         // fürs Verlassen des Folge-Modus wie bei Mapbox (NavMap.tsx).
         map.addListener("dragstart", () => setFollowing(false));
+
+        // "Zur Position zurück"-Knopf: die EINE Sache, die Googles eigene Bedienelemente
+        // nicht mitbringen (siehe Datei-Kopf) – als echte Google-Control eingehängt, damit
+        // er optisch neben Zoom/Kompass steht statt als eigenes Overlay darüber zu schweben.
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.setAttribute("aria-label", recenterLabel);
+        btn.style.cssText =
+          "display:none;width:40px;height:40px;margin:8px;border:0;border-radius:2px;" +
+          "background:#fff;box-shadow:0 1px 4px -1px rgba(0,0,0,0.3);cursor:pointer;" +
+          "align-items:center;justify-content:center;";
+        btn.innerHTML =
+          '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#111" ' +
+          'stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+          '<path d="M4.2 8.6V6.2a2 2 0 0 1 2-2h2.4"/><path d="M15.4 4.2h2.4a2 2 0 0 1 2 2v2.4"/>' +
+          '<path d="M19.8 15.4v2.4a2 2 0 0 1-2 2h-2.4"/><path d="M8.6 19.8H6.2a2 2 0 0 1-2-2v-2.4"/>' +
+          '<circle cx="12" cy="12" r="2.5" fill="#111" stroke="none"/></svg>';
+        btn.addEventListener("click", () => {
+          setFollowing(true);
+          const f = fixRef.current;
+          if (!f) return;
+          const center = offsetCenterForPadding(f, paddingBottomRef.current, NAV_ZOOM);
+          if (vector) {
+            map.moveCamera({ center, zoom: NAV_ZOOM, heading: bearingRef.current, tilt: NAV_TILT });
+          } else {
+            map.panTo(center);
+            map.setZoom(NAV_ZOOM);
+          }
+        });
+        recenterBtnRef.current = btn;
+        map.controls[google.maps.ControlPosition.RIGHT_CENTER].push(btn);
+
         mapRef.current = map;
         setReady(true);
       })
@@ -90,6 +143,14 @@ export default function GoogleNavMap({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [apiKey]);
+
+  // Knopf nur sichtbar, wenn die Kamera nicht (mehr) folgt – dasselbe Verhalten wie zuvor
+  // als React-Overlay, nur jetzt an Googles eigenem DOM-Knoten statt an JSX.
+  useEffect(() => {
+    const btn = recenterBtnRef.current;
+    if (btn) btn.style.display = !following && fix ? "flex" : "none";
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [following, fix?.lng, fix?.lat]);
 
   // Aufräumen beim Verlassen des Screens. Map-Objekt/Marker-Cache jetzt fassen, nicht erst
   // im Aufräumen `.current` lesen: der Ref könnte bis dahin längst eine neue Instanz
@@ -210,19 +271,6 @@ export default function GoogleNavMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fix?.lng, fix?.lat, bearingDeg, following, vector]);
 
-  const recenter = () => {
-    setFollowing(true);
-    const map = mapRef.current;
-    if (!map || !fix) return;
-    const center = offsetCenterForPadding(fix, paddingBottomRef.current, NAV_ZOOM);
-    if (vector) {
-      map.moveCamera({ center, zoom: NAV_ZOOM, heading: bearingDeg, tilt: NAV_TILT });
-    } else {
-      map.panTo(center);
-      map.setZoom(NAV_ZOOM);
-    }
-  };
-
   if (!apiKey) {
     return (
       <div className="flex h-full w-full items-center justify-center bg-cream p-6 text-center text-sm text-muted">
@@ -235,33 +283,6 @@ export default function GoogleNavMap({
   return (
     <div className="relative isolate h-full w-full">
       <div ref={containerRef} className="h-full w-full" />
-      {!following && fix && (
-        <button
-          type="button"
-          onClick={recenter}
-          aria-label={recenterLabel}
-          style={{ top: "calc(env(safe-area-inset-top) + 10px)" }}
-          className="absolute right-4 z-[47] flex h-12 w-12 items-center justify-center rounded-full bg-white/90 text-ink shadow-lg backdrop-blur-md transition active:scale-95"
-        >
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.4"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden
-          >
-            <path d="M4.2 8.6V6.2a2 2 0 0 1 2-2h2.4" />
-            <path d="M15.4 4.2h2.4a2 2 0 0 1 2 2v2.4" />
-            <path d="M19.8 15.4v2.4a2 2 0 0 1-2 2h-2.4" />
-            <path d="M8.6 19.8H6.2a2 2 0 0 1-2-2v-2.4" />
-            <circle cx="12" cy="12" r="2.5" fill="currentColor" stroke="none" />
-          </svg>
-        </button>
-      )}
       {mapDead && <MapUnavailableScreen />}
       {!ready && !mapDead && (
         <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center bg-cream">
