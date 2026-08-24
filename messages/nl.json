@@ -123,7 +123,19 @@
       "food": "Culinair",
       "views": "Uitzicht",
       "art": "Kunst"
-    }
+    },
+    "modeBike": "S-Bike audiotour",
+    "startNavigation": "Navigatie starten",
+    "navRecenter": "Centreren",
+    "navRerouting": "Route wordt herberekend…",
+    "navOffline": "Nu niet bereikbaar – laatste route blijft actief.",
+    "navNoGps": "Geen gps-signaal",
+    "navDenied": "Locatietoegang geweigerd – sta dit toe in de instellingen.",
+    "navSafetyHint": "Houd je telefoon in de houder – blik op de weg.",
+    "arrivedTitle": "Je bent er",
+    "toNextStop": "Verder naar de volgende stop",
+    "navRemaining": "Tot bestemming",
+    "navEta": "Aankomst over"
   },
   "Water": {
     "title": "Watertemperaturen",

@@ -265,6 +265,8 @@ export async function getUserTourDetail(
     freeStops: GENERATED_FREE_STOPS,
     durationMin: (r.duration_min as number | null) ?? null,
     distanceKm: (r.distance_km as number | null) ?? null,
+    // Gespeicherte Runden kommen ausschliesslich aus dem (Geh-)KI-Builder.
+    mode: "walk",
     stops,
     canSeePro,
     routeGeo: (r.route_geo as [number, number][] | null) ?? null,

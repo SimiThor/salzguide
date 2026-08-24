@@ -123,7 +123,19 @@
       "food": "Comida e bebida",
       "views": "Vistas",
       "art": "Arte"
-    }
+    },
+    "modeBike": "Audioguia de S-Bike",
+    "startNavigation": "Iniciar navegação",
+    "navRecenter": "Centralizar",
+    "navRerouting": "A recalcular a rota…",
+    "navOffline": "Sem ligação agora – a última rota continua ativa.",
+    "navNoGps": "Sem sinal de GPS",
+    "navDenied": "Acesso à localização negado – ative-o nas definições.",
+    "navSafetyHint": "Mantém o telemóvel no suporte – olhos na estrada.",
+    "arrivedTitle": "Chegaste",
+    "toNextStop": "Seguir para a próxima paragem",
+    "navRemaining": "Até ao destino",
+    "navEta": "Chegada em"
   },
   "Water": {
     "title": "Temperaturas da água",

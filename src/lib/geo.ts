@@ -46,6 +46,30 @@ export function haversineMeters(a: [number, number], b: [number, number]): numbe
   return 2 * R * Math.asin(Math.sqrt(s));
 }
 
+// Kompasspeilung a->b in Grad (0 = Nord, im Uhrzeigersinn). War bis jetzt eine private
+// Kopie in intro-camera.ts (Kamerafahrt fürs Intro-Video); die Live-Navigation (S-Bike)
+// braucht dieselbe Formel für den Kurs zum nächsten Wegpunkt, deshalb EINE Quelle hier.
+export function bearingBetween(a: [number, number], b: [number, number]): number {
+  const toRad = (x: number) => (x * Math.PI) / 180;
+  const toDeg = (x: number) => (x * 180) / Math.PI;
+  const dLng = toRad(b[0] - a[0]);
+  const y = Math.sin(dLng) * Math.cos(toRad(b[1]));
+  const x =
+    Math.cos(toRad(a[1])) * Math.sin(toRad(b[1])) -
+    Math.sin(toRad(a[1])) * Math.cos(toRad(b[1])) * Math.cos(dLng);
+  return (toDeg(Math.atan2(y, x)) + 360) % 360;
+}
+
+// Winkel entpacken, damit eine Glättung/EMA den kurzen Weg nimmt (359°->1° = +2°, nicht
+// -358°). Ebenfalls aus intro-camera.ts herausgezogen — dieselbe Formel, derselbe Zweck
+// (dort die Kamera-Drehung glätten, hier die Fahrtrichtung des Nutzers).
+export function unwrapDegrees(prev: number, next: number): number {
+  let d = next - prev;
+  while (d > 180) d -= 360;
+  while (d < -180) d += 360;
+  return prev + d;
+}
+
 // Gesamtlänge einer Route in Kilometern (Haversine-Summe). Fallback für die Distanz, wenn
 // kein Höhenprofil vorliegt (dort steckt sonst elevation.distanceKm). Route ist [lng,lat].
 export function routeLengthKm(route: [number, number][] | null | undefined): number {
@@ -222,7 +246,10 @@ export function isClosedRoute(route: [number, number][] | null | undefined): boo
   return haversineMeters(route[0], route[n - 1]) <= CLOSED_TOL_M;
 }
 
-function cumulativeMeters(route: [number, number][]): number[] {
+// Kumulierte Streckenlänge je Route-Index (out[0] = 0, out[n-1] = Gesamtlänge). Exportiert,
+// weil sowohl classifyRoute (hier) als auch die Live-Navigation (bike-nav-core.ts, "wie weit
+// ist der Nutzer entlang der Route") dieselbe Vorrechnung brauchen.
+export function routeCumulativeMeters(route: [number, number][]): number[] {
   const out = [0];
   for (let i = 1; i < route.length; i++) {
     out.push(out[i - 1] + haversineMeters(route[i - 1], route[i]));
@@ -230,8 +257,9 @@ function cumulativeMeters(route: [number, number][]): number[] {
   return out;
 }
 
-// [lng,lat] in ein lokales Meter-System um lat0 (klein genug für Wander-Ausdehnungen).
-function toLocalM([lng, lat]: [number, number], lat0: number): [number, number] {
+// [lng,lat] in ein lokales Meter-System um lat0 (klein genug für Wander-Ausdehnungen UND für
+// eine Stadtrunde). Exportiert für nearestPointOnRoute unten.
+export function toLocalM([lng, lat]: [number, number], lat0: number): [number, number] {
   const mPerDegLat = 110540;
   const mPerDegLng = 111320 * Math.cos((lat0 * Math.PI) / 180);
   return [lng * mPerDegLng, lat * mPerDegLat];
@@ -287,7 +315,7 @@ export function classifyRoute(route: [number, number][] | null | undefined): {
   if (!isClosedRoute(route)) return { shape: "point-to-point", turnaroundIndex: last, closed: false };
 
   // In der Distanz-Mitte falten: bei exaktem hin/retour ist das der Wendepunkt.
-  const cum = cumulativeMeters(route);
+  const cum = routeCumulativeMeters(route);
   const total = cum[last];
   if (total <= 0) return { shape: "loop", turnaroundIndex: last, closed: true };
   const halfDist = total / 2;
@@ -339,4 +367,47 @@ export function classifyRoute(route: [number, number][] | null | undefined): {
 export function outboundRoute(route: [number, number][]): [number, number][] {
   const { shape, turnaroundIndex } = classifyRoute(route);
   return shape === "out-and-back" ? route.slice(0, turnaroundIndex + 1) : route;
+}
+
+// ——— Nächster Punkt auf einer Route (Live-Navigation) ——————————————————————————
+// Wo auf der Route steht der Nutzer gerade? Liefert den nächstgelegenen Punkt AUF der
+// Linie (nicht nur den nächsten Stützpunkt), den seitlichen Abstand dazu (crossTrackM –
+// "wie weit neben der Route") und die Entfernung entlang der Route vom Start bis dorthin
+// (alongM – Basis für "Distanz bis zur nächsten Abbiegung/zum Stopp"). Lokale Projektion
+// (toLocalM) statt Haversine je Segment: bei den kurzen Segmenten einer Stadtroute ist der
+// Unterschied nicht messbar, aber die lokale Projektion liefert den Lotfusspunkt gleich mit.
+export function nearestPointOnRoute(
+  route: [number, number][],
+  p: [number, number],
+): { segIndex: number; point: [number, number]; crossTrackM: number; alongM: number } | null {
+  if (!route || route.length < 2) return null;
+  const lat0 = p[1];
+  const pl = toLocalM(p, lat0);
+  const cum = routeCumulativeMeters(route);
+
+  let bestSeg = 0;
+  let bestT = 0;
+  let bestDist = Infinity;
+  for (let i = 1; i < route.length; i++) {
+    const a = toLocalM(route[i - 1], lat0);
+    const b = toLocalM(route[i], lat0);
+    const dx = b[0] - a[0];
+    const dy = b[1] - a[1];
+    const len2 = dx * dx + dy * dy;
+    let t = len2 > 0 ? ((pl[0] - a[0]) * dx + (pl[1] - a[1]) * dy) / len2 : 0;
+    t = Math.max(0, Math.min(1, t));
+    const d = Math.hypot(pl[0] - (a[0] + t * dx), pl[1] - (a[1] + t * dy));
+    if (d < bestDist) {
+      bestDist = d;
+      bestSeg = i - 1;
+      bestT = t;
+    }
+  }
+
+  const a = route[bestSeg];
+  const b = route[bestSeg + 1];
+  const point: [number, number] = [a[0] + (b[0] - a[0]) * bestT, a[1] + (b[1] - a[1]) * bestT];
+  const segLen = cum[bestSeg + 1] - cum[bestSeg];
+  const alongM = cum[bestSeg] + bestT * segLen;
+  return { segIndex: bestSeg, point, crossTrackM: bestDist, alongM };
 }

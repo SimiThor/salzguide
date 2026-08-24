@@ -123,7 +123,19 @@
       "food": "美食美饮",
       "views": "风景",
       "art": "艺术"
-    }
+    },
+    "modeBike": "S-Bike 语音导览",
+    "startNavigation": "开始导航",
+    "navRecenter": "居中",
+    "navRerouting": "正在重新计算路线…",
+    "navOffline": "暂时无法连接——将继续使用上一条路线。",
+    "navNoGps": "无 GPS 信号",
+    "navDenied": "定位权限被拒绝——请在设置中允许。",
+    "navSafetyHint": "手机请固定在支架上——注意力放在路上。",
+    "arrivedTitle": "已到达",
+    "toNextStop": "前往下一站",
+    "navRemaining": "距目的地",
+    "navEta": "预计到达"
   },
   "Water": {
     "title": "水温",

@@ -6,7 +6,7 @@
 // die KAMERA folgt einer GEGLÄTTETEN Bahn und dreht nur langsam mit. So schwenkt nichts
 // nervös bei jeder kleinen Kurve; die Kamera gleitet und dreht sanft dem Verlauf nach.
 
-import { haversineMeters } from "@/lib/geo";
+import { haversineMeters, bearingBetween, unwrapDegrees } from "@/lib/geo";
 
 // Web-Mercator (normiert 0..1). Mapbox misst line-progress / line-trim-offset in dieser
 // Projektion. Wenn der Kopf-Punkt auf DERSELBEN Mercator-Bogenlänge sitzt, reicht die
@@ -47,25 +47,10 @@ export const DEFAULT_INTRO_CAMERA: IntroCameraConfig = {
 // Sanftes An- und Abbremsen der Fahrt (kein harter Start/Stopp).
 const easeInOutSine = (t: number) => -(Math.cos(Math.PI * t) - 1) / 2;
 
-// Kompasspeilung a->b in Grad (0 = Nord, im Uhrzeigersinn).
-function bearingBetween(a: [number, number], b: [number, number]): number {
-  const toRad = (x: number) => (x * Math.PI) / 180;
-  const toDeg = (x: number) => (x * 180) / Math.PI;
-  const dLng = toRad(b[0] - a[0]);
-  const y = Math.sin(dLng) * Math.cos(toRad(b[1]));
-  const x =
-    Math.cos(toRad(a[1])) * Math.sin(toRad(b[1])) -
-    Math.sin(toRad(a[1])) * Math.cos(toRad(b[1])) * Math.cos(dLng);
-  return (toDeg(Math.atan2(y, x)) + 360) % 360;
-}
-
-// Winkel entpacken, damit die Glättung den kurzen Weg nimmt (359°->1° = +2°, nicht -358°).
-function unwrap(prev: number, next: number): number {
-  let d = next - prev;
-  while (d > 180) d -= 360;
-  while (d < -180) d += 360;
-  return prev + d;
-}
+// bearingBetween/unwrapDegrees (Kompasspeilung, Winkel-Entpacken) leben jetzt in geo.ts –
+// dieselbe Formel braucht auch die S-Bike-Live-Navigation für den Kurs zum nächsten
+// Wegpunkt. `unwrap` bleibt als lokaler Name, damit der Rest der Datei unverändert liest.
+const unwrap = unwrapDegrees;
 
 // Adaptive Kamera-Distanz: kurze/kleine Wanderung -> nah dran (hoher Zoom), lange/große
 // -> weiter weg. So bleibt das Tempo im Bild etwa gleich und JEDE Route wirkt spannend

@@ -868,6 +868,33 @@ body {
 /* Alle Kartenpunkte (Start/Ziel, Wasser, Hütte, Parkplatz) nutzen denselben .sg-marker
    -> gleiche Größe, gleiches Verhalten. Keine Sonderregel für POIs mehr (einheitlich). */
 
+/* Positions-Punkt der S-Bike-Navigation (NavMap.tsx) — bewusst NICHT .sg-marker/.sg-pin:
+   Die Route dort ist bereits Rot (--color-accent, siehe route-anim.ts), ein roter Punkt
+   verschwände auf der eigenen Linie. Blau ist die international verstandene Farbe für
+   "hier bin ich" (Mapbox' eigener GeolocateControl-Punkt, Google/Apple Maps) und bleibt
+   auf jeder Kartenfarbe erkennbar. rotationAlignment:"viewport" am Marker hält den Pfeil
+   IMMER fensteraufrecht -> zeigt er nach oben, zeigt die Karte selbst (via Kamera-Bearing
+   in NavMap.tsx) bereits in Fahrtrichtung; der Pfeil muss sich also nie selbst drehen. */
+.sg-nav-puck {
+  position: relative;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: #1a73e8;
+  border: 3px solid #fff;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+}
+.sg-nav-puck::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -13px;
+  transform: translateX(-50%);
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 11px solid #1a73e8;
+}
+
 /* Position des Kärtchens, das beim Antippen eines Kartenpunkts erscheint (MapPopover:
    Gespeichert-Karte und Spot-Detailkarte). Die Ruheposition gehört ins CSS, nicht in
    JS — sonst rechnet sie sich bei jedem Rendern neu aus und das Kärtchen springt.

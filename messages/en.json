@@ -123,7 +123,19 @@
       "food": "Food & drink",
       "views": "Views",
       "art": "Art"
-    }
+    },
+    "modeBike": "S-Bike Audio Tour",
+    "startNavigation": "Start navigation",
+    "navRecenter": "Recenter",
+    "navRerouting": "Recalculating route …",
+    "navOffline": "Not reachable right now – last route stays active.",
+    "navNoGps": "No GPS signal",
+    "navDenied": "Location access denied – please allow it in settings.",
+    "navSafetyHint": "Keep your phone in the mount – eyes on the road.",
+    "arrivedTitle": "You've arrived",
+    "toNextStop": "Continue to the next stop",
+    "navRemaining": "To destination",
+    "navEta": "Arriving in"
   },
   "Water": {
     "title": "Water temperatures",

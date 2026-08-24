@@ -123,7 +123,19 @@
       "food": "Gasztró",
       "views": "Kilátás",
       "art": "Művészet"
-    }
+    },
+    "modeBike": "S-Bike hangos túra",
+    "startNavigation": "Navigáció indítása",
+    "navRecenter": "Középre",
+    "navRerouting": "Útvonal újraszámítása…",
+    "navOffline": "Most nem elérhető – az utolsó útvonal marad aktív.",
+    "navNoGps": "Nincs GPS-jel",
+    "navDenied": "A helymeghatározás le van tiltva – engedélyezd a beállításokban.",
+    "navSafetyHint": "A telefon maradjon a tartóban – figyelj az útra.",
+    "arrivedTitle": "Megérkeztél",
+    "toNextStop": "Tovább a következő állomáshoz",
+    "navRemaining": "Célig",
+    "navEta": "Érkezés"
   },
   "Water": {
     "title": "Vízhőmérséklet",

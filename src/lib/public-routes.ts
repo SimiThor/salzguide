@@ -24,6 +24,10 @@ const PUBLIC_ROUTES: RegExp[] = [
   /^\/spot\/[^/]+$/,
   /^\/touren\/meine\/[^/]+$/,
   /^\/touren\/[^/]+$/, // deckt auch /touren/bauen ab
+  /^\/touren\/[^/]+\/navigation$/, // S-Bike-Navigation-Screen (nur mode="bike", sonst notFound())
+  // TESTHAKEN – NICHT DAUERHAFT: Google-Maps-Testversion derselben Navigation, nur für die
+  // Testrunde (lib/test-sbike-tour.ts), sonst notFound().
+  /^\/touren\/[^/]+\/google-navigation$/,
   /^\/auth\/callback$/,
   // Admin: echte Pfad-Formen statt Pauschal-Freibrief. Hier stand /^\/admin(\/.*)?$/ mit
   // der Begründung, der Admin-Wächter fange unbekannte Unterpfade selbst — das war

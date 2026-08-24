@@ -123,7 +123,19 @@
       "food": "Jídlo & pití",
       "views": "Výhledy",
       "art": "Umění"
-    }
+    },
+    "modeBike": "Audioprůvodce na S-Bike",
+    "startNavigation": "Spustit navigaci",
+    "navRecenter": "Vycentrovat",
+    "navRerouting": "Přepočítávám trasu…",
+    "navOffline": "Teď nedostupné – poslední trasa zůstává aktivní.",
+    "navNoGps": "Žádný signál GPS",
+    "navDenied": "Přístup k poloze zamítnut – povolte ho v nastavení.",
+    "navSafetyHint": "Telefon nech v držáku – sleduj silnici.",
+    "arrivedTitle": "Jsi na místě",
+    "toNextStop": "Pokračovat k další zastávce",
+    "navRemaining": "Do cíle",
+    "navEta": "Příjezd za"
   },
   "Water": {
     "title": "Teplota vody",
