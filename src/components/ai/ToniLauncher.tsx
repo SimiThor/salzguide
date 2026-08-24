@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useTranslations } from "next-intl";
 import { usePathname } from "@/i18n/navigation";
-import { isMarketingRoute } from "@/lib/routes";
+import { isMarketingRoute, isImmersiveRoute } from "@/lib/routes";
 import ToniAvatar from "./ToniAvatar";
 
 // Schwebender KI-Guide-Launcher unten rechts (nur Desktop; mobil öffnet die
@@ -79,7 +79,11 @@ export default function ToniLauncher({
   // Beim offenen Chat, im Admin-Bereich und auf Marketing-Seiten ausblenden. Auf der
   // Startseite stellt eine eigene Section Toni vor — eine schwebende Blase daneben wäre
   // App-Chrome im Pitch und würde mit dem einen CTA konkurrieren.
-  if (isOpen || pathname.startsWith("/admin") || isMarketingRoute(pathname)) return null;
+  // Immersive Screens (S-Bike-Navigation, lib/routes.ts): die Blase frässe dort den
+  // Platz, den die Abbiege-Anzeige braucht, und ein Chat-Sprung weg von der laufenden
+  // Navigation ist auf dem Fahrrad kein Zustand, in den man versehentlich geraten soll.
+  if (isOpen || pathname.startsWith("/admin") || isMarketingRoute(pathname) || isImmersiveRoute(pathname))
+    return null;
 
   const lines = t.raw("launcherBubbles") as string[];
   const bubbleText = lines[bubbleIdx % lines.length] ?? lines[0] ?? "";

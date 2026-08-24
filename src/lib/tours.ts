@@ -55,6 +55,11 @@ export async function getPublishedTours(locale: string): Promise<TourSummary[]> 
       freeStops: (t.free_stops as number) ?? 0,
       durationMin: (t.duration_min as number | null) ?? null,
       distanceKm: (t.distance_km as number | null) ?? null,
+      // Es gibt in der DB (noch) keine Fortbewegungsart – jede echte Runde ist eine
+      // Geh-Tour. Der Wert existiert nur, weil TourSummary ihn (für den S-Bike-
+      // Navigation-Screen) verlangt; siehe lib/test-sbike-tour.ts für die einzige
+      // Stelle, an der eine Runde bewusst als "bike" markiert wird.
+      mode: "walk",
     };
   });
 }
@@ -223,6 +228,9 @@ export async function getTourDetail(
     freeStops,
     durationMin: (tt.duration_min as number | null) ?? null,
     distanceKm: (tt.distance_km as number | null) ?? null,
+    // Es gibt in der DB (noch) keine Fortbewegungsart – jede echte Runde ist eine
+    // Geh-Tour (siehe dieselbe Begründung bei getPublishedTours oben).
+    mode: "walk",
     stops,
     canSeePro,
     // Gesnappte Geh-Route + Start/Ziel (Migration 0061). Fehlen sie, zeichnet die

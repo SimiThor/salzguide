@@ -13,8 +13,10 @@ import { buildMapsLink } from "@/lib/maps";
 import { useTourAudio, type PlayerStop } from "./useTourAudio";
 import AudioTransport from "./AudioTransport";
 import TranscriptView from "./TranscriptView";
+import StopLockedCard from "./StopLockedCard";
 import type { TourDetail } from "@/lib/tour-types";
 import { useSheetPeek } from "@/lib/sheet-metrics";
+import { TOUR_MODE_EMOJI } from "@/lib/tour-mode";
 
 // Im Ruhezustand muss der Player vollständig dastehen – er ist das, wofür man die Seite
 // öffnet. Vorher stand hier ein Anteil (34svh), und der konnte gar nicht stimmen: über
@@ -199,6 +201,24 @@ export default function TourView({
           <h2 className="truncate text-[18px] font-bold leading-tight text-ink">
             {activeStop?.title}
           </h2>
+          {/* S-Bike-Runden: Chip zur Unterscheidung + Sprung in den eigenen Navigation-
+              Screen. Bewusst IMMER sichtbar (auch gesperrt) – die Navigation selbst
+              kostet nichts, nur das Audio an den Stopps ist Pro (Migration 0029). Es
+              gibt (noch) keine echte S-Bike-Runde in der DB – tour.mode kommt bisher
+              nur aus der fest verdrahteten Testrunde (lib/test-sbike-tour.ts). */}
+          {tour.mode === "bike" && (
+            <div className="mt-3 space-y-2.5">
+              <span className="inline-flex items-center gap-1 rounded-full bg-black/5 px-2.5 py-1 text-[11px] font-semibold text-ink">
+                {TOUR_MODE_EMOJI.bike} {t("modeBike")}
+              </span>
+              <Link
+                href={`/touren/${tour.slug}/navigation`}
+                className="flex items-center justify-center gap-2 rounded-full bg-accent px-5 py-3 text-[15px] font-semibold text-white shadow-md transition active:scale-[0.98]"
+              >
+                🧭 {t("startNavigation")}
+              </Link>
+            </div>
+          )}
           {canPlay && (
             <div className="mt-4">
               <AudioTransport
@@ -224,17 +244,8 @@ export default function TourView({
               Anker per ResizeObserver nach (MobileSheet), der Peek wächst also von
               selbst mit. */}
           {locked && (
-            <div className="mt-4 rounded-[16px] bg-white/85 p-4 shadow-sm ring-1 ring-black/[0.04]">
-              <p className="text-[14px] font-semibold text-ink">🔒 {t("lockedTitle")}</p>
-              <p className="mt-1 text-[13px] leading-snug text-muted">
-                {t("lockedFree", { free: tour.freeStops, total: tour.stops.length })}
-              </p>
-              <Link
-                href="/pro"
-                className="mt-3 flex items-center justify-center rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white transition active:scale-[0.98]"
-              >
-                {tPro("cta")}
-              </Link>
+            <div className="mt-4">
+              <StopLockedCard freeStops={tour.freeStops} total={tour.stops.length} />
             </div>
           )}
         </div>

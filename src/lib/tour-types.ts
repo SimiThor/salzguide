@@ -1,4 +1,6 @@
 // Client-sichere Typen für das Audio-Tour-Feature (keine Server-Imports).
+import type { TourMode } from "./tour-mode";
+export type { TourMode };
 
 // Eine Station der Tour = ein Spot + (ggf. gegated) Audio.
 export type TourStopView = {
@@ -33,6 +35,11 @@ export type TourSummary = {
   freeStops: number;
   durationMin: number | null;
   distanceKm: number | null;
+  // Fortbewegungsart: walk = bestehende Geh-Tour, bike = S-Bike-Runde mit eigenem
+  // Navigation-Screen statt manueller Stopp-Auswahl. KEINE Datenbank-Spalte (siehe
+  // lib/tour-mode.ts) – jede echte Runde ist "walk", "bike" kommt bisher nur aus der
+  // fest verdrahteten Testrunde (lib/test-sbike-tour.ts).
+  mode: TourMode;
 };
 
 export type TourDetail = TourSummary & {

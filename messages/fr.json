@@ -123,7 +123,19 @@
       "food": "Gastronomie",
       "views": "Panoramas",
       "art": "Art"
-    }
+    },
+    "modeBike": "Audioguide à S-Bike",
+    "startNavigation": "Démarrer la navigation",
+    "navRecenter": "Recentrer",
+    "navRerouting": "Recalcul de l'itinéraire…",
+    "navOffline": "Pas joignable pour l'instant – le dernier itinéraire reste actif.",
+    "navNoGps": "Aucun signal GPS",
+    "navDenied": "Accès à la position refusé – autorisez-le dans les réglages.",
+    "navSafetyHint": "Garde ton téléphone sur le support – les yeux sur la route.",
+    "arrivedTitle": "Tu es arrivé",
+    "toNextStop": "Continuer vers le prochain arrêt",
+    "navRemaining": "Jusqu'à l'arrivée",
+    "navEta": "Arrivée dans"
   },
   "Water": {
     "title": "Températures de l'eau",

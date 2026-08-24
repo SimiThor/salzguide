@@ -219,6 +219,8 @@ export async function generateTour(
     freeStops: GENERATED_FREE_STOPS,
     durationMin,
     distanceKm,
+    // Der KI-Builder erzeugt bisher ausschliesslich Geh-Runden.
+    mode: "walk",
     stops,
     canSeePro,
     routeGeo: optimized.geo,

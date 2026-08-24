@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { Link, usePathname } from "@/i18n/navigation";
 import { LEGAL_LINKS } from "@/lib/legal-links";
 import { isFullscreenMapRoute } from "@/lib/routes";
+import { TEST_SBIKE_SLUG } from "@/lib/test-sbike-slug";
 import SocialLinks from "./SocialLinks";
 import PartnerCredits from "./PartnerCredits";
 
@@ -81,6 +82,34 @@ export default function LegalFooter() {
       {/* Partner-Nennung: Pflicht aus der Inhalte-Vereinbarung (lib/partners.ts). Auf den
           Vollbild-Karten, wo diese Fusszeile nicht rendert, tragen die Panels sie selbst. */}
       <PartnerCredits className="mt-10" />
+
+      {/* ═══ TESTHAKEN – NICHT DAUERHAFT (lib/test-sbike-tour.ts) ═══
+          Einziger Zugang zur S-Bike-Testrunde, bewusst NICHT in der normalen
+          Tourenliste: klein und blass, damit echte Nutzer nicht darüber stolpern,
+          aber real klickbar für den Test. Entfernen, sobald es eine echte S-Bike-
+          Runde gibt. */}
+      <span className="mt-6 flex items-center justify-center gap-2">
+        <Link
+          href={`/touren/${TEST_SBIKE_SLUG}`}
+          className="inline-block text-[10px] text-muted/30 transition-colors hover:text-muted"
+        >
+          🚲 Test
+        </Link>
+        {/* ═══ TESTHAKEN – NICHT DAUERHAFT (google-bike-directions.ts) ═══
+            Zweiter, isolierter Test derselben Testrunde: Navigation direkt über die
+            Google Maps JavaScript API statt Mapbox, zum Vergleich. Gleicher Stil, gleiche
+            Zurückhaltung wie der Link daneben. Springt direkt in die Navigation (nicht erst
+            auf die Tour-Übersicht), weil genau die Navigation der Vergleichspunkt ist. */}
+        <span className="text-[10px] text-muted/20" aria-hidden>
+          ·
+        </span>
+        <Link
+          href={`/touren/${TEST_SBIKE_SLUG}/google-navigation`}
+          className="inline-block text-[10px] text-muted/30 transition-colors hover:text-muted"
+        >
+          🗺️ Google Test
+        </Link>
+      </span>
     </footer>
   );
 }

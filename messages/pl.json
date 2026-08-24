@@ -123,7 +123,19 @@
       "food": "Jedzenie i picie",
       "views": "Widoki",
       "art": "Sztuka"
-    }
+    },
+    "modeBike": "Audioprzewodnik rowerem S-Bike",
+    "startNavigation": "Rozpocznij nawigację",
+    "navRecenter": "Wyśrodkuj",
+    "navRerouting": "Przeliczanie trasy…",
+    "navOffline": "Chwilowo niedostępne – ostatnia trasa pozostaje aktywna.",
+    "navNoGps": "Brak sygnału GPS",
+    "navDenied": "Odmówiono dostępu do lokalizacji – włącz go w ustawieniach.",
+    "navSafetyHint": "Trzymaj telefon w uchwycie – patrz na drogę.",
+    "arrivedTitle": "Jesteś na miejscu",
+    "toNextStop": "Dalej do następnego przystanku",
+    "navRemaining": "Do celu",
+    "navEta": "Przyjazd za"
   },
   "Water": {
     "title": "Temperatura wody",

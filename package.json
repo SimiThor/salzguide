@@ -14,6 +14,7 @@
     "ranking:check": "node --experimental-strip-types --disable-warning=ExperimentalWarning --import ./scripts/lib/alias-hook.mjs scripts/ranking-check.ts",
     "routes:check": "node --experimental-strip-types --disable-warning=ExperimentalWarning --import ./scripts/lib/alias-hook.mjs scripts/routes-check.ts",
     "hiking:check": "node --experimental-strip-types --disable-warning=ExperimentalWarning --import ./scripts/lib/alias-hook.mjs scripts/hiking-check.ts",
+    "nav:check": "node --experimental-strip-types --disable-warning=ExperimentalWarning --import ./scripts/lib/alias-hook.mjs scripts/nav-check.ts",
     "icons": "node --experimental-strip-types scripts/make-icons.ts",
     "backfill:blur": "node --experimental-strip-types scripts/backfill-blur.ts",
     "render:intro": "node --experimental-strip-types scripts/render-intro.ts",
@@ -60,6 +61,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/google.maps": "^3.65.5",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

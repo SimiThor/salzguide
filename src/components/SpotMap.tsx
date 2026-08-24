@@ -21,6 +21,7 @@ import {
   setTrim,
   setRouteOpacity,
   addRouteSourceAndLayers,
+  reducedMotion,
 } from "@/lib/route-anim";
 
 export type MapMarker = {
@@ -61,12 +62,6 @@ type Padding = { top?: number; right?: number; bottom?: number; left?: number };
 // Die Route-Zeichnung (routeFC, Konstanten, setTrim/setRouteOpacity, Layer-Aufbau)
 // liegt jetzt in src/lib/route-anim.ts, damit Live-Karte und Intro-Video-Renderer
 // exakt denselben Look teilen. Hier bleibt nur, was rein zur Live-Karte gehört.
-
-// Respektiert die System-Einstellung „Bewegung reduzieren": dann wird die Linie ohne
-// Zeichen-Animation sofort gezeigt.
-const reducedMotion = () =>
-  typeof window !== "undefined" &&
-  window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true;
 
 export default function SpotMap({
   markers,

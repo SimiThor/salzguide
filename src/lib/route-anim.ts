@@ -1,5 +1,13 @@
 import type { Map as MapboxMap } from "mapbox-gl";
 
+// Respektiert die System-Einstellung „Bewegung reduzieren" – geteilt zwischen SpotMap
+// (Route zeigt sich dann ohne Zeichen-Animation sofort) und NavMap (Kamera springt statt
+// zu gleiten). War eine private Kopie in SpotMap.tsx; hier, weil beide Karten dieselbe
+// Frage an denselben Ort stellen sollten statt zweimal denselben matchMedia-Aufruf.
+export const reducedMotion = () =>
+  typeof window !== "undefined" &&
+  window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true;
+
 // ——— Route-Zeichnung: gemeinsamer Stil & Technik ————————————————————————
 // Diese Konstanten und Helfer waren in SpotMap.tsx zu Hause. Sie liegen jetzt hier,
 // damit die Live-Karte (SpotMap) UND der Intro-Video-Renderer (Render-Route
