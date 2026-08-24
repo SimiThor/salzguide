@@ -43,14 +43,14 @@ export default function SpotOffer({
   const pct = isCurrent && audio.max > 0 ? Math.min(100, (audio.time / audio.max) * 100) : 0;
 
   return (
-    <div className="pointer-events-auto overflow-hidden rounded-[22px] bg-white/95 shadow-[0_10px_34px_-10px_rgba(0,0,0,0.45)] backdrop-blur-xl">
+    <div className="sg-nav-card pointer-events-auto overflow-hidden rounded-[22px]">
       {/* Fortschritt als Linie am oberen Rand statt als eigene Zeile: Der Gast liest sie
           im Augenwinkel, sie kostet aber keine Höhe, die der Karte fehlt. */}
       {started && (
-        <div className="h-[3px] w-full bg-black/[0.06]">
+        <div className="h-[3px] w-full bg-white/10">
           <div
-            className="h-full bg-accent transition-[width] duration-300 ease-out"
-            style={{ width: `${pct}%` }}
+            className="h-full transition-[width] duration-300 ease-out" 
+            style={{ width: `${pct}%`, background: "var(--nav-accent)" }}
           />
         </div>
       )}
@@ -65,7 +65,7 @@ export default function SpotOffer({
             className="h-11 w-11 shrink-0 rounded-[12px] object-cover"
           />
         ) : (
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[12px] bg-cream text-[20px]">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[12px] bg-white/10 text-[20px]">
             {stop.emoji ?? "🎧"}
           </span>
         )}
@@ -76,10 +76,10 @@ export default function SpotOffer({
           className="sg-hit min-w-0 flex-1 text-left"
           aria-label={stop.title}
         >
-          <span className="block truncate text-[15px] font-bold leading-tight text-ink">
+          <span className="block truncate text-[15px] font-bold leading-tight" style={{ color: "var(--nav-ink)" }}>
             {stop.title}
           </span>
-          <span className="block truncate text-[12px] text-muted">
+          <span className="block truncate text-[12px]" style={{ color: "var(--nav-muted)" }}>
             {running
               ? t("navPlaying")
               : distanceM != null && distanceM > 0
@@ -89,7 +89,7 @@ export default function SpotOffer({
         </button>
 
         {locked ? (
-          <span className="shrink-0 rounded-full bg-cream px-3 py-2 text-[13px] font-semibold text-muted">
+          <span className="shrink-0 rounded-full bg-white/10 px-3 py-2 text-[13px] font-semibold" style={{ color: "var(--nav-muted)" }}>
             🔒
           </span>
         ) : (
@@ -100,7 +100,7 @@ export default function SpotOffer({
             type="button"
             onClick={onPlay}
             aria-label={running ? t("pause") : t("play")}
-            className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-accent text-white shadow-md transition active:scale-95"
+            className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full text-white shadow-md transition active:scale-95" style={{ background: "var(--nav-accent)" }}
           >
             {running ? (
               <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
@@ -119,7 +119,7 @@ export default function SpotOffer({
           type="button"
           onClick={onDismiss}
           aria-label={t("navDismiss")}
-          className="sg-hit -mr-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted transition active:scale-95"
+          className="sg-hit -mr-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition active:scale-95" style={{ color: "var(--nav-muted)" }}
         >
           <svg
             width="16"
