@@ -293,6 +293,24 @@ export default async function DatenschutzPage({
         siehe Punkt 6). Nutzt du die Standortanzeige, wertet dein Gerät den Standort aus; wir
         speichern ihn nicht.
       </p>
+      {/* Ergänzt am 24.08.2026 mit der Rad-Navigation: Bis dahin deckte der Absatz oben nur
+          die Standortanzeige ab, bei der die Position das Gerät nie verlässt. Die Navigation
+          schickt sie sehr wohl weg (bike-directions.ts ruft api.mapbox.com direkt aus dem
+          Browser auf, beim Start und bei jeder Neuberechnung), und das ist eine Übermittlung
+          an einen Dritten in die USA. Sie gehört benannt, auch wenn wir selbst nichts davon
+          speichern. Wer die Navigation umbaut und dabei den Anbieter wechselt, ändert diesen
+          Absatz mit und zieht LEGAL.updated in lib/legal.ts nach. */}
+      <p>
+        Startest du eine Rad-Navigation, kommt zur Kartendarstellung die Routenberechnung
+        hinzu: Deine Position wird dabei aus deinem Browser an Mapbox übermittelt, beim Start
+        und noch einmal bei jeder Neuberechnung, etwa wenn du von der Route abkommst. Anders
+        als bei der reinen Standortanzeige verlässt der Standort dein Gerät hier also. Wir
+        selbst speichern ihn weiterhin nicht: Es entsteht bei uns keine Fahrtaufzeichnung und
+        kein Bewegungsprofil, weder während der Fahrt noch danach. Die Navigation startet nie
+        von allein, sondern erst, wenn du sie ausdrücklich beginnst und deinem Browser den
+        Standortzugriff erlaubst. Die Erlaubnis kannst du jederzeit in den
+        Browser-Einstellungen wieder entziehen.
+      </p>
 
       <h3>m) Unsere Profile auf Instagram und TikTok</h3>
       <p>
@@ -376,7 +394,8 @@ export default async function DatenschutzPage({
           <strong>Google</strong> – „Anmelden mit Google“ sowie Öffnungszeiten (Google Places), Irland/USA.
         </li>
         <li>
-          <strong>Mapbox</strong> (mit OpenStreetMap) – Kartendarstellung (siehe Punkt 3l), USA.
+          <strong>Mapbox</strong> (mit OpenStreetMap) – Kartendarstellung und, bei der
+          Rad-Navigation, Routenberechnung aus deiner Position (siehe Punkt 3l), USA.
         </li>
         <li>
           <strong>Cloudflare</strong> – Bot-Schutz (Turnstile), USA.
