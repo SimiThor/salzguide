@@ -49,8 +49,8 @@ export default function SpotOffer({
       {started && (
         <div className="h-[3px] w-full bg-white/10">
           <div
-            className="h-full transition-[width] duration-300 ease-out" 
-            style={{ width: `${pct}%`, background: "var(--nav-accent)" }}
+            className="h-full bg-accent transition-[width] duration-300 ease-out"
+            style={{ width: `${pct}%` }}
           />
         </div>
       )}
@@ -76,10 +76,10 @@ export default function SpotOffer({
           className="sg-hit min-w-0 flex-1 text-left"
           aria-label={stop.title}
         >
-          <span className="block truncate text-[15px] font-bold leading-tight" style={{ color: "var(--nav-ink)" }}>
+          <span className="block truncate text-[15px] font-bold leading-tight text-ink">
             {stop.title}
           </span>
-          <span className="block truncate text-[12px]" style={{ color: "var(--nav-muted)" }}>
+          <span className="block truncate text-[12px] text-muted">
             {running
               ? t("navPlaying")
               : distanceM != null && distanceM > 0
@@ -89,7 +89,7 @@ export default function SpotOffer({
         </button>
 
         {locked ? (
-          <span className="shrink-0 rounded-full bg-white/10 px-3 py-2 text-[13px] font-semibold" style={{ color: "var(--nav-muted)" }}>
+          <span className="shrink-0 rounded-full bg-white/10 px-3 py-2 text-[13px] font-semibold text-muted">
             🔒
           </span>
         ) : (
@@ -100,7 +100,7 @@ export default function SpotOffer({
             type="button"
             onClick={onPlay}
             aria-label={running ? t("pause") : t("play")}
-            className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full text-white shadow-md transition active:scale-95" style={{ background: "var(--nav-accent)" }}
+            className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-accent text-white shadow-md transition active:scale-95"
           >
             {running ? (
               <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
@@ -119,7 +119,7 @@ export default function SpotOffer({
           type="button"
           onClick={onDismiss}
           aria-label={t("navDismiss")}
-          className="sg-hit -mr-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition active:scale-95" style={{ color: "var(--nav-muted)" }}
+          className="sg-hit -mr-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted transition active:scale-95"
         >
           <svg
             width="16"
