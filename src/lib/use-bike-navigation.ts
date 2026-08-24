@@ -81,6 +81,35 @@ export function useBikeNavigation(
     retryRef.current = { timer: null, attempt: 0 };
   }, []);
 
+  // Ereignisse aus einem Rechenschritt anwenden. Bewusst geteilt zwischen dem Schritt beim
+  // Laden einer Route und dem bei jedem GPS-Signal: Beim Laden entstehen sehr wohl echte
+  // Ereignisse (der erste Spot liegt oft direkt am Start und wird sofort angeboten), und
+  // sie zu verwerfen hiess, dass der Play-Knopf nie erschien. Genau das ist im ersten
+  // Browser-Test aufgefallen, obwohl der Kern und alle Prüfungen grün waren.
+  //
+  // `allowReroute` trennt die beiden Fälle: Eine gerade geladene Route darf nicht im
+  // selben Atemzug eine neue anfordern, das wäre eine Schleife.
+  const applyEvents = useCallback(
+    (events: readonly { type: string; index?: number }[], atFix: GeoFix, allowReroute: boolean) => {
+      for (const ev of events) {
+        if (ev.type === "spot-near" && ev.index != null) {
+          setOfferedSpotId(spotIdsRef.current[ev.index] ?? null);
+        } else if (ev.type === "spot-passed" && ev.index != null) {
+          // Das Angebot verschwindet mit dem Spot, für den es galt. Läuft das Audio noch,
+          // bleibt es laufen (der Player lebt in BikeNavScreen, nicht hier).
+          const id = spotIdsRef.current[ev.index];
+          setOfferedSpotId((cur) => (cur === id ? null : cur));
+        } else if (ev.type === "reroute" && allowReroute) {
+          const phases = navRef.current.spotPhase;
+          const keep = spotIdsRef.current.filter((_, i) => phases[i] !== "done");
+          const keptPhases = phases.filter((p) => p !== "done");
+          if (keep.length > 0) loadRouteRef.current?.(atFix, keep, keptPhases, true);
+        }
+      }
+    },
+    [spotIdsRef],
+  );
+
   // Route holen: beim Start über alle Stopps, nach einer Neuberechnung nur noch über die
   // offenen. `keep` sind die Tour-Indizes, die in die Anfrage gehen.
   const loadRoute = useCallback(
@@ -136,6 +165,10 @@ export function useBikeNavigation(
           setRoute(r.route);
           setSpotIds(keep);
           setStatus("ready");
+          // Erst NACH setSpotIds anwenden: applyEvents schlägt den Tour-Index über
+          // spotIdsRef nach, und die Ref zeigt in diesem Tick noch auf die alte Liste.
+          spotIdsRef.current = keep;
+          applyEvents(seeded.events, originFix, false);
         })
         .catch((err: unknown) => {
           clearTimeout(timeout);
@@ -155,7 +188,7 @@ export function useBikeNavigation(
           retryLater();
         });
     },
-    [stopsRef, localeRef, clearRetry, fixRef],
+    [stopsRef, localeRef, clearRetry, fixRef, spotIdsRef, applyEvents],
   );
 
   // Die Ref auf den aktuellen Stand bringen, damit eine Wiederholung nicht eine alte
@@ -183,20 +216,7 @@ export function useBikeNavigation(
     navRef.current = result.state;
     setNavSnapshot(result.state);
 
-    for (const ev of result.events) {
-      if (ev.type === "spot-near") {
-        setOfferedSpotId(spotIdsRef.current[ev.index] ?? null);
-      } else if (ev.type === "spot-passed") {
-        // Das Angebot verschwindet mit dem Spot, für den es galt. Läuft das Audio noch,
-        // bleibt es laufen (der Player lebt in BikeNavScreen, nicht hier).
-        setOfferedSpotId((cur) => (cur === spotIdsRef.current[ev.index] ? null : cur));
-      } else if (ev.type === "reroute") {
-        const phases = navRef.current.spotPhase;
-        const keep = spotIdsRef.current.filter((_, i) => phases[i] !== "done");
-        const keptPhases = phases.filter((p) => p !== "done");
-        if (keep.length > 0) loadRouteRef.current?.(fix, keep, keptPhases, true);
-      }
-    }
+    applyEvents(result.events, fix, true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fix]);
 

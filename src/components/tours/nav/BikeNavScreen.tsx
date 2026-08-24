@@ -156,7 +156,7 @@ export default function BikeNavScreen({ tour }: { tour: TourDetail }) {
   }
 
   return (
-    <div className="fixed inset-0 z-0">
+    <div className="sg-nav fixed inset-0 z-0">
       <NavMap
         route={bike.route?.geometry ?? null}
         progress={progress}
@@ -188,7 +188,7 @@ export default function BikeNavScreen({ tour }: { tour: TourDetail }) {
       {/* Unterer Stapel: Angebot/Player ÜBER der Zielleiste. Beide bleiben sichtbar, das
           Audio verdeckt die Führung nicht (Wunsch 6 in docs/40). */}
       {!showStartGate && !bike.finished && (
-        <div className="pointer-events-none absolute inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+16px)] z-[45] space-y-2">
+        <div className="pointer-events-none absolute inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+44px)] z-[45] space-y-2">
           {bike.rerouting && (
             <p className="rounded-full bg-white/90 px-3 py-1.5 text-center text-[12px] font-semibold text-accent shadow backdrop-blur">
               {t("navRerouting")}
