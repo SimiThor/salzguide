@@ -902,13 +902,19 @@ body {
   top: 50%;
   border-bottom: 7.5px solid #4aa1eb;
 }
+/* -16px, nicht Mapbox' -28px: Dort bezieht sich die Zahl auf ein 0x0-Element an anderer
+   Stelle im Marker. Blind uebernommen ergab sie hier 11 px Luft zwischen Kegelspitze und
+   Punkt, der Pfeil schwebte sichtbar losgeloest darueber (am Bildschirm nachgemessen).
+   Bei -16 sitzt die Kegelbasis 1 px ueber dem weissen Ring, also genau so, wie es bei
+   Mapbox aussieht. Wer den Punkt vergroessert, rechnet hier mit:
+   Basis = 50% der Containerhoehe - X + 7.5. */
 .sg-nav-puck__cone::before {
   border-left: 7.5px solid transparent;
-  transform: translateY(-28px) skewY(-20deg);
+  transform: translateY(-16px) skewY(-20deg);
 }
 .sg-nav-puck__cone::after {
   border-right: 7.5px solid transparent;
-  transform: translate(7.5px, -28px) skewY(20deg);
+  transform: translate(7.5px, -16px) skewY(20deg);
 }
 
 .sg-nav-puck__dot {
@@ -1338,37 +1344,48 @@ input[type="number"] {
 .sg-nav {
   --nav-surface: rgba(24, 20, 16, 0.92);
 
-  /* Die MARKEN-Variablen werden hier ueberschrieben, nicht nur eigene daneben gestellt.
-     Damit stimmen text-ink, text-muted, bg-cream, text-accent und bg-accent im Fahrmodus
-     automatisch, in JEDER Komponente, auch in kuenftigen.
+  /* HIER stehen bewusst KEINE umgekehrten Textfarben mehr. Die Umkehr haengt an der
+     dunklen FLAECHE (.sg-nav-card weiter unten), nicht am Modus.
 
-     Der erste Anlauf machte es anders: eigene --nav-*-Variablen und dann Komponente fuer
-     Komponente von Hand umgestellt. Dabei blieben die Restdistanz und die Ankunftszeit in
-     NextStopBar auf text-ink (#111) und text-muted (#6c5b57) stehen, also fast schwarz und
-     dunkelbraun auf dunklem Grund. Anton hat es am Handy gesehen, nicht der Compiler und
-     nicht der Linter: Vergessen kann man nur, was man von Hand pflegen muss. */
-  --color-ink: #f6f1e7;
-  --color-muted: #b6a89b;
-  --color-cream: #181410;
-  /* Heller als der Marken-Akzent #cc2924: Auf dunklem Grund braucht Rot mehr Helligkeit,
-     sonst verschwindet es. Kontrast gegen --nav-surface rund 5,5:1. */
-  --color-accent: #ff6b60;
-
-  /* Aliasse fuer die Stellen, die eine Farbe direkt setzen muessen (Inline-Style auf einem
-     SVG, eine Flaeche mit Transparenz). Sie zeigen bewusst auf dieselben Werte, damit es
-     nur EINE Wahrheit gibt. */
-  --nav-ink: var(--color-ink);
-  --nav-muted: var(--color-muted);
-  --nav-accent: var(--color-accent);
+     Zwei Anlaeufe waren vorher falsch, und beide auf lehrreiche Weise:
+     1. Eigene --nav-*-Variablen und dann Komponente fuer Komponente von Hand umgestellt.
+        Ergebnis: Restdistanz und Ankunftszeit blieben auf fast schwarz stehen, weil man
+        vergessen kann, was man von Hand pflegen muss.
+     2. Die Marken-Variablen global unter .sg-nav ueberschrieben. Ergebnis: Der
+        Zurueck-Knopf (bg-white/85 text-ink) bekam hellen Text auf weissem Grund und war
+        unsichtbar, und die Nummern der Karten-Pins standen mit dem hellen Akzent auf
+        ihrem weissen Kreis (gemessen 2,79:1).
+     Der Grund entscheidet, nicht der Bildschirm: Wer seinen eigenen hellen Grund
+     mitbringt, braucht weiter die Marken-Werte. */
   --nav-accent-soft: rgba(255, 107, 96, 0.16);
 }
 
 .sg-nav-card {
   background: var(--nav-surface);
-  color: var(--nav-ink);
   -webkit-backdrop-filter: blur(20px) saturate(1.3);
   backdrop-filter: blur(20px) saturate(1.3);
   box-shadow: 0 10px 34px -10px rgba(0, 0, 0, 0.6);
+
+  /* Auf DIESER Flaeche gelten die umgekehrten Werte, und nur hier. Damit stimmen
+     text-ink, text-muted und text-accent in jeder Komponente, die auf einer dunklen
+     Karte sitzt, ohne dass jemand sie einzeln pflegen muss. Und alles ausserhalb (der
+     Zurueck-Knopf mit seinem weissen Grund, die Karten-Pins) behaelt die Marke. */
+  --color-ink: #f6f1e7;
+  --color-muted: #b6a89b;
+  --color-cream: #181410;
+  /* Heller als der Marken-Akzent #cc2924: Auf dunklem Grund braucht Rot mehr Helligkeit.
+     ACHTUNG: Damit sind Akzent-FLAECHEN hier hell, weisser Text darauf waere zu schwach
+     (2,79:1). Auf einer Akzentflaeche in einer Nav-Karte gehoert deshalb DUNKLER Text,
+     siehe .sg-nav-on-accent. */
+  --color-accent: #ff6b60;
+
+  color: var(--color-ink);
+}
+
+/* Text und Symbole auf einer Akzentflaeche innerhalb einer Nav-Karte. Dunkel statt weiss,
+   weil der Akzent hier hell ist: #181410 auf #ff6b60 sind rund 6:1 statt 2,79:1. */
+.sg-nav-on-accent {
+  color: #181410;
 }
 
 /* Die Karte darunter ist bunt und wechselt ständig. Ein feiner heller Rand hält die

@@ -168,7 +168,7 @@ export default function BikeNavScreen({ tour }: { tour: TourDetail }) {
       {!showStartGate && !bike.finished && (
         <div className="pointer-events-none absolute inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+44px)] z-[45] space-y-2">
           {bike.rerouting && (
-            <p className="rounded-full bg-white/90 px-3 py-1.5 text-center text-[12px] font-semibold text-accent shadow backdrop-blur">
+            <p className="sg-nav-card rounded-full px-3 py-1.5 text-center text-[12px] font-semibold text-accent">
               {t("navRerouting")}
             </p>
           )}
@@ -176,7 +176,7 @@ export default function BikeNavScreen({ tour }: { tour: TourDetail }) {
             <button
               type="button"
               onClick={bike.retry}
-              className="pointer-events-auto w-full rounded-full bg-white/90 px-3 py-1.5 text-center text-[12px] font-semibold text-accent shadow backdrop-blur"
+              className="sg-nav-card pointer-events-auto w-full rounded-full px-3 py-1.5 text-center text-[12px] font-semibold text-accent"
             >
               {t("navOffline")}
             </button>
@@ -210,14 +210,14 @@ export default function BikeNavScreen({ tour }: { tour: TourDetail }) {
           geblieben, kein Weg heraus. */}
       {bike.finished && (
         <div className="absolute inset-0 z-[50] flex flex-col items-center justify-end bg-black/45 p-6 pb-[calc(env(safe-area-inset-bottom)+32px)] backdrop-blur-sm">
-          <div className="w-full max-w-sm space-y-3 rounded-[22px] bg-cream p-6 text-center shadow-2xl">
+          <div className="sg-nav-card w-full max-w-sm space-y-3 rounded-[22px] p-6 text-center">
             <p className="text-[19px] font-bold text-ink">🎉 {t("navDoneTitle")}</p>
             <p className="text-[14px] leading-snug text-muted">
               {t("navDoneBody", { heard: heardCount, total: geoStops.length })}
             </p>
             <Link
               href={`/touren/${tour.slug}`}
-              className="flex items-center justify-center rounded-full bg-accent px-5 py-3 text-[15px] font-semibold text-white transition active:scale-[0.98]"
+              className="sg-nav-on-accent flex items-center justify-center rounded-full bg-accent px-5 py-3 text-[15px] font-semibold transition active:scale-[0.98]"
             >
               {t("navDoneBack")}
             </Link>
@@ -237,12 +237,12 @@ export default function BikeNavScreen({ tour }: { tour: TourDetail }) {
               Ihn zu behalten kostet nichts: Der Knopf darunter ist in beiden Fällen
               derselbe, es war nie ein zusätzlicher Tipp, nur ein zusätzlicher Satz. Und
               bei einer StVO-Sache ist "jedes Mal" ohnehin die richtige Antwort. */}
-          <div className="w-full max-w-sm space-y-3 rounded-[22px] bg-cream p-5 text-center shadow-2xl">
+          <div className="sg-nav-card w-full max-w-sm space-y-3 rounded-[22px] p-5 text-center">
             <p className="text-[15px] font-semibold text-ink">⚠️ {t("navSafetyHint")}</p>
             <button
               type="button"
               onClick={beginNavigation}
-              className="w-full rounded-full bg-accent px-5 py-3 text-[15px] font-semibold text-white active:scale-[0.98]"
+              className="sg-nav-on-accent w-full rounded-full bg-accent px-5 py-3 text-[15px] font-semibold active:scale-[0.98]"
             >
               🧭 {t("startNavigation")}
             </button>

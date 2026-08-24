@@ -100,7 +100,7 @@ export default function SpotOffer({
             type="button"
             onClick={onPlay}
             aria-label={running ? t("pause") : t("play")}
-            className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-accent text-white shadow-md transition active:scale-95"
+            className="sg-nav-on-accent flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-accent shadow-md transition active:scale-95"
           >
             {running ? (
               <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
