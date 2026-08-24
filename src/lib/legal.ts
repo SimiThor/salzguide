@@ -25,7 +25,7 @@ export const LEGAL = {
   // unter einer Erklärung von heute ist selbst eine falsche Angabe. Zuletzt: Kontaktadresse
   // in allen Rechtstexten von anton@steinermedia.at auf anton@salzguide.com umgestellt;
   // sie ist zugleich Reply-To jeder App-Mail und Empfänger der internen Meldungen (05.08.2026).
-  updated: "5. August 2026",
+  updated: "24. August 2026",
 } as const;
 
 // Vollständige Postanschrift als einzeiliger String.
