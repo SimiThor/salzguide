@@ -141,6 +141,15 @@ Etappen grundsätzlich nicht gehen, fallen damit von selbst an:
 
 Nebenbei sinken die Anfragen von rund 40 auf rund 11 je Fahrt.
 
+Am 24.08.2026 gegen die echte API gemessen, damit niemand die Annahmen nachbauen muss:
+Eine Anfrage über fünf Punkte liefert ein Leg mit 342 Geometriepunkten, 34 Abbiegungen und
+je stillem Wegpunkt seine Stelle auf der Linie. Die Spot-Position wird aus dem
+`geometry_index` gelesen, nicht aus `distance_from_start`: Beide stimmen auf wenige Meter
+überein, aber der Index zeigt auf UNSERE Geometrie, also wird der Spot-Offset auf derselben
+Linie gemessen wie der Fortschritt des Gastes. Gegengeprüft mit `nearestPointOnRoute`:
+jeder Spot misst auf den Meter dort, wo sein Offset ihn hinsetzt. Unsere Haversine-Länge
+weicht um 6 m auf 5,6 km von Mapbox' Distanz ab, das sind 0,11 Prozent.
+
 **Der Preis, ehrlich benannt:** `nearestPointOnRoute()` braucht ein Vorwärtsfenster, und der
 Fortschritt muss monoton werden. Ohne das springt eine Runde an ihren eigenen
 Kreuzungspunkten, das Ausgrauen wird falsch und Audio feuert am falschen Ort. Bei einer
@@ -219,9 +228,14 @@ als Schiebestelle markiert.
   der bewusst nicht in v1 ist. Anfrage an den Salzburger Verkehrsverbund, ausdrücklich
   inklusive Stationsbelegung.
 - **Ein eigener Fahrmodus-Farbsatz** ist beschlossen, aber noch nicht entworfen.
-- **Manöver-Texte in 13 Sprachen.** Mapbox liefert nicht alle. Für cs, hu, sk, ko und zh
-  braucht es entweder eigene Bausteine oder einen bewussten Rückfall, der nicht still
-  passiert.
+- ~~Manöver-Texte in 13 Sprachen~~ **erledigt, war ein Fehlalarm.** Hier stand, Mapbox
+  liefere nicht alle Sprachen und cs, hu, sk, ko und zh bräuchten eigene Bausteine. Am
+  24.08.2026 gegen die echte API gemessen: Alle 13 Sprachen kommen als echte Übersetzung
+  zurück, und `bike-directions.ts` übergibt den Sprachparameter längst. Was bleibt, ist
+  eine Stilfrage: Die Texte nennen Straßennamen ("Leicht nach links auf
+  Kreuzbergpromenade abbiegen"), und ein deutscher Straßenname hilft einem Gast aus Korea
+  wenig. Ein sichtbarer Anker wäre besser ("nach der Brücke rechts"), aber den kennt nur,
+  wer die Route zur Autorenzeit vor sich hat.
 - **Der Testhaken muss weg.** `lib/test-sbike-tour.ts`, `lib/test-sbike-slug.ts`, der
   Footer-Link und die Aufrufstellen verschwinden, sobald es eine echte Runde in der Datenbank
   gibt. Dafür braucht `tours` eine Spalte für die Fortbewegungsart, heute kommt `mode: "bike"`
