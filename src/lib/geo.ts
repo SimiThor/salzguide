@@ -376,33 +376,75 @@ export function outboundRoute(route: [number, number][]): [number, number][] {
 // (alongM – Basis für "Distanz bis zur nächsten Abbiegung/zum Stopp"). Lokale Projektion
 // (toLocalM) statt Haversine je Segment: bei den kurzen Segmenten einer Stadtroute ist der
 // Unterschied nicht messbar, aber die lokale Projektion liefert den Lotfusspunkt gleich mit.
+// Suchfenster für die Live-Navigation. OHNE dieses Fenster gewinnt schlicht das global
+// nächstgelegene Segment, und das ist auf jeder Runde falsch, die dieselbe Gasse zweimal
+// benutzt (Getreidegasse hinein und wieder heraus, Sackgasse, Schleife um einen Block):
+// Hin- und Rückweg liegen dort wenige Meter auseinander, ein bisschen GPS-Rauschen
+// entscheidet, welcher gewinnt, und der Fortschritt springt um die halbe Etappe. Gemessen
+// mit `npm run nav:check` (Prüfung 7): 541 m Rückschritt auf einer 600-m-Etappe.
+//
+// `backM` klein, `fwdM` grosszügig: Zurückfallen tut man kaum, aber im Browser drosselt
+// Safari die Ortung, sobald der Bildschirm sperrt. Nach so einer Lücke taucht der Gast
+// weit vorne wieder auf, und ein enges Fenster hielte ihn fälschlich für abgekommen.
+export type NearestOnRouteOpts = {
+  nearAlongM: number;
+  backM?: number;
+  fwdM?: number;
+};
+
 export function nearestPointOnRoute(
   route: [number, number][],
   p: [number, number],
+  opts?: NearestOnRouteOpts,
 ): { segIndex: number; point: [number, number]; crossTrackM: number; alongM: number } | null {
   if (!route || route.length < 2) return null;
   const lat0 = p[1];
   const pl = toLocalM(p, lat0);
   const cum = routeCumulativeMeters(route);
 
-  let bestSeg = 0;
-  let bestT = 0;
-  let bestDist = Infinity;
-  for (let i = 1; i < route.length; i++) {
-    const a = toLocalM(route[i - 1], lat0);
-    const b = toLocalM(route[i], lat0);
-    const dx = b[0] - a[0];
-    const dy = b[1] - a[1];
-    const len2 = dx * dx + dy * dy;
-    let t = len2 > 0 ? ((pl[0] - a[0]) * dx + (pl[1] - a[1]) * dy) / len2 : 0;
-    t = Math.max(0, Math.min(1, t));
-    const d = Math.hypot(pl[0] - (a[0] + t * dx), pl[1] - (a[1] + t * dy));
-    if (d < bestDist) {
-      bestDist = d;
-      bestSeg = i - 1;
-      bestT = t;
+  const search = (from: number, to: number) => {
+    let seg = -1;
+    let t0 = 0;
+    let dist = Infinity;
+    for (let i = 1; i < route.length; i++) {
+      // Segment ausserhalb des Fensters? Überspringen. `from`/`to` sind Strecken entlang
+      // der Route, cum[] hat sie ohnehin schon.
+      if (cum[i] < from || cum[i - 1] > to) continue;
+      const a = toLocalM(route[i - 1], lat0);
+      const b = toLocalM(route[i], lat0);
+      const dx = b[0] - a[0];
+      const dy = b[1] - a[1];
+      const len2 = dx * dx + dy * dy;
+      let t = len2 > 0 ? ((pl[0] - a[0]) * dx + (pl[1] - a[1]) * dy) / len2 : 0;
+      t = Math.max(0, Math.min(1, t));
+      const d = Math.hypot(pl[0] - (a[0] + t * dx), pl[1] - (a[1] + t * dy));
+      if (d < dist) {
+        dist = d;
+        seg = i - 1;
+        t0 = t;
+      }
     }
+    return { seg, t: t0, dist };
+  };
+
+  let best = search(-Infinity, Infinity);
+  if (opts) {
+    const windowed = search(
+      opts.nearAlongM - (opts.backM ?? 50),
+      opts.nearAlongM + (opts.fwdM ?? 200),
+    );
+    // Der Treffer im Fenster gewinnt, SOLANGE er plausibel ist. Liegt er weiter weg als
+    // die Off-Route-Schwelle (40 m, NAV in bike-nav-core.ts), ist der Gast entweder
+    // wirklich abgekommen oder nach einer Ortungslücke woanders aufgetaucht. Dann zählt
+    // wieder die globale Suche, und die vorhandene Entprellung entscheidet in Ruhe über
+    // eine Neuberechnung. Ohne diesen Rückfall bliebe die Navigation im Fenster kleben.
+    if (windowed.seg >= 0 && windowed.dist <= 40) best = windowed;
   }
+  if (best.seg < 0) return null;
+
+  const bestSeg = best.seg;
+  const bestT = best.t;
+  const bestDist = best.dist;
 
   const a = route[bestSeg];
   const b = route[bestSeg + 1];

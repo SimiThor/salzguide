@@ -12,6 +12,14 @@ import { bearingBetween, nearestPointOnRoute, haversineMeters, unwrapDegrees } f
 export const NAV = {
   ARRIVE_M: 35, // Ankunft am Stopp
   ARM_M: 60, // "scharf" wird ein Stopp erst, wenn man einmal so weit weg war (siehe unten)
+  // ...ODER wenn man so weit GEFAHREN ist. Ohne diesen zweiten Weg hängt die Tour an
+  // jeder Etappe, die kürzer als ARM_M ist, und in der Altstadt ist das der Normalfall
+  // (Residenzplatz und Domplatz liegen rund 50 m auseinander): Der Gast ist dort nie
+  // 60 m vom Ziel entfernt, wird also nie scharf, und die Ankunft bleibt für immer aus.
+  // 25 m ist bewusst klein, aber deutlich mehr als GPS-Rauschen im Stand. Damit bleibt
+  // der Fall "steht schon am Stopp und drückt Start" weiter ohne Ankunft (nav-check
+  // Prüfung 6), denn wer steht, legt keine Strecke zurück.
+  ARM_MOVED_M: 25,
   ARRIVE_FIXES: 2, // so viele GUTE Fixe hintereinander innerhalb ARRIVE_M
   OFF_ROUTE_M: 40, // Radweg neben der Fahrbahn + normale Häuserschlucht-Ungenauigkeit
   OFF_ROUTE_FIXES: 3,
@@ -58,7 +66,11 @@ export type NavState = {
   bearingDeg: number; // geglättete Fahrtrichtung fürs Karten-Bearing
   offRouteStreak: number;
   arriveStreak: number;
-  armed: boolean; // war der Nutzer schon einmal >= ARM_M vom Stopp entfernt?
+  armed: boolean; // war der Nutzer schon einmal >= ARM_M vom Stopp entfernt (oder ARM_MOVED_M gefahren)?
+  // Fortschritt beim ERSTEN Fix dieser Etappe. Daraus wird "wie weit ist er seither
+  // gekommen" – nicht aus alongM allein, denn das ist auf einer Etappe, die am Ende der
+  // Route beginnt, von Anfang an gross.
+  startAlongM: number | null;
   arrived: boolean; // hat DIESE Etappe schon eine Ankunft gemeldet?
   lastFixAt: number | null;
   lastFixCoord: [number, number] | null;
@@ -76,6 +88,7 @@ export function initNavState(): NavState {
     offRouteStreak: 0,
     arriveStreak: 0,
     armed: false,
+    startAlongM: null,
     arrived: false,
     lastFixAt: null,
     lastFixCoord: null,
@@ -119,7 +132,12 @@ export function stepNav(
   }
 
   const here: [number, number] = [fix.lng, fix.lat];
-  const nearest = nearestPointOnRoute(leg.geometry, here);
+  // Mit Suchfenster um den bisherigen Fortschritt: Ohne das nimmt die Suche global das
+  // nächstgelegene Segment, und auf einer Runde, die dieselbe Gasse zweimal benutzt,
+  // springt der Fortschritt dann um die halbe Etappe (Begründung in geo.ts, Beleg in
+  // scripts/nav-check.ts Prüfung 7). Beim ersten Fix einer Etappe ist alongM 0, das
+  // Fenster liegt also am Anfang der Route, wo der Gast auch steht.
+  const nearest = nearestPointOnRoute(leg.geometry, here, { nearAlongM: state.alongM });
   const alongM = nearest?.alongM ?? state.alongM;
   const crossTrackM = nearest?.crossTrackM ?? state.crossTrackM;
   const distanceToStopM = haversineMeters(here, leg.stop);
@@ -149,7 +167,11 @@ export function stepNav(
   const bearingDeg =
     (((state.bearingDeg + NAV.HEADING_EMA * (targetBearing - state.bearingDeg)) % 360) + 360) % 360;
 
-  const armed = state.armed || distanceToStopM >= NAV.ARM_M;
+  // Erster Fix der Etappe: Startpunkt merken. Danach ist movedM die seither zurückgelegte
+  // Strecke ENTLANG DER ROUTE, nicht die Luftlinie – wer im Kreis fährt, kommt trotzdem voran.
+  const startAlongM = state.startAlongM ?? alongM;
+  const movedM = alongM - startAlongM;
+  const armed = state.armed || distanceToStopM >= NAV.ARM_M || movedM >= NAV.ARM_MOVED_M;
 
   const events: NavEvent[] = [];
   let offRouteStreak = state.offRouteStreak;
@@ -191,6 +213,7 @@ export function stepNav(
       offRouteStreak,
       arriveStreak,
       armed,
+      startAlongM,
       arrived,
       lastFixAt: fix.at,
       lastFixCoord: here,
