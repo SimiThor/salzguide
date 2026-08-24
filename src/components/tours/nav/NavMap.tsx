@@ -6,10 +6,12 @@ import { useEffect, useRef, useState } from "react";
 import { MapLoadingScreen, useMapLoading } from "@/components/MapLoading";
 import { MapUnavailableScreen, tryCreateMap } from "@/components/MapUnavailable";
 import { useLatestRef } from "@/lib/use-latest-ref";
+import { unwrapDegrees } from "@/lib/geo";
 import { declutterBasemap } from "@/lib/map-declutter";
 import {
   addRouteSourceAndLayers,
   setNavTrim,
+  applyNavRouteStyle,
   routeFC,
   ROUTE_SOURCE,
   reducedMotion,
@@ -112,6 +114,7 @@ export default function NavMap({
     declutterBasemap(map);
     map.on("load", () => {
       addRouteSourceAndLayers(map, []);
+      applyNavRouteStyle(map);
       // Kein Zeichnen-Draw-in wie auf den Übersichtskarten: Im HUD steht die Linie
       // sofort, ihre Animation würde vom eigentlichen Signal (wohin geht's) ablenken.
       setNavTrim(map, 0);
@@ -254,14 +257,77 @@ export default function NavMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fix?.lng, fix?.lat]);
 
-  // Kurs des Pucks getrennt von seiner Position: Er ändert sich auch, wenn der Gast steht
-  // (dann liefert bike-nav-core die Richtung der Route statt des Geräte-Kompasses), und
-  // der Wert ist dort bereits geglättet. Keine CSS-Transition darauf: Mapbox schreibt bei
-  // rotationAlignment "map" in jedem Frame ein eigenes transform, eine Überblendung würde
-  // dagegen anlaufen und den Punkt schlittern lassen.
+  // ——— Kurs des Pucks: weich, und im Gleichschritt mit der Kamera ————————————
+  // Der Kurs wird nur einmal je GPS-Signal neu berechnet, also etwa einmal pro Sekunde.
+  // Ihn direkt zu setzen liess den Pfeil sichtbar springen, während die Kamera daneben
+  // noch eine Sekunde lang weiterdrehte (easeTo, FOLLOW_EASE_MS). Beides lief gegeneinander.
+  //
+  // Deshalb läuft die Drehung über eine eigene Bild-für-Bild-Schleife, und ihr ZIEL hängt
+  // davon ab, wer gerade führt:
+  //
+  //   Folge-Modus: Ziel ist map.getBearing() bei JEDEM Bild. Weil der Marker mit
+  //     rotationAlignment "map" läuft, rechnet Mapbox Kurs minus Karten-Ausrichtung, und
+  //     die bleibt damit exakt null: Der Pfeil steht ruhig nach vorn, während sich die
+  //     Karte unter ihm dreht. Kein Zittern, weil beide dieselbe Zahl benutzen.
+  //   Frei verschoben: Ziel ist der geglättete Kurs aus bike-nav-core, dem der Pfeil
+  //     weich nachzieht. Hier SOLL man ihn sich drehen sehen, das ist seine einzige
+  //     Aussage, solange die Karte stillsteht.
+  //
+  // Die Schleife hält von selbst an, sobald sie angekommen ist, und startet neu, wenn ein
+  // neuer Kurs hereinkommt. Sie läuft also nur, während sich wirklich etwas bewegt.
+  const shownBearingRef = useRef(bearingDeg);
+  const bearingRafRef = useRef<number | null>(null);
+  const bearingTargetRef = useLatestRef(bearingDeg);
+  const followingRef = useLatestRef(following);
+
   useEffect(() => {
-    puckRef.current?.setRotation(bearingDeg);
-  }, [bearingDeg]);
+    const map = mapRef.current;
+    if (!map) return;
+
+    // "Bewegung reduzieren": ohne Zwischenschritte, sonst ist genau das die Dauerbewegung,
+    // die die Einstellung abstellen soll.
+    if (reducedMotion()) {
+      shownBearingRef.current = bearingDeg;
+      puckRef.current?.setRotation(bearingDeg);
+      return;
+    }
+    if (bearingRafRef.current != null) return; // Schleife läuft schon, Ziel reicht
+
+    const step = () => {
+      const m = mapRef.current;
+      if (!m || !puckRef.current) {
+        bearingRafRef.current = null;
+        return;
+      }
+      const goal = followingRef.current ? m.getBearing() : bearingTargetRef.current;
+      const from = shownBearingRef.current;
+      // Über den kurzen Bogen, sonst dreht der Pfeil bei 359 -> 1 einmal ganz herum.
+      const unwrapped = unwrapDegrees(from, goal);
+      const delta = unwrapped - from;
+
+      if (Math.abs(delta) < 0.2) {
+        shownBearingRef.current = ((goal % 360) + 360) % 360;
+        puckRef.current.setRotation(shownBearingRef.current);
+        bearingRafRef.current = null; // angekommen, Schleife anhalten
+        return;
+      }
+      // 0,14 je Bild: bei 60 Bildern/s sind rund 95 Prozent nach etwa 350 ms erreicht.
+      // Schnell genug, um der Kamera zu folgen, langsam genug, um nicht zu hüpfen.
+      const next = from + delta * 0.14;
+      shownBearingRef.current = ((next % 360) + 360) % 360;
+      puckRef.current.setRotation(shownBearingRef.current);
+      bearingRafRef.current = requestAnimationFrame(step);
+    };
+    bearingRafRef.current = requestAnimationFrame(step);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bearingDeg, following]);
+
+  useEffect(
+    () => () => {
+      if (bearingRafRef.current != null) cancelAnimationFrame(bearingRafRef.current);
+    },
+    [],
+  );
 
   // Kamera folgt dem Kurs: EIN easeTo je akzeptiertem Fix, verkettet statt als
   // rAF-Dauerschleife – GPS aktualisiert ohnehin nur etwa im Sekundentakt, ein Frame

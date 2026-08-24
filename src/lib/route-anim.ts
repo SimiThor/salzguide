@@ -104,6 +104,64 @@ export const ROUTE_DONE = "#9a8b84";
 // rund 10 m. Ohne das springt die Farbgrenze bei jedem GPS-Signal sichtbar weiter.
 const NAV_FADE = 0.002;
 
+// ——— Fahrmodus: die Linie, an der sich der Gast entlanghangelt ————————————————
+// Die geteilten Werte oben (3,5 px Linie auf 6,5 px Kontur) sind fuer Uebersichtskarten
+// gemacht, wo die Route eine Beilage ist. Im Fahrmodus ist sie der Hauptdarsteller und war
+// dafuer viel zu zart: auf einer bunten Karte mit Gebaeuden, Wiesen und Radwegen ging der
+// duenne Strich unter.
+//
+// Vorbild ist die Linienfuehrung von Google Maps in ihrer iOS-App, aber in unseren Farben:
+// ein kraeftiger Strang in der Markenfarbe, aussen eine dunkle Fassung, die ihn von jedem
+// Untergrund abhebt, runde Enden. Statt einer festen Breite waechst sie mit dem Zoom, damit
+// sie beim Herauszoomen auf die Uebersicht nicht die halbe Stadt zudeckt und beim
+// Hineinzoomen an der Kreuzung nicht duenn wird.
+//
+// Bewusst NICHT in addRouteSourceAndLayers: Dieselben Layer benutzen SpotMap (rund 15
+// Aufrufer) und der Intro-Video-Renderer, und deren Look ist abgestimmt. Diese Funktion
+// laeuft nur auf der Navigations-Karte.
+const NAV_LINE_WIDTH = [
+  "interpolate",
+  ["linear"],
+  ["zoom"],
+  12,
+  3.5,
+  15,
+  7,
+  17,
+  11,
+  19,
+  16,
+] as const;
+const NAV_CASING_WIDTH = [
+  "interpolate",
+  ["linear"],
+  ["zoom"],
+  12,
+  6,
+  15,
+  11,
+  17,
+  16,
+  19,
+  22,
+] as const;
+
+export function applyNavRouteStyle(map: MapboxMap) {
+  try {
+    if (!map.getLayer(ROUTE_LAYER_LINE)) return;
+    // Aussen die dunkle Fassung: Weiss wie auf den Uebersichtskarten verschwindet auf
+    // hellen Flaechen (Wiese, Platz) und laesst die Linie ausfransen.
+    map.setPaintProperty(ROUTE_LAYER_OUT, "line-color", "#2b1a17");
+    map.setPaintProperty(ROUTE_LAYER_OUT, "line-width", [...NAV_CASING_WIDTH] as never);
+    map.setPaintProperty(ROUTE_LAYER_OUT, "line-opacity", 0.55);
+    // Innen die Markenfarbe, satt. #cc2924 statt des blasseren #e04848 der Uebersicht.
+    map.setPaintProperty(ROUTE_LAYER_LINE, "line-color", "#cc2924");
+    map.setPaintProperty(ROUTE_LAYER_LINE, "line-width", [...NAV_LINE_WIDTH] as never);
+  } catch {
+    /* Karte nicht mehr bereit */
+  }
+}
+
 export function setNavTrim(map: MapboxMap, progress: number) {
   const p = Math.min(Math.max(progress, 0), 1);
   const trim: [number, number] = [0, p];
