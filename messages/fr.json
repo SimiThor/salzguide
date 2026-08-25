@@ -131,6 +131,7 @@
     "navPlaying": "En cours",
     "navAhead": "Dans {distance}",
     "navHere": "Vous y êtes",
+    "navTeaser": "{seconds} secondes offertes",
     "navDismiss": "Masquer",
     "navDoneTitle": "Boucle terminée",
     "navDoneBody": "Vous avez écouté {heard} étapes sur {total}.",

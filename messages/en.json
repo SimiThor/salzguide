@@ -131,6 +131,7 @@
     "navPlaying": "Playing",
     "navAhead": "In {distance}",
     "navHere": "You are here",
+    "navTeaser": "{seconds} seconds free",
     "navDismiss": "Hide",
     "navDoneTitle": "Round complete",
     "navDoneBody": "You heard {heard} of {total} stops.",

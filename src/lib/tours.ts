@@ -4,6 +4,7 @@ import { cleanRouteGeo } from "./tour-route";
 import { translationStatus } from "./spot-hash";
 import { routing } from "@/i18n/routing";
 import { tourModeOf, type TourMode } from "./tour-mode";
+import { stopAudioAccess } from "./tour-audio-gate";
 import type { TourDetail, TourStopView, TourSummary } from "./tour-types";
 
 // Datenschicht für Audio-Touren (POOL-Modell): eine kuratierte Runde besteht aus
@@ -137,15 +138,25 @@ export async function getTourDetail(
     .filter((v): v is string => Boolean(v));
   const audioByPoint = new Map<
     string,
-    { url: string | null; text: string | null; dur: number | null }
+    {
+      url: string | null;
+      text: string | null;
+      dur: number | null;
+      teaserUrl: string | null;
+      teaserSec: number | null;
+    }
   >();
   if (pointIds.length) {
-    const { data: audioRows } = await supabase
-      .from("tour_point_audio")
-      .select("point_id, lang, audio_url, audio_text, duration_sec")
-      .in("point_id", pointIds);
+    // Die Kostprobe-Spalten kommen erst mit Migration 0065. Fehlen sie, darf die Tour-Seite
+    // nicht ausfallen -> zweiter Versuch ohne sie (Muster wie oben bei route_geo und mode).
+    const audioCols = "point_id, lang, audio_url, audio_text, duration_sec";
+    const holen = async (cols: string) =>
+      (await supabase.from("tour_point_audio").select(cols).in("point_id", pointIds)).data as
+        | Record<string, unknown>[]
+        | null;
+    const audioRows = (await holen(`${audioCols}, teaser_url, teaser_sec`)) ?? (await holen(audioCols));
     const grouped = new Map<string, Record<string, unknown>[]>();
-    for (const a of (audioRows as Record<string, unknown>[] | null) ?? []) {
+    for (const a of audioRows ?? []) {
       const pid = a.point_id as string;
       const list = grouped.get(pid) ?? [];
       list.push(a);
@@ -166,6 +177,8 @@ export async function getTourDetail(
         url: (a?.audio_url as string | null) ?? null,
         text: (a?.audio_text as string | null) ?? null,
         dur: (a?.duration_sec as number | null) ?? null,
+        teaserUrl: (a?.teaser_url as string | null) ?? null,
+        teaserSec: (a?.teaser_sec as number | null) ?? null,
       });
     }
   }
@@ -179,16 +192,40 @@ export async function getTourDetail(
       point.tour_point_translations as ({ lang: string; title: string }[]) | null,
       locale,
     );
-    const audio = audioByPoint.get(point.id as string) ?? { url: null, text: null, dur: null };
+    const audio = audioByPoint.get(point.id as string) ?? {
+      url: null,
+      text: null,
+      dur: null,
+      teaserUrl: null,
+      teaserSec: null,
+    };
     // Gating: bei Pro-Tour sind die ersten `freeStops` Stops gratis; Rest nur mit Pro.
     const locked = isPro && i >= freeStops && !canSeePro;
     return { point, st, audio, locked, order: i + 1 };
   });
 
-  // Signed-URLs NUR für nicht-gesperrte Audio-Pfade (privater tour-audio-Bucket).
+  // Signed-URLs aus dem privaten tour-audio-Bucket, und die Aufteilung ist das Gate:
+  //
+  //   offener Stopp   -> die VOLLDATEI wird signiert, die Kostprobe braucht er nicht
+  //   gesperrter Stopp -> NUR die Kostprobe, niemals die Volldatei
+  //
+  // Deshalb ist die Kostprobe ein eigenes Objekt und kein Abschnitt der Volldatei: Wer die
+  // Volldatei ausliefert und nach 20 Sekunden stoppt, hat kein Gate gebaut, sondern eine
+  // Bitte. Ein Blick in die Netzwerkspur, und die ganze Geschichte liegt da.
   const signed = new Map<string, string>();
   const toSign = [
-    ...new Set(prelim.filter((p) => !p.locked && p.audio.url).map((p) => p.audio.url as string)),
+    ...new Set(
+      prelim
+        .map(
+          (p) =>
+            stopAudioAccess({
+              locked: p.locked,
+              audioUrl: p.audio.url,
+              teaserUrl: p.audio.teaserUrl,
+            }).signPath,
+        )
+        .filter((v): v is string => Boolean(v)),
+    ),
   ];
   if (toSign.length) {
     const { data: signedList } = await supabase.storage
@@ -219,6 +256,11 @@ export async function getTourDetail(
       audioUrl: p.locked || !p.audio.url ? null : (signed.get(p.audio.url) ?? null),
       audioText: p.locked ? null : p.audio.text,
       durationSec: p.locked ? null : p.audio.dur,
+      // Die Kostprobe gibt es NUR am gesperrten Stopp. An einem offenen waere sie sinnlos
+      // und wuerde die Oberflaeche nur vor die Wahl zwischen zwei Play-Knoepfen stellen.
+      teaserUrl:
+        p.locked && p.audio.teaserUrl ? (signed.get(p.audio.teaserUrl) ?? null) : null,
+      teaserSec: p.locked ? p.audio.teaserSec : null,
     };
   });
 
