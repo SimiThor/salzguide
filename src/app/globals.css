@@ -426,23 +426,25 @@ body {
   line-height: 0;
   cursor: pointer;
 }
-/* Ruhiger Punkt statt Kachel: alle Halte ausser dem naechsten und dem Ziel.
-   Die Trefferflaeche bleibt voll (44pt ueber .sg-hit), nur die Optik tritt zurueck.
-   Vorher trugen alle sieben Halte eine weisse Kachel mit Nummer; auf einer Runde, die
-   sich selbst kreuzt, standen davon mehrere dicht beieinander und stritten mit der
-   Fuehrung um Aufmerksamkeit. */
+/* Zurueckgenommener Halt: JEDER Stopp behaelt seine Nummer, auch der letzte, und auch der,
+   der gerade nicht dran ist. Unterschieden wird ueber FARBE und Groesse, nicht darueber,
+   ob eine Zahl da ist.
+
+   Erst war das hier ein blosser grauer Punkt ohne Nummer. Dann sah man zwar eine ruhige
+   Karte, aber nicht mehr, der wievielte Halt das ist, und genau das ist die Information,
+   die man beim Blick auf die Runde sucht. Jetzt dieselbe runde Form wie beim aktiven Halt,
+   nur kleiner, in gedecktem Ton und ohne den kraeftigen Schatten.
+
+   Die Trefferflaeche bleibt voll (44pt ueber .sg-hit), nur die Optik tritt zurueck. */
 .sg-pin--quiet .sg-marker {
-  width: 0.85rem;
-  height: 0.85rem;
-  background: #6c5b57;
-  border-color: rgba(255, 255, 255, 0.85);
-  border-width: 2px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
-  font-size: 0;
-}
-.sg-pin--quiet .sg-marker::before,
-.sg-pin--quiet .sg-marker::after {
-  display: none;
+  width: 1.5rem;
+  height: 1.5rem;
+  background: #f3efe4;
+  color: #6c5b57;
+  font-size: 0.72rem;
+  border-color: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.22);
+  opacity: 0.92;
 }
 
 .sg-marker {
