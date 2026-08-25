@@ -274,7 +274,12 @@ export default function TourForm({
     setMsg("");
     void (async () => {
       try {
-        const r = await snapTourRoute({ start: form.start, end: form.end, pointIds });
+        const r = await snapTourRoute({
+          start: form.start,
+          end: form.end,
+          pointIds,
+          mode: form.mode,
+        });
         if (r.ok && r.routeGeo) {
           setForm((f) => ({
             ...f,

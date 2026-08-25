@@ -507,6 +507,12 @@ export type SnapRouteInput = {
   start: RoutePoint | null;
   end: RoutePoint | null;
   pointIds: string[]; // Stationen in kuratierter Reihenfolge
+  // Fortbewegungsart (0064). Sie entscheidet über das Mapbox-Profil UND über die Dauer.
+  // Bis 25.08.2026 war hier "walking" fest verdrahtet, und für eine Radrunde ist das
+  // gleich zweimal falsch: Das Geh-Profil führt durch Fussgängerzonen und über Treppen,
+  // also genau dorthin, wo docs/40 nicht hinwill, und die Dauer wäre Gehzeit. Für Runde A
+  // hiesse das rund zwei Stunden statt einer.
+  mode?: TourMode;
 };
 export type SnapRouteResult = {
   ok: boolean;
@@ -567,9 +573,11 @@ export async function snapTourRoute(input: SnapRouteInput): Promise<SnapRouteRes
   if (!token)
     return { ok: false, error: "MAPBOX_SERVER_TOKEN fehlt – bitte in .env.local eintragen." };
 
+  const istRad = input.mode === "bike";
+  const profil = istRad ? "cycling" : "walking";
   const coordStr = chain.map((c) => `${c.lng},${c.lat}`).join(";");
   const url =
-    `https://api.mapbox.com/directions/v5/mapbox/walking/${coordStr}` +
+    `https://api.mapbox.com/directions/v5/mapbox/${profil}/${coordStr}` +
     `?geometries=geojson&overview=full&continue_straight=false&access_token=${token}`;
   try {
     const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
@@ -583,14 +591,21 @@ export async function snapTourRoute(input: SnapRouteInput): Promise<SnapRouteRes
     const route = Array.isArray(j.routes) ? j.routes[0] : null;
     const geo = cleanRouteGeo(route?.geometry?.coordinates);
     if (j.code !== "Ok" || !geo)
-      return { ok: false, error: "Mapbox hat keine Geh-Route gefunden. Punkte prüfen." };
+      return {
+        ok: false,
+        error: `Mapbox hat keine ${istRad ? "Rad" : "Geh"}-Route gefunden. Punkte prüfen.`,
+      };
 
     const distanceKm =
       typeof route.distance === "number" ? Math.round(route.distance / 100) / 10 : undefined;
-    // Dauer wie bei den KI-Runden: reine Gehzeit + ~2 Min je Station (Zuhören/Stehen).
+    // Zuschlag je Station: zu Fuss ~2 Minuten (Zuhören und Stehenbleiben), am Rad 1 Minute.
+    // Die Audiotexte einer Radrunde sind rund 55 Sekunden lang, und gehört wird im Fahren;
+    // gestanden wird nur, wer will. Gemessen an den sieben Texten der Runde A: 6 Minuten
+    // Hörzeit auf der ganzen Runde, nicht 14.
+    const proStopMin = istRad ? 1 : 2;
     const durationMin =
       typeof route.duration === "number"
-        ? Math.round(route.duration / 60) + stops.length * 2
+        ? Math.round(route.duration / 60) + stops.length * proStopMin
         : undefined;
 
     return {
