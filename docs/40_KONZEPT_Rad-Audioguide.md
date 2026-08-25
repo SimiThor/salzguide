@@ -348,6 +348,36 @@ Spots kommen Text und Bild, nie die Position.
 5. Wetter und Tageslicht: Eine Runde, die nach Sonnenuntergang minus Fahrdauer beginnen
    würde, wird gar nicht erst angeboten.
 
+## Der Kauf mitten in der Fahrt
+
+Die ersten zwei Stopps sind gratis, ab dem dritten ist die Geschichte Pro. Der Übergang
+passiert also auf einem Rad, in einer laufenden Runde.
+
+**Der Rücksprung ist der erste Baustein, und er war kaputt.** Bis 25.08.2026 endete jeder
+Kauf fest auf `/pro`, egal wo er begonnen hatte. Im Fahrbetrieb heisst das: Karte weg, Route
+weg, Ortung weg, Wake Lock weg, und die Navigation muss am Straßenrand neu gestartet werden.
+Wer bezahlen wollte, verlor dafür seine Fahrt. Jetzt reist der Slug der Runde in den
+Metadaten der Stripe-Session mit und führt Erfolg, Abbruch und den Anmeldelink aus der Mail
+dorthin zurück.
+
+**Es reist ein SLUG mit, kein Pfad.** Ein Zielpfad von aussen ist eine offene Weiterleitung,
+und der Moment direkt nach dem Bezahlen ist der denkbar schlechteste dafür: Der Käufer
+erwartet gerade, dass etwas passiert, und würde eine Seite, die nach seinen Zugangsdaten
+fragt, für unsere halten. Der Pfad entsteht deshalb serverseitig aus einem Slug, der weder
+Schrägstrich noch Punkt noch Doppelpunkt enthalten darf (`safeTourSlug` in `lib/url.ts`).
+Geprüft in `npm run pro:check` gegen fünfzehn Ausbruchsversuche.
+
+**Was noch fehlt**, in dieser Reihenfolge: das Schloss an Stopp 3 durch eine Kostprobe von
+20 Sekunden ersetzen (braucht eine eigene Audiodatei, eine gekürzte Wiedergabe der Volldatei
+wäre kein Gate), den Kaufblock ins Spot-Sheet an Stopp 2 legen, Apple Pay und Google Pay im
+selben Fenster, und eine Preiszeile vor dem Start.
+
+**Drei Fragen gehören vor dem Weiterbauen zu einem Anwalt.** Der EuGH hat am 09.07.2026 in
+einem österreichischen Fall entschieden (C-234/25, Sky gegen VKI), dass laufend gepflegte
+Angebote digitale Dienstleistungen sind und der Rücktrittsausschluss aus § 18 Abs. 1 Z 11
+FAGG dort nicht greift; Sky hatte fast unsere Formel verwendet. Dazu: ob ein Häkchen reicht
+oder zwei nötig sind, und der Widerrufsbutton nach § 13a FAGG ab 01.10.2026.
+
 ## Was noch offen ist
 
 - **Bekommen wir Stationsdaten für S-Bike freigegeben?** Daran hängt der Leihrad-Schritt,

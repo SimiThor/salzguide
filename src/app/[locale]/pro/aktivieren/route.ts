@@ -7,6 +7,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { sendLoginLink } from "@/lib/login-link";
 import { authOrigin } from "@/lib/site-url";
 import { safeLocale } from "@/i18n/locales";
+import { safeTourSlug } from "@/lib/url";
 import {
   PRO_CLAIM_COOKIE,
   claimMatches,
@@ -54,10 +55,25 @@ export async function GET(
   const locale = safeLocale(rawLocale);
   const { searchParams, origin } = new URL(request.url);
 
+  // Wohin nach dem Rücksprung? Standard ist /pro. Kam der Kauf aus einer laufenden Runde,
+  // steht ihr Slug in den Metadaten der Stripe-Session, und dann geht es DORTHIN zurück.
+  //
+  // WARUM DAS ZÄHLT: Der Kauf im Fahrbetrieb passiert auf einem Rad, mitten in der Runde.
+  // Landet der Käufer danach auf /pro, sind Karte, Route und Ortung weg, und er muss die
+  // Navigation am Straßenrand neu starten. Bis 25.08.2026 war genau das der einzige Ausgang.
+  //
+  // Der Slug wird trotzdem nochmal geprüft, obwohl ihn createCheckoutSession schon geprüft
+  // hat: Was hier ankommt, kam über einen fremden Dienst zurück, und eine zweite Prüfung an
+  // der Stelle, an der der Wert BENUTZT wird, kostet nichts.
+  let zurueckZu: string | null = null;
+
   /** Ab hier ist die session_id nicht mehr in der Adresse. */
   const done = async (state: ProCheckoutState): Promise<Response> => {
     (await cookies()).delete(PRO_CLAIM_COOKIE);
-    return NextResponse.redirect(new URL(`/${locale}/pro?checkout=${state}`, origin));
+    const ziel = zurueckZu
+      ? `/${locale}/touren/${zurueckZu}/navigation?checkout=${state}`
+      : `/${locale}/pro?checkout=${state}`;
+    return NextResponse.redirect(new URL(ziel, origin));
   };
 
   const sessionId = searchParams.get("session_id") ?? "";
@@ -70,6 +86,8 @@ export async function GET(
     console.error("[pro] Checkout-Session nicht abrufbar", sessionId, e);
     return done("help");
   }
+
+  zurueckZu = safeTourSlug(session.metadata?.return_tour);
 
   const result = await fulfillPaidCheckout(session);
   if (!result.ok) {
@@ -113,7 +131,9 @@ export async function GET(
   //
   // Wenn die Mail NICHT rausgeht, darf hier nicht „schau in dein Postfach" stehen: Dann
   // wartet jemand auf etwas, das nie kommt. Dieser Fall gehört zu einem Menschen (help).
-  const sent = result.email ? await sendAccessLink(result.email, locale, request.url) : false;
+  const sent = result.email
+    ? await sendAccessLink(result.email, locale, request.url, zurueckZu)
+    : false;
   return done(sent ? "mail" : "help");
 }
 
@@ -193,12 +213,17 @@ async function sendAccessLink(
   email: string,
   locale: string,
   requestUrl: string,
+  // Runde, aus der der Kauf kam. Der Link aus der Mail führt dann dorthin zurück und nicht
+  // auf /pro: Wer am Lenker gekauft hat, will weiterhören, nicht eine Verkaufsseite lesen.
+  returnTour: string | null,
 ): Promise<boolean> {
   try {
     const result = await sendLoginLink({
       email,
       locale,
-      next: `/${locale}/pro?checkout=success`,
+      next: returnTour
+        ? `/${locale}/touren/${returnTour}/navigation?checkout=success`
+        : `/${locale}/pro?checkout=success`,
       origin: await authOrigin(requestUrl),
     });
     if (result !== "sent") {
