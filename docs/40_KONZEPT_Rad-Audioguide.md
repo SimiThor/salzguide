@@ -197,7 +197,16 @@ abgehakt ist.
 
 ## Warum eine Rundtour besondere Absicherung braucht
 
-Eine Runde endet dort, wo sie beginnt. Zwei Folgen, beide teuer erkauft:
+Eine Runde endet dort, wo sie beginnt. Drei Folgen, alle teuer erkauft:
+
+**Das Ziel ist nicht der letzte Spot.** Bis 25.08.2026 routete die Navigation vom Gast über
+alle Stopps zum letzten Stopp, und dort war Schluss. Bei Runde A ist der letzte Stopp Mülln,
+und der liegt **692 m vom Leihrad entfernt**: Der Gast bekäme „Ziel erreicht", während sein
+Rad noch sieben Minuten weiter steht. Der Zielpunkt aus Migration 0061 (`tours.end_lat/lng`)
+wird jetzt hinter die Spots gehängt, als Wegpunkt OHNE Geschichte. Gemessen: 8,72 km und
+692 m daneben werden zu 9,60 km und 4 m daneben, bei unverändert sechs Audio-Spots. Dass
+das Ziel kein Spot sein darf, ist der Kern: Alles in der Spot-Liste bekommt einen
+Play-Knopf, und ein Play-Knopf ohne Geschichte ist ein Knopf, der nichts tut.
 
 **Jeder falsche Messwert in Startnähe sieht aus wie ein Zieleinlauf.** Deshalb reicht Nähe
 allein nicht: Das Ende gilt erst nach `FINISH_FIXES` sauberen Messungen, und nur wenn der
