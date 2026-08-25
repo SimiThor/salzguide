@@ -517,5 +517,69 @@ console.log("\n15. Ein falsches \"fertig\" ist umkehrbar");
   else bad("fertig klebt", `remainingM ${last.remainingM.toFixed(0)}`);
 }
 
+
+console.log("\n16. Eine Kette von Abbiegungen verschluckt keinen Spot");
+{
+  // docs/40 sagt zu: "Der Knopf kommt danach, der Spot geht dadurch nicht verloren."
+  // Das stimmte nur, solange zwischen zwei Abbiegungen mehr als MANEUVER_QUIET_M lagen.
+  // In der Altstadt folgen sie enger, das Fenster des Spots liegt dann durchgehend in
+  // einer Sperrzone und er lief stumm von "offen" auf "erledigt".
+  const route = straightRoute(1000, [500]);
+  route.steps = [300, 400, 500, 600, 700].map((alongM) => ({
+    alongM,
+    instruction: "Abbiegen",
+    type: "turn",
+    modifier: "right",
+  }));
+  const { events } = ride({ route, path: route.geometry });
+  if (countOf(events, "spot-near") === 1) ok("der Spot wird trotz Dauer-Sperrzone angeboten");
+  else bad("Spot in der Abbiegungs-Kette verschluckt", `${countOf(events, "spot-near")} Angebote statt 1`);
+}
+
+console.log("\n17. Der LETZTE Spot einer Runde wird angeboten");
+{
+  // bike-directions.ts setzt den letzten Spot per Definition auf die Routenlaenge und
+  // schiebt einen "arrive"-Step ans Ende. Der deckte damit die letzten 140 m JEDER Route
+  // zu: Der letzte Spot wurde nie angeboten. Ankommen ist aber keine Abbiegung, in die
+  // man einfaehrt.
+  const route = straightRoute(1000, [1000]);
+  route.steps = [
+    { alongM: 880, instruction: "Rechts abbiegen", type: "turn", modifier: "right" },
+    { alongM: 1000, instruction: "Ziel erreicht", type: "arrive" },
+  ];
+  const { events } = ride({ route, path: route.geometry });
+  if (countOf(events, "spot-near") === 1) ok("der letzte Spot wird angeboten");
+  else bad("letzter Spot nie angeboten", `${countOf(events, "spot-near")} Angebote statt 1`);
+}
+
+console.log("\n18. Zwei Spots im selben Schritt: keiner geht verloren");
+{
+  // Nach einer Sperrzone oder einer Ortungsluecke koennen zwei Spots im selben
+  // Rechenschritt in Reichweite kommen. Die Oberflaeche zeigt nur EIN Angebot, das
+  // spaetere ueberschrieb also das naehere, und weil der uebergangene Spot danach auf
+  // "near" stand, konnte er nie wieder ausloesen.
+  const route = straightRoute(1000, [400, 480]);
+  route.steps = [{ alongM: 380, instruction: "Links abbiegen", type: "turn", modifier: "left" }];
+  const { states, events } = ride({ route, path: route.geometry });
+
+  const near = events.filter((e) => e.type === "spot-near").map((e) => e.index);
+  if (near.length === 2 && near.includes(0) && near.includes(1)) {
+    ok("beide Spots werden angeboten");
+  } else {
+    bad("ein Spot geht verloren", `Angebote: ${JSON.stringify(near)}`);
+  }
+  // Und zwar NACHEINANDER, nicht beide im selben Schritt: sonst kann die Oberflaeche
+  // gar nicht beide zeigen.
+  let maxProSchritt = 0;
+  let vorher = 0;
+  for (const st of states) {
+    const jetzt = st.spotPhase.filter((ph) => ph !== "open").length;
+    maxProSchritt = Math.max(maxProSchritt, jetzt - vorher);
+    vorher = jetzt;
+  }
+  if (maxProSchritt <= 1) ok("nie zwei Angebote in einem Schritt");
+  else bad("zwei Angebote im selben Schritt", `${maxProSchritt} auf einmal`);
+}
+
 console.log(failed ? `\n${failed} Prüfung(en) fehlgeschlagen.` : "\nAlles grün.");
 process.exitCode = failed ? 1 : 0;

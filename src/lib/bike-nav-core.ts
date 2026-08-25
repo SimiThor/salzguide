@@ -20,6 +20,11 @@ export const NAV = {
   // ——— Audio-Spots ———
   SPOT_NEAR_M: 150, // Play-Knopf erscheint: 30 Sekunden Vorlauf bei 18 km/h
   SPOT_PASSED_M: 100, // so weit dahinter gilt der Spot als vorbei, auch ungehört
+  // Kulanz für einen Spot, der wegen einer Sperrzone noch nie angeboten werden KONNTE.
+  // In einer Gasse mit Abbiegungen alle 80 m liegt sein ganzes Fenster in der Sperrzone,
+  // er wäre sonst stumm durchgelaufen. So bekommt der Gast die Geschichte wenigstens kurz
+  // nach dem Ort noch angeboten, statt gar nicht. Danach ist er wirklich verpasst.
+  SPOT_GRACE_M: 250,
   // Kein Play-Knopf, solange eine Abbiegung so nah bevorsteht: Wer gleich abbiegt, soll
   // nicht im selben Moment eine Geschichte angeboten bekommen (Sicherheitsregel docs/40).
   // Der Knopf kommt danach, der Spot geht dadurch nicht verloren.
@@ -93,7 +98,10 @@ export type NavRoute = {
 // Was mit einem Spot schon passiert ist. Bewusst drei Zustände und keine zwei Booleans:
 // "war der Knopf schon da" und "ist er vorbei" gehören zusammen, sonst gibt es den
 // vierten, unmöglichen Fall.
-export type SpotPhase = "open" | "near" | "done";
+// "pending" = in Reichweite, aber der Play-Knopf wartet noch (Sperrzone vor einer
+// Abbiegung). Ohne diesen Zwischenschritt ging der Spot verloren: Der Uebergang zu "near"
+// war blockiert, wurde nirgends gemerkt, und der Spot lief stumm von "open" auf "done".
+export type SpotPhase = "open" | "pending" | "near" | "done";
 
 export type NavState = {
   alongM: number;
@@ -236,25 +244,53 @@ export function stepNav(
   const spotPhase = [...state.spotPhase];
 
   // ——— Audio-Spots ——————————————————————————————————————————————————————————
-  // Der Play-Knopf wartet, solange gleich eine Abbiegung kommt (MANEUVER_QUIET_M). Der
-  // Spot bleibt dabei "open" und wird beim nächsten Fix erneut geprüft; verloren geht er
-  // erst, wenn er wirklich hinter uns liegt.
+  // Der Play-Knopf wartet, solange gleich eine Abbiegung kommt (Sicherheitsregel docs/40).
+  // "arrive" zählt dabei NICHT als Abbiegung: Ankommen ist nichts, in das man einfährt,
+  // aber der Schritt steht am Ende jeder Route und deckte damit ihre letzten 140 m zu.
+  // Weil bike-directions.ts den letzten Spot per Definition auf die Routenlänge legt,
+  // wurde der letzte Spot JEDER Runde nie angeboten.
+  const step = stepIndex >= 0 ? route.steps[stepIndex] : null;
   const maneuverClose =
-    distanceToManeuverM != null && distanceToManeuverM <= NAV.MANEUVER_QUIET_M;
+    step != null &&
+    step.type !== "arrive" &&
+    distanceToManeuverM != null &&
+    distanceToManeuverM <= NAV.MANEUVER_QUIET_M;
 
+  // 1. Was hinter uns liegt, ist erledigt, gehört oder nicht.
   for (let i = 0; i < spotPhase.length; i++) {
     const spotAt = route.spotAlongM[i];
     if (spotAt == null) continue;
-    const ahead = spotAt - alongM; // negativ = schon vorbei
-
-    if (spotPhase[i] !== "done" && ahead < -NAV.SPOT_PASSED_M) {
+    // Ein vorgemerkter Spot, der nie angeboten werden konnte, bekommt mehr Zeit.
+    const behindLimit = spotPhase[i] === "pending" ? NAV.SPOT_GRACE_M : NAV.SPOT_PASSED_M;
+    if (spotPhase[i] !== "done" && spotAt - alongM < -behindLimit) {
       spotPhase[i] = "done";
       events.push({ type: "spot-passed", index: i });
-      continue;
     }
-    if (spotPhase[i] === "open" && ahead <= NAV.SPOT_NEAR_M && !maneuverClose) {
-      spotPhase[i] = "near";
-      events.push({ type: "spot-near", index: i });
+  }
+
+  // 2. Was in Reichweite kommt, wird vorgemerkt. Auch während einer Sperrzone: Der
+  //    gemerkte Zustand ist genau das, was vorher fehlte. Vorher blieb der Spot "open",
+  //    die Sperrzone hielt bis hinter ihn an, und er lief stumm auf "done".
+  for (let i = 0; i < spotPhase.length; i++) {
+    const spotAt = route.spotAlongM[i];
+    if (spotAt == null) continue;
+    // Auch Spots, die schon knapp hinter uns liegen: Wer in der Sperrzone an einem
+    // vorbeigefahren ist, soll ihn noch angeboten bekommen (SPOT_GRACE_M oben).
+    if (spotPhase[i] === "open" && spotAt - alongM <= NAV.SPOT_NEAR_M) {
+      spotPhase[i] = "pending";
+    }
+  }
+
+  // 3. Angeboten wird HÖCHSTENS EINER je Schritt, und zwar der nächstgelegene (die
+  //    Offsets sind aufsteigend, also der erste vorgemerkte). Zwei Angebote in einem
+  //    Schritt kann die Oberfläche gar nicht zeigen: Sie hat einen Streifen, das zweite
+  //    überschrieb das erste, und der übergangene Spot konnte nie wieder auslösen.
+  //    Solange noch ein Angebot offen steht, rückt der nächste nicht nach.
+  if (!maneuverClose && !spotPhase.includes("near")) {
+    const next = spotPhase.findIndex((p) => p === "pending");
+    if (next >= 0) {
+      spotPhase[next] = "near";
+      events.push({ type: "spot-near", index: next });
     }
   }
 

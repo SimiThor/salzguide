@@ -72,6 +72,24 @@ export default function BikeNavScreen({ tour }: { tour: TourDetail }) {
   const audio = useTourAudio(playerStops, activeAudioIndex, setActiveAudioIndex);
   const [detailsOpen, setDetailsOpen] = useState(false);
 
+  // Was WIRKLICH gehört wurde, getrennt mitgeschrieben. Der Kern kennt den Player bewusst
+  // nicht, und seine Phase "done" heisst nur "vorbeigefahren, gehört oder nicht". Der
+  // Abschluss zählte bisher diese Phasen und behauptete damit Gehörtes, das nie lief.
+  // Schlimmer: Bei einer Neuberechnung fallen die erledigten Spots aus der Liste, der
+  // Zähler fiel danach auf null. Diese Menge hängt an den Tour-Indizes und übersteht das.
+  //
+  // An der playing-Flanke eingetragen, nicht am Indexwechsel: useTourAudio schaltet beim
+  // Ende einer Geschichte selbst auf den nächsten Stopp weiter, der wäre sonst mitgezählt.
+  const [heard, setHeard] = useState<Set<number>>(() => new Set());
+  useEffect(() => {
+    if (!audio.playing) return;
+    // Über eine Microtask-Grenze, kein synchrones setState im Effekt-Body (dasselbe
+    // Muster wie die gespeicherte Saison in Explore.tsx).
+    void Promise.resolve().then(() => {
+      setHeard((prev) => (prev.has(activeAudioIndex) ? prev : new Set(prev).add(activeAudioIndex)));
+    });
+  }, [audio.playing, activeAudioIndex]);
+
   // Eine lange Ausfahrt kann die 2h-Gültigkeit der signierten Audio-URLs überschreiten:
   // vor einer SPÄTEN Wiedergabe einmal frische URLs vom Server holen, statt an Stopp 8 in
   // ein stilles 403 zu laufen. `router.refresh()` holt den Server-Teil neu; der
@@ -129,7 +147,7 @@ export default function BikeNavScreen({ tour }: { tour: TourDetail }) {
   const totalM = bike.route?.distanceM ?? 0;
   const progress = totalM > 0 ? Math.min(1, Math.max(0, bike.nav.alongM / totalM)) : 0;
 
-  const heardCount = bike.nav.spotPhase.filter((p) => p === "done").length;
+  const heardCount = heard.size;
 
   // Sollte praktisch nie vorkommen (das Publish-Gate verlangt mindestens einen
   // veröffentlichten Punkt), aber eine Runde ohne jede Koordinate darf die Navigation

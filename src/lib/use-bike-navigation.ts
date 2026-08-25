@@ -224,7 +224,21 @@ export function useBikeNavigation(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fix]);
 
-  const dismissOffer = useCallback(() => setOfferedSpotId(null), []);
+  // Wegtippen hakt den Spot im Kern ab, statt nur das Angebot zu leeren. Sonst bliebe
+  // seine Phase auf "near" stehen, und weil der Kern hoechstens EIN Angebot gleichzeitig
+  // offen laesst, koennte danach kein weiterer Spot mehr nachruecken. "done" heisst hier
+  // "abgehakt", nicht "gehoert" – gezaehlt wird das Gehoerte getrennt (BikeNavScreen).
+  const dismissOffer = useCallback(() => {
+    const id = offeredSpotId;
+    setOfferedSpotId(null);
+    if (id == null) return;
+    const pos = spotIdsRef.current.indexOf(id);
+    if (pos < 0) return;
+    const phases = [...navRef.current.spotPhase];
+    phases[pos] = "done";
+    navRef.current = { ...navRef.current, spotPhase: phases };
+    setNavSnapshot(navRef.current);
+  }, [offeredSpotId, spotIdsRef]);
 
   const clearFinished = useCallback(() => {
     navRef.current = { ...navRef.current, finished: false, finishStreak: 0 };
