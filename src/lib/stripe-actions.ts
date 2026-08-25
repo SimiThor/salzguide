@@ -7,6 +7,7 @@ import type Stripe from "stripe";
 import { createClient } from "./supabase/server";
 import { createServiceClient } from "./supabase/service";
 import { stripe, proPriceId, stripeTaxEnabled, stripeLocale } from "./stripe";
+import { safeTourSlug } from "./url";
 import { siteUrl } from "./site-url";
 import { safeLocale } from "@/i18n/locales";
 import {
@@ -66,6 +67,15 @@ const CHECKOUT_MAX_PER_WINDOW = 8;
 export async function createCheckoutSession(
   locale: string,
   consent: boolean,
+  // Slug der Runde, in die der Käufer zurück soll. Nur der Slug, kein Pfad: Den baut der
+  // Server daraus selbst (safeTourSlug in lib/url.ts erklärt, warum das der Unterschied
+  // zwischen einer Rückkehr und einer offenen Weiterleitung ist).
+  //
+  // WARUM ES DAS BRAUCHT: Der Kauf im Fahrbetrieb passiert mitten in einer laufenden Runde.
+  // Bis 25.08.2026 endete jeder Kauf fest auf /pro, egal wo er begonnen hatte. Auf dem Rad
+  // heisst das: Karte weg, Route weg, Ortung weg, und die Navigation muss neu gestartet
+  // werden. Wer bezahlen wollte, verlor dafür seine Fahrt.
+  returnTour?: string | null,
 ): Promise<{ ok: false; error: string }> {
   if (!stripe) return { ok: false, error: "unconfigured" };
   const priceId = proPriceId();
@@ -125,6 +135,7 @@ export async function createCheckoutSession(
     // Käufer nach der Zahlung zurückschickt. Auf Vercel liefert siteUrl() denselben Wert,
     // nur eben aus einer Quelle, die niemand von aussen setzen kann.
     const origin = siteUrl();
+    const zurueckZu = safeTourSlug(returnTour);
 
     // Der Kauf-Nachweis. Der Klartext geht als httpOnly-Cookie in den Browser des Käufers,
     // nur der Hash reist mit der Stripe-Session. Beim Rücksprung müssen beide zusammen
@@ -141,6 +152,10 @@ export async function createCheckoutSession(
       locale: stripeLocale(lang),
       // §18-FAGG-Zustimmung als Nachweis in den Metadaten festhalten (Audit-Trail).
       metadata: {
+        // Der Rücksprung reist in den METADATEN mit, nicht in der Adresse. Sie werden hier
+        // serverseitig gesetzt und sind danach nicht mehr veränderbar; eine Adresse, die
+        // über Stripe und zurück läuft, wäre unterwegs anfassbar.
+        ...(zurueckZu ? { return_tour: zurueckZu } : {}),
         withdrawal_waiver_consent: "true",
         withdrawal_waiver_at: new Date().toISOString(),
         // Die Sprache des Käufers reist mit der Zahlung mit.
@@ -165,7 +180,11 @@ export async function createCheckoutSession(
       // Cookies setzen, und genau das ist hier die Arbeit (freischalten + einloggen). Er
       // leitet danach ohne session_id in der Adresse weiter.
       success_url: `${origin}${lp}/pro/aktivieren?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${origin}${lp}/pro?checkout=cancel`,
+      // Abbruch führt dorthin zurück, wo der Kauf begonnen hat. Wer an der Kasse "zurück"
+      // drückt, will weiterfahren, nicht auf einer Verkaufsseite landen.
+      cancel_url: zurueckZu
+        ? `${origin}${lp}/touren/${zurueckZu}/navigation?checkout=cancel`
+        : `${origin}${lp}/pro?checkout=cancel`,
     };
 
     if (user && customerId) {

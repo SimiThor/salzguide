@@ -26,10 +26,19 @@ import { Spinner } from "@/components/Busy";
 export default function ProPurchase({
   price,
   className = "",
+  returnTour = null,
 }: {
   /** Kommt serverseitig aus Stripe. Leer = Kauf gerade nicht möglich. */
   price: string;
   className?: string;
+  /**
+   * Slug der Runde, aus der der Kauf kommt. Gesetzt heisst: Nach dem Bezahlen geht es dorthin
+   * zurück statt auf /pro. Nur der Slug, den Pfad baut der Server (siehe safeTourSlug).
+   *
+   * Ohne das endet ein Kauf im Fahrbetrieb auf der Verkaufsseite, und der Gast steht mit
+   * einem Rad an der Strasse und ohne Navigation da.
+   */
+  returnTour?: string | null;
 }) {
   const t = useTranslations("Pro");
   const locale = useLocale();
@@ -49,7 +58,7 @@ export default function ProPurchase({
     start(async () => {
       // Klappt es, kehrt die Aktion NIE zurück: Sie leitet serverseitig zu Stripe weiter
       // (siehe stripe-actions.ts). Alles, was hier ankommt, ist ein Fehler.
-      const r = await createCheckoutSession(locale, true);
+      const r = await createCheckoutSession(locale, true, returnTour);
       started.current = false;
       setErr(
         r.error === "unconfigured" || r.error === "no_price"
@@ -63,7 +72,7 @@ export default function ProPurchase({
                 : t("error"),
       );
     });
-  }, [locale, t]);
+  }, [locale, t, returnTour]);
 
   function onBuy() {
     if (pending) return;

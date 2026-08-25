@@ -43,3 +43,22 @@ export function safeHref(url: string | null | undefined): string | null {
     return null;
   }
 }
+
+/**
+ * Ein Tour-Slug, dem wir zutrauen, in einen Pfad eingesetzt zu werden. Kein Pfad, kein Link,
+ * NUR der Slug.
+ *
+ * WARUM SO ENG: Nach dem Bezahlen soll der Gast dorthin zurück, wo er aufgehört hat, also in
+ * seine laufende Runde. Der naheliegende Weg wäre, den Zielpfad mitzuschicken. Genau das ist
+ * eine offene Weiterleitung: Wer den Parameter setzen kann, schickt den frisch bezahlten
+ * Käufer auf eine fremde Seite, die aussieht wie unsere und nach seinen Zugangsdaten fragt.
+ *
+ * Deshalb reist hier nur ein Slug mit, und den Pfad baut der Server daraus selbst. Ein Wert,
+ * der diese Prüfung besteht, kann den Pfad gar nicht verlassen: keine Schrägstriche, keine
+ * Punkte, keine Doppelpunkte, keine Prozentzeichen, kein Backslash.
+ */
+export function safeTourSlug(slug: string | null | undefined): string | null {
+  if (!slug) return null;
+  const trimmed = slug.trim().toLowerCase();
+  return /^[a-z0-9][a-z0-9-]{0,79}$/.test(trimmed) ? trimmed : null;
+}
