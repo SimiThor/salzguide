@@ -165,7 +165,14 @@ for (const [i, s] of SPOTS.entries()) {
     if (alt && !NEU_VERTONEN) return alt;
     const r = await synthesizeVoice({ text: txt, lang: "de", kind });
     if (!r.ok) throw new Error(`Vertonung (${was}) fehlgeschlagen: ${r.error}`);
-    log(`     ${was}: ${r.path} (${Math.round(r.bytes / 1024)} kB)`);
+    // Die ersetzte Datei gleich wegräumen. Sonst sammelt jeder FORCE_TTS-Lauf Waisen im
+    // Bucket an, die niemand mehr zuordnen kann, weil der Name nur eine UUID ist.
+    if (alt) {
+      const { error } = await db.storage.from("tour-audio").remove([alt]);
+      log(`     ${was}: ${r.path} (${Math.round(r.bytes / 1024)} kB), alt ${error ? "NICHT" : ""} gelöscht: ${alt}`);
+    } else {
+      log(`     ${was}: ${r.path} (${Math.round(r.bytes / 1024)} kB)`);
+    }
     return r.path;
   };
 

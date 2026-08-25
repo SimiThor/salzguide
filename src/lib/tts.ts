@@ -23,12 +23,29 @@ const ELEVEN_MODEL = "eleven_multilingual_v2"; // EINE Stimme spricht ALLE Sprac
 function elevenVoiceId(lang: string): string {
   // Optional pro Sprache überschreibbar via ELEVENLABS_VOICE_ID_<LANG> (z. B. _EN, _FR).
   const base = process.env.ELEVENLABS_VOICE_ID || "21m00Tcm4TlvDq8ikWAM";
-  const perLang = process.env[`ELEVENLABS_VOICE_ID_${lang.toUpperCase()}`];
-  return (perLang || base).trim();
+  // `trim()` erst NACH der Prüfung: Eine Variable, die nur aus Leerzeichen besteht, ergäbe
+  // sonst eine leere Stimmen-ID und damit eine kaputte Adresse. So faellt sie auf die Basis
+  // zurueck, wie in der urspruenglichen Fassung.
+  const perLang = process.env[`ELEVENLABS_VOICE_ID_${lang.toUpperCase()}`]?.trim();
+  return perLang || base;
 }
 
+/**
+ * Zahl aus einer Umgebungsvariable, mit Grenzen und Standardwert.
+ *
+ * DER LEERE STRING IST DER GANZE PUNKT. `Number("")` ist 0, nicht NaN, und
+ * `Number.isFinite(0)` ist wahr. Eine Variable, die in .env.local zwar dasteht, aber ohne
+ * Wert (`ELEVENLABS_SPEED=`), kam damit als 0 an, und der Standardwert griff nie.
+ *
+ * Gehört hat man das sofort: stability 0 statt 0,55 laesst die Stimme driften und stocken,
+ * similarity 0 statt 0,75 heisst, sie haelt sich gar nicht an die geklonte Stimme, und
+ * speed wurde auf die Untergrenze 0,7 geklemmt statt auf 0,9. Zu langsam, fremder Akzent,
+ * mitten im Satz die Sprache gewechselt. Eine leere Variable ist NICHT GESETZT.
+ */
 function clampNum(v: string | undefined, fallback: number, lo: number, hi: number): number {
-  const n = Number(v);
+  const roh = v?.trim();
+  if (!roh) return fallback;
+  const n = Number(roh);
   return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : fallback;
 }
 
