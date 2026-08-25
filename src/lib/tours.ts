@@ -3,6 +3,7 @@ import { viewerCanSeePro } from "./spots";
 import { cleanRouteGeo } from "./tour-route";
 import { translationStatus } from "./spot-hash";
 import { routing } from "@/i18n/routing";
+import { tourModeOf, type TourMode } from "./tour-mode";
 import type { TourDetail, TourStopView, TourSummary } from "./tour-types";
 
 // Datenschicht für Audio-Touren (POOL-Modell): eine kuratierte Runde besteht aus
@@ -23,15 +24,20 @@ function pickTr<T extends TrRow>(rows: T[] | null | undefined, lang: string): T 
 // Öffentliche Tour-Liste (Kacheln). Nur Struktur/Meta, kein Audio.
 export async function getPublishedTours(locale: string): Promise<TourSummary[]> {
   const supabase = createServiceClient();
-  const { data, error } = await supabase
-    .from("tours")
-    .select(
-      "slug, region, emoji, cover_url, is_pro, free_stops, duration_min, distance_km, sort_order, " +
-        "tour_translations(lang, title, subtitle), tour_stops(tour_points(status))",
-    )
-    .eq("status", "published")
-    .order("sort_order", { ascending: true })
-    .order("created_at", { ascending: true }); // sort_order ist überall 0 -> ohne Zweitschlüssel wäre die Reihenfolge Postgres-Zufall
+  // `mode` kommt erst mit Migration 0064. Fehlt sie, darf die Tourenliste nicht
+  // ausfallen -> zweiter Versuch ohne die Spalte (Muster wie in getTourDetail).
+  const listCols =
+    "slug, region, emoji, cover_url, is_pro, free_stops, duration_min, distance_km, sort_order, " +
+    "tour_translations(lang, title, subtitle), tour_stops(tour_points(status))";
+  const q = (cols: string) =>
+    supabase
+      .from("tours")
+      .select(cols)
+      .eq("status", "published")
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: true }); // sort_order ist überall 0 -> ohne Zweitschlüssel wäre die Reihenfolge Postgres-Zufall
+  let { data, error } = await q(`${listCols}, mode`);
+  if (error) ({ data, error } = await q(listCols));
   if (error || !data) return [];
 
   return (data as unknown as Record<string, unknown>[]).map((t) => {
@@ -55,11 +61,9 @@ export async function getPublishedTours(locale: string): Promise<TourSummary[]> 
       freeStops: (t.free_stops as number) ?? 0,
       durationMin: (t.duration_min as number | null) ?? null,
       distanceKm: (t.distance_km as number | null) ?? null,
-      // Es gibt in der DB (noch) keine Fortbewegungsart – jede echte Runde ist eine
-      // Geh-Tour. Der Wert existiert nur, weil TourSummary ihn (für den S-Bike-
-      // Navigation-Screen) verlangt; siehe lib/test-sbike-tour.ts für die einzige
-      // Stelle, an der eine Runde bewusst als "bike" markiert wird.
-      mode: "walk",
+      // Fortbewegungsart aus der DB (0064). Ohne die Spalte (Fallback-Abfrage oben)
+      // ist der Wert undefined -> "walk", denn jede bestehende Runde ist eine Geh-Tour.
+      mode: tourModeOf(t.mode),
     };
   });
 }
@@ -78,7 +82,10 @@ export async function getTourDetail(
   const baseCols =
     "id, slug, region, emoji, cover_url, is_pro, free_stops, duration_min, distance_km, " +
     "tour_translations(lang, title, subtitle, description)";
-  const routeCols = "start_lat, start_lng, end_lat, end_lng, route_geo";
+  // Neue Spalten, die es je nach Migrationsstand noch nicht gibt: Route (0061) und
+  // Fortbewegungsart (0064). Schlägt die Abfrage deshalb fehl, greift der zweite
+  // Versuch mit baseCols allein.
+  const routeCols = "start_lat, start_lng, end_lat, end_lng, route_geo, mode";
   const withRoute = await supabase
     .from("tours")
     .select(`${baseCols}, ${routeCols}`)
@@ -228,9 +235,9 @@ export async function getTourDetail(
     freeStops,
     durationMin: (tt.duration_min as number | null) ?? null,
     distanceKm: (tt.distance_km as number | null) ?? null,
-    // Es gibt in der DB (noch) keine Fortbewegungsart – jede echte Runde ist eine
-    // Geh-Tour (siehe dieselbe Begründung bei getPublishedTours oben).
-    mode: "walk",
+    // Fortbewegungsart aus der DB (0064). Sie entscheidet, ob
+    // /touren/[slug]/navigation überhaupt ausgeliefert wird (docs/40).
+    mode: tourModeOf(tt.mode),
     stops,
     canSeePro,
     // Gesnappte Geh-Route + Start/Ziel (Migration 0061). Fehlen sie, zeichnet die
@@ -347,6 +354,7 @@ export type TourEditData = {
   isPro: boolean;
   freeStops: number;
   status: "draft" | "published";
+  mode: TourMode;
   durationMin: number | null;
   distanceKm: number | null;
   de: TourTextData;
@@ -372,7 +380,7 @@ export async function getTourForEdit(id: string): Promise<TourEditData | null> {
   const full = await supabase
     .from("tours")
     .select(
-      `${baseCols}, start_lat, start_lng, end_lat, end_lng, route_geo, route_hash, ` +
+      `${baseCols}, start_lat, start_lng, end_lat, end_lng, route_geo, route_hash, mode, ` +
         "tour_translations(lang, title, subtitle, description, source_hash)",
     )
     .eq("id", id)
@@ -440,6 +448,7 @@ export async function getTourForEdit(id: string): Promise<TourEditData | null> {
     isPro: Boolean(tt.is_pro),
     freeStops: (tt.free_stops as number) ?? 0,
     status: (tt.status as "draft" | "published") ?? "draft",
+    mode: tourModeOf(tt.mode),
     durationMin: (tt.duration_min as number | null) ?? null,
     distanceKm: (tt.distance_km as number | null) ?? null,
     de: build(DE),
