@@ -135,6 +135,7 @@
     "navDoneTitle": "Giro completato",
     "navDoneBody": "Hai ascoltato {heard} tappe su {total}.",
     "navDoneBack": "Torna al tour",
+    "navDoneContinue": "Continua a pedalare",
     "navOffline": "Al momento non raggiungibile – resta attivo l'ultimo percorso.",
     "navNoGps": "Nessun segnale GPS",
     "navDenied": "Accesso alla posizione negato – abilitalo nelle impostazioni.",
@@ -142,6 +143,9 @@
     "arrivedTitle": "Sei arrivato",
     "toNextStop": "Continua verso la prossima tappa",
     "navRemaining": "Alla meta",
+    "navNextStop": "Prossima tappa",
+    "navNextStopIn": "Prossima tappa tra {distance}",
+    "navToFinish": "Ritorno alla partenza",
     "navEta": "Arrivo tra"
   },
   "Water": {

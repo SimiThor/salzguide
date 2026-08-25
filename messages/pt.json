@@ -135,6 +135,7 @@
     "navDoneTitle": "Volta concluída",
     "navDoneBody": "Ouviste {heard} de {total} paragens.",
     "navDoneBack": "Voltar ao percurso",
+    "navDoneContinue": "Continuar a pedalar",
     "navOffline": "Sem ligação agora – a última rota continua ativa.",
     "navNoGps": "Sem sinal de GPS",
     "navDenied": "Acesso à localização negado – ative-o nas definições.",
@@ -142,6 +143,9 @@
     "arrivedTitle": "Chegaste",
     "toNextStop": "Seguir para a próxima paragem",
     "navRemaining": "Até ao destino",
+    "navNextStop": "Próxima paragem",
+    "navNextStopIn": "Próxima paragem em {distance}",
+    "navToFinish": "Regresso ao início",
     "navEta": "Chegada em"
   },
   "Water": {

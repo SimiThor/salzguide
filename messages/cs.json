@@ -135,6 +135,7 @@
     "navDoneTitle": "Okruh dokončen",
     "navDoneBody": "Poslechl sis {heard} z {total} zastávek.",
     "navDoneBack": "Zpět na trasu",
+    "navDoneContinue": "Pokračovat v jízdě",
     "navOffline": "Teď nedostupné – poslední trasa zůstává aktivní.",
     "navNoGps": "Žádný signál GPS",
     "navDenied": "Přístup k poloze zamítnut – povolte ho v nastavení.",
@@ -142,6 +143,9 @@
     "arrivedTitle": "Jsi na místě",
     "toNextStop": "Pokračovat k další zastávce",
     "navRemaining": "Do cíle",
+    "navNextStop": "Další zastávka",
+    "navNextStopIn": "Další zastávka za {distance}",
+    "navToFinish": "Zpět na start",
     "navEta": "Příjezd za"
   },
   "Water": {

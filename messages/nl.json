@@ -135,6 +135,7 @@
     "navDoneTitle": "Ronde voltooid",
     "navDoneBody": "Je hebt {heard} van {total} haltes gehoord.",
     "navDoneBack": "Terug naar de tour",
+    "navDoneContinue": "Verder fietsen",
     "navOffline": "Nu niet bereikbaar – laatste route blijft actief.",
     "navNoGps": "Geen gps-signaal",
     "navDenied": "Locatietoegang geweigerd – sta dit toe in de instellingen.",
@@ -142,6 +143,9 @@
     "arrivedTitle": "Je bent er",
     "toNextStop": "Verder naar de volgende stop",
     "navRemaining": "Tot bestemming",
+    "navNextStop": "Volgende halte",
+    "navNextStopIn": "Volgende halte over {distance}",
+    "navToFinish": "Terug naar de start",
     "navEta": "Aankomst over"
   },
   "Water": {

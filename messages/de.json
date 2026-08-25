@@ -178,6 +178,7 @@
     "navDoneTitle": "Runde geschafft",
     "navDoneBody": "{heard} von {total} Stationen gehört.",
     "navDoneBack": "Zurück zur Tour",
+    "navDoneContinue": "Weiterfahren",
     "navOffline": "Gerade nicht erreichbar – letzte Route bleibt aktiv.",
     "navNoGps": "Kein GPS-Signal",
     "navDenied": "Standortzugriff verweigert – bitte in den Einstellungen erlauben.",
@@ -185,6 +186,9 @@
     "arrivedTitle": "Angekommen",
     "toNextStop": "Weiter zur nächsten Station",
     "navRemaining": "Bis zum Ziel",
+    "navNextStop": "Nächster Halt",
+    "navNextStopIn": "Nächster Halt in {distance}",
+    "navToFinish": "Zurück zum Start",
     "navEta": "Ankunft in"
   },
   "Water": {

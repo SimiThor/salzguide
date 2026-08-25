@@ -135,6 +135,7 @@
     "navDoneTitle": "Boucle terminée",
     "navDoneBody": "Vous avez écouté {heard} étapes sur {total}.",
     "navDoneBack": "Retour au circuit",
+    "navDoneContinue": "Continuer à rouler",
     "navOffline": "Pas joignable pour l'instant – le dernier itinéraire reste actif.",
     "navNoGps": "Aucun signal GPS",
     "navDenied": "Accès à la position refusé – autorisez-le dans les réglages.",
@@ -142,6 +143,9 @@
     "arrivedTitle": "Tu es arrivé",
     "toNextStop": "Continuer vers le prochain arrêt",
     "navRemaining": "Jusqu'à l'arrivée",
+    "navNextStop": "Prochain arrêt",
+    "navNextStopIn": "Prochain arrêt dans {distance}",
+    "navToFinish": "Retour au départ",
     "navEta": "Arrivée dans"
   },
   "Water": {

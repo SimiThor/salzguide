@@ -135,6 +135,7 @@
     "navDoneTitle": "Kör teljesítve",
     "navDoneBody": "{total} megállóból {heard} szólalt meg.",
     "navDoneBack": "Vissza a túrához",
+    "navDoneContinue": "Tovább tekerek",
     "navOffline": "Most nem elérhető – az utolsó útvonal marad aktív.",
     "navNoGps": "Nincs GPS-jel",
     "navDenied": "A helymeghatározás le van tiltva – engedélyezd a beállításokban.",
@@ -142,6 +143,9 @@
     "arrivedTitle": "Megérkeztél",
     "toNextStop": "Tovább a következő állomáshoz",
     "navRemaining": "Célig",
+    "navNextStop": "Következő megálló",
+    "navNextStopIn": "Következő megálló {distance} múlva",
+    "navToFinish": "Vissza a rajthoz",
     "navEta": "Érkezés"
   },
   "Water": {

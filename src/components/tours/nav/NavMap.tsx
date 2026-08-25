@@ -187,8 +187,14 @@ export default function NavMap({
       el.classList.toggle("sg-pin--active", active);
       const inner = el.querySelector(".sg-marker") as HTMLElement | null;
       if (inner) {
-        inner.classList.toggle("sg-marker--num", !active);
-        inner.textContent = active ? "🏁" : String(s.order);
+        // Die Zielflagge gehört dem LETZTEN Stopp, nicht dem gerade angesteuerten. Vorher
+        // trug sie der aktive: Stand sie beim ersten Spot, las sich das wie "hier endet
+        // die Runde", also genau falsch herum. Der angesteuerte Stopp wird stattdessen
+        // hervorgehoben (sg-pin--active) und behält seine Nummer, damit man weiterhin
+        // sieht, der wievielte er ist.
+        const isLast = i === stops.length - 1;
+        inner.classList.toggle("sg-marker--num", !isLast);
+        inner.textContent = isLast ? "🏁" : String(s.order);
       }
     });
     // Marker von Stationen entfernen, die es nicht mehr gibt (sollte praktisch nie

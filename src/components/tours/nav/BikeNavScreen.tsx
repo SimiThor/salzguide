@@ -72,6 +72,24 @@ export default function BikeNavScreen({ tour }: { tour: TourDetail }) {
   const audio = useTourAudio(playerStops, activeAudioIndex, setActiveAudioIndex);
   const [detailsOpen, setDetailsOpen] = useState(false);
 
+  // Was WIRKLICH gehört wurde, getrennt mitgeschrieben. Der Kern kennt den Player bewusst
+  // nicht, und seine Phase "done" heisst nur "vorbeigefahren, gehört oder nicht". Der
+  // Abschluss zählte bisher diese Phasen und behauptete damit Gehörtes, das nie lief.
+  // Schlimmer: Bei einer Neuberechnung fallen die erledigten Spots aus der Liste, der
+  // Zähler fiel danach auf null. Diese Menge hängt an den Tour-Indizes und übersteht das.
+  //
+  // An der playing-Flanke eingetragen, nicht am Indexwechsel: useTourAudio schaltet beim
+  // Ende einer Geschichte selbst auf den nächsten Stopp weiter, der wäre sonst mitgezählt.
+  const [heard, setHeard] = useState<Set<number>>(() => new Set());
+  useEffect(() => {
+    if (!audio.playing) return;
+    // Über eine Microtask-Grenze, kein synchrones setState im Effekt-Body (dasselbe
+    // Muster wie die gespeicherte Saison in Explore.tsx).
+    void Promise.resolve().then(() => {
+      setHeard((prev) => (prev.has(activeAudioIndex) ? prev : new Set(prev).add(activeAudioIndex)));
+    });
+  }, [audio.playing, activeAudioIndex]);
+
   // Eine lange Ausfahrt kann die 2h-Gültigkeit der signierten Audio-URLs überschreiten:
   // vor einer SPÄTEN Wiedergabe einmal frische URLs vom Server holen, statt an Stopp 8 in
   // ein stilles 403 zu laufen. `router.refresh()` holt den Server-Teil neu; der
@@ -91,24 +109,34 @@ export default function BikeNavScreen({ tour }: { tour: TourDetail }) {
     start(); // MUSS synchron im Klick-Handler bleiben (siehe use-geolocation-watch.ts)
   };
 
-  // Play am Angebot: Der Player springt auf diesen Spot UND startet. Das ist die einzige
-  // Stelle, an der Audio von selbst losläuft, und sie hängt an einem echten Fingertipp.
-  const playOffered = useCallback(() => {
-    const id = bike.offeredSpotId;
-    if (id == null) return;
-    if (activeAudioIndex !== id) {
-      audio.go(id);
-      // go() wechselt die Quelle; der Start gehört in denselben Tastendruck, sonst
-      // verweigert iOS die Wiedergabe (kein Nutzergesten-Kontext mehr).
-      audio.toggle();
-      return;
-    }
-    audio.toggle();
-  }, [bike.offeredSpotId, activeAudioIndex, audio]);
 
   const showStartGate = gpsStatus === "idle" || gpsStatus === "denied" || gpsStatus === "unavailable";
 
-  const offeredStop = bike.offeredSpotId != null ? (geoStops[bike.offeredSpotId] ?? null) : null;
+  // Welcher Spot steht im Streifen? Normalerweise der angebotene. Läuft aber gerade eine
+  // Geschichte, gewinnt DIESE, auch wenn ihr Spot schon hinter uns liegt.
+  //
+  // Vorher verschwand der Streifen 100 m nach dem Spot (dort verbucht der Kern ihn als
+  // passiert), während das Audio weiterlief: Die Geschichte erzählte weiter, und es gab im
+  // ganzen Bildschirm keinen Pause-Knopf mehr. Eine dreiminütige Geschichte überlebt bei
+  // 18 km/h locker die 100 m, das war also der Normalfall und kein Randfall.
+  const shownSpotId =
+    bike.offeredSpotId ?? (audio.playing || audio.time > 0 ? activeAudioIndex : null);
+  const offeredStop = shownSpotId != null ? (geoStops[shownSpotId] ?? null) : null;
+
+  // Play am Angebot. Steht der Player schon auf diesem Spot, ist es ein einfaches
+  // Umschalten; sonst muss die Quelle im SELBEN Tastendruck mitwechseln (audio.playAt).
+  //
+  // Hier stand vorher go() gefolgt von toggle(). go() ist aber nur ein React-Zustands-
+  // wechsel, der erst im naechsten Render greift: toggle() sprach damit noch die ALTE
+  // Datei an, kurz lief die vorige Geschichte los, dann pausierte der Quellen-Effekt sie
+  // weg. Es blieb still, und der Gast haette ein zweites Mal tippen muessen -- bei
+  // 18 km/h ist der Spot dann vorbei. Nur der allererste Spot funktionierte.
+  const playOffered = useCallback(() => {
+    const id = shownSpotId;
+    if (id == null) return;
+    if (activeAudioIndex !== id) audio.playAt(id);
+    else audio.toggle();
+  }, [shownSpotId, activeAudioIndex, audio]);
   const nextRouteSpot = bike.nav.nextSpotIndex >= 0 ? bike.spotIds[bike.nav.nextSpotIndex] : -1;
   const nextStop = nextRouteSpot >= 0 ? (geoStops[nextRouteSpot] ?? null) : null;
 
@@ -119,7 +147,7 @@ export default function BikeNavScreen({ tour }: { tour: TourDetail }) {
   const totalM = bike.route?.distanceM ?? 0;
   const progress = totalM > 0 ? Math.min(1, Math.max(0, bike.nav.alongM / totalM)) : 0;
 
-  const heardCount = bike.nav.spotPhase.filter((p) => p === "done").length;
+  const heardCount = heard.size;
 
   // Sollte praktisch nie vorkommen (das Publish-Gate verlangt mindestens einen
   // veröffentlichten Punkt), aber eine Runde ohne jede Koordinate darf die Navigation
@@ -185,23 +213,22 @@ export default function BikeNavScreen({ tour }: { tour: TourDetail }) {
           {offeredStop && (
             <SpotOffer
               stop={offeredStop}
-              distanceM={bike.nav.distanceToNextSpotM}
+              distanceM={shownSpotId === bike.offeredSpotId ? bike.nav.distanceToNextSpotM : null}
               audio={audio}
-              isCurrent={activeAudioIndex === bike.offeredSpotId}
+              isCurrent={activeAudioIndex === shownSpotId}
               onPlay={playOffered}
               onDismiss={bike.dismissOffer}
               onOpenDetails={() => setDetailsOpen(true)}
             />
           )}
 
-          {nextStop && (
-            <NextStopBar
-              stopEmoji={nextStop.emoji}
-              stopTitle={nextStop.title}
-              distanceM={bike.nav.remainingM}
-              etaMin={etaMin}
-            />
-          )}
+          <NextStopBar
+            stopEmoji={nextStop?.emoji ?? null}
+            stopTitle={nextStop?.title ?? null}
+            toStopM={bike.nav.distanceToNextSpotM}
+            remainingM={bike.nav.remainingM}
+            etaMin={etaMin}
+          />
         </div>
       )}
 
@@ -221,6 +248,17 @@ export default function BikeNavScreen({ tour }: { tour: TourDetail }) {
             >
               {t("navDoneBack")}
             </Link>
+            {/* Der Ausweg. Ohne ihn war jeder Fehlalarm ein Totalausfall mitten auf dem
+                Rad: Der Vorhang legte sich ueber die ganze Fuehrung und der einzige Knopf
+                fuehrte aus der Navigation heraus. Der Kern entscheidet inzwischen
+                entprellt und plausibel, aber unfehlbar ist kein Verfahren. */}
+            <button
+              type="button"
+              onClick={bike.clearFinished}
+              className="w-full rounded-full px-5 py-2.5 text-[14px] font-semibold text-muted transition active:scale-[0.98]"
+            >
+              {t("navDoneContinue")}
+            </button>
           </div>
         </div>
       )}
