@@ -4,7 +4,6 @@ import { setRequestLocale } from "next-intl/server";
 import { getTourDetail } from "@/lib/tours";
 import { alternatesFor, ogFor } from "@/lib/metadata";
 import TourView from "@/components/tours/TourView";
-import { getTestSBikeTour, TEST_SBIKE_SLUG } from "@/lib/test-sbike-tour";
 
 export async function generateMetadata({
   params,
@@ -35,11 +34,7 @@ export default async function TourPage({
 }) {
   const { locale, slug } = await params;
   setRequestLocale(locale);
-  // TESTHAKEN (lib/test-sbike-tour.ts): eigene, erfundene S-Bike-Runde ohne DB-Zeile.
-  const tour =
-    slug === TEST_SBIKE_SLUG
-      ? await getTestSBikeTour(locale)
-      : await getTourDetail(slug, locale); // Audio ist bereits serverseitig gegated
+  const tour = await getTourDetail(slug, locale); // Audio ist bereits serverseitig gegated
   if (!tour) notFound();
   return <TourView tour={tour} />;
 }

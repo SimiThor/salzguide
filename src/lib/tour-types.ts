@@ -46,7 +46,6 @@ export type TourSummary = {
   // Fortbewegungsart: walk = bestehende Geh-Tour, bike = S-Bike-Runde mit eigenem
   // Navigation-Screen statt manueller Stopp-Auswahl. KEINE Datenbank-Spalte (siehe
   // lib/tour-mode.ts) – jede echte Runde ist "walk", "bike" kommt bisher nur aus der
-  // fest verdrahteten Testrunde (lib/test-sbike-tour.ts).
   mode: TourMode;
 };
 

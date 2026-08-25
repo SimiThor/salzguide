@@ -133,6 +133,8 @@
     "navHere": "Sei qui",
     "navTeaser": "{seconds} secondi gratis",
     "navThen": "poi",
+    "navAllStops": "Tutte le tappe",
+    "navHeard": "ascoltata",
     "navDismiss": "Nascondi",
     "navDoneTitle": "Giro completato",
     "navDoneBody": "Hai ascoltato {heard} tappe su {total}.",

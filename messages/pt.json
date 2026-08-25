@@ -133,6 +133,8 @@
     "navHere": "Estás aqui",
     "navTeaser": "{seconds} segundos grátis",
     "navThen": "depois",
+    "navAllStops": "Todas as paragens",
+    "navHeard": "ouvido",
     "navDismiss": "Ocultar",
     "navDoneTitle": "Volta concluída",
     "navDoneBody": "Ouviste {heard} de {total} paragens.",

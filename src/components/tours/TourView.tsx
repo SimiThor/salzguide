@@ -203,9 +203,7 @@ export default function TourView({
           </h2>
           {/* S-Bike-Runden: Chip zur Unterscheidung + Sprung in den eigenen Navigation-
               Screen. Bewusst IMMER sichtbar (auch gesperrt) – die Navigation selbst
-              kostet nichts, nur das Audio an den Stopps ist Pro (Migration 0029). Es
-              gibt (noch) keine echte S-Bike-Runde in der DB – tour.mode kommt bisher
-              nur aus der fest verdrahteten Testrunde (lib/test-sbike-tour.ts). */}
+              kostet nichts, nur das Audio an den Stopps ist Pro (Migration 0029). */}
           {tour.mode === "bike" && (
             <div className="mt-3 space-y-2.5">
               <span className="inline-flex items-center gap-1 rounded-full bg-black/5 px-2.5 py-1 text-[11px] font-semibold text-ink">

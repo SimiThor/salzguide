@@ -80,6 +80,22 @@ const SPOTS: Spot[] = [
 ];
 
 const log = (s: string) => console.log(s);
+
+// Ein bestehender Status wird NIE ueberschrieben. Nur eine neue Zeile faengt als Entwurf an.
+//
+// WARUM DAS EINE EIGENE FUNKTION IST: Das Skript ist idempotent gedacht, und genau deshalb
+// laeuft es auch, wenn die Runde laengst veroeffentlicht ist, etwa um neu zu vertonen. Bis
+// 25.08.2026 schrieb es dabei `status: "draft"` mit und nahm die Runde stillschweigend vom
+// Netz. Aufgefallen ist es nur, weil die Schlusszeile "Alles ist ENTWURF" behauptete,
+// waehrend die Runde vorher live war.
+async function statusBehalten(
+  tabelle: "tours" | "tour_areas" | "tour_points",
+  spalte: "slug" | "key" | "id",
+  wert: string,
+): Promise<"draft" | "published"> {
+  const r = await db.from(tabelle).select("status").eq(spalte, wert).maybeSingle();
+  return ((r.data as { status?: string } | null)?.status as "draft" | "published") ?? "draft";
+}
 // Rund 130 Woerter je Minute, ruhig gesprochen. Nur fuer die Anzeige, nicht fuer die Steuerung.
 const sekunden = (t: string) => Math.round((t.split(/\s+/).length / 130) * 60);
 
@@ -89,7 +105,7 @@ const { data: areaRow, error: areaErr } = await db
   .upsert(
     {
       key: AREA_KEY,
-      status: "draft",
+      status: await statusBehalten("tour_areas", "key", AREA_KEY),
       start_lat: HANUSCHPLATZ.lat,
       start_lng: HANUSCHPLATZ.lng,
       emoji: "🚲",
@@ -124,17 +140,18 @@ for (const p of (vorhanden ?? []) as { id: string; tour_point_translations: { la
 
 const pointIds: string[] = [];
 for (const [i, s] of SPOTS.entries()) {
+  let id = idNachTitel.get(s.titel);
   const felder = {
     area_id: areaId,
     lat: s.lat,
     lng: s.lng,
     kind: s.kind,
     emoji: s.emoji,
-    status: "draft" as const,
+    // Nur ein NEUER Punkt faengt als Entwurf an, ein bestehender behaelt seinen Status.
+    status: id ? await statusBehalten("tour_points", "id", id) : ("draft" as const),
     sort_order: i,
     weight: SPOTS.length - i,
   };
-  let id = idNachTitel.get(s.titel);
   if (id) {
     const { error } = await db.from("tour_points").update(felder).eq("id", id);
     if (error) throw error;
@@ -222,7 +239,7 @@ const tourRow = {
   emoji: "🚲",
   is_pro: true,
   free_stops: 2, // Gratis-Einstieg (docs/40): die ersten beiden Geschichten ohne Pro
-  status: "draft" as const,
+  status: await statusBehalten("tours", "slug", TOUR_SLUG),
   mode: "bike" as const,
   duration_min: durationMin,
   distance_km: distanceKm,
@@ -261,5 +278,6 @@ const { error: stopsErr } = await db
 if (stopsErr) throw stopsErr;
 log(`${pointIds.length} Stationen verknüpft`);
 
-log(`\nFertig. Alles ist ENTWURF, öffentlich sichtbar ist nichts.`);
+const endStatus = await statusBehalten("tours", "slug", TOUR_SLUG);
+log(`\nFertig. Status unverändert: ${endStatus === "published" ? "VERÖFFENTLICHT, öffentlich sichtbar" : "ENTWURF, öffentlich nicht sichtbar"}.`);
 log(`Ansehen: /admin/tours/${tourId}`);

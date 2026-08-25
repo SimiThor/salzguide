@@ -9,6 +9,7 @@ import NavMap, { type NavStopPoint } from "./NavMap";
 import ManeuverBanner from "./ManeuverBanner";
 import NextStopBar from "./NextStopBar";
 import ArrivalSheet from "./ArrivalSheet";
+import StopListSheet from "./StopListSheet";
 import SpotOffer from "./SpotOffer";
 import { useGeolocationWatch } from "@/lib/use-geolocation-watch";
 import { useWakeLock } from "@/lib/use-wake-lock";
@@ -142,8 +143,22 @@ export default function BikeNavScreen({
   // passiert), während das Audio weiterlief: Die Geschichte erzählte weiter, und es gab im
   // ganzen Bildschirm keinen Pause-Knopf mehr. Eine dreiminütige Geschichte überlebt bei
   // 18 km/h locker die 100 m, das war also der Normalfall und kein Randfall.
+  // Von Hand gewaehlter Stopp: Tipp auf einen Pin oder auf einen Eintrag in der Stoppliste.
+  //
+  // WARUM ES DEN GEBEN MUSS: Das automatische Angebot haengt an der Ortung. Steht der Gast
+  // in einer Haeuserschlucht, liegt sie in der Altstadt gemessen 11 bis 13 m daneben, und
+  // an einer Ampel kann sie ganz wegbleiben. Ohne einen Weg von Hand waere die Geschichte
+  // dann einfach nicht zu hoeren, obwohl der Gast direkt davor steht.
+  //
+  // Er hat VORRANG vor dem automatischen Angebot: Wer selbst tippt, hat gerade eine
+  // Absicht, und die darf ein Vorschlag nicht ueberschreiben.
+  const [manualSpotId, setManualSpotId] = useState<number | null>(null);
+  const [stopsOpen, setStopsOpen] = useState(false);
+
   const shownSpotId =
-    bike.offeredSpotId ?? (audio.playing || audio.time > 0 ? activeAudioIndex : null);
+    manualSpotId ??
+    bike.offeredSpotId ??
+    (audio.playing || audio.time > 0 ? activeAudioIndex : null);
   const offeredStop = shownSpotId != null ? (geoStops[shownSpotId] ?? null) : null;
 
   // Play am Angebot. Steht der Player schon auf diesem Spot, ist es ein einfaches
@@ -154,6 +169,22 @@ export default function BikeNavScreen({
   // Datei an, kurz lief die vorige Geschichte los, dann pausierte der Quellen-Effekt sie
   // weg. Es blieb still, und der Gast haette ein zweites Mal tippen muessen -- bei
   // 18 km/h ist der Spot dann vorbei. Nur der allererste Spot funktionierte.
+  // Tipp auf einen Pin: den Streifen fuer DIESEN Stopp zeigen, mehr nicht. Bewusst kein
+  // Autostart. Am Lenker soll nichts von selbst losreden, und docs/40 haelt das als Regel
+  // fest: Der Play-Knopf kommt, gedrueckt wird er vom Menschen.
+  const pickStop = useCallback((i: number) => {
+    setManualSpotId(i);
+    setStopsOpen(false);
+  }, []);
+
+  // Wegwischen raeumt beides ab: die eigene Wahl und das automatische Angebot. Sonst
+  // erschiene nach dem Wischen sofort wieder der automatisch angebotene Spot, und der
+  // Streifen liesse sich nicht schliessen.
+  const dismissShown = useCallback(() => {
+    setManualSpotId(null);
+    bike.dismissOffer();
+  }, [bike]);
+
   const playOffered = useCallback(() => {
     const id = shownSpotId;
     if (id == null) return;
@@ -192,6 +223,7 @@ export default function BikeNavScreen({
         fix={fix ? { lng: fix.lng, lat: fix.lat } : null}
         bearingDeg={bike.nav.bearingDeg}
         stops={navStopPoints}
+        onStopTap={pickStop}
         activeIndex={nextRouteSpot >= 0 ? nextRouteSpot : geoStops.length - 1}
         paddingBottom={offeredStop ? 240 : 190}
         recenterLabel={t("navRecenter")}
@@ -261,18 +293,29 @@ export default function BikeNavScreen({
               audio={audio}
               isCurrent={activeAudioIndex === shownSpotId}
               onPlay={playOffered}
-              onDismiss={bike.dismissOffer}
+              onDismiss={dismissShown}
               onOpenDetails={() => setDetailsOpen(true)}
             />
           )}
 
-          <NextStopBar
-            stopEmoji={nextStop?.emoji ?? null}
-            stopTitle={nextStop?.title ?? null}
-            toStopM={bike.nav.distanceToNextSpotM}
-            remainingM={bike.nav.remainingM}
-            etaMin={etaMin}
-          />
+          {/* Die Zielleiste ist zugleich der Weg zu ALLEN Stopps. Apple und Google Maps
+              machen es genauso: Die Leiste unten ist nicht nur Anzeige, sie geht auf. Ein
+              eigener Knopf daneben waere ein weiteres Ziel auf einem Bildschirm, auf dem
+              schon zu viel um Platz kaempft. */}
+          <button
+            type="button"
+            onClick={() => setStopsOpen(true)}
+            className="pointer-events-auto block w-full text-left"
+            aria-label={t("navAllStops")}
+          >
+            <NextStopBar
+              stopEmoji={nextStop?.emoji ?? null}
+              stopTitle={nextStop?.title ?? null}
+              toStopM={bike.nav.distanceToNextSpotM}
+              remainingM={bike.nav.remainingM}
+              etaMin={etaMin}
+            />
+          </button>
         </div>
       )}
 
@@ -339,6 +382,15 @@ export default function BikeNavScreen({
 
       {/* Das ausführliche Sheet gibt es weiterhin, aber NUR auf Tippen (Titel im
           Angebots-Streifen). Es springt nicht mehr von selbst auf. */}
+      <StopListSheet
+        open={stopsOpen}
+        onClose={() => setStopsOpen(false)}
+        stops={geoStops}
+        currentIndex={shownSpotId}
+        heard={heard}
+        onPick={pickStop}
+      />
+
       <ArrivalSheet
         open={detailsOpen && offeredStop != null}
         stop={offeredStop}

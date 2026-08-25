@@ -133,6 +133,8 @@
     "navHere": "You are here",
     "navTeaser": "{seconds} seconds free",
     "navThen": "then",
+    "navAllStops": "All stops",
+    "navHeard": "heard",
     "navDismiss": "Hide",
     "navDoneTitle": "Round complete",
     "navDoneBody": "You heard {heard} of {total} stops.",

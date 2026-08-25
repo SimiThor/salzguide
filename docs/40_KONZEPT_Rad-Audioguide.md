@@ -182,6 +182,31 @@ Fortschritt muss monoton werden. Ohne das springt eine Runde an ihren eigenen
 Kreuzungspunkten, das Ausgrauen wird falsch und Audio feuert am falschen Ort. Bei einer
 Salzburger Altstadtrunde ist das kein Randfall, sondern der Normalfall.
 
+## Zwei Wege zu jeder Geschichte, nicht einer
+
+Das automatische Angebot hängt an der Ortung, und die ist genau dort am schlechtesten, wo die
+Spots stehen: In der Altstadt liegt sie gemessen 11 bis 13 m daneben, an einer Ampel zwischen
+Häuserwänden kann sie ganz wegbleiben. Wäre das Angebot der einzige Weg, wäre die Geschichte
+dann nicht zu hören, obwohl der Gast direkt davor steht.
+
+Seit 25.08.2026 gibt es deshalb zwei Wege von Hand, beide nach dem Muster von Apple Maps und
+Google Maps, wo jeder Pin immer antippbar ist:
+
+1. **Tipp auf einen Pin.** Öffnet denselben Streifen wie das automatische Angebot.
+2. **Tipp auf die Zielleiste unten.** Öffnet die Liste aller Stopps, jeder anspielbar.
+
+Der zweite Weg ist der wichtigere, und das ist gemessen: Auf einem iPhone-Viewport war
+während der Fahrt **einer von sieben Pins im Bild**. Die Kamera folgt dem Fahrer, alles andere
+liegt außerhalb. Ein Weg, der nur über die Karte führt, wäre also für sechs von sieben Stopps
+gar keiner.
+
+Die Handauswahl hat VORRANG vor dem automatischen Angebot: Wer selbst tippt, hat gerade eine
+Absicht, und die darf ein Vorschlag nicht überschreiben. Und sie startet nichts von selbst.
+Der Play-Knopf kommt, gedrückt wird er vom Menschen.
+
+Die Bezahlgrenze bleibt dabei sichtbar und ehrlich: In der Liste steht bei den Gratis-Stopps
+die Dauer, bei den anderen „20 Sekunden gratis". Kein Schloss, keine graue Zeile.
+
 ## Die vier Phasen eines Audio-Spots
 
 Ein Spot durchläuft `open`, `pending`, `near`, `done`. Die dritte Phase ist der Grund, warum
@@ -414,9 +439,11 @@ oder zwei nötig sind, und der Widerrufsbutton nach § 13a FAGG ab 01.10.2026.
   Kreuzbergpromenade abbiegen"), und ein deutscher Straßenname hilft einem Gast aus Korea
   wenig. Ein sichtbarer Anker wäre besser ("nach der Brücke rechts"), aber den kennt nur,
   wer die Route zur Autorenzeit vor sich hat.
-- **Der Testhaken muss weg.** `lib/test-sbike-tour.ts`, `lib/test-sbike-slug.ts`, der
-  Footer-Link und die Aufrufstellen verschwinden, sobald es eine echte Runde in der Datenbank
-  gibt. ~~Dafür braucht `tours` eine Spalte für die Fortbewegungsart~~ **erledigt am
+- ~~**Der Testhaken muss weg.**~~ **erledigt am 25.08.2026.** `lib/test-sbike-tour.ts`,
+  `lib/test-sbike-slug.ts`, der Footer-Link und beide Aufrufstellen sind entfernt, sobald es
+  eine echte Runde in der Datenbank gab. Die Parsch-Runde war nie eine Runde, sondern eine
+  Attrappe mit erfundenen Stationen und geliehener Vertonung; sie stand nur, weil `mode`
+  sonst nirgends "bike" werden konnte. Vorher nötig war die Spalte: **ebenfalls erledigt am
   25.08.2026:** Migration 0064 legt das Enum `tour_mode` und die Spalte `tours.mode` an
   (Default `walk`), `lib/tours.ts` liest sie an allen drei Stellen statt hart "walk"
   zurückzugeben, und das Admin-Formular hat ein Feld "Fortbewegung". Alle Lesestellen fangen

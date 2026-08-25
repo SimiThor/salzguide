@@ -4,7 +4,6 @@ import { useTranslations } from "next-intl";
 import { Link, usePathname } from "@/i18n/navigation";
 import { LEGAL_LINKS } from "@/lib/legal-links";
 import { isFullscreenMapRoute } from "@/lib/routes";
-import { TEST_SBIKE_SLUG } from "@/lib/test-sbike-slug";
 import SocialLinks from "./SocialLinks";
 import PartnerCredits from "./PartnerCredits";
 
@@ -82,30 +81,6 @@ export default function LegalFooter() {
       {/* Partner-Nennung: Pflicht aus der Inhalte-Vereinbarung (lib/partners.ts). Auf den
           Vollbild-Karten, wo diese Fusszeile nicht rendert, tragen die Panels sie selbst. */}
       <PartnerCredits className="mt-10" />
-
-      {/* ═══ TESTHAKEN – NICHT DAUERHAFT (lib/test-sbike-tour.ts) ═══
-          Einziger Zugang zur S-Bike-Testrunde, bewusst NICHT in der normalen
-          Tourenliste: klein und blass, damit echte Nutzer nicht darüber stolpern,
-          aber real klickbar für den Test. Entfernen, sobald es eine echte S-Bike-
-          Runde gibt. */}
-      {/* Hier stand daneben ein zweiter Link "🗺️ Google Test" auf die Google-Maps-Fassung
-          derselben Navigation. Er ist am 24.08.2026 entfernt worden, und zwar nicht aus
-          Aufräumlust: Der Link stand auf JEDER Seite in allen 13 Sprachen, und die Zielseite
-          lud ein Skript von maps.googleapis.com in den Browser des Besuchers. Die Seite ist
-          aber nur deshalb bannerfrei, weil alles Fremde serverseitig läuft, und die
-          Datenschutzerklärung sagt genau das zu. Wer den Vergleich Mapbox gegen Google noch
-          einmal fahren will, tut das auf einem Vorschau-Deployment, nicht auf der
-          öffentlichen Seite. Der Google-Code selbst liegt weiter im Repo (components/tours/
-          nav/google/, lib/google-*.ts), ist ohne diesen Link aber von außen nicht erreichbar
-          und ohne die CSP-Einträge in next.config.ts auch nicht mehr lauffähig. */}
-      <span className="mt-6 flex items-center justify-center">
-        <Link
-          href={`/touren/${TEST_SBIKE_SLUG}`}
-          className="inline-block text-[10px] text-muted/30 transition-colors hover:text-muted"
-        >
-          🚲 Test
-        </Link>
-      </span>
     </footer>
   );
 }
