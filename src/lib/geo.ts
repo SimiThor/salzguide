@@ -491,3 +491,44 @@ export function nearestPointOnRoute(
   const alongM = cum[bestSeg] + bestT * segLen;
   return { segIndex: bestSeg, point, crossTrackM: bestDist, alongM };
 }
+
+/**
+ * Das Stueck einer Linie zwischen zwei Streckenmarken, in Metern ab Start.
+ *
+ * Gebraucht fuer die Fahransicht: Rot gezeichnet wird nur die AKTUELLE ETAPPE, von einem
+ * Halt zum naechsten, nicht die ganze Runde. Damit verschwindet der doppelt befahrene
+ * Uferkorridor aus dem Bild, solange er nicht dran ist, und die Linie kann sich nicht mehr
+ * selbst ueberlagern.
+ *
+ * Die Enden werden auf dem Segment interpoliert, nicht auf den naechsten Stuetzpunkt
+ * gerundet: Sonst ruckelte der Anfang der Etappe um bis zu einer Segmentlaenge.
+ */
+export function sliceAlong(
+  route: [number, number][],
+  fromM: number,
+  toM: number,
+): [number, number][] {
+  if (!route || route.length < 2) return route ?? [];
+  const cum = routeCumulativeMeters(route);
+  const total = cum[cum.length - 1];
+  const a = Math.max(0, Math.min(total, Math.min(fromM, toM)));
+  const b = Math.max(0, Math.min(total, Math.max(fromM, toM)));
+  if (b - a < 1) return [];
+
+  const punktBei = (m: number): [number, number] => {
+    let i = 1;
+    while (i < cum.length - 1 && cum[i] < m) i++;
+    const spanne = cum[i] - cum[i - 1];
+    const t = spanne > 0 ? (m - cum[i - 1]) / spanne : 0;
+    const p = route[i - 1];
+    const q = route[i];
+    return [p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t];
+  };
+
+  const out: [number, number][] = [punktBei(a)];
+  for (let i = 0; i < route.length; i++) {
+    if (cum[i] > a && cum[i] < b) out.push(route[i]);
+  }
+  out.push(punktBei(b));
+  return out;
+}

@@ -136,8 +136,7 @@
     "navAllStops": "Todas as paragens",
     "navHeard": "ouvido",
     "navDismiss": "Ocultar",
-    "navDoneTitle": "Volta concluída",
-    "navDoneBody": "Ouviste {heard} de {total} paragens.",
+    "navDoneTitle": "De volta ao início",
     "navDoneBack": "Voltar ao percurso",
     "navDoneContinue": "Continuar a pedalar",
     "navOffline": "Sem ligação agora – a última rota continua ativa.",
@@ -151,7 +150,8 @@
     "navNextStop": "Próxima paragem",
     "navNextStopIn": "Próxima paragem em {distance}",
     "navToFinish": "Regresso ao início",
-    "navEta": "Chegada em"
+    "navEta": "Chegada em",
+    "navEtaLabel": "Chegada"
   },
   "Water": {
     "title": "Temperaturas da água",

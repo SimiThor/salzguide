@@ -221,6 +221,57 @@ drückt, hebt sie auf.
 `pause()` ist dafür eine eigene Funktion im Player und nicht `toggle()`: Toggle STARTET,
 wenn gerade nichts läuft, und das ist beim Schliessen das Gegenteil dessen, was gemeint ist.
 
+## Warum die Karte fast leer ist
+
+Am 25.08.2026 hat Anton den Fahrbildschirm am eigenen Gerät gesehen und gesagt, er wisse
+nicht, wohin er fahren soll: mehrere rote Linien übereinander, kein erkennbarer Anfang.
+
+**Gemessen:** 2,44 von 9,59 km der Runde sind doppelt befahren, also 25 Prozent. Zwei
+Sackgassen (Nonnberg, Freisaal) und ein Uferkorridor, den sie zweimal benutzt. Auf diesen
+Metern lagen der ausgegraute gefahrene Teil und die rote Linie auf DENSELBEN Pixeln.
+
+Drei Änderungen, in der Reihenfolge ihrer Wirkung:
+
+1. **Der gefahrene Teil verschwindet, statt grau zu werden.** Mapbox' Standardwert für
+   `line-trim-color` ist `transparent` (nachgesehen im installierten Paket), wir hatten das
+   aktiv auf Grau überschrieben. Eine graue Linie ist immer noch eine Linie. Und weil der
+   Trim ENTLANG der Linie misst, löst sich damit auch jede Sackgasse von selbst: Sobald der
+   Gast herausfährt, ist der Hinweg Vergangenheit und verschwindet, während der Rückweg auf
+   derselben Straße stehenbleibt.
+2. **Rot ist nur die aktuelle Etappe**, von Halt zu Halt (`sliceAlong` in `geo.ts`). Der
+   zweite Durchgang durch denselben Korridor liegt in einer anderen Etappe und wird gar
+   nicht gezeichnet, solange er nicht dran ist. Rot ist damit eine Zusage für JETZT, und die
+   kann es nur einmal geben.
+3. **Die Form bleibt sichtbar**: die ganze Runde als blasse Haarlinie darunter, 1,5 px,
+   30 Prozent, ohne Trim, ändert sich nie. Zwei blasse Haarlinien übereinander sind eine
+   Kontur und kein Knäuel.
+
+Ausdrücklich NICHT gebaut: Richtungspfeile auf der Linie, Versatz für Hin- und Rückweg,
+Abdunkelung ausserhalb eines Korridors. Alle drei lösen ein Problem, das nach 1 und 2 nicht
+mehr existiert, und füllen den Bildschirm wieder.
+
+**Was sonst noch wegfiel**, nach dem Vorbild von Googles Fahransicht, die im Ruhezustand
+zwei Panels zeigt und sonst fast nichts:
+
+- Sechs von sieben nummerierten Pins. Nur der nächste Halt trägt eine Nummer, die anderen
+  sind ruhige Punkte, weiterhin antippbar mit voller Trefferfläche.
+- Eine von zwei Zahlen in der unteren Leiste. Der Restweg in Kilometern stand direkt neben
+  einer zweiten Entfernung; das ist dieselbe Verwechslung, die im Kopf von `NextStopBar.tsx`
+  schon einmal repariert wurde.
+- Der Tourtitel im Zurück-Knopf, eine breite Textfläche direkt neben dem Abbiege-Banner.
+- Die Zahl im Abschluss. „4 von 7 Stationen gehört" ist ersatzlos weg, samt Konfetti.
+  Silverman und Barasch haben 2023 im Journal of Consumer Research gemessen, dass nicht das
+  Auslassen demotiviert, sondern das ANZEIGEN des Auslassens: acht Prozentpunkte weniger
+  Weitermachen bei identischer Handlung. Der Titel ist jetzt eine Ortsangabe („Wieder am
+  Start"), die auch stimmt, wenn jemand bei Halt vier aufgehört hat.
+- Das automatische Verschwinden des Play-Streifens. Er bleibt, bis Play, X oder der nächste
+  Halt ihn ablöst. Wer an der Ampel steht und den Knopf schon weg findet, hat den Halt
+  verloren und weiss nicht warum.
+
+Dazu zwei Zahlen: `SPOT_NEAR_M` von 150 auf 200, weil bei einer Abbiegung im Angebotsfenster
+von 150 m nur 10 m nutzbar blieben. Und der Abschlussvorhang fällt erst, wenn die Runde
+wirklich durch ist, nicht schon beim ersten Ausreisser in Startnähe.
+
 ## Die vier Phasen eines Audio-Spots
 
 Ein Spot durchläuft `open`, `pending`, `near`, `done`. Die dritte Phase ist der Grund, warum

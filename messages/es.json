@@ -136,8 +136,7 @@
     "navAllStops": "Todas las paradas",
     "navHeard": "escuchado",
     "navDismiss": "Ocultar",
-    "navDoneTitle": "Ruta completada",
-    "navDoneBody": "Has escuchado {heard} de {total} paradas.",
+    "navDoneTitle": "De vuelta al inicio",
     "navDoneBack": "Volver a la ruta",
     "navDoneContinue": "Seguir pedaleando",
     "navOffline": "No disponible ahora mismo – sigue activa la última ruta.",
@@ -151,7 +150,8 @@
     "navNextStop": "Próxima parada",
     "navNextStopIn": "Próxima parada en {distance}",
     "navToFinish": "Vuelta al inicio",
-    "navEta": "Llegada en"
+    "navEta": "Llegada en",
+    "navEtaLabel": "Llegada"
   },
   "Water": {
     "title": "Temperaturas del agua",

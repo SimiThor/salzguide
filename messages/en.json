@@ -136,8 +136,7 @@
     "navAllStops": "All stops",
     "navHeard": "heard",
     "navDismiss": "Hide",
-    "navDoneTitle": "Round complete",
-    "navDoneBody": "You heard {heard} of {total} stops.",
+    "navDoneTitle": "Back at the start",
     "navDoneBack": "Back to the tour",
     "navDoneContinue": "Keep riding",
     "navOffline": "Not reachable right now – last route stays active.",
@@ -151,7 +150,8 @@
     "navNextStop": "Next stop",
     "navNextStopIn": "Next stop in {distance}",
     "navToFinish": "Back to the start",
-    "navEta": "Arriving in"
+    "navEta": "Arriving in",
+    "navEtaLabel": "Arrival"
   },
   "Water": {
     "title": "Water temperatures",

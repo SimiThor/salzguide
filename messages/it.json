@@ -136,8 +136,7 @@
     "navAllStops": "Tutte le tappe",
     "navHeard": "ascoltata",
     "navDismiss": "Nascondi",
-    "navDoneTitle": "Giro completato",
-    "navDoneBody": "Hai ascoltato {heard} tappe su {total}.",
+    "navDoneTitle": "Di nuovo al punto di partenza",
     "navDoneBack": "Torna al tour",
     "navDoneContinue": "Continua a pedalare",
     "navOffline": "Al momento non raggiungibile – resta attivo l'ultimo percorso.",
@@ -151,7 +150,8 @@
     "navNextStop": "Prossima tappa",
     "navNextStopIn": "Prossima tappa tra {distance}",
     "navToFinish": "Ritorno alla partenza",
-    "navEta": "Arrivo tra"
+    "navEta": "Arrivo tra",
+    "navEtaLabel": "Arrivo"
   },
   "Water": {
     "title": "Temperature dell'acqua",

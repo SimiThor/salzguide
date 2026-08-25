@@ -16,6 +16,11 @@ export const reducedMotion = () =>
 
 // IDs an einer Stelle, damit Aufbau und setTrim/setRouteOpacity nie auseinanderlaufen.
 export const ROUTE_SOURCE = "sg-route";
+// Eigene Quelle fuer die GANZE Runde als blasse Haarlinie. Getrennt von ROUTE_SOURCE, weil
+// die beiden Verschiedenes zeigen: Diese aendert sich nie, die andere zeigt nur die
+// aktuelle Etappe.
+export const SHAPE_SOURCE = "sg-round-shape";
+export const SHAPE_LAYER = "sg-round-shape-line";
 export const ROUTE_LAYER_OUT = "sg-route-out";
 export const ROUTE_LAYER_LINE = "sg-route-line";
 
@@ -92,8 +97,9 @@ export function setTrim(map: MapboxMap, p: number) {
 // Das Gegenstück zu setTrim() oben, und bewusst eine eigene Funktion: setTrim zeichnet
 // die Linie VON VORNE HEREIN (trim [p,1] blendet alles hinter p aus), das ist der
 // Einführungs-Effekt der Übersichtskarten. Im Fahrmodus soll nichts verschwinden, sondern
-// der zurückgelegte Teil zurücktreten – Google-Maps-Bild. Dafür trimmt man [0,p] UND
-// setzt line-trim-color, sonst wäre der gefahrene Teil unsichtbar statt grau.
+// der zurückgelegte Teil verschwinden – Google-Maps-Bild. Dafür trimmt man [0,p] und lässt
+// line-trim-color auf seinem Standardwert "transparent". Hier stand einmal ein Grau; warum
+// es weg ist, steht bei setNavTrim().
 //
 // line-trim-color gibt es erst ab Mapbox GL JS 3.x (geprüft: 3.25 kennt es, ebenso
 // line-trim-fade-range). Die Abhängigkeit steht als "^3.25.0" und wandert damit, also
@@ -171,10 +177,19 @@ export function setNavTrim(map: MapboxMap, progress: number) {
       map.setPaintProperty(id, "line-trim-offset", trim);
       map.setPaintProperty(id, "line-trim-fade-range", [0, NAV_FADE]);
     }
-    // Die Kontur wird heller grau als die Linie, damit der gefahrene Teil eine Spur
-    // behält statt zu einem Strich zu verschmelzen.
-    map.setPaintProperty(ROUTE_LAYER_OUT, "line-trim-color", "#d9d0c4");
-    map.setPaintProperty(ROUTE_LAYER_LINE, "line-trim-color", ROUTE_DONE);
+    // KEIN line-trim-color mehr. Mapbox' Standardwert ist "transparent" (nachgesehen in
+    // node_modules/mapbox-gl: default "transparent"), und genau das ist hier richtig.
+    //
+    // WARUM DAS GRAU WEG MUSSTE: Auf einer Strecke, die sich nicht selbst kreuzt, ist ein
+    // grauer Rest schoener als gar nichts. Runde A ist zu 25 Prozent doppelt befahren
+    // (2,44 von 9,59 km, gemessen am 25.08.2026): zwei Sackgassen und ein Uferkorridor, den
+    // sie zweimal benutzt. Dort lagen Grau und Rot auf DENSELBEN Pixeln, und man sah beide.
+    // Genau das war das Knaeuel, in dem niemand mehr erkannte, wohin er fahren soll.
+    //
+    // Der Trim misst ENTLANG der Linie, nicht geografisch. Sobald der Gast aus einer
+    // Sackgasse herausfaehrt, ist der Hinweg Vergangenheit und verschwindet, waehrend der
+    // Rueckweg auf derselben Strasse stehenbleibt. Beide Sackgassen loesen sich damit von
+    // selbst, ohne dass an Routing oder Geometrie irgendetwas passiert.
   } catch {
     /* Karte nicht mehr bereit -> Schritt auslassen */
   }
@@ -225,4 +240,44 @@ export function addRouteSourceAndLayers(map: MapboxMap, coords: [number, number]
     },
     layout: { "line-join": "round", "line-cap": "round" },
   });
+}
+
+// ——— Der Tagesverlauf: die ganze Runde als blasse Haarlinie ————————————————————
+//
+// WARUM ES SIE GIBT: Wenn nur noch die aktuelle Etappe rot gezeichnet wird (setNavLeg),
+// sieht der Gast nicht mehr, wo seine Runde ueberhaupt langfuehrt. Genau das war aber die
+// zweite Haelfte des Wunsches: "trotzdem sollte er immer auch sehen koennen wo seine tour
+// heute verlaeuft".
+//
+// Sie liegt UNTER der roten Linie, ist 1,5 px schmal und zu 30 Prozent deckend, hat keinen
+// Trim und wird nach dem Setzen nie wieder angefasst. Auch hier ueberlagern sich die beiden
+// Sackgassen und der Uferkorridor, aber zwei blasse Haarlinien uebereinander sind eine
+// Kontur und kein Knaeuel: Sie konkurrieren mit nichts und niemand muss aus ihnen ablesen,
+// wohin er fahren soll. Das steht in der roten Linie.
+export function addRoundShapeLayer(map: MapboxMap, coords: [number, number][]) {
+  if (map.getSource(SHAPE_SOURCE)) return;
+  map.addSource(SHAPE_SOURCE, { type: "geojson", data: routeFC(coords) });
+  map.addLayer({
+    id: SHAPE_LAYER,
+    type: "line",
+    source: SHAPE_SOURCE,
+    paint: {
+      // Der Sekundaerton der Marke. Kein Rot: Rot ist im Fahrmodus die Zusage "hier
+      // entlang, jetzt", und die darf nur eine Linie geben.
+      "line-color": "#6c5b57",
+      "line-width": 1.5,
+      "line-opacity": 0.3,
+    },
+    layout: { "line-join": "round", "line-cap": "round" },
+  });
+}
+
+export function setRoundShape(map: MapboxMap, coords: [number, number][]) {
+  try {
+    (map.getSource(SHAPE_SOURCE) as { setData?: (d: unknown) => void } | undefined)?.setData?.(
+      routeFC(coords),
+    );
+  } catch {
+    /* Karte nicht mehr bereit */
+  }
 }

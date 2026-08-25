@@ -10,6 +10,8 @@ import { unwrapDegrees } from "@/lib/geo";
 import { declutterBasemap } from "@/lib/map-declutter";
 import {
   addRouteSourceAndLayers,
+  addRoundShapeLayer,
+  setRoundShape,
   setNavTrim,
   applyNavRouteStyle,
   routeFC,
@@ -53,6 +55,7 @@ export type NavStopPoint = { lat: number; lng: number; order: number };
 
 export default function NavMap({
   route,
+  shape,
   progress,
   fix,
   bearingDeg,
@@ -62,10 +65,21 @@ export default function NavMap({
   paddingBottom = 0,
   recenterLabel,
 }: {
+  /**
+   * Die AKTUELLE ETAPPE, von einem Halt zum naechsten. NICHT die ganze Runde.
+   *
+   * Bis 25.08.2026 stand hier die volle Geometrie. Auf Runde A sind 25 Prozent der Strecke
+   * doppelt befahren, und die Linie lag dort auf sich selbst: Man sah zwei rote Straenge
+   * und konnte nicht ablesen, in welche Richtung es weitergeht. Rot ist jetzt eine Zusage
+   * fuer JETZT, und die kann es nur einmal geben.
+   */
   route: [number, number][] | null;
-  // Anteil der Runde, der schon gefahren ist (0..1). Der Teil dahinter wird ausgegraut,
-  // der davor bleibt farbig – das ist Wunsch 1 aus docs/40 und der Grund, warum die
-  // Karte die GANZE Runde zeichnet und nicht mehr nur die nächste Etappe.
+  /**
+   * Die ganze Runde, als blasse Haarlinie unter der roten Linie. Aendert sich nie.
+   * Beantwortet "wo verlaeuft meine Tour heute", ohne mit der Fuehrung zu konkurrieren.
+   */
+  shape: [number, number][] | null;
+  /** Fortschritt INNERHALB der aktuellen Etappe (0..1). Der gefahrene Teil verschwindet. */
   progress: number;
   fix: { lng: number; lat: number } | null;
   bearingDeg: number;
@@ -98,6 +112,8 @@ export default function NavMap({
   // Klick-Handler direkt an, zeigte er fuer immer auf die Funktion vom ersten Render.
   // Deshalb ueber ein Ref, das jeder Render frisch setzt.
   const onStopTapRef = useLatestRef(onStopTap);
+  // Die Haarlinie wird beim "load" gebraucht, also muss das Ref vorher stehen.
+  const shapeRef = useLatestRef(shape);
   const { bindMap, loading } = useMapLoading();
   const [mapDead, setMapDead] = useState(false);
   const [following, setFollowing] = useState(true);
@@ -128,6 +144,8 @@ export default function NavMap({
     map.addControl(new mapboxgl.AttributionControl({ compact: true }));
     declutterBasemap(map);
     map.on("load", () => {
+      // Zuerst die Haarlinie, dann die Route: Was zuerst hinzugefuegt wird, liegt unten.
+      addRoundShapeLayer(map, shapeRef.current ?? []);
       addRouteSourceAndLayers(map, []);
       applyNavRouteStyle(map);
       // Kein Zeichnen-Draw-in wie auf den Übersichtskarten: Im HUD steht die Linie
@@ -213,6 +231,13 @@ export default function NavMap({
       }
       const el = marker.getElement();
       el.classList.toggle("sg-pin--active", active);
+      // NUR DER NAECHSTE HALT traegt einen nummerierten Pin. Alle anderen sind ruhige
+      // Punkte ohne Nummer und ohne Kachel, weiterhin antippbar.
+      //
+      // Vorher trugen alle sieben eine Nummer in einer weissen Kachel. Auf einer Runde, die
+      // sich selbst kreuzt, standen davon mehrere dicht beieinander und konkurrierten mit
+      // der Fuehrung. Googles Fahransicht zeigt aus demselben Grund nur den Zielmarker.
+      el.classList.toggle("sg-pin--quiet", !active && i !== stops.length - 1);
       const inner = el.querySelector(".sg-marker") as HTMLElement | null;
       if (inner) {
         // Die Zielflagge gehört dem LETZTEN Stopp, nicht dem gerade angesteuerten. Vorher
@@ -220,9 +245,11 @@ export default function NavMap({
         // die Runde", also genau falsch herum. Der angesteuerte Stopp wird stattdessen
         // hervorgehoben (sg-pin--active) und behält seine Nummer, damit man weiterhin
         // sieht, der wievielte er ist.
+        // Die Zielflagge gehoert dem LETZTEN Stopp und erscheint erst, wenn er dran ist.
         const isLast = i === stops.length - 1;
-        inner.classList.toggle("sg-marker--num", !isLast);
-        inner.textContent = isLast ? "🏁" : String(s.order);
+        const zeigen = active || isLast;
+        inner.classList.toggle("sg-marker--num", zeigen && !isLast);
+        inner.textContent = !zeigen ? "" : isLast ? "🏁" : String(s.order);
       }
     });
     // Marker von Stationen entfernen, die es nicht mehr gibt (sollte praktisch nie
@@ -235,6 +262,15 @@ export default function NavMap({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stopsSig, activeIndex]);
+
+  // Die Haarlinie der ganzen Runde. Einmal setzen, danach nie wieder anfassen.
+  const shapeSig = (shape ?? []).length;
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !shape?.length) return;
+    setRoundShape(map, shape);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shapeSig]);
 
   // Etappen-Route zeichnen (ersetzt die Linie komplett – neue Etappe = neue Geometrie).
   const routeSig = (route ?? []).map((c) => c.join(",")).join("|");
