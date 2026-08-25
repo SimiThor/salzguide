@@ -7,6 +7,7 @@ import { slugifyKey } from "./slug";
 import { guardStorageUrl } from "./storage-guard";
 import { hashTourTexts, translationsPublishable } from "./spot-hash";
 import { cleanRouteGeo, tourRouteHash, type RoutePoint } from "./tour-route";
+import type { TourMode } from "./tour-mode";
 import { routing } from "@/i18n/routing";
 import { localeMeta } from "@/i18n/locales";
 
@@ -36,6 +37,8 @@ export type TourInput = {
   isPro: boolean;
   freeStops: number;
   status: "draft" | "published";
+  // Fortbewegungsart (0064). "bike" schaltet den eigenen Navigations-Screen frei.
+  mode: TourMode;
   durationMin: number | null;
   distanceKm: number | null;
   de: TourTexts;
@@ -152,6 +155,7 @@ export async function saveTour(input: TourInput): Promise<TourSaveResult> {
     is_pro: Boolean(input.isPro),
     free_stops: freeStops,
     status: input.status === "published" ? "published" : "draft",
+    mode: input.mode === "bike" ? "bike" : "walk",
     duration_min:
       input.durationMin != null && Number.isFinite(input.durationMin)
         ? Math.max(0, Math.floor(input.durationMin))

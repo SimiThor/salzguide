@@ -269,6 +269,48 @@ als Schiebestelle markiert.
   in allen 13 Sprachen ohne Übersetzung. Vibration gibt es im iOS-Browser nicht, jedes Konzept
   damit ist auf der Hälfte der Geräte wirkungslos.
 
+## Die erste Runde: A, "Die Stadt von außen"
+
+Am 25.08.2026 entschieden, nachdem drei Runden gegen echte OSM-Wegedaten gerechnet und
+verglichen wurden (BRouter, Profil trekking; Beläge und Poller aus Overpass; Straßennamen
+über Nominatim alle 300 m entlang der Linie abgetastet).
+
+**9,05 km · 33 Höhenmeter · 7 Audio-Spots · rund 55 Minuten · 0 m Fußgängerzone · keine
+Schiebestelle.** Start und Ziel: S-Bike-Station Hanuschplatz, 47.80132/13.04160.
+
+Die Spots in Reihenfolge: Marko-Feingold-Steg (km 0,00) · Festung und Dom von unten (0,95) ·
+Stift Nonnberg von unten (1,70) · Schloss Freisaal im Weiher (2,70) · Giselakai, die Altstadt
+von gegenüber (5,80) · Mirabellplatz und Mirabellgarten (7,28) · Mülln, Müllner Kirche und
+Augustiner (8,24). Kleinster Abstand 750 m, also über der 600-m-Regel.
+
+**Warum A und nicht B oder C.** A ist die einzige, die Festung, Dom, Nonnberg, Mirabell und
+Augustiner liefert und dabei um jede gesperrte Fläche herumfährt. Genau das ist die Aufgabe
+aus dem Problem-Abschnitt oben: Die schönsten Spots liegen dort, wo S-Bike den Motor
+drosselt. Dazu stehen vier der sieben Spots ganz oder teilweise schon in der Datenbank, und
+bei 13 Vertonungen je Spot ist das die halbe Produktionsrechnung.
+
+B ("Wasser und Wiese", 7,56 km) ist die schönste, hängt aber am Neutor: ab Mitte September
+2026 Vollsperre, für Radfahrende eine Schiebestrecke, in Phase 2 eingeschränkt bis August
+2030. Sie ist die Vorlage für Runde 2, sobald das Neutor wieder offen ist. C ("Der Fluss",
+8,88 km, 4 Höhenmeter) ist technisch die beste, hat aber keinen einzigen berühmten Namen auf
+der Strecke und wäre mit fünf von sechs neuen Spots die teuerste.
+
+**Zwei Stellen entscheiden über A, und beide nur vor Ort:**
+
+1. **Die Unterführung an der Karolinenbrücke, km 5,3.** Rang 7 der neun amtlich benannten
+   gefährlichsten Radstellen der Stadt: 13 Unfälle in drei Jahren, 3,5 m Breite bei 4,5 m
+   Bedarf, an Spitzentagen 9.000 Radfahrende je Seite. Dort darf kein Audio-Spot liegen, der
+   nächste steht bei km 5,80. Dorthin gehört eine gesprochene Tempo-Ansage.
+2. **Der Mirabell-Abstecher, km 6,4 bis 7,3.** Drei Versenkpoller, einer mit Radfreigabe,
+   zwei ohne. Lässt sich das nicht sauber fahren, fällt der Abstecher weg: Runde 8,1 km,
+   sechs Spots, und der bekannteste Spot ist raus.
+
+**Die Audio-Auslöser gehören in `tour_points`, nicht auf `spots`.** `spots.lat/lng` ist bei
+allen 48 Spots mit Route der ERSTE ROUTENPUNKT, also der Ausgangspunkt eines Weges, nicht die
+Sehenswürdigkeit. Wer die Koordinate vom Spot kopiert, startet die Richterhöhe-Geschichte
+870 m vor der Richterhöhe und die Hellbrunner-Allee-Geschichte 1,5 km vor der Allee. Aus den
+Spots kommen Text und Bild, nie die Position.
+
 ## Bevor eine Runde live geht
 
 1. Die Runde **einmal wirklich abfahren**, Etappe für Etappe abhaken, mit Datum und Fassung
@@ -296,5 +338,9 @@ als Schiebestelle markiert.
   wer die Route zur Autorenzeit vor sich hat.
 - **Der Testhaken muss weg.** `lib/test-sbike-tour.ts`, `lib/test-sbike-slug.ts`, der
   Footer-Link und die Aufrufstellen verschwinden, sobald es eine echte Runde in der Datenbank
-  gibt. Dafür braucht `tours` eine Spalte für die Fortbewegungsart, heute kommt `mode: "bike"`
-  ausschließlich aus der fest verdrahteten Testrunde.
+  gibt. ~~Dafür braucht `tours` eine Spalte für die Fortbewegungsart~~ **erledigt am
+  25.08.2026:** Migration 0064 legt das Enum `tour_mode` und die Spalte `tours.mode` an
+  (Default `walk`), `lib/tours.ts` liest sie an allen drei Stellen statt hart "walk"
+  zurückzugeben, und das Admin-Formular hat ein Feld "Fortbewegung". Alle Lesestellen fangen
+  eine fehlende Spalte ab, damit die Seite auch vor der Migration aufgeht. Was jetzt noch
+  fehlt, ist die Runde selbst: Gebiet, sieben Punkte, Texte, Vertonung.

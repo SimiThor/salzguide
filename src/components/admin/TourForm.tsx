@@ -16,6 +16,7 @@ import { routing } from "@/i18n/routing";
 import { localeMeta } from "@/i18n/locales";
 import { hashTourTexts } from "@/lib/spot-hash";
 import { tourRouteHash, type RoutePoint } from "@/lib/tour-route";
+import { TOUR_MODE_EMOJI, type TourMode } from "@/lib/tour-mode";
 import LocationPicker from "./LocationPicker";
 import AiButton from "./AiButton";
 import { blockEnterSubmit } from "./form-utils";
@@ -49,6 +50,7 @@ type FormState = {
   isPro: boolean;
   freeStops: number;
   status: "draft" | "published";
+  mode: TourMode;
   durationMin: string;
   distanceKm: string;
   de: TourTexts;
@@ -71,6 +73,7 @@ function initialState(initial: TourEditData | undefined, points: PickerPoint[]):
       isPro: true,
       freeStops: 1,
       status: "draft",
+      mode: "walk",
       durationMin: "",
       distanceKm: "",
       de: emptyTexts(),
@@ -88,6 +91,7 @@ function initialState(initial: TourEditData | undefined, points: PickerPoint[]):
     isPro: initial.isPro,
     freeStops: initial.freeStops,
     status: initial.status,
+    mode: initial.mode,
     durationMin: initial.durationMin != null ? String(initial.durationMin) : "",
     distanceKm: initial.distanceKm != null ? String(initial.distanceKm) : "",
     de: initial.de,
@@ -394,6 +398,7 @@ export default function TourForm({
       isPro: form.isPro,
       freeStops: form.freeStops,
       status: form.status,
+      mode: form.mode,
       durationMin: form.durationMin.trim() ? Number(form.durationMin) : null,
       distanceKm: form.distanceKm.trim() ? Number(form.distanceKm) : null,
       de: form.de,
@@ -599,6 +604,17 @@ export default function TourForm({
               disabled={!form.isPro}
               onChange={(e) => set({ freeStops: Number(e.target.value) || 0 })}
             />
+          </div>
+          <div>
+            <label className={labelCls}>Fortbewegung</label>
+            <select
+              className={inputCls}
+              value={form.mode}
+              onChange={(e) => set({ mode: e.target.value as TourMode })}
+            >
+              <option value="walk">{TOUR_MODE_EMOJI.walk} Zu Fuß</option>
+              <option value="bike">{TOUR_MODE_EMOJI.bike} Mit dem Rad</option>
+            </select>
           </div>
           <div>
             <label className={labelCls}>Status</label>
