@@ -25,6 +25,12 @@ export type TourAudioApi = {
   time: number;
   max: number;
   toggle: () => void;
+  /**
+   * Anhalten, ohne die Stelle zu verlieren. `toggle()` waere hier falsch: Es STARTET,
+   * wenn gerade nichts laeuft, und genau das ist beim Schliessen oder beim Wechsel auf
+   * einen anderen Stopp das Gegenteil dessen, was gemeint ist.
+   */
+  pause: () => void;
   seek: (v: number) => void;
   go: (i: number) => void;
   // Auf einen Stopp wechseln UND ihn im selben Tastendruck starten. Fuer den Play-Knopf
@@ -146,6 +152,10 @@ export function useTourAudio(
       if (!a || !stop || !stop.audioUrl) return;
       if (a.paused) a.play().catch(() => setPlaying(false));
       else a.pause();
+    },
+    pause() {
+      const a = audioRef.current;
+      if (a && !a.paused) a.pause();
     },
     seek(v: number) {
       setTime(v);

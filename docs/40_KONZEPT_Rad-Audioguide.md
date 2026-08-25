@@ -207,6 +207,20 @@ Der Play-Knopf kommt, gedrückt wird er vom Menschen.
 Die Bezahlgrenze bleibt dabei sichtbar und ehrlich: In der Liste steht bei den Gratis-Stopps
 die Dauer, bei den anderen „20 Sekunden gratis". Kein Schloss, keine graue Zeile.
 
+**Es läuft immer nur eine Stimme, und das X hält an.** Auf einen anderen Spot zu tippen
+pausiert die laufende Geschichte. Weiterlaufen zu lassen, während im Streifen schon etwas
+anderes steht, ist der verwirrendste der drei möglichen Ausgänge. Das X hält ebenfalls an und
+räumt den Streifen weg.
+
+Dafür braucht es einen eigenen Merker: Der Streifen zeigt eine angefangene Geschichte auch im
+PAUSIERTEN Zustand weiter (`audio.time > 0`), damit man sie wieder aufnehmen kann, und genau
+diese Regel holte ihn nach jedem X sofort zurück. Der Streifen liess sich also gar nicht
+schliessen. Das X ist aber eine Ansage, und die schlägt die Regel. Wer danach wieder Play
+drückt, hebt sie auf.
+
+`pause()` ist dafür eine eigene Funktion im Player und nicht `toggle()`: Toggle STARTET,
+wenn gerade nichts läuft, und das ist beim Schliessen das Gegenteil dessen, was gemeint ist.
+
 ## Die vier Phasen eines Audio-Spots
 
 Ein Spot durchläuft `open`, `pending`, `near`, `done`. Die dritte Phase ist der Grund, warum

@@ -154,11 +154,22 @@ export default function BikeNavScreen({
   // Absicht, und die darf ein Vorschlag nicht ueberschreiben.
   const [manualSpotId, setManualSpotId] = useState<number | null>(null);
   const [stopsOpen, setStopsOpen] = useState(false);
+  // Welchen Spot hat der Gast per X ausdruecklich weggeschickt?
+  //
+  // Ohne diesen Merker liess sich der Streifen im Grunde nicht schliessen: Er zeigt eine
+  // angefangene Geschichte auch im PAUSIERTEN Zustand weiter (audio.time > 0), damit man
+  // sie wieder aufnehmen kann. Genau diese Regel holte ihn nach jedem X sofort zurueck.
+  // Das X ist aber eine Ansage, und die schlaegt die Regel.
+  const [closedSpotId, setClosedSpotId] = useState<number | null>(null);
 
-  const shownSpotId =
-    manualSpotId ??
-    bike.offeredSpotId ??
-    (audio.playing || audio.time > 0 ? activeAudioIndex : null);
+  // Eine angefangene Geschichte haelt den Streifen offen, auch pausiert. Weggeschickt
+  // wurde sie aber, wenn ihr Spot in closedSpotId steht.
+  const laufenderSpot =
+    (audio.playing || audio.time > 0) && activeAudioIndex !== closedSpotId
+      ? activeAudioIndex
+      : null;
+
+  const shownSpotId = manualSpotId ?? bike.offeredSpotId ?? laufenderSpot;
   const offeredStop = shownSpotId != null ? (geoStops[shownSpotId] ?? null) : null;
 
   // Play am Angebot. Steht der Player schon auf diesem Spot, ist es ein einfaches
@@ -172,22 +183,32 @@ export default function BikeNavScreen({
   // Tipp auf einen Pin: den Streifen fuer DIESEN Stopp zeigen, mehr nicht. Bewusst kein
   // Autostart. Am Lenker soll nichts von selbst losreden, und docs/40 haelt das als Regel
   // fest: Der Play-Knopf kommt, gedrueckt wird er vom Menschen.
-  const pickStop = useCallback((i: number) => {
-    setManualSpotId(i);
-    setStopsOpen(false);
-  }, []);
+  const pickStop = useCallback(
+    (i: number) => {
+      // Auf einen ANDEREN Spot tippen haelt die laufende Geschichte an. Zwei Stimmen
+      // gleichzeitig gibt es nicht, und weiterlaufen zu lassen, waehrend im Streifen schon
+      // etwas anderes steht, ist der verwirrendste der drei moeglichen Ausgaenge.
+      // Auf denselben Spot tippen aendert nichts, der steht ja schon da.
+      if (i !== activeAudioIndex) audio.pause();
+      setManualSpotId(i);
+      setClosedSpotId(null);
+      setStopsOpen(false);
+    },
+    [activeAudioIndex, audio],
+  );
 
-  // Wegwischen raeumt beides ab: die eigene Wahl und das automatische Angebot. Sonst
-  // erschiene nach dem Wischen sofort wieder der automatisch angebotene Spot, und der
-  // Streifen liesse sich nicht schliessen.
+  // Das X: anhalten, wegraeumen, und diesen Spot nicht von selbst zurueckholen.
   const dismissShown = useCallback(() => {
+    audio.pause();
+    setClosedSpotId(shownSpotId);
     setManualSpotId(null);
     bike.dismissOffer();
-  }, [bike]);
+  }, [audio, shownSpotId, bike]);
 
   const playOffered = useCallback(() => {
     const id = shownSpotId;
     if (id == null) return;
+    setClosedSpotId(null); // wer startet, will den Streifen sehen
     if (activeAudioIndex !== id) audio.playAt(id);
     else audio.toggle();
   }, [shownSpotId, activeAudioIndex, audio]);
