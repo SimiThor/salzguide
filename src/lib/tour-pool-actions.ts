@@ -9,9 +9,9 @@ import { localeMeta } from "@/i18n/locales";
 import { hashTexts } from "./spot-hash";
 import { stripEmDashFields } from "./em-dash";
 import { requireAdmin } from "./admin-guard";
-import { IMMUTABLE_CACHE_SECONDS } from "./storage";
 import { slugifyKey } from "./slug";
 import { guardStorageUrl } from "./storage-guard";
+import { synthesizeVoice } from "./tts";
 
 const POINT_TARGET_LOCALES = routing.locales.filter((l) => l !== "de");
 
@@ -496,99 +496,27 @@ export async function generatePointAudioText(input: {
   return callAudioTool(system, userMsg, "audio_text_de");
 }
 
-// ── TTS: Sprechtext -> MP3-Stimme (ElevenLabs) ───────────────────────────────
-// Erzeugt serverseitig die Audiodatei und legt sie im PRIVATEN tour-audio-Bucket ab
-// (Service-Client). Der Client bekommt nur den Objekt-PFAD zurück (wie beim manuellen
-// Upload) -> Auslieferung weiterhin nur via Signed-URL an berechtigte Hörer.
-const ELEVEN_MODEL = "eleven_multilingual_v2"; // EINE Stimme spricht ALLE Sprachen
-function elevenVoiceId(lang: string): string {
-  // Eine Basis-Stimme für alle Sprachen (multilingual-Model spricht die jeweilige Sprache).
-  // Optional pro Sprache überschreibbar via ELEVENLABS_VOICE_ID_<LANG> (z. B. _EN, _FR).
-  const base = process.env.ELEVENLABS_VOICE_ID || "21m00Tcm4TlvDq8ikWAM";
-  const perLang = process.env[`ELEVENLABS_VOICE_ID_${lang.toUpperCase()}`];
-  return perLang && perLang.trim() ? perLang.trim() : base;
-}
-
-// Voice-Settings für RUHIGES, natürliches Vorlesen (nicht hetzen, Pausen zulassen):
-// - speed 0.9 (< 1.0 = langsamer) ist der Haupt-Hebel gegen „zu schnell"
-// - style 0.0 = keine Übertreibung -> ruhiger, gleichmäßiger, natürliche Betonung/Pausen
-// - stability etwas höher = konsistente, angenehme Erzählstimme
-// Alles per ENV feinjustierbar (ohne Code-Änderung), sauber geklemmt auf gültige Bereiche.
-function clampNum(v: string | undefined, def: number, min: number, max: number): number {
-  const n = v != null && v !== "" ? Number(v) : NaN;
-  return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : def;
-}
-function elevenVoiceSettings() {
-  return {
-    stability: clampNum(process.env.ELEVENLABS_STABILITY, 0.55, 0, 1),
-    similarity_boost: clampNum(process.env.ELEVENLABS_SIMILARITY, 0.75, 0, 1),
-    style: clampNum(process.env.ELEVENLABS_STYLE, 0.0, 0, 1),
-    use_speaker_boost: process.env.ELEVENLABS_SPEAKER_BOOST !== "false",
-    speed: clampNum(process.env.ELEVENLABS_SPEED, 0.9, 0.7, 1.2),
-  };
-}
-
+// ── TTS: Sprechtext -> MP3-Stimme ────────────────────────────────────────────
 export type TtsResult = { ok: boolean; path?: string; previewUrl?: string | null; error?: string };
 
+// Die eigentliche Vertonung steht in lib/tts.ts, weil sie auch ausserhalb des Admin
+// gebraucht wird: Eine Radrunde hat sieben Punkte mit je zwei Dateien in dreizehn Sprachen,
+// und das klickt niemand durch. Hier bleibt nur die Admin-Schranke und die Vorschau.
 export async function synthesizePointVoice(input: {
   text: string;
   lang: string;
 }): Promise<TtsResult> {
   const gate = await requireAdmin();
   if (!gate.ok) return { ok: false, error: gate.error };
-  const text = input.text.trim();
-  if (!text) return { ok: false, error: "Kein Text zum Vertonen." };
-  if (text.length > 5000) return { ok: false, error: "Text zu lang (max. 5000 Zeichen)." };
-  const key = process.env.ELEVENLABS_API_KEY;
-  if (!key) return { ok: false, error: "ELEVENLABS_API_KEY fehlt – bitte in .env.local eintragen" };
-  const lang = (input.lang || "de").toLowerCase();
 
-  try {
-    // 96 kbps statt 128: für gesprochene Stimme nicht unterscheidbar, ein Viertel weniger
-    // Storage und Datenverkehr pro Guide-Punkt. Der Bestand wurde am 10.08.2026 auf
-    // 80 kbps mono umkodiert; neue Dateien kommen mit diesem Format schon sparsam an.
-    const res = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${elevenVoiceId(lang)}?output_format=mp3_44100_96`,
-      {
-        method: "POST",
-        headers: {
-          "xi-api-key": key,
-          "content-type": "application/json",
-          accept: "audio/mpeg",
-        },
-        body: JSON.stringify({
-          text,
-          model_id: ELEVEN_MODEL,
-          voice_settings: elevenVoiceSettings(),
-        }),
-        signal: AbortSignal.timeout(60000),
-      },
-    );
-    if (!res.ok) {
-      const t = await res.text();
-      return { ok: false, error: `ElevenLabs ${res.status}: ${t.slice(0, 160)}` };
-    }
-    const bytes = new Uint8Array(await res.arrayBuffer());
-    if (!bytes.length) return { ok: false, error: "Leere Audio-Antwort von ElevenLabs." };
+  const r = await synthesizeVoice({ text: input.text, lang: input.lang });
+  if (!r.ok) return { ok: false, error: r.error };
 
-    const service = createServiceClient();
-    const path = `point-${lang}-${crypto.randomUUID()}.mp3`;
-    const { error } = await service.storage
-      .from("tour-audio")
-      .upload(path, bytes, {
-        contentType: "audio/mpeg",
-        upsert: false,
-        cacheControl: IMMUTABLE_CACHE_SECONDS,
-      });
-    if (error) return { ok: false, error: "Upload der Stimme fehlgeschlagen." };
-    // Kurzlebige Signed-URL zum sofortigen Probehören im Admin (privater Bucket).
-    const { data: signed } = await service.storage
-      .from("tour-audio")
-      .createSignedUrl(path, 60 * 30);
-    return { ok: true, path, previewUrl: signed?.signedUrl ?? null };
-  } catch {
-    return { ok: false, error: "TTS gerade nicht erreichbar – bitte nochmal versuchen." };
-  }
+  // Kurzlebige Signed-URL zum sofortigen Probehören im Admin (privater Bucket).
+  const { data: signed } = await createServiceClient()
+    .storage.from("tour-audio")
+    .createSignedUrl(r.path, 60 * 30);
+  return { ok: true, path: r.path, previewUrl: signed?.signedUrl ?? null };
 }
 
 // Deutschen Sprechtext ins Englische übertragen (gleicher Ton, gleiche Länge).
