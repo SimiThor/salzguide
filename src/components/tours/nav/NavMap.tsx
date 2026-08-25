@@ -75,8 +75,12 @@ export default function NavMap({
    */
   route: [number, number][] | null;
   /**
-   * Die ganze Runde, als blasse Haarlinie unter der roten Linie. Aendert sich nie.
-   * Beantwortet "wo verlaeuft meine Tour heute", ohne mit der Fuehrung zu konkurrieren.
+   * WAS NOCH KOMMT, als blasse Haarlinie: ab dem naechsten Halt bis zum Rundenende.
+   *
+   * Nicht die ganze Runde, denn was hinter dem Gast liegt, hat er hinter sich. Googles
+   * Uebersicht zeigt bei Mehrziel-Fahrten ausdruecklich nur den noch nicht gefahrenen Teil.
+   * Und nicht ab der aktuellen Position, sondern ab dem naechsten Halt: So ueberlagern sich
+   * blasse und rote Linie nie, und sie muss nur siebenmal je Runde neu gesetzt werden.
    */
   shape: [number, number][] | null;
   /** Fortschritt INNERHALB der aktuellen Etappe (0..1). Der gefahrene Teil verschwindet. */

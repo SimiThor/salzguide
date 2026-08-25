@@ -273,9 +273,9 @@ export default function BikeNavScreen({
   // FORM der Runde und aendert sich nie, die rote Linie ist die Zusage "hier entlang,
   // jetzt". Der zweite Durchgang durch denselben Korridor liegt in einer anderen Etappe
   // und wird gar nicht gezeichnet, solange er nicht dran ist.
-  const { leg, legProgress } = useMemo(() => {
+  const { leg, legProgress, ahead } = useMemo(() => {
     const g = bike.route?.geometry;
-    if (!g?.length || totalM <= 0) return { leg: null, legProgress: 0 };
+    if (!g?.length || totalM <= 0) return { leg: null, legProgress: 0, ahead: null };
     const marken = bike.route!.spotAlongM;
     const naechste = bike.nav.nextSpotIndex;
     // Von: der zuletzt passierte Halt, sonst der Start. Bis: der naechste Halt, sonst das
@@ -298,10 +298,20 @@ export default function BikeNavScreen({
     if (bisM - vonM < 50) bisM = totalM;
 
     const laenge = bisM - vonM;
-    if (laenge <= 1) return { leg: g, legProgress: 0 };
+    if (laenge <= 1) return { leg: g, legProgress: 0, ahead: null };
     return {
       leg: sliceAlong(g, vonM, bisM),
       legProgress: Math.min(1, Math.max(0, (bike.nav.alongM - vonM) / laenge)),
+      // WAS NOCH KOMMT, blass darunter: vom Ende der aktuellen Etappe bis zum Rundenende.
+      //
+      // Nicht die ganze Runde: Was hinter dem Gast liegt, hat er hinter sich, und Googles
+      // eigene Uebersicht zeigt bei Mehrziel-Fahrten ausdruecklich nur "the untraveled
+      // portion of the route".
+      //
+      // Und bewusst erst AB dem naechsten Halt, nicht ab der aktuellen Position: So
+      // ueberlagern sich die blasse und die rote Linie nie, und die blasse muss nur
+      // siebenmal je Runde neu gesetzt werden statt bei jedem Messwert.
+      ahead: bisM < totalM - 1 ? sliceAlong(g, bisM, totalM) : null,
     };
   }, [bike.route, bike.nav.nextSpotIndex, bike.nav.alongM, totalM]);
 
@@ -324,7 +334,7 @@ export default function BikeNavScreen({
     <div className="sg-nav fixed inset-0 z-0">
       <NavMap
         route={leg}
-        shape={bike.route?.geometry ?? null}
+        shape={ahead}
         progress={legProgress}
         fix={fix ? { lng: fix.lng, lat: fix.lat } : null}
         bearingDeg={bike.nav.bearingDeg}
