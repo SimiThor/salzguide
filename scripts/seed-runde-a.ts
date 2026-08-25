@@ -14,6 +14,7 @@
 import { readFileSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
 import { tourRouteHash } from "../src/lib/tour-route.ts";
+import { synthesizeVoice } from "../src/lib/tts.ts";
 import { cleanRouteGeo } from "../src/lib/tour-route.ts";
 
 const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -38,7 +39,14 @@ type Spot = { titel: string; lat: number; lng: number; emoji: string; kind: stri
 // Er wird deshalb aus einer lokalen, in .gitignore stehenden Datei gelesen:
 //   .audio-texte/runde-a-de.json   { "Titel des Spots": "gesprochener Text", ... }
 const TEXT_DATEI = ".audio-texte/runde-a-de.json";
+const KOSTPROBE_DATEI = ".audio-texte/runde-a-de-kostprobe.json";
 const texte: Record<string, string> = JSON.parse(readFileSync(TEXT_DATEI, "utf8"));
+const kostproben: Record<string, string> = JSON.parse(readFileSync(KOSTPROBE_DATEI, "utf8"));
+
+// Vertonen kostet Geld und legt bei jedem Lauf eine neue Datei an. Deshalb nur, wenn noch
+// keine da ist. Neu vertonen mit FORCE_TTS=1, dann bleibt die alte Datei als Waise liegen
+// und gehoert von Hand aus dem Bucket geraeumt.
+const NEU_VERTONEN = process.env.FORCE_TTS === "1";
 
 const SPOTS: Spot[] = [
   {
@@ -72,6 +80,8 @@ const SPOTS: Spot[] = [
 ];
 
 const log = (s: string) => console.log(s);
+// Rund 130 Woerter je Minute, ruhig gesprochen. Nur fuer die Anzeige, nicht fuer die Steuerung.
+const sekunden = (t: string) => Math.round((t.split(/\s+/).length / 130) * 60);
 
 // ── 1. Gebiet ────────────────────────────────────────────────────────────────
 const { data: areaRow, error: areaErr } = await db
@@ -138,8 +148,41 @@ for (const [i, s] of SPOTS.entries()) {
     .upsert({ point_id: id, lang: "de", title: s.titel }, { onConflict: "point_id,lang" });
   const text = texte[s.titel];
   if (!text) throw new Error(`Kein Audiotext für "${s.titel}" in ${TEXT_DATEI}`);
+  const probe = kostproben[s.titel];
+  if (!probe) throw new Error(`Keine Kostprobe für "${s.titel}" in ${KOSTPROBE_DATEI}`);
+
+  // Was schon vertont ist, bleibt vertont (siehe NEU_VERTONEN oben).
+  const vorher = (
+    await db
+      .from("tour_point_audio")
+      .select("audio_url, teaser_url")
+      .eq("point_id", id)
+      .eq("lang", "de")
+      .maybeSingle()
+  ).data as { audio_url: string | null; teaser_url: string | null } | null;
+
+  const vertonen = async (was: string, txt: string, kind: "voll" | "kostprobe", alt: string | null) => {
+    if (alt && !NEU_VERTONEN) return alt;
+    const r = await synthesizeVoice({ text: txt, lang: "de", kind });
+    if (!r.ok) throw new Error(`Vertonung (${was}) fehlgeschlagen: ${r.error}`);
+    log(`     ${was}: ${r.path} (${Math.round(r.bytes / 1024)} kB)`);
+    return r.path;
+  };
+
+  const audioUrl = await vertonen("Geschichte", text, "voll", vorher?.audio_url ?? null);
+  const teaserUrl = await vertonen("Kostprobe", probe, "kostprobe", vorher?.teaser_url ?? null);
+
   await db.from("tour_point_audio").upsert(
-    { point_id: id, lang: "de", audio_text: text, duration_sec: Math.round((text.split(/\s+/).length / 130) * 60) },
+    {
+      point_id: id,
+      lang: "de",
+      audio_text: text,
+      duration_sec: sekunden(text),
+      audio_url: audioUrl,
+      teaser_text: probe,
+      teaser_url: teaserUrl,
+      teaser_sec: sekunden(probe),
+    },
     { onConflict: "point_id,lang" },
   );
   pointIds.push(id);
