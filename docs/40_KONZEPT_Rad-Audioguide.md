@@ -1,6 +1,6 @@
 # Rad-Audioguide: Navigation, Audio-Spots, Auslegung
 
-Stand: 2026-08-24 · Code: `src/lib/bike-nav-core.ts`, `src/components/tours/nav/` · Prüfung: `npm run nav:check`
+Stand: 2026-08-25 · Code: `src/lib/bike-nav-core.ts`, `src/components/tours/nav/` · Prüfung: `npm run nav:check` (18 Prüfungen)
 
 Dieses Dokument war ab dem 24.08.2026 an neun Stellen im Code als „siehe docs/40" zitiert,
 bevor es existierte. Es holt das nach: Es hält fest, was gebaut wird, mit welchen Zahlen,
@@ -72,27 +72,48 @@ ein S-Bike hat ein Mietlimit von vier Stunden, in das die Tour samt Pausen passe
 
 ## Die Zahlen, und warum sie so sind
 
-Sie leben in `NAV` in `src/lib/bike-nav-core.ts`. **Bis zur ersten echten Testfahrt sind
-alle Startwerte**, abgeleitet aus fremden Apps und aus 18 km/h. Sie gehören nach der ersten
-Fahrt gegen die Wirklichkeit geprüft, nicht vorher festgeschrieben.
+Sie leben in `NAV` in `src/lib/bike-nav-core.ts`. **Bis zur ersten echten Testfahrt sind es
+Startwerte**, abgeleitet aus fremden Apps und aus 18 km/h. Sie gehören nach der ersten Fahrt
+gegen die Wirklichkeit geprüft.
 
-| Zweck | Wert | Herkunft |
+Die Tabelle listet jetzt getrennt, was im Code steht und was noch aussteht. Eine Zusage ohne
+Code ist eine offene Baustelle, keine Eigenschaft.
+
+### Umgesetzt
+
+| Zweck | Konstante | Wert | Herkunft |
+|---|---|---|---|
+| Audio-Spot ankündigen | `SPOT_NEAR_M` | 150 m | 30 Sekunden bei 18 km/h. OsmAnd nimmt 167 m im Radprofil. |
+| Spot als vorbei werten | `SPOT_PASSED_M` | 100 m | Der Gast war da, auch ungehört. Verhindert, dass ein verpasster Spot die Runde blockiert. |
+| Kulanz für einen vorgemerkten Spot | `SPOT_GRACE_M` | 250 m | Wer wegen einer Sperrzone nie angeboten werden konnte, bekommt die Geschichte kurz nach dem Ort noch. |
+| Sperrzone vor einer Abbiegung | `MANEUVER_QUIET_M` | 140 m | **Sicherheitsregel:** kein Play-Angebot, während eine Abbiegung bevorsteht. „Ankommen" zählt nicht als Abbiegung. |
+| Ende der Runde | `FINISH_M` | 35 m | Stadtübliche GPS-Streuung. |
+| ...bestätigt über | `FINISH_FIXES` | 2 Fixe | Ein einzelner Messwert reicht nicht (siehe unten). |
+| ...und nur nach Annäherung | `FINISH_APPROACH_M` | 250 m | Ein Sprung von der halben Runde auf 20 m Rest ist kein Zieleinlauf. |
+| ...zurücknehmbar ab | `FINISH_RELEASE_M` | 90 m | Hysterese. Wer weiterfährt, ist nicht fertig. |
+| Größter Fortschritts-Sprung | `MAX_JUMP_M` | 400 m | Gedeckelt, plus Zeitbudget `JUMP_SLACK_M`. Begründung unten. |
+| Off-Route | `OFF_ROUTE_M` | 40 m, 3 Messungen | Radweg neben der Fahrbahn plus Häuserschlucht. |
+| Neuberechnung frühestens | `REROUTE_COOLDOWN_MS` | 10 s | Keine zwei in derselben Häuserschlucht. |
+| Messwerte verwerfen ab | `MAX_ACCURACY_M` | 60 m | Schlechtere werden gar nicht bewertet. |
+| Entscheidungen brauchen | `DECIDE_ACCURACY_M` | 35 m | Off-Route und Ende brauchen einen saubereren Fix. |
+| Ausreißer-Filter | `MAX_SPEED_MPS` | 20 m/s | Schnellere Sprünge sind GPS-Ausreißer, kein Tempo. |
+| Kamera-Neigung | `NAV_PITCH` | 58 Grad | **Weicht bewusst von Mapbox' 45 ab.** Am Gerät geprüft und für gut befunden; 45 wäre die flachere Alternative mit mehr Vorschau. Offen, ob ein Vergleich lohnt. |
+| Kamera-Zoom | `NAV_ZOOM` | 17 | Mapbox nennt 16,3 als Startwert. Ebenfalls am Gerät geprüft. |
+| Position des Punkts im Bild | `PUCK_AT` | 0,68 | Nicht die Mitte: Beim Fahren zählt, was vorne liegt. |
+
+### Noch NICHT umgesetzt
+
+Diese Zeilen standen als Zusage in der Tabelle, ohne dass Code dahinterstand. Sie sind
+weiterhin richtig, aber sie sind Arbeit, keine Eigenschaft.
+
+| Zweck | Wert | Stand |
 |---|---|---|
-| Audio-Spot ankündigen | 150 m vor dem Spot | 30 Sekunden bei 18 km/h. OsmAnd nimmt 167 m im Radprofil. Genug Zeit, den Daumen zu heben, ohne dass der Knopf ewig dasteht. |
-| Spot als besucht werten | 100 m Vorbeifahrt | Der Gast war da, auch wenn er nicht gedrückt hat. Verhindert, dass ein verpasster Spot die Runde blockiert. |
-| Ankunft am Spot | 35 m | Stadtübliche GPS-Streuung zwischen Häusern. |
-| Abbiegung vorbereiten | 300 m | Erste von drei Stufen, damit eine Abbiegung nicht überrascht. |
-| Abbiegung ansagen | 80 bis 100 m | Rund 18 Sekunden. Die Stufe, auf die der Gast reagiert. |
-| Abbiegung auslösen | 15 bis 20 m | Letzte Bestätigung im Moment des Abbiegens. |
-| Zwei Abbiegungen bündeln | unter 50 m Abstand | Sonst hört der Gast „rechts" und steht 20 m später vor der nächsten Kreuzung. Genau daran scheitert komoot laut Nutzerkritik. |
-| Kurve ist keine Abbiegung | unter 35 Grad wird verworfen | „Sagt eine Abbiegung an, wo die Straße nur einen Bogen macht" ist die meistgenannte Beschwerde bei Rad-Navi-Apps. |
-| Abstand zwischen zwei Audio-Spots | mindestens 600 m | Bei 18 km/h sind das zwei Minuten. Näher beieinander überlagern sich Geschichte und nächste Ankündigung. |
-| Sperrzone vor einer Abbiegung | 140 m | **Sicherheitsregel:** In diesem Fenster startet kein Audio-Spot. Niemand soll eine Geschichte anfangen, während er in eine Kreuzung einfährt. |
-| Off-Route | 40 m Querabstand, 3 Messungen | Radweg neben der Fahrbahn plus Häuserschlucht-Ungenauigkeit. |
-| Kamera-Neigung | 45 Grad, auf kleinen Geräten 35 | Mapbox' eigener Standardwert für Navigation. Die 58 Grad aus dem Prototyp fressen Vorschau-Distanz. |
-| Kamera-Zoom | 16,3 | Mapbox' Startwert. Nie unter 14, sonst verliert man die Straßenzuordnung. |
-| Kamera vor der Abbiegung | ab 70 m flach kippen | Macht die Kreuzung von oben lesbar. Mapbox kippt ab 180 m, das ist Auto-Distanz. |
-| Kamera-Drehung dämpfen | höchstens 30 bis 45 Grad je Messung | Ohne das dreht sich die Karte an jeder Ampel. |
+| Abbiegung dreistufig ansagen | 300 m / 80 bis 100 m / 15 bis 20 m | Es gibt nur eine Stufe: der Banner zeigt die Distanz durchgehend, die Farbe wechselt bei 120 m und 30 m. |
+| Zwei Abbiegungen bündeln | unter 50 m Abstand | fehlt. Der Gast hört „rechts" und steht 20 m später vor der nächsten Kreuzung. |
+| Kurve ist keine Abbiegung | unter 35 Grad verwerfen | fehlt. Mapbox liefert die Winkel (`bearing_before`/`bearing_after`), sie werden noch nicht gelesen. |
+| Mindestabstand zwischen Audio-Spots | 600 m | Redaktionsregel, kein Riegel im Code. Nach einer Neuberechnung entscheidet Mapbox, wo die Spots liegen. |
+| Audio vor dem Start vorladen | rund 13 MB | fehlt. Ohne Roaming beginnt die Runde sonst mit einem Ladebalken. |
+| Ruhezustand zwischen Abbiegungen | Bildschirm abdunkeln | fehlt. Akku-Maßnahme aus der Recherche. |
 
 ## Warum ein eigener Navigations-Screen
 
@@ -120,12 +141,12 @@ Unten eine einzige Kennzahl. Wer mehr unterbringen will, nimmt etwas anderes weg
 
 ## Warum eine Route und nicht viele Etappen
 
-Der Prototyp holt für jeden Stopp eine eigene kleine Route (`bike-directions.ts`,
-`fetchBikeLeg`). Das war die richtige erste Entscheidung: kürzere Schrittlisten, bleibt unter
+Der erste Prototyp holte für jeden Stopp eine eigene kleine Route (`fetchBikeLeg`, seit
+dem Umbau entfernt). Das war die richtige erste Entscheidung: kürzere Schrittlisten, bleibt unter
 dem Koordinatenlimit der Directions-API, und eine neue Etappe entsteht ohnehin bei jedem
 erreichten Stopp.
 
-**Ab v1 gilt trotzdem das Gegenteil: eine Anfrage für die ganze Runde**, mit den Spots als
+**Seit dem 24.08.2026 umgesetzt: eine Anfrage für die ganze Runde**, mit den Spots als
 stillen Zwischenpunkten. Die Antwort liefert dann die durchgehende Linie, die vollständige
 Abbiegeliste und zu jedem Spot seine Position auf der Route als Zahl. Drei Dinge, die mit
 Etappen grundsätzlich nicht gehen, fallen damit von selbst an:
@@ -154,6 +175,43 @@ weicht um 6 m auf 5,6 km von Mapbox' Distanz ab, das sind 0,11 Prozent.
 Fortschritt muss monoton werden. Ohne das springt eine Runde an ihren eigenen
 Kreuzungspunkten, das Ausgrauen wird falsch und Audio feuert am falschen Ort. Bei einer
 Salzburger Altstadtrunde ist das kein Randfall, sondern der Normalfall.
+
+## Die vier Phasen eines Audio-Spots
+
+Ein Spot durchläuft `open`, `pending`, `near`, `done`. Die dritte Phase ist der Grund, warum
+die Zusage aus der Sperrzone überhaupt hält:
+
+- **open**: noch zu weit weg.
+- **pending**: in Reichweite, aber der Play-Knopf wartet, weil eine Abbiegung bevorsteht.
+  Ohne diese Phase ging der Spot verloren: Der Übergang war blockiert, wurde nirgends
+  gemerkt, und der Spot lief stumm von `open` auf `done`. In einer Gasse mit Abbiegungen
+  alle 80 m lag sein ganzes Fenster in der Sperrzone.
+- **near**: angeboten, der Play-Knopf steht.
+- **done**: abgehakt. Heißt NICHT „gehört". Was wirklich lief, zählt der Fahrbildschirm
+  getrennt mit, weil der Kern den Player bewusst nicht kennt.
+
+**Höchstens ein Angebot gleichzeitig.** Die Oberfläche hat einen Streifen; zwei Angebote im
+selben Rechenschritt hätten einander überschrieben, und der übergangene Spot hätte nie wieder
+auslösen können. Der nächstgelegene gewinnt, der nächste rückt nach, sobald der erste
+abgehakt ist.
+
+## Warum eine Rundtour besondere Absicherung braucht
+
+Eine Runde endet dort, wo sie beginnt. Zwei Folgen, beide teuer erkauft:
+
+**Jeder falsche Messwert in Startnähe sieht aus wie ein Zieleinlauf.** Deshalb reicht Nähe
+allein nicht: Das Ende gilt erst nach `FINISH_FIXES` sauberen Messungen, und nur wenn der
+Fortschritt vorher schon in Zielnähe lag. Es ist außerdem zurücknehmbar, und es sperrt die
+Neuberechnung nicht mehr. Ein falsches „fertig" darf nicht die einzige Selbstheilung
+abschalten, und der Abschlussbildschirm hat einen „Weiterfahren"-Knopf.
+
+**Der Fortschritt darf nicht springen.** Weil die Linie sich selbst nahe kommt, kann die
+Suche auf einen ganz anderen Ast schnappen. Gemessen: ein einzelner Messwert ließ den
+Fortschritt von 200 auf 1579 m springen, verbuchte vier Spots und meldete „Runde geschafft"
+nach 200 gefahrenen Metern. Ein Sprung wird deshalb nur übernommen, soweit er in der
+verstrichenen Zeit fahrbar war, gedeckelt auf `MAX_JUMP_M`. Der Deckel ist der Kern der
+Sache: Nach einer langen Ortungslücke wissen wir ohnehin nicht, wo der Gast ist, dann ist
+Stehenbleiben und Neuberechnen besser als Raten.
 
 ## Priorität 1 ist die Navigation, nicht das Audio
 

@@ -138,6 +138,7 @@
     "navDoneContinue": "Continuer à rouler",
     "navOffline": "Pas joignable pour l'instant – le dernier itinéraire reste actif.",
     "navNoGps": "Aucun signal GPS",
+    "navSignalLost": "Pas de signal GPS, l'affichage peut être obsolète",
     "navDenied": "Accès à la position refusé – autorisez-le dans les réglages.",
     "navSafetyHint": "Garde ton téléphone sur le support – les yeux sur la route.",
     "arrivedTitle": "Tu es arrivé",

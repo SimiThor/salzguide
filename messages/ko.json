@@ -138,6 +138,7 @@
     "navDoneContinue": "계속 주행",
     "navOffline": "지금은 연결할 수 없어요 – 마지막 경로가 계속 사용돼요.",
     "navNoGps": "GPS 신호 없음",
+    "navSignalLost": "GPS 신호 없음, 정보가 오래되었을 수 있습니다",
     "navDenied": "위치 접근이 거부되었어요 – 설정에서 허용해 주세요.",
     "navSafetyHint": "휴대폰은 거치대에 고정하고 – 시선은 도로에 두세요.",
     "arrivedTitle": "도착했어요",

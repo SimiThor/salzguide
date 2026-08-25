@@ -138,6 +138,7 @@
     "navDoneContinue": "Jedź dalej",
     "navOffline": "Chwilowo niedostępne – ostatnia trasa pozostaje aktywna.",
     "navNoGps": "Brak sygnału GPS",
+    "navSignalLost": "Brak sygnału GPS, dane mogą być nieaktualne",
     "navDenied": "Odmówiono dostępu do lokalizacji – włącz go w ustawieniach.",
     "navSafetyHint": "Trzymaj telefon w uchwycie – patrz na drogę.",
     "arrivedTitle": "Jesteś na miejscu",

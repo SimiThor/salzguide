@@ -181,6 +181,7 @@
     "navDoneContinue": "Weiterfahren",
     "navOffline": "Gerade nicht erreichbar – letzte Route bleibt aktiv.",
     "navNoGps": "Kein GPS-Signal",
+    "navSignalLost": "Kein GPS-Signal, Anzeige kann veraltet sein",
     "navDenied": "Standortzugriff verweigert – bitte in den Einstellungen erlauben.",
     "navSafetyHint": "Handy nur in der Halterung nutzen – Blick auf die Strasse.",
     "arrivedTitle": "Angekommen",

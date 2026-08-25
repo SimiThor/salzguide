@@ -138,6 +138,7 @@
     "navDoneContinue": "Keep riding",
     "navOffline": "Not reachable right now – last route stays active.",
     "navNoGps": "No GPS signal",
+    "navSignalLost": "No GPS signal, this may be out of date",
     "navDenied": "Location access denied – please allow it in settings.",
     "navSafetyHint": "Keep your phone in the mount – eyes on the road.",
     "arrivedTitle": "You've arrived",

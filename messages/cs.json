@@ -138,6 +138,7 @@
     "navDoneContinue": "Pokračovat v jízdě",
     "navOffline": "Teď nedostupné – poslední trasa zůstává aktivní.",
     "navNoGps": "Žádný signál GPS",
+    "navSignalLost": "Žádný signál GPS, údaje mohou být neaktuální",
     "navDenied": "Přístup k poloze zamítnut – povolte ho v nastavení.",
     "navSafetyHint": "Telefon nech v držáku – sleduj silnici.",
     "arrivedTitle": "Jsi na místě",

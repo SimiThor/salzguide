@@ -138,6 +138,7 @@
     "navDoneContinue": "继续骑行",
     "navOffline": "暂时无法连接——将继续使用上一条路线。",
     "navNoGps": "无 GPS 信号",
+    "navSignalLost": "无 GPS 信号，显示可能已过时",
     "navDenied": "定位权限被拒绝——请在设置中允许。",
     "navSafetyHint": "手机请固定在支架上——注意力放在路上。",
     "arrivedTitle": "已到达",
