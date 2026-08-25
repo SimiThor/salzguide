@@ -44,8 +44,8 @@ export type BikeRoute = {
 
 export type BikeRouteResult = { ok: true; route: BikeRoute } | { ok: false; error: BikeLegError };
 
-// Mapbox nimmt höchstens 25 Koordinaten je Anfrage. Eine davon ist der Start, es bleiben
-// 24 Spots. docs/40 deckelt die Runde ohnehin weit darunter.
+// Mapbox nimmt höchstens 25 Koordinaten je Anfrage. Eine davon ist der Start, eine das
+// Ziel, es bleiben 23 Spots. docs/40 deckelt die Runde ohnehin weit darunter.
 const MAX_COORDS = 25;
 
 type ViaWaypoint = { waypoint_index: number; geometry_index: number; distance_from_start: number };
@@ -55,11 +55,20 @@ export async function fetchBikeRoute(
   spots: [number, number][],
   locale: string,
   signal?: AbortSignal,
+  // Ziel der Runde, falls es nicht der letzte Spot ist. EINE RUNDTOUR ENDET DORT, WO SIE
+  // BEGINNT, und ohne diesen Punkt endete die Navigation am letzten Spot: Bei Runde A ist
+  // das Mülln, 692 m vom Hanuschplatz entfernt. Der Gast bekäme "Ziel erreicht", während
+  // sein Rad noch sieben Minuten weiter steht.
+  //
+  // Wichtig ist, dass das Ziel KEIN Audio-Spot ist. Deshalb steht es hier und nicht in
+  // `spots`: Alles in `spots` bekommt einen Play-Knopf, und ein Play-Knopf ohne Geschichte
+  // ist ein Knopf, der nichts tut.
+  end?: [number, number] | null,
 ): Promise<BikeRouteResult> {
   if (!TOKEN) return { ok: false, error: "no-token" };
   if (spots.length === 0) return { ok: false, error: "no-route" };
 
-  const coords = [from, ...spots].slice(0, MAX_COORDS);
+  const coords = [from, ...spots, ...(end ? [end] : [])].slice(0, MAX_COORDS);
   const last = coords.length - 1;
   const coordStr = coords.map((c) => `${c[0]},${c[1]}`).join(";");
   // Bewusst NUR "cycling". Der Vorgänger fragte zusätzlich "walking" ab und nahm das
@@ -118,7 +127,9 @@ export async function fetchBikeRoute(
     const spotAlongM = spots.map((_, i) => {
       // spots[i] ist coords[i + 1], also waypoint_index i + 1.
       const v = byWaypointIndex.get(i + 1);
-      if (!v) return routeLenM; // der letzte Spot IST das Routenende, er hat keinen Eintrag
+      // OHNE Ziel-Punkt ist der letzte Spot selbst das Routenende und hat deshalb keinen
+      // via-Eintrag. MIT Ziel-Punkt haben alle Spots einen, und das Ende gehört keinem.
+      if (!v) return routeLenM;
       const gi = Math.max(0, Math.min(v.geometry_index, cumGeo.length - 1));
       return cumGeo[gi];
     });

@@ -638,5 +638,34 @@ console.log("\n19. Stichweg: der Fortschritt laeuft nicht rueckwaerts");
   else bad("ohne Geraeterichtung bleibt der Fortschritt haengen", `${blindLetzter.alongM.toFixed(0)} m von 1000 m`);
 }
 
+
+console.log("\n20. Rundtour mit Ziel: die Runde endet am Start, nicht am letzten Spot");
+{
+  // Eine Rundtour endet dort, wo sie beginnt. Ohne einen eigenen Ziel-Punkt hoerte die
+  // Route am LETZTEN SPOT auf: Bei der echten Runde A ist das Muelln, und das liegt
+  // 692 m vom Leihrad entfernt (gemessen gegen Mapbox am 25.08.2026). Der Gast bekaeme
+  // "Ziel erreicht", waehrend sein Rad noch sieben Minuten weiter steht.
+  //
+  // bike-directions.ts haengt den Zielpunkt jetzt hinter die Spots. Fuer den Kern heisst
+  // das: Der letzte Spot liegt NICHT mehr am Routenende. Diese Pruefung haelt fest, dass
+  // beides trotzdem funktioniert, das Angebot am letzten Spot und der Zieleinlauf danach.
+  const route = straightRoute(1600, [400, 800]);
+  const { states, events } = ride({ route, path: route.geometry, speedMps: 5 });
+
+  const angeboten = events.filter((e) => e.type === "spot-near").map((e) => e.index);
+  if (angeboten.includes(0) && angeboten.includes(1)) ok("beide Spots werden angeboten");
+  else bad("ein Spot bleibt stumm", `angeboten: [${angeboten.join(", ")}]`);
+
+  // Am letzten Spot (800 m) darf noch nichts fertig sein, es fehlen 800 m.
+  const beiSpot = states.find((st) => st.alongM >= 800 && st.alongM < 850);
+  if (beiSpot && !beiSpot.finished) ok("am letzten Spot ist die Runde noch nicht gefahren");
+  else bad("Runde gilt schon am letzten Spot als gefahren", `bei ${beiSpot?.alongM.toFixed(0)} m`);
+
+  // Am echten Ende dagegen schon.
+  const letzter = states[states.length - 1];
+  if (letzter.finished) ok(`am Ziel gilt sie als gefahren (${letzter.alongM.toFixed(0)} m von 1600)`);
+  else bad("Zieleinlauf wird nicht gemeldet", `${letzter.alongM.toFixed(0)} m von 1600 m`);
+}
+
 console.log(failed ? `\n${failed} Prüfung(en) fehlgeschlagen.` : "\nAlles grün.");
 process.exitCode = failed ? 1 : 0;

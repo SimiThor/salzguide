@@ -51,6 +51,10 @@ export function useBikeNavigation(
   stops: [number, number][],
   fix: GeoFix | null,
   locale: string,
+  // Ziel der Runde, falls es nicht der letzte Stopp ist (Migration 0061, tours.end_lat/lng).
+  // Bei einer Rundtour ist das der Startpunkt. Ohne ihn endet die Navigation am letzten
+  // Stopp, und bei Runde A liegt der 692 m vom Leihrad entfernt.
+  end?: [number, number] | null,
 ): UseBikeNavigation {
   const [route, setRoute] = useState<BikeRoute | null>(null);
   const [spotIds, setSpotIds] = useState<number[]>(() => stops.map((_, i) => i));
@@ -67,6 +71,10 @@ export function useBikeNavigation(
   const spotIdsRef = useLatestRef(spotIds);
   const stopsRef = useLatestRef(stops);
   const localeRef = useLatestRef(locale);
+  // Wie locale: Der Zielpunkt aendert sich waehrend einer Fahrt nicht, und als echte
+  // Abhaengigkeit von loadRoute wuerde ein bei jedem Render neu erzeugtes Array-Literal
+  // aus der Elternkomponente eine Neuberechnung ausloesen.
+  const endRef = useLatestRef(end ?? null);
   const fixRef = useLatestRef(fix);
 
   const reqRef = useRef(0);
@@ -160,7 +168,13 @@ export function useBikeNavigation(
         };
       };
 
-      void fetchBikeRoute([originFix.lng, originFix.lat], targets, localeRef.current, ac.signal)
+      void fetchBikeRoute(
+        [originFix.lng, originFix.lat],
+        targets,
+        localeRef.current,
+        ac.signal,
+        endRef.current,
+      )
         .then((r) => {
           clearTimeout(timeout);
           if (myReq !== reqRef.current) return; // veraltete Antwort verwerfen
@@ -205,7 +219,7 @@ export function useBikeNavigation(
           retryLater();
         });
     },
-    [stopsRef, localeRef, clearRetry, fixRef, spotIdsRef, applyEvents],
+    [stopsRef, localeRef, endRef, clearRetry, fixRef, spotIdsRef, applyEvents],
   );
 
   // Die Ref auf den aktuellen Stand bringen, damit eine Wiederholung nicht eine alte

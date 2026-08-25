@@ -64,9 +64,18 @@ export default function BikeNavScreen({ tour }: { tour: TourDetail }) {
     [geoStops],
   );
 
+  // Ziel der Runde (Migration 0061). Bei einer Rundtour ist es der Startpunkt, und ohne
+  // ihn hoerte die Navigation am LETZTEN SPOT auf: Bei Runde A ist das Muelln, 692 m vom
+  // Leihrad entfernt. Der Gast bekaeme "Ziel erreicht", waehrend sein Rad noch sieben
+  // Minuten weiter steht. Ist kein Ziel gesetzt, bleibt es wie bisher.
+  const endCoord = useMemo<[number, number] | null>(
+    () => (tour.end ? [tour.end.lng, tour.end.lat] : null),
+    [tour.end],
+  );
+
   const { fix, status: gpsStatus, start } = useGeolocationWatch();
   useWakeLock(gpsStatus === "requesting" || gpsStatus === "watching" || gpsStatus === "signal-lost");
-  const bike = useBikeNavigation(stopCoords, fix, locale);
+  const bike = useBikeNavigation(stopCoords, fix, locale, endCoord);
 
   const [activeAudioIndex, setActiveAudioIndex] = useState(0);
   const audio = useTourAudio(playerStops, activeAudioIndex, setActiveAudioIndex);
