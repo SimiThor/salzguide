@@ -133,6 +133,8 @@
     "navHere": "Itt vagy",
     "navTeaser": "{seconds} másodperc ingyen",
     "navThen": "majd",
+    "navAllStops": "Összes megálló",
+    "navHeard": "meghallgatva",
     "navDismiss": "Elrejtés",
     "navDoneTitle": "Kör teljesítve",
     "navDoneBody": "{total} megállóból {heard} szólalt meg.",

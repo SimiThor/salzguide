@@ -133,6 +133,8 @@
     "navHere": "Vous y êtes",
     "navTeaser": "{seconds} secondes offertes",
     "navThen": "puis",
+    "navAllStops": "Tous les arrêts",
+    "navHeard": "écouté",
     "navDismiss": "Masquer",
     "navDoneTitle": "Boucle terminée",
     "navDoneBody": "Vous avez écouté {heard} étapes sur {total}.",

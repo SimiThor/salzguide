@@ -133,6 +133,8 @@
     "navHere": "Jsi na místě",
     "navTeaser": "{seconds} sekund zdarma",
     "navThen": "pak",
+    "navAllStops": "Všechny zastávky",
+    "navHeard": "přehráno",
     "navDismiss": "Skrýt",
     "navDoneTitle": "Okruh dokončen",
     "navDoneBody": "Poslechl sis {heard} z {total} zastávek.",

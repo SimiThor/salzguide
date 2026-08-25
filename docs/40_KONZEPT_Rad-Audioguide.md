@@ -182,6 +182,31 @@ Fortschritt muss monoton werden. Ohne das springt eine Runde an ihren eigenen
 Kreuzungspunkten, das Ausgrauen wird falsch und Audio feuert am falschen Ort. Bei einer
 Salzburger Altstadtrunde ist das kein Randfall, sondern der Normalfall.
 
+## Zwei Wege zu jeder Geschichte, nicht einer
+
+Das automatische Angebot hängt an der Ortung, und die ist genau dort am schlechtesten, wo die
+Spots stehen: In der Altstadt liegt sie gemessen 11 bis 13 m daneben, an einer Ampel zwischen
+Häuserwänden kann sie ganz wegbleiben. Wäre das Angebot der einzige Weg, wäre die Geschichte
+dann nicht zu hören, obwohl der Gast direkt davor steht.
+
+Seit 25.08.2026 gibt es deshalb zwei Wege von Hand, beide nach dem Muster von Apple Maps und
+Google Maps, wo jeder Pin immer antippbar ist:
+
+1. **Tipp auf einen Pin.** Öffnet denselben Streifen wie das automatische Angebot.
+2. **Tipp auf die Zielleiste unten.** Öffnet die Liste aller Stopps, jeder anspielbar.
+
+Der zweite Weg ist der wichtigere, und das ist gemessen: Auf einem iPhone-Viewport war
+während der Fahrt **einer von sieben Pins im Bild**. Die Kamera folgt dem Fahrer, alles andere
+liegt außerhalb. Ein Weg, der nur über die Karte führt, wäre also für sechs von sieben Stopps
+gar keiner.
+
+Die Handauswahl hat VORRANG vor dem automatischen Angebot: Wer selbst tippt, hat gerade eine
+Absicht, und die darf ein Vorschlag nicht überschreiben. Und sie startet nichts von selbst.
+Der Play-Knopf kommt, gedrückt wird er vom Menschen.
+
+Die Bezahlgrenze bleibt dabei sichtbar und ehrlich: In der Liste steht bei den Gratis-Stopps
+die Dauer, bei den anderen „20 Sekunden gratis". Kein Schloss, keine graue Zeile.
+
 ## Die vier Phasen eines Audio-Spots
 
 Ein Spot durchläuft `open`, `pending`, `near`, `done`. Die dritte Phase ist der Grund, warum

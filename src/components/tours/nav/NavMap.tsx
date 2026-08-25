@@ -58,6 +58,7 @@ export default function NavMap({
   bearingDeg,
   stops,
   activeIndex,
+  onStopTap,
   paddingBottom = 0,
   recenterLabel,
 }: {
@@ -74,6 +75,15 @@ export default function NavMap({
   // anderen ihre Nummer (gleiche Optik wie die nummerierten Pins auf TourView).
   stops: NavStopPoint[];
   activeIndex: number;
+  /**
+   * Tipp auf einen Stopp-Pin. Damit kommt der Gast an JEDE Geschichte, auch wenn er nicht
+   * genau am Ort steht oder die Ortung danebenliegt.
+   *
+   * Das automatische Angebot bleibt, es ist nur nicht mehr der einzige Weg. Genau so machen
+   * es Apple Maps und Google Maps: Jeder Pin ist immer antippbar, und was dabei aufgeht, ist
+   * dasselbe Kaertchen wie sonst.
+   */
+  onStopTap?: (index: number) => void;
   // Platz unten (px), den z.B. das Ankunfts-Sheet oder die HUD-Leisten brauchen —
   // fliesst als Kamera-Padding ein, damit der Punkt nicht darunter verschwindet.
   paddingBottom?: number;
@@ -84,6 +94,10 @@ export default function NavMap({
   const puckRef = useRef<mapboxgl.Marker | null>(null);
   const coneRef = useRef<mapboxgl.Marker | null>(null);
   const stopMarkersRef = useRef<Map<number, mapboxgl.Marker>>(new Map());
+  // Der Marker wird EINMAL erzeugt und danach nur noch verschoben. Haenge man den
+  // Klick-Handler direkt an, zeigte er fuer immer auf die Funktion vom ersten Render.
+  // Deshalb ueber ein Ref, das jeder Render frisch setzt.
+  const onStopTapRef = useLatestRef(onStopTap);
   const { bindMap, loading } = useMapLoading();
   const [mapDead, setMapDead] = useState(false);
   const [following, setFollowing] = useState(true);
@@ -174,10 +188,24 @@ export default function NavMap({
       let marker = stopMarkersRef.current.get(i);
       if (!marker) {
         const wrap = document.createElement("div");
-        wrap.className = "sg-pin";
+        wrap.className = "sg-pin sg-hit";
+        wrap.style.cursor = "pointer";
+        wrap.setAttribute("role", "button");
+        wrap.setAttribute("tabindex", "0");
         const inner = document.createElement("span");
         inner.className = "sg-marker";
         wrap.appendChild(inner);
+        const tippen = (e: Event) => {
+          // Sonst faehrt die Karte darunter mit: Mapbox behandelt den Tipp als Karten-Klick
+          // und der Gast verliert die Kameraverfolgung, waehrend er faehrt.
+          e.stopPropagation();
+          e.preventDefault();
+          onStopTapRef.current?.(i);
+        };
+        wrap.addEventListener("click", tippen);
+        wrap.addEventListener("keydown", (e) => {
+          if ((e as KeyboardEvent).key === "Enter" || (e as KeyboardEvent).key === " ") tippen(e);
+        });
         marker = new mapboxgl.Marker({ element: wrap }).setLngLat([s.lng, s.lat]).addTo(map);
         stopMarkersRef.current.set(i, marker);
       } else {
