@@ -136,8 +136,7 @@
     "navAllStops": "모든 정거장",
     "navHeard": "들음",
     "navDismiss": "숨기기",
-    "navDoneTitle": "코스 완주",
-    "navDoneBody": "{total}곳 중 {heard}곳을 들었습니다.",
+    "navDoneTitle": "출발점으로 돌아왔어요",
     "navDoneBack": "투어로 돌아가기",
     "navDoneContinue": "계속 주행",
     "navOffline": "지금은 연결할 수 없어요 – 마지막 경로가 계속 사용돼요.",
@@ -151,7 +150,8 @@
     "navNextStop": "다음 지점",
     "navNextStopIn": "다음 지점까지 {distance}",
     "navToFinish": "출발지로 돌아가기",
-    "navEta": "도착까지"
+    "navEta": "도착까지",
+    "navEtaLabel": "도착"
   },
   "Water": {
     "title": "수온",

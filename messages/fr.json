@@ -136,8 +136,7 @@
     "navAllStops": "Tous les arrêts",
     "navHeard": "écouté",
     "navDismiss": "Masquer",
-    "navDoneTitle": "Boucle terminée",
-    "navDoneBody": "Vous avez écouté {heard} étapes sur {total}.",
+    "navDoneTitle": "De retour au départ",
     "navDoneBack": "Retour au circuit",
     "navDoneContinue": "Continuer à rouler",
     "navOffline": "Pas joignable pour l'instant – le dernier itinéraire reste actif.",
@@ -151,7 +150,8 @@
     "navNextStop": "Prochain arrêt",
     "navNextStopIn": "Prochain arrêt dans {distance}",
     "navToFinish": "Retour au départ",
-    "navEta": "Arrivée dans"
+    "navEta": "Arrivée dans",
+    "navEtaLabel": "Arrivée"
   },
   "Water": {
     "title": "Températures de l'eau",

@@ -18,7 +18,13 @@ import { bearingBetween, nearestPointOnRoute, haversineMeters, unwrapDegrees } f
 // docs/40. Wer das Tempo ändert, zieht sie alle mit.
 export const NAV = {
   // ——— Audio-Spots ———
-  SPOT_NEAR_M: 150, // Play-Knopf erscheint: 30 Sekunden Vorlauf bei 18 km/h
+  // Play-Knopf erscheint: 40 Sekunden Vorlauf bei 18 km/h.
+  //
+  // Waren 150 m, also 30 Sekunden. Der Grund fuer die Anhebung ist nicht Grosszuegigkeit,
+  // sondern MANEUVER_QUIET_M: Liegt eine Abbiegung im Angebotsfenster, bleiben von 150 m
+  // nur 10 m nutzbares Fenster uebrig, und der Knopf blitzt kurz auf oder gar nicht. Mit
+  // 200 m bleiben 60 m, also gut 12 Sekunden zum Draufdruecken.
+  SPOT_NEAR_M: 200,
   SPOT_PASSED_M: 100, // so weit dahinter gilt der Spot als vorbei, auch ungehört
   // Kulanz für einen Spot, der wegen einer Sperrzone noch nie angeboten werden KONNTE.
   // In einer Gasse mit Abbiegungen alle 80 m liegt sein ganzes Fenster in der Sperrzone,

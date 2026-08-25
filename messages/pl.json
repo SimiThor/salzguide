@@ -136,8 +136,7 @@
     "navAllStops": "Wszystkie przystanki",
     "navHeard": "odsłuchane",
     "navDismiss": "Ukryj",
-    "navDoneTitle": "Trasa ukończona",
-    "navDoneBody": "Wysłuchano {heard} z {total} przystanków.",
+    "navDoneTitle": "Z powrotem na starcie",
     "navDoneBack": "Powrót do trasy",
     "navDoneContinue": "Jedź dalej",
     "navOffline": "Chwilowo niedostępne – ostatnia trasa pozostaje aktywna.",
@@ -151,7 +150,8 @@
     "navNextStop": "Następny przystanek",
     "navNextStopIn": "Następny przystanek za {distance}",
     "navToFinish": "Powrót na start",
-    "navEta": "Przyjazd za"
+    "navEta": "Przyjazd za",
+    "navEtaLabel": "Przyjazd"
   },
   "Water": {
     "title": "Temperatura wody",

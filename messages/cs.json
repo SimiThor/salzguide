@@ -136,8 +136,7 @@
     "navAllStops": "Všechny zastávky",
     "navHeard": "přehráno",
     "navDismiss": "Skrýt",
-    "navDoneTitle": "Okruh dokončen",
-    "navDoneBody": "Poslechl sis {heard} z {total} zastávek.",
+    "navDoneTitle": "Zpátky na startu",
     "navDoneBack": "Zpět na trasu",
     "navDoneContinue": "Pokračovat v jízdě",
     "navOffline": "Teď nedostupné – poslední trasa zůstává aktivní.",
@@ -151,7 +150,8 @@
     "navNextStop": "Další zastávka",
     "navNextStopIn": "Další zastávka za {distance}",
     "navToFinish": "Zpět na start",
-    "navEta": "Příjezd za"
+    "navEta": "Příjezd za",
+    "navEtaLabel": "Příjezd"
   },
   "Water": {
     "title": "Teplota vody",

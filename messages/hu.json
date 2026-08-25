@@ -136,8 +136,7 @@
     "navAllStops": "Összes megálló",
     "navHeard": "meghallgatva",
     "navDismiss": "Elrejtés",
-    "navDoneTitle": "Kör teljesítve",
-    "navDoneBody": "{total} megállóból {heard} szólalt meg.",
+    "navDoneTitle": "Újra a rajtnál",
     "navDoneBack": "Vissza a túrához",
     "navDoneContinue": "Tovább tekerek",
     "navOffline": "Most nem elérhető – az utolsó útvonal marad aktív.",
@@ -151,7 +150,8 @@
     "navNextStop": "Következő megálló",
     "navNextStopIn": "Következő megálló {distance} múlva",
     "navToFinish": "Vissza a rajthoz",
-    "navEta": "Érkezés"
+    "navEta": "Érkezés",
+    "navEtaLabel": "Érkezés"
   },
   "Water": {
     "title": "Vízhőmérséklet",

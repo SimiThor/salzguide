@@ -179,8 +179,7 @@
     "navAllStops": "Alle Stopps",
     "navHeard": "gehört",
     "navDismiss": "Ausblenden",
-    "navDoneTitle": "Runde geschafft",
-    "navDoneBody": "{heard} von {total} Stationen gehört.",
+    "navDoneTitle": "Wieder am Start",
     "navDoneBack": "Zurück zur Tour",
     "navDoneContinue": "Weiterfahren",
     "navOffline": "Gerade nicht erreichbar – letzte Route bleibt aktiv.",
@@ -194,7 +193,8 @@
     "navNextStop": "Nächster Halt",
     "navNextStopIn": "Nächster Halt in {distance}",
     "navToFinish": "Zurück zum Start",
-    "navEta": "Ankunft in"
+    "navEta": "Ankunft in",
+    "navEtaLabel": "Ankunft"
   },
   "Water": {
     "title": "Wassertemperaturen",

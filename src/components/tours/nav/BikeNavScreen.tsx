@@ -16,6 +16,7 @@ import { useWakeLock } from "@/lib/use-wake-lock";
 import { useBikeNavigation } from "@/lib/use-bike-navigation";
 import { useTourAudio, type PlayerStop } from "@/components/tours/useTourAudio";
 import { estimateEtaMin } from "@/lib/nav-format";
+import { sliceAlong } from "@/lib/geo";
 import type { TourDetail } from "@/lib/tour-types";
 
 // Signierte Audio-URLs (getTourDetail, tour-audio-Bucket) laufen nach 2h ab. Eine lange
@@ -169,7 +170,26 @@ export default function BikeNavScreen({
       ? activeAudioIndex
       : null;
 
-  const shownSpotId = manualSpotId ?? bike.offeredSpotId ?? laufenderSpot;
+  // Der zuletzt angebotene Halt bleibt stehen, bis etwas Neues passiert.
+  //
+  // Vorher verschwand der Streifen von selbst, sobald der Kern den Halt als passiert
+  // verbuchte. Wer an der Ampel stand und den Play-Knopf schon weg fand, hatte den Halt
+  // verloren und wusste nicht warum. Apples Accessibility-Kapitel verbietet zeitgesteuert
+  // verschwindende Bedienelemente ausdruecklich.
+  //
+  // Er geht weg durch: Play, das X, oder wenn der naechste Halt den Streifen uebernimmt.
+  const [letzterAngebot, setLetzterAngebot] = useState<number | null>(null);
+  useEffect(() => {
+    if (bike.offeredSpotId == null) return;
+    // Ueber eine Microtask-Grenze, kein synchrones setState im Effekt-Body (dasselbe
+    // Muster wie `heard` weiter oben und die gespeicherte Saison in Explore.tsx).
+    const id = bike.offeredSpotId;
+    void Promise.resolve().then(() => setLetzterAngebot(id));
+  }, [bike.offeredSpotId]);
+  const haengengeblieben =
+    letzterAngebot != null && letzterAngebot !== closedSpotId ? letzterAngebot : null;
+
+  const shownSpotId = manualSpotId ?? bike.offeredSpotId ?? laufenderSpot ?? haengengeblieben;
   const offeredStop = shownSpotId != null ? (geoStops[shownSpotId] ?? null) : null;
 
   // Play am Angebot. Steht der Player schon auf diesem Spot, ist es ein einfaches
@@ -202,6 +222,7 @@ export default function BikeNavScreen({
     audio.pause();
     setClosedSpotId(shownSpotId);
     setManualSpotId(null);
+    setLetzterAngebot(null);
     bike.dismissOffer();
   }, [audio, shownSpotId, bike]);
 
@@ -212,6 +233,26 @@ export default function BikeNavScreen({
     if (activeAudioIndex !== id) audio.playAt(id);
     else audio.toggle();
   }, [shownSpotId, activeAudioIndex, audio]);
+  // Entfernung bis zu IRGENDEINEM Stopp, nicht nur bis zum automatisch angebotenen.
+  //
+  // WAS HIER FALSCH WAR: Der Streifen bekam die Entfernung nur, wenn der gezeigte Stopp der
+  // angebotene war, sonst null. Und null rendert als "Jetzt hier". Wer einen Stopp von Hand
+  // antippte, las also "Jetzt hier" unter einem Ort, der zwei Kilometer weit weg war.
+  //
+  // `spotIds` bildet Tour-Index auf Routen-Index ab: Nach einer Neuberechnung sind nicht
+  // mehr alle Stopps in der Route, die Positionen verschieben sich also.
+  const distanceToStopM = useCallback(
+    (tourIndex: number | null): number | null => {
+      if (tourIndex == null || !bike.route) return null;
+      const pos = bike.spotIds.indexOf(tourIndex);
+      if (pos < 0) return null;
+      const along = bike.route.spotAlongM[pos];
+      if (along == null) return null;
+      return along - bike.nav.alongM;
+    },
+    [bike.route, bike.spotIds, bike.nav.alongM],
+  );
+
   const nextRouteSpot = bike.nav.nextSpotIndex >= 0 ? bike.spotIds[bike.nav.nextSpotIndex] : -1;
   const nextStop = nextRouteSpot >= 0 ? (geoStops[nextRouteSpot] ?? null) : null;
 
@@ -220,9 +261,52 @@ export default function BikeNavScreen({
   const etaMin = bike.status === "ready" ? estimateEtaMin(bike.nav.remainingM, fix?.speedMps ?? null) : null;
 
   const totalM = bike.route?.distanceM ?? 0;
+
+  // ROT IST NUR DIE AKTUELLE ETAPPE, von einem Halt zum naechsten.
+  //
+  // Bis 25.08.2026 zeichnete die Karte die GANZE Runde rot und graute den gefahrenen Teil
+  // aus. Auf Runde A sind 2,44 von 9,59 km doppelt befahren, gemessen: zwei Sackgassen und
+  // ein Uferkorridor, den sie zweimal benutzt. Dort lagen Grau und Rot auf denselben
+  // Pixeln. Der Gast sah ein Knaeuel und konnte nicht ablesen, wohin er fahren soll.
+  //
+  // Jetzt gibt es zwei Linien mit klarer Arbeitsteilung: die blasse Haarlinie zeigt die
+  // FORM der Runde und aendert sich nie, die rote Linie ist die Zusage "hier entlang,
+  // jetzt". Der zweite Durchgang durch denselben Korridor liegt in einer anderen Etappe
+  // und wird gar nicht gezeichnet, solange er nicht dran ist.
+  const { leg, legProgress } = useMemo(() => {
+    const g = bike.route?.geometry;
+    if (!g?.length || totalM <= 0) return { leg: null, legProgress: 0 };
+    const marken = bike.route!.spotAlongM;
+    const naechste = bike.nav.nextSpotIndex;
+    // Von: der zuletzt passierte Halt, sonst der Start. Bis: der naechste Halt, sonst das
+    // Rundenende. Nach dem letzten Halt ist die Etappe der Rueckweg zum Start.
+    const vonM = naechste > 0 ? (marken[naechste - 1] ?? 0) : 0;
+    let bisM = naechste >= 0 ? (marken[naechste] ?? totalM) : totalM;
+
+    // ENTARTETE ETAPPEN UEBERSPRINGEN. Auf einer Rundtour sitzt Halt 1 AM STARTPUNKT, seine
+    // Marke liegt also bei rund null Meter. Die erste Etappe waere damit 0 bis 0 Meter lang,
+    // sliceAlong gaebe nichts zurueck, und die Karte zeigte gar keine rote Linie: genau der
+    // Zustand, in dem der Gast losfaehrt und nicht weiss, wohin.
+    //
+    // Dasselbe passiert an einer Sackgasse, wo zwei Halte dicht beieinander liegen. Deshalb
+    // bis zur naechsten Marke weitersuchen, die wirklich vor uns liegt.
+    let j = naechste;
+    while (bisM - vonM < 50 && j >= 0 && j + 1 < marken.length) {
+      j += 1;
+      bisM = marken[j] ?? totalM;
+    }
+    if (bisM - vonM < 50) bisM = totalM;
+
+    const laenge = bisM - vonM;
+    if (laenge <= 1) return { leg: g, legProgress: 0 };
+    return {
+      leg: sliceAlong(g, vonM, bisM),
+      legProgress: Math.min(1, Math.max(0, (bike.nav.alongM - vonM) / laenge)),
+    };
+  }, [bike.route, bike.nav.nextSpotIndex, bike.nav.alongM, totalM]);
+
   const progress = totalM > 0 ? Math.min(1, Math.max(0, bike.nav.alongM / totalM)) : 0;
 
-  const heardCount = heard.size;
 
   // Sollte praktisch nie vorkommen (das Publish-Gate verlangt mindestens einen
   // veröffentlichten Punkt), aber eine Runde ohne jede Koordinate darf die Navigation
@@ -239,8 +323,9 @@ export default function BikeNavScreen({
   return (
     <div className="sg-nav fixed inset-0 z-0">
       <NavMap
-        route={bike.route?.geometry ?? null}
-        progress={progress}
+        route={leg}
+        shape={bike.route?.geometry ?? null}
+        progress={legProgress}
         fix={fix ? { lng: fix.lng, lat: fix.lat } : null}
         bearingDeg={bike.nav.bearingDeg}
         stops={navStopPoints}
@@ -262,7 +347,10 @@ export default function BikeNavScreen({
       )}
       <div className="pointer-events-none absolute inset-x-0 top-0 z-[46] flex items-start justify-between gap-2 px-3 pt-[calc(env(safe-area-inset-top)+10px)]">
         <div className="pointer-events-auto">
-          <BackButton fallbackHref={`/touren/${tour.slug}`} label={tour.title} />
+          {/* Ohne label: Der Tourtitel war eine breite Textflaeche direkt neben dem
+              Abbiege-Banner, dem Wichtigsten auf dem Schirm. Der Pfeil genuegt, wohin er
+              fuehrt weiss man, weil man gerade von dort kam. */}
+          <BackButton fallbackHref={`/touren/${tour.slug}`} />
         </div>
       </div>
 
@@ -310,7 +398,7 @@ export default function BikeNavScreen({
           {offeredStop && (
             <SpotOffer
               stop={offeredStop}
-              distanceM={shownSpotId === bike.offeredSpotId ? bike.nav.distanceToNextSpotM : null}
+              distanceM={distanceToStopM(shownSpotId)}
               audio={audio}
               isCurrent={activeAudioIndex === shownSpotId}
               onPlay={playOffered}
@@ -343,13 +431,22 @@ export default function BikeNavScreen({
       {/* Ende der Runde. Vorher lief der Zähler einfach weiter und der Gast blieb auf
           einem halb toten Bildschirm zurück: untere Leiste weg, alte Linie liegen
           geblieben, kein Weg heraus. */}
-      {bike.finished && (
+      {/* Der Vorhang faellt erst, wenn die Runde WIRKLICH durch ist: am Ziel UND kein Halt
+          mehr offen. Auf einer Rundtour liegt das Ziel am Start, ein Ausreisser in
+          Startnaehe sah sonst wie ein Zieleinlauf aus. Der Kern kennt diese Bedingung schon
+          als `reallyDone`, benutzte sie aber nur, um die Neuberechnung ruhen zu lassen. */}
+      {bike.finished && bike.nav.nextSpotIndex < 0 && (
         <div className="absolute inset-0 z-[50] flex flex-col items-center justify-end bg-black/45 p-6 pb-[calc(env(safe-area-inset-bottom)+32px)] backdrop-blur-sm">
           <div className="sg-nav-card w-full max-w-sm space-y-3 rounded-[22px] p-6 text-center">
-            <p className="text-[19px] font-bold text-ink">🎉 {t("navDoneTitle")}</p>
-            <p className="text-[14px] leading-snug text-muted">
-              {t("navDoneBody", { heard: heardCount, total: geoStops.length })}
-            </p>
+            {/* KEINE ZAHL MEHR. Hier stand "{heard} von {total} Stationen gehoert", und das
+                ist genau die Anzeige, die schadet: Silverman und Barasch haben 2023 im
+                Journal of Consumer Research gemessen, dass nicht das Auslassen demotiviert,
+                sondern das ANZEIGEN des Auslassens. Dieselbe Handlung, nur anders
+                dargestellt, kostete acht Prozentpunkte Weitermachen.
+                Wer drei von sieben Geschichten gehoert hat, hat eine schoene Runde gefahren
+                und bekommt hier keine Bilanz vorgelegt. Auch das Konfetti geht: Es stimmt
+                nicht, wenn jemand bei Halt vier aufgehoert hat. */}
+            <p className="text-[19px] font-bold text-ink">{t("navDoneTitle")}</p>
             <Link
               href={`/touren/${tour.slug}`}
               className="sg-nav-on-accent flex items-center justify-center rounded-full bg-accent px-5 py-3 text-[15px] font-semibold transition active:scale-[0.98]"

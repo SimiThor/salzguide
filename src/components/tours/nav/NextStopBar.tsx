@@ -49,12 +49,17 @@ export default function NextStopBar({
         )}
       </span>
 
+      {/* NUR NOCH EINE ZAHL RECHTS. Hier standen zwei Entfernungen nebeneinander, die
+          Restdistanz der Runde und darunter die Ankunft. Zwei Zahlen mit verschiedenem
+          Bezug in einer Zeile sind genau die Verwechslung, die weiter oben in dieser
+          Datei schon einmal repariert wurde. Die Minuten bleiben, die Kilometer gehen:
+          Wer wissen will, wie weit es noch ist, liest links den naechsten Halt. */}
       <span className="shrink-0 text-right">
         <span className="block text-[17px] font-bold tabular-nums text-ink">
-          {formatNavDistanceM(remainingM)}
+          {etaMin != null ? t("minutes", { count: etaMin }) : formatNavDistanceM(remainingM)}
         </span>
         <span className="block text-[11px] text-muted">
-          {etaMin != null ? `${t("navEta")} ${t("minutes", { count: etaMin })}` : t("navRemaining")}
+          {etaMin != null ? t("navEtaLabel") : t("navRemaining")}
         </span>
       </span>
     </div>

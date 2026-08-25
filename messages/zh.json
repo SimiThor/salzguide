@@ -136,8 +136,7 @@
     "navAllStops": "所有站点",
     "navHeard": "已听",
     "navDismiss": "隐藏",
-    "navDoneTitle": "骑行完成",
-    "navDoneBody": "您收听了 {total} 个站点中的 {heard} 个。",
+    "navDoneTitle": "回到起点",
     "navDoneBack": "返回路线",
     "navDoneContinue": "继续骑行",
     "navOffline": "暂时无法连接——将继续使用上一条路线。",
@@ -151,7 +150,8 @@
     "navNextStop": "下一站",
     "navNextStopIn": "距下一站 {distance}",
     "navToFinish": "返回起点",
-    "navEta": "预计到达"
+    "navEta": "预计到达",
+    "navEtaLabel": "到达"
   },
   "Water": {
     "title": "水温",
