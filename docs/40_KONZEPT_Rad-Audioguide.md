@@ -205,6 +205,23 @@ Fortschritt vorher schon in Zielnähe lag. Es ist außerdem zurücknehmbar, und 
 Neuberechnung nicht mehr. Ein falsches „fertig" darf nicht die einzige Selbstheilung
 abschalten, und der Abschlussbildschirm hat einen „Weiterfahren"-Knopf.
 
+**Der Fortschritt darf auch nicht RÜCKWÄRTS laufen.** Am 25.08.2026 an der echten Runde A
+gemessen: Zwei ihrer Spots liegen in Sackgassen (Nonnberggasse, Freisaal). Mapbox fährt
+hinein, wendet und kommt auf demselben Weg zurück. Auf dem Rückweg liegt der Gast physisch
+auf derselben Linie wie auf dem Hinweg, und die Suche nahm bei gleichem Abstand das zuerst
+indizierte Segment, also den Hinweg. Weil das Suchfenster danach um diesen kleineren Wert
+neu zentriert wurde, rutschte es beim nächsten Fix noch weiter zurück: **bei 3.690
+gefahrenen Metern meldete der Kern 2.127 m**, und alle vier Spots dahinter blieben stumm.
+Ein Boden unter dem Fenster allein half nicht, dann fror der Fortschritt bei 460 m fest,
+weil die Korrektur nach vorn grösser war als der Stetigkeits-Riegel erlaubt.
+
+Gelöst über die FAHRTRICHTUNG: Ein Segment, das ihr entgegenläuft, bekommt einen Aufschlag
+und gewinnt nur noch, wenn es deutlich näher liegt. Die Richtung kommt vom Gerät, und wenn
+das keine liefert (iOS gibt `heading` in der Geolocation-API oft gar nicht her), aus den
+letzten beiden Messpunkten. NICHT aus der Richtung der Route an der Stelle: Die stammt aus
+genau dem Segment, das bestimmt werden soll. Geprüft in `nav:check` Nr. 19, mit Rauschen
+und ohne Geräterichtung.
+
 **Der Fortschritt darf nicht springen.** Weil die Linie sich selbst nahe kommt, kann die
 Suche auf einen ganz anderen Ast schnappen. Gemessen: ein einzelner Messwert ließ den
 Fortschritt von 200 auf 1579 m springen, verbuchte vier Spots und meldete „Runde geschafft"
