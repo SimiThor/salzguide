@@ -60,3 +60,6 @@ yarn-error.log*
 # Lokaler Cache des einmaligen WordPress-Imports (Rohinhalt der alten Seite,
 # enthält auch Pro-Inhalte). Wird per "npm run wp:fetch" jederzeit neu geholt.
 /.wp-cache/
+
+# Gesprochene Tour-Texte: Pro-Inhalt, gehoert in die Datenbank, nie ins oeffentliche Repo
+/.audio-texte/
