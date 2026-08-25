@@ -414,9 +414,11 @@ oder zwei nötig sind, und der Widerrufsbutton nach § 13a FAGG ab 01.10.2026.
   Kreuzbergpromenade abbiegen"), und ein deutscher Straßenname hilft einem Gast aus Korea
   wenig. Ein sichtbarer Anker wäre besser ("nach der Brücke rechts"), aber den kennt nur,
   wer die Route zur Autorenzeit vor sich hat.
-- **Der Testhaken muss weg.** `lib/test-sbike-tour.ts`, `lib/test-sbike-slug.ts`, der
-  Footer-Link und die Aufrufstellen verschwinden, sobald es eine echte Runde in der Datenbank
-  gibt. ~~Dafür braucht `tours` eine Spalte für die Fortbewegungsart~~ **erledigt am
+- ~~**Der Testhaken muss weg.**~~ **erledigt am 25.08.2026.** `lib/test-sbike-tour.ts`,
+  `lib/test-sbike-slug.ts`, der Footer-Link und beide Aufrufstellen sind entfernt, sobald es
+  eine echte Runde in der Datenbank gab. Die Parsch-Runde war nie eine Runde, sondern eine
+  Attrappe mit erfundenen Stationen und geliehener Vertonung; sie stand nur, weil `mode`
+  sonst nirgends "bike" werden konnte. Vorher nötig war die Spalte: **ebenfalls erledigt am
   25.08.2026:** Migration 0064 legt das Enum `tour_mode` und die Spalte `tours.mode` an
   (Default `walk`), `lib/tours.ts` liest sie an allen drei Stellen statt hart "walk"
   zurückzugeben, und das Admin-Formular hat ein Feld "Fortbewegung". Alle Lesestellen fangen

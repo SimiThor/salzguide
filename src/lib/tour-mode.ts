@@ -1,7 +1,8 @@
 // Fortbewegungsart einer Runde: walk = bestehende Geh-Tour, bike = S-Bike-Runde mit
 // permanenter Abbiege-Navigation. Seit Migration 0064 eine echte Spalte auf `tours`
-// (Enum tour_mode, Default 'walk'); davor stand hier hart "walk" und "bike" kam
-// ausschliesslich aus der Testrunde in lib/test-sbike-tour.ts.
+// (Enum tour_mode, Default 'walk'); davor stand hier hart "walk", und die einzige Runde,
+// die je "bike" war, war eine fest verdrahtete Testrunde ohne DB-Zeile. Die ist am
+// 25.08.2026 entfernt worden, weil es seither eine echte gibt.
 // Client-safe (keine Server-Imports).
 export type TourMode = "walk" | "bike";
 
