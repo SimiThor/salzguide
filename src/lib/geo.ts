@@ -390,7 +390,34 @@ export type NearestOnRouteOpts = {
   nearAlongM: number;
   backM?: number;
   fwdM?: number;
+  // Harter Boden für das Fenster, unabhängig von `nearAlongM`. Gebraucht bei
+  // STICHWEGEN: Wo die Route sich selbst überlagert (hinauf und auf demselben Weg
+  // zurück), liegen Hin- und Rückweg exakt übereinander. Die Suche unten nimmt bei
+  // gleichem Abstand das zuerst indizierte Segment, also den HINWEG, und meldet damit
+  // einen kleineren Fortschritt. Weil das Fenster dann um diesen kleineren Wert neu
+  // zentriert wird, rutscht es beim nächsten Fix noch weiter zurück: Der Gast fährt
+  // vorwärts, der Zähler läuft rückwärts. Gemessen auf der echten Runde A am 25.08.2026,
+  // bei 3690 gefahrenen Metern meldete der Kern 2127 m.
+  //
+  // Der Boden allein reicht NICHT: Sobald der Fortschritt weit genug danebenliegt, ist die
+  // Korrektur nach vorn grösser als der Stetigkeits-Riegel erlaubt, und der Fortschritt
+  // friert fest. Gemessen: 460 statt 1000 m, dauerhaft.
+  minAlongM?: number;
+  // Deshalb der eigentliche Unterscheider: die FAHRTRICHTUNG. Auf einem Stichweg zeigt
+  // der Hinweg nach Norden und der Rückweg nach Süden, physisch derselbe Ort. Wer weiss,
+  // wohin der Gast schaut, weiss auch, auf welchem der beiden er ist. Ein Segment, das
+  // seiner Richtung entgegenläuft, bekommt einen Aufschlag und gewinnt nur noch, wenn es
+  // deutlich näher liegt.
+  //
+  // Fehlt der Wert (Safari liefert beim Stehen keine Richtung, und beim Stehen ist sie
+  // ohnehin bedeutungslos), bleibt alles wie bisher.
+  headingDeg?: number;
 };
+
+// Aufschlag auf ein Segment, das der Fahrtrichtung entgegenläuft. Gross genug, um bei
+// deckungsgleichen Linien zu entscheiden, klein genug, dass ein wirklich näher liegendes
+// Segment trotzdem gewinnt.
+const WRONG_WAY_PENALTY_M = 25;
 
 export function nearestPointOnRoute(
   route: [number, number][],
@@ -402,10 +429,12 @@ export function nearestPointOnRoute(
   const pl = toLocalM(p, lat0);
   const cum = routeCumulativeMeters(route);
 
+  const heading = opts?.headingDeg;
   const search = (from: number, to: number) => {
     let seg = -1;
     let t0 = 0;
-    let dist = Infinity;
+    let dist = Infinity;   // bewerteter Abstand (mit Richtungs-Aufschlag)
+    let roh = Infinity;    // echter Abstand, der zurückgegeben wird
     for (let i = 1; i < route.length; i++) {
       // Segment ausserhalb des Fensters? Überspringen. `from`/`to` sind Strecken entlang
       // der Route, cum[] hat sie ohnehin schon.
@@ -418,19 +447,28 @@ export function nearestPointOnRoute(
       let t = len2 > 0 ? ((pl[0] - a[0]) * dx + (pl[1] - a[1]) * dy) / len2 : 0;
       t = Math.max(0, Math.min(1, t));
       const d = Math.hypot(pl[0] - (a[0] + t * dx), pl[1] - (a[1] + t * dy));
-      if (d < dist) {
-        dist = d;
+      // Läuft das Segment der Fahrtrichtung entgegen? Dann Aufschlag. Nur bewerten, wenn
+      // das Segment lang genug für eine sinnvolle Richtung ist.
+      let bewertet = d;
+      if (heading != null && len2 > 1) {
+        const segDeg = (Math.atan2(dx, dy) * 180) / Math.PI;
+        const ab = Math.abs(((segDeg - heading + 540) % 360) - 180);
+        if (ab > 90) bewertet += WRONG_WAY_PENALTY_M;
+      }
+      if (bewertet < dist) {
+        dist = bewertet;
+        roh = d;
         seg = i - 1;
         t0 = t;
       }
     }
-    return { seg, t: t0, dist };
+    return { seg, t: t0, dist: roh };
   };
 
   let best = search(-Infinity, Infinity);
   if (opts) {
     const windowed = search(
-      opts.nearAlongM - (opts.backM ?? 50),
+      Math.max(opts.nearAlongM - (opts.backM ?? 50), opts.minAlongM ?? -Infinity),
       opts.nearAlongM + (opts.fwdM ?? 200),
     );
     // Der Treffer im Fenster gewinnt, SOLANGE er plausibel ist. Liegt er weiter weg als

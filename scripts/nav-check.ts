@@ -581,5 +581,62 @@ console.log("\n18. Zwei Spots im selben Schritt: keiner geht verloren");
   else bad("zwei Angebote im selben Schritt", `${maxProSchritt} auf einmal`);
 }
 
+
+console.log("\n19. Stichweg: der Fortschritt laeuft nicht rueckwaerts");
+{
+  // GEMESSEN AN DER ECHTEN RUNDE A (25.08.2026): Zwei ihrer Spots liegen in Sackgassen,
+  // Nonnberggasse und Freisaal. Mapbox faehrt hinein, wendet und kommt auf demselben Weg
+  // zurueck ("Nach links umkehren"). Auf dem Rueckweg liegt der Gast physisch auf
+  // derselben Linie wie auf dem Hinweg, und die Suche nimmt bei gleichem Abstand das
+  // FRUEHER indizierte Segment. Ergebnis: Der Fortschritt zaehlt rueckwaerts, waehrend
+  // der Gast vorwaerts faehrt. Gemessen auf der echten Route: bei 3690 gefahrenen Metern
+  // meldete der Kern 2127 m, und alle vier Spots dahinter blieben stumm.
+  const spur: [number, number][] = [];
+  for (let d = 0; d <= 400; d += 20) spur.push(alongRoute(d));           // hin
+  for (let d = 20; d <= 100; d += 20) spur.push(offsetNorth(alongRoute(400), d));   // Stich hinauf
+  for (let d = 80; d >= 0; d -= 20) spur.push(offsetNorth(alongRoute(400), d));     // und zurueck
+  for (let d = 20; d <= 400; d += 20) spur.push(alongRoute(400 + d));    // weiter
+  const route: NavRoute = { geometry: spur, steps: [], spotAlongM: [450, 800], totalM: 1000 };
+
+  const { states, events } = ride({ route, path: spur, speedMps: 5 });
+  const last = states[states.length - 1];
+
+  // 1. Kommt der Fortschritt ueberhaupt an?
+  if (last.alongM >= 900) ok(`Fortschritt erreicht das Ende (${last.alongM.toFixed(0)} m von 1000)`);
+  else bad("Fortschritt bleibt im Stichweg haengen", `${last.alongM.toFixed(0)} m von 1000 m`);
+
+  // 2. Laeuft er zwischendurch rueckwaerts? Ein Radl faehrt vorwaerts, der Zaehler auch.
+  let groessterRueckschritt = 0;
+  for (let i = 1; i < states.length; i++) {
+    groessterRueckschritt = Math.max(groessterRueckschritt, states[i - 1].alongM - states[i].alongM);
+  }
+  if (groessterRueckschritt <= 25) ok("kein nennenswerter Rueckschritt");
+  else bad("Fortschritt laeuft rueckwaerts", `bis zu ${groessterRueckschritt.toFixed(0)} m pro Fix zurueck`);
+
+  // 3. Der Spot HINTER dem Stichweg muss angeboten werden.
+  const angeboten = events.filter((e) => e.type === "spot-near").map((e) => e.index);
+  if (angeboten.includes(1)) ok("der Spot hinter dem Stichweg wird angeboten");
+  else bad("Spot hinter dem Stichweg bleibt stumm", `angeboten wurden: [${angeboten.join(", ")}]`);
+
+  // 4. Dasselbe mit verrauschtem GPS. Die Fahrtrichtung wird aus zwei aufeinander
+  //    folgenden Punkten gerechnet, und die liegen bei 18 km/h nur rund 5 m auseinander.
+  //    Bei 8 m Rauschen ist der gerechnete Kurs also alles andere als sauber; der
+  //    Aufschlag greift trotzdem, weil er erst ab 90 Grad Abweichung zuschlägt.
+  const laut = ride({ route, path: spur, speedMps: 5, noiseM: 8, accuracyM: 12, seed: 7 });
+  const lautLetzter = laut.states[laut.states.length - 1];
+  if (lautLetzter.alongM >= 850) ok(`auch mit Rauschen kommt der Fortschritt an (${lautLetzter.alongM.toFixed(0)} m)`);
+  else bad("mit Rauschen bleibt der Fortschritt haengen", `${lautLetzter.alongM.toFixed(0)} m von 1000 m`);
+
+  // 5. Und ohne jede Geraeterichtung: iOS liefert `heading` in der Geolocation-API oft
+  //    gar nicht. Dann muss der Kurs ueber Grund einspringen.
+  const ohneKurs = ride({ route, path: spur, speedMps: 5 }).fixes.map((f) => ({
+    ...f, headingDeg: null, speedMps: null,
+  }));
+  const blind = runOn(route, ohneKurs);
+  const blindLetzter = blind.states[blind.states.length - 1];
+  if (blindLetzter.alongM >= 900) ok(`auch ohne Geraeterichtung (${blindLetzter.alongM.toFixed(0)} m)`);
+  else bad("ohne Geraeterichtung bleibt der Fortschritt haengen", `${blindLetzter.alongM.toFixed(0)} m von 1000 m`);
+}
+
 console.log(failed ? `\n${failed} Prüfung(en) fehlgeschlagen.` : "\nAlles grün.");
 process.exitCode = failed ? 1 : 0;

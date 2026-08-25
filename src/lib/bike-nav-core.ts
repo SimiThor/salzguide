@@ -29,6 +29,12 @@ export const NAV = {
   // nicht im selben Moment eine Geschichte angeboten bekommen (Sicherheitsregel docs/40).
   // Der Knopf kommt danach, der Spot geht dadurch nicht verloren.
   MANEUVER_QUIET_M: 140,
+  // Wie weit der Fortschritt hinter seinen Höchststand zurückfallen darf. Er begrenzt das
+  // Suchfenster nach UNTEN (geo.ts, minAlongM) und ist der Riegel gegen Stichwege: Dort
+  // liegen Hin- und Rückweg übereinander, die Suche nimmt bei gleichem Abstand den
+  // Hinweg, und ohne Boden wandert das Fenster Fix für Fix weiter zurück. 40 m deckt
+  // GPS-Rauschen längs der Fahrtrichtung ab, ohne die Kette zuzulassen.
+  BACKTRACK_M: 40,
 
   // ——— Ende der Runde ———
   FINISH_M: 35, // so nah am Ende gilt die Runde als gefahren
@@ -105,6 +111,9 @@ export type SpotPhase = "open" | "pending" | "near" | "done";
 
 export type NavState = {
   alongM: number;
+  // Höchststand des Fortschritts. Nur dieser Wert verankert den Boden des Suchfensters;
+  // alongM selbst darf kurz zurückfallen (Rauschen), das Fenster nicht.
+  maxAlongM: number;
   crossTrackM: number;
   stepIndex: number; // -1 = keine weitere Abbiegung bekannt
   distanceToManeuverM: number | null;
@@ -124,6 +133,7 @@ export type NavState = {
 export function initNavState(spotCount = 0): NavState {
   return {
     alongM: 0,
+    maxAlongM: 0,
     crossTrackM: 0,
     stepIndex: -1,
     distanceToManeuverM: null,
@@ -194,7 +204,35 @@ export function stepNav(
   // springt der Fortschritt um die halbe Runde (Begründung in geo.ts, Beleg in
   // scripts/nav-check.ts). Auf einer GANZEN Runde ist das kein Randfall mehr, sondern
   // die Regel: Eine Rundtour endet dort, wo sie beginnt.
-  const nearest = nearestPointOnRoute(route.geometry, here, { nearAlongM: state.alongM });
+  // Fahrtrichtung für die Segment-Wahl (geo.ts). Zwei Quellen, in dieser Reihenfolge:
+  //
+  //   1. Der Kurs des Geräts, aber nur über der Geh-Schwelle. Im Stand liefert es
+  //      entweder nichts oder einen Zufallswert, und ein Zufallswert wäre hier schlimmer
+  //      als keiner: Er bestrafte das richtige Segment.
+  //   2. Sonst der Kurs über Grund, gerechnet aus den letzten beiden Messpunkten. Der
+  //      braucht keinen Kompass, und das ist der Punkt: iOS liefert `heading` in der
+  //      Geolocation-API häufig gar nicht. Ohne diesen zweiten Weg griffe die
+  //      Stichweg-Absicherung ausgerechnet auf den Geräten nicht, für die sie gebaut ist.
+  //
+  // NICHT verwendet wird die Richtung der Route an der aktuellen Stelle (rawHeading
+  // weiter unten). Die stammt aus dem Segment, das hier erst bestimmt werden soll.
+  // 3 m als Untergrenze, nicht 5: Bei 18 km/h und einem Fix je Sekunde liegen die Punkte
+  // rund 5 m auseinander, und mit 5 als Schwelle fiel jeder zweite Schritt knapp darunter
+  // durch. Unter 3 m ist die Richtung zwischen zwei Punkten nur noch Rauschen.
+  const gefahrenM = state.lastFixCoord ? haversineMeters(state.lastFixCoord, here) : 0;
+  const kursUeberGrund =
+    state.lastFixCoord && gefahrenM >= 3 ? bearingBetween(state.lastFixCoord, here) : undefined;
+  const headingForMatch =
+    fix.headingDeg != null && (fix.speedMps ?? 0) >= NAV.MOVING_MPS
+      ? fix.headingDeg
+      : kursUeberGrund;
+
+  const nearest = nearestPointOnRoute(route.geometry, here, {
+    nearAlongM: state.alongM,
+    // Boden am Höchststand: siehe NAV.BACKTRACK_M und die Begründung in geo.ts.
+    minAlongM: state.maxAlongM - NAV.BACKTRACK_M,
+    headingDeg: headingForMatch,
+  });
   const crossTrackM = nearest?.crossTrackM ?? state.crossTrackM;
 
   // Stetigkeits-Riegel: Der Fortschritt darf nur so weit springen, wie in der vergangenen
@@ -346,6 +384,9 @@ export function stepNav(
   return {
     state: {
       alongM,
+      // Der Höchststand geht nur nach oben. Er verankert den Boden des Suchfensters beim
+      // nächsten Fix, damit ein Stichweg das Fenster nicht rückwärts wandern lässt.
+      maxAlongM: Math.max(state.maxAlongM, alongM),
       crossTrackM,
       stepIndex,
       distanceToManeuverM,
