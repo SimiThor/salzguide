@@ -18,6 +18,14 @@ export type TourStopView = {
   // Audio ist bezahlter Pro-Inhalt -> nur gesetzt, wenn der Betrachter diesen Stop
   // hören darf (Gratis-Teaser ODER Pro). Sonst locked=true und audioUrl/Text = null.
   locked: boolean;
+  /**
+   * Kurzlebige Signed-URL der KOSTPROBE, rund 20 Sekunden. Nur an einem GESPERRTEN Stopp
+   * gesetzt, und dort ist `audioUrl` immer null. Ein eigenes Objekt im privaten Bucket, kein
+   * Ausschnitt der Volldatei: Sonst laege die ganze Geschichte im Browser.
+   */
+  teaserUrl?: string | null;
+  /** Laenge der Kostprobe in Sekunden, fuer die Beschriftung des Knopfs. */
+  teaserSec?: number | null;
   audioUrl: string | null;
   audioText: string | null;
   durationSec: number | null;

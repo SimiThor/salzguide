@@ -2,6 +2,16 @@
 
 import { useEffect, useRef, useState } from "react";
 
+// WER ENTSCHEIDET, OB ETWAS ABGESPIELT WIRD: der SERVER, ueber `audioUrl`.
+//
+// Hier stand frueher zusaetzlich `stop.locked ||` vor jedem Abspielen. Das war eine zweite
+// Entscheidung an der falschen Stelle, denn die erste faellt in lib/tours.ts: Ein offener
+// Stopp bekommt eine signierte URL auf die Volldatei, ein gesperrter eine auf die KOSTPROBE,
+// und wer nichts bekommen darf, bekommt null. Mit dem zusaetzlichen `locked` blieb die
+// Kostprobe stumm, obwohl der Server sie ausdruecklich freigegeben hatte.
+//
+// `locked` bleibt als Feld, aber nur noch fuer die Oberflaeche: Sie zeigt daran, ob hier
+// eine Kostprobe laeuft oder die ganze Geschichte.
 export type PlayerStop = {
   order: number;
   title: string;
@@ -109,7 +119,7 @@ export function useTourAudio(
     // ausgelieferten Media-Events – das "pause" von oben käme also nie an, und der
     // Button bliebe auf "Pause" stehen, obwohl nichts mehr läuft.
     setPlaying(false);
-    if (!s || s.locked || !s.audioUrl) {
+    if (!s || !s.audioUrl) {
       a.removeAttribute("src");
       a.load();
       srcIndexRef.current = -1;
@@ -133,7 +143,7 @@ export function useTourAudio(
     max,
     toggle() {
       const a = audioRef.current;
-      if (!a || !stop || stop.locked || !stop.audioUrl) return;
+      if (!a || !stop || !stop.audioUrl) return;
       if (a.paused) a.play().catch(() => setPlaying(false));
       else a.pause();
     },
@@ -157,7 +167,7 @@ export function useTourAudio(
       const target = stops[idx];
       const a = audioRef.current;
       onIndex(idx);
-      if (!a || !target || target.locked || !target.audioUrl) return;
+      if (!a || !target || !target.audioUrl) return;
       if (srcIndexRef.current !== idx) {
         a.src = target.audioUrl;
         a.load();

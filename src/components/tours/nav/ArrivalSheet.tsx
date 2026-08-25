@@ -18,6 +18,8 @@ export default function ArrivalSheet({
   stop,
   freeStops,
   totalStops,
+  proPrice,
+  tourSlug,
   audio,
   index,
   total,
@@ -30,6 +32,10 @@ export default function ArrivalSheet({
   stop: TourStopView | null;
   freeStops: number;
   totalStops: number;
+  /** Preis aus Stripe, serverseitig geholt. Leer = Kauf gerade nicht möglich. */
+  proPrice: string;
+  /** Slug dieser Runde, damit der Kauf hierher zurückführt statt auf /pro. */
+  tourSlug: string;
   audio: TourAudioApi;
   isCurrent: boolean;
   onPlayThis: () => void;
@@ -70,7 +76,12 @@ export default function ArrivalSheet({
         </div>
 
         {stop.locked ? (
-          <StopLockedCard freeStops={freeStops} total={totalStops} />
+          <StopLockedCard
+            freeStops={freeStops}
+            total={totalStops}
+            price={proPrice}
+            returnTour={tourSlug}
+          />
         ) : canPlay ? (
           <div>
             {/* Die Wiedergabetasten nur, wenn der Player auch WIRKLICH auf diesem Spot

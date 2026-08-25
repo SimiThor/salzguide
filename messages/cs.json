@@ -131,6 +131,7 @@
     "navPlaying": "Přehrává se",
     "navAhead": "Za {distance}",
     "navHere": "Jsi na místě",
+    "navTeaser": "{seconds} sekund zdarma",
     "navDismiss": "Skrýt",
     "navDoneTitle": "Okruh dokončen",
     "navDoneBody": "Poslechl sis {heard} z {total} zastávek.",

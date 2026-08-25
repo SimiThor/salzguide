@@ -27,7 +27,19 @@ const SIGNED_URL_REFRESH_MS = 100 * 60 * 1000;
 // Bündelt GPS (use-geolocation-watch), den reinen Kern (bike-nav-core über
 // use-bike-navigation) und die Karte (NavMap) zu EINEM Bildschirm. Priorität ist die
 // Karte, alles andere ist HUD darüber und darf sie nie ganz verdecken.
-export default function BikeNavScreen({ tour }: { tour: TourDetail }) {
+export default function BikeNavScreen({
+  tour,
+  proPrice = "",
+}: {
+  tour: TourDetail;
+  /**
+   * Preis aus Stripe, serverseitig geholt. Gesetzt heisst: Der Kauf passiert im Sheet und
+   * fuehrt danach hierher zurueck. Leer heisst: Stripe war nicht erreichbar, dann bleibt der
+   * alte Weg ueber /pro. Ein Kaufblock OHNE Preis waere keine Option, § 8 Abs. 1 FAGG
+   * verlangt ihn unmittelbar vor der Vertragserklaerung.
+   */
+  proPrice?: string;
+}) {
   const t = useTranslations("Tours");
   const locale = useLocale();
   const router = useRouter();
@@ -57,9 +69,11 @@ export default function BikeNavScreen({ tour }: { tour: TourDetail }) {
       geoStops.map((s) => ({
         order: s.order,
         title: s.title,
-        audioUrl: s.audioUrl,
+        // Gesperrter Stopp = die Kostprobe. Der Server hat schon entschieden, welche der
+        // beiden Dateien er signiert; hier wird nur noch genommen, was da ist.
+        audioUrl: s.audioUrl ?? s.teaserUrl ?? null,
         locked: s.locked,
-        durationSec: s.durationSec,
+        durationSec: s.durationSec ?? s.teaserSec ?? null,
       })),
     [geoStops],
   );
@@ -319,6 +333,8 @@ export default function BikeNavScreen({ tour }: { tour: TourDetail }) {
         stop={offeredStop}
         freeStops={tour.freeStops}
         totalStops={tour.stops.length}
+        proPrice={proPrice}
+        tourSlug={tour.slug}
         audio={audio}
         isCurrent={shownSpotId != null && shownSpotId === activeAudioIndex}
         onPlayThis={playOffered}

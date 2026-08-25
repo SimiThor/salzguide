@@ -367,10 +367,26 @@ fragt, für unsere halten. Der Pfad entsteht deshalb serverseitig aus einem Slug
 Schrägstrich noch Punkt noch Doppelpunkt enthalten darf (`safeTourSlug` in `lib/url.ts`).
 Geprüft in `npm run pro:check` gegen fünfzehn Ausbruchsversuche.
 
-**Was noch fehlt**, in dieser Reihenfolge: das Schloss an Stopp 3 durch eine Kostprobe von
-20 Sekunden ersetzen (braucht eine eigene Audiodatei, eine gekürzte Wiedergabe der Volldatei
-wäre kein Gate), den Kaufblock ins Spot-Sheet an Stopp 2 legen, Apple Pay und Google Pay im
-selben Fenster, und eine Preiszeile vor dem Start.
+**Statt eines Schlosses eine Kostprobe.** Am ersten bezahlten Stopp stand ein graues Schloss,
+wo eben noch der Play-Knopf war. Ein Schloss sagt nein; es sagt nicht, was es kostet und was
+danach kommt, und es nimmt dem Fahrbildschirm ausgerechnet den 56-Pixel-Knopf weg, der als
+einziger im Fahren wirklich zu treffen ist. Seit Migration 0065 hat jeder Punkt eine
+Kostprobe von rund 20 Sekunden, und der Knopf bleibt stehen.
+
+Die Kostprobe ist eine EIGENE DATEI und kein Abschnitt der Volldatei. Wer die Volldatei
+ausliefert und nach 20 Sekunden stoppt, hat kein Gate gebaut, sondern eine Bitte: Ein Blick
+in die Netzwerkspur, und die ganze Geschichte liegt da. `stopAudioAccess()` in
+`lib/tour-audio-gate.ts` ist die eine Stelle, die entscheidet, welcher Pfad signiert wird,
+und sie fällt ausdrücklich NICHT auf die Volldatei zurück, wenn eine Kostprobe fehlt. Geprüft
+in `npm run pro:check`.
+
+Sie ist auch nicht der abgeschnittene Anfang, sondern ein eigener Text: Bei einem Schnitt
+endet der Ton mitten im Satz, ein eigener Text darf aufhören, wo es spannend wird. Für die
+Vertonung heisst das eine zweite, kurze Datei je Punkt und Sprache.
+
+**Was noch fehlt**, in dieser Reihenfolge: Apple Pay und Google Pay im selben Fenster (der
+Sprung zu Stripes Kasse ist der letzte verbliebene Seitenwechsel), und eine Preiszeile vor
+dem Start, damit Stopp 3 als Bestätigung ankommt und nicht als Überraschung.
 
 **Drei Fragen gehören vor dem Weiterbauen zu einem Anwalt.** Der EuGH hat am 09.07.2026 in
 einem österreichischen Fall entschieden (C-234/25, Sky gegen VKI), dass laufend gepflegte

@@ -131,6 +131,7 @@
     "navPlaying": "Most szól",
     "navAhead": "{distance} múlva",
     "navHere": "Itt vagy",
+    "navTeaser": "{seconds} másodperc ingyen",
     "navDismiss": "Elrejtés",
     "navDoneTitle": "Kör teljesítve",
     "navDoneBody": "{total} megállóból {heard} szólalt meg.",

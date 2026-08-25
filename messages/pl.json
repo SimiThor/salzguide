@@ -131,6 +131,7 @@
     "navPlaying": "Odtwarzanie",
     "navAhead": "Za {distance}",
     "navHere": "Jesteś na miejscu",
+    "navTeaser": "{seconds} sekund za darmo",
     "navDismiss": "Ukryj",
     "navDoneTitle": "Trasa ukończona",
     "navDoneBody": "Wysłuchano {heard} z {total} przystanków.",

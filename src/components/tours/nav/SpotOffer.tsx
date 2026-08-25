@@ -39,7 +39,14 @@ export default function SpotOffer({
   const t = useTranslations("Tours");
   const running = isCurrent && audio.playing;
   const started = isCurrent && audio.time > 0;
-  const locked = stop.locked || !stop.audioUrl;
+  // Eine KOSTPROBE ist kein gesperrter Stopp mehr, sondern ein angefangener. Der Server hat
+  // fuer sie eine eigene, kurze Datei signiert (lib/tours.ts), und die darf gespielt werden.
+  //
+  // Frueher stand hier an ihrer Stelle ein graues Schloss. Ein Schloss sagt nein. Es sagt
+  // nicht, was es kostet und was danach kommt, und es nimmt dem Fahrbildschirm ausgerechnet
+  // den 56-Pixel-Knopf weg, der als einziger im Fahren wirklich zu treffen ist.
+  const teaser = stop.locked && !stop.audioUrl && Boolean(stop.teaserUrl);
+  const locked = (stop.locked || !stop.audioUrl) && !teaser;
   const pct = isCurrent && audio.max > 0 ? Math.min(100, (audio.time / audio.max) * 100) : 0;
 
   return (
@@ -82,9 +89,11 @@ export default function SpotOffer({
           <span className="block truncate text-[12px] text-muted">
             {running
               ? t("navPlaying")
-              : distanceM != null && distanceM > 0
-                ? t("navAhead", { distance: formatNavDistanceM(distanceM) })
-                : t("navHere")}
+              : teaser
+                ? t("navTeaser", { seconds: stop.teaserSec ?? 20 })
+                : distanceM != null && distanceM > 0
+                  ? t("navAhead", { distance: formatNavDistanceM(distanceM) })
+                  : t("navHere")}
           </span>
         </button>
 

@@ -11,6 +11,7 @@
 // Prüfung hält fest, dass der Slug-Filter hält und dass aus dem, was er durchlässt, kein
 // Pfad entstehen kann, der unsere Seite verlässt.
 import { safeTourSlug } from "@/lib/url";
+import { stopAudioAccess } from "@/lib/tour-audio-gate";
 
 let failed = 0;
 const ok = (name: string) => console.log(`  ok    ${name}`);
@@ -88,6 +89,30 @@ console.log("\n4. Ohne Slug bleibt es beim alten Weg auf /pro");
     if (safeTourSlug(v) === null) ok(`kein Rücksprungziel bei ${JSON.stringify(v)}`);
     else bad("unerwartetes Ziel", String(safeTourSlug(v)));
   }
+}
+
+console.log("\n5. Ein gesperrter Stopp bekommt NIE die Volldatei");
+{
+  const voll = "punkt/de.mp3";
+  const probe = "punkt/de-kostprobe.mp3";
+
+  const gesperrt = stopAudioAccess({ locked: true, audioUrl: voll, teaserUrl: probe });
+  if (gesperrt.signPath === probe && gesperrt.isTeaser) ok("gesperrt + Kostprobe -> nur die Kostprobe");
+  else bad("gesperrter Stopp bekommt die falsche Datei", JSON.stringify(gesperrt));
+
+  // Der gefaehrlichste Fall: Kostprobe fehlt. Dann darf NICHTS signiert werden, nicht
+  // ersatzweise die Volldatei.
+  const ohneProbe = stopAudioAccess({ locked: true, audioUrl: voll, teaserUrl: null });
+  if (ohneProbe.signPath === null) ok("gesperrt ohne Kostprobe -> gar nichts");
+  else bad("FALLBACK AUF DIE VOLLDATEI", JSON.stringify(ohneProbe));
+
+  const offen = stopAudioAccess({ locked: false, audioUrl: voll, teaserUrl: probe });
+  if (offen.signPath === voll && !offen.isTeaser) ok("offen -> die Volldatei, nicht die Kostprobe");
+  else bad("offener Stopp bekommt die falsche Datei", JSON.stringify(offen));
+
+  const leer = stopAudioAccess({ locked: false, audioUrl: null, teaserUrl: probe });
+  if (leer.signPath === null) ok("offen ohne Vertonung -> gar nichts");
+  else bad("unerwarteter Pfad ohne Vertonung", JSON.stringify(leer));
 }
 
 console.log(failed ? `\n${failed} Prüfung(en) fehlgeschlagen.` : "\nAlles grün.");
