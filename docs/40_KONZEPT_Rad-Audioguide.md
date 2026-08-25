@@ -249,6 +249,12 @@ Drei Änderungen, in der Reihenfolge ihrer Wirkung:
    aktuellen Position: So überlagern sich die blasse und die rote Linie nie, und die blasse
    muss nur siebenmal je Runde neu gesetzt werden statt bei jedem Messwert.
 
+   **Gleiche Breite wie die rote Linie, nur andere Farbe.** Sie war erst dünn (2,5 px), und
+   das las sich wie ein anderer Weg statt wie dieselbe Route in einem anderen Zustand. Mit
+   derselben Breite ist sofort klar: Das ist die Straße, auf der es weitergeht, sie ist nur
+   noch nicht dran. Google macht es bei Alternativrouten genauso, gleiche Stärke, andere
+   Farbe. Unterschieden wird über die Farbe, nicht über die Größe.
+
    Die helle Fassung ist kein Zierrat. Eine dünne dunkle Linie hat auf einer bunten Karte
    mal Kontrast und mal keinen, über Wiese, Wald und Wasser jeweils anders. Erst mit der
    Fassung ist die Frage „was habe ich noch vor mir" auf jedem Untergrund beantwortet.
@@ -261,8 +267,15 @@ mehr existiert, und füllen den Bildschirm wieder.
 **Was sonst noch wegfiel**, nach dem Vorbild von Googles Fahransicht, die im Ruhezustand
 zwei Panels zeigt und sonst fast nichts:
 
-- Sechs von sieben nummerierten Pins. Nur der nächste Halt trägt eine Nummer, die anderen
-  sind ruhige Punkte, weiterhin antippbar mit voller Trefferfläche.
+- Die Zielflagge. Auf einer Rundtour liegt das Ziel am Start, die Flagge stand also neben
+  Halt 1 und las sich wie „hier endet die Runde". Jeder Halt trägt jetzt seine Nummer, auch
+  der letzte.
+- Die Aufdringlichkeit der Pins, nicht ihre Information. Der nächste Halt steht groß und
+  weiß da, alle anderen kleiner und in gedecktem Ton, aber **mit Nummer**. Erst war das ein
+  bloßer grauer Punkt ohne Zahl; dann war die Karte zwar ruhig, aber man sah nicht mehr, der
+  wievielte Halt das ist, und genau das sucht man beim Blick auf die Runde. Unterschieden
+  wird über Farbe und Größe, nicht darüber, ob eine Zahl da ist. Die Trefferfläche bleibt
+  bei allen voll.
 - Eine von zwei Zahlen in der unteren Leiste. Der Restweg in Kilometern stand direkt neben
   einer zweiten Entfernung; das ist dieselbe Verwechslung, die im Kopf von `NextStopBar.tsx`
   schon einmal repariert wurde.

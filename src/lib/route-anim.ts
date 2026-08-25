@@ -268,8 +268,8 @@ export function addRoundShapeLayer(map: MapboxMap, coords: [number, number][]) {
     source: SHAPE_SOURCE,
     paint: {
       "line-color": "#ffffff",
-      "line-width": 5,
-      "line-opacity": 0.55,
+      "line-width": [...NAV_CASING_WIDTH] as never,
+      "line-opacity": 0.5,
     },
     layout: { "line-join": "round", "line-cap": "round" },
   });
@@ -278,13 +278,19 @@ export function addRoundShapeLayer(map: MapboxMap, coords: [number, number][]) {
     type: "line",
     source: SHAPE_SOURCE,
     paint: {
-      // Der Sekundaerton der Marke. Kein Rot: Rot ist im Fahrmodus die Zusage "hier
-      // entlang, jetzt", und die darf nur eine Linie geben.
-      "line-color": "#6c5b57",
-      // Duenner und blasser als die rote Linie, damit klar bleibt, welche der beiden die
-      // Anweisung ist. Lesbar wird sie durch die Fassung darunter, nicht durch Deckkraft.
-      "line-width": 2.5,
-      "line-opacity": 0.75,
+      // GLEICHE BREITE wie die rote Linie, nur zurueckgenommen in der Farbe.
+      //
+      // Sie war erst duenn (2,5 px). Das las sich wie ein anderer Weg, nicht wie dieselbe
+      // Route in einem anderen Zustand. Mit derselben Breite ist sofort klar: Das ist die
+      // Strasse, auf der es weitergeht, sie ist nur noch nicht dran. Google macht es bei
+      // Alternativrouten genauso, gleiche Staerke, andere Farbe.
+      //
+      // Unterschieden wird also ueber FARBE, nicht ueber Groesse: ein entsaettigtes
+      // Graubraun statt des Markenrots. Rot bleibt die Zusage "hier entlang, jetzt", und
+      // die darf es nur einmal geben.
+      "line-color": "#9a8b84",
+      "line-width": [...NAV_LINE_WIDTH] as never,
+      "line-opacity": 0.8,
     },
     layout: { "line-join": "round", "line-cap": "round" },
   });

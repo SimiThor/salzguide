@@ -235,13 +235,11 @@ export default function NavMap({
       }
       const el = marker.getElement();
       el.classList.toggle("sg-pin--active", active);
-      // NUR DER NAECHSTE HALT traegt einen nummerierten Pin. Alle anderen sind ruhige
-      // Punkte ohne Nummer und ohne Kachel, weiterhin antippbar.
-      //
-      // Vorher trugen alle sieben eine Nummer in einer weissen Kachel. Auf einer Runde, die
-      // sich selbst kreuzt, standen davon mehrere dicht beieinander und konkurrierten mit
-      // der Fuehrung. Googles Fahransicht zeigt aus demselben Grund nur den Zielmarker.
-      el.classList.toggle("sg-pin--quiet", !active && i !== stops.length - 1);
+      // JEDER Halt behaelt seine Nummer. Der naechste steht gross und weiss da, alle
+      // anderen kleiner und in gedecktem Ton. Unterschieden wird ueber Farbe und Groesse,
+      // nicht darueber, ob eine Zahl da ist: Welcher Halt das ist, will man auch von den
+      // ruhigen wissen.
+      el.classList.toggle("sg-pin--quiet", !active);
       const inner = el.querySelector(".sg-marker") as HTMLElement | null;
       if (inner) {
         // Die Zielflagge gehört dem LETZTEN Stopp, nicht dem gerade angesteuerten. Vorher
@@ -249,11 +247,11 @@ export default function NavMap({
         // die Runde", also genau falsch herum. Der angesteuerte Stopp wird stattdessen
         // hervorgehoben (sg-pin--active) und behält seine Nummer, damit man weiterhin
         // sieht, der wievielte er ist.
-        // Die Zielflagge gehoert dem LETZTEN Stopp und erscheint erst, wenn er dran ist.
-        const isLast = i === stops.length - 1;
-        const zeigen = active || isLast;
-        inner.classList.toggle("sg-marker--num", zeigen && !isLast);
-        inner.textContent = !zeigen ? "" : isLast ? "🏁" : String(s.order);
+        // KEINE ZIELFLAGGE MEHR. Auf einer Rundtour liegt das Ziel am Start, die Flagge
+        // stand also neben Halt 1 und las sich wie "hier endet die Runde". Der letzte Halt
+        // traegt deshalb seine Nummer wie jeder andere.
+        inner.classList.add("sg-marker--num");
+        inner.textContent = String(s.order);
       }
     });
     // Marker von Stationen entfernen, die es nicht mehr gibt (sollte praktisch nie
