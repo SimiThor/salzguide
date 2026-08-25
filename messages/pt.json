@@ -132,6 +132,7 @@
     "navAhead": "Em {distance}",
     "navHere": "Estás aqui",
     "navTeaser": "{seconds} segundos grátis",
+    "navThen": "depois",
     "navDismiss": "Ocultar",
     "navDoneTitle": "Volta concluída",
     "navDoneBody": "Ouviste {heard} de {total} paragens.",

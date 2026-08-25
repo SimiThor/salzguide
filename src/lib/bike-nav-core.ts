@@ -89,6 +89,13 @@ export type NavStep = {
   instruction: string;
   type: string;
   modifier?: string;
+  /**
+   * Die NAECHSTE Abbiegung, wenn sie weniger als 50 m dahinter liegt (lib/nav-steps.ts).
+   * Die Oberflaeche haengt sie als "dann" an die Ansage, damit der Gast nicht "rechts"
+   * hoert und zwanzig Meter spaeter ueberrascht vor der naechsten Kreuzung steht.
+   * Sie bleibt trotzdem ein eigener Schritt in der Liste, es geht nichts verloren.
+   */
+  followedBy?: { type: string; modifier?: string };
 };
 
 // Die ganze Runde in einem Stück (bike-directions.ts, fetchBikeRoute). `spotAlongM` ist

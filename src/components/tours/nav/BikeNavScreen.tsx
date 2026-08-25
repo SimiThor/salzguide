@@ -197,6 +197,16 @@ export default function BikeNavScreen({
         recenterLabel={t("navRecenter")}
       />
 
+      {tour.isDraftPreview && (
+        // Ein Admin sieht hier einen ENTWURF. Ohne diesen Streifen sieht das aus wie die
+        // veroeffentlichte Runde, und genau daran haengt die Frage, ob Gaeste sie schon
+        // finden koennen.
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-[48] flex justify-center pt-[calc(env(safe-area-inset-top)+2px)]">
+          <span className="rounded-full bg-amber-400/95 px-3 py-1 text-[11px] font-bold tracking-wide text-black shadow">
+            ENTWURF, nur für dich sichtbar
+          </span>
+        </div>
+      )}
       <div className="pointer-events-none absolute inset-x-0 top-0 z-[46] flex items-start justify-between gap-2 px-3 pt-[calc(env(safe-area-inset-top)+10px)]">
         <div className="pointer-events-auto">
           <BackButton fallbackHref={`/touren/${tour.slug}`} label={tour.title} />
@@ -210,6 +220,7 @@ export default function BikeNavScreen({
             distanceM={bike.nav.distanceToManeuverM}
             type={maneuverStep.type}
             modifier={maneuverStep.modifier}
+            followedBy={maneuverStep.followedBy}
           />
         </div>
       )}

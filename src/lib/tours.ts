@@ -87,23 +87,38 @@ export async function getTourDetail(
   // Fortbewegungsart (0064). Schlägt die Abfrage deshalb fehl, greift der zweite
   // Versuch mit baseCols allein.
   const routeCols = "start_lat, start_lng, end_lat, end_lng, route_geo, mode";
-  const withRoute = await supabase
-    .from("tours")
-    .select(`${baseCols}, ${routeCols}`)
-    .eq("slug", slug)
-    .eq("status", "published")
-    .maybeSingle();
-  let tour: Record<string, unknown> | null = withRoute.error
-    ? null
-    : ((withRoute.data as unknown as Record<string, unknown> | null) ?? null);
-  if (withRoute.error) {
-    const plain = await supabase
-      .from("tours")
-      .select(baseCols)
-      .eq("slug", slug)
-      .eq("status", "published")
-      .maybeSingle();
-    tour = (plain.data as unknown as Record<string, unknown> | null) ?? null;
+  // ENTWURFS-VORSCHAU FÜR ADMINS, und der Grund ist ein Widerspruch in unseren eigenen
+  // Regeln: docs/40 verlangt, dass eine Runde einmal wirklich abgefahren wird, BEVOR sie
+  // veröffentlicht wird. Die Fahrseite lieferte aber nur veröffentlichte Runden aus. Man
+  // musste also veröffentlichen, um prüfen zu dürfen, ob man veröffentlichen darf.
+  //
+  // Die Reihenfolge ist Absicht: Zuerst die normale Abfrage MIT Status-Filter. Nur wenn die
+  // nichts findet, wird überhaupt gefragt, ob hier ein Admin sitzt. Normaler Verkehr zahlt
+  // damit keinen zusätzlichen Auth-Aufruf, und eine unbekannte Adresse kostet einen billigen.
+  const holen = async (cols: string, nurVeroeffentlicht: boolean) => {
+    let q = supabase.from("tours").select(cols).eq("slug", slug);
+    if (nurVeroeffentlicht) q = q.eq("status", "published");
+    const r = await q.maybeSingle();
+    return { data: (r.data as unknown as Record<string, unknown> | null) ?? null, error: r.error };
+  };
+
+  const versuche = async (nurVeroeffentlicht: boolean) => {
+    const mitRoute = await holen(`${baseCols}, ${routeCols}`, nurVeroeffentlicht);
+    if (!mitRoute.error) return mitRoute.data;
+    return (await holen(baseCols, nurVeroeffentlicht)).data;
+  };
+
+  let tour = await versuche(true);
+  let istEntwurf = false;
+  if (!tour) {
+    // `await import`, weil admin-guard.ts `server-only` ist: Ein fester Import zöge das
+    // Modul in jeden Bündel-Graphen, der tours.ts auch nur für einen TYP anfasst, und das
+    // endet in HTTP 500 auf jeder Seite.
+    const { getAdminUserId } = await import("./admin-guard");
+    if (await getAdminUserId()) {
+      tour = await versuche(false);
+      istEntwurf = Boolean(tour);
+    }
   }
   if (!tour) return null;
 
@@ -280,6 +295,9 @@ export async function getTourDetail(
     // Fortbewegungsart aus der DB (0064). Sie entscheidet, ob
     // /touren/[slug]/navigation überhaupt ausgeliefert wird (docs/40).
     mode: tourModeOf(tt.mode),
+    // Nur gesetzt, wenn ein Admin gerade einen Entwurf ansieht. Die Oberfläche zeigt es an,
+    // damit niemand einen Entwurf für die veröffentlichte Runde hält.
+    isDraftPreview: istEntwurf,
     stops,
     canSeePro,
     // Gesnappte Geh-Route + Start/Ziel (Migration 0061). Fehlen sie, zeichnet die

@@ -132,6 +132,7 @@
     "navAhead": "Dans {distance}",
     "navHere": "Vous y êtes",
     "navTeaser": "{seconds} secondes offertes",
+    "navThen": "puis",
     "navDismiss": "Masquer",
     "navDoneTitle": "Boucle terminée",
     "navDoneBody": "Vous avez écouté {heard} étapes sur {total}.",

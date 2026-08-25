@@ -175,6 +175,7 @@
     "navAhead": "In {distance}",
     "navHere": "Jetzt hier",
     "navTeaser": "{seconds} Sekunden gratis",
+    "navThen": "dann",
     "navDismiss": "Ausblenden",
     "navDoneTitle": "Runde geschafft",
     "navDoneBody": "{heard} von {total} Stationen gehört.",

@@ -132,6 +132,7 @@
     "navAhead": "O {distance}",
     "navHere": "Si na mieste",
     "navTeaser": "{seconds} sekúnd zadarmo",
+    "navThen": "potom",
     "navDismiss": "Skryť",
     "navDoneTitle": "Okruh dokončený",
     "navDoneBody": "Vypočul si {heard} z {total} zastávok.",
