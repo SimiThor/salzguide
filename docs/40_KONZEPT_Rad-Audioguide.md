@@ -242,9 +242,17 @@ Drei Änderungen, in der Reihenfolge ihrer Wirkung:
    zweite Durchgang durch denselben Korridor liegt in einer anderen Etappe und wird gar
    nicht gezeichnet, solange er nicht dran ist. Rot ist damit eine Zusage für JETZT, und die
    kann es nur einmal geben.
-3. **Die Form bleibt sichtbar**: die ganze Runde als blasse Haarlinie darunter, 1,5 px,
-   30 Prozent, ohne Trim, ändert sich nie. Zwei blasse Haarlinien übereinander sind eine
-   Kontur und kein Knäuel.
+3. **Was noch kommt, bleibt sichtbar**: ab dem nächsten Halt bis zum Rundenende, als blasse
+   Linie mit heller Fassung darunter. NICHT die ganze Runde, denn was hinter dem Gast liegt,
+   hat er hinter sich; Googles Übersicht zeigt bei Mehrziel-Fahrten ausdrücklich nur „the
+   untraveled portion of the route". Und bewusst erst AB dem nächsten Halt, nicht ab der
+   aktuellen Position: So überlagern sich die blasse und die rote Linie nie, und die blasse
+   muss nur siebenmal je Runde neu gesetzt werden statt bei jedem Messwert.
+
+   Die helle Fassung ist kein Zierrat. Eine dünne dunkle Linie hat auf einer bunten Karte
+   mal Kontrast und mal keinen, über Wiese, Wald und Wasser jeweils anders. Erst mit der
+   Fassung ist die Frage „was habe ich noch vor mir" auf jedem Untergrund beantwortet.
+   Mapbox macht es bei der Hauptroute genauso.
 
 Ausdrücklich NICHT gebaut: Richtungspfeile auf der Linie, Versatz für Hin- und Rückweg,
 Abdunkelung ausserhalb eines Korridors. Alle drei lösen ein Problem, das nach 1 und 2 nicht

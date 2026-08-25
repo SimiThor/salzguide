@@ -20,6 +20,7 @@ export const ROUTE_SOURCE = "sg-route";
 // die beiden Verschiedenes zeigen: Diese aendert sich nie, die andere zeigt nur die
 // aktuelle Etappe.
 export const SHAPE_SOURCE = "sg-round-shape";
+export const SHAPE_CASING = "sg-round-shape-out";
 export const SHAPE_LAYER = "sg-round-shape-line";
 export const ROUTE_LAYER_OUT = "sg-route-out";
 export const ROUTE_LAYER_LINE = "sg-route-line";
@@ -257,6 +258,21 @@ export function addRouteSourceAndLayers(map: MapboxMap, coords: [number, number]
 export function addRoundShapeLayer(map: MapboxMap, coords: [number, number][]) {
   if (map.getSource(SHAPE_SOURCE)) return;
   map.addSource(SHAPE_SOURCE, { type: "geojson", data: routeFC(coords) });
+  // Helle Fassung darunter. Ohne sie verschwindet eine duenne dunkle Linie auf einer
+  // bunten Karte: ueber Wiese, Wald und Wasser hat sie mal Kontrast und mal keinen.
+  // Mapbox macht es bei der Hauptroute genauso (casing unter der Linie), und erst damit
+  // ist die Frage "was habe ich noch vor mir" auf jedem Untergrund beantwortet.
+  map.addLayer({
+    id: SHAPE_CASING,
+    type: "line",
+    source: SHAPE_SOURCE,
+    paint: {
+      "line-color": "#ffffff",
+      "line-width": 5,
+      "line-opacity": 0.55,
+    },
+    layout: { "line-join": "round", "line-cap": "round" },
+  });
   map.addLayer({
     id: SHAPE_LAYER,
     type: "line",
@@ -265,8 +281,10 @@ export function addRoundShapeLayer(map: MapboxMap, coords: [number, number][]) {
       // Der Sekundaerton der Marke. Kein Rot: Rot ist im Fahrmodus die Zusage "hier
       // entlang, jetzt", und die darf nur eine Linie geben.
       "line-color": "#6c5b57",
-      "line-width": 1.5,
-      "line-opacity": 0.3,
+      // Duenner und blasser als die rote Linie, damit klar bleibt, welche der beiden die
+      // Anweisung ist. Lesbar wird sie durch die Fassung darunter, nicht durch Deckkraft.
+      "line-width": 2.5,
+      "line-opacity": 0.75,
     },
     layout: { "line-join": "round", "line-cap": "round" },
   });
