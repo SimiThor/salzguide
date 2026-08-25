@@ -195,6 +195,16 @@ export default function BikeNavScreen({ tour }: { tour: TourDetail }) {
           Audio verdeckt die Führung nicht (Wunsch 6 in docs/40). */}
       {!showStartGate && !bike.finished && (
         <div className="pointer-events-none absolute inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+44px)] z-[45] space-y-2">
+          {/* Empfangsverlust MUSS sichtbar sein. Vorher fiel "signal-lost" durch jede
+              Bedingung: Das Start-Gate deckt nur idle/denied/unavailable ab, also blieb
+              der Fahrbildschirm normal stehen und zeigte weiter die letzte bekannte
+              Position, Distanz und Abbiegung. Auf dem Rad ist das die gefaehrlichste Art
+              Fehler, weil man ihm weiter folgt, ohne zu merken, dass er eingefroren ist. */}
+          {gpsStatus === "signal-lost" && (
+            <p className="sg-nav-card rounded-full px-3 py-1.5 text-center text-[12px] font-semibold text-accent">
+              {t("navSignalLost")}
+            </p>
+          )}
           {bike.rerouting && (
             <p className="sg-nav-card rounded-full px-3 py-1.5 text-center text-[12px] font-semibold text-accent">
               {t("navRerouting")}
@@ -301,6 +311,8 @@ export default function BikeNavScreen({ tour }: { tour: TourDetail }) {
         freeStops={tour.freeStops}
         totalStops={tour.stops.length}
         audio={audio}
+        isCurrent={shownSpotId != null && shownSpotId === activeAudioIndex}
+        onPlayThis={playOffered}
         index={activeAudioIndex}
         total={playerStops.length}
         onContinue={() => setDetailsOpen(false)}

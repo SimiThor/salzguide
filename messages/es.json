@@ -138,6 +138,7 @@
     "navDoneContinue": "Seguir pedaleando",
     "navOffline": "No disponible ahora mismo – sigue activa la última ruta.",
     "navNoGps": "Sin señal GPS",
+    "navSignalLost": "Sin señal GPS, los datos pueden estar desactualizados",
     "navDenied": "Acceso a la ubicación denegado – actívalo en los ajustes.",
     "navSafetyHint": "Mantén el móvil en el soporte – la vista en la carretera.",
     "arrivedTitle": "Has llegado",

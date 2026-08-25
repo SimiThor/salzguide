@@ -142,7 +142,20 @@ export function useBikeNavigation(
         retryRef.current = {
           attempt: attempt + 1,
           timer: setTimeout(() => {
-            loadRouteRef.current?.(fixRef.current ?? originFix, keep, keptPhases, isReroute);
+            // Position UND Spot-Liste frisch nehmen, nicht die von vorhin. In zwanzig
+            // Sekunden fährt ein Radl 350 m: Er ist weiter, und er kann inzwischen an
+            // einem Spot vorbei sein. Mit den eingefrorenen Werten schickte ihn die neue
+            // Route zu einem Stopp zurück, den er schon hinter sich hatte.
+            const f = fixRef.current ?? originFix;
+            const phases = navRef.current.spotPhase;
+            const stillOpen = spotIdsRef.current.filter((_, i) => phases[i] !== "done");
+            const openPhases = phases.filter((ph) => ph !== "done");
+            loadRouteRef.current?.(
+              f,
+              stillOpen.length ? stillOpen : keep,
+              stillOpen.length ? openPhases : keptPhases,
+              isReroute,
+            );
           }, RETRY_DELAYS_MS[attempt]),
         };
       };

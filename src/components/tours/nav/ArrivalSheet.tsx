@@ -21,6 +21,9 @@ export default function ArrivalSheet({
   audio,
   index,
   total,
+  // Steuert der Player GERADE diesen Spot? Nur dann gehören die Wiedergabetasten hierher.
+  isCurrent,
+  onPlayThis,
   onContinue,
 }: {
   open: boolean;
@@ -28,6 +31,8 @@ export default function ArrivalSheet({
   freeStops: number;
   totalStops: number;
   audio: TourAudioApi;
+  isCurrent: boolean;
+  onPlayThis: () => void;
   index: number;
   total: number;
   onContinue: () => void;
@@ -68,7 +73,23 @@ export default function ArrivalSheet({
           <StopLockedCard freeStops={freeStops} total={totalStops} />
         ) : canPlay ? (
           <div>
-            <AudioTransport audio={audio} index={index} total={total} canPlay={canPlay} />
+            {/* Die Wiedergabetasten nur, wenn der Player auch WIRKLICH auf diesem Spot
+                steht. Sonst zeigte das Sheet den einen Ort und steuerte die Geschichte
+                eines anderen: Wer während einer laufenden Geschichte ein neues Angebot
+                aufklappte, sah den neuen Ort und pausierte mit den Tasten darunter den
+                alten. Solange sie auseinanderlaufen, gibt es hier nur einen Knopf, der
+                genau diese Geschichte holt. */}
+            {isCurrent ? (
+              <AudioTransport audio={audio} index={index} total={total} canPlay={canPlay} />
+            ) : (
+              <button
+                type="button"
+                onClick={onPlayThis}
+                className="flex w-full items-center justify-center gap-2 rounded-full bg-accent px-5 py-3 text-[15px] font-semibold text-white transition active:scale-[0.98]"
+              >
+                ▶ {t("play")}
+              </button>
+            )}
             <p className="mt-1.5 text-[11px] leading-snug text-muted/80">{t("aiVoice")}</p>
           </div>
         ) : (
