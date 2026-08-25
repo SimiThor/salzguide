@@ -12,6 +12,7 @@
 import { cleanRouteGeo } from "./tour-route";
 import { routeCumulativeMeters } from "./geo";
 import type { NavStep } from "./bike-nav-core";
+import { prepareSteps, turnAngle, type RawStep } from "./nav-steps";
 
 const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
@@ -19,7 +20,16 @@ export type BikeLegError = "no-token" | "network" | "no-route";
 
 type MapboxStep = {
   distance: number;
-  maneuver: { instruction: string; type: string; modifier?: string };
+  maneuver: {
+    instruction: string;
+    type: string;
+    modifier?: string;
+    // Kurs vor und nach der Abbiegung. Daraus wird der Winkel, und der entscheidet, ob es
+    // eine Abbiegung ist oder nur ein Bogen (lib/nav-steps.ts). Mapbox liefert die Felder
+    // seit jeher mit, gelesen wurden sie bis 25.08.2026 nicht.
+    bearing_before?: number;
+    bearing_after?: number;
+  };
 };
 
 // ——— Die ganze Runde in EINER Anfrage ————————————————————————————————————————
@@ -100,18 +110,24 @@ export async function fetchBikeRoute(
     // danach. Der erste ist das Losfahren und damit kein Abbiege-Hinweis.
     const rawSteps = (mapboxLeg.steps ?? []) as MapboxStep[];
     let cum = 0;
-    const steps: NavStep[] = [];
+    const roh: RawStep[] = [];
     for (let i = 0; i < rawSteps.length; i++) {
       if (i > 0) {
-        steps.push({
+        const m = rawSteps[i].maneuver;
+        roh.push({
           alongM: cum,
-          instruction: rawSteps[i].maneuver.instruction,
-          type: rawSteps[i].maneuver.type,
-          modifier: rawSteps[i].maneuver.modifier,
+          instruction: m.instruction,
+          type: m.type,
+          modifier: m.modifier,
+          angleDeg: turnAngle(m.bearing_before, m.bearing_after),
         });
       }
       cum += rawSteps[i].distance ?? 0;
     }
+    // Bögen raus, dicht beieinanderliegende Abbiegungen aneinanderhängen. Gemessen an
+    // Runde A: aus 54 Schritten werden deutlich weniger Ansagen, ohne dass eine Abbiegung
+    // verschwindet (lib/nav-steps.ts erklärt, was verworfen werden darf und was nie).
+    const steps: NavStep[] = prepareSteps(roh);
 
     // Spot-Positionen über `geometry_index` statt über `distance_from_start`: Beide
     // liefern dasselbe auf wenige Meter genau (gemessen: höchstens 5,4 m auf 4,7 km),

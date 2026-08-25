@@ -132,6 +132,7 @@
     "navAhead": "还有 {distance}",
     "navHere": "已到达",
     "navTeaser": "免费试听 {seconds} 秒",
+    "navThen": "然后",
     "navDismiss": "隐藏",
     "navDoneTitle": "骑行完成",
     "navDoneBody": "您收听了 {total} 个站点中的 {heard} 个。",

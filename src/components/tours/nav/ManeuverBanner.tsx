@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { formatNavDistanceM, maneuverArrowDeg } from "@/lib/nav-format";
 
 // Nähe zur Abbiegung als Farbe, nicht nur als Zahl: Der Fahrer liest im Augenwinkel,
@@ -25,12 +26,20 @@ export default function ManeuverBanner({
   distanceM,
   type,
   modifier,
+  followedBy,
 }: {
   instruction: string;
   distanceM: number | null;
   type: string;
   modifier?: string;
+  /**
+   * Die naechste Abbiegung, wenn sie weniger als 50 m dahinter liegt (lib/nav-steps.ts).
+   * Ohne diese Zeile hoert der Gast "rechts" und steht zwanzig Meter spaeter ueberrascht
+   * vor der naechsten Kreuzung.
+   */
+  followedBy?: { type: string; modifier?: string };
 }) {
+  const t = useTranslations("Tours");
   const arriving = type === "arrive";
   const level = arriving ? "now" : urgency(distanceM);
 
@@ -92,6 +101,28 @@ export default function ManeuverBanner({
         >
           {instruction}
         </span>
+        {followedBy && !arriving && (
+          // Bewusst klein und in der Sekundaerfarbe: Sie ist ein Ausblick, nicht die
+          // Anweisung. Wer sie gleich gross setzt, hat zwei Anweisungen und keine Reihenfolge.
+          <span className="mt-1 flex items-center gap-1.5 text-[13px] font-medium text-muted">
+            {t("navThen")}
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden
+              style={{ transform: `rotate(${maneuverArrowDeg(followedBy.modifier)}deg)` }}
+            >
+              <path d="M12 19V5" />
+              <path d="M6 11l6-6 6 6" />
+            </svg>
+          </span>
+        )}
       </span>
     </div>
   );

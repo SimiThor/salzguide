@@ -51,6 +51,12 @@ export type TourSummary = {
 };
 
 export type TourDetail = TourSummary & {
+  /**
+   * Wahr, wenn hier ein Admin einen ENTWURF ansieht. Fuer alle anderen gibt es diese Runde
+   * gar nicht, getTourDetail liefert dann null. Die Oberflaeche zeigt es sichtbar an, damit
+   * niemand einen Entwurf fuer die veroeffentlichte Runde haelt.
+   */
+  isDraftPreview?: boolean;
   description: string | null;
   stops: TourStopView[];
   canSeePro: boolean; // ob der Betrachter voll berechtigt ist (Pro/Admin)

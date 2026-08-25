@@ -132,6 +132,7 @@
     "navAhead": "Over {distance}",
     "navHere": "Je bent er",
     "navTeaser": "{seconds} seconden gratis",
+    "navThen": "dan",
     "navDismiss": "Verbergen",
     "navDoneTitle": "Ronde voltooid",
     "navDoneBody": "Je hebt {heard} van {total} haltes gehoord.",

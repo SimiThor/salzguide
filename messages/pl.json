@@ -132,6 +132,7 @@
     "navAhead": "Za {distance}",
     "navHere": "Jesteś na miejscu",
     "navTeaser": "{seconds} sekund za darmo",
+    "navThen": "potem",
     "navDismiss": "Ukryj",
     "navDoneTitle": "Trasa ukończona",
     "navDoneBody": "Wysłuchano {heard} z {total} przystanków.",

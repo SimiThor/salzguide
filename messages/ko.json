@@ -132,6 +132,7 @@
     "navAhead": "{distance} 앞",
     "navHere": "도착했습니다",
     "navTeaser": "{seconds}초 무료",
+    "navThen": "그다음",
     "navDismiss": "숨기기",
     "navDoneTitle": "코스 완주",
     "navDoneBody": "{total}곳 중 {heard}곳을 들었습니다.",

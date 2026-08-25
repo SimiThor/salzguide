@@ -8,6 +8,7 @@
 // Irre geführt wird. Das lässt sich nicht "beim Testen am Handy mal kurz schauen", weil
 // man dafür wirklich fahren müsste. Es importiert den ECHTEN stepNav() aus src/lib, baut
 // also nichts nach.
+import { turnAngle, isMereCurve, prepareSteps } from "../src/lib/nav-steps.ts";
 import {
   stepNav,
   initNavState,
@@ -665,6 +666,52 @@ console.log("\n20. Rundtour mit Ziel: die Runde endet am Start, nicht am letzten
   const letzter = states[states.length - 1];
   if (letzter.finished) ok(`am Ziel gilt sie als gefahren (${letzter.alongM.toFixed(0)} m von 1600)`);
   else bad("Zieleinlauf wird nicht gemeldet", `${letzter.alongM.toFixed(0)} m von 1600 m`);
+}
+
+
+console.log("\n21. Ein Bogen ist keine Abbiegung, zwei dichte gehoeren zusammen");
+{
+  // Der Winkel war beim ersten Anlauf INVERTIERT: Eine Gerade ergab 180 Grad statt 0, und
+  // damit wurde nie etwas verworfen. Genau deshalb steht er hier als eigene Pruefung.
+  const faelle: [number, number, number, string][] = [
+    [0, 0, 0, "geradeaus"],
+    [350, 10, 20, "ueber die 360-Grad-Grenze"],
+    [10, 350, 20, "andersherum ueber die Grenze"],
+    [0, 90, 90, "rechter Winkel"],
+    [0, 180, 180, "Kehre"],
+    [90, 120, 30, "flacher Bogen"],
+  ];
+  let winkelOk = true;
+  for (const [a, b, soll, was] of faelle) {
+    const ist = turnAngle(a, b);
+    if (ist !== soll) { bad(`Winkel falsch (${was})`, `${a}->${b} ergab ${ist}, erwartet ${soll}`); winkelOk = false; }
+  }
+  if (winkelOk) ok(`Winkel stimmt in allen ${faelle.length} Faellen`);
+
+  // Verworfen wird nur, was flach UND harmlos ist.
+  const bogen = { alongM: 100, instruction: "", type: "turn", modifier: "slight right", angleDeg: 20 };
+  const knick = { alongM: 100, instruction: "", type: "end of road", modifier: "right", angleDeg: 20 };
+  const ohneWinkel = { alongM: 100, instruction: "", type: "turn", modifier: "slight left", angleDeg: null };
+  if (isMereCurve(bogen)) ok("flacher Bogen wird verworfen");
+  else bad("flacher Bogen bleibt", JSON.stringify(bogen));
+  if (!isMereCurve(knick)) ok("Strassenende bleibt, auch flach");
+  else bad("Strassenende verworfen", JSON.stringify(knick));
+  if (!isMereCurve(ohneWinkel)) ok("ohne Winkel wird nie verworfen");
+  else bad("ohne Winkel verworfen", JSON.stringify(ohneWinkel));
+
+  // Buendeln: die zweite bleibt eigener Schritt, haengt aber zusaetzlich an der ersten.
+  const roh = [
+    { alongM: 0, instruction: "a", type: "turn", modifier: "right", angleDeg: 90 },
+    { alongM: 30, instruction: "b", type: "turn", modifier: "left", angleDeg: 90 },
+    { alongM: 400, instruction: "c", type: "turn", modifier: "right", angleDeg: 90 },
+  ];
+  const fertig = prepareSteps(roh);
+  if (fertig.length === 3) ok("keine Abbiegung geht beim Buendeln verloren");
+  else bad("Abbiegung verschwunden", `${fertig.length} statt 3`);
+  if (fertig[0]?.followedBy?.modifier === "left") ok("die zweite haengt an der ersten");
+  else bad("Buendel fehlt", JSON.stringify(fertig[0]));
+  if (!fertig[1]?.followedBy) ok("die weit entfernte dritte haengt an keiner");
+  else bad("faelschlich gebuendelt", JSON.stringify(fertig[1]));
 }
 
 console.log(failed ? `\n${failed} Prüfung(en) fehlgeschlagen.` : "\nAlles grün.");

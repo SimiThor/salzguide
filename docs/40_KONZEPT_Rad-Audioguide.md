@@ -106,11 +106,17 @@ Code ist eine offene Baustelle, keine Eigenschaft.
 Diese Zeilen standen als Zusage in der Tabelle, ohne dass Code dahinterstand. Sie sind
 weiterhin richtig, aber sie sind Arbeit, keine Eigenschaft.
 
+**Gemessen an Runde A:** 54 Schritte auf 9,6 km, also alle 178 m einer. Nach dem Filtern und
+Bündeln sind es **41 Ansagen, eine alle 234 m**, und alle 34 echten Richtungswechsel sind
+weiterhin dabei. Der Winkel war beim ersten Anlauf invertiert (eine Gerade ergab 180 Grad
+statt 0), es wurde also nichts verworfen; deshalb steht er als eigene Prüfung in
+`nav:check` Nr. 21.
+
 | Zweck | Wert | Stand |
 |---|---|---|
 | Abbiegung dreistufig ansagen | 300 m / 80 bis 100 m / 15 bis 20 m | Es gibt nur eine Stufe: der Banner zeigt die Distanz durchgehend, die Farbe wechselt bei 120 m und 30 m. |
-| Zwei Abbiegungen bündeln | unter 50 m Abstand | fehlt. Der Gast hört „rechts" und steht 20 m später vor der nächsten Kreuzung. |
-| Kurve ist keine Abbiegung | unter 35 Grad verwerfen | fehlt. Mapbox liefert die Winkel (`bearing_before`/`bearing_after`), sie werden noch nicht gelesen. |
+| Zwei Abbiegungen bündeln | unter 50 m Abstand | **erledigt 25.08.2026** (`lib/nav-steps.ts`). Die zweite bleibt ein eigener Schritt, hängt aber als „dann" schon an der ersten. Es geht nichts verloren. |
+| Kurve ist keine Abbiegung | unter 35 Grad verwerfen | **erledigt 25.08.2026.** Verworfen wird nur, was flach UND harmlos ist: `turn`, `new name`, `continue` ohne echte Richtung. Ein `end of road` bleibt, auch mit 20 Grad. Ohne Winkel von Mapbox wird nie verworfen. |
 | Mindestabstand zwischen Audio-Spots | 600 m | Redaktionsregel, kein Riegel im Code. Nach einer Neuberechnung entscheidet Mapbox, wo die Spots liegen. |
 | Audio vor dem Start vorladen | rund 13 MB | fehlt. Ohne Roaming beginnt die Runde sonst mit einem Ladebalken. |
 | Ruhezustand zwischen Abbiegungen | Bildschirm abdunkeln | fehlt. Akku-Maßnahme aus der Recherche. |

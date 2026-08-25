@@ -132,6 +132,7 @@
     "navAhead": "Za {distance}",
     "navHere": "Jsi na místě",
     "navTeaser": "{seconds} sekund zdarma",
+    "navThen": "pak",
     "navDismiss": "Skrýt",
     "navDoneTitle": "Okruh dokončen",
     "navDoneBody": "Poslechl sis {heard} z {total} zastávek.",
