@@ -85,10 +85,26 @@ body {
      EINE Quelle: das CSS zeichnet damit, und die Karten reservieren damit ihren
      fitBounds-Rand (mapControls.ts: MAP_CTRL_SIZE). */
   --sg-map-ctrl: 34px;
+
+  /* GLASKACHEL AUF EINER KARTE: Radius und Schatten für alles, was über einer Karte
+     schwebt — die Mapbox-Bedienknöpfe, die Saison-Pille auf Explore und der
+     Vollbild-Hinweis der eingebetteten Karte. Vorher stand jeder dieser Werte an seiner
+     eigenen Stelle, und die Mapbox-Knöpfe hatten überhaupt keinen: Sie trugen bis heute
+     Mapbox' Werksoptik (Radius 4px, harter 2px-Ring, deckendes Weiss), die neben
+     unseren weichen Schatten wie ein Fremdkörper aussah.
+     Der Radius ist bewusst klein: Auf 34px liest sich alles über ~14 als Kreis, und ein
+     Kreis ist bei uns die PILLE mit Text. Eine Kachel mit Symbol bleibt eckig-gerundet,
+     wie iOS es für Karten-Bedienelemente macht. */
+  --sg-map-tile-r: 11px;
+  --sg-map-tile-shadow: 0 3px 14px -4px rgb(0 0 0 / 0.22);
 }
 @media (min-width: 768px) {
   :root {
     --sg-header-h: 72px;
+    /* Am ZEIGER kleiner. Die Begründung steht oben beim Token: Eine Fingerkuppe ist
+       breit und blind, ein Mauszeiger trifft aufs Pixel. Bis hierher war das nur ein
+       Kommentar — gezeichnet wurden überall Mapbox' 32px. */
+    --sg-map-ctrl: 32px;
   }
 }
 @media (min-width: 1024px) {
@@ -1001,6 +1017,91 @@ body {
 .sg-ctrl-safe .mapboxgl-ctrl-bottom-left,
 .sg-ctrl-safe .mapboxgl-ctrl-bottom-right {
   padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════════
+   DIE OPTIK DER KARTEN-BEDIENKNÖPFE. Einmal, für JEDE Karte.
+   ═══════════════════════════════════════════════════════════════════════════════════
+
+   Es gibt vier Karten mit Bedienknöpfen (Explore/Gespeichert und die eingebettete
+   Detailkarte über SpotMap, die Wasserkarte, der Admin-Standortwähler), und keine davon
+   hat ihre Knöpfe je angefasst: Sie trugen Mapbox' Werksoptik. Gemessen war das
+   Radius 4px, deckendes Weiss und ein HARTER 2px-Ring (`box-shadow: 0 0 0 2px`) — neben
+   den weichen Schatten und dem Glas des restlichen Designs ein Fremdkörper, und auf der
+   Creme-Fläche der App sticht kaltes Reinweiss zusätzlich heraus.
+
+   WARUM ES AN MAPBOX' EIGENEN KLASSEN HÄNGT und nicht an einer eigenen: So gilt es
+   automatisch für jede Karte, auch für die nächste, ohne dass jemand daran denken muss.
+   Dieselbe Überlegung wie bei der Scroll-Schutzfläche weiter oben.
+
+   SYMBOLE UND FUNKTION BLEIBEN UNBERÜHRT. Die Zeichen kommen als Hintergrundbild aus
+   Mapbox (`.mapboxgl-ctrl-icon`) beziehungsweise als eigenes SVG (mapControls.ts) und
+   werden hier nicht angerührt.
+
+   MAPBOX-LOGO UND NAMENSNENNUNG BLEIBEN EBENFALLS, WIE SIE SIND. Beides ist
+   Lizenzpflicht ("attribution must be legible"), und daran wird nichts umgestaltet.
+
+   WARUM JEDE REGEL `.mapboxgl-map` DAVORHAT: Mapbox' Stylesheet wird pro Karten-
+   Komponente importiert (`import "mapbox-gl/dist/mapbox-gl.css"`) und landet damit im
+   Bündel NACH dieser Datei. Bei gleicher Spezifität gewinnt das Spätere, und zwar still:
+   Beim ersten Versuch kam von Radius, Glas und Schatten nichts an, nur der Rand — weil
+   Mapbox als Einziges keinen Rand setzt. Der zusätzliche Vorfahre hebt uns eine Stufe
+   höher und ist ehrlicher als `!important`, das jede spätere Ausnahme mit erschlägt. */
+
+/* Die Fassung. Sie trägt Rundung, Glas und Schatten — die Knöpfe darin sind blank. */
+.mapboxgl-map .mapboxgl-ctrl-group {
+  border-radius: var(--sg-map-tile-r);
+  /* Glas statt deckendem Weiss: dieselbe Fläche wie die Saison-Pille und der
+     Vollbild-Hinweis. Über einer Karte soll ein Bedienelement abheben, ohne den
+     Untergrund zuzudecken. */
+  background: rgb(255 255 255 / 0.8);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  /* overflow, weil die Knöpfe jetzt eckig sind: Ohne das malen sie über die Rundung
+     der Fassung hinaus und die Ecken sehen ausgefranst aus. */
+  overflow: hidden;
+}
+/* Mapbox' harten Ring durch unseren weichen Schatten plus Haarrand ersetzen. Die
+   `:not(:empty)`-Spezifität ist die von Mapbox, deshalb hier gleich mit. */
+.mapboxgl-map .mapboxgl-ctrl-group,
+.mapboxgl-map .mapboxgl-ctrl-group:not(:empty) {
+  border: 1px solid rgb(0 0 0 / 0.05);
+  box-shadow: var(--sg-map-tile-shadow);
+}
+.mapboxgl-map .mapboxgl-ctrl-group button {
+  width: var(--sg-map-ctrl);
+  height: var(--sg-map-ctrl);
+  transition: background-color 0.15s ease-out;
+}
+/* Die Fassung rundet, nicht der Knopf. Mapbox rundet erstes, letztes und einziges Kind
+   einzeln auf 4px — bei unserem Fassungsradius von 11 gäbe das beim Überfahren eine
+   zweite, engere Ecke im Eck. Die drei Regeln stehen einzeln da, weil `:first-child` &
+   Co. genauso zählen wie eine Klasse: Ohne sie namentlich zu nennen, gewinnt Mapbox.
+   `:only-child` erbt bei Mapbox den Fassungsradius und ist damit schon richtig, steht
+   hier aber mit, damit die Regel vollständig ist und niemand sie halb kopiert. */
+.mapboxgl-map .mapboxgl-ctrl-group button:first-child,
+.mapboxgl-map .mapboxgl-ctrl-group button:last-child,
+.mapboxgl-map .mapboxgl-ctrl-group button:only-child {
+  border-radius: 0;
+}
+/* Trennlinie zwischen gestapelten Knöpfen: Haarlinie statt Mapbox' #ddd, damit sie zur
+   Randfarbe der Fassung passt. */
+.mapboxgl-map .mapboxgl-ctrl-group button + button {
+  border-top: 1px solid rgb(0 0 0 / 0.06);
+}
+.mapboxgl-map .mapboxgl-ctrl-group button:hover {
+  background-color: rgb(255 255 255 / 0.6);
+}
+.mapboxgl-map .mapboxgl-ctrl-group button:active {
+  background-color: rgb(0 0 0 / 0.05);
+}
+/* Tastatur-Fokus: Mapbox setzt ein knalliges Blau (#0096ff), das in dieser App sonst
+   nirgends vorkommt. Sichtbar MUSS er bleiben, also derselbe Akzent-Ring wie bei den
+   Formularfeldern im Admin. `:focus:not(:focus-visible)` bleibt Mapbox' Sache: Ein
+   Mausklick soll keinen Ring hinterlassen. */
+.mapboxgl-map .mapboxgl-ctrl-group button:focus,
+.mapboxgl-map .mapboxgl-ctrl-group button:focus:focus-visible {
+  box-shadow: 0 0 0 3px rgb(204 41 36 / 0.35);
 }
 
 /* etwas mehr Luft zum Rand */
