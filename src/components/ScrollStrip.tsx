@@ -36,6 +36,24 @@ import { useDragScroll } from "@/lib/use-drag-scroll";
 //   Schnittkante (nachgemessen: 0px Luft). Geclippt wird am PADDING-Kasten, deshalb schafft
 //   py-1 die Luft.
 //
+//   overflow-y-hidden: DIESE LEISTE SCROLLT WAAGRECHT UND SONST GAR NICHT. Der Satz oben hat
+//   eine Kehrseite, die teuer war: Weil die zweite Achse zwangsweise auf `auto` steht, wird
+//   der Streifen zum senkrechten Scroll-Container, sobald irgendein Kind auch nur zwei Pixel
+//   nach unten übersteht. Genau das ist mit den Filter-Pillen passiert — `sg-hit` legt eine
+//   44px-Fläche über eine 32px-Pille, und schon war die Leiste 2px vertikal scrollbar
+//   (clientHeight 40 gegen scrollHeight 42). Am iPhone frisst so ein Container den Anfang
+//   jeder senkrechten Geste: Der Finger schiebt erst diese zwei Pixel, das Sheet greift
+//   verspätet, und die Zeile zappelt gegen den Rest.
+//   `hidden` und nicht `clip`, obwohl clip die schönere Absicht wäre („gar kein Scroll-
+//   Kasten"): Neben einer scrollenden Achse rechnet der Browser clip ohnehin zu hidden um
+//   (nachgemessen: `overflow-y: clip` allein bleibt clip, zusammen mit `overflow-x: auto`
+//   wird hidden daraus). Dann steht hier gleich der Wert, der wirklich gilt, statt einer
+//   Angabe, die der Browser jedes Mal stillschweigend überschreibt.
+//   Was hidden leistet: Wisch und Mausrad kommen auf dieser Achse nicht mehr durch, egal
+//   was eine Aufrufstelle hineinlegt. Die Regel gehört hierher und nicht in die Disziplin
+//   von fünf Aufrufern.
+//   Waagrecht bleibt alles wie gehabt: overflow-x steht weiter auf auto.
+//
 //   UND KEIN NEGATIVES MARGIN DAZU, auch wenn es verlockend ist. Hier stand `-my-1`, um die
 //   8px vom Layout wieder wegzunehmen. Das hat den Abstand nach unten AUFGEFRESSEN: Tailwind
 //   v4 baut `space-y-4` als `margin-bottom` auf jedes Kind, und `-my-1` überschreibt genau
@@ -125,7 +143,7 @@ export default function ScrollStrip({
       {...dragProps}
       // select-none: Wer zieht, soll nicht die Pillen-Beschriftung markieren.
       // cursor-grab erst ab md: Am Handy gibt es keinen Zeiger, den man ändern könnte.
-      className={`-mx-4 overflow-x-auto px-4 py-1 select-none [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:cursor-grab md:active:cursor-grabbing ${className}`}
+      className={`-mx-4 overflow-x-auto overflow-y-hidden px-4 py-1 select-none [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:cursor-grab md:active:cursor-grabbing ${className}`}
       // WebkitMaskImage mit: Safari kennt mask-image erst ab 15.4 unprefixed, und ein Handy,
       // das zwei Jahre kein Update gesehen hat, zeigt sonst gar keine Maske. Das ist kein
       // Beinbruch (dann ist der Rand hart wie vorher), kostet aber nichts.

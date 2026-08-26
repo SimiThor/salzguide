@@ -119,11 +119,26 @@ function offsetBottomWithin(el: HTMLElement, sheet: HTMLElement): number {
 
 export default function MobileSheet({
   children,
+  header,
   hide,
   peek,
   detents = DEFAULT_DETENTS,
 }: {
   children: ReactNode;
+  /**
+   * Eine feste Kopfzeile zwischen Griff und Inhalt. Sie scrollt NICHT mit.
+   *
+   * Warum es das gibt: Auf Explore steht dort die Filter-Leiste, und die muss immer
+   * erreichbar bleiben. Als `sticky` im Inhalt ginge das auch, aber nur um den Preis
+   * eines eigenen Hintergrunds — und der trifft nie exakt die Farbe des Sheets
+   * (bg-cream/95 plus Blur gegen volldeckendes Creme). Nachgemessen war das ein heller
+   * Streifen zwischen Griff und Leiste. Ausserhalb des Scrollers braucht die Kopfzeile
+   * gar keinen Hintergrund: Es ist der des Sheets, und damit gibt es keine Kante.
+   *
+   * Senkrechte Gesten hier ziehen IMMER das Sheet (useSheetHeaderDrag), auch wenn der
+   * Inhalt darunter schon weit gescrollt ist.
+   */
+  header?: ReactNode;
   hide: boolean;
   // Überschreibt --sg-sheet-peek für diese Seite. Feste Länge oder gemessen (siehe Peek).
   // Muss eine Länge sein, kein Prozentwert: die Property ist als <length> registriert.
@@ -141,6 +156,19 @@ export default function MobileSheet({
   const idxRef = useRef(0); // 0 = Peek, dann die Detents
   const [atFull, setAtFull] = useState(false);
   const bodyDrag = useBodyDrag(dragControls, bodyRef, atFull);
+  // DERSELBE Haken für die feste Kopfzeile, nur mit ihrem eigenen Element als Bezug.
+  // Das passt genauer, als es aussieht: `shouldDrag` wägt den Zug gegen den Scrollstand
+  // DIESES Elements ab, und der Kopf scrollt nie — sein scrollTop ist immer 0. Damit
+  // zieht er auch dann noch, wenn der Inhalt darunter weit gescrollt ist, und genau dann
+  // braucht man ihn am dringendsten. Waagrechte Gesten gibt er ohnehin ab, die gehören
+  // der Pillen-Leiste.
+  //
+  // Ein eigener Haken stand hier kurz und war ein Fehler: Ohne den nicht-passiven
+  // touchmove mit preventDefault, den useBodyDrag mitbringt, reisst Chrome die Geste an
+  // sich. Nachgemessen kam genau EIN pointermove und danach ein pointercancel, das Sheet
+  // rührte sich nicht. `touch-action: pan-x` allein genügt dafür nicht.
+  const headerRef = useRef<HTMLDivElement>(null);
+  const headerDrag = useBodyDrag(dragControls, headerRef, atFull);
   const reduceMotion = useReducedMotion();
 
   // Nur für die Interaktion, nicht für die Position (siehe Kopf).
@@ -162,7 +190,9 @@ export default function MobileSheet({
     const sheet = sheetRef.current;
     const body = bodyRef.current;
     if (!rail || !sheet || !body || !peekFits) return;
-    const el = body.querySelector<HTMLElement>(peekFits);
+    // Im ganzen Sheet suchen, nicht nur im Körper: Der Anker darf auch in der festen
+    // Kopfzeile stehen (Explore misst dort an der Filter-Leiste).
+    const el = sheet.querySelector<HTMLElement>(peekFits);
     // Kein Anker (Inhalt noch nicht da, Audio gesperrt) -> bei der Schätzung bleiben.
     if (!el) return;
     const fullPx = rail.getBoundingClientRect().height;
@@ -183,12 +213,15 @@ export default function MobileSheet({
   // Der MutationObserver daneben ist nur dafür da, den Anker neu zu greifen, wenn der
   // Inhalt ausgetauscht wird (anderer Stopp) – dann zeigt der alte Beobachter ins Leere.
   useIsoLayoutEffect(() => {
+    // Beobachtet wird am SHEET, nicht am Körper: Der Peek-Anker darf auch in der festen
+    // Kopfzeile stehen (Explore misst an der Filter-Leiste, und die scrollt nicht mit).
+    const sheet = sheetRef.current;
     const body = bodyRef.current;
-    if (!body || !peekFits) return;
+    if (!sheet || !body || !peekFits) return;
     let watched: HTMLElement | null = null;
     const ro = new ResizeObserver(() => measurePeek());
     const attach = () => {
-      const next = body.querySelector<HTMLElement>(peekFits);
+      const next = sheet.querySelector<HTMLElement>(peekFits);
       if (next !== watched) {
         if (watched) ro.unobserve(watched);
         watched = next;
@@ -198,7 +231,7 @@ export default function MobileSheet({
     };
     attach();
     const mo = new MutationObserver(attach);
-    mo.observe(body, { childList: true, subtree: true });
+    mo.observe(sheet, { childList: true, subtree: true });
     // resize bleibt trotzdem: die Tab-Leiste steckt im Peek, und die ändert sich mit der
     // Safe Area, ohne dass der Anker selbst anders wird.
     window.addEventListener("resize", measurePeek);
@@ -382,6 +415,8 @@ export default function MobileSheet({
       });
     };
     const mo = new MutationObserver(invalidate);
+    // Am KÖRPER: Die inhaltsabhängige Stufe misst am detent-anchor, und der steht im
+    // scrollenden Inhalt. Die feste Kopfzeile ändert an den Stufen nichts.
     mo.observe(body, { childList: true, subtree: true });
     return () => {
       mo.disconnect();
@@ -426,6 +461,15 @@ export default function MobileSheet({
       >
         {/* pb-2 pt-3 = 26px Streifen; genau der Wert, mit dem globals.css den Peek rechnet. */}
         <SheetGrabber dragControls={dragControls} onTap={onGrabberTap} className="pb-2 pt-3" />
+        {header != null && (
+          // pan-x: Der Browser darf hier NUR waagrecht schieben (die Pillen-Leiste).
+          // Senkrechte Gesten kommen dadurch unangetastet bei useSheetHeaderDrag an,
+          // statt dass iOS nebenher etwas mitscrollt.
+          // shrink-0, damit der Kopf bei langem Inhalt nicht zusammengedrückt wird.
+          <div ref={headerRef} {...headerDrag} style={{ touchAction: "pan-x" }} className="shrink-0 pt-1">
+            {header}
+          </div>
+        )}
         <div
           ref={bodyRef}
           {...bodyDrag}
