@@ -251,11 +251,19 @@ body {
      macht das calc(): erst der Inhalt, dann --sg-nav-h (das --sg-sab enthält).
 
      Die 86px sind der Inhalt, der über der Tab-Leiste stehen muss:
-       Griff 26 (pt-3 12 + Griff 6 + pb-2 8) + pt-1 4 + Umschalter 40 + Luft 16.
+       Griff 26 (pt-3 12 + Griff 6 + pb-2 8) + pt-1 4 + eine Zeile 40 + Luft 16.
      Die Tab-Leiste liegt ÜBER dem Sheet (z-50 gegen z-45) und schneidet alles
      ab, was darunter gerät – daran ist der Sommer/Winter-Umschalter am iPhone
      hängengeblieben: 18vh Peek minus 106px Leiste ließen nur 28px übrig, der
-     Griff allein braucht schon 26. */
+     Griff allein braucht schon 26.
+
+     DAS HIER IST NUR NOCH DER VORGABEWERT. Jede Seite mit Bottom-Sheet gibt
+     ihren Peek inzwischen selbst an (MobileSheet `peek`) und lässt ihn am
+     eigenen Anker MESSEN: Explore an der Filter-Leiste, /wasser am Seitenkopf,
+     die Audio-Tour an ihrem Stopp. Eine feste Zahl beschreibt sonst Inhalt, der
+     nicht fest ist – eine längere Übersetzung oder grössere Systemschrift, und
+     die Kante läuft mitten durch den Text. Wer ein NEUES Sheet baut, gibt einen
+     Anker an, statt hier eine Zahl zu ändern. */
   --sg-sheet-peek: calc(86px + var(--sg-nav-h));
 
   /* Apples Sheet-Bewegung. 0.5s ist SwiftUIs eigene Standard-Dauer

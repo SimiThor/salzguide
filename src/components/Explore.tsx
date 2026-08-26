@@ -7,9 +7,14 @@ import { Link } from "@/i18n/navigation";
 import type { ExploreCategory, ExploreSpot } from "@/lib/spots";
 import { useAi } from "./ai/AiProvider";
 import Carousel from "./Carousel";
+import CategoryFilterStrip, {
+  isSameFilter,
+  type CategoryFilter,
+} from "./CategoryFilterStrip";
 import SpotCardDesktop from "./SpotCardDesktop";
 import SpotSheet, { SPOT_SHEET_PEEK } from "./SpotSheet";
-import SeasonToggle, { type Season } from "./SeasonToggle";
+import SeasonPill from "./SeasonPill";
+import { naturalSeason, readStoredSeason, writeStoredSeason, type Season } from "@/lib/season";
 import SpotCard from "./SpotCard";
 import SpotMap, { type MapMarker } from "./SpotMap";
 import { useSpotSelection } from "./useSpotSelection";
@@ -23,20 +28,35 @@ import { useViewportHeight } from "@/lib/viewport";
 // Stufen des Explore-Sheets über dem Peek.
 //
 // Die mittlere ist bewusst KEIN Anteil, sondern am Inhalt gemessen: Sie ist genau so
-// hoch, dass das erste Regal ganz drübersteht – Überschrift, Karussell und darin Titel
-// UND Untertitel der Karten. Damit ist die Stufe das, was man dort erwartet: eine Reihe
+// hoch, dass das Erste ganz drübersteht – Überschrift, Karussell und darin Titel UND
+// Untertitel der Karten. Damit ist die Stufe das, was man dort erwartet: eine Reihe
 // zum Durchwischen und Lesen. Als fester Anteil ginge das nicht, weil eine Karte 76vw
 // breit ist und ein 4:3-Bild trägt – sie ist auf jedem iPhone unterschiedlich hoch.
-// Der Fallback greift nur, solange kein Regal da ist (leere Saison).
+//
+// „Das Erste" ist je nach Ansicht etwas anderes, deshalb heisst der Anker neutral
+// `detent-anchor` und nicht mehr `first-shelf`: ohne Filter das erste REGAL, mit Filter
+// die erste KARTE der Liste. Die ganze gefilterte Liste als Anker wäre bei zwölf Spots
+// höher als der Bildschirm, und eine Stufe, die an der Decke klebt, ist keine Stufe.
+// Der Fallback greift nur, solange gar nichts da ist (leere Saison).
 const EXPLORE_DETENTS: Detent[] = [
-  { fits: '[data-sg="first-shelf"]', fallback: 0.5 },
+  { fits: '[data-sg="detent-anchor"]', fallback: 0.5 },
   0.9,
 ];
 
-function defaultSeason(): Season {
-  const m = new Date().getMonth(); // 0 = Jan
-  return m === 11 || m <= 2 ? "winter" : "summer"; // Dez–März = Winter
-}
+// Ruheposition des Sheets: so hoch, dass die Filter-Leiste GANZ dasteht.
+//
+// Vorher galt hier der globale Peek aus globals.css, und dessen 86px sind von Hand
+// gerechnet („Griff 26 + pt-1 4 + Umschalter 40 + Luft 16"). Der Umschalter ist weg, an
+// seiner Stelle steht eine Pillen-Leiste, deren Höhe an der Schriftgrösse des Systems
+// hängt. Eine feste Zahl beschreibt also Inhalt, der nicht fest ist. Gemessen stimmt sie
+// zwangsläufig. Der Fallback ist die ehrliche Schätzung fürs Server-HTML und gilt bis zur
+// ersten Messung: Griff 26 + pt-1 4 + Streifen 40 (Pille 32 + 2x4 Luft für Ring und
+// Schatten) + 16 Luft. Dass sie bei denselben 86px landet wie der alte Umschalter, ist
+// kein Zufall: Beide sind eine Zeile Text mit runder Fassung um sie herum.
+const SHEET_PEEK = {
+  fits: '[data-sg="filter-strip"]',
+  fallback: "calc(86px + var(--sg-nav-h))",
+};
 
 // Sichtbarer Rand (px) zwischen eingepasstem Spot/Route und Header bzw. Sheet.
 const FIT_GAP = 24;
@@ -53,7 +73,12 @@ export default function Explore({
   loggedIn?: boolean;
 }) {
   const t = useTranslations("Explore");
-  const [season, setSeason] = useState<Season>(defaultSeason);
+  const [season, setSeason] = useState<Season>(naturalSeason);
+  // Gewählte Kategorie, samt ihrer Saison (der Schlüssel allein ist nicht eindeutig,
+  // 'food' gibt es zweimal). BEWUSST NICHT gespeichert: Ein Filter ist eine Absicht für
+  // jetzt, keine Einstellung. Wer die Seite neu aufmacht, will die Übersicht sehen und
+  // nicht rätseln, warum von 36 Spots nur fünf dastehen.
+  const [filter, setFilter] = useState<CategoryFilter | null>(null);
   const [isDesktop, setIsDesktop] = useState(false);
   // Stabile Viewport-Höhe statt window.innerHeight: Das Karten-Padding hängt daran,
   // und innerHeight springt, sobald Safari beim Scrollen seine Leisten einfährt –
@@ -75,11 +100,12 @@ export default function Explore({
   useScrollMemory(panelScrollRef, "explore-panel", "y");
 
   // gespeicherte Saison laden (über eine Microtask-Grenze -> kein synchrones
-  // setState im Effekt-Body, verhindert Kaskaden-Renders)
+  // setState im Effekt-Body, verhindert Kaskaden-Renders). readStoredSeason() gibt nur
+  // eine Wahl heraus, die noch zur Jahreszeit passt (siehe lib/season.ts).
   useEffect(() => {
     void Promise.resolve().then(() => {
-      const s = localStorage.getItem("sg-season");
-      if (s === "summer" || s === "winter") setSeason(s);
+      const s = readStoredSeason();
+      if (s) setSeason(s);
     });
   }, []);
 
@@ -124,15 +150,6 @@ export default function Explore({
     [isDesktop, sheetPeek],
   );
 
-  const changeSeason = useCallback((s: Season) => {
-    setSeason(s);
-    try {
-      localStorage.setItem("sg-season", s);
-    } catch {
-      // localStorage evtl. nicht verfügbar – ignorieren
-    }
-  }, []);
-
   const seasonSpots = useMemo(
     () => spots.filter((s) => s.seasons.includes(season)),
     [spots, season],
@@ -141,9 +158,34 @@ export default function Explore({
     () => categories.filter((c) => c.season === season),
     [categories, season],
   );
+
+  // Die eine gewählte Kategorie, nachgeschlagen. Null, solange „Alle" gilt.
+  const activeCat = useMemo(
+    () =>
+      filter
+        ? (categories.find((c) => c.key === filter.key && c.season === filter.season) ??
+          null)
+        : null,
+    [categories, filter],
+  );
+
+  // Was der Filter übrig lässt. Ohne Filter ist das die ganze Saison.
+  //
+  // Beim Filtern wird über `cat.slugs` nachgeschlagen und NICHT selbst gefiltert: Diese
+  // Liste kommt fertig sortiert vom Server (explore-ranking.ts, docs/38) und ist genau
+  // die Reihenfolge, in der die Kategorie auch als Regal dastünde. Ein eigener Filter
+  // hier gäbe eine zweite, stillschweigend andere Reihenfolge.
+  const visibleSpots = useMemo(() => {
+    if (!activeCat) return seasonSpots;
+    const bySlug = new Map(seasonSpots.map((s) => [s.slug, s]));
+    return activeCat.slugs
+      .map((slug) => bySlug.get(slug))
+      .filter((s): s is ExploreSpot => s != null);
+  }, [seasonSpots, activeCat]);
+
   const markers = useMemo<MapMarker[]>(
     () =>
-      seasonSpots
+      visibleSpots
         .filter((s) => s.lat != null && s.lng != null)
         .map((s) => ({
           slug: s.slug,
@@ -153,7 +195,15 @@ export default function Explore({
           locked: s.locked,
           title: s.title,
         })),
-    [seasonSpots],
+    [visibleSpots],
+  );
+
+  // Welche Pillen es überhaupt gibt: nur Kategorien, die in IHRER Saison wirklich Spots
+  // haben. Dieselbe Regel wie bei den Regalen weiter unten, hier nur für beide Saisonen
+  // statt für eine. Eine Pille, die auf eine leere Karte führt, wäre eine Sackgasse.
+  const chipCategories = useMemo(
+    () => categories.filter((c) => c.slugs.length > 0),
+    [categories],
   );
 
   // Auswahl, Route, Kamera und das Zusammenspiel mit dem Sheet kommen aus dem
@@ -174,6 +224,54 @@ export default function Explore({
     // Route und hervorgehobenen Pin schon losgelassen, bevor sie danach fragen könnte.
     setDismissing,
   } = useSpotSelection(seasonSpots);
+
+  // ── Saison und Filter: die ganze Entscheidungslogik an EINER Stelle ────────────────
+  //
+  // Absichtlich hier und nicht in CategoryFilterStrip: Die Leiste weiss, welche Pille
+  // angetippt wurde, aber nicht, was das für Karte, Sheet und Vorschau bedeutet. Läge
+  // die Regel dort, stünde die Hälfte davon trotzdem wieder hier, und die zwei Hälften
+  // liefen beim nächsten Umbau auseinander.
+  //
+  // `useSpotSelection` läuft weiter auf der UNGEFILTERTEN Saisonliste. Sonst verschwände
+  // eine offene Vorschau in dem Moment, in dem ihr Spot aus dem Filter fällt, und zwar
+  // ohne Animation: Der Haken fände den Slug nicht mehr, `previewSpot` wäre null, das
+  // Sheet verginge mitten in der Bewegung. Stattdessen schliesst es hier ausdrücklich.
+
+  const changeSeason = useCallback(
+    (s: Season) => {
+      setSeason(s);
+      // Der Filter gehört zur alten Saison und ergibt in der neuen keinen Sinn. Ihn
+      // stehenzulassen hiesse: Karte wechselt, Pille bleibt dunkel, und was sie jetzt
+      // filtert, kann niemand mehr sagen.
+      setFilter(null);
+      closeSpot();
+      writeStoredSeason(s);
+    },
+    [closeSpot],
+  );
+
+  const selectCategory = useCallback(
+    (next: CategoryFilter | null) => {
+      closeSpot();
+      // „Alle": zurück zur Übersicht.
+      if (!next) {
+        setFilter(null);
+        return;
+      }
+      // Pille aus der anderen Saison: Saison mit umschalten UND filtern. Das ist der
+      // ganze Punkt der Fremd-Saison-Pillen — ein Tipp, ein Ergebnis. Deshalb hier
+      // nicht changeSeason() aufrufen, das würde den Filter gleich wieder löschen.
+      if (next.season !== season) {
+        setSeason(next.season);
+        setFilter(next);
+        writeStoredSeason(next.season);
+        return;
+      }
+      // Dieselbe Pille nochmal: abwählen. Dieselbe Geste wie bei Airbnb und Google Maps.
+      setFilter((cur) => (isSameFilter(cur, next) ? null : next));
+    },
+    [season, closeSpot],
+  );
 
   // Solange eine Spot-Vorschau offen ist, hält Toni seine Sprechblase zurück – beide
   // schweben unten rechts und lägen sonst übereinander.
@@ -200,7 +298,19 @@ export default function Explore({
     isDesktop ? 470 : Math.round((vh || 800) * SPOT_SHEET_PEEK) + FIT_GAP,
   );
 
-  const labels = useMemo(() => ({ summer: t("summer"), winter: t("winter") }), [t]);
+  const seasonLabels = useMemo(
+    () => ({
+      summer: t("summer"),
+      winter: t("winter"),
+      // Der Satz für die ANDERE Saison: Er beschreibt, was der Tipp bewirkt.
+      switchTo: season === "summer" ? t("switchToWinter") : t("switchToSummer"),
+    }),
+    [t, season],
+  );
+  const stripLabels = useMemo(
+    () => ({ all: t("all"), summer: t("summer"), winter: t("winter") }),
+    [t],
+  );
 
   // Regale = Kategorien, die in dieser Saison wirklich Spots haben. Vorab gefiltert
   // statt beim Rendern übersprungen, damit das ERSTE tatsächlich gerenderte Regal
@@ -226,17 +336,91 @@ export default function Explore({
   // baut ihn jedes Öffnen und Schließen neu auf — das blockiert den Hauptthread lange
   // genug, dass die Karte erst ~180ms nach dem Tippen erfährt, dass sie loslassen soll.
   // Genau die 180ms sieht man als Nachhinken von Route und Pin.
-  const panelInner = useMemo(
-    () => (
+  const panelInner = useMemo(() => {
+    // EINE Stelle, die aus einem Spot ein antippbares Kärtchen macht. Regal und
+    // gefilterte Liste unterscheiden sich nur in der Breite, alles andere (Link vs.
+    // Knopf, Pro-Tarnung, Ladepriorität) ist identisch — und war vorher genau deshalb
+    // drauf und dran, zweimal dazustehen.
+    //
+    // Entsperrte Karten sind echte Links auf die Spot-Seite: Google folgt ihnen aus dem
+    // Server-HTML (vorher fand es Spots fast nur über die Sitemap), und Cmd/Ctrl-Klick
+    // öffnet einen neuen Tab. Der normale Klick bleibt App-Gefühl: preventDefault +
+    // Sheet, die Adresse ändert sich nicht. Gesperrte Spots behalten den Knopf — ihr
+    // slug ist die Tarnung "locked-N" (lib/spots.ts), ein Link liefe ins Leere; das
+    // ProGate-Sheet übernimmt.
+    const spotCard = (s: ExploreSpot, opts: { eager: boolean; full: boolean }) => {
+      const card = (
+        <SpotCard
+          title={s.title}
+          shortDesc={s.shortDesc}
+          emoji={s.emoji}
+          imageUrl={s.imageUrl}
+          imageAiOrigin={s.imageAiOrigin}
+          previewUrl={s.previewUrl}
+          isPro={s.isPro}
+          locked={s.locked}
+          lockedLabel={t("lockedLabel")}
+          // Sofort laden nur für die Karten, die beim Aufbau garantiert im Bild stehen.
+          // Eine davon ist das grösste Bild im ersten Bildschirm (LCP), und eine Reihe
+          // erscheint erst, wenn ihr letztes Foto da ist. Alles andere bleibt lazy:
+          // Was seitlich hinausragt, soll das Netz nicht belegen, bevor jemand
+          // dorthin wischt.
+          eager={opts.eager}
+          sizeClassName={
+            opts.full
+              ? "w-full"
+              : "w-[76vw] max-w-[300px] md:w-[var(--sg-card)] md:max-w-none"
+          }
+          sizes={
+            opts.full
+              ? "(min-width: 768px) 400px, 92vw"
+              : "(min-width: 768px) 220px, 76vw"
+          }
+        />
+      );
+      return s.locked ? (
+        <button
+          key={s.slug}
+          type="button"
+          onClick={() => openSpot(s.slug)}
+          className="cursor-pointer sg-tap-card block w-full text-left"
+        >
+          {card}
+        </button>
+      ) : (
+        <Link
+          key={s.slug}
+          href={`/spot/${s.slug}`}
+          onClick={(e) => {
+            // Neuer Tab (Cmd/Ctrl/Shift/Alt/Mitteltaste): dem Browser überlassen.
+            if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+            e.preventDefault();
+            openSpot(s.slug);
+          }}
+          className="cursor-pointer sg-tap-card block w-full text-left"
+        >
+          {card}
+        </Link>
+      );
+    };
+
+    return (
     <>
-      <div className="px-4">
-        <SeasonToggle value={season} onChange={changeSeason} labels={labels} />
-      </div>
+      <CategoryFilterStrip
+        categories={chipCategories}
+        season={season}
+        value={filter}
+        onSelect={selectCategory}
+        labels={stripLabels}
+      />
       {/* Wassertemperaturen sind bewusst NICHT hier prominent, sondern nur dezent
           im Menü/Header verlinkt (Anton-Entscheidung). */}
       <AnimatePresence mode="wait" initial={false}>
         <motion.div
-          key={season}
+          // Der Schlüssel trägt Saison UND Filter: Jeder Wechsel blendet weich um,
+          // nicht nur der Saison-Wechsel. Ein harter Schnitt beim Filtern sähe aus
+          // wie ein Neuladen, obwohl nur eine Auswahl kleiner wurde.
+          key={`${season}:${filter ? `${filter.season}/${filter.key}` : "all"}`}
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -8 }}
@@ -249,82 +433,55 @@ export default function Explore({
           // Titel an Inhalt).
           className="mt-5 space-y-10 md:space-y-12"
         >
-        {shelves.map(({ cat, spots: catSpots }, i) => {
+        {activeCat ? (
+          // GEFILTERT: ein Regal wäre hier falsch. Wer eine Kategorie wählt, will alles
+          // davon sehen und nicht seitlich durch fünf Karten blättern. Deshalb eine
+          // senkrechte Liste voller Breite, im Rhythmus der Gespeichert-Seite.
+          <section>
+            <h2 className="mb-3 px-4 text-xl font-bold tracking-tight text-ink">
+              {activeCat.emoji ? `${activeCat.emoji} ` : ""}
+              {activeCat.title}
+            </h2>
+            <div className="space-y-3 px-4">
+              {visibleSpots.map((s, i) => (
+                // Der Anker für die mittlere Stufe ist die ERSTE Karte, nicht die ganze
+                // Liste: „hoch genug, dass die Liste komplett draufpasst" wären bei zwölf
+                // Spots mehrere Bildschirme, die Stufe klebte an der Decke und wäre keine
+                // Stufe mehr.
+                <div key={s.slug} data-sg={i === 0 ? "detent-anchor" : undefined}>
+                  {spotCard(s, { eager: i < 2, full: true })}
+                </div>
+              ))}
+            </div>
+          </section>
+        ) : (
+        shelves.map(({ cat, spots: catSpots }, i) => {
           return (
             // Das erste Regal ist der Anker für die mittlere Stufe des Sheets
             // (EXPLORE_DETENTS). Nur Markierung, keine Optik.
             <section
               key={`${cat.key}-${cat.season}`}
-              data-sg={i === 0 ? "first-shelf" : undefined}
+              data-sg={i === 0 ? "detent-anchor" : undefined}
             >
               <h2 className="mb-3 px-4 text-xl font-bold tracking-tight text-ink">
+                {cat.emoji ? `${cat.emoji} ` : ""}
                 {cat.title}
               </h2>
               {/* memoryKey trägt die Saison, damit Sommer- und Winter-Fassung eines
                   Regals sich ihre Blätter-Position getrennt merken. */}
               <Carousel memoryKey={`explore-shelf:${cat.key}-${cat.season}`}>
-                {catSpots.map((s, j) => {
-                  // Entsperrte Karten sind echte Links auf die Spot-Seite: Google folgt
-                  // ihnen aus dem Server-HTML (vorher fand es Spots fast nur über die
-                  // Sitemap), und Cmd/Ctrl-Klick öffnet einen neuen Tab. Der normale
-                  // Klick bleibt App-Gefühl: preventDefault + Sheet, die Adresse ändert
-                  // sich nicht. Gesperrte Spots behalten den Knopf — ihr slug ist die
-                  // Tarnung "locked-N" (lib/spots.ts), ein Link liefe ins Leere; das
-                  // ProGate-Sheet übernimmt.
-                  const card = (
-                    <SpotCard
-                      title={s.title}
-                      shortDesc={s.shortDesc}
-                      emoji={s.emoji}
-                      imageUrl={s.imageUrl}
-                      imageAiOrigin={s.imageAiOrigin}
-                      previewUrl={s.previewUrl}
-                      isPro={s.isPro}
-                      locked={s.locked}
-                      lockedLabel={t("lockedLabel")}
-                      // Die ersten drei Karten des ERSTEN Regals stehen beim Aufbau
-                      // immer im Bild (Desktop zeigt 2,5 davon, das Handy 1,3). Sie
-                      // laden deshalb sofort und mit hoher Priorität statt lazy: Eines
-                      // davon ist das grösste Bild im ersten Bildschirm (LCP), und die
-                      // ganze Reihe erscheint erst, wenn ihr letztes Foto da ist.
-                      // Drei und nicht mehr: Was seitlich hinausragt, soll das Netz
-                      // nicht belegen, bevor jemand dorthin wischt.
-                      eager={i === 0 && j < 3}
-                      sizeClassName="w-[76vw] max-w-[300px] md:w-[var(--sg-card)] md:max-w-none"
-                      sizes="(min-width: 768px) 220px, 76vw"
-                    />
-                  );
-                  return s.locked ? (
-                    <button
-                      key={s.slug}
-                      type="button"
-                      onClick={() => openSpot(s.slug)}
-                      className="cursor-pointer sg-tap-card block text-left"
-                    >
-                      {card}
-                    </button>
-                  ) : (
-                    <Link
-                      key={s.slug}
-                      href={`/spot/${s.slug}`}
-                      onClick={(e) => {
-                        // Neuer Tab (Cmd/Ctrl/Shift/Alt/Mitteltaste): dem Browser überlassen.
-                        if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0)
-                          return;
-                        e.preventDefault();
-                        openSpot(s.slug);
-                      }}
-                      className="cursor-pointer sg-tap-card block text-left"
-                    >
-                      {card}
-                    </Link>
-                  );
-                })}
+                {/* Die ersten drei Karten des ERSTEN Regals stehen beim Aufbau immer im
+                    Bild (Desktop zeigt 2,5 davon, das Handy 1,3) und laden deshalb
+                    sofort. Drei und nicht mehr, siehe spotCard(). */}
+                {catSpots.map((s, j) => spotCard(s, { eager: i === 0 && j < 3, full: false }))}
               </Carousel>
             </section>
           );
-        })}
-        {shelves.length === 0 && <p className="px-4 text-sm text-muted">{t("empty")}</p>}
+        })
+        )}
+        {!activeCat && shelves.length === 0 && (
+          <p className="px-4 text-sm text-muted">{t("empty")}</p>
+        )}
         </motion.div>
       </AnimatePresence>
       {/* Partner-Nennung: Pflicht auf jeder Seite (lib/partners.ts). Hier im Panel, weil
@@ -334,9 +491,19 @@ export default function Explore({
           (--sg-page-bottom) — das md:pb-4 hier war ein zweiter, handgerechneter Rest. */}
       <PartnerCredits className="mt-14 px-4" />
     </>
-    ),
-    [season, changeSeason, labels, shelves, openSpot, t],
-  );
+    );
+  }, [
+    season,
+    filter,
+    chipCategories,
+    selectCategory,
+    stripLabels,
+    activeCat,
+    visibleSpots,
+    shelves,
+    openSpot,
+    t,
+  ]);
 
   return (
     <div className="fixed inset-0 z-0 md:top-[var(--sg-header-h)]">
@@ -378,6 +545,23 @@ export default function Explore({
             setDismissing(true);
           }}
         />
+        {/* Saison-Knopf, links oben AUF der Karte.
+            Position rein in CSS, nichts gemessen: `--sg-page-top` ist die bestehende
+            Quelle für „unter der Kerbe und unter dem fixen Handy-Header" (globals.css)
+            — dieselbe Rechnung, mit der auch die Mapbox-Knöpfe am Handy nach unten
+            rücken. Am Desktop liegt schon die ganze Seite unter dem Header, dort reichen
+            12px. Hinge das an einem gemessenen Wert, stünde der Knopf im ersten Bild
+            falsch und spränge danach.
+            z-10: über die Karte, aber unter Sheet (z-45) und Vorschau-Kärtchen. */}
+        <div className="pointer-events-none absolute inset-x-3 top-[var(--sg-page-top)] z-10 md:top-3">
+          <span className="pointer-events-auto inline-flex">
+            <SeasonPill
+              season={season}
+              onToggle={() => changeSeason(season === "summer" ? "winter" : "summer")}
+              labels={seasonLabels}
+            />
+          </span>
+        </div>
       </div>
 
       {/* Welches Panel sichtbar ist, entscheidet CSS — NICHT JavaScript.
@@ -410,7 +594,11 @@ export default function Explore({
       </aside>
       {/* `contents`: am Handy darf der Wrapper das Layout nicht anfassen. */}
       <div className="contents md:hidden">
-        <MobileSheet hide={previewSpot != null} detents={EXPLORE_DETENTS}>
+        <MobileSheet
+          hide={previewSpot != null}
+          peek={SHEET_PEEK}
+          detents={EXPLORE_DETENTS}
+        >
           {panelInner}
         </MobileSheet>
       </div>

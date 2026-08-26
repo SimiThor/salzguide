@@ -1335,6 +1335,8 @@ export type CategoryInput = {
   id?: string;
   season: "summer" | "winter";
   titles: Record<string, string>;
+  /** Symbol der Filter-Pille. Leer erlaubt: dann trägt die Pille nur den Titel. */
+  emoji?: string;
   sortOrder: number;
 };
 
@@ -1362,12 +1364,15 @@ export async function saveCategory(
   }
   titles.de = de;
   const sortOrder = Number.isFinite(input.sortOrder) ? Math.trunc(input.sortOrder) : 0;
+  // Leer = kein Symbol, also null statt "". Dieselbe Zeile wie beim Spot-Emoji weiter
+  // oben (`e(input.emoji)`), damit die beiden Felder nicht auseinanderlaufen.
+  const emoji = e(input.emoji ?? "");
 
   if (input.id) {
-    // Bearbeiten: nur Titel + Sortierung (key & Saison bleiben stabil).
+    // Bearbeiten: nur Titel, Symbol + Sortierung (key & Saison bleiben stabil).
     const { error } = await supabase
       .from("categories")
-      .update({ title_translations: titles, sort_order: sortOrder })
+      .update({ title_translations: titles, sort_order: sortOrder, emoji })
       .eq("id", input.id);
     if (error) return { ok: false, error: "db" };
     // Kategorien sind Teil des gecachten Katalogs (die Filter-Pillen über der Karte).
@@ -1391,7 +1396,13 @@ export async function saveCategory(
     while (used.has(key)) key = `${base}-${n++}`;
     const { data: created, error } = await supabase
       .from("categories")
-      .insert({ key, season: input.season, title_translations: titles, sort_order: sortOrder })
+      .insert({
+        key,
+        season: input.season,
+        title_translations: titles,
+        sort_order: sortOrder,
+        emoji,
+      })
       .select("id")
       .single();
     if (!error && created) {

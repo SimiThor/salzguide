@@ -263,6 +263,10 @@ export type ExploreCategory = {
   key: string;
   season: string;
   title: string;
+  /** Symbol der Filter-Pille (Migration 0066). Sprachunabhängig, deshalb eine eigene
+   *  Spalte und kein Zeichen im Titel: sonst stünde dasselbe Emoji dreizehnmal da,
+   *  einmal je Übersetzung. null = Pille ohne Symbol. */
+  emoji: string | null;
   sortOrder: number;
   /** Spot-Slugs in Anzeige-Reihenfolge — fertig gerechnet (explore-ranking.ts, docs/38).
    *  Der Client zeigt sie nur noch an; sortierte er selbst nach einer globalen Zahl,
@@ -362,7 +366,7 @@ async function queryExploreData(locale: string, canSeePro: boolean): Promise<Exp
       .order("sort_weight", { ascending: false }),
     supabase
       .from("categories")
-      .select("key, season, title_translations, sort_order")
+      .select("key, season, title_translations, sort_order, emoji")
       .order("sort_order", { ascending: true }),
   ]);
 
@@ -434,6 +438,7 @@ async function queryExploreData(locale: string, canSeePro: boolean): Promise<Exp
       key: c.key,
       season: c.season,
       title: titles[locale] ?? titles.de ?? c.key,
+      emoji: (c.emoji as string | null) ?? null,
       sortOrder: c.sort_order,
       slugs: ranked.get(shelfKey(c.key, c.season)) ?? [],
     };
