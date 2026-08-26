@@ -119,12 +119,28 @@ function offsetBottomWithin(el: HTMLElement, sheet: HTMLElement): number {
 
 export default function MobileSheet({
   children,
+  contentKey,
   header,
   hide,
   peek,
   detents = DEFAULT_DETENTS,
 }: {
   children: ReactNode;
+  /**
+   * Kennzeichen des gezeigten Inhalts. Ändert es sich, ist das eine ANDERE Liste, und
+   * die fängt oben an: der Körper springt auf 0.
+   *
+   * Warum das nicht von selbst passiert: Bei einem Wechsel bleibt der Scroll-Container
+   * derselbe, nur seine Kinder werden getauscht. Der Browser behält seinen scrollTop,
+   * solange der Inhalt hoch genug bleibt — und das bleibt er hier, weil unter der
+   * wechselnden Liste noch die Partner-Zeile und das Bodenpolster stehen. Ergebnis ohne
+   * diese Zeile: Man scrollt in „Alle" nach unten, tippt eine Kategorie an und steht in
+   * der neuen Liste mitten drin, ohne je dorthin gescrollt zu haben.
+   *
+   * Nur bei ÄNDERUNG, nie beim ersten Aufbau: Sonst überschriebe es beim Zurückkommen
+   * von einer Spot-Seite die gemerkte Position (lib/scroll-memory.ts).
+   */
+  contentKey?: string;
   /**
    * Eine feste Kopfzeile zwischen Griff und Inhalt. Sie scrollt NICHT mit.
    *
@@ -169,6 +185,17 @@ export default function MobileSheet({
   // rührte sich nicht. `touch-action: pan-x` allein genügt dafür nicht.
   const headerRef = useRef<HTMLDivElement>(null);
   const headerDrag = useBodyDrag(dragControls, headerRef, atFull);
+
+  // Neuer Inhalt fängt oben an (siehe contentKey). „instant", weil ein weiches Hinfahren
+  // gegen die gerade laufende Überblende des Inhalts liefe.
+  const ersterInhalt = useRef(true);
+  useEffect(() => {
+    if (ersterInhalt.current) {
+      ersterInhalt.current = false;
+      return;
+    }
+    bodyRef.current?.scrollTo({ top: 0, behavior: "instant" });
+  }, [contentKey]);
   const reduceMotion = useReducedMotion();
 
   // Nur für die Interaktion, nicht für die Position (siehe Kopf).
