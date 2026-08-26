@@ -1095,6 +1095,29 @@ body {
 .mapboxgl-map .mapboxgl-ctrl-group button:active {
   background-color: rgb(0 0 0 / 0.05);
 }
+/* ZOOM-KNÖPFE GIBT ES NUR AM ZEIGER.
+   Am Finger zoomt man mit zwei Fingern, und das kann jeder — die zwei Knöpfe sind dort
+   nichts als eine 68px hohe Säule vor der Karte. Am Zeiger bleiben sie: Ein Mausrad hat
+   nicht jeder gern, und auf einem Trackpad ist Pinch-Zoom über einer Karte fummelig.
+
+   DIE GANZE GRUPPE, NICHT NUR DIE KNÖPFE. Versteckt man bloss die beiden Knöpfe, bleibt
+   ihre Fassung als leeres Glaskästchen stehen: Mapbox hängt den Schatten an
+   `:not(:empty)`, und ein Kind mit `display: none` ist immer noch ein Kind.
+
+   `:has()` ist hier kein Wagnis: Die App setzt mit `@property` (--sg-sheet-peek) ohnehin
+   Safari 16.4 voraus, `:has()` kann Safari seit 15.4. Kennt ein Browser es doch nicht,
+   greift die Regel gar nicht und die Knöpfe bleiben stehen — also der heutige Stand,
+   kein kaputter Zustand.
+
+   An Mapbox' eigener Klasse, damit es für JEDE Karte gilt: Explore, Gespeichert, die
+   Vollbild-Karte der Spot-Seite, die Wasserkarte und der Admin-Standortwähler hängen
+   alle daran, und die nächste Karte auch, ohne dass jemand daran denken muss. */
+@media (max-width: 767px) {
+  .mapboxgl-map .mapboxgl-ctrl-group:has(.mapboxgl-ctrl-zoom-in) {
+    display: none;
+  }
+}
+
 /* Tastatur-Fokus: Mapbox setzt ein knalliges Blau (#0096ff), das in dieser App sonst
    nirgends vorkommt. Sichtbar MUSS er bleiben, also derselbe Akzent-Ring wie bei den
    Formularfeldern im Admin. `:focus:not(:focus-visible)` bleibt Mapbox' Sache: Ein
