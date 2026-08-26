@@ -44,6 +44,18 @@ const SEASON_ICON: Record<Season, string> = { summer: "☀️", winter: "❄️"
 // shrink-0 + whitespace-nowrap: Eine Pille bleibt eine Pille. Ohne das rechnet Flex sie
 // schmal und „Klammen & Wasserfälle" bricht zweizeilig um, statt zu scrollen.
 //
+// KEINE FARB-ÜBERBLENDUNG BEIM UMSCHALTEN, und das ist der Kern eines gemeldeten
+// Fehlers: Mit einer Farb-Transition blendet die abgewählte Pille über 150ms von Dunkel
+// nach Hell — die neu gewählte wird aber SOFORT dunkel (nachgemessen: die eine über 21
+// Zwischenstufen, die andere in zwei). In der Überlappung sind BEIDE gleichzeitig
+// dunkel, gemessen acht Frames am Stück, also rund eine Zehntelsekunde, in der zwei
+// Kategorien ausgewählt aussehen. Genau das liest sich als Flackern.
+//
+// Die Auswahl springt deshalb hart: Sie ist ein Zustand, kein Verlauf, und es darf zu
+// keinem Zeitpunkt zwei dunkle Pillen geben. iOS macht es genauso — bei einem Segmented
+// Control wandert der Indikator, aber es blenden nie zwei Flächen ineinander. Das
+// Press-Feedback (`active:`) bleibt, ein Druck darf sofort antworten.
+//
 // KEIN `sg-hit` HIER, und das ist eine Lehre, keine Nachlässigkeit: Die Klasse legt ein
 // absolut positioniertes ::after von 44px über den Knopf. Die Pille ist 32px hoch, die
 // Fläche ragt also 6px oben und unten heraus. Unten überschreitet sie das 4px-Polster des
@@ -55,7 +67,7 @@ const SEASON_ICON: Record<Season, string> = { summer: "☀️", winter: "❄️"
 // ScrollStrip klemmt die Achse jetzt zusätzlich ab, aber die Ursache gehört trotzdem
 // nicht in eine waagrechte Leiste.
 const PILL =
-  "cursor-pointer sg-native-tap shrink-0 whitespace-nowrap rounded-full px-4 py-1.5 text-[13px] font-semibold transition-colors";
+  "cursor-pointer sg-native-tap shrink-0 whitespace-nowrap rounded-full px-4 py-1.5 text-[13px] font-semibold";
 const PILL_ON = "bg-ink text-white";
 const PILL_OFF = "bg-black/[0.06] text-ink/70 active:bg-black/[0.1]";
 
@@ -110,8 +122,25 @@ export default function CategoryFilterStrip({
     const b = box.getBoundingClientRect();
     const p = pill.getBoundingClientRect();
     const air = 16; // damit die Pille nicht am Rand klebt
-    if (p.right > b.right) box.scrollLeft += p.right - b.right + air;
-    else if (p.left < b.left) box.scrollLeft -= b.left - p.left + air;
+    let ziel = box.scrollLeft;
+    if (p.right > b.right) ziel += p.right - b.right + air;
+    else if (p.left < b.left) ziel -= b.left - p.left + air;
+    if (ziel === box.scrollLeft) return;
+
+    // WEICH HINFAHREN, NICHT SPRINGEN. Tippt man eine Pille an, die am Rand halb
+    // abgeschnitten ist, muss der Streifen sie hereinholen — nachgemessen waren das
+    // 92px in EINEM Frame. Zusammen mit den beiden Pillen, die im selben Moment ihre
+    // Farbe tauschen, und dem Verlauf, der am Rand ein- oder aussetzt, liest sich das
+    // als Zucken statt als Bewegung.
+    //
+    // `scrollTo` mit `behavior` und NICHT die CSS-Eigenschaft `scroll-behavior`: Die
+    // gälte auch fürs Ziehen mit der Maus, und dann liefe die Leiste dem Finger
+    // hinterher statt mit ihm (siehe ScrollStrip.tsx, „kein scroll-smooth").
+    //
+    // Wer Bewegung reduziert haben will, bekommt sie nicht: Für den ist ein Sprung
+    // richtig, nicht eine langsamere Fahrt.
+    const ruhig = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    box.scrollTo({ left: ziel, behavior: ruhig ? "auto" : "smooth" });
   }, [value?.key, value?.season, season]);
 
   const pill = (cat: ExploreCategory) => {
