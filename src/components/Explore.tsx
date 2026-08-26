@@ -332,6 +332,28 @@ export default function Explore({
       .filter((shelf) => shelf.spots.length > 0);
   }, [seasonCats, seasonSpots]);
 
+  // Kennzeichen des gezeigten Inhalts: Saison plus gewählte Kategorie. EINE Quelle für
+  // zwei Dinge, die sonst auseinanderlaufen — die Überblende (AnimatePresence) und das
+  // Zurücksetzen der Scroll-Position. Beide meinen dasselbe: „das ist eine andere Liste".
+  const contentKey = `${season}:${filter ? `${filter.season}/${filter.key}` : "all"}`;
+
+  // ANDERE LISTE, ALSO OBEN ANFANGEN. Wer in „Alle" weit runtergescrollt ist und dann
+  // eine Kategorie antippt, stünde sonst in der neuen Liste mitten drin, ohne je dorthin
+  // gescrollt zu haben. Am Handy macht das MobileSheet über contentKey, hier ist die
+  // Desktop-Spalte dran — dieselbe Regel auf beiden Geräten.
+  //
+  // Beim ERSTEN Aufbau bewusst nicht: Dort stellt useScrollMemory die Position wieder
+  // her, mit der man von einer Spot-Seite zurückkommt. Ein Zurücksetzen würde genau die
+  // überschreiben.
+  const ersterInhalt = useRef(true);
+  useEffect(() => {
+    if (ersterInhalt.current) {
+      ersterInhalt.current = false;
+      return;
+    }
+    panelScrollRef.current?.scrollTo({ top: 0, behavior: "instant" });
+  }, [contentKey]);
+
   // Die Filter-Leiste steht GETRENNT vom Panel-Inhalt, weil sie an einem anderen Ort
   // landet: am Handy in der festen Kopfzeile des Sheets (MobileSheet `header`), am PC
   // über dem Scroller der linken Spalte. Beide Male ausserhalb des scrollenden Bereichs,
@@ -430,10 +452,11 @@ export default function Explore({
           im Menü/Header verlinkt (Anton-Entscheidung). */}
       <AnimatePresence mode="wait" initial={false}>
         <motion.div
-          // Der Schlüssel trägt Saison UND Filter: Jeder Wechsel blendet weich um,
-          // nicht nur der Saison-Wechsel. Ein harter Schnitt beim Filtern sähe aus
-          // wie ein Neuladen, obwohl nur eine Auswahl kleiner wurde.
-          key={`${season}:${filter ? `${filter.season}/${filter.key}` : "all"}`}
+          // Derselbe Schlüssel, der auch die Scroll-Position zurücksetzt (contentKey):
+          // Jeder Wechsel blendet weich um, nicht nur der Saison-Wechsel. Ein harter
+          // Schnitt beim Filtern sähe aus wie ein Neuladen, obwohl nur eine Auswahl
+          // kleiner wurde.
+          key={contentKey}
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -8 }}
@@ -515,7 +538,7 @@ export default function Explore({
       <PartnerCredits className="mt-14 px-4" />
     </>
     );
-  }, [season, filter, activeCat, visibleSpots, shelves, openSpot, t]);
+  }, [contentKey, activeCat, visibleSpots, shelves, openSpot, t]);
 
   return (
     <div className="fixed inset-0 z-0 md:top-[var(--sg-header-h)]">
@@ -616,6 +639,7 @@ export default function Explore({
           peek={SHEET_PEEK}
           detents={EXPLORE_DETENTS}
           header={panelHeader}
+          contentKey={contentKey}
         >
           {panelInner}
         </MobileSheet>
