@@ -255,6 +255,7 @@
     "summer": "Zomer",
     "winter": "Winter",
     "all": "Alle",
+    "resultCount": "{count, plural, one {# spot} other {# spots}}",
     "switchToSummer": "Naar zomer wisselen",
     "switchToWinter": "Naar winter wisselen",
     "lockedLabel": "🤫 Geheime tip",

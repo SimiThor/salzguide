@@ -255,6 +255,7 @@
     "summer": "Leto",
     "winter": "Zima",
     "all": "Všetky",
+    "resultCount": "{count, plural, one {# spot} few {# spoty} many {# spotu} other {# spotov}}",
     "switchToSummer": "Prepnúť na leto",
     "switchToWinter": "Prepnúť na zimu",
     "lockedLabel": "🤫 Tajný tip",

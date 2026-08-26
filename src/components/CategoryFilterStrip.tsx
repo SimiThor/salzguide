@@ -78,10 +78,26 @@ export default function CategoryFilterStrip({
   // umbaut und die eben gewählte Kategorie nach vorne rutscht. Dieselbe Rechnung wie in
   // AdminNav.tsx: NICHT scrollIntoView, das scrollt auch die Seite und jeden Vorfahren
   // mit Overflow, hier also das Sheet.
+  const prevSeason = useRef(season);
   useEffect(() => {
     const box = strip.current;
+    if (!box) return;
+
+    // BEIM SAISON-WECHSEL ERST GANZ NACH LINKS, und das ist kein Schönheitsputz:
+    // Um eine Winter-Pille im Sommer zu erreichen, scrollt man weit nach rechts. Danach
+    // baut sich die Leiste um, die Winter-Kategorien stehen jetzt vorne — der alte
+    // Scrollstand bleibt aber stehen. Die eben gewählte Pille ist dann zwar sichtbar
+    // (die Korrektur unten greift also nicht), aber „Alle" davor ist links aus dem Bild
+    // gerutscht. Nachgemessen: die aktive Pille klebte bei x=33 am linken Rand, der
+    // Ausgang war weg. Wer nicht weiss, dass man die aktive Pille nochmal antippen kann,
+    // sitzt fest.
+    if (prevSeason.current !== season) {
+      prevSeason.current = season;
+      box.scrollLeft = 0;
+    }
+
     const pill = activePill.current;
-    if (!box || !pill) return;
+    if (!pill) return;
     const b = box.getBoundingClientRect();
     const p = pill.getBoundingClientRect();
     const air = 16; // damit die Pille nicht am Rand klebt
@@ -126,7 +142,37 @@ export default function CategoryFilterStrip({
     // herum: MobileSheet misst die Unterkante dieses Elements, und die Luft, die
     // ScrollStrip für Schatten und Ring mitbringt, gehört dazu (siehe ScrollStrip.tsx,
     // „py-1 gegen das Anschneiden oben").
-    <div data-sg="filter-strip" className="px-4">
+    // KLEBT OBEN. Eine Kategorie kann 24 Spots haben; wer unten in der Liste steht und
+    // umschalten will, müsste sonst erst wieder ganz hochscrollen. Airbnb und Apple
+    // Karten heften ihre Filterzeile aus demselben Grund an den oberen Rand.
+    //
+    // Volldeckendes bg-cream statt eines zweiten backdrop-filter: Das Sheet trägt schon
+    // einen (bg-cream/95 backdrop-blur-xl), und ein Blur IM Blur ist genau die
+    // Konstellation, in der Safari nicht mehr neu zeichnet (siehe .sg-own-layer in
+    // globals.css). Deckend ist hier ohnehin richtig, sonst schimmern die Karten durch,
+    // die darunter durchlaufen.
+    //
+    // ── DAS `before:` IST DER SCHLITZ-VERSCHLUSS, und ohne ihn ist die Leiste kaputt ──
+    //
+    // `sticky top-0` heftet an den SCROLLPORT, und der beginnt hinter dem Innenabstand
+    // des Scrollers. Der Sheet-Körper hat pt-1, die Desktop-Spalte pt-5. Genau dieses
+    // Band bleibt also unbedeckt, und beim Scrollen laufen die Fotos sichtbar
+    // hindurch: nachgemessen 4px am iPhone (Griff endet bei 110.4, Leiste beginnt bei
+    // 114.4), 20px am PC. Ein 4px-Flimmern unter dem Griff sieht nicht nach 4px aus,
+    // es sieht nach kaputt aus.
+    //
+    // Die Fläche hängt sich nach OBEN aus der Leiste heraus und füllt das Band. Sie ist
+    // absichtlich viel höher als jeder denkbare Innenabstand, und das kostet nichts: Der
+    // Scroller schneidet an seinem Padding-Kasten ab, sichtbar wird also immer genau so
+    // viel, wie zu decken ist — nie mehr. Damit steht hier KEINE Zahl, die zur pt-Klasse
+    // des Aufrufers passen muss und beim nächsten Umbau still danebenliegt.
+    //
+    // Bedingung, die dafür gelten muss: Dieser Streifen ist das ERSTE Kind seines
+    // Scrollers. Stünde etwas über ihm, deckte die Fläche es im geklebten Zustand zu.
+    <div
+      data-sg="filter-strip"
+      className="sticky top-0 z-10 bg-cream px-4 before:absolute before:inset-x-0 before:bottom-full before:h-24 before:bg-cream before:content-['']"
+    >
       <ScrollStrip scrollRef={strip}>
         <div className="flex w-max items-center gap-2">
           <button

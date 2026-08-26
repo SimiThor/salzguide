@@ -337,10 +337,10 @@ export default function Explore({
   // genug, dass die Karte erst ~180ms nach dem Tippen erfährt, dass sie loslassen soll.
   // Genau die 180ms sieht man als Nachhinken von Route und Pin.
   const panelInner = useMemo(() => {
-    // EINE Stelle, die aus einem Spot ein antippbares Kärtchen macht. Regal und
-    // gefilterte Liste unterscheiden sich nur in der Breite, alles andere (Link vs.
-    // Knopf, Pro-Tarnung, Ladepriorität) ist identisch — und war vorher genau deshalb
-    // drauf und dran, zweimal dazustehen.
+    // EINE Stelle, die aus einem Spot eine antippbare Karte macht. Es ist DIESELBE
+    // SpotCard wie im Regal, nur einmal auf Karussell-Breite und einmal auf halbe
+    // Spaltenbreite gerechnet — die gefilterte Ansicht bringt bewusst KEIN zweites
+    // Kartenformat mit, sonst hätte die Seite zwei Handschriften.
     //
     // Entsperrte Karten sind echte Links auf die Spot-Seite: Google folgt ihnen aus dem
     // Server-HTML (vorher fand es Spots fast nur über die Sitemap), und Cmd/Ctrl-Klick
@@ -348,7 +348,11 @@ export default function Explore({
     // Sheet, die Adresse ändert sich nicht. Gesperrte Spots behalten den Knopf — ihr
     // slug ist die Tarnung "locked-N" (lib/spots.ts), ein Link liefe ins Leere; das
     // ProGate-Sheet übernimmt.
-    const spotCard = (s: ExploreSpot, opts: { eager: boolean; full: boolean }) => {
+    const spotCard = (s: ExploreSpot, opts: { eager: boolean; grid: boolean }) => {
+      // Sofort laden nur, was beim Aufbau garantiert im Bild steht. Eines davon ist das
+      // grösste Bild im ersten Bildschirm (LCP), und eine Reihe erscheint erst, wenn ihr
+      // letztes Foto da ist. Alles andere bleibt lazy: Was seitlich hinausragt oder
+      // unterhalb liegt, soll das Netz nicht belegen, bevor jemand hinwischt.
       const card = (
         <SpotCard
           title={s.title}
@@ -360,20 +364,19 @@ export default function Explore({
           isPro={s.isPro}
           locked={s.locked}
           lockedLabel={t("lockedLabel")}
-          // Sofort laden nur für die Karten, die beim Aufbau garantiert im Bild stehen.
-          // Eine davon ist das grösste Bild im ersten Bildschirm (LCP), und eine Reihe
-          // erscheint erst, wenn ihr letztes Foto da ist. Alles andere bleibt lazy:
-          // Was seitlich hinausragt, soll das Netz nicht belegen, bevor jemand
-          // dorthin wischt.
           eager={opts.eager}
+          // Im Raster füllt die Karte ihre Spalte; die Spaltenbreite macht das Raster.
+          // `sizes` MUSS zur echten Breite passen, sonst holt der Browser eine zu kleine
+          // Stufe und das Foto wird weich: eine Spalte ist am iPhone (390 - 32 Rand -
+          // 12 Spalte) / 2 = 173px, also gut 45vw.
           sizeClassName={
-            opts.full
+            opts.grid
               ? "w-full"
               : "w-[76vw] max-w-[300px] md:w-[var(--sg-card)] md:max-w-none"
           }
           sizes={
-            opts.full
-              ? "(min-width: 768px) 400px, 92vw"
+            opts.grid
+              ? "(min-width: 768px) 260px, 45vw"
               : "(min-width: 768px) 220px, 76vw"
           }
         />
@@ -434,22 +437,32 @@ export default function Explore({
           className="mt-5 space-y-10 md:space-y-12"
         >
         {activeCat ? (
-          // GEFILTERT: ein Regal wäre hier falsch. Wer eine Kategorie wählt, will alles
-          // davon sehen und nicht seitlich durch fünf Karten blättern. Deshalb eine
-          // senkrechte Liste voller Breite, im Rhythmus der Gespeichert-Seite.
+          // GEFILTERT: kein Regal, sondern ein RASTER. Ein Regal ist zum Blättern gebaut
+          // (eine Karte pro Wisch) — wer gerade eine Kategorie gewählt hat, will aber
+          // alles davon überblicken. Volle Breite gestapelt geht dabei nicht: Eine
+          // 4:3-Karte ist am iPhone ~370px hoch, es stünde EIN Ergebnis im Bild und
+          // „Aussicht & Erholung" mit 24 Spots wären 24 Bildschirme.
+          //
+          // Zwei Spalten lösen beides: Das Foto bleibt gross genug, um zu wirken (173px
+          // am iPhone), und es stehen vier Karten gleichzeitig da. Und es ist DIESELBE
+          // SpotCard wie im Regal — die Seite bekommt kein zweites Kartenformat.
           <section>
-            <h2 className="mb-3 px-4 text-xl font-bold tracking-tight text-ink">
-              {activeCat.emoji ? `${activeCat.emoji} ` : ""}
-              {activeCat.title}
-            </h2>
-            <div className="space-y-3 px-4">
+            {/* KEINE grosse Überschrift: Die aktive Pille steht direkt darüber und sagt
+                dasselbe Wort. Was sie NICHT sagt, ist, wie viele es sind — und genau das
+                ist beim Filtern die Frage. Deshalb hier nur die Zahl, klein und ruhig. */}
+            <p className="mb-3 px-4 text-[13px] font-medium text-muted">
+              {t("resultCount", { count: visibleSpots.length })}
+            </p>
+            {/* gap-y grösser als gap-x: Senkrecht trennt der Abstand ZEILEN des Rasters,
+                waagrecht nur zwei Karten nebeneinander. Gleich gross wirkte das Raster
+                wie ein Gitter statt wie Karten. */}
+            <div className="grid grid-cols-2 gap-x-3 gap-y-6 px-4">
               {visibleSpots.map((s, i) => (
-                // Der Anker für die mittlere Stufe ist die ERSTE Karte, nicht die ganze
-                // Liste: „hoch genug, dass die Liste komplett draufpasst" wären bei zwölf
-                // Spots mehrere Bildschirme, die Stufe klebte an der Decke und wäre keine
-                // Stufe mehr.
+                // Der Anker für die mittlere Stufe ist die ERSTE Karte, nicht das ganze
+                // Raster: „hoch genug, dass alles draufpasst" wären bei 24 Spots mehrere
+                // Bildschirme, die Stufe klebte an der Decke und wäre keine Stufe mehr.
                 <div key={s.slug} data-sg={i === 0 ? "detent-anchor" : undefined}>
-                  {spotCard(s, { eager: i < 2, full: true })}
+                  {spotCard(s, { eager: i < 4, grid: true })}
                 </div>
               ))}
             </div>
@@ -473,7 +486,7 @@ export default function Explore({
                 {/* Die ersten drei Karten des ERSTEN Regals stehen beim Aufbau immer im
                     Bild (Desktop zeigt 2,5 davon, das Handy 1,3) und laden deshalb
                     sofort. Drei und nicht mehr, siehe spotCard(). */}
-                {catSpots.map((s, j) => spotCard(s, { eager: i === 0 && j < 3, full: false }))}
+                {catSpots.map((s, j) => spotCard(s, { eager: i === 0 && j < 3, grid: false }))}
               </Carousel>
             </section>
           );

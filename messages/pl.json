@@ -255,6 +255,7 @@
     "summer": "Lato",
     "winter": "Zima",
     "all": "Wszystkie",
+    "resultCount": "{count, plural, one {# spot} few {# spoty} many {# spotów} other {# spotu}}",
     "switchToSummer": "Przełącz na lato",
     "switchToWinter": "Przełącz na zimę",
     "lockedLabel": "🤫 Sekretny spot",

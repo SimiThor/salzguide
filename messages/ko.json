@@ -255,6 +255,7 @@
     "summer": "여름",
     "winter": "겨울",
     "all": "전체",
+    "resultCount": "{count, plural, other {스팟 #개}}",
     "switchToSummer": "여름으로 전환",
     "switchToWinter": "겨울로 전환",
     "lockedLabel": "🤫 비밀 스팟",

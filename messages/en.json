@@ -255,6 +255,7 @@
     "summer": "Summer",
     "winter": "Winter",
     "all": "All",
+    "resultCount": "{count, plural, one {# spot} other {# spots}}",
     "switchToSummer": "Switch to summer",
     "switchToWinter": "Switch to winter",
     "lockedLabel": "🤫 Secret Spot",

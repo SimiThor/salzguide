@@ -255,6 +255,7 @@
     "summer": "Nyár",
     "winter": "Tél",
     "all": "Mind",
+    "resultCount": "{count, plural, one {# spot} other {# spot}}",
     "switchToSummer": "Váltás nyárra",
     "switchToWinter": "Váltás télre",
     "lockedLabel": "🤫 Titkos hely",

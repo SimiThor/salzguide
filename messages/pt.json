@@ -255,6 +255,7 @@
     "summer": "Verão",
     "winter": "Inverno",
     "all": "Todos",
+    "resultCount": "{count, plural, one {# spot} other {# spots}}",
     "switchToSummer": "Mudar para verão",
     "switchToWinter": "Mudar para inverno",
     "lockedLabel": "🤫 Dica secreta",

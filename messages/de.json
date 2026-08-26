@@ -298,6 +298,7 @@
     "summer": "Sommer",
     "winter": "Winter",
     "all": "Alle",
+    "resultCount": "{count, plural, one {# Spot} other {# Spots}}",
     "switchToSummer": "Auf Sommer umschalten",
     "switchToWinter": "Auf Winter umschalten",
     "lockedLabel": "🤫 Geheimtipp",
