@@ -51,7 +51,7 @@ export default function SeasonPill({
       // Glas-Optik der Karten-Overlays (siehe SpotMap.tsx, Vollbild-Hinweis): heller
       // Blur-Grund, Haarrand, weicher Schatten. Auf einer Karte muss ein Bedienelement
       // vom Untergrund abheben, ohne ihn zuzudecken.
-      className={`sg-hit sg-native-tap flex cursor-pointer items-center gap-1.5 rounded-full border border-black/5 bg-white/80 py-1.5 pl-3 pr-3.5 text-[13px] font-semibold text-ink shadow-[0_3px_14px_-4px_rgba(0,0,0,0.22)] backdrop-blur-md transition active:scale-95 ${className}`}
+      className={`sg-hit sg-native-tap flex cursor-pointer items-center gap-1.5 rounded-full border border-black/5 bg-white/80 py-1.5 pl-3 pr-3.5 text-[13px] font-semibold text-ink shadow-[var(--sg-map-tile-shadow)] backdrop-blur-md transition active:scale-95 ${className}`}
     >
       {/* Das Symbol wechselt als kleine Blende statt hart umzuspringen: Der Wechsel baut
           die ganze Karte um (andere Pins, anderer Ausschnitt), und ein Knopf, der dabei

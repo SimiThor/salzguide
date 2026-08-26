@@ -708,7 +708,7 @@ export default function SpotMap({
               die Karte aus wie ein Bild, und niemand käme auf die Idee zu tippen. */}
           <span
             aria-hidden
-            className="pointer-events-none absolute left-3 top-3 flex h-9 w-9 items-center justify-center rounded-[11px] border border-black/5 bg-white/80 text-ink shadow-[0_3px_14px_-4px_rgba(0,0,0,0.22)] backdrop-blur-md"
+            className="pointer-events-none absolute left-3 top-3 flex h-9 w-9 items-center justify-center rounded-[var(--sg-map-tile-r)] border border-black/5 bg-white/80 text-ink shadow-[var(--sg-map-tile-shadow)] backdrop-blur-md"
           >
             <svg
               width="18"

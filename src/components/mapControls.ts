@@ -3,13 +3,20 @@ import mapboxgl from "mapbox-gl";
 /**
  * Kantenlänge eines Karten-Bedienknopfs, plus dem Rand, den Mapbox um die Gruppe legt.
  *
- * GEZEICHNET wird die Grösse in globals.css über `--sg-map-ctrl` (34px am Finger,
- * 32px am Zeiger; bis zu Apples 44 kommt am Finger unsichtbar dazu). Hier steht der
- * GRÖSSERE der beiden Werte, denn der Rand muss den breitesten Fall abdecken. Diese Zahl hier ist die
- * JS-Seite derselben Sache: Sie sagt den Karten, wie viel Rand sie beim Einpassen
- * freihalten müssen, damit Marker NEBEN den Knöpfen landen und nicht darunter. CSS kann
- * kein TypeScript lesen, deshalb stehen sie an zwei Orten — wer die eine ändert, muss
- * die andere mitnehmen, und beide Kommentare sagen es.
+ * GEZEICHNET wird die Grösse in globals.css über `--sg-map-ctrl`: 34px am Finger,
+ * 32px am Zeiger. Hier steht der GRÖSSERE der beiden Werte, denn der Rand muss den
+ * breitesten Fall abdecken. Diese Zahl hier ist die JS-Seite derselben Sache: Sie sagt
+ * den Karten, wie viel Rand sie beim Einpassen freihalten müssen, damit Marker NEBEN den
+ * Knöpfen landen und nicht darunter. CSS kann kein TypeScript lesen, deshalb stehen sie
+ * an zwei Orten — wer die eine ändert, muss die andere mitnehmen, und beide Kommentare
+ * sagen es.
+ *
+ * Der Satz "bis zu Apples 44 kommt am Finger unsichtbar dazu" stand hier lange und war
+ * FALSCH: Es gab weder eine unsichtbare Fläche noch überhaupt eine CSS-Regel, die
+ * `--sg-map-ctrl` gelesen hätte. Die Knöpfe waren Mapbox' Werks-32px, auf jedem Gerät.
+ * Die Grösse ist jetzt verdrahtet; die 44er-Trefferfläche ist es bewusst NICHT (siehe
+ * globals.css, "Die Optik der Karten-Bedienknöpfe"): Die Fassung schneidet ab, eine
+ * überstehende Fläche brächte also nichts und würde nur den Nachbarknopf stören.
  */
 const MAP_CTRL_SIZE = 34;
 /** Knopf + Aussenabstand der Gruppe (10px) + etwas Luft, damit nichts anklebt. */
