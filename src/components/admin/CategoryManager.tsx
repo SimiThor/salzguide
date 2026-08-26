@@ -42,6 +42,7 @@ function CategoryForm({
     for (const l of LOCALES) t[l] = initial?.titles[l] ?? "";
     return t;
   });
+  const [emoji, setEmoji] = useState<string>(initial?.emoji ?? "");
   const [sortOrder, setSortOrder] = useState<number>(initial?.sortOrder ?? 0);
   const [busy, setBusy] = useState(false);
   const [translating, setTranslating] = useState(false);
@@ -75,7 +76,7 @@ function CategoryForm({
     }
     setBusy(true);
     try {
-      const r = await saveCategory({ id: initial?.id, season, titles, sortOrder });
+      const r = await saveCategory({ id: initial?.id, season, titles, emoji, sortOrder });
       if (r.ok) onDone();
       else setErr(adminErrorText(r.error));
     } catch {
@@ -125,6 +126,26 @@ function CategoryForm({
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
+        {/* Symbol der Filter-Pille über der Explore-Karte (CategoryFilterStrip.tsx).
+            Eigene Spalte statt Zeichen im Titel: ein Emoji wird nicht übersetzt, es
+            stünde sonst dreizehnmal da. Leer lassen ist erlaubt, dann trägt die Pille
+            nur den Titel.
+            ZUR TITELLÄNGE, weil man es dem Feld nicht ansieht: Der Titel ist ZWEIMAL im
+            Einsatz, als Regal-Überschrift UND als Pille. Über etwa 22 Zeichen wird die
+            Pille breiter als der halbe iPhone-Schirm und schiebt die Nachbarn aus dem
+            Bild. Deshalb hier keine Sätze ("Wanderungen – Leicht & Mittel"), sondern
+            Namen ("Leichte Wanderungen"). Bewusst OHNE harte Grenze beim Speichern: als
+            Überschrift darf ein Titel auch mal länger sein, und eine Regel, die den
+            häufigeren Fall bestraft, wäre die falsche Regel. */}
+        <label className="flex items-center gap-2 text-[12px] font-medium text-muted">
+          Symbol
+          <input
+            value={emoji}
+            onChange={(e) => setEmoji(e.target.value)}
+            placeholder="🥾"
+            className="w-16 rounded-[10px] bg-white px-2 py-1.5 text-center text-[16px] text-ink ring-1 ring-black/[0.08] outline-none focus:ring-2 focus:ring-accent/40"
+          />
+        </label>
         <label className="flex items-center gap-2 text-[12px] font-medium text-muted">
           Reihenfolge
           <input
@@ -319,7 +340,10 @@ export default function CategoryManager({
                       </button>
                     </div>
                     <div className="min-w-0 flex-1">
+                      {/* Das Symbol steht in der Liste mit, weil man die Pille sonst nur
+                          sieht, indem man jede Kategorie einzeln aufklappt. */}
                       <p className="truncate text-[14px] font-medium text-ink">
+                        {c.emoji ? `${c.emoji} ` : ""}
                         {c.titles.de ?? c.key}
                       </p>
                       <p className="truncate text-[11px] text-muted">

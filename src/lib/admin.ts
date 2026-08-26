@@ -339,6 +339,8 @@ export type AdminCategoryFull = {
   key: string;
   season: string;
   titles: Record<string, string>;
+  /** Symbol der Filter-Pille auf der Explore-Karte (Migration 0066). */
+  emoji: string;
   sortOrder: number;
 };
 
@@ -346,7 +348,7 @@ export async function getCategoriesAdmin(): Promise<AdminCategoryFull[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("categories")
-    .select("id, key, season, title_translations, sort_order")
+    .select("id, key, season, title_translations, sort_order, emoji")
     .order("season", { ascending: true })
     .order("sort_order", { ascending: true });
   return (data ?? []).map((c) => ({
@@ -354,6 +356,7 @@ export async function getCategoriesAdmin(): Promise<AdminCategoryFull[]> {
     key: c.key as string,
     season: c.season as string,
     titles: (c.title_translations ?? {}) as Record<string, string>,
+    emoji: (c.emoji as string | null) ?? "",
     sortOrder: (c.sort_order as number) ?? 0,
   }));
 }
