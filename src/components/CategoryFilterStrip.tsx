@@ -43,10 +43,19 @@ const SEASON_ICON: Record<Season, string> = { summer: "☀️", winter: "❄️"
 //
 // shrink-0 + whitespace-nowrap: Eine Pille bleibt eine Pille. Ohne das rechnet Flex sie
 // schmal und „Klammen & Wasserfälle" bricht zweizeilig um, statt zu scrollen.
-// sg-hit: 44pt Trefferfläche am Finger. Wächst nur nach oben und unten, weil jede Pille
-// breiter als 44px ist — sie nimmt also keinem Nachbarn den Tipp weg.
+//
+// KEIN `sg-hit` HIER, und das ist eine Lehre, keine Nachlässigkeit: Die Klasse legt ein
+// absolut positioniertes ::after von 44px über den Knopf. Die Pille ist 32px hoch, die
+// Fläche ragt also 6px oben und unten heraus. Unten überschreitet sie das 4px-Polster des
+// Scroll-Streifens, und weil ein Element mit `overflow-x: auto` zwangsläufig auch auf der
+// anderen Achse zum Scroll-Container wird, war der Streifen dadurch 2px VERTIKAL
+// scrollbar (nachgemessen: clientHeight 40, scrollHeight 42, `scrollTop = 50` landet
+// auf 2). Am iPhone frisst genau das den Anfang jeder senkrechten Geste: Der Finger
+// schiebt erst diese zwei Pixel, statt das Sheet zu greifen, und die Zeile zappelt.
+// ScrollStrip klemmt die Achse jetzt zusätzlich ab, aber die Ursache gehört trotzdem
+// nicht in eine waagrechte Leiste.
 const PILL =
-  "cursor-pointer sg-hit sg-native-tap shrink-0 whitespace-nowrap rounded-full px-4 py-1.5 text-[13px] font-semibold transition-colors";
+  "cursor-pointer sg-native-tap shrink-0 whitespace-nowrap rounded-full px-4 py-1.5 text-[13px] font-semibold transition-colors";
 const PILL_ON = "bg-ink text-white";
 const PILL_OFF = "bg-black/[0.06] text-ink/70 active:bg-black/[0.1]";
 
@@ -129,60 +138,24 @@ export default function CategoryFilterStrip({
   };
 
   return (
-    // DAS px-4 GEHÖRT HIERHER UND IST NICHT KOSMETIK. ScrollStrip zieht sich mit
-    // `-mx-4` bewusst über den Rand seines Rahmens, damit die Pillen bis an den
-    // Bildschirmrand laufen statt vorher abzureissen — es SETZT also einen Rahmen mit
-    // px-4 voraus (so ist es auf der Events-Seite und im Admin). Das Explore-Panel hat
-    // keinen: dort bringt jedes Kind sein eigenes px-4 mit. Ohne diesen Rahmen ragte
-    // der Streifen 16px über beide Panelkanten hinaus, und weil `overflow-y: auto` die
-    // andere Achse zwangsweise auf `auto` mitzieht, liesse sich das ganze Panel
-    // seitlich wegschieben — genau der Fehler, für den es ScrollStrip überhaupt gibt.
+    // DAS px-4 GEHÖRT HIERHER UND IST NICHT KOSMETIK. ScrollStrip zieht sich mit `-mx-4`
+    // bewusst über den Rand seines Rahmens, damit die Pillen bis an den Bildschirmrand
+    // laufen statt vorher abzureissen — es SETZT also einen Rahmen mit px-4 voraus (so ist
+    // es auf der Events-Seite und im Admin). Weder das Explore-Panel noch die Kopfzeile des
+    // Sheets haben einen: dort bringt jedes Kind sein eigenes px-4 mit. Ohne diesen Rahmen
+    // ragte der Streifen 16px über beide Kanten hinaus.
     //
-    // Der Anker für die Ruheposition des Bottom-Sheets sitzt AUSSEN, um den Streifen
-    // herum: MobileSheet misst die Unterkante dieses Elements, und die Luft, die
-    // ScrollStrip für Schatten und Ring mitbringt, gehört dazu (siehe ScrollStrip.tsx,
-    // „py-1 gegen das Anschneiden oben").
-    // KLEBT OBEN. Eine Kategorie kann 24 Spots haben; wer unten in der Liste steht und
-    // umschalten will, müsste sonst erst wieder ganz hochscrollen. Airbnb und Apple
-    // Karten heften ihre Filterzeile aus demselben Grund an den oberen Rand.
+    // KEIN `sticky` UND KEIN EIGENER HINTERGRUND MEHR. Beides stand hier, solange die
+    // Leiste im scrollenden Inhalt lag, und beides war ein Behelf: Ein aufgesetzter
+    // Hintergrund trifft nie exakt die Farbe des Sheets (volldeckendes Creme gegen
+    // bg-cream/95 mit Blur), und nachgemessen blieb genau dort ein hellerer Streifen
+    // zwischen Griff und Pillen stehen. Jetzt sitzt die Leiste in der FESTEN Kopfzeile
+    // des Sheets (MobileSheet `header`) beziehungsweise über dem Scroller der
+    // Desktop-Spalte. Damit kann nichts mehr darunter durchlaufen, es braucht keine
+    // Abdeckung, und der Hintergrund ist einfach der des Sheets.
     //
-    // Volldeckendes bg-cream statt eines zweiten backdrop-filter: Das Sheet trägt schon
-    // einen (bg-cream/95 backdrop-blur-xl), und ein Blur IM Blur ist genau die
-    // Konstellation, in der Safari nicht mehr neu zeichnet (siehe .sg-own-layer in
-    // globals.css). Deckend ist hier ohnehin richtig, sonst schimmern die Karten durch,
-    // die darunter durchlaufen.
-    //
-    // ── DAS `before:` IST DER SCHLITZ-VERSCHLUSS, und ohne ihn ist die Leiste kaputt ──
-    //
-    // `sticky top-0` heftet an den SCROLLPORT, und der beginnt hinter dem Innenabstand
-    // des Scrollers. Der Sheet-Körper hat pt-1, die Desktop-Spalte pt-5. Genau dieses
-    // Band bleibt also unbedeckt, und beim Scrollen laufen die Fotos sichtbar
-    // hindurch: nachgemessen 4px am iPhone (Griff endet bei 110.4, Leiste beginnt bei
-    // 114.4), 20px am PC. Ein 4px-Flimmern unter dem Griff sieht nicht nach 4px aus,
-    // es sieht nach kaputt aus.
-    //
-    // Die Fläche hängt sich nach OBEN aus der Leiste heraus und füllt das Band. Sie ist
-    // absichtlich viel höher als jeder denkbare Innenabstand, und das kostet nichts: Der
-    // Scroller schneidet an seinem Padding-Kasten ab, sichtbar wird also immer genau so
-    // viel, wie zu decken ist — nie mehr. Damit steht hier KEINE Zahl, die zur pt-Klasse
-    // des Aufrufers passen muss und beim nächsten Umbau still danebenliegt.
-    //
-    // Bedingung, die dafür gelten muss: Dieser Streifen ist das ERSTE Kind seines
-    // Scrollers. Stünde etwas über ihm, deckte die Fläche es im geklebten Zustand zu.
-    //
-    // ── z-20 UND NICHT z-10, und das ist kein „sicherheitshalber höher" ──
-    //
-    // Die Karussell-Pfeile liegen auf z-10 (Carousel.tsx). Stand der Streifen auf
-    // derselben Sprosse, entschied die DOM-Reihenfolge — und die Regale kommen NACH
-    // ihm, also gewann der Pfeil und schwebte beim Scrollen über den Pillen, während
-    // die Karten darunter sauber verschwanden. Zwei Sachen auf derselben Ebene, deren
-    // Reihenfolge zufällig aus dem Markup fällt, sind genau die Art Fehler, die beim
-    // nächsten Umsortieren wiederkommt. Der Streifen ist das Dach über dem
-    // scrollenden Inhalt, also gehört er eine Sprosse höher als alles darin.
-    <div
-      data-sg="filter-strip"
-      className="sticky top-0 z-20 bg-cream px-4 before:absolute before:inset-x-0 before:bottom-full before:h-24 before:bg-cream before:content-['']"
-    >
+    // `data-sg="filter-strip"` bleibt: MobileSheet misst hier die Ruheposition.
+    <div data-sg="filter-strip" className="px-4">
       <ScrollStrip scrollRef={strip}>
         <div className="flex w-max items-center gap-2">
           <button

@@ -332,6 +332,23 @@ export default function Explore({
       .filter((shelf) => shelf.spots.length > 0);
   }, [seasonCats, seasonSpots]);
 
+  // Die Filter-Leiste steht GETRENNT vom Panel-Inhalt, weil sie an einem anderen Ort
+  // landet: am Handy in der festen Kopfzeile des Sheets (MobileSheet `header`), am PC
+  // über dem Scroller der linken Spalte. Beide Male ausserhalb des scrollenden Bereichs,
+  // damit nichts darunter durchlaufen kann und sie keinen eigenen Hintergrund braucht.
+  const panelHeader = useMemo(
+    () => (
+      <CategoryFilterStrip
+        categories={chipCategories}
+        season={season}
+        value={filter}
+        onSelect={selectCategory}
+        labels={stripLabels}
+      />
+    ),
+    [chipCategories, season, filter, selectCategory, stripLabels],
+  );
+
   // Gemerkt, weil an diesem Baum ALLE Regale, Karussells und Karten hängen. Ohne das
   // baut ihn jedes Öffnen und Schließen neu auf — das blockiert den Hauptthread lange
   // genug, dass die Karte erst ~180ms nach dem Tippen erfährt, dass sie loslassen soll.
@@ -409,13 +426,6 @@ export default function Explore({
 
     return (
     <>
-      <CategoryFilterStrip
-        categories={chipCategories}
-        season={season}
-        value={filter}
-        onSelect={selectCategory}
-        labels={stripLabels}
-      />
       {/* Wassertemperaturen sind bewusst NICHT hier prominent, sondern nur dezent
           im Menü/Header verlinkt (Anton-Entscheidung). */}
       <AnimatePresence mode="wait" initial={false}>
@@ -505,18 +515,7 @@ export default function Explore({
       <PartnerCredits className="mt-14 px-4" />
     </>
     );
-  }, [
-    season,
-    filter,
-    chipCategories,
-    selectCategory,
-    stripLabels,
-    activeCat,
-    visibleSpots,
-    shelves,
-    openSpot,
-    t,
-  ]);
+  }, [season, filter, activeCat, visibleSpots, shelves, openSpot, t]);
 
   return (
     <div className="fixed inset-0 z-0 md:top-[var(--sg-header-h)]">
@@ -598,6 +597,11 @@ export default function Explore({
             (die Rechts-Fusszeile rendert hier nicht, lib/routes.ts). Mit dem alten py-5
             endeten die Partner-Logos 16px vor der Unterkante — jede normale Seite hat
             48px. EINE Variable für alle Seitenenden, siehe globals.css. */}
+        {/* Der Kopf steht AUSSERHALB des Scrollers, genau wie am Handy: So läuft kein
+            Inhalt darunter durch und die Leiste bleibt beim Scrollen erreichbar, ohne
+            `sticky` und ohne eigenen Hintergrund. Das pt-5 ist mitgewandert, damit der
+            Abstand nach oben derselbe bleibt wie vorher. */}
+        <div className="shrink-0 pt-5">{panelHeader}</div>
         <div
           ref={panelScrollRef}
           className="flex-1 overflow-y-auto pb-[var(--sg-page-bottom)] pt-5"
@@ -611,6 +615,7 @@ export default function Explore({
           hide={previewSpot != null}
           peek={SHEET_PEEK}
           detents={EXPLORE_DETENTS}
+          header={panelHeader}
         >
           {panelInner}
         </MobileSheet>
