@@ -169,9 +169,19 @@ export default function CategoryFilterStrip({
     //
     // Bedingung, die dafür gelten muss: Dieser Streifen ist das ERSTE Kind seines
     // Scrollers. Stünde etwas über ihm, deckte die Fläche es im geklebten Zustand zu.
+    //
+    // ── z-20 UND NICHT z-10, und das ist kein „sicherheitshalber höher" ──
+    //
+    // Die Karussell-Pfeile liegen auf z-10 (Carousel.tsx). Stand der Streifen auf
+    // derselben Sprosse, entschied die DOM-Reihenfolge — und die Regale kommen NACH
+    // ihm, also gewann der Pfeil und schwebte beim Scrollen über den Pillen, während
+    // die Karten darunter sauber verschwanden. Zwei Sachen auf derselben Ebene, deren
+    // Reihenfolge zufällig aus dem Markup fällt, sind genau die Art Fehler, die beim
+    // nächsten Umsortieren wiederkommt. Der Streifen ist das Dach über dem
+    // scrollenden Inhalt, also gehört er eine Sprosse höher als alles darin.
     <div
       data-sg="filter-strip"
-      className="sticky top-0 z-10 bg-cream px-4 before:absolute before:inset-x-0 before:bottom-full before:h-24 before:bg-cream before:content-['']"
+      className="sticky top-0 z-20 bg-cream px-4 before:absolute before:inset-x-0 before:bottom-full before:h-24 before:bg-cream before:content-['']"
     >
       <ScrollStrip scrollRef={strip}>
         <div className="flex w-max items-center gap-2">
