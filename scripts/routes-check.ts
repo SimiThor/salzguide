@@ -19,6 +19,8 @@
 //   4. Der Logbuch-Link in den Alarm-Mails (lib/ops-mail.ts) zeigt auf eine Route, die
 //      es gibt. Er stand seit dem ersten Tag auf /de/admin/system — eine Seite, die nie
 //      existierte — und kein Werkzeug konnte es merken, weil Links in Mails kein tsc prüft.
+//   5. Dasselbe für den Knopf aus der Freigabe-Mail der Wochenrecherche: Ziel und Weiche
+//      (lib/event-review-mail.ts, app/api/admin/events-review).
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { LOCALE_CODES } from "../src/i18n/locales.ts";
@@ -103,6 +105,41 @@ if (mailLinks.length === 0) {
         `ops-mail.ts Link ${m[1]}`,
         "zeigt auf keine bekannte Routen-Form (public-routes.ts) – jeder Klick aus einer Alarm-Mail liefe in die 404",
       );
+  }
+}
+
+// ── 5. Das Ziel des Mail-Knopfs „Events prüfen" ist eine echte Route ───────────────
+// Der Knopf in der Freigabe-Mail zeigt auf /api/admin/events-review, und die Route leitet
+// dorthin weiter. Ein Tippfehler oder eine umbenannte Admin-Seite fiele sonst erst auf,
+// wenn jemand montags in eine 404 klickt (siehe Punkt 4, derselbe Fehler in neu).
+const reviewSource = readFileSync(
+  join(process.cwd(), "src", "lib", "event-review-mail.ts"),
+  "utf8",
+);
+const reviewTarget = reviewSource.match(/EVENTS_REVIEW_TARGET = "([^"]+)"/);
+const reviewEntry = reviewSource.match(/EVENTS_REVIEW_ENTRY = "([^"]+)"/);
+if (!reviewTarget || !reviewEntry) {
+  bad(
+    "event-review-mail.ts",
+    "EVENTS_REVIEW_TARGET/-ENTRY nicht gefunden – umbenannt? Dann diese Prüfung mitziehen.",
+  );
+} else {
+  const path = reviewTarget[1].split("?")[0];
+  if (isPublicRoute(path)) ok(`Freigabe-Mail führt auf ${reviewTarget[1]}`);
+  else
+    bad(
+      `Freigabe-Mail Ziel ${path}`,
+      "zeigt auf keine bekannte Routen-Form (public-routes.ts) – der Knopf aus der Mail liefe in die 404",
+    );
+
+  // Und die Weiche selbst muss es geben. Sie liegt unter /api und damit ausserhalb der
+  // Erlaubnisliste (der Proxy fasst /api nicht an), also prüft nur die Datei ihre Existenz.
+  const handler = join(process.cwd(), "src", "app", reviewEntry[1].slice(1), "route.ts");
+  try {
+    statSync(handler);
+    ok(`Freigabe-Mail Weiche ${reviewEntry[1]} existiert`);
+  } catch {
+    bad(`Freigabe-Mail Weiche ${reviewEntry[1]}`, `es gibt keine Datei ${handler}`);
   }
 }
 

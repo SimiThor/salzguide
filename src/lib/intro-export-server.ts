@@ -1,7 +1,6 @@
 import "server-only";
 import { createServiceClient } from "./supabase/service";
 import { logOps } from "./ops";
-import { LEGAL } from "./legal";
 import {
   EXPORT_BUCKET,
   EXPORT_DIR,
@@ -14,17 +13,6 @@ import {
 //
 // Getrennt von lib/intro-export.ts, weil das Render-Skript jene Datei importiert und hier
 // der Service-Client hängt (der trägt `server-only` und würde das Skript kippen).
-
-/**
- * Wohin die Export-Mails gehen.
- *
- * Dieselbe Adresse wie die Betriebs-Alarme: Es ist dieselbe Person, die sie liest, und eine
- * zweite Umgebungsvariable für dieselbe Antwort wäre eine zweite Stelle, an der man sie
- * vergessen kann.
- */
-export function introExportRecipient(): string {
-  return process.env.OPS_ALERT_EMAIL?.trim() || LEGAL.email;
-}
 
 /**
  * Der deutsche Titel des Spots, für Betreff und Überschrift der Mail.

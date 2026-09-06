@@ -11,6 +11,7 @@ import {
   renderIntroExportReady,
   renderIntroExportFailed,
 } from "@/lib/intro-export-mail";
+import { renderEventReviewMail } from "@/lib/event-review-mail";
 
 // ═══════════════════════════════════════════════════════════════════════════════════════
 //  Alle Mails ansehen, in jeder Sprache, ohne eine einzige zu verschicken.
@@ -95,6 +96,21 @@ export default async function AdminMailsPage({
     at: new Date(sampleDate),
   });
 
+  // Die Montags-Erinnerung der Wochenrecherche. Beispielzahlen, aber in der Grössenordnung,
+  // in der die Recherche wirklich liefert (10-20 Entwürfe je Lauf).
+  const eventReview = renderEventReviewMail({
+    pending: 14,
+    lines: [
+      { when: "Fr., 31.07. · 19:00", title: "Jazz am Mönchsberg", where: "Salzburg" },
+      { when: "Sa., 01.08. · ganztägig", title: "Bauernherbst-Auftakt", where: "Sankt Johann" },
+      { when: "So., 02.08. · 10:00", title: "Seefest am Wolfgangsee", where: "Sankt Gilgen" },
+    ],
+    found: 9,
+    range: "27.07. bis 16.08.",
+    reviewUrl: "#",
+    at: new Date(sampleDate),
+  });
+
   const mails = [
     {
       title: "Anmeldelink",
@@ -115,6 +131,11 @@ export default async function AdminMailsPage({
       title: "Widerruf eingegangen",
       when: "Wenn jemand das Widerrufsformular abschickt. Sprache: aus der Seite.",
       mail: withdrawal,
+    },
+    {
+      title: "Events warten auf Freigabe",
+      when: "An uns selbst, montags nach der KI-Wochenrecherche, wenn Entwürfe offen sind. Immer Deutsch.",
+      mail: eventReview,
     },
     {
       title: "Clean-Fassung fertig",

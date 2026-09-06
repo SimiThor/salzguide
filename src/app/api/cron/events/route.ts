@@ -1,4 +1,5 @@
 import { runAutoWeeklyResearch } from "@/lib/event-research";
+import { sendEventReviewMail } from "@/lib/event-review";
 import { createServiceClient } from "@/lib/supabase/service";
 import { backfillMissingPreviews, prunePreviews } from "@/lib/blur-preview";
 import { sweepOrphanMedia, type OrphanSweepResult } from "@/lib/storage-orphans";
@@ -25,6 +26,17 @@ export async function GET(req: Request): Promise<Response> {
   if (!gate.ok) return gate.response;
 
   const result = await runAutoWeeklyResearch();
+
+  // Die Freigabe-Mail SOFORT nach der Recherche, vor allem Aufräumen.
+  //
+  // Sie ist der Punkt dieses Laufs: Die Fundstücke liegen als Entwurf da und gehen erst live,
+  // wenn Anton sie freigibt. Vorher wusste das niemand, weil nichts es sagte, und ein
+  // Entwurf, den keiner ansieht, ist eine Veranstaltung, die vorbeigeht. Die Nebenarbeiten
+  // unten sind billig, aber sie kosten Sekunden, und der Lauf hat ein Zeitlimit: Reisst es,
+  // soll die Mail schon draussen sein. Sie wirft nie und schickt nur, wenn wirklich etwas
+  // offen ist (siehe lib/event-review.ts).
+  const reviewMail = await sendEventReviewMail(result);
+
   const purgedAiUsage = (await pruneExpiredData()).aiUsage;
 
   // Nicht mehr gebrauchte Bild-Vorschauen wegräumen. Gehört hierher, weil dieser Lauf
@@ -97,6 +109,10 @@ export async function GET(req: Request): Promise<Response> {
     wochen: result.weeks.length,
     neueEvents: result.weeks.reduce((n, w) => n + w.inserted, 0),
     ...(result.error ? { grund: result.error } : {}),
+    // Was zur Freigabe liegt, gehört ins Lebenszeichen: Bleibt die Mail aus, steht hier,
+    // ob es nichts zu melden gab oder ob der Versand gehakt hat.
+    zurFreigabe: reviewMail.pending,
+    ...(reviewMail.sent ? {} : { freigabeMail: reviewMail.reason ?? "nicht gesendet" }),
     geloeschteKiZaehler: purgedAiUsage,
     vorschauen: prunedPreviews.deleted,
     neueVorschauen: previewBackfill.done,
@@ -105,7 +121,7 @@ export async function GET(req: Request): Promise<Response> {
   });
 
   return Response.json(
-    { ...result, purgedAiUsage, prunedPreviews, previewBackfill, orphanSweep },
+    { ...result, reviewMail, purgedAiUsage, prunedPreviews, previewBackfill, orphanSweep },
     { status: result.ok ? 200 : 500 },
   );
 }

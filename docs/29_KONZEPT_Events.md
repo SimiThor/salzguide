@@ -27,6 +27,27 @@ Events als **echte DB-Entitäten** + **KI-gestütztes Anlegen** + **automatische
 - **Anti-Halluzination/Grounding:** nur aus recherchierten Quellen (Quelle speichern), Datum/Zeit/Ort verifizierbar; im Zweifel „Draft" lassen.
 - **Klassifizierung** (Highlights/Party/Tradition/Kultur/Kids) übernimmt die KI als Vorschlag (Logik aus bestehender Weekly-Skill als Referenz).
 
+## 4a. Der Montags-Ablauf, wie er heute wirklich läuft (Stand 09/2026)
+1. **Montag 05:00 UTC:** Vercel ruft `/api/cron/events` auf (`vercel.json`). `runAutoWeeklyResearch()`
+   durchsucht die aktuelle, nächste und übernächste Kalenderwoche, aber nur die noch nicht
+   protokollierten (`event_research_log`) — jede Woche wird genau einmal gesucht.
+2. Die Funde landen als **Entwurf** und werden gleich in alle Sprachen übersetzt. Nichts geht
+   von selbst live. Das ist Absicht und bleibt so.
+3. **Direkt danach:** `sendEventReviewMail()` (`lib/event-review.ts`) zählt, was zur Freigabe
+   liegt, und schickt eine Mail an `OPS_ALERT_EMAIL` (sonst Impressums-Adresse). **Keine Mail,
+   wenn nichts offen ist** — eine wöchentliche Nachricht „nichts zu tun" öffnet man nach dem
+   dritten Mal nicht mehr.
+4. Der Knopf in der Mail geht auf `/api/admin/events-review`. Diese Weiche prüft die Anmeldung
+   und leitet auf `/de/admin/events?status=draft` weiter, notfalls über den Login mit `next`.
+   Ein direkter Link auf die Admin-Seite würde am Handy ohne Sitzung wortlos auf der Karte enden.
+5. **Freigeben oder ablehnen:** ein Tipp je Zeile in der Liste (`AdminEventList`). Freigeben geht
+   erst, wenn alle Sprachen übersetzt sind.
+6. **Selbstpflege:** Entwürfe, deren Event länger als 14 Tage vorbei ist, löscht `purgeStaleDrafts()`.
+   Deshalb zeigt die Mail nur Entwürfe **ab heute**: alles andere ist keine Aufgabe mehr.
+
+Die Mail lässt sich unter `/admin/settings/mails` ansehen, ohne eine zu verschicken.
+`npm run routes:check` prüft, dass ihr Knopf auf eine Route zeigt, die es gibt.
+
 ## 5. Anzeige (Design ähnlich, schlank)
 - Wochenansicht, nach Tag gruppiert, Kategorie-Filter-Pills — wie heute, aber als saubere Komponente.
 - **Wo:** Sektion innerhalb **Entdecken** (oder eigener Einstieg „Weekly") — leicht erreichbar, nicht überladen.
@@ -36,6 +57,8 @@ Events als **echte DB-Entitäten** + **KI-gestütztes Anlegen** + **automatische
 ## 6. „Nicht zu wartungsaufwändig" — wie sichergestellt
 1. **Auto-Ablauf** vergangener Events (zeitbasiert) → kein Aufräumen.
 2. **Wöchentlicher KI-Draft** → Anton nur noch **prüfen & freigeben** statt recherchieren.
+   Seit 09/2026 **meldet sich der Lauf von selbst** (siehe 4a): Der Stapel wartet nicht mehr
+   darauf, dass jemand ins Admin schaut.
 3. **Wiederkehrende Events** als Vorlage/Serie (z.B. wöchentlicher Markt) → einmal anlegen.
 4. Schlanke Felder, kein Über-Engineering (keine Ticketing-Tiefe; optional Affiliate-Link wie Action-Tiles).
 
