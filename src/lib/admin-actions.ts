@@ -10,6 +10,7 @@ import { SPOTS_TAG } from "./spots";
 import { BRAND_VOICE } from "./brand-voice";
 import { normalizeManual, type OpeningWeek } from "./opening-hours";
 import { routing } from "@/i18n/routing";
+import { siteUrl } from "./site-url";
 import { localeMeta } from "@/i18n/locales";
 import { hashSpotTexts, translationsPublishable } from "./spot-hash";
 import { removeSpotMediaFiles } from "./blur-preview";
@@ -2066,6 +2067,25 @@ export async function refreshIntroRenderList(): Promise<IntroRenderItem[]> {
 }
 
 /**
+ * Die Adresse, an die der Runner nach dem Rendern zurückrufen soll (dort entsteht die Mail).
+ *
+ * Sie kommt aus siteUrl(), der EINEN Quelle für unsere Adresse, und reist als Eingabe des
+ * Workflows mit. Vorher stand sie als Repo-Variable auf GitHub, also ein zweites Mal, an
+ * einem Ort ohne Bezug zum Code. Das ist beim ersten Einsatz sofort schiefgegangen: Der
+ * Wert landete im Reiter „Secrets" statt „Variables", der Workflow las eine leere Zeichen-
+ * kette und brach nach 18 Sekunden ab. Was die App über sich selbst weiss, soll sie sagen,
+ * statt es woanders nachschlagen zu lassen.
+ *
+ * Nur https: Wer den Knopf lokal drückt, hat als Adresse http://localhost:3000, und der
+ * Runner würde damit sich selbst anrufen. Dann greift auf GitHub die Ersatzquelle
+ * (Variable/Secret), und wenn es die nicht gibt, sagt der Lauf das in der ersten Minute.
+ */
+function notifyInput(): { notify_url?: string } {
+  const url = siteUrl();
+  return url.startsWith("https://") ? { notify_url: url } : {};
+}
+
+/**
  * Clean-Fassung eines Intros AUF ABRUF rendern lassen (Workflow export-intro-clean.yml).
  * Die Datei landet als GitHub-Artefakt am Lauf (5 Tage, dann weg) und NIE im Storage;
  * warum, steht am Clean-Block in scripts/render-intro.ts. Kein DB-Status wie beim
@@ -2100,7 +2120,7 @@ export async function triggerIntroCleanExport(
           "X-GitHub-Api-Version": "2022-11-28",
           "User-Agent": "salzguide-admin",
         },
-        body: JSON.stringify({ ref: "main", inputs: { slug } }),
+        body: JSON.stringify({ ref: "main", inputs: { slug, ...notifyInput() } }),
         signal: AbortSignal.timeout(15000),
       },
     );

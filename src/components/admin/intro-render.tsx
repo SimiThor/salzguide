@@ -172,6 +172,24 @@ export function IntroCleanExportButton({
     })();
   };
 
+  // Nach dem Start KEIN Knopf mehr, sondern eine Plakette in derselben Grösse.
+  //
+  // Vorher stand die Ansage als Satz UNTER dem Knopf. In der Liste hat das die eine Zeile,
+  // die man gerade angetippt hatte, doppelt so hoch gemacht wie ihre Nachbarn und den Satz
+  // rechtsbündig unter den Knopf gehängt. Die Information gehört dorthin, wo vorher der
+  // Knopf war: gleiche Höhe, gleiche Zeile, nichts springt. Ausgeschrieben statt „läuft",
+  // weil genau das die Frage ist, die man sich sonst stellt (wie lange, und woher weiss
+  // ich, dass es fertig ist).
+  if (state === "started") {
+    return (
+      <div className={className}>
+        <span className="inline-flex shrink-0 items-center rounded-full bg-black/5 px-4 py-2 text-[13px] font-semibold text-muted">
+          Mail kommt in ~30 Min
+        </span>
+      </div>
+    );
+  }
+
   return (
     <div className={className}>
       <button
@@ -180,14 +198,9 @@ export function IntroCleanExportButton({
         disabled={!configured || !!blockedReason || state !== "idle"}
         className="cursor-pointer sg-hit shrink-0 rounded-full bg-black/5 px-4 py-2 text-[13px] font-semibold text-ink transition active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40"
       >
-        {state === "starting" ? <Busy>starte</Busy> : state === "started" ? "Mail kommt" : "Clean-Export"}
+        {state === "starting" ? <Busy>starte</Busy> : "Clean-Export"}
       </button>
-      {state === "started" && (
-        <p className="mt-1 text-[11px] leading-snug text-muted">
-          Der Download-Link kommt in rund 30 Minuten per Mail.
-        </p>
-      )}
-      {blockedReason && state === "idle" && (
+      {blockedReason && (
         <p className="mt-1 text-[11px] leading-snug text-muted">{blockedReason}</p>
       )}
       {msg && <p className="mt-1 text-[11px] leading-snug text-accent">{msg}</p>}
