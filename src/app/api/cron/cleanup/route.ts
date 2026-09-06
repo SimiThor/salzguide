@@ -1,4 +1,5 @@
 import { pruneExpiredData } from "@/lib/data-retention";
+import { pruneExpiredExports } from "@/lib/intro-export-server";
 import { guardCron, finishCron } from "@/lib/cron-guard";
 import { reportOverdueJobs } from "@/lib/ops";
 
@@ -24,6 +25,12 @@ export async function GET(req: Request): Promise<Response> {
 
   const result = await pruneExpiredData();
 
+  // Danach die abgelaufenen Clean-Exporte (Videos, kein Personenbezug). Bewusst NACH den
+  // Rechtsfristen und mit eigenem Ergebnis: Ein liegengebliebenes Video darf den Lauf nicht
+  // als gescheitert dastehen lassen, an dem die Fristen der Datenschutzerklärung hängen.
+  // Meldet sich selbst ins Logbuch, wenn etwas klemmt (lib/intro-export-server.ts).
+  const exportFiles = await pruneExpiredExports();
+
   // Erst aufräumen, dann nach überfälligen Läufen sehen. Die Reihenfolge ist Absicht: Fällt
   // die Prüfung aus, war das Aufräumen (die Rechtsfrist) trotzdem schon erledigt.
   //
@@ -39,10 +46,17 @@ export async function GET(req: Request): Promise<Response> {
 
   await finishCron("cleanup", result.ok, {
     geloeschteKiZaehler: result.aiUsage,
+    geloeschteExporte: exportFiles.deleted,
     ueberfaellig: overdue,
     // Nur im Fehlerfall: Der Heartbeat soll dann gleich sagen, WO es geklemmt hat, ohne
     // dass jemand erst im Logbuch nach der passenden retention_failed-Zeile suchen muss.
     ...(result.failedTables.length > 0 ? { fehlgeschlageneTabellen: result.failedTables } : {}),
   });
-  return Response.json({ ok: result.ok, purgedAiUsage: result.aiUsage, overdue, failedTables: result.failedTables });
+  return Response.json({
+    ok: result.ok,
+    purgedAiUsage: result.aiUsage,
+    purgedExports: exportFiles.deleted,
+    overdue,
+    failedTables: result.failedTables,
+  });
 }

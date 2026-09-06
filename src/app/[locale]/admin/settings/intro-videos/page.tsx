@@ -3,11 +3,13 @@ import BackButton from "@/components/BackButton";
 import { getIntroRenderList } from "@/lib/admin";
 import IntroRenderManager from "@/components/admin/IntroRenderManager";
 import IntroCleanExportList from "@/components/admin/IntroCleanExportList";
+import { EXPORT_TTL_DAYS } from "@/lib/intro-export";
 
 // Intro-Videos (nur Admin): oben rendern, unten die Clean-Fassung (ohne Text-Overlay,
 // fürs Schneiden eigener Werbevideos) AUF ABRUF exportieren. Clean-Dateien liegen seit
-// 10.08.2026 nicht mehr im Storage (waren mit 551 MB der grösste Posten); der Export
-// rendert frisch und hängt das MP4 als GitHub-Artefakt an den Lauf (5 Tage, dann weg).
+// 10.08.2026 nicht mehr dauerhaft im Storage (waren mit 551 MB der grösste Posten): Der
+// Export rendert frisch, legt die Datei befristet ab und schickt den Download-Link per
+// Mail (siehe lib/intro-export.ts).
 export const dynamic = "force-dynamic";
 
 export default async function IntroVideosPage({
@@ -19,7 +21,8 @@ export default async function IntroVideosPage({
   setRequestLocale(locale);
   const renderList = await getIntroRenderList();
   const githubConfigured = !!process.env.GITHUB_ACTIONS_TOKEN && !!process.env.GITHUB_REPO;
-  // Übersicht der Export-Läufe auf GitHub: Dort liegt der fertige Download (Artefakt).
+  // Übersicht der Export-Läufe auf GitHub: nur noch fürs Protokoll, der Download kommt
+  // per Mail.
   const runsUrl = process.env.GITHUB_REPO
     ? `https://github.com/${process.env.GITHUB_REPO}/actions/workflows/export-intro-clean.yml`
     : null;
@@ -31,8 +34,8 @@ export default async function IntroVideosPage({
         <h1 className="text-2xl font-bold text-ink">Intro-Videos</h1>
         <p className="mt-1 text-[13px] leading-relaxed text-muted">
           Oben erzeugst du die Intros per Button. Unten forderst du die Clean-Fassung ohne
-          Text-Overlay an: Sie wird frisch gerendert und liegt danach 5 Tage als Download
-          beim GitHub-Lauf, gespeichert wird sie nicht.
+          Text-Overlay an: Sie wird frisch gerendert, der Download-Link kommt in rund
+          30 Minuten per Mail und gilt {EXPORT_TTL_DAYS} Tage.
         </p>
       </div>
 

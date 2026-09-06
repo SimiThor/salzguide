@@ -372,6 +372,26 @@ export const OPS_EVENTS = {
     quietMinutes: 120,
     hint: "Storage-Kontingent in Supabase prüfen. Betrifft nur den Admin-Upload, nicht die Seite.",
   },
+  intro_export_failed: {
+    area: "media",
+    severity: "warn",
+    title: "Clean-Export eines Intros fehlgeschlagen",
+    // Bewusst NICHT alertAfter 1, obwohl der Fehlschlag sofort interessiert: Wer den Export
+    // angefordert hat, bekommt bereits eine eigene Mail mit Grund und Protokoll-Link
+    // (lib/intro-export-mail.ts). Diese Zeile ist die Aufzeichnung, nicht die Nachricht.
+    // Eine Alarm-Mail obendrauf wäre dieselbe Information ein zweites Mal.
+    alertAfter: 5,
+    quietMinutes: 180,
+    hint: "Der Anforderer hat den Grund schon per Mail. Häuft es sich, ist es meist Mapbox (fehlende Kacheln) oder das Zeitlimit des Runners.",
+  },
+  intro_export_unauthorized: {
+    area: "media",
+    severity: "warn",
+    title: "Fremder Zugriff auf den Export-Rückkanal",
+    alertAfter: 5,
+    quietMinutes: 120,
+    hint: "Jemand klopft ohne gültiges RENDER_SECRET an /api/intro-export/ready. Der Riegel hält. Nur handeln, wenn es massenhaft kommt.",
+  },
 
   // ── Daten: Fristen und Aufräumen ──────────────────────────────────────────────────
   retention_failed: {

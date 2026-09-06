@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { triggerIntroRender } from "@/lib/admin-actions";
+import { triggerIntroRender, triggerIntroCleanExport } from "@/lib/admin-actions";
 import type { IntroRenderItem } from "@/lib/admin";
 import Busy from "@/components/Busy";
 
@@ -122,6 +122,72 @@ export function IntroRenderButton({
         {b.busy ? <Busy>läuft</Busy> : pending ? <Busy>starte</Busy> : item.hasVideo ? "Neu rendern" : "Generieren"}
       </button>
       {blockedReason && !busy && (
+        <p className="mt-1 text-[11px] leading-snug text-muted">{blockedReason}</p>
+      )}
+      {msg && <p className="mt-1 text-[11px] leading-snug text-accent">{msg}</p>}
+    </div>
+  );
+}
+
+/**
+ * Der Knopf für die Clean-Fassung (ohne Text-Overlay), auf beiden Seiten derselbe.
+ *
+ * ER HAT KEINE WARTESCHLANGEN-ANZEIGE, und das ist Absicht: Es gibt keinen Zustand in der
+ * Datenbank, den man nachladen könnte, und es soll auch keinen geben. Der Lauf dauert eine
+ * halbe Stunde, danach kommt eine Mail mit dem Download-Link. Eine Fortschrittsanzeige wäre
+ * genau das Nachsehen, das dieser Weg abschaffen soll. Was der Knopf schuldet, ist die
+ * Bestätigung, dass er ausgelöst hat, und die Ansage, worauf man jetzt wartet.
+ */
+export function IntroCleanExportButton({
+  slug,
+  configured,
+  blockedReason = null,
+  className = "",
+}: {
+  slug: string;
+  configured: boolean;
+  /** Wie beim Render-Knopf: Gerendert wird die GESPEICHERTE Route. */
+  blockedReason?: string | null;
+  className?: string;
+}) {
+  const [state, setState] = useState<"idle" | "starting" | "started">("idle");
+  const [msg, setMsg] = useState<string | null>(null);
+
+  const start = () => {
+    setMsg(null);
+    setState("starting");
+    void (async () => {
+      try {
+        const res = await triggerIntroCleanExport(slug);
+        if (!res.ok) {
+          setMsg(res.error ?? "Konnte nicht gestartet werden.");
+          setState("idle");
+          return;
+        }
+        setState("started");
+      } catch {
+        setMsg("Gerade nicht erreichbar. Bitte nochmal versuchen.");
+        setState("idle");
+      }
+    })();
+  };
+
+  return (
+    <div className={className}>
+      <button
+        type="button"
+        onClick={start}
+        disabled={!configured || !!blockedReason || state !== "idle"}
+        className="cursor-pointer sg-hit shrink-0 rounded-full bg-black/5 px-4 py-2 text-[13px] font-semibold text-ink transition active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40"
+      >
+        {state === "starting" ? <Busy>starte</Busy> : state === "started" ? "Mail kommt" : "Clean-Export"}
+      </button>
+      {state === "started" && (
+        <p className="mt-1 text-[11px] leading-snug text-muted">
+          Der Download-Link kommt in rund 30 Minuten per Mail.
+        </p>
+      )}
+      {blockedReason && state === "idle" && (
         <p className="mt-1 text-[11px] leading-snug text-muted">{blockedReason}</p>
       )}
       {msg && <p className="mt-1 text-[11px] leading-snug text-accent">{msg}</p>}

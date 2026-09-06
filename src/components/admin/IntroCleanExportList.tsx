@@ -1,15 +1,16 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { triggerIntroCleanExport } from "@/lib/admin-actions";
+import { IntroCleanExportButton } from "./intro-render";
 
 // Clean-Fassungen (ohne Text-Overlay) AUF ABRUF: Der Knopf stösst den Workflow
-// export-intro-clean.yml an; das fertige MP4 hängt als Artefakt am GitHub-Lauf und
-// verfällt dort nach 5 Tagen von selbst. Gespeichert wird nichts mehr (der Grund steht
-// am Clean-Block in scripts/render-intro.ts). Deshalb gibt es hier auch keine
-// Warteschlangen-Anzeige wie beim normalen Render: Der eine Ort mit Fortschritt UND
-// Download ist der GitHub-Lauf, und genau dorthin führt der Link nach dem Start.
+// export-intro-clean.yml an. Der rendert frisch, legt die Datei befristet in den privaten
+// Bucket `exports` und lässt die App einen Download-Link mailen (siehe lib/intro-export.ts).
+//
+// WARUM HIER KEINE FORTSCHRITTSANZEIGE UND KEIN DOWNLOAD-LINK STEHT: Der Lauf dauert eine
+// halbe Stunde. Wer so lange auf eine Seite schaut, tut das nicht, und wer sie zumacht,
+// vergisst die Sache. Genau das war der Grund, warum die Clean-Fassungen nie geholt wurden,
+// obwohl sie fertig am GitHub-Lauf hingen. Der Ort mit dem Ergebnis ist deshalb das
+// Postfach, nicht diese Liste.
 type Item = { slug: string; title: string };
 
 export default function IntroCleanExportList({
@@ -18,15 +19,10 @@ export default function IntroCleanExportList({
   configured,
 }: {
   items: Item[];
-  /** Übersicht der Workflow-Läufe auf GitHub (dort liegt der Download). */
+  /** Übersicht der Workflow-Läufe auf GitHub. Nur noch der Blick ins Protokoll. */
   runsUrl: string | null;
   configured: boolean;
 }) {
-  const router = useRouter();
-  const [busy, setBusy] = useState<string | null>(null);
-  const [started, setStarted] = useState<Set<string>>(new Set());
-  const [error, setError] = useState<string | null>(null);
-
   if (!items.length) {
     return (
       <div className="rounded-[18px] bg-white p-6 text-center shadow-sm ring-1 ring-black/5">
@@ -41,60 +37,30 @@ export default function IntroCleanExportList({
     );
   }
 
-  const start = async (slug: string) => {
-    setBusy(slug);
-    setError(null);
-    const res = await triggerIntroCleanExport(slug);
-    setBusy(null);
-    if (!res.ok) {
-      setError(res.error ?? "Unbekannter Fehler.");
-      return;
-    }
-    setStarted((prev) => new Set(prev).add(slug));
-    router.refresh();
-  };
-
   return (
     <div className="space-y-3">
-      {error && (
-        <p className="rounded-[14px] bg-accent/10 px-4 py-3 text-[13px] font-medium text-accent">
-          {error}
-        </p>
-      )}
       <ul className="space-y-3">
         {items.map((v) => (
           <li
             key={v.slug}
-            className="flex flex-wrap items-center gap-4 rounded-[18px] bg-white p-4 shadow-sm ring-1 ring-black/5"
+            className="flex flex-wrap items-start gap-4 rounded-[18px] bg-white p-4 shadow-sm ring-1 ring-black/5"
           >
-            <div className="min-w-0 flex-1">
+            <div className="min-w-0 flex-1 py-1">
               <p className="truncate text-[16px] font-bold text-ink">{v.title}</p>
-              <p className="truncate text-[12px] text-muted">
-                {v.slug} · 1080×1920 · ohne Text
-              </p>
+              <p className="truncate text-[12px] text-muted">{v.slug} · 1080×1920 · ohne Text</p>
             </div>
-            {started.has(v.slug) ? (
-              <a
-                href={runsUrl ?? "#"}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex shrink-0 items-center rounded-full bg-black/[0.06] px-4 py-2.5 text-[14px] font-semibold text-ink transition active:scale-[0.97]"
-              >
-                Läuft · Download auf GitHub
-              </a>
-            ) : (
-              <button
-                type="button"
-                onClick={() => start(v.slug)}
-                disabled={!configured || busy !== null}
-                className="inline-flex shrink-0 cursor-pointer items-center rounded-full bg-ink px-4 py-2.5 text-[14px] font-semibold text-white transition active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {busy === v.slug ? "Startet …" : "Export starten"}
-              </button>
-            )}
+            <IntroCleanExportButton slug={v.slug} configured={configured} />
           </li>
         ))}
       </ul>
+      {runsUrl && (
+        <p className="text-[12px] text-muted">
+          <a href={runsUrl} target="_blank" rel="noreferrer" className="underline">
+            Läufe auf GitHub
+          </a>{" "}
+          zeigen das Protokoll, falls einmal keine Mail kommt.
+        </p>
+      )}
     </div>
   );
 }

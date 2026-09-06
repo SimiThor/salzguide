@@ -1,16 +1,29 @@
 name: Export Intro Clean-Fassung
 
 # Liefert die Clean-Fassung eines Intro-Videos (ohne Text-Overlay, Rohmaterial für die
-# eigene Videoproduktion) AUF ABRUF: rendern, als Artefakt an den Lauf hängen, fertig.
-# Bewusst KEIN Upload nach Supabase und KEIN DB-Schreiben: Clean-Dateien sind
-# deterministisch aus Route + INTRO_STYLE_VERSION reproduzierbar und lagen als
-# Dauergäste mit 551 MB im Storage (Entscheidung 10.08.2026: nur noch auf Abruf).
-# Das Artefakt räumt GitHub nach 5 Tagen selbst weg.
+# eigene Videoproduktion) AUF ABRUF: rendern, befristet ablegen, Download-Link mailen.
 #
-# Auslösen: Admin-Seite "Intro-Videos" (Knopf je Spot) oder hier per "Run workflow".
-# Herunterladen: diesen Lauf öffnen, Abschnitt "Artifacts" ganz unten.
+# WARUM DIE MAIL DER GANZE PUNKT IST: Der Lauf dauert auf dem Runner eine halbe Stunde
+# (keine GPU, WebGL in Software). Vorher lag das Ergebnis nur als Artefakt an diesem Lauf:
+# selbst nachsehen, einloggen, ans Ende scrollen, ZIP laden, entpacken. Am Handy hat das
+# dazu geführt, dass die Fassung praktisch nie geholt wurde. Jetzt kommt eine Mail mit
+# einem Knopf, und ein Tipp lädt das MP4.
 #
-# Secrets: dieselben wie render-intro.yml (dort dokumentiert).
+# WO DIE DATEI LIEGT: befristet im privaten Bucket `exports` (Migration 0067), NICHT im
+# öffentlichen spot-media. Der tägliche Aufräum-Lauf der App löscht sie nach der Frist aus
+# src/lib/intro-export.ts wieder. Dauerhaft gespeichert waren die Clean-Fassungen mit
+# 551 MB einmal der grösste Posten im Storage; das soll nicht zurückkommen.
+# Das GitHub-Artefakt bleibt als Netz daneben (5 Tage, räumt GitHub selbst weg).
+#
+# Auslösen: Admin (Einstellungen -> Intro-Videos, oder der Knopf am Spot) oder hier per
+# "Run workflow".
+#
+# Einmalig zu hinterlegen (Repo -> Settings -> Secrets and variables -> Actions):
+#   Secrets:  dieselben wie render-intro.yml (dort dokumentiert).
+#   Variable: SITE_BASE_URL   Adresse der Live-App, z. B. https://salzguide.com
+#             Als Variable und nicht im Code, weil im Code keine feste Adresse stehen darf
+#             (siehe siteUrl()). Der Runner kann seinen eigenen localhost nicht anmailen,
+#             also braucht er genau hier die echte Adresse.
 on:
   workflow_dispatch:
     inputs:
@@ -33,6 +46,9 @@ jobs:
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       RENDER_SECRET: ${{ secrets.RENDER_SECRET }}
       RENDER_BASE_URL: http://localhost:3000
+      # Die App, die die Mail verschickt. Siehe Kopf.
+      SITE_BASE_URL: ${{ vars.SITE_BASE_URL }}
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -40,6 +56,16 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+
+      # Fehlt die Variable, soll das SOFORT auffallen und nicht erst nach 30 Minuten
+      # Rendern. Der Lauf wäre sonst grün, das Video im Bucket, und die Mail käme nie.
+      - name: Ziel-Adresse prüfen
+        run: |
+          if [ -z "$SITE_BASE_URL" ]; then
+            echo "::error::Repo-Variable SITE_BASE_URL fehlt (Settings -> Secrets and variables -> Actions -> Variables). Ohne sie weiss der Lauf nicht, welche App die Mail schicken soll."
+            exit 1
+          fi
+          echo "Mail-Rückruf geht an $SITE_BASE_URL"
 
       # ubuntu-latest bringt ffmpeg NICHT mit (Begründung in render-intro.yml).
       - name: ffmpeg installieren
@@ -65,12 +91,13 @@ jobs:
           exit 1
 
       # Ein Wiederholungsversuch wie beim normalen Render: einmal fehlende Kacheln
-      # dürfen keine Handarbeit auslösen. OHNE --upload: nichts landet im Storage.
+      # dürfen keine Handarbeit auslösen. --deliver legt die fertige Datei in den privaten
+      # Bucket und hinterlässt intro-export.json mit Pfad und Grösse.
       - name: Clean-Fassung rendern
         run: |
           for versuch in 1 2; do
             echo "::group::Versuch $versuch für ${{ inputs.slug }}"
-            if node --experimental-strip-types scripts/render-intro.ts "${{ inputs.slug }}" --clean; then
+            if node --experimental-strip-types scripts/render-intro.ts "${{ inputs.slug }}" --clean --deliver; then
               echo "::endgroup::"
               exit 0
             fi
@@ -80,6 +107,29 @@ jobs:
           done
           exit 1
 
+      # Der Rückruf. Die App stellt den Link aus und verschickt die Mail; hier läuft
+      # bewusst kein Mailversand, damit Text und Rahmen an EINER Stelle stehen.
+      - name: Download-Link mailen
+        run: |
+          test -f intro-export.json || { echo "::error::Keine Quittung vom Skript: Der Upload lief nicht."; exit 1; }
+          body=$(jq -c --arg run "$RUN_URL" '. + {ok: true, runUrl: $run}' intro-export.json)
+          code=$(curl -sS -o antwort.txt -w '%{http_code}' -X POST "$SITE_BASE_URL/api/intro-export/ready" \
+            -H "Authorization: Bearer $RENDER_SECRET" \
+            -H "Content-Type: application/json" \
+            -d "$body")
+          echo "HTTP $code"
+          cat antwort.txt || true
+          echo
+          # Ein roter Lauf ist hier die einzige Rückmeldung, die es noch gibt: Wenn die Mail
+          # nicht rausging, erfährt es sonst niemand, und genau darum geht es bei diesem
+          # ganzen Workflow.
+          if [ "$code" != "200" ]; then
+            echo "::error::Die App hat die Mail nicht verschickt (HTTP $code). Das Video liegt im Bucket, der Link fehlt."
+            exit 1
+          fi
+
+      # Das Artefakt bleibt als Netz: Kommt die Mail einmal nicht an, ist der Download
+      # trotzdem noch fünf Tage hier. Kostet nichts und räumt sich selbst weg.
       - name: Als Artefakt anhängen
         uses: actions/upload-artifact@v4
         with:
@@ -87,3 +137,18 @@ jobs:
           path: intro-${{ inputs.slug }}-clean.mp4
           retention-days: 5
           if-no-files-found: error
+
+      # Wird der Job hart abgeschossen (Zeitlimit, Runner tot) oder scheitert irgendein
+      # Schritt davor, kommt sonst gar nichts. Stille war beim Intro-Rendern dreimal der
+      # schlimmste Fehler; beim Export fällt sie noch später auf, weil man auf eine Mail
+      # wartet, die nie kommt. Dieselbe Bauweise wie „Fehlschlag melden" in render-intro.yml.
+      - name: Fehlschlag melden
+        if: ${{ failure() || cancelled() }}
+        run: |
+          if [ -z "$SITE_BASE_URL" ]; then exit 0; fi
+          body=$(jq -nc --arg slug "${{ inputs.slug }}" --arg run "$RUN_URL" \
+            '{slug: $slug, ok: false, runUrl: $run, reason: "Der Lauf ist abgebrochen (Render, Upload oder Zeitlimit). Der Grund steht im Protokoll."}')
+          curl -sS -o /dev/null -X POST "$SITE_BASE_URL/api/intro-export/ready" \
+            -H "Authorization: Bearer $RENDER_SECRET" \
+            -H "Content-Type: application/json" \
+            -d "$body" || echo "Auch die Fehlermeldung kam nicht durch."
