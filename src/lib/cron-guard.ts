@@ -1,5 +1,5 @@
 import "server-only";
-import { createHash, timingSafeEqual } from "node:crypto";
+import { secretMatches, bearerToken } from "./secret-compare";
 import { logOps, subjectFromRequest, writeHeartbeat } from "./ops";
 
 // Der Wächter für die Cron-Endpunkte. EINE Stelle, wie beim Admin-Wächter (lib/admin-guard.ts).
@@ -20,24 +20,6 @@ import { logOps, subjectFromRequest, writeHeartbeat } from "./ops";
 // jeden im Netz unsere Recherche starten (die kostet bei Anthropic Geld).
 
 export type CronGate = { ok: true } | { ok: false; response: Response };
-
-/**
- * Vergleich in konstanter Zeit.
- *
- * Ein gewöhnliches `===` bricht beim ersten falschen Zeichen ab. Wer die Antwortzeit misst,
- * kann ein Geheimnis daran Zeichen für Zeichen erraten. Bei einem Endpunkt hinter Vercels
- * Netzwerk ist das Rauschen zwar gross, aber der richtige Vergleich kostet hier nichts.
- *
- * Erst hashen, dann vergleichen: `timingSafeEqual` wirft bei ungleich langen Puffern, und
- * die Länge des Geheimnisses wäre selbst schon eine Auskunft. Über SHA-256 sind beide Seiten
- * immer 32 Byte lang.
- */
-function secretMatches(provided: string | null, expected: string): boolean {
-  if (!provided) return false;
-  const a = createHash("sha256").update(provided).digest();
-  const b = createHash("sha256").update(expected).digest();
-  return timingSafeEqual(a, b);
-}
 
 /**
  * Darf dieser Aufruf den Job starten? IMMER als erste Zeile einer Cron-Route.
@@ -61,7 +43,7 @@ export async function guardCron(req: Request, job: string): Promise<CronGate> {
   }
 
   const header = req.headers.get("authorization");
-  const token = header?.startsWith("Bearer ") ? header.slice(7) : null;
+  const token = bearerToken(req);
   if (!secretMatches(token, secret)) {
     await logOps("cron_unauthorized", {
       message: `Zugriff auf den Lauf „${job}" ohne gültiges Secret.`,

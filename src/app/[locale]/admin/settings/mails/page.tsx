@@ -7,6 +7,10 @@ import { renderProGift } from "@/lib/pro-gift-mail";
 import { renderProPurchase } from "@/lib/pro-purchase-mail";
 import { renderWithdrawal } from "@/lib/withdrawal-mail";
 import { previewLoginMail } from "@/lib/login-link";
+import {
+  renderIntroExportReady,
+  renderIntroExportFailed,
+} from "@/lib/intro-export-mail";
 
 // ═══════════════════════════════════════════════════════════════════════════════════════
 //  Alle Mails ansehen, in jeder Sprache, ohne eine einzige zu verschicken.
@@ -73,6 +77,24 @@ export default async function AdminMailsPage({
     }),
   ]);
 
+  // Die beiden Export-Mails gehen an UNS, nicht an Nutzer, und stehen deshalb immer auf
+  // Deutsch. Sie sind trotzdem hier: Man soll sehen können, wie der Knopf aussieht, den man
+  // am Handy trifft, ohne dafür eine halbe Stunde Runner-Zeit zu verbrennen.
+  const exportReady = renderIntroExportReady({
+    slug: "gaisberg",
+    title: "Gaisberg",
+    downloadUrl: "https://example.supabase.co/storage/v1/object/sign/exports/beispiel.mp4",
+    expiresAt: new Date("2026-08-03T10:30:00.000Z"),
+    bytes: 5_800_000,
+  });
+  const exportFailed = renderIntroExportFailed({
+    slug: "gaisberg",
+    title: "Gaisberg",
+    runUrl: "https://github.com/SimiThor/salzguide/actions",
+    reason: "Der Lauf ist abgebrochen (Render, Upload oder Zeitlimit).",
+    at: new Date(sampleDate),
+  });
+
   const mails = [
     {
       title: "Anmeldelink",
@@ -93,6 +115,16 @@ export default async function AdminMailsPage({
       title: "Widerruf eingegangen",
       when: "Wenn jemand das Widerrufsformular abschickt. Sprache: aus der Seite.",
       mail: withdrawal,
+    },
+    {
+      title: "Clean-Fassung fertig",
+      when: "An uns selbst, wenn ein Clean-Export durch ist. Immer Deutsch.",
+      mail: exportReady,
+    },
+    {
+      title: "Clean-Export fehlgeschlagen",
+      when: "An uns selbst, wenn der Lauf abbricht. Immer Deutsch.",
+      mail: exportFailed,
     },
   ];
 

@@ -37,7 +37,12 @@ import { slugify } from "@/lib/slug";
 import LocationPicker, { POI_STYLE, type PlacingKind } from "./LocationPicker";
 import ElevationProfile from "../ElevationProfile";
 import PhotoUploader from "./PhotoUploader";
-import { introBadge, IntroRenderButton, useIntroRenderItems } from "./intro-render";
+import {
+  introBadge,
+  IntroRenderButton,
+  IntroCleanExportButton,
+  useIntroRenderItems,
+} from "./intro-render";
 import { refreshIntroRenderItem } from "@/lib/admin-actions";
 import VideoUploader from "./VideoUploader";
 import AiButton from "./AiButton";
@@ -1357,6 +1362,15 @@ export default function SpotForm({
               configured={githubConfigured}
               blockedReason={unsaved ? "Erst speichern, dann rendern." : null}
               onQueued={intro.markQueued}
+            />
+            {/* Die Clean-Fassung (ohne Text, fürs eigene Schneiden) direkt hier, nicht nur
+                unter Einstellungen: Wer an einer Wanderung arbeitet, ist genau dann in der
+                Stimmung, sich das Rohmaterial für Instagram zu holen. Dieselbe Sperre wie
+                oben, aus demselben Grund: Exportiert wird die GESPEICHERTE Route. */}
+            <IntroCleanExportButton
+              slug={introNow.slug}
+              configured={githubConfigured}
+              blockedReason={unsaved ? "Erst speichern, dann exportieren." : null}
             />
             {introNow.videoUrl && (
               <a

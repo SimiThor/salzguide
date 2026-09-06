@@ -15,6 +15,7 @@
 // Aufruf:
 //   npm run render:intro -- <slug> [--out datei.mp4] [--seconds 10] [--fps 30]
 //                                  [--base http://localhost:3000] [--headed] [--upload]
+//                                  [--clean] [--deliver]
 
 import { chromium } from "playwright-core";
 import { spawn } from "node:child_process";
@@ -25,6 +26,7 @@ import { join } from "node:path";
 import { createClient } from "@supabase/supabase-js";
 import sharp from "sharp";
 import { introSourceHash } from "../src/lib/intro-hash.ts";
+import { EXPORT_BUCKET, introExportPath } from "../src/lib/intro-export.ts";
 
 const BUCKET = "spot-media";
 const IMMUTABLE = "31536000"; // 1 Jahr; der Hash im Dateinamen macht die URL eindeutig
@@ -57,7 +59,9 @@ const flag = (name: string) => {
 const hasFlag = (name: string) => argv.includes(`--${name}`);
 
 if (!slug) {
-  console.error("Aufruf: npm run render:intro -- <slug> [--out …] [--seconds …] [--fps …] [--clean] [--upload]");
+  console.error(
+    "Aufruf: npm run render:intro -- <slug> [--out …] [--seconds …] [--fps …] [--clean] [--deliver] [--upload]",
+  );
   process.exit(1);
 }
 
@@ -71,9 +75,14 @@ const width = Number(flag("width") || 1080);
 const height = Number(flag("height") || 1920);
 const headed = hasFlag("headed");
 const doUpload = hasFlag("upload");
+// --deliver: die Clean-Fassung in den privaten Bucket `exports` legen, damit die App
+// daraus einen Download-Link für die Mail machen kann (siehe lib/intro-export.ts).
+// Sie zieht --clean nach sich: Ausliefern, was gar nicht gebaut wurde, kann nur ein
+// Vertipper sein, und ein Lauf, der deswegen nach 25 Minuten nichts hat, ist teuer.
+const doDeliver = hasFlag("deliver");
 // Clean-Fassung (ohne Text-Overlay) nur auf ausdrücklichen Wunsch bauen; siehe Kommentar
-// am Clean-Block unten. --upload lädt sie NIE hoch.
-const withClean = hasFlag("clean");
+// am Clean-Block unten. --upload lädt sie NIE in den öffentlichen Bucket.
+const withClean = hasFlag("clean") || doDeliver;
 const ffmpegBin = ENV.FFMPEG_PATH || "ffmpeg";
 
 const url = new URL(`/render/intro/${slug}`, base);
@@ -293,12 +302,13 @@ async function run() {
     // ---- Clean-Variante: dieselben Frames OHNE Text-Overlay, für die eigene Videoproduktion.
     // Zum Weiterschneiden, ohne Tonspur (der Schnitt bringt eigenen Ton).
     //
-    // NUR mit --clean, und sie wird nie in den Storage geladen: Clean ist reines Rohmaterial
-    // für eigene Werbevideos und deterministisch aus Route + INTRO_STYLE_VERSION neu
-    // erzeugbar. Dauerhaft gespeichert war sie mit 551 MB der grösste Posten im Supabase-
-    // Storage (Entscheidung 10.08.2026: Bestand gelöscht). Der Abruf-Weg ist der Workflow
-    // export-intro-clean.yml: rendert mit --clean und hängt die Datei als GitHub-Artefakt
-    // an den Lauf (verfällt dort von selbst).
+    // NUR mit --clean, und sie landet NIE im öffentlichen Bucket spot-media: Clean ist
+    // reines Rohmaterial für eigene Werbevideos und deterministisch aus Route +
+    // INTRO_STYLE_VERSION neu erzeugbar. Dauerhaft gespeichert war sie mit 551 MB der
+    // grösste Posten im Supabase-Storage (Entscheidung 10.08.2026: Bestand gelöscht).
+    // Der Abruf-Weg ist der Workflow export-intro-clean.yml: rendert mit --clean --deliver,
+    // legt die Datei befristet in den privaten Bucket `exports` und lässt die App einen
+    // Download-Link mailen. Das Artefakt am Lauf bleibt als Netz daneben liegen.
     // CRF 23 statt 18: halbe Datei bei gemessen gleicher Optik (SSIM 0,984 am
     // Aignerpark-Intro, 10,6 -> 5,8 MB).
     if (withClean) {
@@ -317,6 +327,7 @@ async function run() {
       ]);
       const sc = await stat(cleanOut);
       console.log(`   Clean-MP4: ${cleanOut}  (${(sc.size / 1e6).toFixed(1)} MB)`);
+      if (doDeliver) await deliverClean(slug!, cleanOut);
     }
 
     // ---- Poster (WebP): der ERSTE Frame, nichts anderes ----
@@ -355,6 +366,56 @@ async function run() {
     await rm(cleanDir, { recursive: true, force: true }).catch(() => {});
     if (browser.isConnected()) await browser.close().catch(() => {});
   }
+}
+
+/** Wohin das Ergebnis für den Workflow geschrieben wird (Pfad + Grösse für den Rückruf). */
+const DELIVER_RECEIPT = "intro-export.json";
+
+/**
+ * Die fertige Clean-Fassung befristet in den privaten Bucket `exports` legen.
+ *
+ * Der Runner lädt selbst hoch, statt die Datei an die App zu schicken: Sie ist ~6 MB, und
+ * eine Serverless-Funktion ist der falsche Ort für einen Datei-Upload dieser Grösse. Die App
+ * bekommt nur den PFAD und macht daraus den Link für die Mail.
+ *
+ * upsert: false mit Absicht. Der Pfad trägt einen Zeitstempel, es kann also gar keine Datei
+ * an dieser Stelle geben; täte es doch, wäre etwas grundlegend anders als gedacht, und dann
+ * ist ein Abbruch besser als ein stilles Überschreiben.
+ *
+ * Aufgeräumt wird NICHT hier, sondern im täglichen Cron (pruneExpiredExports). Ein Runner,
+ * der beim Aufräumen abbricht, hätte sonst die Frist in der Hand.
+ */
+async function deliverClean(slug: string, mp4Path: string) {
+  const supaUrl = ENV.NEXT_PUBLIC_SUPABASE_URL;
+  const supaKey = ENV.SUPABASE_SERVICE_ROLE_KEY;
+  if (!supaUrl || !supaKey) {
+    throw new Error("NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY fehlt (für --deliver).");
+  }
+  const supabase = createClient(supaUrl, supaKey, { auth: { persistSession: false } });
+
+  const path = introExportPath(slug);
+  const bytes = (await stat(mp4Path)).size;
+  console.log(`-> lade Clean-Fassung nach ${EXPORT_BUCKET}/${path} …`);
+  const up = await supabase.storage.from(EXPORT_BUCKET).upload(path, await readFile(mp4Path), {
+    contentType: "video/mp4",
+    upsert: false,
+    // Kurz: Die Datei lebt nur wenige Tage, und ein CDN, das sie länger festhält als der
+    // Aufräum-Lauf, wäre genau das dauerhafte Liegenbleiben, das hier vermieden wird.
+    cacheControl: "300",
+  });
+  if (up.error) {
+    // Die häufigste Ursache steht dazu: Ohne Migration 0067 gibt es den Bucket nicht, und
+    // die Meldung von Supabase ("Bucket not found") sagt nicht, was zu tun ist.
+    throw new Error(
+      `Clean-Upload fehlgeschlagen: ${up.error.message}. Gibt es den Bucket „${EXPORT_BUCKET}"? (Migration 0067)`,
+    );
+  }
+
+  // Quittung für den Workflow: Er liest daraus Pfad und Grösse und schickt sie an die App.
+  // Über eine Datei statt über stdout, weil in der Ausgabe schon ffmpeg und Playwright
+  // schreiben und ein Grep darüber der wackligste Teil der Kette wäre.
+  await writeFile(DELIVER_RECEIPT, JSON.stringify({ slug, path, bytes }));
+  console.log(`   Abholbar: ${path}  (${(bytes / 1e6).toFixed(1)} MB, Quittung: ${DELIVER_RECEIPT})`);
 }
 
 async function upload(slug: string, mp4Path: string, previewPath: string, posterWebp: Buffer) {

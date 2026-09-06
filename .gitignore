@@ -54,8 +54,9 @@ yarn-error.log*
 # gehören nicht ins Repo; bleiben lokal als Sicherung liegen).
 /rollback-*.json
 
-# Lokale Render-Ausgaben des Intro-Skripts
+# Lokale Render-Ausgaben des Intro-Skripts (inkl. der Quittung von --deliver)
 /intro-*.mp4
+/intro-export.json
 
 # Lokaler Cache des einmaligen WordPress-Imports (Rohinhalt der alten Seite,
 # enthält auch Pro-Inhalte). Wird per "npm run wp:fetch" jederzeit neu geholt.
