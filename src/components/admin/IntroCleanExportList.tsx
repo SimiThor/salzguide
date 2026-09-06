@@ -43,9 +43,9 @@ export default function IntroCleanExportList({
         {items.map((v) => (
           <li
             key={v.slug}
-            className="flex flex-wrap items-start gap-4 rounded-[18px] bg-white p-4 shadow-sm ring-1 ring-black/5"
+            className="flex flex-wrap items-center gap-4 rounded-[18px] bg-white p-4 shadow-sm ring-1 ring-black/5"
           >
-            <div className="min-w-0 flex-1 py-1">
+            <div className="min-w-0 flex-1">
               <p className="truncate text-[16px] font-bold text-ink">{v.title}</p>
               <p className="truncate text-[12px] text-muted">{v.slug} · 1080×1920 · ohne Text</p>
             </div>

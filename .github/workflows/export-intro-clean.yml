@@ -19,17 +19,23 @@ name: Export Intro Clean-Fassung
 # "Run workflow".
 #
 # Einmalig zu hinterlegen (Repo -> Settings -> Secrets and variables -> Actions):
-#   Secrets:  dieselben wie render-intro.yml (dort dokumentiert).
-#   Variable: SITE_BASE_URL   Adresse der Live-App, z. B. https://salzguide.com
-#             Als Variable und nicht im Code, weil im Code keine feste Adresse stehen darf
-#             (siehe siteUrl()). Der Runner kann seinen eigenen localhost nicht anmailen,
-#             also braucht er genau hier die echte Adresse.
+#   dieselben Secrets wie render-intro.yml (dort dokumentiert). Sonst NICHTS.
+#
+# WOHIN DER RÜCKRUF GEHT: Der Admin-Knopf schickt die Adresse als Eingabe `notify_url` mit,
+# und zwar die aus siteUrl(), der einen Quelle für unsere Adresse. Im Code steht sie
+# deshalb nirgends fest, und auf GitHub muss man nichts pflegen. Für Läufe, die man hier
+# von Hand startet, kann man sie ins Feld tippen oder eine Repo-Variable bzw. ein Secret
+# namens SITE_BASE_URL anlegen; beides ist nur die Ersatzquelle.
 on:
   workflow_dispatch:
     inputs:
       slug:
         description: "Spot-Slug (z. B. gaisberg)"
         required: true
+        type: string
+      notify_url:
+        description: "Adresse der App für die Mail (leer lassen, der Admin-Knopf füllt das)"
+        required: false
         type: string
 
 jobs:
@@ -46,26 +52,36 @@ jobs:
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       RENDER_SECRET: ${{ secrets.RENDER_SECRET }}
       RENDER_BASE_URL: http://localhost:3000
-      # Die App, die die Mail verschickt. Siehe Kopf.
-      SITE_BASE_URL: ${{ vars.SITE_BASE_URL }}
+      # Die App, die die Mail verschickt, in dieser Reihenfolge: was der Aufrufer
+      # mitschickt (der Normalfall, siehe Kopf), sonst eine Repo-Variable, sonst ein
+      # Secret gleichen Namens. Die dritte Quelle steht hier, weil genau das beim ersten
+      # Einsatz passiert ist: Der Wert landete im Reiter „Secrets" statt „Variables", und
+      # der Lauf brach mit einer leeren Adresse ab. Ein Workflow, der an der Reiterwahl
+      # scheitert, ist selbst das Problem.
+      SITE_BASE_URL: ${{ inputs.notify_url || vars.SITE_BASE_URL || secrets.SITE_BASE_URL }}
       RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
     steps:
+      # ALS ERSTES, noch vor dem Auschecken: Der Schritt braucht das Repo nicht, und eine
+      # fehlende Adresse soll in Sekunden auffallen statt nach dem Installieren. Ohne diese
+      # Prüfung liefe der Export durch, das Video läge im Bucket, und die Mail käme nie.
+      - name: Ziel-Adresse prüfen
+        run: |
+          if [ -z "$SITE_BASE_URL" ]; then
+            echo "::error::Keine Adresse für den Rückruf. Über den Admin-Knopf kommt sie automatisch mit; bei einem Lauf von Hand das Feld „notify_url“ ausfüllen oder SITE_BASE_URL als Variable ODER Secret anlegen (Settings -> Secrets and variables -> Actions)."
+            exit 1
+          fi
+          case "$SITE_BASE_URL" in
+            https://*) ;;
+            *) echo "::error::Die Adresse „$SITE_BASE_URL“ ist kein https. Der Runner würde sich sonst selbst anrufen."; exit 1 ;;
+          esac
+          echo "Mail-Rückruf geht an $SITE_BASE_URL"
+
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
       - run: npm ci
-
-      # Fehlt die Variable, soll das SOFORT auffallen und nicht erst nach 30 Minuten
-      # Rendern. Der Lauf wäre sonst grün, das Video im Bucket, und die Mail käme nie.
-      - name: Ziel-Adresse prüfen
-        run: |
-          if [ -z "$SITE_BASE_URL" ]; then
-            echo "::error::Repo-Variable SITE_BASE_URL fehlt (Settings -> Secrets and variables -> Actions -> Variables). Ohne sie weiss der Lauf nicht, welche App die Mail schicken soll."
-            exit 1
-          fi
-          echo "Mail-Rückruf geht an $SITE_BASE_URL"
 
       # ubuntu-latest bringt ffmpeg NICHT mit (Begründung in render-intro.yml).
       - name: ffmpeg installieren
