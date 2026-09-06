@@ -23,6 +23,16 @@ next-env.d.ts
 # hinterlassen aber sonst Geister-Fehler im Editor (eigene tsconfig.json ohne Dateien).
 /.claude/worktrees/
 
+# Dieselben Anweisungen nochmal, nur für ein zweites KI-Werkzeug (Codex liest AGENTS.md
+# und .agents/, Claude Code liest CLAUDE.md und .claude/). Bewusst NICHT im Repo: AGENTS.md
+# ist eine Kopie von CLAUDE.md und war schon nach ein paar Tagen eine Zeile auseinander,
+# .agents/skills/verify/SKILL.md ist Byte für Byte die schon committete Fassung. Zwei
+# Fassungen derselben Anweisung sind zwei Gelegenheiten, sie unterschiedlich zu machen.
+# Wer mit dem zweiten Werkzeug arbeitet, legt sie sich lokal an; sie funktionieren dort
+# genauso, sie stehen nur nicht doppelt in der Versionsgeschichte.
+/AGENTS.md
+/.agents/
+
 # misc
 .DS_Store
 *.pem
