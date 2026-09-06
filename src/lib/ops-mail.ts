@@ -2,7 +2,7 @@ import "server-only";
 import { createServiceClient } from "./supabase/service";
 import { sendEmail } from "./email";
 import { esc, ACCENT, INK, MUTED, CREAM } from "./mail-layout";
-import { LEGAL } from "./legal";
+import { adminRecipient } from "./admin-recipient";
 import { siteUrl } from "./site-url";
 import { OPS_EVENTS, SEVERITY_LOOK, type OpsKind } from "./ops-events";
 
@@ -43,17 +43,6 @@ const MAX_ALERT_MAILS_PER_HOUR = 12;
 
 /** Schlüssel des Stundenzählers in `rate_limits`. Fest, damit alle Vorfälle ihn teilen. */
 const GLOBAL_CAP_SUBJECT = "ops-alert-mails";
-
-/**
- * Wohin die Alarme gehen.
- *
- * OPS_ALERT_EMAIL erlaubt eine eigene Adresse (z. B. eine, die aufs Handy durchklingelt),
- * ohne dafür die Impressums-Adresse zu ändern. Fehlt sie, geht es an die Adresse aus dem
- * Impressum — die wird gelesen, das ist ihr Zweck.
- */
-function alertRecipient(): string {
-  return process.env.OPS_ALERT_EMAIL?.trim() || LEGAL.email;
-}
 
 export type OpsAlertInput = {
   kind: OpsKind;
@@ -103,7 +92,7 @@ export async function sendOpsAlert(input: OpsAlertInput): Promise<void> {
     const admin = `${siteUrl()}/de/admin/settings/system`;
 
     const ok = await sendEmail({
-      to: alertRecipient(),
+      to: adminRecipient(),
       subject,
       text: renderText(input, admin),
       html: renderHtml(input, admin),

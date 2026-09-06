@@ -2,11 +2,8 @@ import { sendEmail } from "@/lib/email";
 import { logOps, subjectFromRequest } from "@/lib/ops";
 import { secretMatches, bearerToken } from "@/lib/secret-compare";
 import { isIntroExportPath } from "@/lib/intro-export";
-import {
-  createIntroExportLink,
-  introExportRecipient,
-  introExportTitle,
-} from "@/lib/intro-export-server";
+import { createIntroExportLink, introExportTitle } from "@/lib/intro-export-server";
+import { adminRecipient } from "@/lib/admin-recipient";
 import { renderIntroExportReady, renderIntroExportFailed } from "@/lib/intro-export-mail";
 
 // ═══════════════════════════════════════════════════════════════════════════════════════
@@ -97,7 +94,7 @@ export async function POST(req: Request): Promise<Response> {
     const reason = typeof body.reason === "string" ? body.reason.slice(0, 500) : null;
     const mail = renderIntroExportFailed({ slug, title, runUrl, reason, at: new Date() });
     await sendEmail({
-      to: introExportRecipient(),
+      to: adminRecipient(),
       subject: mail.subject,
       text: mail.text,
       html: mail.html,
@@ -129,7 +126,7 @@ export async function POST(req: Request): Promise<Response> {
       at: new Date(),
     });
     await sendEmail({
-      to: introExportRecipient(),
+      to: adminRecipient(),
       subject: mail.subject,
       text: mail.text,
       html: mail.html,
@@ -149,7 +146,7 @@ export async function POST(req: Request): Promise<Response> {
     bytes,
   });
   const sent = await sendEmail({
-    to: introExportRecipient(),
+    to: adminRecipient(),
     subject: mail.subject,
     text: mail.text,
     html: mail.html,

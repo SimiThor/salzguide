@@ -3,6 +3,7 @@ import { createClient } from "./supabase/server";
 import { routing } from "@/i18n/routing";
 import { hashTexts, jsonbTranslationStatus, type TranslationState } from "./spot-hash";
 import {
+  adminWhenLabel,
   startOfViennaDayIso,
   type EventCategory,
   type EventItem,
@@ -183,25 +184,6 @@ export type AdminEventRow = {
   trTotal: number;
   trState: TranslationState;
 };
-
-// Datums-/Zeit-Label serverseitig formatieren (de-AT, Wien). Bewusst hier statt im
-// Client: Node- und Browser-ICU liefern bei weekday:"short" leicht anders ("Mo.," vs "Mo.").
-const adminDayFmt = new Intl.DateTimeFormat("de-AT", {
-  timeZone: "Europe/Vienna",
-  weekday: "short",
-  day: "2-digit",
-  month: "2-digit",
-});
-const adminTimeFmt = new Intl.DateTimeFormat("de-AT", {
-  timeZone: "Europe/Vienna",
-  hour: "2-digit",
-  minute: "2-digit",
-});
-function adminWhenLabel(startsAt: string, allDay: boolean): string {
-  const d = new Date(startsAt);
-  const base = adminDayFmt.format(d);
-  return allDay ? `${base} · ganztägig` : `${base} · ${adminTimeFmt.format(d)}`;
-}
 
 // Liste fürs Admin-Dashboard: chronologisch, letzte 30 Tage + alles Zukünftige
 // (bleibt relevant & bounded, egal wie viel Historie in der DB liegt). Zeigt

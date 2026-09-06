@@ -2,7 +2,7 @@ import { Link } from "@/i18n/navigation";
 import { getAdminEvents, getResearchLog } from "@/lib/events";
 import { getAdminAnchors } from "@/lib/anchors";
 import { viennaWeekWindow } from "@/lib/events-format";
-import AdminEventList from "@/components/admin/AdminEventList";
+import AdminEventList, { type StatusFilter } from "@/components/admin/AdminEventList";
 import AdminNavCard from "@/components/admin/AdminNavCard";
 import BulkTranslateButton from "@/components/admin/BulkTranslateButton";
 import { STATUS_NEUTRAL } from "@/lib/ui";
@@ -27,7 +27,18 @@ const doneFmt = new Intl.DateTimeFormat("de-AT", {
   minute: "2-digit",
 });
 
-export default async function AdminEventsPage() {
+export default async function AdminEventsPage({
+  searchParams,
+}: {
+  // `status`: Startwert des Filters, gesetzt vom Knopf aus der Freigabe-Mail
+  // (/api/admin/events-review). Fremdwerte fallen auf „all" zurück, der Wert wird an einen
+  // Zustand im Client durchgereicht und darf nichts anderes bedeuten können.
+  searchParams: Promise<{ status?: string }>;
+}) {
+  const { status } = await searchParams;
+  const initialStatus: StatusFilter =
+    status === "draft" || status === "published" ? status : "all";
+
   const [events, log, anchors] = await Promise.all([
     getAdminEvents(),
     getResearchLog(),
@@ -87,7 +98,7 @@ export default async function AdminEventsPage() {
         description="Bekannte jährliche Highlights, an die die KI bei jeder Wochenrecherche erinnert wird."
       />
 
-      <AdminEventList events={events} />
+      <AdminEventList events={events} initialStatus={initialStatus} />
     </div>
   );
 }

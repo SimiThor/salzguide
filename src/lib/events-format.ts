@@ -308,3 +308,28 @@ export function rangeLabel(range: DayRange, locale: string): string {
   if (range.from === range.to) return fmt.format(from);
   return fmt.formatRange(from, new Date(`${range.to}T12:00:00Z`));
 }
+
+// Datums-/Zeit-Label für die Admin-Ansichten und die Freigabe-Mail (de-AT, Wien).
+//
+// Bewusst SERVERSEITIG vorformatiert und nicht im Client: Node- und Browser-ICU liefern bei
+// weekday:"short" leicht anders ("Mo.," vs "Mo."), das wäre ein Hydration-Mismatch. Steht
+// hier statt in lib/events.ts, weil auch die Freigabe-Mail (lib/event-review.ts) dieselbe
+// Zeile schreibt und zwei Formatierer irgendwann zwei Schreibweisen sind.
+const adminDayFmt = new Intl.DateTimeFormat("de-AT", {
+  timeZone: "Europe/Vienna",
+  weekday: "short",
+  day: "2-digit",
+  month: "2-digit",
+});
+const adminTimeFmt = new Intl.DateTimeFormat("de-AT", {
+  timeZone: "Europe/Vienna",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+
+/** „Mo., 08.09. · 19:00" bzw. „Mo., 08.09. · ganztägig". */
+export function adminWhenLabel(startsAt: string, allDay: boolean): string {
+  const d = new Date(startsAt);
+  const base = adminDayFmt.format(d);
+  return allDay ? `${base} · ganztägig` : `${base} · ${adminTimeFmt.format(d)}`;
+}

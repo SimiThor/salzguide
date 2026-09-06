@@ -21,10 +21,21 @@ const RejectIcon = () => (
 // im Confirm kostet weniger als ein versehentlich gelöschter Recherche-Fund.
 // Vergangene Events („vorbei") landen gedimmt in einem eingeklappten Bereich ->
 // die Arbeitsliste oben bleibt aufgeräumt.
+export type StatusFilter = "all" | "draft" | "published";
+
 export default function AdminEventList({
   events: initial,
+  initialStatus = "all",
 }: {
   events: AdminEventRow[];
+  /**
+   * Womit der Status-Filter startet. Kommt aus `?status=` in der Adresse.
+   *
+   * Dafür da, dass der Knopf aus der Freigabe-Mail direkt auf den Entwürfen landet und nicht
+   * auf einer Liste, in der man sie zwischen den bereits freigegebenen erst suchen muss. Nur
+   * der Startwert: Wer danach auf „Alle" tippt, bleibt dort, auch beim Neuladen der Daten.
+   */
+  initialStatus?: StatusFilter;
 }) {
   const [events, setEvents] = useState(initial);
   const [busy, setBusy] = useState<string | null>(null);
@@ -32,7 +43,7 @@ export default function AdminEventList({
   // Triage-Hilfe: Die Wochenrecherche legt pro Lauf 10-20 Entwürfe an, drei Wochen im
   // Voraus. Ab ~50 Zeilen ist ein bestimmtes Event ohne Suche nur noch Scrollen.
   const [query, setQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "draft" | "published">("all");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>(initialStatus);
   const [, start] = useTransition();
 
   // Server-Daten übernehmen, sobald sie sich ändern (z.B. nach router.refresh()
