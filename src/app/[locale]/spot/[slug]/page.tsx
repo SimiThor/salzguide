@@ -3,7 +3,7 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
-import { getRelatedSpots, getSpotDetail } from "@/lib/spots";
+import { getNearbyLockedSpots, getRelatedSpots, getSpotDetail } from "@/lib/spots";
 import { getSavedSlugs } from "@/lib/saved";
 import { isLoggedIn } from "@/lib/viewer";
 import LockedMedia from "@/components/LockedMedia";
@@ -13,6 +13,7 @@ import ActionTile from "@/components/ActionTile";
 import Carousel from "@/components/Carousel";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import LockedSpotCard from "@/components/LockedSpotCard";
+import LockedTile from "@/components/LockedTile";
 import ProGateBeacon from "@/components/ProGateBeacon";
 import { ProWordmark } from "@/components/ProBadge";
 import ProFeatureList from "@/components/ProFeatureList";
@@ -362,7 +363,19 @@ export default async function SpotPage({
   // statt „die ersten 8". Das Rechnen und die zwei schlanken Abfragen stehen in
   // lib/spots.ts — hier stand vorher ein getExploreData(), das für acht Karten den
   // kompletten Katalog samt aller Bilder und Übersetzungen geladen hat.
-  const related = await getRelatedSpots(spot.slug, locale);
+  //
+  // Parallel dazu die „Geheimtipps in der Nähe" (nur für Gäste, für Pro-Kunden leer).
+  const [related, nearby] = await Promise.all([
+    getRelatedSpots(spot.slug, locale),
+    getNearbyLockedSpots(spot.slug),
+  ]);
+  // Was oben als Geheimtipp in der Nähe steht, kommt unten nicht ein zweites Mal: Dasselbe
+  // verschwommene Motiv zweimal auf einer Seite sähe nach einem Fehler aus. Verglichen wird
+  // über die Vorschau-Adresse, denn gesperrte Karten tragen keinen echten Slug.
+  const nearbyPreviews = new Set(nearby.map((n) => n.previewUrl).filter(Boolean));
+  const relatedShown = related.filter(
+    (s) => !(s.locked && s.previewUrl && nearbyPreviews.has(s.previewUrl)),
+  );
 
   // Strukturierte Daten: der Spot als schema.org-Objekt + Brotkrumen-Pfad. spotLd()
   // liefert für gesperrte Pro-Spots null (kein Geheimtipp-Leak in die Metadaten).
@@ -446,6 +459,31 @@ export default async function SpotPage({
               </div>
             )}
             <p className="text-[15px] leading-relaxed text-muted">{spot.insiderTip}</p>
+          </section>
+        )}
+
+        {/* Geheimtipps in der Nähe (lib/spots.ts, getNearbyLockedSpots). Direkt nach dem
+            Insider-Tipp, weil hier die meisten Google-Besucher noch lesen: Wer gerade einen
+            guten Local-Tipp bekommen hat, sieht als Nächstes, dass es in der Gegend mehr
+            davon gibt. Ganz unten bei „Ähnliche Spots" kam kaum jemand an. Eigener
+            Messpunkt `nearby`, damit sich der Unterschied zur Stelle unten zeigt. */}
+        {nearby.length > 0 && (
+          <section className={`${CARD} p-5`}>
+            <h2 className="text-[17px] font-semibold text-ink">{t("nearbyLocked")}</h2>
+            <p className="mt-1 text-[14px] leading-snug text-muted">{tPro("subtitle")}</p>
+            {/* Immer drei Spalten, auch bei zwei Treffern: Die Kacheln bleiben auf jeder
+                Seite gleich gross, statt je nach Anzahl zu springen. */}
+            <div className="mt-4 grid grid-cols-3 gap-2.5">
+              {nearby.map((n) => (
+                <LockedTile
+                  key={n.key}
+                  previewUrl={n.previewUrl}
+                  lockedLabel={t("lockedLabel")}
+                  unlockLabel={tPro("cta")}
+                  from="nearby"
+                />
+              ))}
+            </div>
           </section>
         )}
 
@@ -585,7 +623,7 @@ export default async function SpotPage({
 
       {/* Ähnliche Spots – exakt in Sektionsbreite (px-4 wie die anderen Sektionen); das
           Karussell läuft innerhalb dieser Breite und ragt nicht rechts heraus. */}
-      {related.length > 0 && (
+      {relatedShown.length > 0 && (
         // pt spiegelt das space-y der Hauptsektionen (siehe Kommentar oben) -> gleicher
         // Abstand vor „Ähnliche Spots" wie zwischen allen anderen Sektionen.
         <section className="px-4 pt-10 md:pt-12">
@@ -600,7 +638,7 @@ export default async function SpotPage({
                 Leere. Er öffnet jetzt den Pro-Hinweis (ProGate), dasselbe Sheet, das
                 jede gesperrte Stelle der App öffnet. Ein Link ginge hier ohnehin nicht:
                 gesperrte Spots haben serverseitig keinen echten Slug. */}
-            {related.map((s) =>
+            {relatedShown.map((s) =>
               s.locked ? (
                 <LockedSpotCard
                   key={s.slug}

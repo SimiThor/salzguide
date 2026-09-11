@@ -5,7 +5,7 @@ import { createServiceClient } from "./supabase/service";
 import { currentUserId } from "./viewer";
 import type { ElevationProfile } from "./admin-actions";
 import { rankShelves, shelfKey } from "./explore-ranking";
-import { parsePois, type MapPoi } from "./geo";
+import { haversineMeters, parsePois, type MapPoi } from "./geo";
 import { parseAiOrigin, type AiOrigin } from "./ai-origin";
 import { ticketPartnerName } from "./ticket-partners";
 
@@ -618,6 +618,106 @@ async function queryRelatedSpots(
       },
     ];
   });
+}
+
+// ---- Geheimtipps in der Nähe ------------------------------------------------
+
+/** Ein gesperrter Pro-Spot als reiner Teaser: nur die Blur-Vorschau, sonst nichts. */
+export type LockedTeaser = { key: string; previewUrl: string | null };
+
+// Drei Kacheln passen am iPhone nebeneinander. Bei 20 km haben 32 der 35 freien Spots
+// mindestens drei gesperrte Nachbarn (gezählt am 11.09.2026); weiter draussen wäre
+// „in der Nähe" schon ein eigener Ausflug. Unter zwei Treffern kein Streifen: Eine
+// einzelne Kachel sieht nach Versehen aus.
+const NEARBY_LOCKED_COUNT = 3;
+const NEARBY_LOCKED_MIN = 2;
+const NEARBY_RADIUS_M = 20_000;
+
+/**
+ * Bis zu drei gesperrte Pro-Spots rund um diesen Spot, für den Streifen „Geheimtipps in der
+ * Nähe" auf freien Spot-Seiten.
+ *
+ * WARUM ES DAS GIBT: 85 % der Google-Besucher lesen einen freien Spot und gehen wieder. Die
+ * gesperrten Karten standen bis 09/2026 nur ganz unten unter „Ähnliche Spots", und so weit
+ * kam kaum jemand. Direkt nach dem Insider-Tipp sieht man sie, und „was gibt es da noch?"
+ * ist genau die Frage von jemandem, der diesen Ausflug gerade plant.
+ *
+ * Die Überschrift verspricht Nähe, deshalb zählt hier NUR die Entfernung (bei gleicher Art
+ * zuerst: wer bei einem Café ist, sieht Cafés), nicht die Ähnlichkeit aus getRelatedSpots.
+ * Die reiht auch einen Spot 60 km weiter vorne ein, wenn Art und Regal passen.
+ *
+ * Ausgeliefert wird nur die Blur-Vorschau. Kein Slug, kein Titel, keine Koordinate: Die
+ * Entfernung wird hier gerechnet und bleibt hier, sonst verriete der Streifen, wo die
+ * Geheimtipps liegen.
+ */
+export const getNearbyLockedSpots = cache(async function getNearbyLockedSpots(
+  slug: string,
+): Promise<LockedTeaser[]> {
+  // Für Pro-Kunden ist nichts gesperrt, also gibt es keinen Streifen. Die Prüfung steht wie
+  // bei getExploreData AUSSERHALB des Caches, der Cache kennt nur die öffentliche Fassung.
+  if (await viewerCanSeePro()) return [];
+  return loadNearbyLocked(slug);
+});
+
+const loadNearbyLocked = (slug: string): Promise<LockedTeaser[]> =>
+  unstable_cache(() => queryNearbyLocked(slug), ["nearby-locked", slug], {
+    tags: [SPOTS_TAG],
+    revalidate: EXPLORE_REVALIDATE,
+  })();
+
+async function queryNearbyLocked(slug: string): Promise<LockedTeaser[]> {
+  const supabase = createServiceClient();
+
+  // Schritt 1 wie bei getRelatedSpots: nur die Felder zum Rechnen, keine Bilder.
+  const { data: light, error: lightErr } = await supabase
+    .from("spots")
+    .select("slug, type, is_pro, lat, lng, seasons")
+    .eq("status", "published");
+  if (lightErr) {
+    console.error("getNearbyLockedSpots (Auswahl):", lightErr.message);
+    return [];
+  }
+
+  const rows = light ?? [];
+  const self = rows.find((r) => r.slug === slug);
+  if (!self || self.lat == null || self.lng == null) return [];
+  const here: [number, number] = [self.lng, self.lat];
+  const selfSeasons = new Set(self.seasons ?? []);
+
+  const picks = rows
+    .filter((r) => r.is_pro && r.slug !== slug && r.lat != null && r.lng != null)
+    // Die Saison muss passen: Neben einer Winterwanderung einen Badesee anzuteasern, wäre ein
+    // Versprechen, das jetzt niemand einlösen kann.
+    .filter((r) => (r.seasons ?? []).some((s: string) => selfSeasons.has(s)))
+    .map((r) => ({
+      slug: r.slug,
+      sameType: r.type === self.type,
+      meters: haversineMeters(here, [r.lng as number, r.lat as number]),
+    }))
+    .filter((x) => x.meters <= NEARBY_RADIUS_M)
+    .sort((a, b) => Number(b.sameType) - Number(a.sameType) || a.meters - b.meters)
+    .slice(0, NEARBY_LOCKED_COUNT);
+  if (picks.length < NEARBY_LOCKED_MIN) return [];
+
+  // Schritt 2: die Vorschau NUR für die Gewinner.
+  const { data: full, error: fullErr } = await supabase
+    .from("spots")
+    .select("slug, media(url, role, sort_order, blur_url)")
+    .in(
+      "slug",
+      picks.map((p) => p.slug),
+    );
+  if (fullErr) {
+    console.error("getNearbyLockedSpots (Vorschau):", fullErr.message);
+    return [];
+  }
+  const mediaBySlug = new Map((full ?? []).map((s) => [s.slug as string, s.media]));
+
+  // Der Schlüssel ist ein Zähler, nicht der Slug: Er landet als React-key im HTML.
+  return picks.map((p, i) => ({
+    key: `nearby-${i}`,
+    previewUrl: heroPreviewFromMedia(mediaBySlug.get(p.slug)),
+  }));
 }
 
 // ---- Spot-Detail (Auftrag E) ------------------------------------------------
