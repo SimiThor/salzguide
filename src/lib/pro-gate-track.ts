@@ -23,11 +23,20 @@ import { isOperatorClient } from "@/lib/analytics-operator";
  *
  * - `sheet`: gesperrter Spot im Spot-Blatt (Explore-Regal, Pro-Pin auf jeder Karte)
  * - `spot-page`: gesperrte Spot-Seite, meist über einen alten Google-Link
- * - `related`: gesperrte Karte unter „Ähnliche Spots" auf einer freien Spot-Seite
+ * - `related`: gesperrte Karte unter „Ähnliche Spots" ganz unten auf einer freien Spot-Seite
+ * - `nearby`: Kachel „Geheimtipps in der Nähe" direkt nach dem Insider-Tipp. Getrennt von
+ *   `related`, damit sich zeigt, ob die Stelle weiter oben mehr bewirkt als die unten.
  * - `water`: gesperrter See auf /wasser
  * - `tour-build`: Runden-Builder (Feature-Sperre, kein Spot)
  */
-export const PRO_GATE_SURFACES = ["sheet", "spot-page", "related", "water", "tour-build"] as const;
+export const PRO_GATE_SURFACES = [
+  "sheet",
+  "spot-page",
+  "related",
+  "nearby",
+  "water",
+  "tour-build",
+] as const;
 export type ProGateSurface = (typeof PRO_GATE_SURFACES)[number];
 
 export function isProGateSurface(v: unknown): v is ProGateSurface {
