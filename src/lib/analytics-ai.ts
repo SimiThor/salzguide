@@ -32,6 +32,10 @@ export async function runAnalyticsInsights(
     `Seitenaufrufe ${o.pageviews}, Besuche ${o.sessions}, Besucher ${o.visitors} (eindeutig je Tag)`,
     `Bounce-Rate ${o.bounceRate}%, Ø Verweildauer ${o.avgDurationSec}s`,
     `Merkungen ${n(a.saves, `${o.saves} (Merkrate ${o.saveRate}/100 Aufrufe)`)}, Event-Link-Klicks ${n(a.eventLinks, String(o.eventLinks))}, KI-Anfragen ${n(a.aiQueries, String(o.aiQueries))}, Conversions ${n(a.conversions, String(o.conversions))}`,
+    // Pro-Hinweise und Kassen gibt es erst seit 09/2026. Ohne diesen Satz läse das Modell die
+    // Null eines älteren Zeitraums als „niemand sieht Pro", und das wäre wieder ein Rat aus
+    // einem fehlenden Feld.
+    `Weg zu Pro (eigene Zahlen, kein Trichter; Pro-Hinweise und Kassen erst seit 09/2026 gemessen): Pro-Hinweis gesehen ${n(a.proSteps, String(data.proPath.gateOpens))}, Pro-Seite angesehen ${data.proPath.proViews}, Kasse geöffnet ${n(a.proSteps, String(data.proPath.checkoutStarts))}, Käufe ${n(a.conversions, String(data.proPath.conversions))}`,
     `Top-Spots (Merkungen): ${a.saves ? list(data.topSpotsSaved) : NA}`,
     `Top-Spots (Aufrufe): ${list(data.topSpotsViewed)}`,
     `Top-Events (Merkungen): ${a.saves ? list(data.topEventsSaved) : NA}`,

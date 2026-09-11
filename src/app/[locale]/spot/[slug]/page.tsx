@@ -13,6 +13,7 @@ import ActionTile from "@/components/ActionTile";
 import Carousel from "@/components/Carousel";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import LockedSpotCard from "@/components/LockedSpotCard";
+import ProGateBeacon from "@/components/ProGateBeacon";
 import { ProWordmark } from "@/components/ProBadge";
 import ProFeatureList from "@/components/ProFeatureList";
 import QuickFacts, { type Fact } from "@/components/QuickFacts";
@@ -227,6 +228,10 @@ export default async function SpotPage({
   if (spot.locked) {
     return (
       <div className="pb-16">
+        {/* Messpunkt „Pro-Hinweis gesehen": Diese ganze Seite IST der Hinweis. Wer hier
+            landet, kommt meist über einen alten Google-Link auf einen Spot, der inzwischen
+            Pro ist (lib/pro-gate-track.ts). */}
+        <ProGateBeacon from="spot-page" />
         {/* Hero zeigt bei locked selbst die Blur-Vorschau – kein 🤫 mehr nötig. */}
         <Hero {...heroProps} />
         <div className="mx-auto w-full max-w-[760px] px-4">
@@ -603,6 +608,7 @@ export default async function SpotPage({
                   emoji={s.emoji}
                   lockedLabel={t("lockedLabel")}
                   unlockLabel={tPro("cta")}
+                  from="related"
                 />
               ) : (
                 <Link key={s.slug} href={`/spot/${s.slug}`} className="block">

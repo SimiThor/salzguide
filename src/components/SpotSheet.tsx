@@ -19,6 +19,7 @@ import { useLoginGate } from "./auth/LoginGate";
 import SheetGrabber from "./SheetGrabber";
 import { useBodyDrag } from "./useBodyDrag";
 import { useViewportHeight } from "@/lib/viewport";
+import { trackProGate } from "@/lib/pro-gate-track";
 
 // Dieselbe Bewegung wie beim Explore-Sheet (siehe MobileSheet / --sg-ease-sheet in
 // globals.css): Apples Sheet-Kurve, 0.5s, ohne Überschwingen. Beide Sheets liegen
@@ -166,6 +167,15 @@ export default function SpotSheet({
     animate(y, restY, TRANSITION);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [spot.slug, measured]);
+
+  // Messpunkt „Pro-Hinweis gesehen" (lib/pro-gate-track.ts). Ein gesperrter Spot im Sheet
+  // IST der Pro-Hinweis: Motiv, Knopf, Satz. Explore-Regal und Pro-Pin landen beide hier,
+  // es ist damit die Stelle, an der die meisten Gäste auf Pro stossen. An `spot.slug`
+  // gehängt wie das Einfahren oben: ein neuer Spot ist ein neuer Hinweis.
+  useEffect(() => {
+    if (spot.locked) trackProGate("sheet", locale);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [spot.slug]);
 
   // resize/Drehung: nur neu setzen, nie animieren.
   const settled = useRef(false);

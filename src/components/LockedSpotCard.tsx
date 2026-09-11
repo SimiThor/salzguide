@@ -2,6 +2,7 @@
 
 import SpotCard from "@/components/SpotCard";
 import { useProGate } from "@/components/ProGate";
+import type { ProGateSurface } from "@/lib/pro-gate-track";
 
 // Die gesperrte Karte im Regal – als Knopf, der den Pro-Hinweis öffnet (ProGate).
 //
@@ -22,6 +23,7 @@ export default function LockedSpotCard({
   sizeClassName,
   sizes,
   eager,
+  from,
 }: {
   previewUrl?: string | null;
   emoji?: string | null;
@@ -32,6 +34,8 @@ export default function LockedSpotCard({
   sizeClassName?: string;
   sizes?: string;
   eager?: boolean;
+  /** Wo die Karte steht, für den Messpunkt „Pro-Hinweis gesehen" (lib/pro-gate-track.ts). */
+  from: ProGateSurface;
 }) {
   const gate = useProGate();
 
@@ -41,7 +45,7 @@ export default function LockedSpotCard({
     // aria-label statt des Karten-Inhalts: Vorgelesen würde sonst „••••• •••".
     <button
       type="button"
-      onClick={() => gate.show({ previewUrl, emoji, label: lockedLabel })}
+      onClick={() => gate.show({ previewUrl, emoji, label: lockedLabel, from })}
       aria-label={unlockLabel}
       className="cursor-pointer sg-tap-card block text-left"
     >

@@ -2,6 +2,7 @@
 
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { createHash } from "node:crypto";
 import type Stripe from "stripe";
 import { createClient } from "./supabase/server";
@@ -10,6 +11,8 @@ import { stripe, proPriceId, stripeTaxEnabled, stripeLocale } from "./stripe";
 import { safeTourSlug } from "./url";
 import { siteUrl } from "./site-url";
 import { safeLocale } from "@/i18n/locales";
+import { serverEventContext, trackCheckoutStart } from "./analytics";
+import { isRealSite } from "./ops";
 import {
   PRO_CLAIM_COOKIE,
   PRO_CLAIM_MAX_AGE,
@@ -93,14 +96,18 @@ export async function createCheckoutSession(
   // Eingeloggt: an das bestehende Konto binden (wie bisher). Gast: Konto entsteht nach der
   // Zahlung. Beide Wege enden in derselben Stripe-Checkout-Session.
   let customerId: string | null = null;
+  // Der Betreiber zählt in der Messung nicht mit. Die Rolle kommt aus derselben Abfrage,
+  // die das Profil ohnehin liest, statt aus einer zweiten Rundreise (isOperatorUser).
+  let operator = false;
   if (user) {
     const { data: profile } = await supabase
       .from("profiles")
-      .select("is_pro, stripe_customer_id, email")
+      .select("is_pro, stripe_customer_id, email, role")
       .eq("id", user.id)
       .maybeSingle();
     if (profile?.is_pro) return { ok: false, error: "already_pro" };
     customerId = profile?.stripe_customer_id ?? null;
+    operator = profile?.role === "admin";
 
     if (!customerId) {
       try {
@@ -207,6 +214,21 @@ export async function createCheckoutSession(
 
     const session = await stripe.checkout.sessions.create(params);
     if (!session.url) return { ok: false, error: "no_url" };
+
+    // Messpunkt „Kasse geöffnet" (lib/analytics.ts). Erst hier, wenn die Session wirklich
+    // existiert: Ein Stripe-Fehler davor ist kein Kassen-Start.
+    //
+    // Gezählt wird NACH der Antwort (after): Das hier ist die eine Stelle der App, an der
+    // niemand auf eine Statistik warten soll. Den Kontext aber JETZT lesen, nach der Antwort
+    // sind die Header nicht mehr garantiert da.
+    //
+    // isRealSite() zusätzlich zum NODE_ENV-Riegel in trackEvent: Ein lokal gestarteter
+    // Produktions-Build läuft mit NODE_ENV=production und schriebe sonst in die echte
+    // Tabelle. So ist es am 11.08.2026 mit Seitenaufrufen passiert (siehe api/track).
+    if (!operator && isRealSite()) {
+      const ctx = await serverEventContext();
+      after(() => trackCheckoutStart({ locale: lang, device: ctx.device, country: ctx.country }));
+    }
 
     // Erst jetzt, wenn die Session wirklich existiert: Nachweis in den Browser legen.
     if (claimSecret) {

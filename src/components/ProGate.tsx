@@ -7,8 +7,9 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Link, usePathname } from "@/i18n/navigation";
+import { trackProGate, type ProGateSurface } from "@/lib/pro-gate-track";
 import BottomSheet from "@/components/BottomSheet";
 import LockedMedia from "@/components/LockedMedia";
 import { ProWordmark } from "@/components/ProBadge";
@@ -52,7 +53,11 @@ type ProGateSpot = {
 
 type ProGateValue = {
   // Hinweis öffnen. Ohne Spot-Daten zeigt er dieselbe Fläche ohne Foto.
-  show: (spot?: ProGateSpot) => void;
+  //
+  // `from` ist PFLICHT: Jeder geöffnete Hinweis ist ein Messpunkt „Pro-Hinweis gesehen"
+  // (lib/pro-gate-track.ts). Wäre die Angabe optional, bliebe die nächste neue Aufrufstelle
+  // still ungezählt, und die Auswertung sähe weniger Interesse, als es gibt.
+  show: (spot: ProGateSpot & { from: ProGateSurface }) => void;
 };
 
 const Ctx = createContext<ProGateValue | null>(null);
@@ -70,11 +75,16 @@ export default function ProGateProvider({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
   const [spot, setSpot] = useState<ProGateSpot>({});
   const pathname = usePathname();
+  const locale = useLocale();
 
-  const show = useCallback((s?: ProGateSpot) => {
-    setSpot(s ?? {});
-    setOpen(true);
-  }, []);
+  const show = useCallback(
+    ({ from, ...s }: ProGateSpot & { from: ProGateSurface }) => {
+      setSpot(s);
+      setOpen(true);
+      trackProGate(from, locale);
+    },
+    [locale],
+  );
 
   const close = useCallback(() => setOpen(false), []);
 

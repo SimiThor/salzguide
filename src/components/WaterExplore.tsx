@@ -422,6 +422,7 @@ export default function WaterExplore({
                             previewUrl: sp.previewUrl,
                             emoji: sp.emoji,
                             label: tExplore("lockedLabel"),
+                            from: "water",
                           })
                         }
                         aria-label={tPro("cta")}

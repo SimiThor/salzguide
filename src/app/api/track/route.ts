@@ -38,6 +38,7 @@ import {
   spotSubtype,
   isBotUserAgent,
 } from "@/lib/analytics";
+import { isProGateSurface } from "@/lib/pro-gate-track";
 
 export const runtime = "nodejs";
 
@@ -156,6 +157,19 @@ export async function POST(req: Request) {
     after(async () => {
       if (!(await withinTrackLimit(ip))) return;
       await trackEvent({ type: "event_link", kind: "event", target, category, device, locale, country });
+    });
+    return new NextResponse(null, { status: 204 });
+  }
+
+  // ── Pro-Hinweis gesehen (lib/pro-gate-track.ts) ────────────────────────────
+  // Wie der Event-Link: eine Anzahl mit Gerät, Land und Sprache, OHNE Besucher-Hash. Die
+  // Stelle muss aus der festen Liste kommen, sonst stünde in `target` beliebiger Text.
+  if (body.type === "pro_gate") {
+    const target = isProGateSurface(body.target) ? body.target : null;
+    if (!target) return new NextResponse(null, { status: 204 });
+    after(async () => {
+      if (!(await withinTrackLimit(ip))) return;
+      await trackEvent({ type: "pro_gate", kind: "pro", target, device, locale, country });
     });
     return new NextResponse(null, { status: 204 });
   }

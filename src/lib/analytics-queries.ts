@@ -62,13 +62,20 @@ export type SpotPerformance = {
 
 /**
  * Der Weg zu Pro. BEWUSST keine „Conversion-Rate" über eine Kette: Wir verfolgen niemanden
- * über Tage oder Geräte (das ist der Kern der cookielosen Messung), also sind das drei
- * Zahlen mit drei Einheiten und zwei Verhältnissen daraus, nicht ein Trichter durch
+ * über Tage oder Geräte (das ist der Kern der cookielosen Messung), also sind das fünf
+ * Zahlen mit eigenen Einheiten und Verhältnissen daraus, nicht ein Trichter durch
  * dieselben Menschen. Genau so steht es auch im Dashboard.
+ *
+ * Pro-Hinweise und Kassen-Starts gibt es erst seit 09/2026. Davor stand zwischen „Pro-Seite"
+ * und „Kauf" nichts, und bei einem einzigen Kauf war nicht zu sagen, wo der Weg reisst.
  */
 export type ProPath = {
   sessions: number;
+  /** Pro-Hinweis gesehen: Spot-Blatt, gesperrte Seite, gesperrte Karte … (lib/pro-gate-track.ts) */
+  gateOpens: number;
   proViews: number;
+  /** Stripe-Kasse geöffnet (lib/stripe-actions.ts) */
+  checkoutStarts: number;
   conversions: number;
 };
 export type Campaign = {
@@ -97,6 +104,8 @@ export type Answerable = {
   aiQueries: boolean;
   eventLinks: boolean;
   conversions: boolean;
+  /** Pro-Hinweise und Kassen-Starts: tragen Gerät, Land und Sprache, aber keine Quelle. */
+  proSteps: boolean;
   /** Kurzer Grund für die Anzeige, oder null wenn alles beantwortbar ist. */
   note: string | null;
 };
@@ -140,6 +149,30 @@ export type AnalyticsDashboard = {
 
 type Svc = ReturnType<typeof createServiceClient>;
 const num = (v: unknown): number => (typeof v === "number" ? v : Number(v ?? 0));
+
+/**
+ * Anzahl eines Ereignistyps im Zeitraum. `head: true` überträgt keine Zeilen, Postgres zählt
+ * nur (Index auf type + created_at, Migration 0019). Filtert nach Sprache, Land und Gerät,
+ * denn nur die tragen diese Ereignisse.
+ */
+async function countEvents(
+  svc: Svc,
+  type: string,
+  range: { p_from: string; p_to: string },
+  f: Filters,
+): Promise<number> {
+  let q = svc
+    .from("analytics_events")
+    .select("id", { count: "exact", head: true })
+    .eq("type", type)
+    .gte("created_at", range.p_from)
+    .lt("created_at", range.p_to);
+  if (f.locale) q = q.eq("locale", f.locale);
+  if (f.country) q = q.eq("country", f.country);
+  if (f.device) q = q.eq("device", f.device);
+  const { count } = await q;
+  return count ?? 0;
+}
 
 async function labeled(svc: Svc, fn: string, args: Record<string, unknown>): Promise<LabeledValue[]> {
   const { data } = await svc.rpc(fn, args);
@@ -247,10 +280,11 @@ export async function getAnalyticsData(q: AnalyticsQuery = {}): Promise<Analytic
     aiQueries: !trafficOnly,
     eventLinks: !trafficOnly,
     conversions: !trafficOnly && !contextOnly,
+    proSteps: !trafficOnly,
     note: trafficOnly
-      ? "Quelle und Kampagne stehen nur an Seitenaufrufen — Merkungen, KI-Anfragen und Käufe lassen sich damit nicht filtern."
+      ? "Quelle und Kampagne stehen nur an Seitenaufrufen. Merkungen, KI-Anfragen, Pro-Hinweise und Käufe lassen sich damit nicht filtern."
       : contextOnly
-        ? "Ein Kauf kommt über Stripe herein, ohne Gerät und ohne Land — nur die Sprache reist mit."
+        ? "Ein Kauf kommt über Stripe herein, ohne Gerät und ohne Land. Nur die Sprache reist mit."
         : null,
   };
 
@@ -276,7 +310,7 @@ export async function getAnalyticsData(q: AnalyticsQuery = {}): Promise<Analytic
   const [
     ov, prevOv, tsRes, spotSaveRes, spotViewRes, eventSaveRes, spotCat, eventCat,
     sources, devices, countries, locales, campRes, kinds, spotPerfRes,
-    optCountries, optCampaigns,
+    optCountries, optCampaigns, gateOpens, checkoutStarts,
   ] = await Promise.all([
     svc.rpc("analytics_overview", { ...Frange, ...F }),
     svc.rpc("analytics_overview", { ...Fprev, ...F }),
@@ -316,6 +350,11 @@ export async function getAnalyticsData(q: AnalyticsQuery = {}): Promise<Analytic
       p_locale: null, p_country: null, p_device: null, p_source: null, p_campaign: null,
     }),
     svc.rpc("analytics_campaigns", Frange),
+    // Pro-Hinweise und Kassen-Starts: zwei Zählungen direkt auf der Tabelle statt eines
+    // eigenen RPC (keine Migration für zwei Zahlen). Nur die Filter, die diese Ereignisse
+    // tragen; mit Quelle/Kampagne sind sie nicht beantwortbar (siehe `Answerable`).
+    countEvents(svc, "pro_gate", Frange, f),
+    countEvents(svc, "checkout_start", Frange, f),
   ]);
 
   // EINE Auslese für beide Zeiträume: Der Vergleich wäre wertlos, wenn „Bounce-Rate" hier
@@ -402,7 +441,13 @@ export async function getAnalyticsData(q: AnalyticsQuery = {}): Promise<Analytic
       saves: num(r.saves),
       rate: num(r.views) ? Math.round((num(r.saves) / num(r.views)) * 1000) / 10 : 0,
     })),
-    proPath: { sessions: overview.sessions, proViews, conversions: overview.conversions },
+    proPath: {
+      sessions: overview.sessions,
+      gateOpens,
+      proViews,
+      checkoutStarts,
+      conversions: overview.conversions,
+    },
     topSpotsSaved: spotSaveRows.map((r) => ({ label: sTitles.get(r.target) ?? r.target, value: num(r.cnt) })),
     topSpotsViewed: spotViewRows.map((r) => ({ label: sTitles.get(r.target) ?? r.target, value: num(r.cnt) })),
     topEventsSaved: eventRows.map((r) => ({ label: eTitles.get(r.target) ?? "Event", value: num(r.cnt) })),
