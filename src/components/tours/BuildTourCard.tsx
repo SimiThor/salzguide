@@ -81,7 +81,7 @@ export default function BuildTourCard({
     // Angemeldet, aber ohne Pro: Hinweis-Sheet statt Sprung auf die Kauf-Fläche.
     // 🎧 ist das Zeichen dieser Funktion (loginReasons.ts), der Teaser derselbe Satz,
     // der auch auf /touren/bauen über dem Kaufknopf steht – ein Angebot, ein Wortlaut.
-    proGate.show({ emoji: "🎧", subtitle: t("buildProTeaser") });
+    proGate.show({ emoji: "🎧", subtitle: t("buildProTeaser"), from: "tour-build" });
   }
 
   return (

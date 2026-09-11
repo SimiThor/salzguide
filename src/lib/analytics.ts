@@ -13,6 +13,8 @@ export type AnalyticsType =
   | "event_save"
   | "event_link"
   | "ai_query"
+  | "pro_gate" // Pro-Hinweis gesehen, target = Stelle (lib/pro-gate-track.ts)
+  | "checkout_start" // Stripe-Kasse geöffnet (lib/stripe-actions.ts)
   | "conversion";
 
 export type TrackInput = {
@@ -340,6 +342,17 @@ export async function spotSubtype(slug: string): Promise<string | null> {
   } catch {
     return null;
   }
+}
+
+// Kasse geöffnet: Die Stripe-Session existiert, der Käufer ist auf dem Weg zur Bezahlseite.
+// Zwischen diesem Zähler und `conversion` liegt genau ein Schritt, Stripes Kasse. Klafft
+// dort eine Lücke, liegt es am Bezahlen und nicht am Angebot.
+export async function trackCheckoutStart(fields: {
+  locale: string;
+  device: string;
+  country: string | null;
+}): Promise<void> {
+  await trackEvent({ type: "checkout_start", kind: "pro", ...fields });
 }
 
 // Conversion (Free -> Pro). Wird beim Stripe-Webhook scharf geschaltet (docs/34 §H).

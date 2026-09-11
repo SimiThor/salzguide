@@ -22,10 +22,10 @@ export const LEGAL = {
   editorialLine:
     "SalzGuide ist ein unabhängiger digitaler Reise- und Freizeitführer für das Salzburger Land mit kuratierten Orten, Audio-Touren und einem KI-Assistenten.",
   // Muss mitwandern, sobald sich der Inhalt der Rechtstexte ändert: Ein "Stand" von gestern
-  // unter einer Erklärung von heute ist selbst eine falsche Angabe. Zuletzt: Kontaktadresse
-  // in allen Rechtstexten von anton@steinermedia.at auf anton@salzguide.com umgestellt;
-  // sie ist zugleich Reply-To jeder App-Mail und Empfänger der internen Meldungen (05.08.2026).
-  updated: "24. August 2026",
+  // unter einer Erklärung von heute ist selbst eine falsche Angabe. Zuletzt: Reichweiten-
+  // messung (Datenschutz h) zählt jetzt auch gesehene Pro-Hinweise und gestartete
+  // Bezahlvorgänge (11.09.2026).
+  updated: "11. September 2026",
 } as const;
 
 // Vollständige Postanschrift als einzeiliger String.

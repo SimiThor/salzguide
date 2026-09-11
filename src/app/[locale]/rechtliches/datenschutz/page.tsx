@@ -177,8 +177,9 @@ export default async function DatenschutzPage({
         </li>
         <li>
           welche Spots und Events gemerkt, welche Event-Links angeklickt, wie viele Fragen an
-          den KI-Assistenten gestellt und wie viele Käufe abgeschlossen wurden, jeweils nur
-          als Anzahl.
+          den KI-Assistenten gestellt, wie oft ein Hinweis auf SalzGuide Pro angezeigt (und
+          an welcher Stelle der Seite), wie oft der Bezahlvorgang gestartet und wie viele
+          Käufe abgeschlossen wurden, jeweils nur als Anzahl.
         </li>
       </ul>
       <p>

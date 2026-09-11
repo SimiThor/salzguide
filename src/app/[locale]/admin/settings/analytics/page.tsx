@@ -9,7 +9,9 @@ import {
   getAnalyticsData,
   type AnalyticsDashboard,
   type AnalyticsQuery,
+  type Answerable,
   type Campaign,
+  type ProPath,
   type LabeledValue,
   type RangeKey,
   type TimePoint,
@@ -194,26 +196,45 @@ function ProPathCard({
   answerable,
   reason,
 }: {
-  path: { sessions: number; proViews: number; conversions: number };
-  answerable: boolean;
+  path: ProPath;
+  answerable: Answerable;
   reason?: string | null;
 }) {
-  const perVisit = path.sessions ? Math.round((path.proViews / path.sessions) * 1000) / 10 : 0;
-  const perView = path.proViews ? Math.round((path.conversions / path.proViews) * 1000) / 10 : 0;
+  const per100 = (a: number, b: number) => (b ? Math.round((a / b) * 1000) / 10 : 0);
+  const na = "nicht nach diesem Filter auswertbar";
+  // Die Kauf-Quote bezieht sich auf die Kasse, sobald es Kassen-Zahlen gibt: Das ist der
+  // Schritt direkt davor, und dort zeigt sich, ob es am Bezahlen liegt. Für Zeiträume vor
+  // der Messung (09/2026) bleibt nur der Vergleich mit den Pro-Aufrufen.
+  const buyNote = !answerable.conversions
+    ? na
+    : path.checkoutStarts
+      ? `${de1(per100(path.conversions, path.checkoutStarts))} je 100 geöffnete Kassen`
+      : `${de1(per100(path.conversions, path.proViews))} je 100 Pro-Aufrufe`;
   const steps = [
     { label: "Besuche", value: de(path.sessions), note: "Sitzungen im Zeitraum" },
-    { label: "Pro-Seite angesehen", value: de(path.proViews), note: `${de1(perVisit)} je 100 Besuche` },
     {
-      label: "Käufe",
-      value: answerable ? de(path.conversions) : "–",
-      note: answerable ? `${de1(perView)} je 100 Pro-Aufrufe` : "nicht nach diesem Filter auswertbar",
+      label: "Pro-Hinweis gesehen",
+      value: answerable.proSteps ? de(path.gateOpens) : "–",
+      note: answerable.proSteps ? `${de1(per100(path.gateOpens, path.sessions))} je 100 Besuche` : na,
     },
+    {
+      label: "Pro-Seite angesehen",
+      value: de(path.proViews),
+      note: `${de1(per100(path.proViews, path.sessions))} je 100 Besuche`,
+    },
+    {
+      label: "Kasse geöffnet",
+      value: answerable.proSteps ? de(path.checkoutStarts) : "–",
+      note: answerable.proSteps ? `${de1(per100(path.checkoutStarts, path.proViews))} je 100 Pro-Aufrufe` : na,
+    },
+    { label: "Käufe", value: answerable.conversions ? de(path.conversions) : "–", note: buyNote },
   ];
   return (
     <div className="rounded-[16px] bg-white p-4 shadow-sm ring-1 ring-black/[0.04]">
       <h2 className="text-[15px] font-semibold text-ink">Weg zu Pro</h2>
       <p className="text-[11px] text-muted">
-        Drei eigene Zahlen, kein verfolgter Trichter: Wir erkennen niemanden über Tage hinweg.
+        Fünf eigene Zahlen, kein verfolgter Trichter: Wir erkennen niemanden über Tage hinweg.
+        Pro-Hinweise und Kassen zählen wir seit 09/2026.
       </p>
       <ol className="mt-3 space-y-2">
         {steps.map((s, i) => (
@@ -386,7 +407,7 @@ function demoDashboard(from: string, to: string, bucket: Bucket): AnalyticsDashb
     from,
     to,
     bucket,
-    answerable: { saves: true, aiQueries: true, eventLinks: true, conversions: true, note: null },
+    answerable: { saves: true, aiQueries: true, eventLinks: true, conversions: true, proSteps: true, note: null },
     overview: {
       pageviews, visitors, sessions, saves,
       eventLinks: scale(148), aiQueries: scale(221), conversions: scale(18),
@@ -419,7 +440,13 @@ function demoDashboard(from: string, to: string, bucket: Bucket): AnalyticsDashb
     ],
     // Dieselben Zahlen wie oben, nicht daneben erfundene: Der Kachel-Wert „Besuche" und der
     // erste Schritt des Wegs zu Pro sind dieselbe Sache.
-    proPath: { sessions, proViews: scale(95), conversions: scale(18) },
+    proPath: {
+      sessions,
+      gateOpens: scale(310),
+      proViews: scale(95),
+      checkoutStarts: scale(27),
+      conversions: scale(18),
+    },
     topSpotsSaved: [
       { label: "Gaisberg", value: scale(46) }, { label: "Königssee", value: scale(39) },
       { label: "Almbachklamm", value: scale(31) }, { label: "Untersberg", value: scale(24) },
@@ -670,7 +697,7 @@ export default async function AnalyticsPage({
         hint="Zwei Käufe sind ein Erfolg, wenn zwanzig Leute die Pro-Seite gesehen haben, und ein Alarm, wenn es zweitausend waren. Deshalb steht der Nenner daneben."
       />
       <div className="grid gap-4 lg:grid-cols-2">
-        <ProPathCard path={data.proPath} answerable={a.conversions} reason={a.note} />
+        <ProPathCard path={data.proPath} answerable={a} reason={a.note} />
         <BarList
           title="Wohin die Aufmerksamkeit geht" subtitle="Aufrufe je Seitenart"
           items={data.pageKinds} labelMap={KIND_LABELS}
