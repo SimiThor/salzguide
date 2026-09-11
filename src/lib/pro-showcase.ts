@@ -69,6 +69,31 @@ function seasonNow(): "summer" | "winter" {
   return month >= 11 || month <= 3 ? "winter" : "summer";
 }
 
+// Die Kachel ist 92px breit, davon 76px innen (px-2), die Schrift 12px halbfett — die Zahlen
+// stehen in components/ProShowcase.tsx. Ein lateinischer Buchstabe misst darin im Schnitt gut
+// 6,5px, ein chinesisches oder koreanisches Zeichen volle 12px.
+const TILE_TEXT_WIDTH_PX = 76;
+const CHAR_PX = 6.6;
+const WIDE_CHAR_PX = 12;
+const WIDE_CHAR = /[ᄀ-ᇿ⺀-鿿가-힯＀-｠]/;
+
+/**
+ * Passt die GANZE Beschriftung in eine Zeile der Kachel? Gemessen wird der volle Text, nicht
+ * nur das längste Wort: Ein Text bricht auch am Leerzeichen um, sobald er insgesamt zu breit
+ * ist, und „Randonnée en montagne" stand am iPhone über vier Zeilen. Gewünscht ist gar kein
+ * Umbruch (Anton, 12.09.2026).
+ *
+ * Die Rechnung ist grob und darf es sein: Sie entscheidet nur, welcher von mehreren gleich
+ * guten Spots die Kachel bekommt. Liegt sie daneben, bricht die Beschriftung um wie bisher,
+ * abgeschnitten wird nie etwas.
+ */
+function labelFitsOneLine(subtype: string | null, locale: string): boolean {
+  const label = factSubtype(subtype, locale);
+  if (!label) return false;
+  const width = [...label].reduce((w, ch) => w + (WIDE_CHAR.test(ch) ? WIDE_CHAR_PX : CHAR_PX), 0);
+  return width <= TILE_TEXT_WIDTH_PX;
+}
+
 /**
  * Die Motive in der Sprache der Seite. Ein Ergebnis je Sprache und Saison, gecacht wie der
  * Katalog (SPOTS_TAG): Stellt jemand im Admin einen Spot um, zieht der Streifen mit. null, wenn
@@ -114,11 +139,20 @@ async function queryProShowcase(
 
   // Je Art der beste Spot der laufenden Saison. Hat eine Art in dieser Saison keinen, fällt sie
   // weg, statt ein Motiv aus der falschen Jahreszeit zu zeigen.
+  //
+  // Unter gleich guten Kandidaten gewinnt der mit der KÜRZEREN Beschriftung: „Bergwanderung"
+  // passt nicht in die Kachel und stand getrennt als „Bergwan-derung" da. Ein kürzerer Titel
+  // sieht besser aus als ein zerhacktes Wort (Anton, 12.09.2026), und mit „Bergtour" steht dort
+  // die zweitbeliebteste Art statt der beliebtesten. Nur das Zerhacken WORTE stört: Ein Umbruch
+  // am Leerzeichen („Lac de montagne") ist in Ordnung, deshalb zählt das längste Wort.
   const picked: Row[] = [];
   for (const subtypes of THEMES) {
-    const pick = inSeason
+    const candidates = inSeason
       .filter((r) => r.subtype && subtypes.includes(r.subtype) && !picked.includes(r))
-      .sort(byRank(subtypes))[0];
+      .sort(byRank(subtypes));
+    // Fällt nichts in eine Zeile, bleibt der beste Kandidat: Die Silbentrennung in
+    // ProShowcase.tsx fängt ihn auf, abgeschnitten wird nie etwas.
+    const pick = candidates.find((r) => labelFitsOneLine(r.subtype, locale)) ?? candidates[0];
     if (pick) picked.push(pick);
   }
   if (picked.length === 0) return null;

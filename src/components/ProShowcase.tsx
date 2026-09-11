@@ -54,6 +54,11 @@ export default function ProShowcase({ data }: { data: ProShowcaseData }) {
             return (
               // isolate + transform-gpu wie in LockedMedia: Nur so schneidet Safari die runden
               // Ecken sauber, obwohl darin ein Bild mit blur()-Filter liegt.
+              //
+              // Breite, Innenabstand und Schriftgröße hängen mit lib/pro-showcase.ts zusammen:
+              // Dort entscheidet dieselbe Rechnung, welcher Spot die Kachel bekommt (der mit
+              // der Beschriftung, die in eine Zeile passt). Wer hier eine Zahl ändert, ändert
+              // sie dort mit.
               <figure
                 key={tile.key}
                 className="relative isolate w-[92px] shrink-0 transform-gpu overflow-hidden rounded-[16px] shadow-[0_8px_18px_-12px_rgba(0,0,0,0.5)]"
@@ -67,11 +72,15 @@ export default function ProShowcase({ data }: { data: ProShowcaseData }) {
                   </div>
                 ) : (
                   tile.label && (
-                    // hyphens-auto + break-words: „Bergwanderung" ist breiter als die Kachel, und
-                    // ein einzelnes Wort bricht der Browser sonst nicht um. Es stand abgeschnitten
-                    // als „Bergwanderun" da. Silbentrennung nach der Seitensprache (html lang),
-                    // break-words als Netz, falls eine Sprache keine Trennregeln kennt.
-                    <figcaption className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/55 to-transparent px-2 pt-6 pb-2 text-[12px] font-semibold leading-tight text-balance break-words hyphens-auto text-white">
+                    // Die Auswahl in lib/pro-showcase.ts bevorzugt Spots, deren Bezeichnung in
+                    // eine Zeile passt. Für die Sprachen, in denen es keine kurze gibt, bleiben
+                    // zwei Netze: hyphens-auto (Silbentrennung nach `html lang`) und break-words.
+                    // Ohne sie stand „Bergwanderung" abgeschnitten als „Bergwanderun" da.
+                    //
+                    // KEIN text-balance: Der verteilt Text auf gleich lange Zeilen und ist für
+                    // Überschriften gedacht. Bei zwei, drei Wörtern machte er aus „Randonnée en
+                    // montagne" vier Zeilen statt zwei.
+                    <figcaption className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/55 to-transparent px-2 pt-6 pb-2 text-[12px] font-semibold leading-tight break-words hyphens-auto text-white">
                       {tile.label}
                     </figcaption>
                   )
