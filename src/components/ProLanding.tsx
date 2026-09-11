@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { ProWordmark } from "@/components/ProBadge";
 import ProFeatureList from "@/components/ProFeatureList";
 import ProPurchase from "@/components/ProPurchase";
+import ProShowcase, { ProShowcaseCounts, type ProShowcaseData } from "@/components/ProShowcase";
 
 // Conversion-Landing für den Pro-Kauf (mobile-first, iOS-2026).
 //
@@ -11,19 +12,30 @@ import ProPurchase from "@/components/ProPurchase";
 // ein Tap sind. Kein Konto davor. Die E-Mail sammelt Stripe im Checkout ohnehin als
 // Pflichtfeld ein, das Konto entsteht danach daraus (siehe lib/pro-purchase.ts).
 //
-// Die Seite besteht aus drei Blöcken: was dir ohne Pro entgeht, was drin ist, was es kostet.
-// Der dritte ist der gemeinsame Kaufblock (ProPurchase), den auch die Karte auf /profil
-// benutzt — dort hing vorher eine zweite Kopie, der der Hinweis auf AGB und
-// Widerrufsbelehrung fehlte.
+// Die Seite besteht aus vier Blöcken: was dir ohne Pro entgeht, was drin ist (in Bildern und
+// Zahlen, dann in Worten), was es kostet. Der letzte ist der gemeinsame Kaufblock
+// (ProPurchase), den auch die Karte auf /profil benutzt — dort hing vorher eine zweite
+// Kopie, der der Hinweis auf AGB und Widerrufsbelehrung fehlte.
 
 export default function ProLanding({
   price,
   canceled,
+  showcase,
 }: {
   price: string;
   canceled: boolean;
+  /** Motive und Zahlen (lib/pro-showcase.ts). null = Block fehlt, die Seite bleibt wie früher. */
+  showcase: ProShowcaseData | null;
 }) {
   const t = useTranslations("Pro");
+
+  // Die Zeilen, überall dieselben (ProFeatureList). EINMAL gebaut, weil sie je nach Lage an
+  // zwei Stellen stehen können (siehe Block 2 und 4 unten), nie an beiden.
+  const features = (
+    <div className="border-t border-black/[0.06] px-6 py-3">
+      <ProFeatureList density="page" />
+    </div>
+  );
 
   return (
     <div className="mx-auto w-full max-w-[440px] px-4 pt-[var(--sg-page-top)] md:pt-8">
@@ -34,8 +46,8 @@ export default function ProLanding({
         </div>
       )}
 
-      {/* EINE zusammenhängende Fläche mit drei klar getrennten Blöcken: was dir fehlt,
-          was du bekommst, was es kostet. Getrennt durch Haarlinien statt durch Kacheln —
+      {/* EINE zusammenhängende Fläche mit klar getrennten Blöcken: was dir fehlt, was du
+          bekommst, was es kostet, und warum es taugt. Getrennt durch Haarlinien statt durch Kacheln —
           gestapelte Kärtchen wären vier Flächen für eine Aussage (iOS macht das in
           gruppierten Listen genauso). */}
       <div className="overflow-hidden rounded-[28px] bg-gradient-to-b from-accent/[0.12] via-white to-white shadow-[0_24px_60px_-28px_rgba(204,41,36,0.45)] ring-1 ring-black/[0.05]">
@@ -50,15 +62,29 @@ export default function ProLanding({
           </h1>
         </div>
 
-        {/* 2. Was drin ist. Vier Zeilen, überall dieselben (ProFeatureList). */}
-        <div className="border-t border-black/[0.06] px-6 py-3">
-          <ProFeatureList density="page" />
-        </div>
+        {/* 2. Was drin ist, konkret: verschwommene Motive und die echten Zahlen. Ein Bild
+            und eine Zahl überzeugen schneller als ein Satz. Fehlen sie (Abfrage gescheitert),
+            übernehmen die Zeilen diese Rolle an ihrem alten Platz vor dem Preis. */}
+        {showcase ? <ProShowcase data={showcase} /> : features}
 
         {/* 3. Was es kostet. Preis, Zustimmung, Knopf und Kleingedrucktes kommen aus dem
             gemeinsamen Kaufblock (ProPurchase) — dieselbe Strecke wie in der Karte auf
             /profil, damit an beiden Kaufflächen dasselbe steht. */}
         <ProPurchase price={price} className="border-t border-black/[0.06] px-7 pt-5 pb-8" />
+
+        {/* 4. Was drin ist, im Detail: die Aufschlüsselung je Regal und die Zeilen. UNTER
+            dem Kaufblock, sobald die Motive darüber stehen. Mit allem über dem Preis
+            rutschte der Kauf-Knopf am iPhone 15 von 587 auf 884 px und damit hinter die
+            Tab-Leiste (772 px). Die Regel seit 09/2026: Der Knopf steht nicht tiefer als vor
+            den Motiven, in keiner der 13 Sprachen. Oben sagen Bilder und zwei Zahlen, WAS drin
+            ist; hier stehen für alle, die weiterlesen, das Wieviel je Regal und das WARUM.
+            Ohne Motive stehen die Zeilen oben in Block 2 und hier nicht. */}
+        {showcase && (
+          <div className="border-t border-black/[0.06] px-6 pt-4 pb-3">
+            <ProShowcaseCounts data={showcase} />
+            <ProFeatureList density="page" className="mt-2" />
+          </div>
+        )}
       </div>
     </div>
   );

@@ -4,6 +4,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getProPrice, formatProPrice } from "@/lib/pro";
+import { getProShowcase } from "@/lib/pro-showcase";
 import { alternatesFor, ogFor } from "@/lib/metadata";
 import ProLanding from "@/components/ProLanding";
 import { ProWordmark } from "@/components/ProBadge";
@@ -155,10 +156,12 @@ export default async function ProPage({
     );
   }
 
-  // Preis = Single Source of Truth aus Stripe (server-seitig).
-  const priceStr = formatProPrice(await getProPrice(), locale);
+  // Preis = Single Source of Truth aus Stripe (server-seitig). Parallel dazu „Was drin ist"
+  // (lib/pro-showcase.ts): Motive und Zahlen live aus der Datenbank.
+  const [price, showcase] = await Promise.all([getProPrice(), getProShowcase(locale)]);
+  const priceStr = formatProPrice(price, locale);
 
-  return <ProLanding price={priceStr} canceled={checkout === "cancel"} />;
+  return <ProLanding price={priceStr} canceled={checkout === "cancel"} showcase={showcase} />;
 }
 
 /**
