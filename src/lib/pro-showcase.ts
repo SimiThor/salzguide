@@ -1,156 +1,149 @@
-// Die Zahlen und Motive für „Was drin ist" auf /pro (components/ProShowcase.tsx).
+// Die Motive für den Bilderstreifen auf /pro (components/ProShowcase.tsx).
 //
 // Service-Client, weil die RLS anonymen Lesern die Pro-Spots verbirgt (Migration 0017), und
-// genau die werden hier gezählt. Unbedenklich, weil diese Funktion nur Zahlen, übersetzte
-// Regal- und Art-Namen und Blur-Vorschauen verlässt (deren Dateiname ist eine Zufalls-ID).
-// Kein Slug, kein Titel, keine Gemeinde, keine Koordinate.
+// genau die werden hier gezeigt. Unbedenklich, weil diese Funktion nur eine Anzahl, übersetzte
+// Art-Namen und Blur-Vorschauen verlässt (deren Dateiname ist eine Zufalls-ID). Kein Slug,
+// kein Titel, keine Gemeinde, keine Koordinate.
 import { unstable_cache } from "next/cache";
 import type { ProShowcaseData } from "@/components/ProShowcase";
 import { createServiceClient } from "./supabase/service";
 import { EXPLORE_REVALIDATE, SPOTS_TAG, heroPreviewFromMedia } from "./spots";
 import { factSubtype } from "./facts-i18n";
 
-// Regale mit weniger Pro-Spots stehen nicht in der Zahlenzeile: „1 Panoramastraße" liest
-// sich wie ein Mangel, nicht wie ein Grund zu kaufen. Vier Regale plus Winter und Touren
-// passen am iPhone auf zwei Zeilen.
-const SHELF_MIN = 3;
-const SHELF_MAX = 4;
-// Sechs Motive: am iPhone sind knapp vier sichtbar, der Rest lädt zum Wischen ein.
+// Sechs Kacheln: fünf Motive mit ihrer Art und als sechste das „+N". Am iPhone sind drei ganz
+// und ein Stück der vierten sichtbar, der Rest kommt beim Wischen.
 const TILE_MAX = 6;
 
-type CategoryRef = {
-  key: string;
-  season: string;
-  sort_order: number | null;
-  title_translations: Record<string, string> | null;
+/**
+ * Die Reihenfolge der Kacheln: WARUM Leute zu uns kommen, nicht wie der Katalog sortiert ist.
+ *
+ * Gemessen vom 09.08. bis 11.09.2026 (ohne den Scraper aus Asien), Öffnungen in Explore /
+ * Aufrufe von Instagram-Besuchern / Merkungen:
+ *   Wandern 197 / 79 / 18 · Aussicht & Foto 68 / 17 / 10 · Seen 54 / 50 / 1 ·
+ *   Food 41 / 9 / 0 · Klammen & Wasserfälle 23 / 5 / 5 · Spaziergänge & Stadt 9 / 3 / 1 ·
+ *   Bahnen, Schifffahrt & Action 0 / 0 / 0
+ *
+ * Food steht bewusst eine Stelle vor Aussicht & Foto: So zeigen die drei Kacheln, die man ohne
+ * Wischen sieht, Natur UND Essen, und Food ist ein Hauptgrund, Pro zu kaufen (Anton,
+ * 11.09.2026). Bahnen, Schifffahrt, Thermen und Action fehlen ganz: Dafür zahlt niemand.
+ * Die letzte Art trägt das „+N" und zeigt einen Spaziergang oder versteckten Ort.
+ *
+ * Die Werte sind die Art-Schlüssel aus spots.subtype (dieselben wie in facts-i18n.json).
+ */
+const THEMES: readonly (readonly string[])[] = [
+  ["Bergwanderung", "Bergtour", "Wanderung", "Gipfel", "Themenweg", "Winterwanderung"],
+  ["Bergsee", "See & Baden", "Badeplatz"],
+  ["Café", "Restaurant", "Specialty Coffee", "Almhütte", "Wirtshaus", "Streetfood", "Konditorei", "Berghütte", "Gasthof", "Gipfelrestaurant", "Brauerei"],
+  ["Aussichtspunkt", "Fotospot", "Panoramastraße"],
+  ["Klamm", "Wasserfall"],
+  ["Spazierweg", "Stadtspaziergang", "Altstadt & Gasse", "Park & Garten"],
+];
+
+// Innerhalb einer Art: erst Antons Stufe aus dem Admin (Highlight vor Stark vor Normal), dann
+// die Geheimtipps im engen Sinn. Setzt jemand später Highlights, rücken die von selbst nach vorn.
+const FAME_RANK: Record<string, number> = {
+  "Hidden Gem": 0,
+  "Lokal beliebt": 1,
+  Bekannt: 2,
+  "Touristen-Hotspot": 3,
 };
+
 type Row = {
   slug: string;
   subtype: string | null;
   seasons: string[] | null;
-  is_pro: boolean;
+  fame: string | null;
   sort_weight: number | null;
-  created_at: string;
-  spot_categories: { categories: CategoryRef | CategoryRef[] | null }[] | null;
 };
 
-const categoriesOf = (r: Row): CategoryRef[] =>
-  (r.spot_categories ?? []).flatMap((l) =>
-    Array.isArray(l.categories) ? l.categories : l.categories ? [l.categories] : [],
+/**
+ * Saison nach Monat in Wien: November bis März Winter, sonst Sommer. Nur für die Auswahl der
+ * Motive: Im September ein verschneites Bild zu zeigen, wirkt so falsch wie im Dezember eine
+ * Badestelle. Bewusst hier und grob: Die App kennt sonst keine „aktuelle" Saison, Explore lässt
+ * den Menschen wählen.
+ */
+function seasonNow(): "summer" | "winter" {
+  const month = Number(
+    new Intl.DateTimeFormat("en", { month: "numeric", timeZone: "Europe/Vienna" }).format(new Date()),
   );
-const shelfId = (c: CategoryRef) => `${c.key}/${c.season}`;
+  return month >= 11 || month <= 3 ? "winter" : "summer";
+}
 
 /**
- * „Was drin ist" in der Sprache der Seite. Ein Ergebnis je Sprache, gecacht wie der Katalog
- * (SPOTS_TAG): Stellt jemand im Admin einen Spot um, zieht die Zahl mit. null, wenn es
- * nichts zu zeigen gibt oder die Abfrage scheitert: Dann bleibt die Pro-Seite, wie sie war.
+ * Die Motive in der Sprache der Seite. Ein Ergebnis je Sprache und Saison, gecacht wie der
+ * Katalog (SPOTS_TAG): Stellt jemand im Admin einen Spot um, zieht der Streifen mit. null, wenn
+ * es nichts zu zeigen gibt oder die Abfrage scheitert: Dann bleibt die Pro-Seite, wie sie war.
  */
 export function getProShowcase(locale: string): Promise<ProShowcaseData | null> {
-  return unstable_cache(() => queryProShowcase(locale), ["pro-showcase", locale], {
+  const season = seasonNow();
+  return unstable_cache(() => queryProShowcase(locale, season), ["pro-showcase", locale, season], {
     tags: [SPOTS_TAG],
     revalidate: EXPLORE_REVALIDATE,
   })();
 }
 
-async function queryProShowcase(locale: string): Promise<ProShowcaseData | null> {
+async function queryProShowcase(
+  locale: string,
+  season: "summer" | "winter",
+): Promise<ProShowcaseData | null> {
   const svc = createServiceClient();
-  const [spotsRes, toursRes] = await Promise.all([
-    svc
-      .from("spots")
-      .select(
-        "slug, subtype, seasons, is_pro, sort_weight, created_at, spot_categories(categories(key, season, sort_order, title_translations))",
-      )
-      .eq("status", "published"),
-    // Nur zählen (head: true überträgt keine Zeilen).
-    svc
-      .from("tours")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "published")
-      .eq("is_pro", true),
-  ]);
-  if (spotsRes.error) {
-    console.error("getProShowcase:", spotsRes.error.message);
+  const { data, error } = await svc
+    .from("spots")
+    .select("slug, subtype, seasons, fame, sort_weight")
+    .eq("status", "published")
+    .eq("is_pro", true);
+  if (error) {
+    console.error("getProShowcase:", error.message);
     return null;
   }
 
-  const rows = (spotsRes.data ?? []) as unknown as Row[];
-  const pro = rows.filter((r) => r.is_pro);
+  const pro = (data ?? []) as Row[];
   if (pro.length === 0) return null;
 
-  // Pro-Spots je Regal. Ein Spot kann in zwei Regalen stehen (Seen UND leichte Wanderungen),
-  // die Zahlen summieren sich also nicht zur Gesamtzahl. Jede einzelne stimmt.
-  const shelves = new Map<string, { cat: CategoryRef; count: number }>();
-  for (const r of pro) {
-    for (const c of categoriesOf(r)) {
-      const entry = shelves.get(shelfId(c)) ?? { cat: c, count: 0 };
-      entry.count += 1;
-      shelves.set(shelfId(c), entry);
-    }
-  }
-  const label = (c: CategoryRef) => c.title_translations?.[locale] ?? c.title_translations?.de ?? c.key;
-
-  const summerShelves = [...shelves.values()]
-    .filter((s) => s.cat.season === "summer" && s.count >= SHELF_MIN)
-    .sort((a, b) => b.count - a.count || (a.cat.sort_order ?? 0) - (b.cat.sort_order ?? 0))
-    .slice(0, SHELF_MAX)
-    .map((s) => ({ key: shelfId(s.cat), label: label(s.cat), count: s.count }));
-
-  // Die Motive: je eines aus einem anderen Regal, in der Reihenfolge der Explore-Regale
-  // (Sommer vor Winter). Innerhalb eines Regals zuerst eine Art, die noch nicht dran war,
-  // damit nicht drei Bergseen nebeneinander stehen. Ohne Zufall: Das Ergebnis liegt im Cache,
-  // und Zufall hiesse eine andere Seite nach jeder Erneuerung.
-  const shelfOrder = [...shelves.values()]
-    .map((s) => s.cat)
-    .sort((a, b) =>
-      a.season === b.season ? (a.sort_order ?? 0) - (b.sort_order ?? 0) : a.season === "summer" ? -1 : 1,
-    );
-  const byRank = (a: Row, b: Row) =>
+  // Innerhalb einer Art: Stufe, dann Bekanntheit, dann die Reihenfolge der Arten in THEMES.
+  // Die ist dort nach Beliebtheit sortiert (Bergwanderung 91 Öffnungen, Bergtour 81,
+  // Wanderung 5); ohne sie entschied das Alphabet, und „Wanderung" schlug „Bergwanderung".
+  // Ohne Zufall: Das Ergebnis liegt im Cache, und Zufall hiesse eine andere Seite nach jeder
+  // Erneuerung. Der Slug am Ende macht die Reihenfolge eindeutig.
+  const byRank = (subtypes: readonly string[]) => (a: Row, b: Row) =>
     (b.sort_weight ?? 0) - (a.sort_weight ?? 0) ||
-    b.created_at.localeCompare(a.created_at) ||
+    (FAME_RANK[a.fame ?? ""] ?? 9) - (FAME_RANK[b.fame ?? ""] ?? 9) ||
+    subtypes.indexOf(a.subtype ?? "") - subtypes.indexOf(b.subtype ?? "") ||
     a.slug.localeCompare(b.slug);
+  const inSeason = pro.filter((r) => (r.seasons ?? []).includes(season));
+
+  // Je Art der beste Spot der laufenden Saison. Hat eine Art in dieser Saison keinen, fällt sie
+  // weg, statt ein Motiv aus der falschen Jahreszeit zu zeigen.
   const picked: Row[] = [];
-  const usedSubtypes = new Set<string>();
-  for (const cat of shelfOrder) {
-    if (picked.length >= TILE_MAX) break;
-    const candidates = pro
-      .filter((r) => !picked.includes(r) && categoriesOf(r).some((c) => shelfId(c) === shelfId(cat)))
-      .sort(byRank);
-    const pick = candidates.find((r) => !usedSubtypes.has(r.subtype ?? "")) ?? candidates[0];
-    if (!pick) continue;
-    picked.push(pick);
-    if (pick.subtype) usedSubtypes.add(pick.subtype);
+  for (const subtypes of THEMES) {
+    const pick = inSeason
+      .filter((r) => r.subtype && subtypes.includes(r.subtype) && !picked.includes(r))
+      .sort(byRank(subtypes))[0];
+    if (pick) picked.push(pick);
   }
+  if (picked.length === 0) return null;
 
   // Die Vorschau NUR für die gezeigten Motive (zweite, schlanke Abfrage wie in lib/spots.ts).
-  let tiles: ProShowcaseData["tiles"] = [];
-  if (picked.length > 0) {
-    const { data: media, error: mediaErr } = await svc
-      .from("spots")
-      .select("slug, media(url, role, sort_order, blur_url)")
-      .in(
-        "slug",
-        picked.map((p) => p.slug),
-      );
-    if (mediaErr) {
-      console.error("getProShowcase (Vorschau):", mediaErr.message);
-    } else {
-      const mediaBySlug = new Map((media ?? []).map((s) => [s.slug as string, s.media]));
-      // Der Schlüssel ist ein Zähler, nicht der Slug: Er landet als React-key im HTML.
-      tiles = picked.map((p, i) => ({
-        key: `tile-${i}`,
-        previewUrl: heroPreviewFromMedia(mediaBySlug.get(p.slug)),
-        label: factSubtype(p.subtype, locale) ?? null,
-      }));
-    }
+  const { data: media, error: mediaErr } = await svc
+    .from("spots")
+    .select("slug, media(url, role, sort_order, blur_url)")
+    .in(
+      "slug",
+      picked.slice(0, TILE_MAX).map((p) => p.slug),
+    );
+  if (mediaErr) {
+    console.error("getProShowcase (Vorschau):", mediaErr.message);
+    return null;
   }
+  const mediaBySlug = new Map((media ?? []).map((s) => [s.slug as string, s.media]));
 
   return {
-    total: rows.length,
     pro: pro.length,
-    shelves: summerShelves,
-    winter: pro.filter((r) => (r.seasons ?? []).includes("winter")).length,
-    // Scheitert nur die Touren-Zählung, fehlt eben diese eine Zahl, nicht der ganze Block.
-    tours: toursRes.error ? 0 : (toursRes.count ?? 0),
-    tiles,
+    // Der Schlüssel ist ein Zähler, nicht der Slug: Er landet als React-key im HTML.
+    tiles: picked.slice(0, TILE_MAX).map((p, i) => ({
+      key: `tile-${i}`,
+      previewUrl: heroPreviewFromMedia(mediaBySlug.get(p.slug)),
+      label: factSubtype(p.subtype, locale) ?? null,
+    })),
   };
 }
