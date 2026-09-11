@@ -4,7 +4,7 @@ import { useTranslations } from "next-intl";
 import { ProWordmark } from "@/components/ProBadge";
 import ProFeatureList from "@/components/ProFeatureList";
 import ProPurchase from "@/components/ProPurchase";
-import ProShowcase, { ProShowcaseCounts, type ProShowcaseData } from "@/components/ProShowcase";
+import ProShowcase, { type ProShowcaseData } from "@/components/ProShowcase";
 
 // Conversion-Landing für den Pro-Kauf (mobile-first, iOS-2026).
 //
@@ -72,19 +72,13 @@ export default function ProLanding({
             /profil, damit an beiden Kaufflächen dasselbe steht. */}
         <ProPurchase price={price} className="border-t border-black/[0.06] px-7 pt-5 pb-8" />
 
-        {/* 4. Was drin ist, im Detail: die Aufschlüsselung je Regal und die Zeilen. UNTER
-            dem Kaufblock, sobald die Motive darüber stehen. Mit allem über dem Preis
-            rutschte der Kauf-Knopf am iPhone 15 von 587 auf 884 px und damit hinter die
-            Tab-Leiste (772 px). Die Regel seit 09/2026: Der Knopf steht nicht tiefer als vor
-            den Motiven, in keiner der 13 Sprachen. Oben sagen Bilder und zwei Zahlen, WAS drin
-            ist; hier stehen für alle, die weiterlesen, das Wieviel je Regal und das WARUM.
-            Ohne Motive stehen die Zeilen oben in Block 2 und hier nicht. */}
-        {showcase && (
-          <div className="border-t border-black/[0.06] px-6 pt-4 pb-3">
-            <ProShowcaseCounts data={showcase} />
-            <ProFeatureList density="page" className="mt-2" />
-          </div>
-        )}
+        {/* 4. Was drin ist, in Worten. UNTER dem Kaufblock, sobald die Motive darüber
+            stehen. Die Regel seit 09/2026: Der Kauf-Knopf steht nicht tiefer als vor den
+            Motiven, in keiner der 13 Sprachen (mit Motiven UND Zeilen über dem Preis rutschte
+            er am iPhone 15 hinter die Tab-Leiste). Oben zeigen die Bilder, WAS drin ist; hier
+            steht für alle, die weiterlesen, WARUM es etwas taugt. Ohne Motive stehen die
+            Zeilen oben in Block 2 und hier nicht. */}
+        {showcase && features}
       </div>
     </div>
   );
