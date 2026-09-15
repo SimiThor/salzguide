@@ -1,6 +1,7 @@
 import "server-only";
 import { createServiceClient } from "./supabase/service";
 import {
+  cleanVoiceSettings,
   elevenIdOf,
   pickDefaultVoice,
   type VoiceInfo,
@@ -14,7 +15,10 @@ export type { VoiceUsage };
 // keinen Public-Read hat und auch der Player (Offenlegung) und der KI-Runden-Generator sie
 // brauchen. Geschrieben wird nur in tts-voice-actions.ts, hinter requireAdmin.
 
-const COLS = "id, key, name, kind, eleven_voice_id, person_name, is_default, sort_order";
+const BASE_COLS = "id, key, name, kind, eleven_voice_id, person_name, is_default, sort_order";
+// Sprech-Einstellungen je Stimme (0069). Fehlen die Spalten noch, greift der zweite Versuch
+// ohne sie, und die Stimme bekommt die ElevenLabs-Standardwerte (cleanVoiceSettings).
+const SETTING_COLS = "stability, similarity, style, speed, speaker_boost";
 
 export function toVoiceRow(r: Record<string, unknown>): VoiceRow {
   return {
@@ -26,6 +30,13 @@ export function toVoiceRow(r: Record<string, unknown>): VoiceRow {
     personName: (r.person_name as string | null) ?? null,
     isDefault: Boolean(r.is_default),
     sortOrder: (r.sort_order as number | null) ?? 0,
+    settings: cleanVoiceSettings({
+      stability: r.stability,
+      similarity: r.similarity,
+      style: r.style,
+      speed: r.speed,
+      speakerBoost: r.speaker_boost,
+    }),
   };
 }
 
@@ -34,12 +45,12 @@ export function voiceInfoOf(v: Pick<VoiceRow, "name" | "kind" | "personName"> | 
 }
 
 export async function getVoices(): Promise<VoiceRow[]> {
-  const { data } = await createServiceClient()
-    .from("tts_voices")
-    .select(COLS)
-    .order("sort_order", { ascending: true })
-    .order("created_at", { ascending: true });
-  return ((data as Record<string, unknown>[] | null) ?? []).map(toVoiceRow);
+  const db = createServiceClient();
+  const q = (cols: string) =>
+    db.from("tts_voices").select(cols).order("sort_order", { ascending: true }).order("created_at", { ascending: true });
+  let { data, error } = await q(`${BASE_COLS}, ${SETTING_COLS}`);
+  if (error) ({ data, error } = await q(BASE_COLS));
+  return ((data as unknown as Record<string, unknown>[] | null) ?? []).map(toVoiceRow);
 }
 
 export async function getDefaultVoice(): Promise<VoiceRow | null> {
@@ -48,12 +59,10 @@ export async function getDefaultVoice(): Promise<VoiceRow | null> {
 
 export async function getVoiceById(id: string): Promise<VoiceRow | null> {
   if (!id) return null;
-  const { data } = await createServiceClient()
-    .from("tts_voices")
-    .select(COLS)
-    .eq("id", id)
-    .maybeSingle();
-  return data ? toVoiceRow(data as Record<string, unknown>) : null;
+  const db = createServiceClient();
+  let { data, error } = await db.from("tts_voices").select(`${BASE_COLS}, ${SETTING_COLS}`).eq("id", id).maybeSingle();
+  if (error) ({ data, error } = await db.from("tts_voices").select(BASE_COLS).eq("id", id).maybeSingle());
+  return data ? toVoiceRow(data as unknown as Record<string, unknown>) : null;
 }
 
 /** Die ElevenLabs-ID dieser Stimme, oder null (echte Aufnahme, oder noch keine ID). */

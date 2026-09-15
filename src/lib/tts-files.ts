@@ -125,6 +125,7 @@ export async function ensureVoiceFile(input: {
     kind: input.kind,
     elevenVoiceId: elevenId,
     voiceKey: input.voice.key,
+    settings: input.voice.settings,
   });
   if (!r.ok) return r;
 

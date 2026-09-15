@@ -614,6 +614,17 @@ unangetastet. `npm run loudness:check` hält die Messung gegen ffmpeg `ebur128`;
 `npm run tts:normalize-stock` misst den Bestand und zieht Ausreißer nach (Trockenlauf ohne
 `APPLY=1`).
 
+**Sprech-Einstellungen gehören zur Stimme (Migration 0069).** Stabilität, Ähnlichkeit, Stil,
+Tempo und Speaker Boost stehen je Stimme in `tts_voices` und sind unter Einstellungen →
+Stimmen editierbar, mit Probehören daneben. Vorher galt für alle Stimmen Tempo 0,9 und
+Stabilität 0,55 (Tonis Erzählton), und Simons Klon klang damit weniger nach Simon als in
+ElevenLabs direkt, wo jede Stimme ihre eigene Empfehlung hat. Neue Stimmen starten mit den
+ElevenLabs-Standardwerten (0,5 / 0,75 / 0 / 1,0 / an), „Empfehlung von ElevenLabs laden" holt
+die Werte der Stimme aus dem Konto (Schlüssel braucht dafür `voices_read`). Toni behält seine
+alten Werte, damit der Bestand und neue Toni-Dateien gleich klingen. Geänderte Einstellungen
+vertonen nichts von selbst neu: Der Text-Hash bleibt gleich, „neu vertonen" je Sprache im
+Punkt-Editor holt den neuen Klang, wenn man ihn will.
+
 **Was noch fehlt**, in dieser Reihenfolge: Apple Pay und Google Pay im selben Fenster (der
 Sprung zu Stripes Kasse ist der letzte verbliebene Seitenwechsel), und eine Preiszeile vor
 dem Start, damit Stopp 3 als Bestätigung ankommt und nicht als Überraschung.

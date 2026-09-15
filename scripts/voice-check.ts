@@ -17,6 +17,8 @@ import {
   pickRoundVoice,
   disclosureOf,
   durationFromBytes,
+  cleanVoiceSettings,
+  ELEVEN_DEFAULT_SETTINGS,
   type VoiceRow,
 } from "@/lib/tts-rules";
 import { stripEmDash } from "@/lib/em-dash";
@@ -43,6 +45,7 @@ const voice = (over: Partial<VoiceRow>): VoiceRow => ({
   personName: null,
   isDefault: false,
   sortOrder: 0,
+  settings: ELEVEN_DEFAULT_SETTINGS,
   ...over,
 });
 
@@ -165,7 +168,18 @@ console.log("\n8. Die Offenlegung folgt der Stimm-Art");
   expect("echt: Gesprochen von", disclosureOf({ name: "Anton", kind: "human", personName: "Anton" }), { key: "humanVoice", name: "Anton" });
 }
 
-console.log("\n9. Dauer aus der Dateigröße (96 kbit/s CBR)");
+console.log("\n9. Sprech-Einstellungen je Stimme (0069)");
+{
+  expect("nichts angegeben: ElevenLabs-Standard (Tempo 1,0, nicht mehr 0,9)", cleanVoiceSettings(undefined), ELEVEN_DEFAULT_SETTINGS);
+  expect("Formular-Strings werden Zahlen", cleanVoiceSettings({ stability: "0.55", speed: "0.9", speakerBoost: false }).speed, 0.9);
+  expect("Grenzen halten: Tempo 0,7 bis 1,2", cleanVoiceSettings({ speed: 3 }).speed, 1.2);
+  expect("Grenzen halten: Stil 0 bis 1", cleanVoiceSettings({ style: -4 }).style, 0);
+  expect("Unsinn faellt auf den Standard", cleanVoiceSettings({ stability: "abc" }).stability, 0.5);
+  expect("leerer String ist NICHT 0 (die alte ENV-Falle)", cleanVoiceSettings({ stability: "" }).stability, 0.5);
+  expect("gerundet auf zwei Stellen", cleanVoiceSettings({ similarity: 0.7549 }).similarity, 0.75);
+}
+
+console.log("\n10. Dauer aus der Dateigröße (96 kbit/s CBR)");
 {
   expect("1,2 MB sind 100 Sekunden", durationFromBytes(1_200_000), 100);
   expect("nie 0", durationFromBytes(10), 1);

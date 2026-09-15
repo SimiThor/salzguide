@@ -1,6 +1,6 @@
 import { createServiceClient } from "./supabase/service";
 import { IMMUTABLE_CACHE_SECONDS } from "./storage";
-import type { AudioKind } from "./tts-rules";
+import { ELEVEN_DEFAULT_SETTINGS, cleanVoiceSettings, type AudioKind, type VoiceSettings } from "./tts-rules";
 import { LOUDNESS_TARGET_LUFS, normalizeSpeechMp3 } from "./loudness";
 
 // ═══════════════════════════════════════════════════════════════════════════════════════
@@ -40,31 +40,20 @@ const OUTPUT_FORMAT = "mp3_44100_96";
 const MAX_CHARS = 5000;
 
 /**
- * Zahl aus einer Umgebungsvariable, mit Grenzen und Standardwert.
- *
- * DER LEERE STRING IST DER GANZE PUNKT. `Number("")` ist 0, nicht NaN, und
- * `Number.isFinite(0)` ist wahr. Eine Variable, die in .env.local zwar dasteht, aber ohne
- * Wert (`ELEVENLABS_SPEED=`), kam damit als 0 an, und der Standardwert griff nie.
- *
- * Gehört hat man das sofort: stability 0 statt 0,55 laesst die Stimme driften und stocken,
- * similarity 0 statt 0,75 heisst, sie haelt sich gar nicht an die geklonte Stimme, und
- * speed wurde auf die Untergrenze 0,7 geklemmt statt auf 0,9. Zu langsam, fremder Akzent,
- * mitten im Satz die Sprache gewechselt. Eine leere Variable ist NICHT GESETZT.
+ * Die Sprech-Einstellungen kommen JE STIMME aus tts_voices (Migration 0069), nicht mehr aus
+ * der ENV. Bis 15.09.2026 galt fuer alle Stimmen Tempo 0,9 und Stabilitaet 0,55 (einst fuer
+ * Tonis Erzaehlton gewaehlt), und Simons Klon klang damit weniger nach Simon als in
+ * ElevenLabs direkt, wo jede Stimme ihre eigene Empfehlung hat. Der leere-String-Fehler
+ * der alten ENV-Werte (`Number("")` ist 0) ist damit Geschichte; cleanVoiceSettings zwingt.
  */
-function clampNum(v: string | undefined, fallback: number, lo: number, hi: number): number {
-  const roh = v?.trim();
-  if (!roh) return fallback;
-  const n = Number(roh);
-  return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : fallback;
-}
-
-function elevenVoiceSettings() {
+function elevenVoiceSettings(s: VoiceSettings) {
+  const c = cleanVoiceSettings(s);
   return {
-    stability: clampNum(process.env.ELEVENLABS_STABILITY, 0.55, 0, 1),
-    similarity_boost: clampNum(process.env.ELEVENLABS_SIMILARITY, 0.75, 0, 1),
-    style: clampNum(process.env.ELEVENLABS_STYLE, 0.0, 0, 1),
-    use_speaker_boost: process.env.ELEVENLABS_SPEAKER_BOOST !== "false",
-    speed: clampNum(process.env.ELEVENLABS_SPEED, 0.9, 0.7, 1.2),
+    stability: c.stability,
+    similarity_boost: c.similarity,
+    style: c.style,
+    use_speaker_boost: c.speakerBoost,
+    speed: c.speed,
   };
 }
 
@@ -72,8 +61,8 @@ function elevenVoiceSettings() {
  * Modell und Settings als eine Zeile. Steht informativ an jeder Datei (tts_profile), damit
  * man spaeter weiss, womit sie entstand. BEWUSST keine Veraltet-Regel: siehe tts-rules.ts.
  */
-export function ttsProfile(): string {
-  const s = elevenVoiceSettings();
+export function ttsProfile(settings: VoiceSettings = ELEVEN_DEFAULT_SETTINGS): string {
+  const s = elevenVoiceSettings(settings);
   return [ELEVEN_MODEL, s.stability, s.similarity_boost, s.style, s.use_speaker_boost ? 1 : 0, s.speed].join("|");
 }
 
@@ -116,7 +105,11 @@ export type SpeakResult =
  * Jede Stimme, jede Sprache, jede Kostprobe gleich laut, und der Player muss nichts
  * wissen. Innerhalb der Toleranz bleibt die ElevenLabs-Datei bytegleich.
  */
-export async function elevenSpeak(input: { text: string; elevenVoiceId: string }): Promise<SpeakResult> {
+export async function elevenSpeak(input: {
+  text: string;
+  elevenVoiceId: string;
+  settings: VoiceSettings;
+}): Promise<SpeakResult> {
   const text = input.text.trim();
   if (!text) return { ok: false, error: "Kein Text zum Vertonen." };
   if (text.length > MAX_CHARS) return { ok: false, error: `Text zu lang (max. ${MAX_CHARS} Zeichen).` };
@@ -131,7 +124,7 @@ export async function elevenSpeak(input: { text: string; elevenVoiceId: string }
       {
         method: "POST",
         headers: { "xi-api-key": key, "content-type": "application/json", accept: "audio/mpeg" },
-        body: JSON.stringify({ text, model_id: ELEVEN_MODEL, voice_settings: elevenVoiceSettings() }),
+        body: JSON.stringify({ text, model_id: ELEVEN_MODEL, voice_settings: elevenVoiceSettings(input.settings) }),
         signal: AbortSignal.timeout(60000),
       },
     );
@@ -169,8 +162,9 @@ export async function synthesizeVoice(input: {
   kind?: AudioKind;
   elevenVoiceId: string;
   voiceKey: string;
+  settings: VoiceSettings;
 }): Promise<VoiceResult> {
-  const spoken = await elevenSpeak({ text: input.text, elevenVoiceId: input.elevenVoiceId });
+  const spoken = await elevenSpeak({ text: input.text, elevenVoiceId: input.elevenVoiceId, settings: input.settings });
   if (!spoken.ok) return spoken;
   const lang = (input.lang || "de").toLowerCase();
   const teil = input.kind === "kostprobe" ? "kostprobe" : "point";
@@ -190,9 +184,48 @@ export async function synthesizeVoice(input: {
     bytes: spoken.bytes.length,
     // Das Lautheits-Ziel steht mit im Profil: So sieht man einer Zeile an, ob sie schon
     // durch die Angleichung gegangen ist (Bestands-Skript, scripts/tts-normalize-stock.ts).
-    profile: `${ttsProfile()}|${input.elevenVoiceId.trim()}|lufs${LOUDNESS_TARGET_LUFS}`,
+    profile: `${ttsProfile(input.settings)}|${input.elevenVoiceId.trim()}|lufs${LOUDNESS_TARGET_LUFS}`,
     loudness: spoken.loudness,
   };
+}
+
+/**
+ * Die Empfehlung von ElevenLabs fuer eine Stimme (was das Web-Studio nimmt). Braucht die
+ * Schluessel-Berechtigung voices_read; fehlt sie, kommt `unverified` und das Formular sagt es.
+ */
+export async function fetchElevenVoiceSettings(
+  id: string,
+): Promise<{ ok: true; settings: VoiceSettings } | { ok: false; error: string; status?: number }> {
+  const key = process.env.ELEVENLABS_API_KEY;
+  if (!key) return { ok: false, error: "ELEVENLABS_API_KEY fehlt, bitte in .env.local eintragen" };
+  try {
+    const res = await fetch(`${ELEVEN_API}/voices/${encodeURIComponent(id.trim())}/settings`, {
+      headers: { "xi-api-key": key },
+      signal: AbortSignal.timeout(15000),
+    });
+    if (res.status === 401 || res.status === 403) return { ok: false, error: "unverified", status: res.status };
+    if (res.status === 404) return { ok: false, error: "bad_voice_id", status: res.status };
+    if (!res.ok) return { ok: false, error: elevenErrorText(res.status, await res.text()), status: res.status };
+    const j = (await res.json()) as {
+      stability?: number;
+      similarity_boost?: number;
+      style?: number;
+      use_speaker_boost?: boolean;
+      speed?: number;
+    };
+    return {
+      ok: true,
+      settings: cleanVoiceSettings({
+        stability: j.stability,
+        similarity: j.similarity_boost,
+        style: j.style,
+        speed: j.speed,
+        speakerBoost: j.use_speaker_boost,
+      }),
+    };
+  } catch {
+    return { ok: false, error: "ElevenLabs gerade nicht erreichbar, bitte nochmal versuchen." };
+  }
 }
 
 /**
