@@ -151,7 +151,10 @@
     "navNextStopIn": "다음 지점까지 {distance}",
     "navToFinish": "출발지로 돌아가기",
     "navEta": "도착까지",
-    "navEtaLabel": "도착"
+    "navEtaLabel": "도착",
+    "navWrongWay": "되돌아가 주세요",
+    "navResume": "계속 주행, {total}개 중 {n}번째 지점",
+    "navRestart": "처음부터 시작"
   },
   "Water": {
     "title": "수온",

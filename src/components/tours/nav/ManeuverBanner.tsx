@@ -41,7 +41,11 @@ export default function ManeuverBanner({
 }) {
   const t = useTranslations("Tours");
   const arriving = type === "arrive";
-  const level = arriving ? "now" : urgency(distanceM);
+  // "Bitte umdrehen" ist kein Manoever von Mapbox, sondern kommt aus dem Kern
+  // (bike-nav-core, wrongWay). Immer dringend, mit U-Turn-Pfeil (modifier "uturn") und ohne
+  // Distanz: Es gibt keinen Punkt, an dem es passiert, es gilt jetzt.
+  const wrongWay = type === "wrong-way";
+  const level = arriving || wrongWay ? "now" : urgency(distanceM);
 
   return (
     <div

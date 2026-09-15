@@ -44,8 +44,8 @@ export type TourSummary = {
   durationMin: number | null;
   distanceKm: number | null;
   // Fortbewegungsart: walk = bestehende Geh-Tour, bike = S-Bike-Runde mit eigenem
-  // Navigation-Screen statt manueller Stopp-Auswahl. KEINE Datenbank-Spalte (siehe
-  // lib/tour-mode.ts) – jede echte Runde ist "walk", "bike" kommt bisher nur aus der
+  // Navigation-Screen statt manueller Stopp-Auswahl. Spalte `tours.mode` seit Migration
+  // 0064 (Enum tour_mode, Default walk); lib/tours.ts liest sie an allen Stellen.
   mode: TourMode;
 };
 

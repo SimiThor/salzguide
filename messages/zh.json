@@ -151,7 +151,10 @@
     "navNextStopIn": "距下一站 {distance}",
     "navToFinish": "返回起点",
     "navEta": "预计到达",
-    "navEtaLabel": "到达"
+    "navEtaLabel": "到达",
+    "navWrongWay": "请掉头",
+    "navResume": "继续骑行，第 {n} 站，共 {total} 站",
+    "navRestart": "从头开始"
   },
   "Water": {
     "title": "水温",

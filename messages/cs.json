@@ -151,7 +151,10 @@
     "navNextStopIn": "Další zastávka za {distance}",
     "navToFinish": "Zpět na start",
     "navEta": "Příjezd za",
-    "navEtaLabel": "Příjezd"
+    "navEtaLabel": "Příjezd",
+    "navWrongWay": "Otoč se, prosím",
+    "navResume": "Pokračovat v jízdě, zastávka {n} z {total}",
+    "navRestart": "Začít od začátku"
   },
   "Water": {
     "title": "Teplota vody",

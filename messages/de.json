@@ -194,7 +194,10 @@
     "navNextStopIn": "Nächster Halt in {distance}",
     "navToFinish": "Zurück zum Start",
     "navEta": "Ankunft in",
-    "navEtaLabel": "Ankunft"
+    "navEtaLabel": "Ankunft",
+    "navWrongWay": "Bitte umdrehen",
+    "navResume": "Weiterfahren, Halt {n} von {total}",
+    "navRestart": "Von vorne beginnen"
   },
   "Water": {
     "title": "Wassertemperaturen",

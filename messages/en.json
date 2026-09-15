@@ -151,7 +151,10 @@
     "navNextStopIn": "Next stop in {distance}",
     "navToFinish": "Back to the start",
     "navEta": "Arriving in",
-    "navEtaLabel": "Arrival"
+    "navEtaLabel": "Arrival",
+    "navWrongWay": "Please turn around",
+    "navResume": "Keep riding, stop {n} of {total}",
+    "navRestart": "Start over"
   },
   "Water": {
     "title": "Water temperatures",

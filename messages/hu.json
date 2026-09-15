@@ -151,7 +151,10 @@
     "navNextStopIn": "Következő megálló {distance} múlva",
     "navToFinish": "Vissza a rajthoz",
     "navEta": "Érkezés",
-    "navEtaLabel": "Érkezés"
+    "navEtaLabel": "Érkezés",
+    "navWrongWay": "Fordulj meg",
+    "navResume": "Tovább tekerek, {n}. megálló (összesen {total})",
+    "navRestart": "Kezdés elölről"
   },
   "Water": {
     "title": "Vízhőmérséklet",
