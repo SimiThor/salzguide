@@ -14,6 +14,7 @@ import { useTourAudio, type PlayerStop } from "./useTourAudio";
 import AudioTransport from "./AudioTransport";
 import TranscriptView from "./TranscriptView";
 import StopLockedCard from "./StopLockedCard";
+import VoiceDisclosure from "./VoiceDisclosure";
 import type { TourDetail } from "@/lib/tour-types";
 import { useSheetPeek } from "@/lib/sheet-metrics";
 import { TOUR_MODE_EMOJI } from "@/lib/tour-mode";
@@ -225,13 +226,11 @@ export default function TourView({
                 total={tour.stops.length}
                 canPlay={canPlay}
               />
-              {/* KI-Stimmen-Hinweis (Ehrlichkeit + Art. 50 KI-VO, docs/39): die
-                  Erzählstimme ist synthetisch (ElevenLabs). Steht IM Peek-Anker unter
-                  dem Transport und ist damit sichtbar, BEVOR jemand auf Play drückt,
-                  auch im eingeklappten Mini-Player. */}
-              <p className="mt-1.5 text-[11px] leading-snug text-muted/80">
-                {t("aiVoice")}
-              </p>
+              {/* Stimmen-Hinweis (Ehrlichkeit + Art. 50 KI-VO, docs/39): KI-Stimme,
+                  geklonte Stimme mit Namen oder echte Aufnahme, je nach Stimme der Runde.
+                  Steht IM Peek-Anker unter dem Transport und ist damit sichtbar, BEVOR
+                  jemand auf Play drückt, auch im eingeklappten Mini-Player. */}
+              <VoiceDisclosure voice={tour.voice} />
             </div>
           )}
           {/* Gesperrter Stopp: Der Pro-Hinweis übernimmt den Platz des Transports und

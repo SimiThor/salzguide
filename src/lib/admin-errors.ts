@@ -38,6 +38,19 @@ const ADMIN_ERRORS: Record<string, string> = {
     "Zum Veröffentlichen braucht die Tour mindestens einen veröffentlichten Punkt.",
   points_area_mismatch:
     "Mindestens eine Station gehört nicht zum gewählten Gebiet. Bitte Stationen prüfen.",
+  // Stimmen (Migration 0068)
+  voice_files_incomplete:
+    "Zum Veröffentlichen braucht jede Station mindestens die deutsche Vertonung mit der Stimme der Runde, und keine Datei darf einen älteren Text sprechen. Erst „Stimme prüfen“ und „Vertonen“ ausführen.",
+  voice_in_use: "Diese Stimme spricht noch in Runden oder Dateien und kann nicht gelöscht werden.",
+  voice_is_default: "Die Standard-Stimme kann nicht gelöscht werden. Erst eine andere zum Standard machen.",
+  voice_has_files:
+    "Die ElevenLabs-ID lässt sich nicht mehr ändern, weil mit dieser Stimme schon Dateien entstanden sind. Neue Stimme anlegen.",
+  bad_voice_id: "Diese ElevenLabs-ID gibt es in unserem Konto nicht.",
+  voice_not_synthesizable:
+    "Für diese Stimme fehlt die ElevenLabs-ID, unter Einstellungen → Stimmen eintragen.",
+  no_voice: "Es ist keine Stimme angelegt. Erst unter Einstellungen → Stimmen eine anlegen.",
+  save_first: "Zuerst speichern, dann vertonen.",
+  person_required: "Bei einer geklonten oder echten Stimme braucht es den Namen der Person.",
 };
 
 /** Fehlercode einer Admin-Action in einen deutschen Satz übersetzen. */

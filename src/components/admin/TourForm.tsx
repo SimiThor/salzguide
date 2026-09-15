@@ -17,7 +17,9 @@ import { localeMeta } from "@/i18n/locales";
 import { hashTourTexts } from "@/lib/spot-hash";
 import { tourRouteHash, type RoutePoint } from "@/lib/tour-route";
 import { TOUR_MODE_EMOJI, type TourMode } from "@/lib/tour-mode";
+import type { VoiceRow } from "@/lib/tts-rules";
 import LocationPicker from "./LocationPicker";
+import RevoiceTourButton from "./RevoiceTourButton";
 import AiButton from "./AiButton";
 import { blockEnterSubmit } from "./form-utils";
 import { adminErrorText } from "@/lib/admin-errors";
@@ -26,6 +28,8 @@ import Busy from "@/components/Busy";
 
 // Zielsprachen wie überall aus der zentralen Sprach-Config.
 const TOUR_TARGETS = routing.locales.filter((l) => l !== "de");
+// Jede Station braucht für die Stimme der Runde eine Volldatei in JEDER Sprache (0068).
+const LANG_COUNT = routing.locales.length;
 const emptyTexts = (): TourTexts => ({ title: "", subtitle: "", description: "" });
 
 const inputCls =
@@ -38,7 +42,8 @@ const chipCls = "cursor-pointer rounded-full bg-black/5 px-3 py-1.5 text-[12px] 
 type FormStop = {
   pointId: string;
   title: string;
-  hasAudio: boolean;
+  /** Stimme -> Zahl der Sprachen mit Volldatei (aus tour_point_voice_files). */
+  voicedLangs: Record<string, number>;
   lat: number | null;
   lng: number | null;
 };
@@ -51,6 +56,8 @@ type FormState = {
   freeStops: number;
   status: "draft" | "published";
   mode: TourMode;
+  // Die EINE Stimme der Runde (0068).
+  voiceId: string;
   durationMin: string;
   distanceKm: string;
   de: TourTexts;
@@ -63,7 +70,11 @@ type FormState = {
   stops: FormStop[];
 };
 
-function initialState(initial: TourEditData | undefined, points: PickerPoint[]): FormState {
+function initialState(
+  initial: TourEditData | undefined,
+  points: PickerPoint[],
+  defaultVoiceId: string,
+): FormState {
   const byId = new Map(points.map((p) => [p.id, p]));
   if (!initial)
     return {
@@ -74,6 +85,7 @@ function initialState(initial: TourEditData | undefined, points: PickerPoint[]):
       freeStops: 1,
       status: "draft",
       mode: "walk",
+      voiceId: defaultVoiceId,
       durationMin: "",
       distanceKm: "",
       de: emptyTexts(),
@@ -92,6 +104,7 @@ function initialState(initial: TourEditData | undefined, points: PickerPoint[]):
     freeStops: initial.freeStops,
     status: initial.status,
     mode: initial.mode,
+    voiceId: initial.voiceId ?? defaultVoiceId,
     durationMin: initial.durationMin != null ? String(initial.durationMin) : "",
     distanceKm: initial.distanceKm != null ? String(initial.distanceKm) : "",
     de: initial.de,
@@ -110,7 +123,7 @@ function initialState(initial: TourEditData | undefined, points: PickerPoint[]):
     stops: initial.stops.map((s) => ({
       pointId: s.pointId,
       title: s.title,
-      hasAudio: byId.get(s.pointId)?.hasAudio ?? false,
+      voicedLangs: s.voicedLangs ?? byId.get(s.pointId)?.voicedLangs ?? {},
       lat: byId.get(s.pointId)?.lat ?? null,
       lng: byId.get(s.pointId)?.lng ?? null,
     })),
@@ -125,13 +138,20 @@ export default function TourForm({
   initial,
   areas,
   initialAreaPoints = [],
+  voices,
+  defaultVoiceId,
 }: {
   initial?: TourEditData;
   areas: { id: string; name: string }[];
   initialAreaPoints?: PickerPoint[];
+  /** Alle Stimmen (tts_voices), für das Dropdown. */
+  voices: VoiceRow[];
+  defaultVoiceId: string | null;
 }) {
   const router = useRouter();
-  const [form, setForm] = useState<FormState>(() => initialState(initial, initialAreaPoints));
+  const [form, setForm] = useState<FormState>(() =>
+    initialState(initial, initialAreaPoints, defaultVoiceId ?? voices[0]?.id ?? ""),
+  );
   const [areaPoints, setAreaPoints] = useState<PickerPoint[]>(initialAreaPoints);
   const [pending, start] = useTransition();
   const [err, setErr] = useState("");
@@ -177,6 +197,14 @@ export default function TourForm({
   // aus dem aktuellen deutschen Stand übersetzt.
   const canPublish =
     allTranslated && !!form.translationsSourceHash && form.translationsSourceHash === liveDeHash;
+
+  // ── Stimme ─────────────────────────────────────────────────────────────────
+  const voiceName = voices.find((v) => v.id === form.voiceId)?.name ?? "";
+  const voicedOf = (s: FormStop) => s.voicedLangs[form.voiceId] ?? 0;
+  // Der Server (tourVoiceGate) verlangt je Station die deutsche Datei der Runden-Stimme und
+  // keine veraltete; hier reicht als Vorwarnung: gar keine Datei dieser Stimme. Fehlende
+  // andere Sprachen zeigt der Chip (n/13), sie blockieren nicht (Player fällt auf Deutsch).
+  const stopsMissingVoice = form.stops.filter((s) => voicedOf(s) === 0).length;
 
   function onTranslateAll() {
     if (translating) return;
@@ -346,7 +374,7 @@ export default function TourForm({
             ...f,
             stops: [
               ...f.stops,
-              { pointId, title: p.title, hasAudio: p.hasAudio, lat: p.lat, lng: p.lng },
+              { pointId, title: p.title, voicedLangs: p.voicedLangs, lat: p.lat, lng: p.lng },
             ],
           },
     );
@@ -404,6 +432,7 @@ export default function TourForm({
       freeStops: form.freeStops,
       status: form.status,
       mode: form.mode,
+      voiceId: form.voiceId || null,
       durationMin: form.durationMin.trim() ? Number(form.durationMin) : null,
       distanceKm: form.distanceKm.trim() ? Number(form.distanceKm) : null,
       de: form.de,
@@ -622,6 +651,22 @@ export default function TourForm({
             </select>
           </div>
           <div>
+            <label className={labelCls}>Stimme</label>
+            <select
+              className={inputCls}
+              value={form.voiceId}
+              onChange={(e) => set({ voiceId: e.target.value })}
+            >
+              {voices.length === 0 && <option value="">Keine Stimme angelegt</option>}
+              {voices.map((v) => (
+                <option key={v.id} value={v.id}>
+                  {v.name}
+                  {v.isDefault ? " · Standard" : ""}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
             <label className={labelCls}>Status</label>
             <select
               className={inputCls}
@@ -634,6 +679,12 @@ export default function TourForm({
             {form.status === "published" && !canPublish && (
               <p className="mt-1 text-[12px] font-medium text-accent">
                 Live gehen kann die Runde erst, wenn alle Sprachen übersetzt und aktuell sind.
+              </p>
+            )}
+            {form.status === "published" && canPublish && stopsMissingVoice > 0 && (
+              <p className="mt-1 text-[12px] font-medium text-accent">
+                Live gehen kann die Runde erst, wenn jede Station mit {voiceName || "der Stimme"}
+                vertont ist (unten „Stimme prüfen“).
               </p>
             )}
           </div>
@@ -689,9 +740,12 @@ export default function TourForm({
                 </span>
                 <span className="min-w-0 flex-1 truncate text-[15px] text-ink">
                   {s.title}
-                  {!s.hasAudio && (
-                    <span className="ml-2 text-[11px] text-muted">⚠︎ noch kein Audio</span>
-                  )}
+                  <span
+                    className={`ml-2 text-[11px] ${voicedOf(s) < LANG_COUNT ? "text-accent" : "text-muted"}`}
+                    title={`${voicedOf(s)}/${LANG_COUNT} Sprachen mit ${voiceName || "dieser Stimme"} vertont`}
+                  >
+                    🎧 {voicedOf(s)}/{LANG_COUNT}
+                  </span>
                   {s.lat == null && (
                     <span className="ml-2 text-[11px] text-accent">⚠︎ kein Punkt auf der Karte</span>
                   )}
@@ -751,7 +805,9 @@ export default function TourForm({
               <option key={p.id} value={p.id}>
                 {p.title}
                 {p.status !== "published" ? " (Entwurf)" : ""}
-                {!p.hasAudio ? " · kein Audio" : ""}
+                {(p.voicedLangs[form.voiceId] ?? 0) < LANG_COUNT
+                  ? ` · ${p.voicedLangs[form.voiceId] ?? 0}/${LANG_COUNT} vertont`
+                  : ""}
               </option>
             ))}
           </select>
@@ -759,6 +815,20 @@ export default function TourForm({
           <p className="text-[13px] text-muted">
             Keine weiteren Punkte im Pool. Lege im Gebiet mehr Punkte an.
           </p>
+        )}
+
+        {/* Alle Stationen mit der gewählten Stimme vertonen, Kostproben mit. Der key setzt
+            den Zwei-Stufen-Zustand zurück, sobald Stimme oder Stationen wechseln: Ein Plan
+            für Simon darf nicht mit Anton ausgeführt werden. */}
+        {form.stops.length > 0 && form.voiceId && (
+          <RevoiceTourButton
+            key={`${form.voiceId}|${pointIds.join(",")}`}
+            pointIds={pointIds}
+            voiceId={form.voiceId}
+            voiceName={voiceName}
+            titles={Object.fromEntries(form.stops.map((s) => [s.pointId, s.title]))}
+            disabled={pending || snapping}
+          />
         )}
       </section>
 

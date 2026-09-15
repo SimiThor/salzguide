@@ -1,6 +1,7 @@
 // Client-sichere Typen für das Audio-Tour-Feature (keine Server-Imports).
 import type { TourMode } from "./tour-mode";
-export type { TourMode };
+import type { VoiceInfo } from "./tts-rules";
+export type { TourMode, VoiceInfo };
 
 // Eine Station der Tour = ein Spot + (ggf. gegated) Audio.
 export type TourStopView = {
@@ -57,6 +58,12 @@ export type TourDetail = TourSummary & {
    */
   isDraftPreview?: boolean;
   description: string | null;
+  /**
+   * Die Stimme der Runde, so weit der Player sie kennen darf (Name, Art, Personenname).
+   * Daraus baut VoiceDisclosure.tsx den Hinweis unter dem Play-Knopf (docs/39 §2). null =
+   * unbekannt oder gemischt (alte gespeicherte Runde), dann der generische KI-Hinweis.
+   */
+  voice?: VoiceInfo | null;
   stops: TourStopView[];
   canSeePro: boolean; // ob der Betrachter voll berechtigt ist (Pro/Admin)
   // Echte, an Fusswege gesnappte Geh-Route (Mapbox) + Start/Ziel der Runde. Bei

@@ -5,6 +5,7 @@ import CategoryManager from "@/components/admin/CategoryManager";
 import LocalManager from "@/components/admin/LocalManager";
 import SocialSettings from "@/components/admin/SocialSettings";
 import { getToniAvatarUrl } from "@/lib/settings";
+import { getVoices } from "@/lib/tts-voices";
 import { getSocialPostsAdmin } from "@/lib/social-feed";
 import { getCategoriesAdmin, getLocalsFull, getHomeStatus } from "@/lib/admin";
 import type { TranslationState } from "@/lib/spot-hash";
@@ -20,12 +21,13 @@ export default async function AdminSettingsPage({
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const [toniAvatar, categories, locals, home, socialPosts] = await Promise.all([
+  const [toniAvatar, categories, locals, home, socialPosts, voices] = await Promise.all([
     getToniAvatarUrl(),
     getCategoriesAdmin(),
     getLocalsFull(),
     getHomeStatus(),
     getSocialPostsAdmin(),
+    getVoices(),
   ]);
 
   return (
@@ -88,6 +90,23 @@ export default async function AdminSettingsPage({
         emoji="🎬"
         title="Intro-Videos"
         description="Die Wander-Animationen ohne Text-Overlay herunterladen (für eigene Videos)."
+      />
+
+      {/* Die Stimmen der Audio-Runden (Migration 0068). Steht unten, weil man sie einmal
+          anlegt und dann monatelang nicht mehr anfasst; WELCHE Stimme spricht, wählt man an
+          der Runde selbst. */}
+      <AdminNavCard
+        href="/admin/settings/voices"
+        emoji="🎙️"
+        title="Stimmen"
+        badge={
+          <span className={STATUS_NEUTRAL}>
+            {voices.length === 0
+              ? "keine angelegt"
+              : `${voices.length} ${voices.length === 1 ? "Stimme" : "Stimmen"}`}
+          </span>
+        }
+        description="ElevenLabs-Stimmen für die Audio-Runden: anlegen, Standard setzen, probehören."
       />
 
       {/* Instagram-Kacheln: Bild hochladen, Link einfügen, fertig. Bewusst ohne Meta-App und

@@ -14,7 +14,8 @@
 import { readFileSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
 import { tourRouteHash } from "../src/lib/tour-route.ts";
-import { synthesizeVoice } from "../src/lib/tts.ts";
+import { ensureVoiceFile } from "../src/lib/tts-files.ts";
+import { getDefaultVoice } from "../src/lib/tts-voices.ts";
 import { cleanRouteGeo } from "../src/lib/tour-route.ts";
 
 const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -43,10 +44,15 @@ const KOSTPROBE_DATEI = ".audio-texte/runde-a-de-kostprobe.json";
 const texte: Record<string, string> = JSON.parse(readFileSync(TEXT_DATEI, "utf8"));
 const kostproben: Record<string, string> = JSON.parse(readFileSync(KOSTPROBE_DATEI, "utf8"));
 
-// Vertonen kostet Geld und legt bei jedem Lauf eine neue Datei an. Deshalb nur, wenn noch
-// keine da ist. Neu vertonen mit FORCE_TTS=1, dann bleibt die alte Datei als Waise liegen
-// und gehoert von Hand aus dem Bucket geraeumt.
+// Vertonen kostet Geld. Der Kern (lib/tts-files.ts) vertont deshalb nur, was fehlt oder
+// veraltet ist (Text geaendert, Datei im Bucket weg). FORCE_TTS=1 erzwingt neue Takes; die
+// ersetzten Dateien raeumt der woechentliche Waisen-Sweep. Seit 09/2026 geht dasselbe auch
+// im Admin an der Runde ("Stimme pruefen" / "Vertonen"), fuer alle Sprachen und Stimmen.
 const NEU_VERTONEN = process.env.FORCE_TTS === "1";
+
+// Die Stimme der Runde (Migration 0068): der Standard aus tts_voices, also Toni.
+const STIMME = await getDefaultVoice();
+if (!STIMME) throw new Error("Keine Stimme in tts_voices (Migration 0068 einspielen)");
 
 const SPOTS: Spot[] = [
   {
@@ -168,47 +174,25 @@ for (const [i, s] of SPOTS.entries()) {
   const probe = kostproben[s.titel];
   if (!probe) throw new Error(`Keine Kostprobe für "${s.titel}" in ${KOSTPROBE_DATEI}`);
 
-  // Was schon vertont ist, bleibt vertont (siehe NEU_VERTONEN oben).
-  const vorher = (
-    await db
-      .from("tour_point_audio")
-      .select("audio_url, teaser_url")
-      .eq("point_id", id)
-      .eq("lang", "de")
-      .maybeSingle()
-  ).data as { audio_url: string | null; teaser_url: string | null } | null;
-
-  const vertonen = async (was: string, txt: string, kind: "voll" | "kostprobe", alt: string | null) => {
-    if (alt && !NEU_VERTONEN) return alt;
-    const r = await synthesizeVoice({ text: txt, lang: "de", kind });
-    if (!r.ok) throw new Error(`Vertonung (${was}) fehlgeschlagen: ${r.error}`);
-    // Die ersetzte Datei gleich wegräumen. Sonst sammelt jeder FORCE_TTS-Lauf Waisen im
-    // Bucket an, die niemand mehr zuordnen kann, weil der Name nur eine UUID ist.
-    if (alt) {
-      const { error } = await db.storage.from("tour-audio").remove([alt]);
-      log(`     ${was}: ${r.path} (${Math.round(r.bytes / 1024)} kB), alt ${error ? "NICHT" : ""} gelöscht: ${alt}`);
-    } else {
-      log(`     ${was}: ${r.path} (${Math.round(r.bytes / 1024)} kB)`);
-    }
-    return r.path;
-  };
-
-  const audioUrl = await vertonen("Geschichte", text, "voll", vorher?.audio_url ?? null);
-  const teaserUrl = await vertonen("Kostprobe", probe, "kostprobe", vorher?.teaser_url ?? null);
-
+  // Erst der Text (die Datei-Zeile haengt per FK an ihm), dann die Dateien je Stimme.
   await db.from("tour_point_audio").upsert(
     {
       point_id: id,
       lang: "de",
       audio_text: text,
       duration_sec: sekunden(text),
-      audio_url: audioUrl,
       teaser_text: probe,
-      teaser_url: teaserUrl,
       teaser_sec: sekunden(probe),
     },
     { onConflict: "point_id,lang" },
   );
+  const vertonen = async (was: string, txt: string, kind: "voll" | "kostprobe") => {
+    const r = await ensureVoiceFile({ pointId: id!, lang: "de", kind, voice: STIMME, text: txt, force: NEU_VERTONEN, db });
+    if (!r.ok) throw new Error(`Vertonung (${was}) fehlgeschlagen: ${r.error}`);
+    log(`     ${was}: ${r.skipped ? "schon aktuell" : `neu vertont (${r.chars} Zeichen)`} ${r.path}`);
+  };
+  await vertonen("Geschichte", text, "voll");
+  await vertonen("Kostprobe", probe, "kostprobe");
   pointIds.push(id);
   log(`  ${i + 1}. ${s.titel}  ${id}`);
 }
@@ -241,6 +225,7 @@ const tourRow = {
   free_stops: 2, // Gratis-Einstieg (docs/40): die ersten beiden Geschichten ohne Pro
   status: await statusBehalten("tours", "slug", TOUR_SLUG),
   mode: "bike" as const,
+  voice_id: STIMME.id,
   duration_min: durationMin,
   distance_km: distanceKm,
   start_lat: HANUSCHPLATZ.lat,

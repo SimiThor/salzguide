@@ -574,6 +574,35 @@ Waisen und löschte sie. Behoben im Sammler; die sieben Dateien müssen neu vert
 Kostproben ist die sparsamere Variante). Lehre: Wer eine Spalte mit Objektpfaden anlegt,
 trägt sie im selben Commit in `storage-refs.mjs` ein, sonst löscht der Sweep Inhalte.
 
+## Eine Stimme je Runde (seit 09/2026)
+
+Route 66 spricht Simon, der Giro später Anton, und die Erzählstimme „Toni" bleibt für alles
+andere. Damit man das hört, ohne dass eine Runde je zwei Stimmen mischt, ist das Modell so:
+
+- **Text je Punkt und Sprache** (`tour_point_audio`: Sprechtext, Kostproben-Text, Dauer).
+- **Dateien je Punkt, Sprache UND Stimme** (`tour_point_voice_files`, Migration 0068). Ein
+  Punkt kann in zwei Runden mit verschiedenen Stimmen stecken, weil er für jede Stimme eigene
+  Dateien hat. Jede Datei trägt den Hash des Textes, aus dem sie entstand.
+- **Die Runde trägt ihre Stimme** (`tours.voice_id`, Pflichtfeld) und liest ausschließlich
+  deren Dateien. Fehlt eine Sprache, fällt sie auf die deutsche Datei DERSELBEN Stimme zurück,
+  nie auf eine fremde Stimme.
+- **Vertont wird nur, was fehlt oder veraltet ist.** „Prüfen" an der Runde zeigt, welche
+  Dateien fehlen (auch solche, deren Objekt im Bucket weg ist, wie die sieben Kostproben vom
+  15.09.), welche einen älteren Text sprechen und wie viele Zeichen das kostet. Erst danach
+  „Vertonen". Ein zweiter Lauf findet nichts mehr.
+- **Veröffentlichen sichert die Stimme, nicht die Übersetzung:** jede veröffentlichte
+  Station braucht die deutsche Volldatei der Runden-Stimme (Deutsch ist die Rückfall-Sprache
+  des Players), und keine Datei darf einen älteren Text sprechen. Fehlende andere Sprachen
+  blockieren nicht, der Gast hört dann wie bisher Deutsch, in derselben Stimme; „Prüfen"
+  zeigt die Lücke. Ein Stimmwechsel einer Live-Runde ist damit atomar: erst die Dateien der
+  neuen Stimme erzeugen, dann die Stimme speichern. Bis dahin spielt die alte Stimme.
+- Ersetzte Dateien werden nie sofort gelöscht. Der wöchentliche Waisen-Sweep räumt sie nach
+  48 Stunden, und nur, wenn keine Zeile mehr auf sie zeigt (`storage-refs.mjs` kennt die neue
+  Tabelle seit demselben Commit wie die Migration).
+
+Die Offenlegung im Player folgt der Stimm-Art (docs/39 §2): KI-Stimme, „Die Stimme von
+Simon, per KI gesprochen" oder „Gesprochen von …" bei echten Aufnahmen.
+
 **Was noch fehlt**, in dieser Reihenfolge: Apple Pay und Google Pay im selben Fenster (der
 Sprung zu Stripes Kasse ist der letzte verbliebene Seitenwechsel), und eine Preiszeile vor
 dem Start, damit Stopp 3 als Bestätigung ankommt und nicht als Überraschung.

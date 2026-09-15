@@ -49,6 +49,8 @@
 
 ### 2.2 Auftragsverarbeiter (AVV/DPA abschließen)
 Für **jeden** Dienst, der personenbezogene Daten verarbeitet, **AVV** (Art. 28): Supabase, Vercel, Stripe, **Anthropic (Claude)**, OpenAI (STT/Embeddings), ElevenLabs (TTS), Mapbox, Google (Places), Meteoblue, Cloudflare, Creatomate, Resend, Analytics-Tool.
+
+ElevenLabs verarbeitet seit 09/2026 zusätzlich **Stimmklone von Teammitgliedern** (Simon, später Anton): Die Stimme einer Person ist ein personenbezogenes Datum, Rechtsgrundlage ist die Einwilligung (Art. 6 Abs. 1 lit. a), schriftlich abgelegt (docs/39 §8). Betroffen sind nur wir selbst, keine Nutzer.
 - **Drittlandtransfer (USA):** wo US-Dienste → **EU-US Data Privacy Framework** / **SCCs** sicherstellen, in Datenschutzerklärung nennen. Wo möglich EU-Region/EU-Anbieter wählen.
 
 ### 2.3 Betroffenenrechte & Pflichten

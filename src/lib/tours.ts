@@ -5,6 +5,7 @@ import { translationStatus } from "./spot-hash";
 import { routing } from "@/i18n/routing";
 import { tourModeOf, type TourMode } from "./tour-mode";
 import { stopAudioAccess } from "./tour-audio-gate";
+import { countVoicedLangs, type VoiceInfo, type VoiceKind } from "./tts-rules";
 import type { TourDetail, TourStopView, TourSummary } from "./tour-types";
 
 // Datenschicht für Audio-Touren (POOL-Modell): eine kuratierte Runde besteht aus
@@ -87,6 +88,9 @@ export async function getTourDetail(
   // Fortbewegungsart (0064). Schlägt die Abfrage deshalb fehl, greift der zweite
   // Versuch mit baseCols allein.
   const routeCols = "start_lat, start_lng, end_lat, end_lng, route_geo, mode";
+  // Die Stimme der Runde (0068): Name und Art für die Offenlegung, die ID für die Dateien.
+  // Eigene Stufe im Fallback, damit die Seite auch vor der Migration aufgeht.
+  const voiceCols = "voice_id, tts_voices(name, kind, person_name)";
   // ENTWURFS-VORSCHAU FÜR ADMINS, und der Grund ist ein Widerspruch in unseren eigenen
   // Regeln: docs/40 verlangt, dass eine Runde einmal wirklich abgefahren wird, BEVOR sie
   // veröffentlicht wird. Die Fahrseite lieferte aber nur veröffentlichte Runden aus. Man
@@ -103,6 +107,8 @@ export async function getTourDetail(
   };
 
   const versuche = async (nurVeroeffentlicht: boolean) => {
+    const mitStimme = await holen(`${baseCols}, ${routeCols}, ${voiceCols}`, nurVeroeffentlicht);
+    if (!mitStimme.error) return mitStimme.data;
     const mitRoute = await holen(`${baseCols}, ${routeCols}`, nurVeroeffentlicht);
     if (!mitRoute.error) return mitRoute.data;
     return (await holen(baseCols, nurVeroeffentlicht)).data;
@@ -161,17 +167,15 @@ export async function getTourDetail(
       teaserSec: number | null;
     }
   >();
+  const tourVoiceId = typeof tt.voice_id === "string" ? tt.voice_id : null;
   if (pointIds.length) {
-    // Die Kostprobe-Spalten kommen erst mit Migration 0065. Fehlen sie, darf die Tour-Seite
-    // nicht ausfallen -> zweiter Versuch ohne sie (Muster wie oben bei route_geo und mode).
-    const audioCols = "point_id, lang, audio_url, audio_text, duration_sec";
-    const holen = async (cols: string) =>
-      (await supabase.from("tour_point_audio").select(cols).in("point_id", pointIds)).data as
-        | Record<string, unknown>[]
-        | null;
-    const audioRows = (await holen(`${audioCols}, teaser_url, teaser_sec`)) ?? (await holen(audioCols));
+    // Text und Dauer je Sprache aus tour_point_audio; die DATEIEN seit 0068 aus
+    // tour_point_voice_files, und zwar NUR die der Runden-Stimme: Fehlt eine Sprache, fällt
+    // sie unten auf die deutsche Datei DERSELBEN Stimme zurück, nie auf eine fremde. Vor der
+    // Migration (kein voice_id) gelten noch die Pfadspalten der Textzeile.
+    const audioRows = await loadStopAudio(supabase, pointIds, tourVoiceId);
     const grouped = new Map<string, Record<string, unknown>[]>();
-    for (const a of audioRows ?? []) {
+    for (const a of audioRows) {
       const pid = a.point_id as string;
       const list = grouped.get(pid) ?? [];
       list.push(a);
@@ -298,6 +302,7 @@ export async function getTourDetail(
     // Nur gesetzt, wenn ein Admin gerade einen Entwurf ansieht. Die Oberfläche zeigt es an,
     // damit niemand einen Entwurf für die veröffentlichte Runde hält.
     isDraftPreview: istEntwurf,
+    voice: voiceInfoFromEmbed(tt.tts_voices),
     stops,
     canSeePro,
     // Gesnappte Geh-Route + Start/Ziel (Migration 0061). Fehlen sie, zeichnet die
@@ -313,6 +318,58 @@ function coordOf(lat: unknown, lng: unknown): { lat: number; lng: number } | nul
   return typeof lat === "number" && typeof lng === "number" && Number.isFinite(lat) && Number.isFinite(lng)
     ? { lat, lng }
     : null;
+}
+
+/** Name und Art der Stimme aus dem eingebetteten tts_voices-Objekt, nie die ID. */
+export function voiceInfoFromEmbed(v: unknown): VoiceInfo | null {
+  const r = (Array.isArray(v) ? v[0] : v) as Record<string, unknown> | null | undefined;
+  if (!r || typeof r.name !== "string") return null;
+  const kind = (["synthetic", "cloned", "human"] as const).includes(r.kind as VoiceKind)
+    ? (r.kind as VoiceKind)
+    : "synthetic";
+  return { name: r.name, kind, personName: (r.person_name as string | null) ?? null };
+}
+
+/**
+ * Audio je Punkt und Sprache für den Player: Text + Dauer aus tour_point_audio, Dateien aus
+ * tour_point_voice_files für GENAU EINE Stimme. Ohne Stimme (vor Migration 0068) die alten
+ * Pfadspalten der Textzeile. Rückgabe in der Form, die die Auswahl-Schleife erwartet.
+ */
+export async function loadStopAudio(
+  supabase: ReturnType<typeof createServiceClient>,
+  pointIds: string[],
+  voiceId: string | null,
+): Promise<Record<string, unknown>[]> {
+  const textCols = "point_id, lang, audio_text, duration_sec, teaser_sec";
+  const { data: texts, error } = await supabase.from("tour_point_audio").select(textCols).in("point_id", pointIds);
+  if (error) {
+    // Vor Migration 0065 gab es teaser_sec nicht; die Seite darf deshalb nicht ausfallen.
+    const plain = await supabase.from("tour_point_audio").select("point_id, lang, audio_text, duration_sec").in("point_id", pointIds);
+    return (plain.data as Record<string, unknown>[] | null) ?? [];
+  }
+  const rows = (texts as Record<string, unknown>[] | null) ?? [];
+  if (!voiceId) {
+    const legacy = await supabase
+      .from("tour_point_audio")
+      .select("point_id, lang, audio_url, teaser_url")
+      .in("point_id", pointIds);
+    const byKey = new Map(
+      ((legacy.data as Record<string, unknown>[] | null) ?? []).map((r) => [`${r.point_id}|${r.lang}`, r]),
+    );
+    return rows.map((r) => ({ ...r, ...(byKey.get(`${r.point_id}|${r.lang}`) ?? {}) }));
+  }
+  const { data: files } = await supabase
+    .from("tour_point_voice_files")
+    .select("point_id, lang, audio_url, teaser_url")
+    .in("point_id", pointIds)
+    .eq("voice_id", voiceId);
+  const byKey = new Map(
+    ((files as Record<string, unknown>[] | null) ?? []).map((r) => [`${r.point_id}|${r.lang}`, r]),
+  );
+  return rows.map((r) => {
+    const f = byKey.get(`${r.point_id}|${r.lang}`);
+    return { ...r, audio_url: f?.audio_url ?? null, teaser_url: f?.teaser_url ?? null };
+  });
 }
 
 // Veröffentlichte Gebiete (für den KI-Runden-Builder / Gebiets-Auswahl).
@@ -402,7 +459,12 @@ export async function getToursAdmin(): Promise<AdminTourRow[]> {
   });
 }
 
-export type TourEditStop = { pointId: string; title: string };
+export type TourEditStop = {
+  pointId: string;
+  title: string;
+  /** Stimme -> Zahl der Sprachen mit Volldatei (für die Chips im Runden-Editor). */
+  voicedLangs: Record<string, number>;
+};
 
 export type TourTextData = { title: string; subtitle: string; description: string };
 
@@ -415,6 +477,8 @@ export type TourEditData = {
   freeStops: number;
   status: "draft" | "published";
   mode: TourMode;
+  // Die Stimme der Runde (0068). null nur vor der Migration; das Formular nimmt dann den Standard.
+  voiceId: string | null;
   durationMin: number | null;
   distanceKm: number | null;
   de: TourTextData;
@@ -437,14 +501,11 @@ export async function getTourForEdit(id: string): Promise<TourEditData | null> {
   // Admin-Formular auch vor den Migrationen aufgeht (Muster: getAreaForEdit).
   const baseCols =
     "id, area_id, emoji, cover_url, is_pro, free_stops, status, duration_min, distance_km";
-  const full = await supabase
-    .from("tours")
-    .select(
-      `${baseCols}, start_lat, start_lng, end_lat, end_lng, route_geo, route_hash, mode, ` +
-        "tour_translations(lang, title, subtitle, description, source_hash)",
-    )
-    .eq("id", id)
-    .maybeSingle();
+  const extCols = `${baseCols}, start_lat, start_lng, end_lat, end_lng, route_geo, route_hash, mode, ` +
+    "tour_translations(lang, title, subtitle, description, source_hash)";
+  // voice_id kommt mit 0068; eigene Stufe, damit das Formular auch vorher aufgeht.
+  let full = await supabase.from("tours").select(`${extCols}, voice_id`).eq("id", id).maybeSingle();
+  if (full.error) full = await supabase.from("tours").select(extCols).eq("id", id).maybeSingle();
   let tour: Record<string, unknown> | null = full.error
     ? null
     : ((full.data as unknown as Record<string, unknown> | null) ?? null);
@@ -485,19 +546,32 @@ export async function getTourForEdit(id: string): Promise<TourEditData | null> {
   // DE-Zeile, die jeder Save auf aktuell setzt – wie bei Punkten und Gebieten.
   const deHash = trs.find((r) => r.lang !== DE && r.source_hash)?.source_hash ?? undefined;
 
-  const { data: stopRows } = await supabase
-    .from("tour_stops")
-    .select("point_id, sort_order, tour_points(id, tour_point_translations(lang, title))")
-    .eq("tour_id", id)
-    .order("sort_order", { ascending: true });
-  const rows = (stopRows as unknown as Record<string, unknown>[] | null) ?? [];
+  const stopSel = (files: boolean) =>
+    supabase
+      .from("tour_stops")
+      .select(
+        "point_id, sort_order, tour_points(id, tour_point_translations(lang, title)" +
+          (files ? ", tour_point_voice_files(lang, voice_id, audio_url))" : ")"),
+      )
+      .eq("tour_id", id)
+      .order("sort_order", { ascending: true });
+  // Die Datei-Zeilen (0068) für die Stimmen-Chips; ohne die Tabelle ohne Chips.
+  let stopRes = await stopSel(true);
+  if (stopRes.error) stopRes = await stopSel(false);
+  const rows = (stopRes.data as unknown as Record<string, unknown>[] | null) ?? [];
 
   const stops: TourEditStop[] = rows.map((r) => {
     const point = (r.tour_points as Record<string, unknown>) ?? {};
     const strs = (point.tour_point_translations as { lang: string; title: string }[] | null) ?? [];
     const title =
       strs.find((x) => x.lang === "de")?.title ?? strs[0]?.title ?? "(ohne Titel)";
-    return { pointId: r.point_id as string, title };
+    return {
+      pointId: r.point_id as string,
+      title,
+      voicedLangs: countVoicedLangs(
+        point.tour_point_voice_files as { lang: string; voice_id: string; audio_url: string | null }[] | null,
+      ),
+    };
   });
 
   return {
@@ -509,6 +583,7 @@ export async function getTourForEdit(id: string): Promise<TourEditData | null> {
     freeStops: (tt.free_stops as number) ?? 0,
     status: (tt.status as "draft" | "published") ?? "draft",
     mode: tourModeOf(tt.mode),
+    voiceId: (tt.voice_id as string | null) ?? null,
     durationMin: (tt.duration_min as number | null) ?? null,
     distanceKm: (tt.distance_km as number | null) ?? null,
     de: build(DE),

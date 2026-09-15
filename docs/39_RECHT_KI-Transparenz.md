@@ -39,7 +39,9 @@ was umgesetzt ist (mit Dateipfaden) und was bewusst nicht. Wer eine KI-Funktion 
 | Toni-Chat (Claude API, eigene Marke) | Anbieter | 50(1)+(5) sofort, 50(2) spätestens 02.12.2026 | Greeting nennt KI (Ai.greeting, alle 13 Sprachen), Disclaimer in jedem Zustand sichtbar inkl. Paywall (AiAssistant.tsx), Header "dein KI-Local", maschinenlesbar: aiGenerated-Feld + X-AI-Generated-Header (api/ai/chat/route.ts) und data-ai-generated im DOM (AiMessage.tsx) |
 | Spot-, Event-, Home-Texte: KI-Entwürfe + 8 KI-Übersetzungen | Betreiber (Redaktion) | 50(4) nicht einschlägig: Reisetipps sind kein "öffentliches Interesse" im Sinn der Kommissions-FAQ, UND es gilt die Ausnahme menschliche Prüfung + redaktionelle Verantwortung (Anton) | Redaktions-Workflow in §4; freiwillige Offenlegung auf /ki |
 | Insider-Tipps in Ich-Form benannter Locals | Betreiber | 50(4) nicht einschlägig, aber Irreführungsrisiko (UWG) | Regel in §4: nur mit Freigabe der benannten Person; Kommentar an generateSpotTexts (admin-actions.ts) |
-| Audio-Touren: synthetische Stimme (ElevenLabs) | Betreiber (ElevenLabs ist TTS-Anbieter) | Kein Deepfake (imitiert keine bestimmte reale Person), Offenlegung trotzdem: Vertrauen + UWG | Sichtbarer Hinweis Tours.aiVoice im Player-Peek (TourView.tsx), ehrliches Tours.subtitle, Abschnitt auf /ki |
+| Audio-Touren: synthetische Erzählstimme „Toni" (ElevenLabs, Stimm-Art `synthetic`) | Betreiber (ElevenLabs ist TTS-Anbieter) | Kein Deepfake (imitiert keine bestimmte reale Person), Offenlegung trotzdem: Vertrauen + UWG | Sichtbarer Hinweis Tours.aiVoice im Player-Peek (VoiceDisclosure.tsx in TourView + ArrivalSheet), `data-ai-voice="synthetic"`, ehrliches Tours.subtitle, Abschnitt auf /ki |
+| Audio-Touren: **geklonte Stimme eines benannten Teammitglieds** (ElevenLabs Voice Clone, Stimm-Art `cloned`, seit 09/2026 je Runde wählbar, Tabelle tts_voices) | Betreiber | **Art. 50(4) einschlägig**: Audio, das einer bestehenden realen Person ähnelt und echt wirkt (Art. 3 Nr. 60). Offenlegung ist PFLICHT, nicht freiwillig. Zusätzlich Persönlichkeitsrecht/DSGVO der Person: nur mit schriftlicher Einwilligung zu Klonung UND Nennung | Namensnennung im Player-Peek VOR Play (Tours.aiVoiceClone: „Die Stimme von {name}, per KI gesprochen"), `data-ai-voice="cloned"` maschinenlesbar, Abschnitt auf /ki. Einwilligungen in §8. Widerruf = Runde im Admin auf eine andere Stimme stellen, neu vertonen, alte Dateien räumt der Waisen-Sweep |
+| Audio-Touren: echte Aufnahme einer Person (Stimm-Art `human`, manuell hochgeladene MP3) | keine KI | keine 50er-Pflicht | Der Player sagt es trotzdem (Tours.humanVoice: „Gesprochen von {name}"), damit die drei Fälle für Hörer unterscheidbar bleiben |
 | Eigene Runden (TourBuilder, KI wählt Stopps + Name) | Anbieter | 50(1) | Feature-Text nennt die KI, Sparkle-Symbol; Name läuft durch stripEmDash und ist als KI-Ausgabe in diesem Dokument erfasst |
 | Intro-Flyover-Videos | keine KI (Playwright + Mapbox, deterministisch) | keine | dokumentiert, §5 |
 | Fotos, Blur-Teaser, Icons | im Regelfall keine KI (sharp); AUSNAHMEN tragen media.ai_origin bzw. LandingImage.aiOrigin und damit das sichtbare KI-Label | 50(4) nur bei Deepfake; Teil-Bearbeitungen ohne Sinn-Änderung sind Standard-Bearbeitung (Ausnahme) | Marker-System seit 08/2026, §5a |
@@ -152,7 +154,15 @@ src/lib/ai-origin.ts ('generated' | 'edited' | 'extended' | null = ohne KI).
 - /ki ("Mit Liebe und KI gemacht"): erklärt alle KI-Hilfen in 13 Sprachen,
   src/app/[locale]/ki/page.tsx, Namensraum AiTransparency. Seit 03.08.2026 sagt der
   Abschnitt "Was ohne KI läuft" ehrlich, dass einzelne Bilder mit KI erweitert und
-  am Bild gekennzeichnet sind.
+  am Bild gekennzeichnet sind. Seit 09/2026 sagt AiTransparency.voiceBody nicht mehr
+  "Es spricht keine echte Person": Manche Runden sprechen mit der KI-Kopie der Stimme
+  eines Teammitglieds, mit dessen Zustimmung, und welche, steht direkt beim Player.
+- Stimmen der Audio-Touren: EIN Bauteil VoiceDisclosure.tsx entscheidet aus der Stimm-Art
+  (tts_voices.kind) zwischen Tours.aiVoice, Tours.aiVoiceClone und Tours.humanVoice und
+  setzt `data-ai-voice`. Es steht im Player-Peek (TourView) und im Ankunfts-Sheet der
+  Radnavigation (ArrivalSheet), also überall dort, wo ein Play-Knopf ist, und sichtbar,
+  BEVOR jemand drückt. Eine Runde hat genau eine Stimme (tours.voice_id), deshalb reicht
+  ein Hinweis je Runde.
 - Fußzeile: Legal.aiMotto verlinkt /ki (LegalFooter.tsx). Chat verlinkt /ki neben dem
   Disclaimer (Ai.transparencyLink). Sitemap führt /ki, llms.txt nennt die KI-Nutzung.
 - Datenschutzerklärung §3d: Anthropic-Übermittlung, Chat-Verlauf (24-Monate-Frist,
@@ -169,5 +179,9 @@ KI-Features vor dem Bau die Einstufungstabelle in §2 ergänzen.
 
 - [ ] Phase 2 (optional): ID3-Metadaten in Audio-MP3s beim Upload.
 - [ ] DPAs abschließen: Anthropic und ElevenLabs (docs/35 §Auftragsverarbeiter).
+- [ ] Einwilligungen Stimm-Klone schriftlich ablegen, BEVOR die Stimme in einer
+      veröffentlichten Runde spricht: Simon (Klonung + Nennung im Player, Datum: ____),
+      Anton (sobald geklont, Datum: ____). Dazu die ElevenLabs-Bedingungen für Voice
+      Clones (Zustimmung der gesprochenen Person) einmal geprüft ablegen.
 - [ ] 02.12.2026: Frist-Check Art. 50(2) (bei uns bereits erfüllt, nur bestätigen).
 - [ ] Jährlicher Review 08/2027 (§7).

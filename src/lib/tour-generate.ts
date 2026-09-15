@@ -8,6 +8,9 @@ import { saveUserTour } from "./user-tours";
 import { routing } from "@/i18n/routing";
 import { localeMeta } from "@/i18n/locales";
 import { pickLabel, AUDIO_WALK_FALLBACK } from "./i18n-labels";
+import { pickRoundVoice } from "./tts-rules";
+import { getDefaultVoice, getVoiceById, voiceInfoOf } from "./tts-voices";
+import { loadStopAudio } from "./tours";
 import type { TourDetail, TourStopView } from "./tour-types";
 
 // KI-Runden-Generator (Schritt 3): aus den Interessen des Nutzers wählt Claude
@@ -35,6 +38,8 @@ type Cand = {
   emoji: string | null;
   title: string;
   img: string | null;
+  /** Stimmen, für die der Punkt mindestens eine Volldatei hat (0068). */
+  voiceIds: string[];
 };
 type LngLat = { lat: number; lng: number };
 
@@ -77,23 +82,19 @@ export async function generateTour(
     areaTrs.find((r) => r.lang === DE)?.name ??
     "";
 
-  // 2) Kandidaten: veröffentlichte Punkte mit Geo UND Audio.
+  // 2) Kandidaten: veröffentlichte Punkte mit Geo UND Audio (Dateien je Stimme, 0068).
   const { data: pointRows } = await supabase
     .from("tour_points")
     .select(
-      "id, lat, lng, kind, tags, emoji, image_url, tour_point_translations(lang, title), tour_point_audio(lang)",
+      "id, lat, lng, kind, tags, emoji, image_url, tour_point_translations(lang, title), tour_point_voice_files(voice_id, audio_url)",
     )
     .eq("area_id", input.areaId)
     .eq("status", "published");
-  const candidates: Cand[] = ((pointRows as unknown as Record<string, unknown>[]) ?? [])
-    .filter((p) => {
-      const hasGeo = p.lat != null && p.lng != null;
-      const hasAudio = ((p.tour_point_audio as unknown[] | null) ?? []).length > 0;
-      return hasGeo && hasAudio;
-    })
+  const allCands: Cand[] = ((pointRows as unknown as Record<string, unknown>[]) ?? [])
     .map((p) => {
       const trs = (p.tour_point_translations as { lang: string; title: string }[] | null) ?? [];
       const tr = trs.find((r) => r.lang === locale) ?? trs.find((r) => r.lang === DE) ?? trs[0];
+      const files = (p.tour_point_voice_files as { voice_id: string; audio_url: string | null }[] | null) ?? [];
       return {
         id: p.id as string,
         lat: p.lat as number,
@@ -103,9 +104,16 @@ export async function generateTour(
         emoji: (p.emoji as string | null) ?? null,
         title: tr?.title ?? "",
         img: (p.image_url as string | null) ?? null,
+        voiceIds: [...new Set(files.filter((f) => f.audio_url).map((f) => f.voice_id))],
       };
-    });
+    })
+    .filter((p) => p.lat != null && p.lng != null && p.voiceIds.length > 0);
+  // EINE Stimme je Runde, auch hier: die mit der größten Abdeckung im Pool, bei Gleichstand
+  // der Standard. Nur Punkte mit Dateien dieser Stimme kommen in die Auswahl.
+  const roundVoiceId = pickRoundVoice(allCands, (await getDefaultVoice())?.id ?? null);
+  const candidates = allCands.filter((c) => roundVoiceId != null && c.voiceIds.includes(roundVoiceId));
   if (candidates.length < 2) return { ok: false, error: "too_few" };
+  const roundVoice = roundVoiceId ? await getVoiceById(roundVoiceId) : null;
 
   // 3) Claude wählt eine passende, machbare Teilmenge (nie zu viele).
   const maxStops = Math.max(3, Math.min(input.maxStops ?? 6, 8, candidates.length));
@@ -127,16 +135,13 @@ export async function generateTour(
   const optimized = await optimizeLoop(start, chosen);
   const ordered = optimized.order;
 
-  // 5) Audio der gewählten Punkte laden, gaten, signieren.
+  // 5) Audio der gewählten Punkte laden (nur Dateien der Runden-Stimme), gaten, signieren.
   const chosenIdsFinal = ordered.map((c) => c.id);
   const audioByPoint = new Map<string, { url: string | null; text: string | null; dur: number | null }>();
   {
-    const { data: audioRows } = await supabase
-      .from("tour_point_audio")
-      .select("point_id, lang, audio_url, audio_text, duration_sec")
-      .in("point_id", chosenIdsFinal);
+    const audioRows = await loadStopAudio(supabase, chosenIdsFinal, roundVoiceId);
     const grouped = new Map<string, Record<string, unknown>[]>();
-    for (const a of (audioRows as Record<string, unknown>[] | null) ?? []) {
+    for (const a of audioRows) {
       const pid = a.point_id as string;
       const list = grouped.get(pid) ?? [];
       list.push(a);
@@ -221,6 +226,7 @@ export async function generateTour(
     distanceKm,
     // Der KI-Builder erzeugt bisher ausschliesslich Geh-Runden.
     mode: "walk",
+    voice: voiceInfoOf(roundVoice),
     stops,
     canSeePro,
     routeGeo: optimized.geo,

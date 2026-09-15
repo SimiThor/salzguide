@@ -1,6 +1,5 @@
 "use server";
 
-import { createServiceClient } from "./supabase/service";
 import { fetchWithRetry } from "./ai-fetch";
 import { BRAND_VOICE } from "./brand-voice";
 import { TAG_KEYS } from "./tour-tags";
@@ -11,7 +10,8 @@ import { stripEmDashFields } from "./em-dash";
 import { requireAdmin } from "./admin-guard";
 import { slugifyKey } from "./slug";
 import { guardStorageUrl } from "./storage-guard";
-import { synthesizeVoice } from "./tts";
+import { loadPointFiles, loadPointTourUsage } from "./tts-files";
+import { countVoicedLangs, pointVoicesPublishable, requiredVoiceIds } from "./tts-rules";
 
 const POINT_TARGET_LOCALES = routing.locales.filter((l) => l !== "de");
 
@@ -19,22 +19,15 @@ const POINT_TARGET_LOCALES = routing.locales.filter((l) => l !== "de");
 // Audio-Punkte (tour_points) statt Explore-Spots. Muster wie tour-actions.ts:
 // requireAdmin-Gate (lib/admin-guard) + Session-Client-Writes (RLS greift zusätzlich),
 // kein revalidatePath.
+//
+// Die AUDIODATEIEN eines Punkts werden hier seit Migration 0068 NICHT mehr geschrieben:
+// Sie liegen je Punkt, Sprache und Stimme in tour_point_voice_files, und Vertonen, MP3
+// anhängen und Entfernen sind sofortige Actions in lib/tts-actions.ts. savePoint schreibt
+// Texte und Meta, und prüft beim Veröffentlichen, ob die Dateien da sind.
 
 const e = (v: string) => (v.trim() === "" ? null : v.trim());
 // slugifyKey/guardStorageUrl kommen aus lib/slug.ts bzw. lib/storage-guard.ts
 // (EINE Implementierung statt drei wortgleicher Kopien).
-
-// Audio: OBJEKT-PFAD im privaten tour-audio-Bucket (keine URL, kein "..").
-function guardAudioPath(
-  path: string | null,
-): { ok: true; path: string | null } | { ok: false } {
-  const clean = typeof path === "string" && path.trim() ? path.trim() : null;
-  if (!clean) return { ok: true, path: null };
-  if (clean.length > 200 || clean.includes("://") || clean.startsWith("/") || clean.includes(".."))
-    return { ok: false };
-  if (!/^[A-Za-z0-9._/-]+\.(mp3|m4a|aac|ogg|wav)$/i.test(clean)) return { ok: false };
-  return { ok: true, path: clean };
-}
 
 export type SaveResult = { ok: boolean; id?: string; error?: string };
 
@@ -169,7 +162,7 @@ export async function setAreaStatus(
 }
 
 // ── Pool-Punkte ──────────────────────────────────────────────────────────────
-export type PointTexts = { title: string; audioText: string; audioUrl: string | null };
+export type PointTexts = { title: string; audioText: string };
 export type PointInput = {
   id?: string;
   areaId: string;
@@ -182,7 +175,8 @@ export type PointInput = {
   imageUrl: string | null;
   status: "draft" | "published";
   de: PointTexts;
-  // Übersetzungen je Sprache (Titel + Sprechtext + Audiodatei). DE bleibt in `de`.
+  // Übersetzungen je Sprache (Titel + Sprechtext). DE bleibt in `de`. Die Audiodateien
+  // hängen seit 0068 je Stimme an der Textzeile (lib/tts-actions.ts), nicht am Formular.
   translations: Record<string, PointTexts>;
   translationsSourceHash?: string;
 };
@@ -206,34 +200,38 @@ export async function savePoint(input: PointInput): Promise<SaveResult> {
   const deTitle = input.de.title.trim();
   if (!deTitle) return { ok: false, error: "required" };
 
-  const audioDe = guardAudioPath(input.de.audioUrl);
-  if (!audioDe.ok) return { ok: false, error: "bad_url" };
   const image = guardStorageUrl(input.imageUrl);
   if (!image.ok) return { ok: false, error: "bad_url" };
 
-  // Übersetzungen einlesen + Audiopfade prüfen.
-  const trClean: Record<string, { title: string; audioText: string; path: string | null }> = {};
+  // Übersetzungen einlesen.
+  const trClean: Record<string, { title: string; audioText: string }> = {};
   for (const [lang, tx] of Object.entries(input.translations ?? {})) {
     if (lang === "de" || !tx) continue;
-    const g = guardAudioPath(tx.audioUrl);
-    if (!g.ok) return { ok: false, error: "bad_url" };
-    trClean[lang] = {
-      title: (tx.title ?? "").trim(),
-      audioText: (tx.audioText ?? "").trim(),
-      path: g.path,
-    };
+    trClean[lang] = { title: (tx.title ?? "").trim(), audioText: (tx.audioText ?? "").trim() };
   }
 
-  // VERÖFFENTLICHEN nur, wenn ALLE Sprachen Titel + Audio (Sprechtext + mp3) haben.
-  // (Als Entwurf speichern ist immer erlaubt.) -> Anti-Chaos-Gate für Audio-Punkte.
+  // VERÖFFENTLICHEN nur, wenn ALLE Sprachen Titel + Sprechtext haben UND die Dateien da
+  // sind (Als Entwurf speichern ist immer erlaubt.) -> Anti-Chaos-Gate für Audio-Punkte.
+  //
+  // Welche Stimmen die Dateien haben müssen, sagt tts-rules.ts: die der veröffentlichten
+  // Runden, in denen der Punkt steckt; steckt er in keiner, reicht eine Stimme komplett.
+  // Ein NEUER Punkt hat noch keine Dateien und wird deshalb erst als Entwurf angelegt.
   if (input.status === "published") {
     const missing: string[] = [];
-    if (!audioDe.path || !input.de.audioText.trim()) missing.push("de");
+    if (!input.de.audioText.trim()) missing.push("de");
     for (const l of POINT_TARGET_LOCALES) {
       const g = trClean[l];
-      if (!g || !g.title || !g.path || !g.audioText) missing.push(l);
+      if (!g || !g.title || !g.audioText) missing.push(l);
     }
     if (missing.length) return { ok: false, error: `langs_incomplete:${missing.join(",")}` };
+    if (!input.id) return { ok: false, error: "voice_files_incomplete" };
+    const [usage, files] = await Promise.all([
+      loadPointTourUsage(supabase, input.id),
+      loadPointFiles(supabase, input.id),
+    ]);
+    const required = requiredVoiceIds(usage.filter((u) => u.status === "published").map((u) => u.voiceId));
+    if (!pointVoicesPublishable({ required, langs: routing.locales, files }))
+      return { ok: false, error: "voice_files_incomplete" };
   }
 
   const row = {
@@ -293,16 +291,25 @@ export async function savePoint(input: PointInput): Promise<SaveResult> {
     }
   }
 
-  // Audio je Sprache (Pro-Asset). Leere Felder -> Zeile löschen.
-  const audioRows: [string, string | null, string][] = [
-    ["de", audioDe.path, input.de.audioText],
-    ...POINT_TARGET_LOCALES.map(
-      (l) => [l, trClean[l]?.path ?? null, trClean[l]?.audioText ?? ""] as [string, string | null, string],
-    ),
+  // Sprechtext je Sprache (Pro-Asset). Die Dateien hängen seit 0068 per FK an dieser
+  // Zeile (tour_point_voice_files, Kaskade). Eine Zeile ohne Sprechtext darf deshalb nur
+  // weg, wenn sie weder Kostproben-Text noch Dateien hat: Sonst löschte das Leeren eines
+  // Feldes still die bezahlten Aufnahmen aller Stimmen.
+  const [{ data: textRows }, { data: fileRows }] = await Promise.all([
+    supabase.from("tour_point_audio").select("lang, teaser_text").eq("point_id", pointId),
+    supabase.from("tour_point_voice_files").select("lang").eq("point_id", pointId),
+  ]);
+  const keep = new Set<string>();
+  for (const r of (textRows as { lang: string; teaser_text: string | null }[] | null) ?? [])
+    if ((r.teaser_text ?? "").trim()) keep.add(r.lang);
+  for (const r of (fileRows as { lang: string }[] | null) ?? []) keep.add(r.lang);
+  const audioRows: [string, string][] = [
+    ["de", input.de.audioText],
+    ...POINT_TARGET_LOCALES.map((l) => [l, trClean[l]?.audioText ?? ""] as [string, string]),
   ];
-  for (const [lang, path, text] of audioRows) {
+  for (const [lang, text] of audioRows) {
     const txt = (text ?? "").trim();
-    if (!path && !txt) {
+    if (!txt && !keep.has(lang)) {
       const { error: eDel } = await supabase
         .from("tour_point_audio")
         .delete()
@@ -311,7 +318,7 @@ export async function savePoint(input: PointInput): Promise<SaveResult> {
       if (eDel) return abort("db");
     } else {
       const { error: eAudio } = await supabase.from("tour_point_audio").upsert(
-        { point_id: pointId, lang, audio_url: path, audio_text: txt || null },
+        { point_id: pointId, lang, audio_text: txt || null },
         { onConflict: "point_id,lang" },
       );
       if (eAudio) return abort("db");
@@ -364,7 +371,8 @@ export type PickerPoint = {
   id: string;
   title: string;
   status: string;
-  hasAudio: boolean;
+  /** Stimme -> Zahl der Sprachen mit Volldatei. Der Runden-Editor zeigt n/13 für SEINE Stimme. */
+  voicedLangs: Record<string, number>;
   lat: number | null;
   lng: number | null;
 };
@@ -377,25 +385,30 @@ export async function listAreaPoints(
   if (!areaId) return { ok: true, points: [] };
   const { data, error } = await gate.supabase
     .from("tour_points")
-    .select("id, status, lat, lng, tour_point_translations(lang, title), tour_point_audio(lang)")
+    .select(
+      "id, status, lat, lng, tour_point_translations(lang, title), tour_point_voice_files(lang, voice_id, audio_url)",
+    )
     .eq("area_id", areaId)
     // sort_order wird (noch) nirgends gepflegt und steht überall auf 0. Ohne stabilen
     // Zweitschlüssel wäre die Reihenfolge Postgres-Zufall und spränge zwischen Aufrufen.
     .order("sort_order", { ascending: true })
     .order("created_at", { ascending: true });
   if (error) return { ok: false, error: "db" };
-  const points: PickerPoint[] = ((data as unknown as Record<string, unknown>[]) ?? []).map((p) => {
+  const points: PickerPoint[] = [];
+  for (const p of ((data as unknown as Record<string, unknown>[]) ?? [])) {
     const trs = (p.tour_point_translations as { lang: string; title: string }[] | null) ?? [];
     const tr = trs.find((r) => r.lang === "de") ?? trs[0];
-    return {
+    points.push({
       id: p.id as string,
       title: tr?.title ?? "(ohne Titel)",
       status: p.status as string,
-      hasAudio: ((p.tour_point_audio as unknown[] | null) ?? []).length > 0,
+      voicedLangs: countVoicedLangs(
+        p.tour_point_voice_files as { lang: string; voice_id: string; audio_url: string | null }[] | null,
+      ),
       lat: (p.lat as number | null) ?? null,
       lng: (p.lng as number | null) ?? null,
-    };
-  });
+    });
+  }
   return { ok: true, points };
 }
 
@@ -497,27 +510,8 @@ export async function generatePointAudioText(input: {
 }
 
 // ── TTS: Sprechtext -> MP3-Stimme ────────────────────────────────────────────
-export type TtsResult = { ok: boolean; path?: string; previewUrl?: string | null; error?: string };
-
-// Die eigentliche Vertonung steht in lib/tts.ts, weil sie auch ausserhalb des Admin
-// gebraucht wird: Eine Radrunde hat sieben Punkte mit je zwei Dateien in dreizehn Sprachen,
-// und das klickt niemand durch. Hier bleibt nur die Admin-Schranke und die Vorschau.
-export async function synthesizePointVoice(input: {
-  text: string;
-  lang: string;
-}): Promise<TtsResult> {
-  const gate = await requireAdmin();
-  if (!gate.ok) return { ok: false, error: gate.error };
-
-  const r = await synthesizeVoice({ text: input.text, lang: input.lang });
-  if (!r.ok) return { ok: false, error: r.error };
-
-  // Kurzlebige Signed-URL zum sofortigen Probehören im Admin (privater Bucket).
-  const { data: signed } = await createServiceClient()
-    .storage.from("tour-audio")
-    .createSignedUrl(r.path, 60 * 30);
-  return { ok: true, path: r.path, previewUrl: signed?.signedUrl ?? null };
-}
+// Steht seit 0068 in lib/tts-actions.ts (voicePointFile): eine Datei je Punkt, Sprache und
+// Stimme, sofort gespeichert, nur vertont, wenn Text oder Datei sich geändert haben.
 
 // Deutschen Sprechtext ins Englische übertragen (gleicher Ton, gleiche Länge).
 export async function translatePointAudioText(input: {
