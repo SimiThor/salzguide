@@ -40,12 +40,14 @@ const inputCls =
 const labelCls = "mb-1 block text-[13px] font-medium text-muted";
 
 // Die vier Regler wie im ElevenLabs-Studio, mit denselben Namen, damit man Werte von dort
-// eins zu eins uebernehmen kann.
+// eins zu eins uebernehmen kann. Schrittweite 0,01: ElevenLabs liefert zwei Nachkommastellen
+// (Toni: 0,79 / 0,91 / 0,48), und mit 0,05 verweigerte der Browser das Absenden
+// ("Gueltigen Wert eingeben"), obwohl der Wert gueltig war.
 const SETTING_FIELDS: { key: keyof Omit<VoiceSettings, "speakerBoost">; label: string; step: number }[] = [
-  { key: "stability", label: "Stabilität", step: 0.05 },
-  { key: "similarity", label: "Ähnlichkeit", step: 0.05 },
-  { key: "style", label: "Stil", step: 0.05 },
-  { key: "speed", label: "Tempo", step: 0.05 },
+  { key: "stability", label: "Stabilität", step: 0.01 },
+  { key: "similarity", label: "Ähnlichkeit", step: 0.01 },
+  { key: "style", label: "Stil", step: 0.01 },
+  { key: "speed", label: "Tempo", step: 0.01 },
 ];
 const settingsLine = (s: VoiceSettings) =>
   `Stabilität ${s.stability} · Ähnlichkeit ${s.similarity} · Stil ${s.style} · Tempo ${s.speed}${s.speakerBoost ? "" : " · ohne Boost"}`;
