@@ -13,6 +13,8 @@ import {
   stepNav,
   initNavState,
   resetForNewRoute,
+  settleSpot,
+  atSpot,
   NAV,
   type GeoFix,
   type NavRoute,
@@ -583,6 +585,18 @@ console.log("\n18. Zwei Spots im selben Schritt: keiner geht verloren");
 }
 
 
+// Runde mit Stichweg: 400 m hin, 100 m in eine Sackgasse hinauf, auf demselben Weg zurueck,
+// 400 m weiter. Hin- und Rueckweg im Stich liegen EXAKT uebereinander, wie in der
+// Nonnberggasse. Geteilt von Pruefung 19 (Fortschritt) und 24 (kein falscher Umdreh-Hinweis).
+function spurRoute(): NavRoute {
+  const spur: [number, number][] = [];
+  for (let d = 0; d <= 400; d += 20) spur.push(alongRoute(d)); // hin
+  for (let d = 20; d <= 100; d += 20) spur.push(offsetNorth(alongRoute(400), d)); // Stich hinauf
+  for (let d = 80; d >= 0; d -= 20) spur.push(offsetNorth(alongRoute(400), d)); // und zurueck
+  for (let d = 20; d <= 400; d += 20) spur.push(alongRoute(400 + d)); // weiter
+  return { geometry: spur, steps: [], spotAlongM: [450, 800], totalM: 1000 };
+}
+
 console.log("\n19. Stichweg: der Fortschritt laeuft nicht rueckwaerts");
 {
   // GEMESSEN AN DER ECHTEN RUNDE A (25.08.2026): Zwei ihrer Spots liegen in Sackgassen,
@@ -592,12 +606,8 @@ console.log("\n19. Stichweg: der Fortschritt laeuft nicht rueckwaerts");
   // FRUEHER indizierte Segment. Ergebnis: Der Fortschritt zaehlt rueckwaerts, waehrend
   // der Gast vorwaerts faehrt. Gemessen auf der echten Route: bei 3690 gefahrenen Metern
   // meldete der Kern 2127 m, und alle vier Spots dahinter blieben stumm.
-  const spur: [number, number][] = [];
-  for (let d = 0; d <= 400; d += 20) spur.push(alongRoute(d));           // hin
-  for (let d = 20; d <= 100; d += 20) spur.push(offsetNorth(alongRoute(400), d));   // Stich hinauf
-  for (let d = 80; d >= 0; d -= 20) spur.push(offsetNorth(alongRoute(400), d));     // und zurueck
-  for (let d = 20; d <= 400; d += 20) spur.push(alongRoute(400 + d));    // weiter
-  const route: NavRoute = { geometry: spur, steps: [], spotAlongM: [450, 800], totalM: 1000 };
+  const route = spurRoute();
+  const spur = route.geometry;
 
   const { states, events } = ride({ route, path: spur, speedMps: 5 });
   const last = states[states.length - 1];
@@ -712,6 +722,188 @@ console.log("\n21. Ein Bogen ist keine Abbiegung, zwei dichte gehoeren zusammen"
   else bad("Buendel fehlt", JSON.stringify(fertig[0]));
   if (!fertig[1]?.followedBy) ok("die weit entfernte dritte haengt an keiner");
   else bad("faelschlich gebuendelt", JSON.stringify(fertig[1]));
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════
+//  WAS EIN ECHTER GAST TUT (15.09.2026)
+//
+//  Handy in der Tasche, in die Gegenrichtung fahren, von Hand abhaken. Drei Dinge, die
+//  keine der Pruefungen oben abdeckte und die am Rad sofort auffallen.
+// ═══════════════════════════════════════════════════════════════════════════════════
+
+console.log("\n22. Ortungsluecke: nach fuenf Minuten und 1,5 km weiter genau eine Neuberechnung");
+{
+  // Bildschirm gesperrt, Safari drosselt die Ortung (docs/40), der Gast faehrt derweil
+  // weiter. Der Stetigkeits-Riegel verwirft den Sprung zu Recht: Wir wissen nicht, wo er
+  // war. Aber bis 15.09.2026 kam der Abstand zur Route danach vom GLOBAL naechsten Segment,
+  // und das lag direkt unter ihm. crossTrack 0, keine Neuberechnung, Navigation fuer immer
+  // eingefroren, mit "Naechster Halt in 100 m" auf dem Schirm, 1,5 km daneben.
+  const route = straightRoute(2000, [300, 1200, 1800]);
+  const fixes: GeoFix[] = [];
+  let t = 1000;
+  for (let d = 0; d <= 200; d += 10) {
+    t += 2000;
+    fixes.push(fix(alongRoute(d), t));
+  }
+  t += 300_000;
+  const nachLuecke = fixes.length;
+  for (let d = 1700; d <= 1800; d += 10) {
+    t += 2000;
+    fixes.push(fix(alongRoute(d), t));
+  }
+  // Wie die App: Beim ersten Reroute holt useBikeNavigation eine neue Route, hier Schluss.
+  let state = initNavState(3);
+  const states: NavState[] = [];
+  const events: { type: string; index?: number }[] = [];
+  for (const f of fixes) {
+    const r = stepNav(state, f, route);
+    state = r.state;
+    states.push(state);
+    for (const e of r.events) events.push(e as { type: string; index?: number });
+    if (r.events.some((e) => e.type === "reroute")) break;
+  }
+  const last = states[states.length - 1];
+  const danach = states.length - nachLuecke;
+  if (countOf(events, "reroute") === 1) ok(`genau eine Neuberechnung, ${danach} Fixe nach der Luecke`);
+  else bad("keine Neuberechnung nach der Ortungsluecke", `${countOf(events, "reroute")} Ereignis(se), Navigation eingefroren`);
+  if (danach <= NAV.OFF_ROUTE_FIXES + 1) ok("und zwar zuegig");
+  else bad("Neuberechnung kommt zu spaet", `erst ${danach} Fixe nach der Luecke`);
+  if (Math.abs(last.alongM - 200) < 15) ok(`der Fortschritt springt nicht (${last.alongM.toFixed(0)} m)`);
+  else bad("Fortschritt gesprungen", `${last.alongM.toFixed(0)} m statt ~200 m`);
+  if (!last.finished) ok("kein Zieleinlauf");
+  else bad("Runde faelschlich beendet", `remainingM ${last.remainingM.toFixed(0)}`);
+  if (countOf(events, "spot-passed") === 0) ok("kein Spot wird blind verbucht");
+  else bad("Spots blind verbucht", `${countOf(events, "spot-passed")} Ereignis(se)`);
+}
+
+console.log("\n23. Gegenrichtung: ein Hinweis zum Umdrehen, keine Neuberechnung");
+{
+  // Der Gast dreht um und faehrt die Route zurueck. Er liegt dabei AUF der Route, also gab
+  // es bis 15.09.2026 nichts, was das bemerkte: Die Entfernung zum naechsten Halt zaehlte
+  // hoch, sonst nichts. Jetzt: nach rund 100 m "wrong-way", nach 25 m in der richtigen
+  // Richtung "on-track", und dazwischen keine Neuberechnung, denn er ist ja auf der Route.
+  const route = straightRoute(1200, [900]);
+  const path: [number, number][] = [];
+  for (let d = 0; d <= 500; d += 20) path.push(alongRoute(d));
+  for (let d = 480; d >= 300; d -= 20) path.push(alongRoute(d));
+  for (let d = 320; d <= 1000; d += 20) path.push(alongRoute(d));
+  const { states, events } = ride({ route, path, noiseM: 2, seed: 23 });
+
+  if (countOf(events, "wrong-way") === 1) ok("genau ein Umdreh-Hinweis");
+  else bad("Umdreh-Hinweis", `${countOf(events, "wrong-way")} statt 1`);
+  const beimHinweis = states.find((s) => s.wrongWay);
+  if (beimHinweis && beimHinweis.alongM >= 350) {
+    ok(`der Hinweis kommt nach ${(500 - beimHinweis.alongM).toFixed(0)} m Rueckweg`);
+  } else if (beimHinweis) {
+    bad("Hinweis kommt zu spaet", `erst bei ${beimHinweis.alongM.toFixed(0)} m, 150 m Rueckweg sind die Grenze`);
+  }
+  if (countOf(events, "on-track") === 1) ok("und genau einmal aufgehoben");
+  else bad("Aufhebung", `${countOf(events, "on-track")} statt 1`);
+  const wieder = states.findIndex((s, i) => i > 0 && states[i - 1].wrongWay && !s.wrongWay);
+  if (wieder > 0 && states[wieder].alongM <= 300 + NAV.WRONG_WAY_CLEAR_M + 20) {
+    ok(`aufgehoben bei ${states[wieder].alongM.toFixed(0)} m, kurz nach dem Umdrehen`);
+  } else if (wieder > 0) {
+    bad("Aufhebung kommt zu spaet", `erst bei ${states[wieder].alongM.toFixed(0)} m`);
+  }
+  if (countOf(events, "reroute") === 0) ok("keine Neuberechnung, der Gast ist ja auf der Route");
+  else bad("Neuberechnung in der Gegenrichtung", `${countOf(events, "reroute")} Ereignis(se)`);
+  if (countOf(events, "finished") === 0) ok("kein Zieleinlauf");
+  else bad("Zieleinlauf", "Runde galt als gefahren");
+  if (events.some((e) => e.type === "spot-near" && e.index === 0)) ok("der Spot danach wird angeboten");
+  else bad("Spot nach dem Umdrehen bleibt stumm", JSON.stringify(events.filter((e) => e.type === "spot-near")));
+}
+
+console.log("\n24. Stichweg: der Rueckweg aus der Sackgasse ist KEINE Gegenrichtung");
+{
+  // Nonnberggasse und Freisaal (Runde A): hinein, wenden, auf demselben Weg zurueck. Auf
+  // dem Rueckweg liegt der Gast auf der Linie des Hinwegs, und genau hier waere ein
+  // Umdreh-Hinweis das Schlimmste, was die Navigation tun kann: Er wuerde ihn zurueck in
+  // die Sackgasse schicken. Sauber, verrauscht und ohne Geraeterichtung, wie in Pruefung 19.
+  const route = spurRoute();
+  const sauber = ride({ route, path: route.geometry, speedMps: 5 });
+  const laut = ride({ route, path: route.geometry, speedMps: 5, noiseM: 8, accuracyM: 12, seed: 7 });
+  const blind = runOn(route, sauber.fixes.map((f) => ({ ...f, headingDeg: null, speedMps: null })));
+  const faelle: [string, RunResult][] = [["sauber", sauber], ["verrauscht", laut], ["ohne Geraeterichtung", blind]];
+  for (const [name, r] of faelle) {
+    if (countOf(r.events, "wrong-way") === 0) ok(`kein Umdreh-Hinweis (${name})`);
+    else bad(`falscher Umdreh-Hinweis (${name})`, `${countOf(r.events, "wrong-way")} Ereignis(se)`);
+  }
+}
+
+console.log("\n25. Rundtour rueckwaerts ab Start: Neuberechnung statt Stillstand");
+{
+  // Der Gast faehrt am Start in die falsche Richtung los, also den Rueckweg der Runde
+  // hinauf. Der liegt direkt unter ihm, der Fortschritt bleibt aber zu Recht bei null
+  // (der Sprung ans Ende wird verworfen). Bis 15.09.2026 war damit Schluss: crossTrack 0
+  // vom Rueckweg, keine Neuberechnung, kein Hinweis, "Naechster Halt in 100 m" fuer immer.
+  // Jetzt zaehlt der Abstand zum geglaubten Stand, und nach drei Fixen kommt die
+  // Neuberechnung ab der echten Position, deren erste Anweisung zurueck zum Start fuehrt.
+  const route = loopRoute(400, [100, 500, 900, 1300]);
+  const path: [number, number][] = [];
+  for (let d = 0; d <= 200; d += 10) path.push(offsetNorth(alongRoute(0), d));
+  const { states, events } = ride({ route, path, stopOn: "reroute" });
+  const last = states[states.length - 1];
+  if (countOf(events, "reroute") === 1) ok(`genau eine Neuberechnung, nach ${states.length * 5} m`);
+  else bad("keine Neuberechnung", "Navigation bleibt am Start stehen");
+  if (last.alongM < 60) ok(`der Fortschritt springt nicht ans Ende (${last.alongM.toFixed(0)} m)`);
+  else bad("Fortschritt gesprungen", `${last.alongM.toFixed(0)} m`);
+  if (!last.finished) ok("kein Zieleinlauf");
+  else bad("Runde faelschlich beendet", `remainingM ${last.remainingM.toFixed(0)}`);
+  if (countOf(events, "spot-passed") === 0) ok("kein Spot verbucht");
+  else bad("Spots verbucht", `${countOf(events, "spot-passed")} Ereignis(se)`);
+}
+
+console.log("\n26. Abhaken von Hand: das Ziel rueckt sofort weiter, der naechste Spot kommt trotzdem");
+{
+  // Play am Ort (BikeNavScreen: gehoert UND dort gewesen) oder das X. Bisher aenderte das
+  // nur die Phase, und Leiste wie rote Linie zeigten bis zum naechsten Fix den Halt, der
+  // eben abgehakt wurde.
+  const route = straightRoute(1000, [200, 600]);
+  const hin: [number, number][] = [];
+  for (let d = 0; d <= 150; d += 10) hin.push(alongRoute(d));
+  const erst = ride({ route, path: hin });
+  const vorher = erst.states[erst.states.length - 1];
+  if (vorher.spotPhase[0] === "near" && vorher.nextSpotIndex === 0) ok("Spot 1 ist angeboten und das Ziel");
+  else bad("Ausgangslage", JSON.stringify({ phase: vorher.spotPhase, next: vorher.nextSpotIndex }));
+
+  const danach = settleSpot(vorher, route, 0);
+  if (danach.spotPhase[0] === "done" && danach.nextSpotIndex === 1) ok("nach dem Abhaken ist Spot 2 sofort das Ziel");
+  else bad("Ziel rueckt nicht weiter", JSON.stringify({ phase: danach.spotPhase, next: danach.nextSpotIndex }));
+  const soll = 600 - vorher.alongM;
+  if (danach.distanceToNextSpotM != null && Math.abs(danach.distanceToNextSpotM - soll) < 1) ok("mit der richtigen Entfernung");
+  else bad("Entfernung zum neuen Ziel", `${danach.distanceToNextSpotM} statt ${soll.toFixed(0)}`);
+  if (settleSpot(danach, route, 0) === danach) ok("ein zweites Abhaken aendert nichts");
+  else bad("doppeltes Abhaken", "erzeugt einen neuen Zustand");
+
+  // Weiterfahren: Spot 2 muss ganz normal angeboten werden, Spot 1 nicht noch einmal.
+  const weiter: GeoFix[] = [];
+  let t = erst.fixes[erst.fixes.length - 1].at;
+  for (let d = 155; d <= 700; d += 5) {
+    t += 1000;
+    weiter.push(fix(alongRoute(d), t));
+  }
+  const rest = runOn(route, weiter, danach);
+  if (rest.events.some((e) => e.type === "spot-near" && e.index === 1)) ok("Spot 2 wird danach angeboten");
+  else bad("Spot 2 bleibt stumm", JSON.stringify(rest.events));
+  if (!rest.events.some((e) => e.index === 0)) ok("Spot 1 taucht in keinem Ereignis mehr auf");
+  else bad("Spot 1 noch einmal verbucht", JSON.stringify(rest.events.filter((e) => e.index === 0)));
+
+  // "Dort gewesen": die Phase reicht, sonst die Luftlinie.
+  const faelle: [SpotPhase, number | null, boolean, string][] = [
+    ["open", 400, false, "weit weg, nicht im Fenster"],
+    ["pending", 400, true, "im Fenster entlang der Route"],
+    ["near", null, true, "angeboten, ohne Luftlinie"],
+    ["open", 60, true, "Fortschritt haengt, aber 60 m Luftlinie"],
+    ["open", null, false, "nichts bekannt"],
+  ];
+  let alleOk = true;
+  for (const [phase, luft, erwartet, was] of faelle) {
+    if (atSpot(phase, luft) !== erwartet) {
+      bad(`atSpot (${was})`, `${phase}/${luft} ergab ${!erwartet}`);
+      alleOk = false;
+    }
+  }
+  if (alleOk) ok(`"dort gewesen" stimmt in allen ${faelle.length} Faellen`);
 }
 
 console.log(failed ? `\n${failed} Prüfung(en) fehlgeschlagen.` : "\nAlles grün.");

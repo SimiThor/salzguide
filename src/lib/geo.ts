@@ -412,6 +412,11 @@ export type NearestOnRouteOpts = {
   // Fehlt der Wert (Safari liefert beim Stehen keine Richtung, und beim Stehen ist sie
   // ohnehin bedeutungslos), bleibt alles wie bisher.
   headingDeg?: number;
+  // Bis zu diesem Abstand gilt der Treffer im Fenster als plausibel, darüber fällt die
+  // Suche auf die ganze Route zurück. Der Aufrufer übergibt seine Off-Route-Schwelle
+  // (NAV.OFF_ROUTE_M in bike-nav-core.ts), damit die beiden Zahlen nicht auseinanderlaufen
+  // können; bis 15.09.2026 stand hier eine harte 40 als stiller Zwilling.
+  plausibleM?: number;
 };
 
 // Aufschlag auf ein Segment, das der Fahrtrichtung entgegenläuft. Gross genug, um bei
@@ -472,11 +477,11 @@ export function nearestPointOnRoute(
       opts.nearAlongM + (opts.fwdM ?? 200),
     );
     // Der Treffer im Fenster gewinnt, SOLANGE er plausibel ist. Liegt er weiter weg als
-    // die Off-Route-Schwelle (40 m, NAV in bike-nav-core.ts), ist der Gast entweder
-    // wirklich abgekommen oder nach einer Ortungslücke woanders aufgetaucht. Dann zählt
-    // wieder die globale Suche, und die vorhandene Entprellung entscheidet in Ruhe über
-    // eine Neuberechnung. Ohne diesen Rückfall bliebe die Navigation im Fenster kleben.
-    if (windowed.seg >= 0 && windowed.dist <= 40) best = windowed;
+    // die Off-Route-Schwelle (`plausibleM`), ist der Gast entweder wirklich abgekommen
+    // oder nach einer Ortungslücke woanders aufgetaucht. Dann zählt wieder die globale
+    // Suche, und die vorhandene Entprellung entscheidet in Ruhe über eine Neuberechnung.
+    // Ohne diesen Rückfall bliebe die Navigation im Fenster kleben.
+    if (windowed.seg >= 0 && windowed.dist <= (opts.plausibleM ?? 40)) best = windowed;
   }
   if (best.seg < 0) return null;
 
@@ -503,6 +508,31 @@ export function nearestPointOnRoute(
  * Die Enden werden auf dem Segment interpoliert, nicht auf den naechsten Stuetzpunkt
  * gerundet: Sonst ruckelte der Anfang der Etappe um bis zu einer Segmentlaenge.
  */
+/**
+ * Der Punkt auf einer Linie bei `m` Metern ab Start, auf dem Segment interpoliert.
+ *
+ * Zwei Abnehmer: sliceAlong unten (die Enden einer Etappe) und der Navigations-Kern
+ * (bike-nav-core.ts). Dort ist er der ehrliche Bezugspunkt, wenn ein Fortschritts-Sprung
+ * verworfen wurde: Der Abstand des Gastes zu DIESEM Punkt, dem geglaubten Stand, sagt, ob
+ * er von der Route abgekommen ist. Der Abstand zum global nächsten Segment sagt das nicht,
+ * denn auf einer Rundtour liegt irgendein Segment fast immer unter ihm.
+ */
+export function pointAlongRoute(
+  route: [number, number][],
+  m: number,
+  cum: number[] = routeCumulativeMeters(route),
+): [number, number] {
+  if (!route?.length) return [0, 0];
+  if (route.length < 2) return route[0];
+  let i = 1;
+  while (i < cum.length - 1 && cum[i] < m) i++;
+  const spanne = cum[i] - cum[i - 1];
+  const t = spanne > 0 ? Math.max(0, Math.min(1, (m - cum[i - 1]) / spanne)) : 0;
+  const p = route[i - 1];
+  const q = route[i];
+  return [p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t];
+}
+
 export function sliceAlong(
   route: [number, number][],
   fromM: number,
@@ -515,20 +545,10 @@ export function sliceAlong(
   const b = Math.max(0, Math.min(total, Math.max(fromM, toM)));
   if (b - a < 1) return [];
 
-  const punktBei = (m: number): [number, number] => {
-    let i = 1;
-    while (i < cum.length - 1 && cum[i] < m) i++;
-    const spanne = cum[i] - cum[i - 1];
-    const t = spanne > 0 ? (m - cum[i - 1]) / spanne : 0;
-    const p = route[i - 1];
-    const q = route[i];
-    return [p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t];
-  };
-
-  const out: [number, number][] = [punktBei(a)];
+  const out: [number, number][] = [pointAlongRoute(route, a, cum)];
   for (let i = 0; i < route.length; i++) {
     if (cum[i] > a && cum[i] < b) out.push(route[i]);
   }
-  out.push(punktBei(b));
+  out.push(pointAlongRoute(route, b, cum));
   return out;
 }

@@ -11,7 +11,13 @@
 // bike-directions.ts). Der Abstand bis zum nächsten Spot ist damit eine Subtraktion und
 // keine Schätzung, und genau daran hängt der Play-Knopf, der rechtzeitig erscheinen soll.
 
-import { bearingBetween, nearestPointOnRoute, haversineMeters, unwrapDegrees } from "./geo";
+import {
+  bearingBetween,
+  nearestPointOnRoute,
+  pointAlongRoute,
+  haversineMeters,
+  unwrapDegrees,
+} from "./geo";
 
 // Schwellwerte an einem Ort, mit Begründung – wer daran dreht, sieht sofort, wogegen.
 // Alle Distanzen sind aus dem Auslegungstempo von 18 km/h (5 m/s) gerechnet, siehe
@@ -35,12 +41,38 @@ export const NAV = {
   // nicht im selben Moment eine Geschichte angeboten bekommen (Sicherheitsregel docs/40).
   // Der Knopf kommt danach, der Spot geht dadurch nicht verloren.
   MANEUVER_QUIET_M: 140,
+  // "Dort gewesen" als Luftlinie, für das Abhaken von Hand (atSpot unten). Ein Halt gilt als
+  // erledigt, wenn seine Geschichte gehört wurde UND der Gast dort war. "Dort" misst
+  // normalerweise die Phase (pending/near = im 200-m-Fenster ENTLANG der Route). Die
+  // Luftlinie ist das Netz darunter für den Fall, dass der Fortschritt hängt (Ortungslücke,
+  // falscher Ast): Die Ortung in der Altstadt liegt 11 bis 13 m daneben, dazu bleibt man
+  // zum Anschauen gern 50 m entfernt stehen. Bewusst unter den 130 m, die auf Runde A
+  // zwischen "Festung und Dom" und "Giselakai" liegen, sonst hakte die eine Geschichte die
+  // andere ab.
+  SPOT_ARRIVE_M: 100,
   // Wie weit der Fortschritt hinter seinen Höchststand zurückfallen darf. Er begrenzt das
   // Suchfenster nach UNTEN (geo.ts, minAlongM) und ist der Riegel gegen Stichwege: Dort
   // liegen Hin- und Rückweg übereinander, die Suche nimmt bei gleichem Abstand den
   // Hinweg, und ohne Boden wandert das Fenster Fix für Fix weiter zurück. 40 m deckt
   // GPS-Rauschen längs der Fahrtrichtung ab, ohne die Kette zuzulassen.
   BACKTRACK_M: 40,
+
+  // ——— Gegenrichtung ———
+  // Wer die Route RÜCKWÄRTS fährt, liegt auf ihr (crossTrack 0) und löst deshalb nie eine
+  // Neuberechnung aus. Bis 15.09.2026 hiess das: kein Hinweis, die Anzeige zählte nur die
+  // Entfernung hoch, und schon passierte Abbiegungen wurden erneut angesagt. Erkannt wird
+  // der Rückfall des Fortschritts unter seinen letzten Scheitel. Der Boden des Suchfensters
+  // (BACKTRACK_M) hält ihn zunächst fest; erst wenn der Fenster-Treffer weiter als
+  // OFF_ROUTE_M weg liegt, greift die globale Suche und alongM fällt wirklich. Gemessen
+  // (nav:check 23): ein echter Rückwärtsfahrer bekommt den Hinweis nach rund 110 m, also
+  // gut 20 Sekunden bei 18 km/h. Längsrauschen von 5 bis 15 m kommt nie in die Nähe.
+  WRONG_WAY_M: 60, // BACKTRACK_M plus ein 20-m-Segment Spiel
+  // Dieselbe Entprellung wie OFF_ROUTE_FIXES: Ein einzelner falsch geschnappter Fix an einer
+  // Sackgassen-Spitze darf nicht "Bitte umdrehen" auslösen.
+  WRONG_WAY_FIXES: 3,
+  // So weit muss es wieder vorwärts gehen, bis der Hinweis verschwindet: über dem
+  // Stadtrauschen, unter dem 40-m-Fenster, damit das Zurücknehmen vor dem Fenster greift.
+  WRONG_WAY_CLEAR_M: 25,
 
   // ——— Ende der Runde ———
   FINISH_M: 35, // so nah am Ende gilt die Runde als gefahren
@@ -138,6 +170,17 @@ export type NavState = {
   remainingM: number; // bis zum Ende der Runde
   finishStreak: number; // so viele gute Fixe hintereinander in Zielnaehe
   finished: boolean;
+  // Gegenrichtung (NAV.WRONG_WAY_*): Der Gast fährt die Route rückwärts. Die Oberfläche
+  // zeigt dann "Bitte umdrehen" statt der nächsten Abbiegung.
+  wrongWay: boolean;
+  wrongWayStreak: number; // so viele bewegte, saubere Fixe hintereinander im Rückfall
+  // Letzter Scheitel des Fortschritts, gegen den der Rückfall gemessen wird. NICHT
+  // maxAlongM: Der bleibt nach dem Umdrehen weit vorn stehen, und bis der Gast ihn wieder
+  // erreicht hat, saehe jeder Fix wie ein Rueckfall aus. Gemessen (nav:check 23): dreimal
+  // "Bitte umdrehen" auf einem einzigen Rueckweg. Der Scheitel wird beim Aufheben des
+  // Hinweises auf die aktuelle Stelle gesetzt und waechst von dort mit.
+  peakAlongM: number;
+  lowAlongM: number; // Tiefststand seit dem Hinweis; ab hier wird das Vorwärts gemessen
   lastFixAt: number | null;
   lastFixCoord: [number, number] | null;
   lastRerouteAt: number | null;
@@ -158,6 +201,10 @@ export function initNavState(spotCount = 0): NavState {
     remainingM: 0,
     finishStreak: 0,
     finished: false,
+    wrongWay: false,
+    wrongWayStreak: 0,
+    peakAlongM: 0,
+    lowAlongM: 0,
     lastFixAt: null,
     lastFixCoord: null,
     lastRerouteAt: null,
@@ -184,11 +231,48 @@ export function resetForNewRoute(state: NavState, keptPhases: SpotPhase[]): NavS
   };
 }
 
+// Einen Spot von Hand abhaken: das X am Streifen, oder "gehört UND dort gewesen" (atSpot
+// unten, angewandt in BikeNavScreen). Setzt nicht nur die Phase, sondern rückt auch den
+// nächsten Halt und seine Entfernung sofort nach. Vorher tat das erst der nächste GPS-Fix,
+// und eine Sekunde lang zeigten Leiste und rote Linie noch den Halt, der eben abgehakt
+// wurde. `routeIndex` ist die Stelle in der AKTUELLEN Route (nach einer Neuberechnung
+// nicht mehr der Tour-Index, siehe spotIds in useBikeNavigation).
+export function settleSpot(state: NavState, route: NavRoute | null, routeIndex: number): NavState {
+  if (routeIndex < 0 || routeIndex >= state.spotPhase.length) return state;
+  if (state.spotPhase[routeIndex] === "done") return state;
+  const spotPhase = [...state.spotPhase];
+  spotPhase[routeIndex] = "done";
+  const nextSpotIndex = spotPhase.findIndex((p) => p !== "done");
+  const nextAt = nextSpotIndex >= 0 ? route?.spotAlongM[nextSpotIndex] : null;
+  return {
+    ...state,
+    spotPhase,
+    nextSpotIndex,
+    distanceToNextSpotM: nextAt != null ? nextAt - state.alongM : null,
+  };
+}
+
+// War der Gast bei diesem Spot? Zwei Wege, einer reicht:
+//   1. die Phase: pending/near heisst "im Angebotsfenster entlang der Route" (SPOT_NEAR_M),
+//      und das ist der Normalfall;
+//   2. die Luftlinie unter SPOT_ARRIVE_M, für den Fall, dass der Fortschritt hängt.
+// Zusammen mit "Geschichte gehört" (BikeNavScreen, heard) ergibt das den Abschluss eines
+// Halts von Hand. Wer die Geschichte zuhause oder zwei Kilometer vorher hört, bleibt auf dem
+// Weg dorthin; wer sie 500 m vorher startet, bekommt das Ziel beim Ankommen weitergerückt,
+// ohne noch einmal zu drücken. Und "gehört" heisst gestartet, nicht zu Ende gehört: Nichts
+// in der Navigation wartet je auf das Ende einer Geschichte.
+export function atSpot(phase: SpotPhase, airlineM: number | null): boolean {
+  if (phase === "pending" || phase === "near") return true;
+  return airlineM != null && airlineM <= NAV.SPOT_ARRIVE_M;
+}
+
 export type NavEvent =
   | { type: "spot-near"; index: number } // Play-Knopf zeigen
   | { type: "spot-passed"; index: number } // vorbei, auch wenn nie gedrückt wurde
   | { type: "reroute" }
-  | { type: "finished" };
+  | { type: "finished" }
+  | { type: "wrong-way" } // der Gast fährt die Route rückwärts: "Bitte umdrehen"
+  | { type: "on-track" }; // und fährt wieder in die richtige Richtung
 
 export function stepNav(
   state: NavState,
@@ -245,24 +329,34 @@ export function stepNav(
     // Boden am Höchststand: siehe NAV.BACKTRACK_M und die Begründung in geo.ts.
     minAlongM: state.maxAlongM - NAV.BACKTRACK_M,
     headingDeg: headingForMatch,
+    plausibleM: NAV.OFF_ROUTE_M,
   });
-  const crossTrackM = nearest?.crossTrackM ?? state.crossTrackM;
 
   // Stetigkeits-Riegel: Der Fortschritt darf nur so weit springen, wie in der vergangenen
   // Zeit fahrbar war. Ohne ihn reicht EIN Fix, um auf einen ganz anderen Ast der Runde zu
   // rutschen, sobald nearestPointOnRoute auf die globale Suche zurueckfaellt (geo.ts) --
   // und auf einer Rundtour liegt das Ende am Start, das Sprungziel ist also ausgerechnet
-  // die Ziellinie. Wird der Sprung verworfen, bleibt der alte Fortschritt stehen und
-  // crossTrackM bleibt gross: Die vorhandene Entprellung loest dann nach drei Fixen eine
-  // Neuberechnung ab der echten Position aus. Das ist die saubere Selbstheilung.
+  // die Ziellinie. Wird der Sprung verworfen, bleibt der alte Fortschritt stehen.
   const dtS = state.lastFixAt != null ? Math.max(0, (fix.at - state.lastFixAt) / 1000) : 0;
   const maxJumpM =
     state.lastFixAt == null
       ? Infinity // erster Fix der Route: es gibt noch nichts, wovon er springen koennte
       : Math.min(NAV.MAX_JUMP_M, dtS * NAV.MAX_SPEED_MPS + NAV.JUMP_SLACK_M);
   const proposedAlongM = nearest?.alongM ?? state.alongM;
-  const alongM =
-    Math.abs(proposedAlongM - state.alongM) > maxJumpM ? state.alongM : proposedAlongM;
+  const jumpRejected = Math.abs(proposedAlongM - state.alongM) > maxJumpM;
+  const alongM = jumpRejected ? state.alongM : proposedAlongM;
+
+  // Abstand zur Route. Nach einem VERWORFENEN Sprung zählt der Abstand zum geglaubten
+  // Stand, nicht der zum global nächsten Segment. Bis 15.09.2026 stand hier immer der
+  // globale Wert, und der war nach einer Ortungslücke ausgerechnet dann null, wenn der Gast
+  // 1,5 km weiter wieder auf der Route auftauchte: kein Off-Route, keine Neuberechnung, die
+  // Navigation fror für immer ein (nav:check 22). Dasselbe auf einer Rundtour rückwärts ab
+  // Start, wo der Rückweg direkt unter ihm liegt (nav:check 25). Mit dem Abstand zum
+  // geglaubten Stand greift die vorhandene Entprellung: nach drei sauberen Fixen eine
+  // Neuberechnung ab der echten Position. Das ist die saubere Selbstheilung.
+  const crossTrackM = jumpRejected
+    ? haversineMeters(here, pointAlongRoute(route.geometry, state.alongM))
+    : (nearest?.crossTrackM ?? state.crossTrackM);
 
   // Nächste noch bevorstehende Abbiegung: die erste, deren Punkt noch vor uns liegt.
   let stepIndex = -1;
@@ -278,10 +372,13 @@ export function stepNav(
   // Fahrtrichtung: über der Geh-Schwelle der echte Kurs des Geräts, sonst (im Stand, an
   // der Ampel) die Richtung der Route an der aktuellen Stelle – sonst würde die Karte im
   // Stillstand nach dem letzten Zufalls-Heading zappeln.
-  const segA = nearest ? route.geometry[nearest.segIndex] : null;
-  const segB = nearest
-    ? route.geometry[Math.min(nearest.segIndex + 1, route.geometry.length - 1)]
-    : null;
+  // Nach einem verworfenen Sprung stammt `nearest` von einem fernen Ast: Die Kamera würde
+  // sich im Stand dorthin drehen. Dann lieber die bisherige Richtung halten.
+  const segA = nearest && !jumpRejected ? route.geometry[nearest.segIndex] : null;
+  const segB =
+    nearest && !jumpRejected
+      ? route.geometry[Math.min(nearest.segIndex + 1, route.geometry.length - 1)]
+      : null;
   const routeBearing = segA && segB ? bearingBetween(segA, segB) : state.bearingDeg;
   const rawHeading =
     fix.speedMps != null && fix.speedMps > NAV.MOVING_MPS && fix.headingDeg != null
@@ -292,6 +389,46 @@ export function stepNav(
     (((state.bearingDeg + NAV.HEADING_EMA * (targetBearing - state.bearingDeg)) % 360) + 360) % 360;
 
   const events: NavEvent[] = [];
+
+  // ——— Gegenrichtung ————————————————————————————————————————————————————————
+  // Gezählt wird nur ein BEWEGTER, SAUBERER Fix AUF der Route, dessen Fortschritt unter
+  // den Höchststand gefallen ist. Jede der vier Bedingungen hat einen Grund:
+  //   bewegt: Im Stand auf dem Rückweg einer Sackgasse ohne Richtung gewinnt bei gleichem
+  //     Abstand der Hinweg, das sähe wie ein Rückfall aus (nav:check 24).
+  //   sauber: Ein 50-m-Fix darf keine Umkehr-Ansage auslösen, wie beim Off-Route.
+  //   auf der Route: Wer abgekommen ist, bekommt eine Neuberechnung, keine Umkehr.
+  //   nicht fertig: Wer am Ziel war und zurückfährt, will nicht zum Ziel zurück.
+  // Der Höchststand (maxAlongM) selbst wird nie angefasst: Nach dem Umdrehen zählt der
+  // Fortschritt wieder hoch, und die schon gehörten Spots bleiben gehört. Gemessen wird
+  // gegen den lokalen Scheitel (peakAlongM, siehe NavState).
+  let wrongWay = state.wrongWay;
+  let wrongWayStreak = state.wrongWayStreak;
+  let peakAlongM = state.peakAlongM;
+  let lowAlongM = state.lowAlongM;
+  if (!wrongWay) {
+    peakAlongM = Math.max(peakAlongM, alongM);
+    const rueckfall =
+      gefahrenM >= 3 &&
+      crossTrackM <= NAV.OFF_ROUTE_M &&
+      fix.accuracyM <= NAV.DECIDE_ACCURACY_M &&
+      !state.finished &&
+      peakAlongM - alongM >= NAV.WRONG_WAY_M;
+    wrongWayStreak = rueckfall ? wrongWayStreak + 1 : 0;
+    if (wrongWayStreak >= NAV.WRONG_WAY_FIXES) {
+      wrongWay = true;
+      wrongWayStreak = 0;
+      lowAlongM = alongM;
+      events.push({ type: "wrong-way" });
+    }
+  } else {
+    lowAlongM = Math.min(lowAlongM, alongM);
+    if (alongM >= lowAlongM + NAV.WRONG_WAY_CLEAR_M) {
+      wrongWay = false;
+      peakAlongM = alongM; // von hier an wird neu gemessen, sonst flackert der Hinweis
+      events.push({ type: "on-track" });
+    }
+  }
+
   const spotPhase = [...state.spotPhase];
 
   // ——— Audio-Spots ——————————————————————————————————————————————————————————
@@ -337,7 +474,9 @@ export function stepNav(
   //    Schritt kann die Oberfläche gar nicht zeigen: Sie hat einen Streifen, das zweite
   //    überschrieb das erste, und der übergangene Spot konnte nie wieder auslösen.
   //    Solange noch ein Angebot offen steht, rückt der nächste nicht nach.
-  if (!maneuverClose && !spotPhase.includes("near")) {
+  //    Und nicht in der Gegenrichtung: Wer eine Sperrzone rückwärts verlässt, hat den
+  //    vorgemerkten Spot hinter sich, nicht vor sich.
+  if (!maneuverClose && !wrongWay && !spotPhase.includes("near")) {
     const next = spotPhase.findIndex((p) => p === "pending");
     if (next >= 0) {
       spotPhase[next] = "near";
@@ -411,6 +550,10 @@ export function stepNav(
       remainingM,
       finishStreak,
       finished,
+      wrongWay,
+      wrongWayStreak,
+      peakAlongM,
+      lowAlongM,
       lastFixAt: fix.at,
       lastFixCoord: here,
       lastRerouteAt,
