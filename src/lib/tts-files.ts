@@ -1,7 +1,8 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createServiceClient } from "./supabase/service";
-import { synthesizeVoice } from "./tts";
+import { synthesizeVoice, speechObjectPath, storeSpeech } from "./tts";
+import { LOUDNESS_TARGET_LUFS, normalizeSpeechMp3, type NormalizeResult } from "./loudness";
 import { elevenIdForVoice } from "./tts-voices";
 import { getSpokenText } from "./spoken-text";
 import { SPOKEN_PROMPT_VERSION } from "./spoken-rules";
@@ -173,6 +174,48 @@ export async function ensureVoiceFile(input: {
     .eq("point_id", input.pointId)
     .eq("lang", input.lang);
   return { ok: true, path: r.path, hash, skipped: false, chars: text.length, spokenFailed: spoken.failedReason };
+}
+
+// ── Hand-Uploads: gleich laut wie die KI-Stimmen ───────────────────────────────────────
+export type UploadedFileResult =
+  | { ok: true; path: string; seconds: number; profile: string; normalized: boolean }
+  | { ok: false; error: "not_found" | "bad_audio" | "db" };
+
+/**
+ * Eine im Browser in den Bucket geladene MP3 (echte Aufnahme, fremder Export) auf die
+ * Lautheit der KI-Stimmen bringen, BEVOR eine Zeile darauf zeigt. Der Player hat keinen
+ * Regler und iOS ignoriert `volume`: Was hier zu leise ankommt, bleibt fuer jeden Hoerer
+ * zu leise. Also derselbe Weg wie in elevenSpeak, nur mit der hochgeladenen Datei als Quelle.
+ *
+ * Liegt sie schon in der Toleranz, bleibt sie bytegleich unter ihrem Pfad. Sonst entsteht
+ * ein NEUES Objekt (mono, 96 kbit/s, wie alles im Bucket); das rohe bleibt fuer den
+ * Waisen-Sweep liegen, nie synchron loeschen (Kopf dieser Datei).
+ *
+ * Nebenbei die einzige Existenzpruefung des Pfads: Ein Pfad, der auf nichts zeigt, bekommt
+ * keine Zeile. Die Dauer kommt aus den dekodierten Samples, denn die Bitrate eines fremden
+ * Exports ist unbekannt (durationFromBytes gilt nur fuer unsere 96 kbit/s CBR).
+ */
+export async function normalizeUploadedFile(input: {
+  path: string;
+  lang: string;
+  voiceKey: string;
+  db?: SupabaseClient;
+}): Promise<UploadedFileResult> {
+  const db = input.db ?? createServiceClient();
+  const { data, error } = await db.storage.from(BUCKET).download(input.path);
+  if (error || !data) return { ok: false, error: "not_found" };
+  let n: NormalizeResult;
+  try {
+    n = await normalizeSpeechMp3(new Uint8Array(await data.arrayBuffer()));
+  } catch {
+    return { ok: false, error: "bad_audio" };
+  }
+  if (!Number.isFinite(n.seconds) || n.seconds <= 0) return { ok: false, error: "bad_audio" };
+  const seconds = Math.round(n.seconds);
+  if (!n.changed) return { ok: true, path: input.path, seconds, profile: "manual", normalized: false };
+  const path = speechObjectPath({ kind: "voll", lang: input.lang, voiceKey: input.voiceKey, tag: "upload" });
+  if (!(await storeSpeech(path, n.bytes))) return { ok: false, error: "db" };
+  return { ok: true, path, seconds, profile: `manual|lufs${LOUDNESS_TARGET_LUFS}`, normalized: true };
 }
 
 // ── Der Plan: was eine Stimme fuer diese Punkte noch braucht ───────────────────────────

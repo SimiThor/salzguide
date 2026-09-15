@@ -612,7 +612,9 @@ integriert nach BS.1770-4, dieselbe Messung wie Apple Podcasts und Sound Check, 
 ±1 LU bleibt eine Datei bytegleich, deshalb blieben Toni und der Bestand (-16,2 bis -16,4)
 unangetastet. `npm run loudness:check` hält die Messung gegen ffmpeg `ebur128`;
 `npm run tts:normalize-stock` misst den Bestand und zieht Ausreißer nach (Trockenlauf ohne
-`APPLY=1`).
+`APPLY=1`). Von Hand hochgeladene MP3s (echte Aufnahmen, „MP3 wählen" im Punkt-Editor) gehen
+denselben Weg: beim Anhängen gemessen, bei Bedarf als neues Objekt angeglichen, die Dauer aus
+den Samples statt aus der Dateigröße. Kein Weg in den Bucket führt an der Messung vorbei.
 
 **Jahreszahlen: Ziffern im Text, Wörter für die Stimme (Migration 0070).** ElevenLabs liest
 „1945" nicht als „neunzehnhundertfünfundvierzig", in keiner Stimme, und der Sprach-Parameter

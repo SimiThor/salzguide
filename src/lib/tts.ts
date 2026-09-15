@@ -38,6 +38,30 @@ const ELEVEN_MODEL = "eleven_multilingual_v2"; // EINE Stimme spricht ALLE Sprac
 // Bitrate, deshalb kann tts-rules.ts die Dauer aus der Dateigroesse rechnen.
 const OUTPUT_FORMAT = "mp3_44100_96";
 const MAX_CHARS = 5000;
+const BUCKET = "tour-audio";
+
+/**
+ * Objekt-Pfad einer Sprachdatei: Art, Sprache und Stimme im Namen, dann eine UUID. Das ist
+ * kein Schoenheitsdetail: Volldatei und Kostprobe liegen im selben Bucket, und wer sie am
+ * Namen nicht auseinanderhaelt, signiert irgendwann die falsche. Und wer den Bucket von Hand
+ * durchsieht, soll erkennen, welche Stimme in einer Datei spricht, statt vor lauter UUIDs
+ * zu stehen. `tag` nennt eine andere Herkunft als ElevenLabs ("upload": angeglichene
+ * Hand-Uploads, lib/tts-files.ts). Muss guardAudioPath (lib/audio-path.ts) passieren.
+ */
+export function speechObjectPath(input: { kind?: AudioKind; lang: string; voiceKey: string; tag?: string }): string {
+  const lang = (input.lang || "de").toLowerCase();
+  const teil = input.kind === "kostprobe" ? "kostprobe" : "point";
+  const key = input.voiceKey.toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 24) || "voice";
+  return `${[teil, lang, key, input.tag, crypto.randomUUID()].filter(Boolean).join("-")}.mp3`;
+}
+
+/** Fertige MP3-Bytes unter diesem Pfad in den privaten Bucket legen (nie ueberschreiben). */
+export async function storeSpeech(path: string, bytes: Uint8Array): Promise<boolean> {
+  const { error } = await createServiceClient()
+    .storage.from(BUCKET)
+    .upload(path, bytes, { contentType: "audio/mpeg", upsert: false, cacheControl: IMMUTABLE_CACHE_SECONDS });
+  return !error;
+}
 
 /**
  * Die Sprech-Einstellungen kommen JE STIMME aus tts_voices (Migration 0069), nicht mehr aus
@@ -150,11 +174,7 @@ export type VoiceResult =
 
 /**
  * Text vertonen und im privaten Bucket ablegen. Gibt den OBJEKT-PFAD zurueck, nie eine URL.
- *
- * `kind` und `voiceKey` landen im Dateinamen. Das ist kein Schoenheitsdetail: Volldatei und
- * Kostprobe liegen im selben Bucket, und wer sie am Namen nicht auseinanderhaelt, signiert
- * irgendwann die falsche. Und wer den Bucket von Hand durchsieht, soll erkennen koennen,
- * welche Stimme in einer Datei spricht, statt vor lauter UUIDs zu stehen.
+ * `kind` und `voiceKey` landen im Dateinamen (speechObjectPath).
  */
 export async function synthesizeVoice(input: {
   text: string;
@@ -166,18 +186,8 @@ export async function synthesizeVoice(input: {
 }): Promise<VoiceResult> {
   const spoken = await elevenSpeak({ text: input.text, elevenVoiceId: input.elevenVoiceId, settings: input.settings });
   if (!spoken.ok) return spoken;
-  const lang = (input.lang || "de").toLowerCase();
-  const teil = input.kind === "kostprobe" ? "kostprobe" : "point";
-  const key = input.voiceKey.toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 24) || "voice";
-  const path = `${teil}-${lang}-${key}-${crypto.randomUUID()}.mp3`;
-  const { error } = await createServiceClient()
-    .storage.from("tour-audio")
-    .upload(path, spoken.bytes, {
-      contentType: "audio/mpeg",
-      upsert: false,
-      cacheControl: IMMUTABLE_CACHE_SECONDS,
-    });
-  if (error) return { ok: false, error: "Upload der Stimme fehlgeschlagen." };
+  const path = speechObjectPath({ kind: input.kind, lang: input.lang, voiceKey: input.voiceKey });
+  if (!(await storeSpeech(path, spoken.bytes))) return { ok: false, error: "Upload der Stimme fehlgeschlagen." };
   return {
     ok: true,
     path,

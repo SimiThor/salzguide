@@ -169,7 +169,9 @@ export async function decodeMp3(bytes: Uint8Array): Promise<Decoded> {
   await decoder.ready;
   try {
     const { channelData, sampleRate } = decoder.decode(bytes);
-    if (!channelData.length) throw new Error("MP3 ohne Kanaele");
+    // Der Decoder wirft bei Muell nicht, er liefert leere Kanaele. Das ist keine Dekodierung:
+    // Ein Hand-Upload, der hier landet, ist keine MP3 (lib/tts-files.ts meldet bad_audio).
+    if (!channelData.length || !channelData[0].length || !sampleRate) throw new Error("MP3 ohne Samples");
     if (channelData.length === 1) return { samples: channelData[0], sampleRate };
     // Stereo (kommt von ElevenLabs nicht, aber ein manueller Upload koennte es sein): mitteln.
     const n = channelData[0].length;
@@ -215,6 +217,8 @@ export type NormalizeResult = {
   outputLufs: number;
   gainDb: number;
   changed: boolean;
+  /** Laenge in Sekunden aus den dekodierten Samples, unabhaengig von der Bitrate der Quelle. */
+  seconds: number;
 };
 
 /**
@@ -227,9 +231,10 @@ export async function normalizeSpeechMp3(
   tolerance = LOUDNESS_TOLERANCE_LU,
 ): Promise<NormalizeResult> {
   const { samples, sampleRate } = await decodeMp3(bytes);
+  const seconds = samples.length / sampleRate;
   const inputLufs = integratedLoudness([samples], sampleRate);
   if (!Number.isFinite(inputLufs) || Math.abs(inputLufs - target) <= tolerance)
-    return { bytes, inputLufs, outputLufs: inputLufs, gainDb: 0, changed: false };
+    return { bytes, inputLufs, outputLufs: inputLufs, gainDb: 0, changed: false, seconds };
   const ceiling = Math.pow(10, PEAK_CEILING_DBFS / 20);
   // Der Begrenzer nimmt bei grosser Verstaerkung etwas Lautheit zurueck (Simon: +18 dB,
   // Ergebnis -17 statt -16). Deshalb bis zu drei Durchgaenge: messen, nachlegen, begrenzen.
@@ -253,5 +258,5 @@ export async function normalizeSpeechMp3(
     out = encodeMp3Mono(shape(gainDb), sampleRate);
     outputLufs = integratedLoudness([(await decodeMp3(out)).samples], sampleRate);
   }
-  return { bytes: out, inputLufs, outputLufs, gainDb, changed: true };
+  return { bytes: out, inputLufs, outputLufs, gainDb, changed: true, seconds };
 }

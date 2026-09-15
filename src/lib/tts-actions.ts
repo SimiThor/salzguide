@@ -6,7 +6,7 @@ import { logOps } from "./ops";
 import { stripEmDash } from "./em-dash";
 import { guardAudioPath } from "./audio-path";
 import { getVoiceById } from "./tts-voices";
-import { ensureVoiceFile, planVoiceFiles, type VoicePlan } from "./tts-files";
+import { ensureVoiceFile, normalizeUploadedFile, planVoiceFiles, type VoicePlan } from "./tts-files";
 import type { AudioKind } from "./tts-rules";
 import { routing } from "@/i18n/routing";
 
@@ -121,6 +121,10 @@ export async function attachManualFile(input: {
   if (!g.ok || !g.path) return { ok: false, error: "bad_url" };
   const voice = await getVoiceById(input.voiceId);
   if (!voice) return { ok: false, error: "not_found" };
+  // Erst gleich laut wie die KI-Stimmen (und damit: existiert die Datei, ist sie eine MP3,
+  // wie lang ist sie), dann erst eine Zeile darauf. Der Pfad kann dabei ein neuer werden.
+  const file = await normalizeUploadedFile({ path: g.path, lang: input.lang, voiceKey: voice.key });
+  if (!file.ok) return { ok: false, error: file.error };
   // Die Datei-Zeile haengt per FK an der Textzeile; ohne Text gibt es sie trotzdem (leer).
   const { error: eText } = await gate.supabase
     .from("tour_point_audio")
@@ -131,17 +135,22 @@ export async function attachManualFile(input: {
       point_id: input.pointId,
       lang: input.lang,
       voice_id: voice.id,
-      audio_url: g.path,
+      audio_url: file.path,
       audio_hash: null, // manuell: kein Text-Hash, gilt als aktuell (tts-rules.ts)
-      tts_profile: "manual",
+      tts_profile: file.profile,
     },
     { onConflict: "point_id,lang,voice_id" },
   );
   if (error) return { ok: false, error: "db" };
+  await gate.supabase
+    .from("tour_point_audio")
+    .update({ duration_sec: file.seconds })
+    .eq("point_id", input.pointId)
+    .eq("lang", input.lang);
   const { data: signed } = await createServiceClient()
     .storage.from("tour-audio")
-    .createSignedUrl(g.path, 60 * 30);
-  return { ok: true, path: g.path, previewUrl: signed?.signedUrl ?? null, audioHash: null };
+    .createSignedUrl(file.path, 60 * 30);
+  return { ok: true, path: file.path, previewUrl: signed?.signedUrl ?? null, audioHash: null };
 }
 
 /** Eine Datei aus der Zuordnung nehmen. Das Objekt bleibt fuer den Waisen-Sweep liegen. */

@@ -423,9 +423,13 @@ export default function PointForm({
         });
       if (error) throw new Error(error.message);
       // Sofort an (Punkt, Sprache, Stimme) hängen; ohne Zeile wäre die Datei eine Waise.
+      // Der Server gleicht die Lautheit an und gibt dann eventuell einen NEUEN Pfad zurück.
       const r = await attachManualFile({ pointId: initial!.id, lang, voiceId, path });
-      if (!r.ok) throw new Error(adminErrorText(r.error));
-      patchFile(voiceId, lang, { audioUrl: path, audioHash: null, previewUrl: r.previewUrl ?? null });
+      if (!r.ok) {
+        setErr(adminErrorText(r.error));
+        return;
+      }
+      patchFile(voiceId, lang, { audioUrl: r.path ?? path, audioHash: null, previewUrl: r.previewUrl ?? null });
     } catch (e) {
       // Wie im VideoUploader: Das Speicher-Limit ist der häufigste Grund und die
       // Roh-Meldung ("exceeded the maximum allowed size") sagt nicht, was zu tun ist.
