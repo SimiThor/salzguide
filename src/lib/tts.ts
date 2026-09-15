@@ -76,6 +76,32 @@ export function ttsProfile(): string {
   return [ELEVEN_MODEL, s.stability, s.similarity_boost, s.style, s.use_speaker_boost ? 1 : 0, s.speed].join("|");
 }
 
+/**
+ * ElevenLabs antwortet mit JSON (`detail.code` / `detail.message`). Die haeufigen Faelle
+ * bekommen einen deutschen Satz, der sagt, was zu tun ist; der Rest zeigt die Meldung
+ * statt des rohen JSON-Anfangs, der am 15.09.2026 im Admin stand.
+ */
+function elevenErrorText(status: number, body: string): string {
+  let code = "";
+  let message = "";
+  try {
+    const d = (JSON.parse(body) as { detail?: unknown }).detail;
+    if (d && typeof d === "object") {
+      code = String((d as { code?: unknown }).code ?? "");
+      message = String((d as { message?: unknown }).message ?? "");
+    } else if (typeof d === "string") message = d;
+  } catch {
+    // kein JSON, unten steht der Rohtext
+  }
+  if (code === "subscription_required")
+    return "ElevenLabs: Diese Stimme ist ein Professional Voice Clone und braucht mindestens den Creator-Tarif unseres Kontos.";
+  if (code === "quota_exceeded")
+    return "ElevenLabs: Das Zeichen-Kontingent des Kontos ist aufgebraucht.";
+  if (code === "voice_not_found") return "bad_voice_id";
+  if (status === 401) return "ElevenLabs: Der API-Schlüssel wurde abgelehnt (ELEVENLABS_API_KEY und seine Berechtigungen prüfen).";
+  return `ElevenLabs ${status}: ${(message || body).slice(0, 160)}`;
+}
+
 export type SpeakResult =
   | { ok: true; bytes: Uint8Array }
   | { ok: false; error: string; status?: number };
@@ -101,8 +127,7 @@ export async function elevenSpeak(input: { text: string; elevenVoiceId: string }
       },
     );
     if (!res.ok) {
-      const t = await res.text();
-      return { ok: false, error: `ElevenLabs ${res.status}: ${t.slice(0, 160)}`, status: res.status };
+      return { ok: false, error: elevenErrorText(res.status, await res.text()), status: res.status };
     }
     const bytes = new Uint8Array(await res.arrayBuffer());
     if (!bytes.length) return { ok: false, error: "Leere Audio-Antwort von ElevenLabs." };
@@ -179,7 +204,7 @@ export async function validateElevenVoice(
     if (res.status === 404 || res.status === 400 || res.status === 422)
       return { ok: false, error: "bad_voice_id", status: res.status };
     if (res.status === 401 || res.status === 403) return { ok: false, error: "unverified", status: res.status };
-    if (!res.ok) return { ok: false, error: `ElevenLabs ${res.status}`, status: res.status };
+    if (!res.ok) return { ok: false, error: elevenErrorText(res.status, await res.text()), status: res.status };
     const j = (await res.json()) as { name?: string };
     return { ok: true, name: j.name ?? "" };
   } catch {
