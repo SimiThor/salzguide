@@ -157,10 +157,18 @@ export async function synthesizeVoice(input: {
  * Gibt es diese Stimme in unserem ElevenLabs-Konto? Kostet keine Zeichen. Wird beim
  * Speichern einer Stimme im Admin geprueft, damit ein Tippfehler in der ID nicht erst beim
  * 98-Dateien-Lauf auffaellt.
+ *
+ * `unverified`: Der Schluessel darf Stimmen nicht LESEN (ElevenLabs-Berechtigung
+ * `voices_read`; unser Schluessel hat nur die Vertonung). Dann steht hier keine Antwort,
+ * und das Speichern darf daran nicht scheitern: Die Formatpruefung bleibt, und Probehoeren
+ * prueft die ID ueber die Vertonung selbst. Am 15.09.2026 stand sonst "ElevenLabs 401" im
+ * Admin, obwohl der Schluessel fuer alles Noetige taugt.
  */
 export async function validateElevenVoice(
   id: string,
-): Promise<{ ok: true; name: string } | { ok: false; error: string; status?: number }> {
+): Promise<
+  { ok: true; name: string } | { ok: false; error: "bad_voice_id" | "unverified" | string; status?: number }
+> {
   const key = process.env.ELEVENLABS_API_KEY;
   if (!key) return { ok: false, error: "ELEVENLABS_API_KEY fehlt, bitte in .env.local eintragen" };
   try {
@@ -170,6 +178,7 @@ export async function validateElevenVoice(
     });
     if (res.status === 404 || res.status === 400 || res.status === 422)
       return { ok: false, error: "bad_voice_id", status: res.status };
+    if (res.status === 401 || res.status === 403) return { ok: false, error: "unverified", status: res.status };
     if (!res.ok) return { ok: false, error: `ElevenLabs ${res.status}`, status: res.status };
     const j = (await res.json()) as { name?: string };
     return { ok: true, name: j.name ?? "" };

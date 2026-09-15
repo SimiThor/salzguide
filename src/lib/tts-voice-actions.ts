@@ -43,10 +43,14 @@ export async function saveVoice(input: VoiceSaveInput): Promise<VoiceActionResul
     if (usage.files > 0) return { ok: false, error: "voice_has_files" };
   }
   // Nur pruefen, was neu ist. Kostet keine Zeichen, faengt aber den Tippfehler, der sonst
-  // erst beim 98-Dateien-Lauf auffiele.
+  // erst beim 98-Dateien-Lauf auffiele. Darf der Schluessel Stimmen nicht lesen
+  // (`unverified`, fehlende Berechtigung voices_read), wird trotzdem gespeichert:
+  // Probehoeren prueft die ID dann ueber die Vertonung.
+  let verified = false;
   if (elevenVoiceId && elevenVoiceId !== existing?.elevenVoiceId) {
     const v = await validateElevenVoice(elevenVoiceId);
-    if (!v.ok) return { ok: false, error: v.error === "bad_voice_id" ? "bad_voice_id" : v.error };
+    if (!v.ok && v.error !== "unverified") return { ok: false, error: v.error };
+    verified = v.ok;
   }
 
   const row = { name, kind, eleven_voice_id: elevenVoiceId, person_name: personName };
@@ -68,7 +72,11 @@ export async function saveVoice(input: VoiceSaveInput): Promise<VoiceActionResul
     if (error || !data) return { ok: false, error: (error as { code?: string } | null)?.code === "23505" ? "key_taken" : "db" };
     id = (data as { id: string }).id;
   }
-  await logOps("admin_action", { message: existing ? "Stimme geändert" : "Stimme angelegt", group: "voices", detail: { key: existing?.key ?? slugifyKey(name), kind } });
+  await logOps("admin_action", {
+    message: existing ? "Stimme geändert" : "Stimme angelegt",
+    group: "voices",
+    detail: { key: existing?.key ?? slugifyKey(name), kind, idVerified: verified },
+  });
   return { ok: true, id };
 }
 
