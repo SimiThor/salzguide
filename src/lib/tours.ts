@@ -1,6 +1,6 @@
 import { createServiceClient } from "./supabase/service";
 import { viewerCanSeePro } from "./spots";
-import { cleanRouteGeo } from "./tour-route";
+import { cleanRouteGeo, cleanRouteVia, chainKeys, reconcileVia, type ViaLeg } from "./tour-route";
 import { translationStatus } from "./spot-hash";
 import { routing } from "@/i18n/routing";
 import { tourModeOf, type TourMode } from "./tour-mode";
@@ -107,6 +107,10 @@ export async function getTourDetail(
   };
 
   const versuche = async (nurVeroeffentlicht: boolean) => {
+    // Wegpunkte ohne Geschichte (0071) als eigene oberste Stufe: In einer bestehenden
+    // Stufe liesse die fehlende Spalte vor der Migration Route UND Stimme mit scheitern.
+    const mitVia = await holen(`${baseCols}, ${routeCols}, ${voiceCols}, route_via`, nurVeroeffentlicht);
+    if (!mitVia.error) return mitVia.data;
     const mitStimme = await holen(`${baseCols}, ${routeCols}, ${voiceCols}`, nurVeroeffentlicht);
     if (!mitStimme.error) return mitStimme.data;
     const mitRoute = await holen(`${baseCols}, ${routeCols}`, nurVeroeffentlicht);
@@ -310,6 +314,16 @@ export async function getTourDetail(
     routeGeo: cleanRouteGeo(tt.route_geo),
     start: coordOf(tt.start_lat, tt.start_lng),
     end: coordOf(tt.end_lat, tt.end_lng),
+    // Wegpunkte (0071) an die VEROEFFENTLICHTE Kette angepasst: Abschnitte an einem
+    // Entwurfs-Punkt werden zusammengeklebt, und keine Entwurfs-ID verlaesst den Server.
+    routeVia: reconcileVia(
+      cleanRouteVia(tt.route_via),
+      chainKeys(
+        coordOf(tt.start_lat, tt.start_lng),
+        coordOf(tt.end_lat, tt.end_lng),
+        stops.map((s) => s.spotSlug),
+      ),
+    ).legs,
   };
 }
 
@@ -492,6 +506,8 @@ export type TourEditData = {
   endLng: number | null;
   routeGeo: [number, number][] | null;
   routeHash: string | null;
+  /** Wegpunkte ohne Geschichte je Abschnitt (0071), roh; das Formular passt sie an seine Kette an. */
+  routeVia: ViaLeg[];
   stops: TourEditStop[];
 };
 
@@ -503,8 +519,10 @@ export async function getTourForEdit(id: string): Promise<TourEditData | null> {
     "id, area_id, emoji, cover_url, is_pro, free_stops, status, duration_min, distance_km";
   const extCols = `${baseCols}, start_lat, start_lng, end_lat, end_lng, route_geo, route_hash, mode, ` +
     "tour_translations(lang, title, subtitle, description, source_hash)";
-  // voice_id kommt mit 0068; eigene Stufe, damit das Formular auch vorher aufgeht.
-  let full = await supabase.from("tours").select(`${extCols}, voice_id`).eq("id", id).maybeSingle();
+  // voice_id kommt mit 0068, route_via mit 0071; je eine eigene Stufe, damit das Formular
+  // auch vor den Migrationen aufgeht.
+  let full = await supabase.from("tours").select(`${extCols}, voice_id, route_via`).eq("id", id).maybeSingle();
+  if (full.error) full = await supabase.from("tours").select(`${extCols}, voice_id`).eq("id", id).maybeSingle();
   if (full.error) full = await supabase.from("tours").select(extCols).eq("id", id).maybeSingle();
   let tour: Record<string, unknown> | null = full.error
     ? null
@@ -595,6 +613,7 @@ export async function getTourForEdit(id: string): Promise<TourEditData | null> {
     endLng: (tt.end_lng as number | null) ?? null,
     routeGeo: cleanRouteGeo(tt.route_geo),
     routeHash: (tt.route_hash as string | null) ?? null,
+    routeVia: cleanRouteVia(tt.route_via),
     stops,
   };
 }

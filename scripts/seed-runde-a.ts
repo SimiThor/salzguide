@@ -199,13 +199,15 @@ for (const [i, s] of SPOTS.entries()) {
 }
 
 // ── 3. Route über Mapbox, Radprofil ──────────────────────────────────────────
-// Dieselbe Kette wie die Navigation: Start, alle Spots als stille Wegpunkte, Ziel.
-// Die Vorschau-Linie auf der Tour-Seite und die gefahrene Linie sollen dieselbe sein.
+// Dieselbe Kette und dieselbe Anfrageform wie Editor und Navigation: Start, alle Spots
+// als STILLE Wegpunkte (`waypoints=0;<letzter>`, braucht steps=true), Ziel. Die
+// Vorschau-Linie auf der Tour-Seite und die gefahrene Linie sind damit dieselbe. Bis
+// 15.09.2026 gingen die Spots hier als echte Zwischenhalte mit, entgegen diesem Kommentar.
 const kette = [HANUSCHPLATZ, ...SPOTS.map((s) => ({ lat: s.lat, lng: s.lng })), HANUSCHPLATZ];
 const coordStr = kette.map((c) => `${c.lng},${c.lat}`).join(";");
 const res = await fetch(
   `https://api.mapbox.com/directions/v5/mapbox/cycling/${coordStr}` +
-    `?geometries=geojson&overview=full&continue_straight=false&access_token=${MAPBOX}`,
+    `?geometries=geojson&overview=full&steps=true&waypoints=0;${kette.length - 1}&access_token=${MAPBOX}`,
 );
 if (!res.ok) throw new Error(`Mapbox antwortet ${res.status}`);
 const j = await res.json();
@@ -234,7 +236,15 @@ const tourRow = {
   end_lat: HANUSCHPLATZ.lat,
   end_lng: HANUSCHPLATZ.lng,
   route_geo: routeGeo,
-  route_hash: tourRouteHash({ start: HANUSCHPLATZ, end: HANUSCHPLATZ, pointIds }),
+  // Dieselbe Marke wie das Formular: Fortbewegung, Start, Stationen mit Koordinaten,
+  // Wegpunkte (hier keine), Ziel. Sonst stuende die Runde im Editor als "veraltet".
+  route_hash: tourRouteHash({
+    start: HANUSCHPLATZ,
+    end: HANUSCHPLATZ,
+    stops: SPOTS.map((s, i) => ({ id: pointIds[i], coord: [s.lng, s.lat] as [number, number] })),
+    mode: "bike",
+    via: [],
+  }),
 };
 const { data: tourRowOut, error: tourErr } = await db
   .from("tours")

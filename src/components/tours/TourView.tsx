@@ -16,6 +16,7 @@ import TranscriptView from "./TranscriptView";
 import StopLockedCard from "./StopLockedCard";
 import VoiceDisclosure from "./VoiceDisclosure";
 import type { TourDetail } from "@/lib/tour-types";
+import { chainCoords, flattenChain } from "@/lib/tour-route";
 import { useSheetPeek } from "@/lib/sheet-metrics";
 import { TOUR_MODE_EMOJI } from "@/lib/tour-mode";
 
@@ -120,25 +121,24 @@ export default function TourView({
   ];
   // Echte, an Straßen gesnappte Route (Normalfall). Fehlt sie (Routing-Dienst war nicht
   // erreichbar), keine losen Segmente zeigen: die Ersatzlinie läuft vom Start über die
-  // Stops zum Ziel – und ohne eigenes Ziel zurück zum Start, damit die Runde wenigstens
-  // am Start verankert ist (so laufen die KI-Runden, die immer Rundwege sind).
+  // Stops (und die Wegpunkte des Admins, 0071) zum Ziel, und ohne eigenes Ziel zurück zum
+  // Start, damit die Runde wenigstens am Start verankert ist (so laufen die KI-Runden, die
+  // immer Rundwege sind).
+  const fallbackLine = (): [number, number][] | null => {
+    const start = startMarker ? { lat: startMarker.lat, lng: startMarker.lng } : null;
+    const end = endMarker ? { lat: endMarker.lat, lng: endMarker.lng } : start;
+    const line = chainCoords(
+      flattenChain({
+        start,
+        end,
+        stops: geoStops.map((s) => ({ id: s.spotSlug, coord: [s.lng as number, s.lat as number] })),
+        via: tour.routeVia ?? [],
+      }),
+    );
+    return line.length > 1 ? line : null;
+  };
   const route: [number, number][] | null =
-    tour.routeGeo && tour.routeGeo.length > 1
-      ? tour.routeGeo
-      : startMarker && stopMarkers.length > 0
-        ? [
-            [startMarker.lng, startMarker.lat],
-            ...stopMarkers.map((m) => [m.lng, m.lat] as [number, number]),
-            endMarker
-              ? ([endMarker.lng, endMarker.lat] as [number, number])
-              : ([startMarker.lng, startMarker.lat] as [number, number]),
-          ]
-        : stopMarkers.length > 1
-          ? [
-              ...stopMarkers.map((m) => [m.lng, m.lat] as [number, number]),
-              ...(endMarker ? [[endMarker.lng, endMarker.lat] as [number, number]] : []),
-            ]
-          : null;
+    tour.routeGeo && tour.routeGeo.length > 1 ? tour.routeGeo : fallbackLine();
   const center: [number, number] = startMarker
     ? [startMarker.lng, startMarker.lat]
     : stopMarkers.length

@@ -19,6 +19,7 @@ import { readRide, writeRide, clearRide, type SavedRide } from "@/lib/bike-nav-m
 import { useTourAudio, type PlayerStop } from "@/components/tours/useTourAudio";
 import { estimateEtaMin } from "@/lib/nav-format";
 import { sliceAlong, haversineMeters } from "@/lib/geo";
+import { reconcileVia, type ViaLeg } from "@/lib/tour-route";
 import type { TourDetail, TourStopView } from "@/lib/tour-types";
 
 // Signierte Audio-URLs (getTourDetail, tour-audio-Bucket) laufen nach 2h ab. Eine lange
@@ -96,6 +97,19 @@ export default function BikeNavScreen({
     () => (tour.end ? [tour.end.lng, tour.end.lat] : null),
     [tour.end],
   );
+  // Wegpunkte ohne Geschichte (tours.route_via), auf die Halte DIESES Bildschirms
+  // umgeschluesselt: Die Abschnitte kennen Punkt-IDs (spotSlug), der Hook kennt Halte nur
+  // als Index in geoStops. Erst an die Kette der Halte MIT Koordinaten anpassen (ein
+  // Abschnitt an einer Station ohne Punkt wird dabei zusammengeklebt, so wie die Navigation
+  // die Station ohnehin nicht anfaehrt), dann umschluesseln.
+  const navVias = useMemo<ViaLeg[]>(() => {
+    const legs = tour.routeVia ?? [];
+    if (!legs.length) return [];
+    const keys = ["start", ...geoStops.map((s) => s.spotSlug), ...(endCoord ? ["end"] : [])];
+    const idx = new Map(geoStops.map((s, i) => [s.spotSlug, String(i)]));
+    const rekey = (k: string) => (k === "start" || k === "end" ? k : (idx.get(k) ?? k));
+    return reconcileVia(legs, keys).legs.map((l) => ({ from: rekey(l.from), to: rekey(l.to), coords: l.coords }));
+  }, [tour.routeVia, geoStops, endCoord]);
 
   // Gedaechtnis der Runde (bike-nav-memory.ts): im EFFEKT gelesen, nie beim Rendern. Ein
   // gespeicherter Wert, der erst nach dem ersten Bild nachkommt, liesse den Startknopf
@@ -113,7 +127,7 @@ export default function BikeNavScreen({
 
   const { fix, status: gpsStatus, start } = useGeolocationWatch();
   useWakeLock(gpsStatus === "requesting" || gpsStatus === "watching" || gpsStatus === "signal-lost");
-  const bike = useBikeNavigation(stopCoords, fix, locale, endCoord, resumeDone);
+  const bike = useBikeNavigation(stopCoords, fix, locale, endCoord, resumeDone, navVias);
 
   const [activeAudioIndex, setActiveAudioIndex] = useState(0);
   const audio = useTourAudio(playerStops, activeAudioIndex, setActiveAudioIndex);

@@ -11,7 +11,8 @@ import {
   type GeoFix,
   type SpotPhase,
 } from "./bike-nav-core";
-import { fetchBikeRoute, type BikeRoute, type BikeLegError } from "./bike-directions";
+import { fetchBikeRoute, selectNavVias, type BikeRoute, type BikeLegError } from "./bike-directions";
+import type { ViaLeg } from "./tour-route";
 import { useLatestRef } from "./use-latest-ref";
 
 export type BikeNavStatus = "idle" | "loading" | "ready" | "error";
@@ -66,6 +67,10 @@ export function useBikeNavigation(
   // Die erste Route geht dann nur noch ueber die offenen, genau wie eine Neuberechnung.
   // Gelesen wird der Wert beim ERSTEN Fix, danach nie wieder.
   resumeDone?: ReadonlySet<number> | null,
+  // Wegpunkte ohne Geschichte (tours.route_via), Schluessel = Tour-Index der Halte als
+  // String, "start", "end". Welche davon in eine Anfrage gehen, entscheidet selectNavVias
+  // je Laden: nur die vor dem Gast, nur die zu offenen Halten.
+  vias: ViaLeg[] = [],
 ): UseBikeNavigation {
   const [route, setRoute] = useState<BikeRoute | null>(null);
   const [spotIds, setSpotIds] = useState<number[]>(() => stops.map((_, i) => i));
@@ -86,6 +91,7 @@ export function useBikeNavigation(
   // Abhaengigkeit von loadRoute wuerde ein bei jedem Render neu erzeugtes Array-Literal
   // aus der Elternkomponente eine Neuberechnung ausloesen.
   const endRef = useLatestRef(end ?? null);
+  const viasRef = useLatestRef(vias);
   const resumeRef = useLatestRef(resumeDone ?? null);
   const fixRef = useLatestRef(fix);
 
@@ -180,12 +186,26 @@ export function useBikeNavigation(
         };
       };
 
+      // Wegpunkte ohne Geschichte: nur die vor dem Gast, nur zu offenen Halten, gedeckelt
+      // (selectNavVias erklaert die Regeln). Bei einer Neuberechnung zaehlt der Stand der
+      // letzten Route, welche davon schon hinter ihm liegen.
+      const chosenVias = selectNavVias({
+        legs: viasRef.current,
+        keep,
+        stopCoords: stopsRef.current,
+        end: endRef.current,
+        origin: [originFix.lng, originFix.lat],
+        isReroute,
+        alongM: isReroute ? navRef.current.alongM : undefined,
+        viaAlongM: routeRef.current?.viaAlongM,
+      });
       void fetchBikeRoute(
         [originFix.lng, originFix.lat],
         targets,
         localeRef.current,
         ac.signal,
         endRef.current,
+        chosenVias,
       )
         .then((r) => {
           clearTimeout(timeout);
@@ -231,7 +251,7 @@ export function useBikeNavigation(
           retryLater();
         });
     },
-    [stopsRef, localeRef, endRef, clearRetry, fixRef, spotIdsRef, applyEvents],
+    [stopsRef, localeRef, endRef, viasRef, routeRef, clearRetry, fixRef, spotIdsRef, applyEvents],
   );
 
   // Die Ref auf den aktuellen Stand bringen, damit eine Wiederholung nicht eine alte
