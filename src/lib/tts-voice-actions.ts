@@ -111,11 +111,15 @@ export async function deleteVoice(id: string): Promise<VoiceActionResult> {
 }
 
 /**
- * Ein fester Satz mit dieser Stimme, als data-URL zurueck. Nichts wird gespeichert; es
+ * Ein fester Satz mit dieser Stimme, als Base64 zurueck. Nichts wird gespeichert; es
  * kostet rund 50 Zeichen und beantwortet die Frage, ob die ID die richtige Stimme ist,
  * BEVOR eine Runde mit ihr vertont wird.
+ *
+ * Base64 statt data-URL: Die CSP erlaubt als Medienquelle `blob:` und Supabase, kein
+ * `data:` (next.config.ts, media-src). Der Browser baut aus den Bytes eine Blob-URL; am
+ * 15.09.2026 zeigte der Player mit einer data-URL nur "Fehler".
  */
-export async function previewVoice(id: string): Promise<{ ok: boolean; dataUrl?: string; error?: string }> {
+export async function previewVoice(id: string): Promise<{ ok: boolean; audioBase64?: string; error?: string }> {
   const gate = await requireAdmin();
   if (!gate.ok) return { ok: false, error: gate.error };
   const v = await getVoiceById(id);
@@ -128,5 +132,5 @@ export async function previewVoice(id: string): Promise<{ ok: boolean; dataUrl?:
     await logOps("tts_failed", { message: r.error, group: "tts", detail: { status: r.status ?? null, voiceKey: v.key, kind: "probe" } });
     return { ok: false, error: r.error };
   }
-  return { ok: true, dataUrl: `data:audio/mpeg;base64,${Buffer.from(r.bytes).toString("base64")}` };
+  return { ok: true, audioBase64: Buffer.from(r.bytes).toString("base64") };
 }
