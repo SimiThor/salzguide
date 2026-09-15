@@ -19,6 +19,7 @@ const ADMIN_ERRORS: Record<string, string> = {
   bad_input: "Ungültige Eingabe.",
   not_found: "Nicht gefunden.",
   bad_url: "Nur Dateien aus dem eigenen Storage sind erlaubt.",
+  bad_audio: "Die MP3 lässt sich nicht lesen. Bitte neu als MP3 exportieren.",
   slug_taken: "Dieser Slug ist schon vergeben.",
   key_taken: "Dieser Key ist schon vergeben.",
   start_required: "Bitte einen Start-Zeitpunkt angeben.",
