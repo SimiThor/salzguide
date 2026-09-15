@@ -614,6 +614,20 @@ unangetastet. `npm run loudness:check` hält die Messung gegen ffmpeg `ebur128`;
 `npm run tts:normalize-stock` misst den Bestand und zieht Ausreißer nach (Trockenlauf ohne
 `APPLY=1`).
 
+**Jahreszahlen: Ziffern im Text, Wörter für die Stimme (Migration 0070).** ElevenLabs liest
+„1945" nicht als „neunzehnhundertfünfundvierzig", in keiner Stimme, und der Sprach-Parameter
+seines Normalisierers gilt für unser Modell nicht. ElevenLabs empfiehlt für den Fall selbst
+den Weg über ein LLM, und so läuft es: `audio_text` bleibt die geschriebene Fassung mit
+Ziffern (Transkript, Editor), `audio_spoken` ist die gesprochene Fassung (Zahlen, Daten,
+Einheiten, Abkürzungen ausgeschrieben, wie man sie in der Sprache spricht), und nur die geht
+an ElevenLabs (`lib/spoken-text.ts`, aus `lib/tts-files.ts` heraus). Einmal je Textstand,
+dann gespeichert; ein Text ohne Ziffern kostet keinen Aufruf. Ein Wächter (`lib/spoken-rules.ts`,
+`npm run spoken:check`) lässt nur durch, was ausschließlich Zahlen zu Wörtern macht: jedes
+Original-Wort muss als ganzes Wort in derselben Reihenfolge wieder vorkommen, keine Ziffer
+darf bleiben. Fällt er zweimal, wird der Originaltext vertont wie bisher und das Logbuch sagt
+es (`tts_spoken_failed`). Bestehende Dateien bleiben; „neu vertonen" holt die neue Aussprache.
+Der Punkt-Editor zeigt die Sprechfassung je Sprache einklappbar zum Nachsehen.
+
 **Sprech-Einstellungen gehören zur Stimme (Migration 0069).** Stabilität, Ähnlichkeit, Stil,
 Tempo und Speaker Boost stehen je Stimme in `tts_voices` und sind unter Einstellungen →
 Stimmen editierbar, mit Probehören daneben. Vorher galt für alle Stimmen Tempo 0,9 und

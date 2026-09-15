@@ -3,6 +3,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createServiceClient } from "./supabase/service";
 import { synthesizeVoice } from "./tts";
 import { elevenIdForVoice } from "./tts-voices";
+import { getSpokenText } from "./spoken-text";
+import { SPOKEN_PROMPT_VERSION } from "./spoken-rules";
 import {
   ttsTextHash,
   fileState,
@@ -73,7 +75,15 @@ async function objectExists(db: SupabaseClient, path: string): Promise<boolean> 
 }
 
 export type EnsureResult =
-  | { ok: true; path: string; hash: string; skipped: boolean; chars: number }
+  | {
+      ok: true;
+      path: string;
+      hash: string;
+      skipped: boolean;
+      chars: number;
+      /** Gesetzt, wenn keine Sprechfassung entstand und mit Ziffern vertont wurde (Grund). */
+      spokenFailed?: string;
+    }
   | { ok: false; error: string; status?: number };
 
 /**
@@ -119,8 +129,12 @@ export async function ensureVoiceFile(input: {
   if (!input.force && before.url && fileCurrent(before.state))
     return { ok: true, path: before.url, hash: before.storedHash ?? hash, skipped: true, chars: 0 };
 
+  // Gesprochen wird die Sprechfassung (Zahlen als Woerter, lib/spoken-text.ts), gespeichert
+  // und gehasht bleibt der geschriebene Text: Er ist die Quelle, die Sprechfassung nur seine
+  // Aussprache. Ohne Ziffern im Text ist beides dasselbe und kostet keinen Aufruf.
+  const spoken = await getSpokenText(db, { pointId: input.pointId, lang: input.lang, kind: input.kind, text });
   const r = await synthesizeVoice({
-    text,
+    text: spoken.text,
     lang: input.lang,
     kind: input.kind,
     elevenVoiceId: elevenId,
@@ -146,7 +160,8 @@ export async function ensureVoiceFile(input: {
       voice_id: input.voice.id,
       [c.url]: r.path,
       [c.hash]: hash,
-      tts_profile: r.profile,
+      // "|spokenN" sagt einer Zeile an, dass sie aus der Sprechfassung entstand (Fassung N).
+      tts_profile: spoken.derived ? `${r.profile}|spoken${SPOKEN_PROMPT_VERSION}` : r.profile,
     },
     { onConflict: "point_id,lang,voice_id" },
   );
@@ -157,7 +172,7 @@ export async function ensureVoiceFile(input: {
     .update({ [c.sec]: durationFromBytes(r.bytes) })
     .eq("point_id", input.pointId)
     .eq("lang", input.lang);
-  return { ok: true, path: r.path, hash, skipped: false, chars: text.length };
+  return { ok: true, path: r.path, hash, skipped: false, chars: text.length, spokenFailed: spoken.failedReason };
 }
 
 // ── Der Plan: was eine Stimme fuer diese Punkte noch braucht ───────────────────────────

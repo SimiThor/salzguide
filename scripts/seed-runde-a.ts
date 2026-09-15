@@ -190,6 +190,7 @@ for (const [i, s] of SPOTS.entries()) {
     const r = await ensureVoiceFile({ pointId: id!, lang: "de", kind, voice: STIMME, text: txt, force: NEU_VERTONEN, db });
     if (!r.ok) throw new Error(`Vertonung (${was}) fehlgeschlagen: ${r.error}`);
     log(`     ${was}: ${r.skipped ? "schon aktuell" : `neu vertont (${r.chars} Zeichen)`} ${r.path}`);
+    if (r.spokenFailed) log(`     ${was}: OHNE Sprechfassung vertont (${r.spokenFailed}), Zahlen koennen komisch klingen`);
   };
   await vertonen("Geschichte", text, "voll");
   await vertonen("Kostprobe", probe, "kostprobe");
