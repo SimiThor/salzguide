@@ -1,6 +1,6 @@
 # Rad-Audioguide: Navigation, Audio-Spots, Auslegung
 
-Stand: 2026-08-25 · Code: `src/lib/bike-nav-core.ts`, `src/components/tours/nav/` · Prüfung: `npm run nav:check` (18 Prüfungen)
+Stand: 2026-09-15 · Code: `src/lib/bike-nav-core.ts`, `src/components/tours/nav/` · Prüfung: `npm run nav:check` (26 Prüfungen)
 
 Dieses Dokument war ab dem 24.08.2026 an neun Stellen im Code als „siehe docs/40" zitiert,
 bevor es existierte. Es holt das nach: Es hält fest, was gebaut wird, mit welchen Zahlen,
@@ -83,10 +83,14 @@ Code ist eine offene Baustelle, keine Eigenschaft.
 
 | Zweck | Konstante | Wert | Herkunft |
 |---|---|---|---|
-| Audio-Spot ankündigen | `SPOT_NEAR_M` | 150 m | 30 Sekunden bei 18 km/h. OsmAnd nimmt 167 m im Radprofil. |
+| Audio-Spot ankündigen | `SPOT_NEAR_M` | 200 m | 40 Sekunden bei 18 km/h (war 150 m; mit einer Abbiegung im Fenster blieben davon nur 10 m nutzbar). OsmAnd nimmt 167 m im Radprofil. |
 | Spot als vorbei werten | `SPOT_PASSED_M` | 100 m | Der Gast war da, auch ungehört. Verhindert, dass ein verpasster Spot die Runde blockiert. |
 | Kulanz für einen vorgemerkten Spot | `SPOT_GRACE_M` | 250 m | Wer wegen einer Sperrzone nie angeboten werden konnte, bekommt die Geschichte kurz nach dem Ort noch. |
 | Sperrzone vor einer Abbiegung | `MANEUVER_QUIET_M` | 140 m | **Sicherheitsregel:** kein Play-Angebot, während eine Abbiegung bevorsteht. „Ankommen" zählt nicht als Abbiegung. |
+| „Dort gewesen" als Luftlinie | `SPOT_ARRIVE_M` | 100 m | Netz unter der Phase, wenn der Fortschritt hängt. Altstadt-Ortung 11 bis 13 m daneben, dazu 50 m Abstand zum Anschauen; unter den 130 m zwischen Festung und Giselakai. |
+| Gegenrichtung erkennen | `WRONG_WAY_M` | 60 m | Rückfall unter den letzten Scheitel. Greift wegen Fenster-Boden und Rückfall auf die globale Suche bei rund 100 m, also 20 s. |
+| ...bestätigt über | `WRONG_WAY_FIXES` | 3 Fixe | Dieselbe Entprellung wie Off-Route; ein falsch geschnappter Fix an einer Sackgassen-Spitze reicht nicht. |
+| ...aufgehoben nach | `WRONG_WAY_CLEAR_M` | 25 m | Vorwärts ab dem Tiefststand; über dem Stadtrauschen, unter dem 40-m-Fenster. |
 | Ende der Runde | `FINISH_M` | 35 m | Stadtübliche GPS-Streuung. |
 | ...bestätigt über | `FINISH_FIXES` | 2 Fixe | Ein einzelner Messwert reicht nicht (siehe unten). |
 | ...und nur nach Annäherung | `FINISH_APPROACH_M` | 250 m | Ein Sprung von der halben Runde auf 20 m Rest ist kein Zieleinlauf. |
@@ -307,6 +311,18 @@ die Zusage aus der Sperrzone überhaupt hält:
 - **done**: abgehakt. Heißt NICHT „gehört". Was wirklich lief, zählt der Fahrbildschirm
   getrennt mit, weil der Kern den Player bewusst nicht kennt.
 
+**Drei Wege auf `done`, seit 15.09.2026 (Anton):** 100 m vorbeigefahren (250 m bei
+`pending`), das X am Streifen, oder **gehört UND dort gewesen**, in beliebiger Reihenfolge.
+„Dort" heißt: Phase `pending`/`near` (im 200-m-Fenster entlang der Route) ODER unter
+`SPOT_ARRIVE_M` Luftlinie, falls der Fortschritt hängt. Damit hat der Gast **immer nur ein
+Ziel**: Play am Ort rückt Leiste und rote Linie sofort zum nächsten Halt weiter, die
+Geschichte läuft im Streifen weiter. Wer die Geschichte 500 m vorher startet, bekommt das
+Ziel beim Ankommen weitergerückt, ohne noch einmal zu drücken. Wer sie zuhause oder aus der
+Liste vorhört, bleibt auf dem Weg dorthin. Und **„gehört" heißt gestartet, nicht zu Ende
+gehört**: Wer nach zehn Sekunden weiterfährt, hat den Halt abgeschlossen. Nichts in der
+Navigation wartet je auf das Ende einer Geschichte. Kern: `settleSpot()` und `atSpot()`,
+angewandt in `BikeNavScreen`, geprüft in `nav:check` Nr. 26.
+
 **Höchstens ein Angebot gleichzeitig.** Die Oberfläche hat einen Streifen; zwei Angebote im
 selben Rechenschritt hätten einander überschrieben, und der übergangene Spot hätte nie wieder
 auslösen können. Der nächstgelegene gewinnt, der nächste rückt nach, sobald der erste
@@ -356,6 +372,50 @@ verstrichenen Zeit fahrbar war, gedeckelt auf `MAX_JUMP_M`. Der Deckel ist der K
 Sache: Nach einer langen Ortungslücke wissen wir ohnehin nicht, wo der Gast ist, dann ist
 Stehenbleiben und Neuberechnen besser als Raten.
 
+## Gegenrichtung, Ortungslücke, Wiedereinstieg (15.09.2026)
+
+Drei Dinge, die ein echter Gast sofort erlebt und die keine der 21 Prüfungen bis dahin
+abdeckte. Alle drei von Anton benannt, alle drei gemessen.
+
+**Die Navigation fror nach einer Ortungslücke für immer ein.** Handy fünf Minuten in der
+Tasche, 1,5 km weitergefahren. Der Stetigkeits-Riegel verwirft den Sprung zu Recht, aber der
+Abstand zur Route kam danach vom GLOBAL nächsten Segment, und das lag direkt unter dem Gast:
+crossTrack 0, kein Off-Route, keine Neuberechnung, „Nächster Halt in 100 m" auf dem Schirm,
+1,5 km daneben. Der Kommentar im Code beschrieb die Absicht, der Code tat das Gegenteil.
+Jetzt zählt nach einem verworfenen Sprung der Abstand zum **geglaubten Stand**
+(`pointAlongRoute` in `geo.ts`), und die vorhandene Entprellung löst nach drei sauberen Fixen
+die Neuberechnung ab der echten Position aus. Dieselbe Lücke traf die Rundtour rückwärts ab
+Start, wo der Rückweg direkt unter dem Gast liegt. Geprüft in Nr. 22 und 25.
+
+**Gegenrichtung war unsichtbar.** Wer die Route rückwärts fährt, liegt auf ihr (crossTrack 0)
+und löste deshalb nie etwas aus; die Entfernung zum nächsten Halt zählte hoch, sonst nichts,
+und schon passierte Abbiegungen wurden erneut angesagt. Jetzt: Rückfall des Fortschritts
+unter seinen **letzten Scheitel** um `WRONG_WAY_M`, über `WRONG_WAY_FIXES` bewegte, saubere,
+auf der Route liegende Fixe, dann „Bitte umdrehen" mit U-Turn-Pfeil statt der Abbiegekarte.
+Aufgehoben nach `WRONG_WAY_CLEAR_M` vorwärts ab dem Tiefststand, dann wird der Scheitel auf
+die aktuelle Stelle gesetzt. Gemessen: Mit dem globalen Höchststand statt des lokalen
+Scheitels kam der Hinweis **dreimal** auf einem einzigen Rückweg, weil bis zum Höchststand
+jeder Fix wie ein Rückfall aussah. Keine Neuberechnung dabei: Der Gast ist ja auf der Route.
+Ausdrücklich geprüft (Nr. 24), dass der Rückweg aus einer Sackgasse (Nonnberg, Freisaal)
+KEIN Umdreh-Hinweis ist, sauber, verrauscht und ohne Geräterichtung. Geprüft in Nr. 23.
+
+**Neu öffnen hieß von vorn.** Tab zu, Handy aus, Rückkehr von der Stripe-Kasse: Halt 1,
+GPS-Gate, Route über alles. Jetzt merkt sich `lib/bike-nav-memory.ts` je Runde in
+**localStorage** die erledigten Halte und das Gehörte (Tour-Indizes, 12 Stunden gültig,
+S-Bike-Limit 4 h plus Reserve). Nicht sessionStorage (stirbt mit dem Tab, und genau der Tab
+ist weg), kein Cookie (ginge an den Server). Gespeichert wird nur, was der Kern nicht aus der
+Position ableiten kann; Route und Fortschritt werden ab der echten Position neu geholt,
+derselbe Weg wie eine Neuberechnung (`resumeDone` in `useBikeNavigation`). Das Gate zeigt
+dann „Weiterfahren, Halt 4 von 7" als Hauptknopf und „Von vorne beginnen" als Textlink,
+und seine Knöpfe erst, wenn der Speicher gelesen ist, damit nichts umspringt. Gespeichert
+wird erst, wenn die Route steht, sonst überschriebe „alles offen" den Eintrag, bevor das Gate
+ihn liest. Am Ziel wird der Eintrag gelöscht.
+
+**Die rote Linie beginnt am Routenanfang.** Sie begann an der Marke des vorigen Halts, und
+wer den Halt 200 m vor dem Ort abgehakt hatte, sah bis dorthin keine Linie unter seinem
+Punkt. Die Ausblendung (`line-trim-offset`) macht den gefahrenen Teil ohnehin unsichtbar, die
+Geometrie wechselt weiterhin nur mit dem nächsten Halt.
+
 ## Priorität 1 ist die Navigation, nicht das Audio
 
 Wenn die Führung falsch ist, ist die Geschichte am falschen Ort oder gar nicht zu hören. Ein
@@ -375,9 +435,11 @@ Umweg kostet nicht nur Zeit, er kostet den Spot. Deshalb:
 **Der Browser navigiert nicht im Hintergrund.** Sperrt der Gast das Handy oder wechselt die
 App, wird der Bildschirmschutz freigegeben, die Standortverfolgung gedrosselt und das Audio
 kann stoppen. Die Führung hängt daran, dass die Seite sichtbar bleibt. Der Startbildschirm
-muss das in einem Satz sagen. Nach einer Rückkehr aus dem Hintergrund werden Entscheidungen
-erst ab dem zweiten guten Signal wieder getroffen, sonst hält der Teleport-Filter einen
-Fünf-Minuten-Sprung fälschlich für echte Fahrt.
+muss das in einem Satz sagen. Nach einer Rückkehr aus dem Hintergrund bleibt der Fortschritt
+stehen (Stetigkeits-Riegel), und nach drei sauberen Fixen kommt die Neuberechnung ab der
+echten Position (siehe „Ortungslücke" oben). Halte, die in der Lücke passiert wurden, sind
+dann noch offen, und die neue Route führt zu ihnen zurück; das ist bewusst so, die Runde hat
+eine Reihenfolge, und X oder die Liste sind der Ausweg.
 
 **Der Akku.** Karte, GPS, Bildschirmschutz und Audio laufen im selben Tab. Zwischen den
 Abbiegungen gehört ein Ruhezustand: sehr dunkler, sehr reduzierter Schirm, der rund 80 m vor
@@ -500,6 +562,17 @@ in `npm run pro:check`.
 Sie ist auch nicht der abgeschnittene Anfang, sondern ein eigener Text: Bei einem Schnitt
 endet der Ton mitten im Satz, ein eigener Text darf aufhören, wo es spannend wird. Für die
 Vertonung heisst das eine zweite, kurze Datei je Punkt und Sprache.
+
+**Die Kostproben waren weg (gefunden 15.09.2026 im Fahrsimulator).** Halt 3 zeigte einem
+Gast ohne Pro ein Schloss statt der 20 Sekunden. Alle sieben deutschen Kostproben standen
+in `tour_point_audio.teaser_url`, aber keine einzige Datei lag mehr im Bucket
+(„Object not found"), die Volldateien schon. Ursache: `scripts/lib/storage-refs.mjs`
+sammelte für den wöchentlichen Waisen-Sweep (`api/cron/events`, `storage-orphans.ts`) nur
+`audio_url`, nicht `teaser_url` aus Migration 0065. Der Sweep hielt die Kostproben für
+Waisen und löschte sie. Behoben im Sammler; die sieben Dateien müssen neu vertont werden
+(`npm run seed:runde-a` mit `FORCE_TTS=1` vertont ALLES neu, ein gezielter Lauf nur für die
+Kostproben ist die sparsamere Variante). Lehre: Wer eine Spalte mit Objektpfaden anlegt,
+trägt sie im selben Commit in `storage-refs.mjs` ein, sonst löscht der Sweep Inhalte.
 
 **Was noch fehlt**, in dieser Reihenfolge: Apple Pay und Google Pay im selben Fenster (der
 Sprung zu Stripes Kasse ist der letzte verbliebene Seitenwechsel), und eine Preiszeile vor

@@ -5,6 +5,7 @@ import {
   stepNav,
   initNavState,
   resetForNewRoute,
+  settleSpot,
   type NavState,
   type NavRoute,
   type GeoFix,
@@ -28,6 +29,12 @@ export type UseBikeNavigation = {
   offeredSpotId: number | null;
   // Angebot wegtippen, ohne den Spot als gehört zu markieren.
   dismissOffer: () => void;
+  // Einen Halt von Hand abhaken, OHNE das Angebot zu leeren: "gehoert UND dort gewesen"
+  // (BikeNavScreen, atSpot). Der Streifen bleibt als Player stehen, Leiste und rote Linie
+  // ruecken sofort zum naechsten Halt. `tourIndex` wie bei offeredSpotId.
+  markSpotDone: (tourIndex: number) => void;
+  // Der Gast faehrt die Route rueckwaerts (bike-nav-core, NAV.WRONG_WAY_*): "Bitte umdrehen".
+  wrongWay: boolean;
   rerouting: boolean;
   finished: boolean;
   // Das Ende der Runde zuruecknehmen. Der Kern entscheidet inzwischen entprellt und
@@ -55,6 +62,10 @@ export function useBikeNavigation(
   // Bei einer Rundtour ist das der Startpunkt. Ohne ihn endet die Navigation am letzten
   // Stopp, und bei Runde A liegt der 692 m vom Leihrad entfernt.
   end?: [number, number] | null,
+  // Wiedereinstieg (bike-nav-memory.ts): Tour-Indizes der Halte, die schon erledigt sind.
+  // Die erste Route geht dann nur noch ueber die offenen, genau wie eine Neuberechnung.
+  // Gelesen wird der Wert beim ERSTEN Fix, danach nie wieder.
+  resumeDone?: ReadonlySet<number> | null,
 ): UseBikeNavigation {
   const [route, setRoute] = useState<BikeRoute | null>(null);
   const [spotIds, setSpotIds] = useState<number[]>(() => stops.map((_, i) => i));
@@ -75,6 +86,7 @@ export function useBikeNavigation(
   // Abhaengigkeit von loadRoute wuerde ein bei jedem Render neu erzeugtes Array-Literal
   // aus der Elternkomponente eine Neuberechnung ausloesen.
   const endRef = useLatestRef(end ?? null);
+  const resumeRef = useLatestRef(resumeDone ?? null);
   const fixRef = useLatestRef(fix);
 
   const reqRef = useRef(0);
@@ -228,14 +240,22 @@ export function useBikeNavigation(
     loadRouteRef.current = loadRoute;
   }, [loadRoute]);
 
-  // Erste Route, sobald der erste Fix da ist (vorher gibt es nichts zu routen).
+  // Erste Route, sobald der erste Fix da ist (vorher gibt es nichts zu routen). Beim
+  // Wiedereinstieg nur ueber die offenen Halte: Das ist derselbe Weg wie eine
+  // Neuberechnung, die Phasen der offenen Halte leitet der geseedete stepNav in loadRoute
+  // aus der echten Position neu ab.
   const startedRef = useRef(false);
   useEffect(() => {
     if (!fix || startedRef.current) return;
     startedRef.current = true;
     const all = stopsRef.current.map((_, i) => i);
-    loadRoute(fix, all, all.map(() => "open" as SpotPhase), false);
-  }, [fix, loadRoute, stopsRef]);
+    const done = resumeRef.current;
+    const offen = done ? all.filter((i) => !done.has(i)) : all;
+    // Alles erledigt, aber nicht zu Ende gefahren? Dann von vorn. Sonst gaebe es keine
+    // Route: loadRoute kehrt bei leerer Liste zurueck, und der Status bliebe "idle".
+    const keep = offen.length ? offen : all;
+    loadRoute(fix, keep, keep.map(() => "open" as SpotPhase), false);
+  }, [fix, loadRoute, stopsRef, resumeRef]);
 
   // Jeden neuen Fix durch den reinen Kern schicken. Bewusst nur `fix` als Abhängigkeit:
   // alles andere kommt aus Refs, sonst würde jedes setNavSnapshot den Effekt erneut
@@ -251,21 +271,35 @@ export function useBikeNavigation(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fix]);
 
+  // Einen Halt im Kern abhaken (settleSpot): Phase auf "done" UND naechster Halt samt
+  // Entfernung sofort nachgezogen. Vorher stand hier nur die Phase, und bis zum naechsten
+  // GPS-Fix zeigten Leiste und rote Linie noch den Halt, der eben abgehakt wurde. "done"
+  // heisst "abgehakt", nicht "gehoert"; gezaehlt wird das Gehoerte getrennt (BikeNavScreen).
+  const settle = useCallback(
+    (tourIndex: number) => {
+      const pos = spotIdsRef.current.indexOf(tourIndex);
+      if (pos < 0) return;
+      const r = routeRef.current;
+      const next = settleSpot(navRef.current, r ? toNavRoute(r) : null, pos);
+      if (next === navRef.current) return; // war schon erledigt
+      navRef.current = next;
+      setNavSnapshot(next);
+    },
+    [spotIdsRef, routeRef],
+  );
+
   // Wegtippen hakt den Spot im Kern ab, statt nur das Angebot zu leeren. Sonst bliebe
   // seine Phase auf "near" stehen, und weil der Kern hoechstens EIN Angebot gleichzeitig
-  // offen laesst, koennte danach kein weiterer Spot mehr nachruecken. "done" heisst hier
-  // "abgehakt", nicht "gehoert" – gezaehlt wird das Gehoerte getrennt (BikeNavScreen).
+  // offen laesst, koennte danach kein weiterer Spot mehr nachruecken.
   const dismissOffer = useCallback(() => {
     const id = offeredSpotId;
     setOfferedSpotId(null);
-    if (id == null) return;
-    const pos = spotIdsRef.current.indexOf(id);
-    if (pos < 0) return;
-    const phases = [...navRef.current.spotPhase];
-    phases[pos] = "done";
-    navRef.current = { ...navRef.current, spotPhase: phases };
-    setNavSnapshot(navRef.current);
-  }, [offeredSpotId, spotIdsRef]);
+    if (id != null) settle(id);
+  }, [offeredSpotId, settle]);
+
+  // Abhaken ohne das Angebot zu leeren: Der Streifen bleibt als Player stehen, waehrend
+  // Leiste und rote Linie schon den naechsten Halt zeigen.
+  const markSpotDone = useCallback((tourIndex: number) => settle(tourIndex), [settle]);
 
   const clearFinished = useCallback(() => {
     navRef.current = { ...navRef.current, finished: false, finishStreak: 0 };
@@ -298,6 +332,8 @@ export function useBikeNavigation(
     spotIds,
     offeredSpotId,
     dismissOffer,
+    markSpotDone,
+    wrongWay: navSnapshot.wrongWay,
     rerouting,
     finished: navSnapshot.finished,
     clearFinished,

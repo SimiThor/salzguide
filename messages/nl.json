@@ -151,7 +151,10 @@
     "navNextStopIn": "Volgende halte over {distance}",
     "navToFinish": "Terug naar de start",
     "navEta": "Aankomst over",
-    "navEtaLabel": "Aankomst"
+    "navEtaLabel": "Aankomst",
+    "navWrongWay": "Keer om",
+    "navResume": "Verder fietsen, halte {n} van {total}",
+    "navRestart": "Opnieuw beginnen"
   },
   "Water": {
     "title": "Watertemperaturen",

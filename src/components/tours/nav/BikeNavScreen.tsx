@@ -14,15 +14,23 @@ import SpotOffer from "./SpotOffer";
 import { useGeolocationWatch } from "@/lib/use-geolocation-watch";
 import { useWakeLock } from "@/lib/use-wake-lock";
 import { useBikeNavigation } from "@/lib/use-bike-navigation";
+import { atSpot } from "@/lib/bike-nav-core";
+import { readRide, writeRide, clearRide, type SavedRide } from "@/lib/bike-nav-memory";
 import { useTourAudio, type PlayerStop } from "@/components/tours/useTourAudio";
 import { estimateEtaMin } from "@/lib/nav-format";
-import { sliceAlong } from "@/lib/geo";
-import type { TourDetail } from "@/lib/tour-types";
+import { sliceAlong, haversineMeters } from "@/lib/geo";
+import type { TourDetail, TourStopView } from "@/lib/tour-types";
 
 // Signierte Audio-URLs (getTourDetail, tour-audio-Bucket) laufen nach 2h ab. Eine lange
 // Ausfahrt kann das überschreiten – 100 statt 120 Min als Sicherheitsabstand, damit die
 // URL nicht GENAU in der Sekunde zwischen "noch gültig" und "schon 403" angetippt wird.
 const SIGNED_URL_REFRESH_MS = 100 * 60 * 1000;
+
+// Nummer des ersten offenen Halts, fuer den Knopf "Weiterfahren, Halt n von total".
+function firstOpenOrder(stops: TourStopView[], done: number[]): number {
+  const i = stops.findIndex((_, idx) => !done.includes(idx));
+  return i >= 0 ? stops[i].order : 1;
+}
 
 // Der Fahrbildschirm des Rad-Audioguides (docs/40): permanente Abbiege-Führung über die
 // GANZE Runde, ein Play-Angebot kurz vor jedem Spot, danach ein mitlaufender Player.
@@ -89,9 +97,23 @@ export default function BikeNavScreen({
     [tour.end],
   );
 
+  // Gedaechtnis der Runde (bike-nav-memory.ts): im EFFEKT gelesen, nie beim Rendern. Ein
+  // gespeicherter Wert, der erst nach dem ersten Bild nachkommt, liesse den Startknopf
+  // umspringen; deshalb zeigt das Gate seine Knoepfe erst, wenn hier etwas anderes als
+  // "loading" steht. Genau an diesem Umspringen ist der fruehere localStorage-Merker fuer
+  // den Sicherheitshinweis gescheitert (siehe Kommentar am Gate).
+  const [memory, setMemory] = useState<"loading" | SavedRide | null>("loading");
+  useEffect(() => {
+    const saved = readRide(tour.slug);
+    void Promise.resolve().then(() => setMemory(saved));
+  }, [tour.slug]);
+  // Was der Gast am Gate entschieden hat: weiterfahren (erledigte Halte aus dem Speicher)
+  // oder von vorn. Der Hook liest es beim ersten Fix, danach nie wieder.
+  const [resumeDone, setResumeDone] = useState<ReadonlySet<number> | null>(null);
+
   const { fix, status: gpsStatus, start } = useGeolocationWatch();
   useWakeLock(gpsStatus === "requesting" || gpsStatus === "watching" || gpsStatus === "signal-lost");
-  const bike = useBikeNavigation(stopCoords, fix, locale, endCoord);
+  const bike = useBikeNavigation(stopCoords, fix, locale, endCoord, resumeDone);
 
   const [activeAudioIndex, setActiveAudioIndex] = useState(0);
   const audio = useTourAudio(playerStops, activeAudioIndex, setActiveAudioIndex);
@@ -134,6 +156,33 @@ export default function BikeNavScreen({
     start(); // MUSS synchron im Klick-Handler bleiben (siehe use-geolocation-watch.ts)
   };
 
+  // Wiedereinstieg: nur, wenn etwas erledigt ist UND noch etwas offen. Eine ganz
+  // abgehakte, aber nie zu Ende gefahrene Runde faengt still von vorn an. In EINEM useMemo,
+  // weil der React-Compiler die Datei sonst nicht mehr durchliess (preserve-manual-
+  // memoization an einer ganz anderen Stelle; per Ausschlussverfahren am 15.09.2026 auf
+  // den Lesezugriff `resumable.done` im Render eingegrenzt).
+  const { resumable, resumeOrder } = useMemo(() => {
+    const ride =
+      memory !== "loading" &&
+      memory != null &&
+      memory.done.length > 0 &&
+      memory.done.length < geoStops.length
+        ? memory
+        : null;
+    return { resumable: ride, resumeOrder: ride ? firstOpenOrder(geoStops, ride.done) : 1 };
+  }, [memory, geoStops]);
+  const resumeRide = () => {
+    if (resumable) {
+      setResumeDone(new Set(resumable.done));
+      setHeard(new Set(resumable.heard));
+    }
+    start(); // synchron in der Geste, wie beginNavigation
+  };
+  const restartRide = () => {
+    clearRide(tour.slug);
+    setResumeDone(null);
+    start();
+  };
 
   const showStartGate = gpsStatus === "idle" || gpsStatus === "denied" || gpsStatus === "unavailable";
 
@@ -256,6 +305,57 @@ export default function BikeNavScreen({
   const nextRouteSpot = bike.nav.nextSpotIndex >= 0 ? bike.spotIds[bike.nav.nextSpotIndex] : -1;
   const nextStop = nextRouteSpot >= 0 ? (geoStops[nextRouteSpot] ?? null) : null;
 
+  // GEHOERT UND DORT GEWESEN = erledigt (bike-nav-core, atSpot). Ein Effekt fuer alle drei
+  // Wege: Play am Ort (heard kommt eine Microtask nach dem Start), die Geschichte lief schon
+  // beim Ankommen (atSpot wird wahr), oder der Halt wurde zuhause vorgehoert und ist jetzt
+  // erreicht. Geprueft wird NUR der Ziel-Halt: Wer aus der Liste einen spaeteren Halt
+  // vorhoert, rueckt nichts weiter, und wer die Geschichte des Ziel-Halts zwei Kilometer
+  // vorher hoert, bleibt auf dem Weg dorthin. X und Vorbeifahren bleiben die Netze darunter.
+  // "Gehoert" heisst gestartet, nicht zu Ende gehoert: Nichts hier wartet auf das Ende.
+  const zielPhase =
+    bike.nav.nextSpotIndex >= 0 ? (bike.nav.spotPhase[bike.nav.nextSpotIndex] ?? null) : null;
+  const zielLuftlinieM =
+    fix && nextStop?.lat != null && nextStop.lng != null
+      ? haversineMeters([fix.lng, fix.lat], [nextStop.lng, nextStop.lat])
+      : null;
+  const zielErreicht =
+    nextRouteSpot >= 0 &&
+    heard.has(nextRouteSpot) &&
+    zielPhase != null &&
+    atSpot(zielPhase, zielLuftlinieM);
+  const markSpotDone = bike.markSpotDone;
+  useEffect(() => {
+    if (!zielErreicht) return;
+    const id = nextRouteSpot;
+    void Promise.resolve().then(() => markSpotDone(id));
+  }, [zielErreicht, nextRouteSpot, markSpotDone]);
+
+  // Speichern, sobald sich Erledigtes oder Gehoertes aendert (bike-nav-memory.ts). NUR
+  // wenn die Route steht: Vorher beschreiben spotIds und der Kern-Zustand noch "alles
+  // offen" und wuerden den Eintrag ueberschreiben, bevor das Gate ihn gelesen hat.
+  // Erledigt ist, was nicht mehr in der Route ist (nach einer Neuberechnung fallen die
+  // abgehakten Halte heraus) oder in der Route auf "done" steht. Ueber Schluessel-Strings
+  // statt der Arrays, weil der Kern seine Phasen bei jedem Fix neu kopiert.
+  const reallyDone = bike.finished && bike.nav.nextSpotIndex < 0;
+  const doneKey = useMemo(() => {
+    const done = new Set<number>();
+    for (let i = 0; i < geoStops.length; i++) if (!bike.spotIds.includes(i)) done.add(i);
+    bike.spotIds.forEach((id, pos) => {
+      if (bike.nav.spotPhase[pos] === "done") done.add(id);
+    });
+    return Array.from(done).sort((a, b) => a - b).join(",");
+  }, [bike.spotIds, bike.nav.spotPhase, geoStops.length]);
+  const heardKey = Array.from(heard).sort((a, b) => a - b).join(",");
+  useEffect(() => {
+    if (bike.status !== "ready") return;
+    if (reallyDone) {
+      clearRide(tour.slug); // die naechste Fahrt beginnt wieder am Start
+      return;
+    }
+    const parse = (k: string) => (k ? k.split(",").map(Number) : []);
+    writeRide(tour.slug, { done: parse(doneKey), heard: parse(heardKey) });
+  }, [bike.status, reallyDone, doneKey, heardKey, tour.slug]);
+
   const maneuverStep =
     bike.route && bike.nav.stepIndex >= 0 ? (bike.route.steps[bike.nav.stepIndex] ?? null) : null;
   const etaMin = bike.status === "ready" ? estimateEtaMin(bike.nav.remainingM, fix?.speedMps ?? null) : null;
@@ -273,14 +373,22 @@ export default function BikeNavScreen({
   // FORM der Runde und aendert sich nie, die rote Linie ist die Zusage "hier entlang,
   // jetzt". Der zweite Durchgang durch denselben Korridor liegt in einer anderen Etappe
   // und wird gar nicht gezeichnet, solange er nicht dran ist.
+  //
+  // DIE ROTE LINIE BEGINNT AM ROUTENANFANG, NICHT AM VORIGEN HALT (seit 15.09.2026). Die
+  // Ausblendung (line-trim-offset, NavMap) macht den gefahrenen Teil ohnehin unsichtbar,
+  // die Geometrie wechselt weiterhin nur, wenn der naechste Halt wechselt. Vorher begann
+  // sie an der Marke des vorigen Halts, und wer diesen Halt 200 m VOR dem Ort abgehakt
+  // hatte (X, oder Play beim Ankommen), sah bis dorthin keine rote Linie unter seinem
+  // Punkt: Die Etappe fing vor ihm an. Mit dem Play-Vorruecken waere das der Normalfall.
   const { leg, legProgress, ahead } = useMemo(() => {
     const g = bike.route?.geometry;
     if (!g?.length || totalM <= 0) return { leg: null, legProgress: 0, ahead: null };
     const marken = bike.route!.spotAlongM;
     const naechste = bike.nav.nextSpotIndex;
-    // Von: der zuletzt passierte Halt, sonst der Start. Bis: der naechste Halt, sonst das
-    // Rundenende. Nach dem letzten Halt ist die Etappe der Rueckweg zum Start.
-    const vonM = naechste > 0 ? (marken[naechste - 1] ?? 0) : 0;
+    // Ab: die Marke des zuletzt abgehakten Halts, nur fuer die Entartungs-Pruefung unten.
+    // Bis: der naechste Halt, sonst das Rundenende (nach dem letzten Halt ist die Etappe
+    // der Rueckweg zum Start).
+    const abM = naechste > 0 ? (marken[naechste - 1] ?? 0) : 0;
     let bisM = naechste >= 0 ? (marken[naechste] ?? totalM) : totalM;
 
     // ENTARTETE ETAPPEN UEBERSPRINGEN. Auf einer Rundtour sitzt Halt 1 AM STARTPUNKT, seine
@@ -289,19 +397,19 @@ export default function BikeNavScreen({
     // Zustand, in dem der Gast losfaehrt und nicht weiss, wohin.
     //
     // Dasselbe passiert an einer Sackgasse, wo zwei Halte dicht beieinander liegen. Deshalb
-    // bis zur naechsten Marke weitersuchen, die wirklich vor uns liegt.
+    // bis zur naechsten Marke weitersuchen, die wirklich vor uns liegt. Bewusst an den
+    // Marken gemessen und nicht an der Position, damit die Geometrie nicht flackert.
     let j = naechste;
-    while (bisM - vonM < 50 && j >= 0 && j + 1 < marken.length) {
+    while (bisM - abM < 50 && j >= 0 && j + 1 < marken.length) {
       j += 1;
       bisM = marken[j] ?? totalM;
     }
-    if (bisM - vonM < 50) bisM = totalM;
+    if (bisM - abM < 50) bisM = totalM;
 
-    const laenge = bisM - vonM;
-    if (laenge <= 1) return { leg: g, legProgress: 0, ahead: null };
+    if (bisM <= 1) return { leg: g, legProgress: 0, ahead: null };
     return {
-      leg: sliceAlong(g, vonM, bisM),
-      legProgress: Math.min(1, Math.max(0, (bike.nav.alongM - vonM) / laenge)),
+      leg: sliceAlong(g, 0, bisM),
+      legProgress: Math.min(1, Math.max(0, bike.nav.alongM / bisM)),
       // WAS NOCH KOMMT, blass darunter: vom Ende der aktuellen Etappe bis zum Rundenende.
       //
       // Nicht die ganze Runde: Was hinter dem Gast liegt, hat er hinter sich, und Googles
@@ -314,8 +422,6 @@ export default function BikeNavScreen({
       ahead: bisM < totalM - 1 ? sliceAlong(g, bisM, totalM) : null,
     };
   }, [bike.route, bike.nav.nextSpotIndex, bike.nav.alongM, totalM]);
-
-  const progress = totalM > 0 ? Math.min(1, Math.max(0, bike.nav.alongM / totalM)) : 0;
 
 
   // Sollte praktisch nie vorkommen (das Publish-Gate verlangt mindestens einen
@@ -364,15 +470,29 @@ export default function BikeNavScreen({
         </div>
       </div>
 
-      {!showStartGate && !bike.finished && maneuverStep && (
+      {/* Oben die naechste Anweisung. Faehrt der Gast die Route rueckwaerts, steht hier
+          statt der Abbiegung "Bitte umdrehen" (bike-nav-core, wrongWay): Die naechste
+          Abbiegung laege hinter ihm und waere die falsche Ansage. */}
+      {!showStartGate && !bike.finished && (bike.wrongWay || maneuverStep) && (
         <div className="pointer-events-none absolute inset-x-3 z-[45] top-[calc(env(safe-area-inset-top)+64px)]">
-          <ManeuverBanner
-            instruction={maneuverStep.instruction}
-            distanceM={bike.nav.distanceToManeuverM}
-            type={maneuverStep.type}
-            modifier={maneuverStep.modifier}
-            followedBy={maneuverStep.followedBy}
-          />
+          {bike.wrongWay ? (
+            <ManeuverBanner
+              instruction={t("navWrongWay")}
+              distanceM={null}
+              type="wrong-way"
+              modifier="uturn"
+            />
+          ) : (
+            maneuverStep && (
+              <ManeuverBanner
+                instruction={maneuverStep.instruction}
+                distanceM={bike.nav.distanceToManeuverM}
+                type={maneuverStep.type}
+                modifier={maneuverStep.modifier}
+                followedBy={maneuverStep.followedBy}
+              />
+            )
+          )}
         </div>
       )}
 
@@ -395,7 +515,11 @@ export default function BikeNavScreen({
               {t("navRerouting")}
             </p>
           )}
-          {!bike.rerouting && bike.status === "error" && (
+          {/* Am FEHLER, nicht am Status: Schlaegt eine Neuberechnung fehl, waehrend die
+              alte Route steht, bleibt der Status "ready" (use-bike-navigation), und die
+              Pille kam nie, obwohl ihr Text genau diesen Fall meint. Gemessen im
+              Offline-Szenario des Fahrsimulators am 15.09.2026. */}
+          {!bike.rerouting && bike.error != null && (
             <button
               type="button"
               onClick={bike.retry}
@@ -445,7 +569,7 @@ export default function BikeNavScreen({
           mehr offen. Auf einer Rundtour liegt das Ziel am Start, ein Ausreisser in
           Startnaehe sah sonst wie ein Zieleinlauf aus. Der Kern kennt diese Bedingung schon
           als `reallyDone`, benutzte sie aber nur, um die Neuberechnung ruhen zu lassen. */}
-      {bike.finished && bike.nav.nextSpotIndex < 0 && (
+      {reallyDone && (
         <div className="absolute inset-0 z-[50] flex flex-col items-center justify-end bg-black/45 p-6 pb-[calc(env(safe-area-inset-bottom)+32px)] backdrop-blur-sm">
           <div className="sg-nav-card w-full max-w-sm space-y-3 rounded-[22px] p-6 text-center">
             {/* KEINE ZAHL MEHR. Hier stand "{heard} von {total} Stationen gehoert", und das
@@ -492,13 +616,37 @@ export default function BikeNavScreen({
               bei einer StVO-Sache ist "jedes Mal" ohnehin die richtige Antwort. */}
           <div className="sg-nav-card w-full max-w-sm space-y-3 rounded-[22px] p-5 text-center">
             <p className="text-[15px] font-semibold text-ink">⚠️ {t("navSafetyHint")}</p>
-            <button
-              type="button"
-              onClick={beginNavigation}
-              className="sg-nav-on-accent w-full rounded-full bg-accent px-5 py-3 text-[15px] font-semibold active:scale-[0.98]"
-            >
-              🧭 {t("startNavigation")}
-            </button>
+            {/* Die Knoepfe erst, wenn das Gedaechtnis gelesen ist (eine Microtask nach dem
+                ersten Bild): Sonst stuende kurz "Navigation starten" da und spraenge auf
+                "Weiterfahren" um. Wer mitten in der Runde neu oeffnet (Tab zu, Handy aus,
+                zurueck von der Kasse), faehrt mit EINEM Tipp dort weiter, wo er war. */}
+            {memory !== "loading" &&
+              (resumable ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={resumeRide}
+                    className="sg-nav-on-accent w-full rounded-full bg-accent px-5 py-3 text-[15px] font-semibold active:scale-[0.98]"
+                  >
+                    🧭 {t("navResume", { n: resumeOrder, total: geoStops.length })}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={restartRide}
+                    className="w-full rounded-full px-5 py-2.5 text-[14px] font-semibold text-muted transition active:scale-[0.98]"
+                  >
+                    {t("navRestart")}
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={beginNavigation}
+                  className="sg-nav-on-accent w-full rounded-full bg-accent px-5 py-3 text-[15px] font-semibold active:scale-[0.98]"
+                >
+                  🧭 {t("startNavigation")}
+                </button>
+              ))}
           </div>
           {(gpsStatus === "denied" || gpsStatus === "unavailable") && (
             <p className="max-w-sm text-center text-[13px] text-white/90">

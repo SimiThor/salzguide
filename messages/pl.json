@@ -151,7 +151,10 @@
     "navNextStopIn": "Następny przystanek za {distance}",
     "navToFinish": "Powrót na start",
     "navEta": "Przyjazd za",
-    "navEtaLabel": "Przyjazd"
+    "navEtaLabel": "Przyjazd",
+    "navWrongWay": "Zawróć",
+    "navResume": "Jedź dalej, przystanek {n} z {total}",
+    "navRestart": "Zacznij od nowa"
   },
   "Water": {
     "title": "Temperatura wody",
