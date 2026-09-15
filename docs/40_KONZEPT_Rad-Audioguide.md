@@ -449,12 +449,55 @@ der nächsten Abbiegung von selbst aufwacht.
 Genau dort liegen die schönsten Spots. Eine naiv gezeichnete Altstadtrunde lässt den Gast ein
 40 Kilogramm schweres Rad schieben. Die Route wird um diese Flächen herum geplant, und wo
 geschoben werden muss, steht es als eigene Markierung da: gestrichelte Linie, Schiebe-Symbol,
-eigener Hinweis. **Nicht** still als Radweg durchgehen lassen.
+eigener Hinweis. **Nicht** still als Radweg durchgehen lassen. Das Werkzeug fürs Herumplanen
+sind die Wegpunkte ohne Geschichte (eigener Abschnitt unten).
 
 **Ein Profil, nicht zwei.** Der Prototyp fragt Rad- und Fußprofil ab und nimmt die kürzere
 Strecke, weil das Radprofil in Parsch Umwege nahm. Das kann den Gast auf Treppen oder in eine
 Einbahn gegen die Fahrtrichtung führen. Ab v1: Radprofil, und wo ein Fußweg gewinnt, wird er
 als Schiebestelle markiert.
+
+## Wegpunkte ohne Geschichte (seit 15.09.2026, Migration 0071)
+
+Zwischen zwei Stationen entschied bis dahin allein Mapbox, welche Gasse oder welcher Radweg
+genommen wird. Jetzt setzt der Admin im Runden-Editor Wegpunkte, die nur den Verlauf formen:
+Tippen auf die Linie setzt einen, Ziehen verschiebt ihn, Entf oder der Chip entfernt ihn, und
+die Linie passt sich von selbst an (eine halbe Sekunde nach der letzten Änderung, mit dem
+Profil der Fortbewegung). Sie haben kein Audio, keine Nummer und erscheinen nirgends als
+Station. Die Regeln, die man kennen sollte:
+
+- **Ein Wegpunkt gehört zum Abschnitt** zwischen zwei aufeinanderfolgenden Punkten der Kette
+  (Start, Stationen, Ziel), gespeichert in `tours.route_via` als `{from, to, coords}`.
+  Station umsortiert (3 über 2): 2→3 überlebt als 3→2 in umgekehrter Reihenfolge, 1→2 und
+  3→4 fallen weg, der Editor sagt wie viele. Station entfernt: Die Abschnitte davor und
+  danach werden zusammengeklebt, nichts geht verloren (`reconcileVia` in
+  `lib/tour-route.ts`). Warum kein Pool-Punkt ohne Text als Pseudo-Station: Der bekäme einen
+  Play-Knopf ohne Geschichte (siehe „Rundtour" oben).
+- **Eine Anfrageform für Editor und Fahrt.** Der Editor schickt seit 15.09.2026 dieselbe
+  Anfrage wie die Navigation: alles zwischen erstem und letztem Punkt als stiller Wegpunkt
+  (`waypoints=0;<letzter>`, braucht `steps=true`), Profil nach `tours.mode`. Vorher gingen
+  die Stationen im Editor als echte Zwischenhalte mit, und die Vorschau war eine andere
+  Linie als die gefahrene. Gegen die echte API geprobt: Geh- und Radprofil liefern beide ein
+  Leg und je stillem Punkt seine Stelle auf der Linie; dieselben vier Punkte ergeben 2,3 km
+  zu Fuß und 3,3 km mit dem Rad, das Profil ist also kein Detail.
+- **Die Aktualitäts-Marke** (`route_hash`) enthält jetzt Fortbewegung, Stations-Koordinaten
+  und Wegpunkte. Umstellen auf „Rad" oder ein im Punkt-Editor verschobener Punkt zeigt die
+  Linie als veraltet, statt sie still stehen zu lassen. Der Server gibt die Wegpunkte
+  zurück, die er wirklich verwendet hat, und das Formular übernimmt sie; sonst hieße ein
+  verworfener Abschnitt „für immer veraltet".
+- **Deckel 25 Koordinaten** je Mapbox-Anfrage, für Start, Stationen, Wegpunkte und Ziel
+  zusammen; der Editor zählt mit („Punkte 12/25"). Die Navigation rechnet ab der
+  GPS-Position: Origin + offene Halte + Ziel + Wegpunkte. Wird es eng, fallen die Wegpunkte
+  der hintersten Abschnitte weg, nie ein Halt, nie das Ziel (vorher kürzte `.slice(0, 25)`
+  still und nahm als Erstes das Ziel).
+- **Die Navigation fährt die Wegpunkte mit** (`selectNavVias` in `lib/bike-directions.ts`):
+  Die Abschnitte werden an die Kette der offenen Halte angepasst, über erledigte oder per X
+  übersprungene Halte hinweg zusammengeklebt. Nur im ersten Abschnitt ab dem Start fällt ein
+  Wegpunkt weg, wenn der Gast dem Zielhalt schon näher ist als der Wegpunkt (Wiedereinstieg
+  mitten in der Runde). Bei einer Neuberechnung fällt zusätzlich weg, was laut der letzten
+  Route schon hinter ihm liegt. Diese Regel auf alle Abschnitte anzuwenden nahm jeder
+  Rundtour beim Start die Wegpunkte des letzten Abschnitts, weil dort Start = Ziel ist; das
+  steht als Fall in `npm run tour-route:check`.
 
 ## Audio im Fahrbetrieb
 

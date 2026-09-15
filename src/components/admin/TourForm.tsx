@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "@/i18n/navigation";
 import {
   saveTour,
@@ -15,7 +15,24 @@ import type { TourEditData } from "@/lib/tours";
 import { routing } from "@/i18n/routing";
 import { localeMeta } from "@/i18n/locales";
 import { hashTourTexts } from "@/lib/spot-hash";
-import { tourRouteHash, type RoutePoint } from "@/lib/tour-route";
+import {
+  tourRouteHash,
+  chainKeys,
+  reconcileVia,
+  flattenChain,
+  chainCoords,
+  legForTap,
+  insertVia,
+  moveVia,
+  removeVia,
+  viaIdOf,
+  countVia,
+  MAX_DIRECTIONS_COORDS,
+  type ChainStop,
+  type RoutePoint,
+  type ViaLeg,
+} from "@/lib/tour-route";
+import { useLatestRef } from "@/lib/use-latest-ref";
 import { TOUR_MODE_EMOJI, type TourMode } from "@/lib/tour-mode";
 import type { VoiceRow } from "@/lib/tts-rules";
 import LocationPicker from "./LocationPicker";
@@ -38,6 +55,17 @@ const labelCls = "mb-1 block text-[13px] font-medium text-muted";
 const sectionCls = "space-y-3 rounded-[16px] bg-white p-5 shadow-sm";
 const h2Cls = "text-[15px] font-semibold text-ink";
 const chipCls = "cursor-pointer rounded-full bg-black/5 px-3 py-1.5 text-[12px] font-semibold text-ink transition active:scale-95";
+
+// Länge und Dauer aus einer Neuberechnung nur ins leere Feld oder über den Wert der
+// letzten Berechnung schreiben: Eine von Hand gesetzte Dauer überlebt das automatische
+// Anpassen der Route.
+const adopt = (current: string, last: string | undefined, fresh: number | undefined): string =>
+  fresh == null
+    ? current
+    : current.trim() === "" || (last != null && current.trim() === last)
+      ? String(fresh)
+      : current;
+const numText = (n: number | undefined): string => (n == null ? "" : String(n));
 
 type FormStop = {
   pointId: string;
@@ -67,6 +95,8 @@ type FormState = {
   end: RoutePoint | null;
   routeGeo: [number, number][] | null;
   routeHash: string | null;
+  /** Wegpunkte ohne Geschichte je Abschnitt (0071), roh wie gesetzt; an die Kette passt sie der Render an. */
+  via: ViaLeg[];
   stops: FormStop[];
 };
 
@@ -94,6 +124,7 @@ function initialState(
       end: null,
       routeGeo: null,
       routeHash: null,
+      via: [],
       stops: [],
     };
   return {
@@ -120,6 +151,7 @@ function initialState(
         : null,
     routeGeo: initial.routeGeo,
     routeHash: initial.routeHash,
+    via: initial.routeVia ?? [],
     stops: initial.stops.map((s) => ({
       pointId: s.pointId,
       title: s.title,
@@ -159,7 +191,16 @@ export default function TourForm({
   const [uploadingCover, setUploadingCover] = useState(false);
   const [translating, setTranslating] = useState(false);
   const [snapping, setSnapping] = useState(false);
+  const [selectedVia, setSelectedVia] = useState<string | null>(null);
+  // Länge und Dauer der letzten Neuberechnung, damit `adopt` weiss, was von der Maschine
+  // stammt und was von Hand geändert wurde.
+  const [lastSnap, setLastSnap] = useState<{ distanceKm: string; durationMin: string } | null>(null);
   const [reviewLang, setReviewLang] = useState<string>(TOUR_TARGETS[0] ?? "en");
+  // Anfragezähler fürs Anpassen der Route: Eine späte Antwort einer älteren Anfrage darf
+  // eine neuere nicht überschreiben (Muster snapReq in SpotForm).
+  const snapReq = useRef(0);
+  const formRef = useLatestRef(form);
+  const lastSnapRef = useLatestRef(lastSnap);
   const [loadingPoints, setLoadingPoints] = useState(false);
   const [pointsErr, setPointsErr] = useState(false);
   // Request-Token gegen die Gebiet-Wechsel-Race: Wechselt der Admin schnell A -> B und
@@ -241,8 +282,34 @@ export default function TourForm({
   // ── Start, Ziel, Route ─────────────────────────────────────────────────────
   const isLoop = sameSpot(form.start, form.end);
   const pointIds = form.stops.map((s) => s.pointId);
-  const liveRouteHash = tourRouteHash({ start: form.start, end: form.end, pointIds });
+  const chainStops: ChainStop[] = form.stops.map((s) => ({
+    id: s.pointId,
+    coord: s.lat != null && s.lng != null ? [s.lng, s.lat] : null,
+  }));
+  const allStopsPlaced = form.stops.every((s) => s.lat != null && s.lng != null);
+  // Wegpunkte gehören zu Abschnitten der Kette (lib/tour-route.ts). form.via bleibt roh,
+  // wie der Admin sie gesetzt hat; hier wird an die AKTUELLE Kette angepasst (Station
+  // umsortiert: 2→3 wird zu 3→2; entfernt: davor und danach zusammengeklebt). Ein
+  // Umsortieren zurück holt verschwundene Wegpunkte so wieder, bis gespeichert oder ein
+  // Wegpunkt angefasst wird (dann wird der angepasste Stand zum neuen Rohstand).
+  // Memoisiert wie die Stations-Pins, mit den Marker-Daten gleich dazu: Die Karte baut ihre
+  // Marker bei jedem neuen Array neu auf (sichtbares Flackern bei jedem Tastendruck).
+  const viaFit = useMemo(() => {
+    const fit = reconcileVia(form.via, chainKeys(form.start, form.end, form.stops.map((s) => s.pointId)));
+    return {
+      ...fit,
+      markers: fit.legs.flatMap((l) => l.coords.map((c) => ({ id: viaIdOf(c), lng: c[0], lat: c[1] }))),
+    };
+  }, [form.via, form.start, form.end, form.stops]);
+  const via = viaFit.legs;
+  const viaMarkers = viaFit.markers;
+  const viaCount = countVia(via);
+  const liveRouteHash = tourRouteHash({ start: form.start, end: form.end, stops: chainStops, mode: form.mode, via });
   const routeStale = !!form.routeGeo && !!form.routeHash && form.routeHash !== liveRouteHash;
+  const chain = flattenChain({ start: form.start, end: form.end, stops: chainStops, via });
+  const chainLine = chainCoords(chain);
+  const coordCount = chainLine.length;
+  const overCap = coordCount > MAX_DIRECTIONS_COORDS;
 
   // Kontrollpunkte der Karte: bei einem Rundweg nur EINER (sonst lägen zwei Marker
   // übereinander und ein Zug am oberen risse die Runde auseinander).
@@ -253,16 +320,9 @@ export default function TourForm({
         ...(form.end ? ([[form.end.lng, form.end.lat]] as [number, number][]) : []),
       ];
 
-  // Linie auf der Karte: die gesnappte Route, sonst die direkte Verbindung über die
-  // Stationen (damit man den Verlauf auch vor dem Anpassen sieht).
-  const stopLine: [number, number][] = [
-    ...(form.start ? ([[form.start.lng, form.start.lat]] as [number, number][]) : []),
-    ...form.stops
-      .filter((s) => s.lat != null && s.lng != null)
-      .map((s) => [s.lng as number, s.lat as number] as [number, number]),
-    ...(form.end ? ([[form.end.lng, form.end.lat]] as [number, number][]) : []),
-  ];
-  const mapLine: [number, number][] = form.routeGeo ?? (stopLine.length > 1 ? stopLine : []);
+  // Linie auf der Karte: die gesnappte Route, sonst die direkte Verbindung über Start,
+  // Wegpunkte und Stationen (damit man den Verlauf auch vor dem Anpassen sieht).
+  const mapLine: [number, number][] = form.routeGeo ?? (chainLine.length > 1 ? chainLine : []);
 
   // Nummerierte Anzeige-Pins der Stationen. useMemo, weil die Karte bei jedem neuen
   // Array ihre Marker neu aufbaut (sichtbares Flackern bei jedem Tastendruck).
@@ -282,8 +342,18 @@ export default function TourForm({
     [form.stops],
   );
 
-  // Klick/Zug auf der Karte: erster Punkt ist der Start, der letzte das Ziel.
+  // Tipp auf die freie Karte oder Zug an einem Marker. Ein Tipp (ein Punkt mehr als
+  // Marker) setzt den Start, wenn keiner da ist, sonst das Ziel, wenn keins da ist, sonst
+  // nichts: Bis 15.09.2026 überschrieb der dritte Tipp still das Ziel. Verschieben geht
+  // nur durch Ziehen (gleich viele Punkte wie Marker).
   function onRouteMarkersChange(coords: [number, number][]) {
+    if (coords.length > routeMarkers.length) {
+      const c = coords[coords.length - 1];
+      const pt = { lat: c[1], lng: c[0] };
+      if (!form.start) return set({ start: pt });
+      if (!form.end) return set({ end: pt });
+      return;
+    }
     if (coords.length === 0) return set({ start: null, end: null });
     const first = { lat: coords[0][1], lng: coords[0][0] };
     if (coords.length === 1) {
@@ -294,29 +364,82 @@ export default function TourForm({
     set({ start: first, end: { lat: last[1], lng: last[0] } });
   }
 
-  function onSnapRoute() {
-    if (snapping) return;
-    if (!form.stops.length) return setErr("Bitte zuerst Stationen zur Runde hinzufügen.");
+  // ── Wegpunkte ohne Geschichte ──────────────────────────────────────────────
+  // Tipp auf die Linie: in den Abschnitt, an dessen Stelle getippt wurde, zwischen die
+  // Wegpunkte, die dort schon liegen (legForTap). Die Bearbeitung läuft auf der
+  // ANGEPASSTEN Liste, die damit zum neuen Rohstand wird.
+  function onLineTap(lng: number, lat: number) {
+    if (!form.stops.length || !allStopsPlaced) return;
+    if (coordCount >= MAX_DIRECTIONS_COORDS)
+      return setErr(
+        `Höchstens ${MAX_DIRECTIONS_COORDS} Punkte je Route (Start, Stationen, Wegpunkte und Ziel zusammen).`,
+      );
+    const hit = legForTap({ chain, line: form.routeGeo, tap: [lng, lat], stale: routeStale });
+    if (!hit) return;
+    const anchors = chain.filter((n) => n.kind !== "via");
+    const from = anchors[hit.legIndex]?.key;
+    const to = anchors[hit.legIndex + 1]?.key;
+    if (!from || !to) return;
+    setErr("");
+    set({ via: insertVia(via, from, to, hit.insertAt, [lng, lat]) });
+    setSelectedVia(viaIdOf([lng, lat]));
+  }
+  function onViaMove(id: string, lng: number, lat: number) {
+    set({ via: moveVia(via, id, [lng, lat]) });
+    setSelectedVia(viaIdOf([lng, lat]));
+  }
+  function removeSelectedVia() {
+    if (!selectedVia) return;
+    set({ via: removeVia(via, selectedVia) });
+    setSelectedVia(null);
+  }
+  function clearVias() {
+    set({ via: [] });
+    setSelectedVia(null);
+  }
+  // Entf oder Rücktaste nimmt den ausgewählten Wegpunkt weg, ausser der Fokus liegt in
+  // einem Eingabefeld.
+  const removeSelectedRef = useLatestRef(removeSelectedVia);
+  useEffect(() => {
+    if (!selectedVia) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Delete" && e.key !== "Backspace") return;
+      const t = e.target as HTMLElement | null;
+      if (t && (["INPUT", "TEXTAREA", "SELECT"].includes(t.tagName) || t.isContentEditable)) return;
+      e.preventDefault();
+      removeSelectedRef.current();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [selectedVia, removeSelectedRef]);
+
+  // ── Route an die Wege anpassen ─────────────────────────────────────────────
+  function runSnap() {
+    const f = formRef.current;
+    const ids = f.stops.map((s) => s.pointId);
+    const fit = reconcileVia(f.via, chainKeys(f.start, f.end, ids)).legs;
+    const req = ++snapReq.current;
     setSnapping(true);
     setErr("");
-    setMsg("");
     void (async () => {
       try {
-        const r = await snapTourRoute({
-          start: form.start,
-          end: form.end,
-          pointIds,
-          mode: form.mode,
-        });
+        const r = await snapTourRoute({ start: f.start, end: f.end, pointIds: ids, mode: f.mode, via: fit });
+        if (req !== snapReq.current) return; // eine neuere Anfrage läuft schon
         if (r.ok && r.routeGeo) {
-          setForm((f) => ({
-            ...f,
+          const last = lastSnapRef.current;
+          setForm((cur) => ({
+            ...cur,
             routeGeo: r.routeGeo!,
             routeHash: r.routeHash ?? null,
-            // Gehzeit und Länge kommen aus derselben Antwort -> Felder gleich mitfüllen.
-            distanceKm: r.distanceKm != null ? String(r.distanceKm) : f.distanceKm,
-            durationMin: r.durationMin != null ? String(r.durationMin) : f.durationMin,
+            // Die Wegpunkte, die der Server wirklich verwendet hat: Nur so rechnet das
+            // Formular denselben Hash wie er (ein verworfener Abschnitt hiesse sonst „für
+            // immer veraltet"). Inhaltlich gleich bleibt dasselbe Array: Sonst bauten sich
+            // die Marker der Karte mit jeder Antwort neu auf.
+            via: r.via && JSON.stringify(r.via) !== JSON.stringify(cur.via) ? r.via : cur.via,
+            distanceKm: adopt(cur.distanceKm, last?.distanceKm, r.distanceKm),
+            durationMin: adopt(cur.durationMin, last?.durationMin, r.durationMin),
           }));
+          setLastSnap({ distanceKm: numText(r.distanceKm), durationMin: numText(r.durationMin) });
           setMsg(
             `✓ Route an die Wege angepasst${
               r.distanceKm != null ? `: ${r.distanceKm} km, ca. ${r.durationMin} Min` : ""
@@ -324,12 +447,51 @@ export default function TourForm({
           );
         } else setErr(adminErrorText(r.error));
       } catch {
-        setErr("Gerade nicht erreichbar. Bitte nochmal versuchen.");
+        if (req === snapReq.current) setErr("Gerade nicht erreichbar. Bitte nochmal versuchen.");
       } finally {
-        setSnapping(false);
+        if (req === snapReq.current) setSnapping(false);
       }
     })();
   }
+  const runSnapRef = useLatestRef(runSnap);
+
+  function onSnapRoute() {
+    if (snapping) return;
+    if (!form.stops.length) return setErr("Bitte zuerst Stationen zur Runde hinzufügen.");
+    setMsg("");
+    runSnap();
+  }
+
+  // Von selbst anpassen, sobald sich an Start, Ziel, Stationen, Wegpunkten oder
+  // Fortbewegung etwas ändert (alles im Hash), eine halbe Sekunde nach der letzten
+  // Änderung. Nicht beim Öffnen: Verglichen wird mit dem ZULETZT GESEHENEN Hash, und der
+  // steht beim Einhängen schon auf dem aktuellen (auch beim doppelten Einhängen im
+  // Dev-Modus); eine alte Runde ohne Linie kostete sonst allein fürs Öffnen eine Anfrage.
+  // Nicht mit dem Hash vom Öffnen vergleichen: Wer auf „zu Fuß" und wieder zurück stellt,
+  // steht sonst ohne Neuberechnung da. Ein Fehler ändert den Hash nicht, also gibt es
+  // keine Schleife; der Knopf bleibt als Handgriff.
+  const seenHashRef = useRef(liveRouteHash);
+  useEffect(() => {
+    if (liveRouteHash === seenHashRef.current) return;
+    seenHashRef.current = liveRouteHash;
+    const f = formRef.current;
+    if (liveRouteHash === f.routeHash) return;
+    if (!f.stops.length || !f.stops.every((s) => s.lat != null && s.lng != null)) return;
+    const n = chainCoords(
+      flattenChain({
+        start: f.start,
+        end: f.end,
+        stops: f.stops.map((s) => ({ id: s.pointId, coord: [s.lng as number, s.lat as number] })),
+        via: reconcileVia(f.via, chainKeys(f.start, f.end, f.stops.map((s) => s.pointId))).legs,
+      }),
+    ).length;
+    if (n < 2 || n > MAX_DIRECTIONS_COORDS) return;
+    const t = setTimeout(() => runSnapRef.current(), 500);
+    return () => clearTimeout(t);
+    // Bewusst nur der Hash: Alles andere kommt aus Refs. Sonst liefe der Timer bei jedem
+    // Tastendruck im Titel neu an.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [liveRouteHash]);
 
   // ── Stationen ──────────────────────────────────────────────────────────────
   const usedIds = new Set(pointIds);
@@ -343,8 +505,9 @@ export default function TourForm({
     )
       return;
     // Punkte gehören zum Gebiet -> bei Wechsel die Stops leeren und neu laden. Die
-    // Route gehört zu genau diesen Stops und wird mit ihnen ungültig.
-    setForm((f) => ({ ...f, areaId: newAreaId, stops: [], routeGeo: null, routeHash: null }));
+    // Route und die Wegpunkte gehören zu genau diesen Stops und werden mit ihnen ungültig.
+    setForm((f) => ({ ...f, areaId: newAreaId, stops: [], routeGeo: null, routeHash: null, via: [] }));
+    setSelectedVia(null);
     setAreaPoints([]);
     setPointsErr(false);
     const req = ++pointsReq.current;
@@ -420,7 +583,9 @@ export default function TourForm({
       );
     if (
       routeStale &&
-      !confirm("Die Route passt nicht mehr zu Start, Ziel und Stationen. Trotzdem speichern?")
+      !confirm(
+        "Die Route passt nicht mehr zu Start, Ziel, Stationen, Wegpunkten oder Fortbewegung. Trotzdem speichern?",
+      )
     )
       return;
     const payload: TourInput = {
@@ -442,6 +607,7 @@ export default function TourForm({
       end: form.end,
       routeGeo: form.routeGeo,
       routeHash: form.routeHash,
+      routeVia: via,
       stops: form.stops.map((s) => ({ pointId: s.pointId })),
     };
     start(async () => {
@@ -836,8 +1002,9 @@ export default function TourForm({
       <section className={sectionCls}>
         <h2 className={h2Cls}>Start, Ziel & Route</h2>
         <p className="text-[12px] text-muted">
-          Erster Tipp auf die Karte setzt den Start 🥾, der nächste das Ziel 🏁. Marker ziehen
-          verschiebt sie. Danach die Route an die Fusswege anpassen lassen.
+          Erster Tipp auf die Karte setzt den Start 🥾, der nächste das Ziel 🏁, Marker ziehen
+          verschiebt sie. Tippen auf die Linie setzt einen Wegpunkt, der nur den Verlauf formt.
+          Die Route passt sich von selbst an die Wege an.
         </p>
 
         <LocationPicker
@@ -850,6 +1017,11 @@ export default function TourForm({
           waterStops={[]}
           huts={[]}
           pins={stopPins}
+          vias={viaMarkers}
+          selectedVia={selectedVia}
+          onViaMove={onViaMove}
+          onViaSelect={setSelectedVia}
+          onLineTap={form.stops.length > 0 && allStopsPlaced ? onLineTap : undefined}
           onSet={() => {}}
           onRouteChange={onRouteMarkersChange}
           onPoiChange={() => {}}
@@ -873,6 +1045,16 @@ export default function TourForm({
           >
             Start & Ziel entfernen
           </button>
+          {selectedVia && (
+            <button type="button" onClick={removeSelectedVia} className={chipCls}>
+              Wegpunkt entfernen
+            </button>
+          )}
+          {viaCount > 0 && (
+            <button type="button" onClick={clearVias} className={`${chipCls} text-muted`}>
+              Alle Wegpunkte entfernen ({viaCount})
+            </button>
+          )}
           {form.routeGeo && (
             <button
               type="button"
@@ -902,13 +1084,27 @@ export default function TourForm({
               : form.end
                 ? ` · Ziel: ${form.end.lat.toFixed(5)}, ${form.end.lng.toFixed(5)}`
                 : " · Ohne Ziel endet sie an der letzten Station."}
+            {` · Punkte ${coordCount}/${MAX_DIRECTIONS_COORDS}`}
           </p>
         </div>
 
-        {routeStale && (
+        {overCap && (
           <p className="rounded-[12px] bg-accent/10 px-3 py-2 text-[12px] text-accent">
-            ⚠ Start, Ziel oder die Reihenfolge der Stationen haben sich geändert – bitte die Route
-            neu anpassen lassen.
+            Zu viele Punkte für die Routenberechnung ({coordCount} von {MAX_DIRECTIONS_COORDS}). Wegpunkte
+            oder Stationen entfernen.
+          </p>
+        )}
+        {viaFit.dropped > 0 && (
+          <p className="text-[12px] text-muted">
+            {viaFit.dropped === 1
+              ? "1 Wegpunkt liegt an keinem Abschnitt mehr und fällt beim Speichern weg."
+              : `${viaFit.dropped} Wegpunkte liegen an keinem Abschnitt mehr und fallen beim Speichern weg.`}
+          </p>
+        )}
+        {routeStale && !snapping && (
+          <p className="rounded-[12px] bg-accent/10 px-3 py-2 text-[12px] text-accent">
+            ⚠ Die Route passt nicht mehr zu Start, Ziel, Stationen, Wegpunkten oder Fortbewegung.
+            Bitte neu anpassen lassen.
           </p>
         )}
         {!form.routeGeo && form.stops.length > 0 && (

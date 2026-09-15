@@ -6,11 +6,26 @@
 // Audio-Vorlauf liefern, und beim Neu-Routen nach vorn an den offenen Spots vorbeiführen.
 // Nebenbei kostete es rund 40 statt rund 11 Anfragen je Fahrt.
 //
+// Seit 15.09.2026 fahren die WEGPUNKTE OHNE GESCHICHTE des Admins mit (tours.route_via,
+// lib/tour-route.ts): dieselben stillen Zwischenpunkte, die der Editor an Mapbox schickt.
+// Ohne sie routete Mapbox den Gast doch durch die Fussgaengerzone, um die der Admin
+// herumgeplant hat. Welche Wegpunkte in eine Anfrage gehoeren, entscheidet selectNavVias:
+// nur die vor dem Gast, nur die zu einem noch offenen Halt.
+//
 // Läuft im BROWSER mit dem öffentlichen, URL-beschränkten Token: der Request trägt einen
 // Referer (anders als serverseitige Aufrufe), und eine Neuberechnung während der Fahrt
 // darf keinen zusätzlichen Server-Hop kosten.
-import { cleanRouteGeo } from "./tour-route";
-import { routeCumulativeMeters } from "./geo";
+import {
+  cleanRouteGeo,
+  reconcileVia,
+  viaIdOf,
+  MAX_DIRECTIONS_COORDS,
+  START_KEY,
+  END_KEY,
+  type LngLat,
+  type ViaLeg,
+} from "./tour-route";
+import { haversineMeters, routeCumulativeMeters } from "./geo";
 import type { NavStep } from "./bike-nav-core";
 import { prepareSteps, turnAngle, type RawStep } from "./nav-steps";
 
@@ -48,17 +63,146 @@ export type BikeRoute = {
   steps: NavStep[];
   // Je Spot (in der Reihenfolge von `spots`) seine Strecke ab Start.
   spotAlongM: number[];
+  // Je mitgeschicktem Wegpunkt (viaIdOf) seine Strecke ab Start. Damit weiss die naechste
+  // Neuberechnung, welche Wegpunkte der Gast schon hinter sich hat.
+  viaAlongM: Record<string, number>;
   distanceM: number;
   durationS: number;
 };
 
 export type BikeRouteResult = { ok: true; route: BikeRoute } | { ok: false; error: BikeLegError };
 
-// Mapbox nimmt höchstens 25 Koordinaten je Anfrage. Eine davon ist der Start, eine das
-// Ziel, es bleiben 23 Spots. docs/40 deckelt die Runde ohnehin weit darunter.
-const MAX_COORDS = 25;
-
 type ViaWaypoint = { waypoint_index: number; geometry_index: number; distance_from_start: number };
+
+// ——— Wegpunkte ohne Geschichte in der Anfrage ————————————————————————————————
+/** Ein Wegpunkt fuer eine Anfrage: vor welchem Halt (Position in `spots`) oder vor dem Ziel er liegt. */
+export type NavVia = { id: string; coord: LngLat; before: number | "end" };
+
+export type BikeChainKind =
+  | { kind: "origin" }
+  | { kind: "stop"; pos: number }
+  | { kind: "via"; id: string }
+  | { kind: "end" };
+
+/**
+ * Die Koordinatenfolge einer Anfrage samt Tabelle, was an jeder Stelle steht. Ueber die
+ * Tabelle werden die `via_waypoints` der Antwort zurueck auf Halte und Wegpunkte gelesen;
+ * bis 15.09.2026 galt dafuer "Spot i ist Koordinate i + 1", und das stimmt mit Wegpunkten
+ * dazwischen nicht mehr.
+ */
+export function buildBikeChain(
+  from: LngLat,
+  spots: LngLat[],
+  end: LngLat | null,
+  vias: NavVia[],
+): { coords: LngLat[]; kinds: BikeChainKind[] } {
+  const coords: LngLat[] = [from];
+  const kinds: BikeChainKind[] = [{ kind: "origin" }];
+  spots.forEach((s, pos) => {
+    for (const v of vias)
+      if (v.before === pos) {
+        coords.push(v.coord);
+        kinds.push({ kind: "via", id: v.id });
+      }
+    coords.push(s);
+    kinds.push({ kind: "stop", pos });
+  });
+  for (const v of vias)
+    if (v.before === "end") {
+      coords.push(v.coord);
+      kinds.push({ kind: "via", id: v.id });
+    }
+  if (end) {
+    coords.push(end);
+    kinds.push({ kind: "end" });
+  }
+  return { coords, kinds };
+}
+
+// Ein Wegpunkt so knapp vor dem Gast ist keine Kehrtwende wert.
+const REROUTE_BEHIND_M = 30;
+
+/**
+ * Welche Wegpunkte in DIESE Anfrage gehoeren. `legs` sind die Abschnitte der Runde mit
+ * Tour-Indizes als Schluessel ("start", "0", "1", …, "end"); `keep` die Tour-Indizes der
+ * Halte, die noch angefahren werden, in Reihenfolge.
+ *
+ *   - Abschnitte werden gegen ["start", ...keep, "end"] angepasst: ueber erledigte oder per
+ *     X uebersprungene Halte hinweg zusammengeklebt, alles andere faellt weg.
+ *   - Nur im ERSTEN Abschnitt (ab "start") faellt ein Wegpunkt weg, wenn der Gast dem
+ *     Zielhalt schon naeher ist als der Wegpunkt: Er laege hinter ihm (Wiedereinstieg
+ *     mitten in der Runde). Spaetere Abschnitte liegen immer vor dem Gast. Die Regel auf
+ *     alle Abschnitte anzuwenden nahm jeder Rundtour beim Start die Wegpunkte des letzten
+ *     Abschnitts, weil dort Start = Ziel ist.
+ *   - Bei einer Neuberechnung faellt zusaetzlich weg, was laut der letzten Route schon
+ *     hinter dem Gast liegt (viaAlongM).
+ *   - Deckel: Origin + Halte + Ziel + Wegpunkte hoechstens MAX_DIRECTIONS_COORDS. Darueber
+ *     fallen die Wegpunkte der hintersten Abschnitte weg, nie ein Halt, nie das Ziel.
+ */
+export function selectNavVias(input: {
+  legs: ViaLeg[];
+  keep: number[];
+  stopCoords: LngLat[];
+  end: LngLat | null;
+  origin: LngLat;
+  isReroute: boolean;
+  alongM?: number;
+  viaAlongM?: Record<string, number>;
+}): NavVia[] {
+  if (!input.legs.length || !input.keep.length) return [];
+  const keys = [START_KEY, ...input.keep.map(String), ...(input.end ? [END_KEY] : [])];
+  const { legs } = reconcileVia(input.legs, keys);
+  const posOf = new Map(input.keep.map((tourIdx, pos) => [String(tourIdx), pos]));
+  const coordOf = (k: string): LngLat | null =>
+    k === END_KEY ? input.end : (input.stopCoords[Number(k)] ?? null);
+
+  let out: NavVia[] = [];
+  for (const leg of legs) {
+    const before = leg.to === END_KEY ? "end" : posOf.get(leg.to);
+    if (before === undefined) continue;
+    const dest = coordOf(leg.to);
+    for (const c of leg.coords) {
+      const id = viaIdOf(c);
+      if (leg.from === START_KEY && dest && haversineMeters(input.origin, dest) < haversineMeters(c, dest))
+        continue;
+      if (input.isReroute && input.alongM != null) {
+        const a = input.viaAlongM?.[id];
+        if (a != null && a <= input.alongM + REROUTE_BEHIND_M) continue;
+      }
+      out.push({ id, coord: c, before });
+    }
+  }
+  const fixed = 1 + input.keep.length + (input.end ? 1 : 0);
+  while (fixed + out.length > MAX_DIRECTIONS_COORDS && out.length) {
+    const last = out[out.length - 1].before;
+    out = out.filter((v) => v.before !== last);
+  }
+  return out;
+}
+
+/**
+ * Stellen der Halte und Wegpunkte auf UNSERER Linie, aus den `via_waypoints` der Antwort.
+ * Ein Halt ohne Eintrag ist das Routenende (der letzte Halt, wenn kein Ziel mitgeht).
+ */
+export function alongFromViaWaypoints(
+  kinds: BikeChainKind[],
+  via: ViaWaypoint[],
+  cumGeo: number[],
+  spotCount: number,
+): { spotAlongM: number[]; viaAlongM: Record<string, number> } {
+  const routeLenM = cumGeo[cumGeo.length - 1] ?? 0;
+  const spotAlongM: number[] = new Array(spotCount).fill(routeLenM);
+  const viaAlongM: Record<string, number> = {};
+  for (const v of via) {
+    const k = kinds[v.waypoint_index];
+    if (!k) continue;
+    const gi = Math.max(0, Math.min(v.geometry_index, cumGeo.length - 1));
+    const m = cumGeo[gi];
+    if (k.kind === "stop") spotAlongM[k.pos] = m;
+    else if (k.kind === "via") viaAlongM[k.id] = m;
+  }
+  return { spotAlongM, viaAlongM };
+}
 
 export async function fetchBikeRoute(
   from: [number, number],
@@ -74,11 +218,18 @@ export async function fetchBikeRoute(
   // `spots`: Alles in `spots` bekommt einen Play-Knopf, und ein Play-Knopf ohne Geschichte
   // ist ein Knopf, der nichts tut.
   end?: [number, number] | null,
+  // Wegpunkte ohne Geschichte, schon ausgewaehlt (selectNavVias). Auch sie sind keine Spots.
+  vias: NavVia[] = [],
 ): Promise<BikeRouteResult> {
   if (!TOKEN) return { ok: false, error: "no-token" };
   if (spots.length === 0) return { ok: false, error: "no-route" };
 
-  const coords = [from, ...spots, ...(end ? [end] : [])].slice(0, MAX_COORDS);
+  const chain = buildBikeChain(from, spots, end ?? null, vias);
+  // Der Editor deckelt Start + Halte + Ziel, selectNavVias die Wegpunkte. Hier nur noch
+  // der Riegel: lieber ein Fehler als eine still gekuerzte Runde ohne Ziel (so war es bis
+  // 15.09.2026, `.slice(0, 25)` nahm als Erstes das Ziel weg).
+  if (chain.coords.length > MAX_DIRECTIONS_COORDS) return { ok: false, error: "no-route" };
+  const coords = chain.coords;
   const last = coords.length - 1;
   const coordStr = coords.map((c) => `${c[0]},${c[1]}`).join(";");
   // Bewusst NUR "cycling". Der Vorgänger fragte zusätzlich "walking" ab und nahm das
@@ -135,20 +286,8 @@ export async function fetchBikeRoute(
     // Geometrie gemessen wie der Fortschritt des Gastes (nearestPointOnRoute), und die
     // beiden Zahlen können gar nicht auseinanderlaufen.
     const cumGeo = routeCumulativeMeters(geometry);
-    const routeLenM = cumGeo[cumGeo.length - 1];
     const via = (mapboxLeg.via_waypoints ?? []) as ViaWaypoint[];
-    const byWaypointIndex = new Map<number, ViaWaypoint>();
-    for (const v of via) byWaypointIndex.set(v.waypoint_index, v);
-
-    const spotAlongM = spots.map((_, i) => {
-      // spots[i] ist coords[i + 1], also waypoint_index i + 1.
-      const v = byWaypointIndex.get(i + 1);
-      // OHNE Ziel-Punkt ist der letzte Spot selbst das Routenende und hat deshalb keinen
-      // via-Eintrag. MIT Ziel-Punkt haben alle Spots einen, und das Ende gehört keinem.
-      if (!v) return routeLenM;
-      const gi = Math.max(0, Math.min(v.geometry_index, cumGeo.length - 1));
-      return cumGeo[gi];
-    });
+    const { spotAlongM, viaAlongM } = alongFromViaWaypoints(chain.kinds, via, cumGeo, spots.length);
 
     return {
       ok: true,
@@ -156,6 +295,7 @@ export async function fetchBikeRoute(
         geometry,
         steps,
         spotAlongM,
+        viaAlongM,
         distanceM: typeof route.distance === "number" ? route.distance : cum,
         durationS: typeof route.duration === "number" ? route.duration : 0,
       },

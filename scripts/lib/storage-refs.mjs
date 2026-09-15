@@ -102,8 +102,8 @@ export async function collectStorageRefs(sel, patch, patchHome) {
  * Dort stehen PFADE in der DB (kein Public-Read, Auslieferung per Signed-URL), deshalb
  * eine eigene, kleine Liste. Seit Migration 0068 ist tour_point_voice_files die Quelle
  * (je Punkt, Sprache und Stimme: audio_url UND teaser_url); die Altspalten auf
- * tour_point_audio bleiben bis 0071 stehen und werden hier weiter geschützt (0069 und 0070
- * kamen dazwischen: Sprech-Einstellungen je Stimme, Sprechfassung je Text).
+ * tour_point_audio bleiben bis 0072 stehen und werden hier weiter geschützt (0069 bis 0071
+ * kamen dazwischen: Sprech-Einstellungen je Stimme, Sprechfassung je Text, Wegpunkte).
  */
 export async function collectTourAudioPaths(sel) {
   const paths = [];
@@ -119,7 +119,7 @@ export async function collectTourAudioPaths(sel) {
     push(f.audio_url);
     push(f.teaser_url);
   }
-  // Altspalten (vor 0068). Bis 0071 mitlesen: Ein Rueckweg, der Dateien verliert, ist keiner.
+  // Altspalten (vor 0068). Bis 0072 mitlesen: Ein Rueckweg, der Dateien verliert, ist keiner.
   for (const a of await sel("tour_point_audio", "point_id,lang,audio_url,teaser_url")) {
     push(a.audio_url);
     push(a.teaser_url);

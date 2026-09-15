@@ -1,7 +1,8 @@
 // Client-sichere Typen für das Audio-Tour-Feature (keine Server-Imports).
 import type { TourMode } from "./tour-mode";
 import type { VoiceInfo } from "./tts-rules";
-export type { TourMode, VoiceInfo };
+import type { ViaLeg } from "./tour-route";
+export type { TourMode, VoiceInfo, ViaLeg };
 
 // Eine Station der Tour = ein Spot + (ggf. gegated) Audio.
 export type TourStopView = {
@@ -73,4 +74,10 @@ export type TourDetail = TourSummary & {
   routeGeo?: [number, number][] | null; // [lng,lat][] Loop-Geometrie
   start?: { lat: number; lng: number } | null;
   end?: { lat: number; lng: number } | null; // gleich dem Start = Rundweg
+  /**
+   * Wegpunkte ohne Geschichte je Abschnitt (Migration 0071), Schluessel = Punkt-ID
+   * (spotSlug der Stationen), "start" oder "end". Schon an die veroeffentlichte Kette
+   * angepasst. Die Rad-Navigation nimmt sie in ihre Anfrage; der Player zeichnet sie nie.
+   */
+  routeVia?: ViaLeg[] | null;
 };

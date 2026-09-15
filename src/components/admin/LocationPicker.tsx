@@ -56,6 +56,11 @@ export default function LocationPicker({
   waterStops,
   huts,
   pins = [],
+  vias = [],
+  selectedVia = null,
+  onViaMove,
+  onViaSelect,
+  onLineTap,
   onSet,
   onRouteChange,
   onPoiChange,
@@ -73,6 +78,14 @@ export default function LocationPicker({
   // Stationen einer kuratierten Runde. Sie gehören dem Stationen-Abschnitt des
   // Formulars, nicht der Karte – hier sollen sie nur sichtbar sein.
   pins?: { lat: number; lng: number; label: string; title?: string }[];
+  // Wegpunkte ohne Geschichte einer Runde (TourForm, Migration 0071): kleine ziehbare
+  // Punkte; Tippen auf die LINIE setzt einen neuen (onLineTap). Alles optional: Der
+  // Wander-Editor übergibt nichts davon und behält sein Verhalten (Klick hängt an).
+  vias?: { id: string; lng: number; lat: number }[];
+  selectedVia?: string | null;
+  onViaMove?: (id: string, lng: number, lat: number) => void;
+  onViaSelect?: (id: string | null) => void;
+  onLineTap?: (lng: number, lat: number) => void;
   onSet: (which: "spot" | "parking", lat: number | null, lng: number | null) => void;
   onRouteChange: (coords: [number, number][]) => void;
   onPoiChange: (kind: "water" | "hut", pois: MapPoi[]) => void;
@@ -91,11 +104,26 @@ export default function LocationPicker({
   const routeMarkers = useRef<mapboxgl.Marker[]>([]);
   const poiMarkers = useRef<mapboxgl.Marker[]>([]);
   const pinMarkers = useRef<mapboxgl.Marker[]>([]);
+  // Wegpunkt-Marker nach Kennung, damit ein Neu-Render sie NICHT neu baut: Ein Marker, der
+  // mitten im Ziehen entfernt und neu angelegt wird, verliert seinen Zug (kein dragend,
+  // springt zurück). Genau das passierte, wenn die Antwort der Neuberechnung während des
+  // Ziehens eintraf.
+  const viaMarkers = useRef<Map<string, { marker: mapboxgl.Marker; el: HTMLDivElement; dragging: boolean }>>(
+    new Map(),
+  );
+  // Wann zuletzt ein Wegpunkt losgelassen wurde: Der Klick, der dem Loslassen folgt, darf
+  // auf der Karte nichts auslösen (er träfe sonst die Karte statt des inzwischen neu
+  // gesetzten Markers und hübe die Auswahl auf).
+  const lastViaDragEndRef = useRef(0);
 
   // Die Karte wird einmal aufgebaut, ihre Handler leben danach weiter. Alles, was sie
   // brauchen, liegt in Refs -> sie lesen immer den neuesten Stand statt der Props vom
   // ersten Render. Siehe use-latest-ref.ts.
   const onSetRef = useLatestRef(onSet);
+  const onViaMoveRef = useLatestRef(onViaMove);
+  const onViaSelectRef = useLatestRef(onViaSelect);
+  const onLineTapRef = useLatestRef(onLineTap);
+  const selectedViaRef = useLatestRef(selectedVia);
   const onRouteRef = useLatestRef(onRouteChange);
   const onPoiRef = useLatestRef(onPoiChange);
   const onExitPlacingRef = useLatestRef(onExitPlacing);
@@ -179,6 +207,8 @@ export default function LocationPicker({
 
   useEffect(() => {
     if (!TOKEN || !ref.current || mapRef.current) return;
+    // Für den Abbau unten: die Map der Wegpunkt-Marker, wie sie zu DIESER Karte gehört.
+    const viaMap = viaMarkers.current;
     mapboxgl.accessToken = TOKEN;
     // Über tryCreateMap statt `new mapboxgl.Map`: Ohne WebGL gibt es `null` und einen
     // Hinweis statt der Karte (Begründung in MapUnavailable.tsx) — auch im Admin, sonst
@@ -212,6 +242,21 @@ export default function LocationPicker({
     map.addControl(new RecenterControl(() => recenterRef.current()), "top-right");
     map.on("load", () => {
       map.addSource("sg-route", { type: "geojson", data: fc(lineRef.current) });
+      // Unsichtbare, breite Trefferlinie für „auf die Linie tippen" (Wegpunkte einer
+      // Runde). Liegt unter den sichtbaren Linien und tut ohne onLineTap nichts.
+      map.addLayer({
+        id: "sg-route-hit",
+        type: "line",
+        source: "sg-route",
+        paint: { "line-color": "#000000", "line-width": 24, "line-opacity": 0 },
+        layout: { "line-join": "round", "line-cap": "round" },
+      });
+      map.on("mouseenter", "sg-route-hit", () => {
+        if (onLineTapRef.current) map.getCanvas().style.cursor = "pointer";
+      });
+      map.on("mouseleave", "sg-route-hit", () => {
+        map.getCanvas().style.cursor = "";
+      });
       map.addLayer({
         id: "sg-route-out",
         type: "line",
@@ -231,6 +276,23 @@ export default function LocationPicker({
     });
     map.on("click", (ev) => {
       const { lng, lat } = ev.lngLat;
+      // Wegpunkte (nur mit onLineTap): Ein Tipp auf die Linie setzt einen neuen, auch wenn
+      // gerade einer ausgewählt ist (mehrere hintereinander setzen, ohne jedes Mal erst
+      // abzuwählen). Ein Tipp daneben hebt nur die Auswahl auf; sonst läuft alles wie bisher.
+      if (onLineTapRef.current) {
+        if (Date.now() - lastViaDragEndRef.current < 400) return;
+        if (
+          map.getLayer("sg-route-hit") &&
+          map.queryRenderedFeatures(ev.point, { layers: ["sg-route-hit"] }).length > 0
+        ) {
+          onLineTapRef.current(lng, lat);
+          return;
+        }
+        if (selectedViaRef.current) {
+          onViaSelectRef.current?.(null);
+          return;
+        }
+      }
       const p = placingRef.current;
       if (p === "parking") {
         // Einmaliger Schritt: ein Klick setzt den Parkplatz, dann fertig.
@@ -262,6 +324,8 @@ export default function LocationPicker({
       routeMarkers.current = [];
       poiMarkers.current.forEach((m) => m.remove());
       poiMarkers.current = [];
+      viaMap.forEach((v) => v.marker.remove());
+      viaMap.clear();
       map.remove();
       mapRef.current = null;
     };
@@ -274,12 +338,15 @@ export default function LocationPicker({
     lineRef,
     modeRef,
     onExitPlacingRef,
+    onLineTapRef,
     onPoiRef,
     onRouteRef,
     onSetRef,
+    onViaSelectRef,
     placingRef,
     recenterRef,
     routeRef,
+    selectedViaRef,
     waterRef,
   ]);
 
@@ -351,9 +418,67 @@ export default function LocationPicker({
         );
         onRouteRef.current(next);
       });
+      // Ein Klick auf den Marker darf nicht bis zur Karte durchfallen: Dort hinge er einen
+      // Punkt genau unter den Marker (Wander-Editor) oder setzte das Ziel auf den Start.
+      el.addEventListener("click", (e) => e.stopPropagation());
       routeMarkers.current.push(m);
     });
   }, [route, line, onRouteRef, routeRef]);
+
+  // Wegpunkte ohne Geschichte: kleine weisse Punkte, ziehbar, Klick wählt aus. Die Marker
+  // werden nach Kennung ABGEGLICHEN, nie pauschal neu gebaut: neue anlegen, verschwundene
+  // entfernen, vorhandene nur nachziehen (und nie, solange sie gerade gezogen werden). Die
+  // Kennung hängt an der Lage (viaIdOf), nach dem Loslassen ist der Marker also ein neuer.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const style = (el: HTMLDivElement, sel: boolean) => {
+      el.style.cssText =
+        "width:18px;height:18px;border-radius:9999px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.35);cursor:grab;border:" +
+        (sel ? "3px solid #cc2924" : "2px solid #6b7280");
+      // Höhenordnung (siehe oben): unter Ziel 3 und Start 4, über den Stations-Pins 1.
+      el.style.zIndex = "2";
+    };
+    const seen = new Set<string>();
+    for (const v of vias) {
+      seen.add(v.id);
+      let entry = viaMarkers.current.get(v.id);
+      if (!entry) {
+        const el = document.createElement("div");
+        el.title = "Wegpunkt";
+        const marker = new mapboxgl.Marker({ element: el, draggable: true })
+          .setLngLat([v.lng, v.lat])
+          .addTo(map);
+        const created = { marker, el, dragging: false };
+        marker.on("dragstart", () => {
+          created.dragging = true;
+        });
+        marker.on("dragend", () => {
+          created.dragging = false;
+          lastViaDragEndRef.current = Date.now();
+          const ll = marker.getLngLat();
+          onViaMoveRef.current?.(v.id, ll.lng, ll.lat);
+        });
+        el.addEventListener("click", (e) => {
+          e.stopPropagation();
+          // Der Klick nach dem Loslassen ist kein Auswählen.
+          if (Date.now() - lastViaDragEndRef.current < 400) return;
+          onViaSelectRef.current?.(v.id);
+        });
+        viaMarkers.current.set(v.id, created);
+        entry = created;
+      } else if (!entry.dragging) {
+        const ll = entry.marker.getLngLat();
+        if (Math.abs(ll.lng - v.lng) > 1e-9 || Math.abs(ll.lat - v.lat) > 1e-9) entry.marker.setLngLat([v.lng, v.lat]);
+      }
+      style(entry.el, v.id === selectedVia);
+    }
+    for (const [id, entry] of viaMarkers.current) {
+      if (seen.has(id) || entry.dragging) continue;
+      entry.marker.remove();
+      viaMarkers.current.delete(id);
+    }
+  }, [vias, selectedVia, onViaMoveRef, onViaSelectRef]);
 
   // Reine Anzeige-Pins (Stationen einer Runde): nummeriert, NICHT ziehbar. Sie liegen
   // unter allem Setzbaren (zIndex 1), damit sie Start/Ziel nie verdecken.

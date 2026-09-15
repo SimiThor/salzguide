@@ -6,7 +6,19 @@ import { requireAdmin } from "./admin-guard";
 import { slugifyKey } from "./slug";
 import { guardStorageUrl } from "./storage-guard";
 import { hashTourTexts, translationsPublishable } from "./spot-hash";
-import { cleanRouteGeo, tourRouteHash, type RoutePoint } from "./tour-route";
+import {
+  cleanRouteGeo,
+  cleanRouteVia,
+  chainKeys,
+  reconcileVia,
+  flattenChain,
+  chainCoords,
+  tourRouteHash,
+  MAX_DIRECTIONS_COORDS,
+  type ChainStop,
+  type RoutePoint,
+  type ViaLeg,
+} from "./tour-route";
 import type { TourMode } from "./tour-mode";
 import { getDefaultVoice, getVoiceById } from "./tts-voices";
 import { loadTourVoiceMisses } from "./tts-files";
@@ -54,6 +66,9 @@ export type TourInput = {
   end: RoutePoint | null;
   routeGeo: [number, number][] | null;
   routeHash: string | null;
+  // Wegpunkte ohne Geschichte je Abschnitt (0071). Der Server behaelt nur, was in der
+  // gespeicherten Kette einen Abschnitt hat (reconcileVia).
+  routeVia?: ViaLeg[];
   stops: TourStopInput[];
 };
 
@@ -284,17 +299,22 @@ export async function saveTour(input: TourInput): Promise<TourSaveResult> {
   // Linie über die Stationen zurück.
   {
     const geo = cleanRouteGeo(input.routeGeo);
-    const { error: re } = await supabase
+    const routeCols = {
+      start_lat: input.start?.lat ?? null,
+      start_lng: input.start?.lng ?? null,
+      end_lat: input.end?.lat ?? null,
+      end_lng: input.end?.lng ?? null,
+      route_geo: geo,
+      route_hash: geo ? (input.routeHash ?? null) : null,
+    };
+    // Wegpunkte ohne Geschichte (0071): nur Abschnitte, die es in der Kette gibt, die hier
+    // wirklich gespeichert wird. Fehlt die Spalte noch, zweiter Versuch ohne sie.
+    const via = reconcileVia(cleanRouteVia(input.routeVia), chainKeys(input.start, input.end, pointIds)).legs;
+    let { error: re } = await supabase
       .from("tours")
-      .update({
-        start_lat: input.start?.lat ?? null,
-        start_lng: input.start?.lng ?? null,
-        end_lat: input.end?.lat ?? null,
-        end_lng: input.end?.lng ?? null,
-        route_geo: geo,
-        route_hash: geo ? (input.routeHash ?? null) : null,
-      })
+      .update({ ...routeCols, route_via: via.length ? via : null })
       .eq("id", tourId);
+    if (re) ({ error: re } = await supabase.from("tours").update(routeCols).eq("id", tourId));
     if (re) console.warn("Route/Start übersprungen – Migration 0061 nötig?", re.message);
   }
 
@@ -542,6 +562,8 @@ export type SnapRouteInput = {
   // also genau dorthin, wo docs/40 nicht hinwill, und die Dauer wäre Gehzeit. Für Runde A
   // hiesse das rund zwei Stunden statt einer.
   mode?: TourMode;
+  // Wegpunkte ohne Geschichte je Abschnitt (0071), aus dem Formular.
+  via?: ViaLeg[];
 };
 export type SnapRouteResult = {
   ok: boolean;
@@ -549,11 +571,11 @@ export type SnapRouteResult = {
   routeHash?: string;
   distanceKm?: number;
   durationMin?: number;
+  // Die Wegpunkte, die WIRKLICH in die Anfrage gingen (nach reconcileVia). Das Formular
+  // uebernimmt sie, damit sein Hash derselbe ist wie der hier gerechnete.
+  via?: ViaLeg[];
   error?: string;
 };
-
-// Mapbox Directions erlaubt 25 Koordinaten je Anfrage (Start + Stationen + Ziel).
-const MAX_WAYPOINTS = 25;
 
 export async function snapTourRoute(input: SnapRouteInput): Promise<SnapRouteResult> {
   const gate = await requireAdmin();
@@ -573,26 +595,26 @@ export async function snapTourRoute(input: SnapRouteInput): Promise<SnapRouteRes
   const byId = new Map(
     ((pts ?? []) as { id: string; lat: number | null; lng: number | null }[]).map((p) => [p.id, p]),
   );
-  const stops: RoutePoint[] = [];
+  const stops: ChainStop[] = [];
   for (const id of pointIds) {
     const p = byId.get(id);
     if (!p || p.lat == null || p.lng == null)
       return { ok: false, error: "Mindestens eine Station hat noch keinen Punkt auf der Karte." };
-    stops.push({ lat: p.lat, lng: p.lng });
+    stops.push({ id, coord: [p.lng, p.lat] });
   }
 
-  // Ohne eigenen Start/Ziel läuft die Runde von der ersten zur letzten Station.
-  const chain: RoutePoint[] = [
-    ...(input.start ? [input.start] : []),
-    ...stops,
-    ...(input.end ? [input.end] : []),
-  ];
+  // Wegpunkte ohne Geschichte (0071): nur an Abschnitten, die es in dieser Kette gibt. Was
+  // hier wegfaellt, geht mit der Antwort zurueck, damit das Formular denselben Stand hasht
+  // wie der Server. Ohne eigenen Start/Ziel läuft die Runde von der ersten zur letzten
+  // Station.
+  const via = reconcileVia(cleanRouteVia(input.via), chainKeys(input.start, input.end, pointIds)).legs;
+  const chain = chainCoords(flattenChain({ start: input.start, end: input.end, stops, via }));
   if (chain.length < 2)
     return { ok: false, error: "Für eine Route braucht es mindestens zwei Punkte." };
-  if (chain.length > MAX_WAYPOINTS)
+  if (chain.length > MAX_DIRECTIONS_COORDS)
     return {
       ok: false,
-      error: `Zu viele Punkte für die Routenberechnung (${chain.length}, erlaubt sind ${MAX_WAYPOINTS} inkl. Start und Ziel).`,
+      error: `Zu viele Punkte für die Routenberechnung (${chain.length}, erlaubt sind ${MAX_DIRECTIONS_COORDS} inkl. Start, Wegpunkten und Ziel).`,
     };
 
   // Eigener SERVER-Token: Der öffentliche NEXT_PUBLIC-Token ist URL-beschränkt, ein
@@ -604,10 +626,14 @@ export async function snapTourRoute(input: SnapRouteInput): Promise<SnapRouteRes
 
   const istRad = input.mode === "bike";
   const profil = istRad ? "cycling" : "walking";
-  const coordStr = chain.map((c) => `${c.lng},${c.lat}`).join(";");
+  // Dieselbe Anfrageform wie die Rad-Navigation (bike-directions.ts): alles zwischen dem
+  // ersten und dem letzten Punkt ist ein STILLER Wegpunkt (`waypoints=0;<letzter>`, Mapbox
+  // verlangt dazu steps=true). Bis 15.09.2026 gingen die Stationen als echte Zwischenhalte
+  // mit, und die Vorschau war eine andere Linie als die, die der Gast dann faehrt.
+  const coordStr = chain.map((c) => `${c[0]},${c[1]}`).join(";");
   const url =
     `https://api.mapbox.com/directions/v5/mapbox/${profil}/${coordStr}` +
-    `?geometries=geojson&overview=full&continue_straight=false&access_token=${token}`;
+    `?geometries=geojson&overview=full&steps=true&waypoints=0;${chain.length - 1}&access_token=${token}`;
   try {
     const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
     if (!res.ok) {
@@ -640,9 +666,16 @@ export async function snapTourRoute(input: SnapRouteInput): Promise<SnapRouteRes
     return {
       ok: true,
       routeGeo: geo,
-      routeHash: tourRouteHash({ start: input.start, end: input.end, pointIds }),
+      routeHash: tourRouteHash({
+        start: input.start,
+        end: input.end,
+        stops,
+        mode: istRad ? "bike" : "walk",
+        via,
+      }),
       distanceKm,
       durationMin,
+      via,
     };
   } catch (err) {
     console.error("[snapTourRoute]", err instanceof Error ? err.message : err);
