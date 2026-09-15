@@ -16,6 +16,52 @@ import { hashTexts } from "./spot-hash";
 export type VoiceKind = "synthetic" | "cloned" | "human";
 export const VOICE_KINDS: readonly VoiceKind[] = ["synthetic", "cloned", "human"];
 
+/**
+ * Sprech-Einstellungen einer Stimme (ElevenLabs voice_settings). Je Stimme, weil ElevenLabs
+ * selbst je Stimme eine Empfehlung fuehrt und ein Klon nur mit seinen eigenen Werten wie
+ * das Original klingt (Migration 0069).
+ */
+export type VoiceSettings = {
+  stability: number;
+  similarity: number;
+  style: number;
+  speed: number;
+  speakerBoost: boolean;
+};
+
+/** ElevenLabs' Standard fuer neue Stimmen. Tempo 1,0 = so, wie die Stimme wirklich spricht. */
+export const ELEVEN_DEFAULT_SETTINGS: VoiceSettings = {
+  stability: 0.5,
+  similarity: 0.75,
+  style: 0,
+  speed: 1.0,
+  speakerBoost: true,
+};
+
+export const VOICE_SETTING_RANGE = {
+  stability: [0, 1],
+  similarity: [0, 1],
+  style: [0, 1],
+  speed: [0.7, 1.2],
+} as const;
+
+const clamp = (v: unknown, fallback: number, [lo, hi]: readonly [number, number]) => {
+  const n = typeof v === "number" ? v : typeof v === "string" && v.trim() ? Number(v) : NaN;
+  return Number.isFinite(n) ? Math.min(hi, Math.max(lo, Math.round(n * 100) / 100)) : fallback;
+};
+
+/** Eingaben (Formular, DB, ElevenLabs-Antwort) in gueltige Einstellungen zwingen. */
+export function cleanVoiceSettings(raw: Partial<Record<keyof VoiceSettings, unknown>> | null | undefined): VoiceSettings {
+  const d = ELEVEN_DEFAULT_SETTINGS;
+  return {
+    stability: clamp(raw?.stability, d.stability, VOICE_SETTING_RANGE.stability),
+    similarity: clamp(raw?.similarity, d.similarity, VOICE_SETTING_RANGE.similarity),
+    style: clamp(raw?.style, d.style, VOICE_SETTING_RANGE.style),
+    speed: clamp(raw?.speed, d.speed, VOICE_SETTING_RANGE.speed),
+    speakerBoost: typeof raw?.speakerBoost === "boolean" ? raw.speakerBoost : d.speakerBoost,
+  };
+}
+
 export type VoiceRow = {
   id: string;
   key: string;
@@ -25,6 +71,7 @@ export type VoiceRow = {
   personName: string | null;
   isDefault: boolean;
   sortOrder: number;
+  settings: VoiceSettings;
 };
 
 /** Was der Player über die Stimme einer Runde wissen darf: Name und Art, nie die ID. */

@@ -3,9 +3,15 @@
 import { requireAdmin } from "./admin-guard";
 import { logOps } from "./ops";
 import { slugifyKey } from "./slug";
-import { elevenSpeak, validateElevenVoice } from "./tts";
+import { elevenSpeak, fetchElevenVoiceSettings, validateElevenVoice } from "./tts";
 import { elevenIdForVoice, getVoiceById, getVoices, voiceUsage } from "./tts-voices";
-import { ELEVEN_VOICE_ID_RE, VOICE_KINDS, type VoiceKind } from "./tts-rules";
+import {
+  ELEVEN_VOICE_ID_RE,
+  VOICE_KINDS,
+  cleanVoiceSettings,
+  type VoiceKind,
+  type VoiceSettings,
+} from "./tts-rules";
 
 // Server-Actions fuer die Stimmen selbst (tts_voices, Migration 0068): anlegen, aendern,
 // Standard setzen, loeschen, probehoeren. Schreiben ueber den Session-Client unter RLS
@@ -17,6 +23,8 @@ export type VoiceSaveInput = {
   kind: VoiceKind;
   elevenVoiceId: string;
   personName: string;
+  /** Sprech-Einstellungen (0069). Fehlen sie, gelten die ElevenLabs-Standardwerte. */
+  settings?: Partial<VoiceSettings>;
 };
 export type VoiceActionResult = { ok: boolean; id?: string; error?: string };
 
@@ -53,7 +61,18 @@ export async function saveVoice(input: VoiceSaveInput): Promise<VoiceActionResul
     verified = v.ok;
   }
 
-  const row = { name, kind, eleven_voice_id: elevenVoiceId, person_name: personName };
+  const s = cleanVoiceSettings(input.settings);
+  const row = {
+    name,
+    kind,
+    eleven_voice_id: elevenVoiceId,
+    person_name: personName,
+    stability: s.stability,
+    similarity: s.similarity,
+    style: s.style,
+    speed: s.speed,
+    speaker_boost: s.speakerBoost,
+  };
   let id = existing?.id;
   if (id) {
     const { error } = await supabase.from("tts_voices").update(row).eq("id", id);
@@ -127,10 +146,30 @@ export async function previewVoice(id: string): Promise<{ ok: boolean; audioBase
   const elevenId = elevenIdForVoice(v);
   if (!elevenId) return { ok: false, error: "voice_not_synthesizable" };
   const who = v.personName ?? v.name;
-  const r = await elevenSpeak({ text: `Servus, ich bin ${who}. Schön, dass du da bist.`, elevenVoiceId: elevenId });
+  const r = await elevenSpeak({
+    text: `Servus, ich bin ${who}. Schön, dass du da bist.`,
+    elevenVoiceId: elevenId,
+    settings: v.settings,
+  });
   if (!r.ok) {
     await logOps("tts_failed", { message: r.error, group: "tts", detail: { status: r.status ?? null, voiceKey: v.key, kind: "probe" } });
     return { ok: false, error: r.error };
   }
   return { ok: true, audioBase64: Buffer.from(r.bytes).toString("base64") };
+}
+
+/**
+ * Die Empfehlung von ElevenLabs fuer eine Stimme holen, damit sie hier klingt wie im
+ * ElevenLabs-Studio. Braucht voices_read am Schluessel; sonst `unverified`.
+ */
+export async function recommendedVoiceSettings(
+  elevenVoiceId: string,
+): Promise<{ ok: boolean; settings?: VoiceSettings; error?: string }> {
+  const gate = await requireAdmin();
+  if (!gate.ok) return { ok: false, error: gate.error };
+  const id = (elevenVoiceId ?? "").trim();
+  if (!ELEVEN_VOICE_ID_RE.test(id)) return { ok: false, error: "bad_voice_id" };
+  const r = await fetchElevenVoiceSettings(id);
+  if (!r.ok) return { ok: false, error: r.error };
+  return { ok: true, settings: r.settings };
 }

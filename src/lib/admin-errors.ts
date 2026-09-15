@@ -51,6 +51,8 @@ const ADMIN_ERRORS: Record<string, string> = {
   no_voice: "Es ist keine Stimme angelegt. Erst unter Einstellungen → Stimmen eine anlegen.",
   save_first: "Zuerst speichern, dann vertonen.",
   person_required: "Bei einer geklonten oder echten Stimme braucht es den Namen der Person.",
+  unverified:
+    "Der ElevenLabs-Schlüssel darf Stimmen nicht lesen (Berechtigung voices_read fehlt). Werte von Hand eintragen oder die Berechtigung am Schlüssel ergänzen.",
 };
 
 /** Fehlercode einer Admin-Action in einen deutschen Satz übersetzen. */

@@ -2,9 +2,23 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "@/i18n/navigation";
-import { deleteVoice, previewVoice, saveVoice, setDefaultVoice } from "@/lib/tts-voice-actions";
+import {
+  deleteVoice,
+  previewVoice,
+  recommendedVoiceSettings,
+  saveVoice,
+  setDefaultVoice,
+} from "@/lib/tts-voice-actions";
 import type { VoiceUsage } from "@/lib/tts-voices";
-import { VOICE_KINDS, type VoiceKind, type VoiceRow } from "@/lib/tts-rules";
+import {
+  ELEVEN_DEFAULT_SETTINGS,
+  VOICE_KINDS,
+  VOICE_SETTING_RANGE,
+  cleanVoiceSettings,
+  type VoiceKind,
+  type VoiceRow,
+  type VoiceSettings,
+} from "@/lib/tts-rules";
 import { adminErrorText } from "@/lib/admin-errors";
 import { STATUS_ACCENT, STATUS_NEUTRAL } from "@/lib/ui";
 import AiButton from "./AiButton";
@@ -25,6 +39,17 @@ const inputCls =
   "w-full rounded-[12px] border border-black/10 bg-white px-3 py-2 text-[15px] text-ink outline-none focus:border-accent";
 const labelCls = "mb-1 block text-[13px] font-medium text-muted";
 
+// Die vier Regler wie im ElevenLabs-Studio, mit denselben Namen, damit man Werte von dort
+// eins zu eins uebernehmen kann.
+const SETTING_FIELDS: { key: keyof Omit<VoiceSettings, "speakerBoost">; label: string; step: number }[] = [
+  { key: "stability", label: "Stabilität", step: 0.05 },
+  { key: "similarity", label: "Ähnlichkeit", step: 0.05 },
+  { key: "style", label: "Stil", step: 0.05 },
+  { key: "speed", label: "Tempo", step: 0.05 },
+];
+const settingsLine = (s: VoiceSettings) =>
+  `Stabilität ${s.stability} · Ähnlichkeit ${s.similarity} · Stil ${s.style} · Tempo ${s.speed}${s.speakerBoost ? "" : " · ohne Boost"}`;
+
 function VoiceForm({
   initial,
   envVoiceId,
@@ -43,9 +68,42 @@ function VoiceForm({
   const [elevenVoiceId, setElevenVoiceId] = useState(
     initial?.elevenVoiceId ?? (initial?.isDefault ? (envVoiceId ?? "") : ""),
   );
+  // Als Text im Formular, damit "0." tippbar bleibt; cleanVoiceSettings zwingt beim Speichern.
+  const [settings, setSettings] = useState<Record<keyof VoiceSettings, string | boolean>>(() => {
+    const s = initial?.settings ?? ELEVEN_DEFAULT_SETTINGS;
+    return { stability: String(s.stability), similarity: String(s.similarity), style: String(s.style), speed: String(s.speed), speakerBoost: s.speakerBoost };
+  });
+  const [fetching, setFetching] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  const [note, setNote] = useState("");
   const idLocked = Boolean(initial?.elevenVoiceId);
+  const parsedSettings = (): Partial<VoiceSettings> => ({
+    stability: Number(settings.stability),
+    similarity: Number(settings.similarity),
+    style: Number(settings.style),
+    speed: Number(settings.speed),
+    speakerBoost: Boolean(settings.speakerBoost),
+  });
+
+  async function onRecommend() {
+    if (fetching) return;
+    setFetching(true);
+    setErr("");
+    setNote("");
+    try {
+      const r = await recommendedVoiceSettings(elevenVoiceId);
+      if (r.ok && r.settings) {
+        const s = r.settings;
+        setSettings({ stability: String(s.stability), similarity: String(s.similarity), style: String(s.style), speed: String(s.speed), speakerBoost: s.speakerBoost });
+        setNote("Empfehlung von ElevenLabs übernommen, noch nicht gespeichert.");
+      } else setErr(adminErrorText(r.error));
+    } catch {
+      setErr("Gerade nicht erreichbar. Bitte nochmal versuchen.");
+    } finally {
+      setFetching(false);
+    }
+  }
 
   async function onSubmit(ev: React.FormEvent) {
     ev.preventDefault();
@@ -54,7 +112,7 @@ function VoiceForm({
     setErr("");
     // try/finally: Wirft die Action, bliebe der Knopf sonst für immer auf „Speichert".
     try {
-      const r = await saveVoice({ id: initial?.id, name, kind, elevenVoiceId, personName });
+      const r = await saveVoice({ id: initial?.id, name, kind, elevenVoiceId, personName, settings: parsedSettings() });
       if (r.ok) onDone();
       else setErr(adminErrorText(r.error));
     } catch {
@@ -116,6 +174,59 @@ function VoiceForm({
           </div>
         )}
       </div>
+      {kind !== "human" && (
+        <div className="space-y-2 rounded-[12px] border border-black/10 p-3">
+          <div className="grid gap-3 sm:grid-cols-4">
+            {SETTING_FIELDS.map((f) => (
+              <div key={f.key}>
+                <label className={labelCls}>{f.label}</label>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  min={VOICE_SETTING_RANGE[f.key][0]}
+                  max={VOICE_SETTING_RANGE[f.key][1]}
+                  step={f.step}
+                  className={inputCls}
+                  value={String(settings[f.key])}
+                  onChange={(e) => setSettings((s) => ({ ...s, [f.key]: e.target.value }))}
+                />
+              </div>
+            ))}
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <label className="flex items-center gap-2 text-[13px] text-ink">
+              <input
+                type="checkbox"
+                className="h-4 w-4 accent-[#cc2924]"
+                checked={Boolean(settings.speakerBoost)}
+                onChange={(e) => setSettings((s) => ({ ...s, speakerBoost: e.target.checked }))}
+              />
+              Speaker Boost
+            </label>
+            <button
+              type="button"
+              onClick={onRecommend}
+              disabled={fetching || !elevenVoiceId.trim()}
+              className="cursor-pointer rounded-full bg-black/5 px-3 py-1.5 text-[12px] font-semibold text-ink transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {fetching ? <Busy>Holt</Busy> : "Empfehlung von ElevenLabs laden"}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const s = ELEVEN_DEFAULT_SETTINGS;
+                setSettings({ stability: String(s.stability), similarity: String(s.similarity), style: String(s.style), speed: String(s.speed), speakerBoost: s.speakerBoost });
+                setNote("ElevenLabs-Standardwerte gesetzt, noch nicht gespeichert.");
+              }}
+              className="cursor-pointer rounded-full bg-black/5 px-3 py-1.5 text-[12px] font-semibold text-ink transition active:scale-95"
+            >
+              Standardwerte
+            </button>
+          </div>
+          <p className="text-[11px] text-muted">{settingsLine(cleanVoiceSettings(parsedSettings()))}</p>
+        </div>
+      )}
+      {note && <p className="text-[13px] font-medium text-emerald-700">{note}</p>}
       {err && <p className="text-[13px] font-medium text-accent">{err}</p>}
       <div className="flex gap-2">
         <button
@@ -267,6 +378,7 @@ export default function VoiceManager({
                   </>
                 )}
               </p>
+              {v.kind !== "human" && <p className="mt-0.5 text-[11px] text-muted">{settingsLine(v.settings)}</p>}
               {previewUrl[v.id] && (
                 <audio controls autoPlay src={previewUrl[v.id]} className="mt-2 h-8 w-full" />
               )}
