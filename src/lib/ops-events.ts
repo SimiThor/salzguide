@@ -292,6 +292,16 @@ export const OPS_EVENTS = {
     quietMinutes: 60,
     hint: "status.anthropic.com prüfen und das Guthaben in der Anthropic-Konsole. Toni antwortet solange nicht.",
   },
+  tts_spoken_failed: {
+    area: "ai",
+    severity: "warn",
+    title: "Sprechfassung nicht erzeugt",
+    // Das Modell hat zweimal mehr geaendert als die Zahlen, oder nicht geantwortet. Vertont
+    // wurde trotzdem, mit Ziffern; nur Jahreszahlen koennen dann komisch klingen.
+    alertAfter: 5,
+    quietMinutes: 180,
+    hint: "Den Punkt-Text der genannten Sprache ansehen (ungewöhnliche Zeichen, sehr lange Zahlenreihen?) und die Sprache neu vertonen. Häuft es sich, den Prompt in lib/spoken-text.ts prüfen.",
+  },
   tts_failed: {
     area: "ai",
     severity: "error",

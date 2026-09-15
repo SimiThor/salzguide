@@ -1,6 +1,7 @@
 import { createServiceClient } from "./supabase/service";
 import { routing } from "@/i18n/routing";
 import { countVoicedLangs, requiredVoiceIds, type VoiceRow } from "./tts-rules";
+import { spokenSourceHash } from "./spoken-rules";
 import { loadPointFiles, loadPointTourUsage, type PointTourUsage } from "./tts-files";
 import { getDefaultVoice, getVoices } from "./tts-voices";
 
@@ -158,6 +159,10 @@ export async function getAreaPoints(areaId: string): Promise<AdminPointRow[]> {
 type PointTextData = {
   title: string;
   audioText: string;
+  /** Sprechfassung, die beim letzten Vertonen an ElevenLabs ging (0070). Nur zum Ansehen. */
+  spokenText: string | null;
+  /** Wahr, wenn die Sprechfassung zu einem aelteren Textstand gehoert. */
+  spokenStale: boolean;
 };
 
 /** Eine Datei einer Stimme in einer Sprache, wie der Editor sie zeigt. */
@@ -214,25 +219,21 @@ export async function getVoiceDataForNewPoint(): Promise<PointVoiceData> {
 
 export async function getPointForEdit(id: string): Promise<PointEditData | null> {
   const supabase = createServiceClient();
-  const cols =
-    "id, area_id, lat, lng, kind, tags, weight, emoji, image_url, status, " +
-    "tour_point_audio(lang, audio_text)";
-  // source_hash existiert erst nach Migration 0031 -> mit Fallback abfragen (robust).
+  const base = "id, area_id, lat, lng, kind, tags, weight, emoji, image_url, status";
+  // Spalten, die es je nach Migrationsstand noch nicht gibt, werden der Reihe nach
+  // weggelassen (Muster wie ueberall): Sprechfassung (0070), dann source_hash (0031).
+  // Vor 0070 darf der Punkt-Editor nicht mit 404 ausfallen.
+  const variants = [
+    `${base}, tour_point_audio(lang, audio_text, audio_spoken, audio_spoken_hash), tour_point_translations(lang, title, source_hash)`,
+    `${base}, tour_point_audio(lang, audio_text), tour_point_translations(lang, title, source_hash)`,
+    `${base}, tour_point_audio(lang, audio_text), tour_point_translations(lang, title)`,
+  ];
   let data: Record<string, unknown> | null = null;
-  const withHash = await supabase
-    .from("tour_points")
-    .select(`${cols}, tour_point_translations(lang, title, source_hash)`)
-    .eq("id", id)
-    .maybeSingle();
-  if (withHash.error) {
-    const plain = await supabase
-      .from("tour_points")
-      .select(`${cols}, tour_point_translations(lang, title)`)
-      .eq("id", id)
-      .maybeSingle();
-    data = (plain.data as Record<string, unknown> | null) ?? null;
-  } else {
-    data = (withHash.data as Record<string, unknown> | null) ?? null;
+  for (const cols of variants) {
+    const r = await supabase.from("tour_points").select(cols).eq("id", id).maybeSingle();
+    if (r.error) continue;
+    data = (r.data as unknown as Record<string, unknown> | null) ?? null;
+    break;
   }
   if (!data) return null;
   const p = data;
@@ -241,7 +242,9 @@ export async function getPointForEdit(id: string): Promise<PointEditData | null>
       | { lang: string; title: string; source_hash?: string | null }[]
       | null) ?? [];
   const audio =
-    (p.tour_point_audio as { lang: string; audio_text: string | null }[] | null) ?? [];
+    (p.tour_point_audio as
+      | { lang: string; audio_text: string | null; audio_spoken?: string | null; audio_spoken_hash?: string | null }[]
+      | null) ?? [];
 
   // Stimmen (0068): Dateien je Stimme und Sprache, Runden des Punkts, Pflicht-Stimmen.
   const [voices, defaultVoice, rawFiles, tours] = await Promise.all([
@@ -279,7 +282,14 @@ export async function getPointForEdit(id: string): Promise<PointEditData | null>
   const build = (lang: string): PointTextData => {
     const t = trs.find((r) => r.lang === lang);
     const a = audio.find((r) => r.lang === lang);
-    return { title: t?.title ?? "", audioText: a?.audio_text ?? "" };
+    const audioText = a?.audio_text ?? "";
+    const spokenText = a?.audio_spoken ?? null;
+    return {
+      title: t?.title ?? "",
+      audioText,
+      spokenText,
+      spokenStale: Boolean(spokenText) && (a?.audio_spoken_hash ?? null) !== spokenSourceHash(audioText.trim()),
+    };
   };
   const translations: Record<string, PointTextData> = {};
   for (const l of routing.locales) {

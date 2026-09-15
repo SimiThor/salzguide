@@ -90,6 +90,15 @@ export async function voicePointFile(input: {
     });
     return { ok: false, error: r.error };
   }
+  // Vertont, aber mit Ziffern: Die Sprechfassung kam zweimal nicht durch den Waechter
+  // (lib/spoken-rules.ts). Kein Fehler fuer den Admin, aber eine Zeile im Logbuch.
+  if (r.spokenFailed) {
+    await logOps("tts_spoken_failed", {
+      message: `Sprechfassung abgelehnt: ${r.spokenFailed}`,
+      group: "tts",
+      detail: { lang: input.lang, kind: input.kind, voiceKey: voice.key, chars: text.length },
+    });
+  }
   // Kurzlebige Signed-URL zum sofortigen Probehoeren im Admin (privater Bucket).
   const { data: signed } = await createServiceClient()
     .storage.from("tour-audio")

@@ -116,6 +116,12 @@ export default function PointForm({
   const saved = Boolean(initial?.id);
 
   const voiceName = (id: string) => voice.voices.find((v) => v.id === id)?.name ?? "?";
+  // Sprechfassung je Sprache aus den geladenen Daten (nicht im Formular-Zustand: sie
+  // entsteht serverseitig beim Vertonen und ist hier nur zum Lesen).
+  const spokenFor = (lang: string): string | null =>
+    (lang === "de" ? initial?.de.spokenText : initial?.translations[lang]?.spokenText) ?? null;
+  const spokenStaleFor = (lang: string): boolean =>
+    Boolean(lang === "de" ? initial?.de.spokenStale : initial?.translations[lang]?.spokenStale);
   const fileFor = (lang: string): PointVoiceFile | undefined => files[activeVoiceId]?.[lang];
   // Die Stimme kommt explizit mit: Wechselt der Admin den Chip, während eine Vertonung
   // läuft, landete das Ergebnis sonst bei der falschen Stimme.
@@ -548,6 +554,16 @@ export default function PointForm({
           {wordCount(data.audioText)} Wörter · ~{secs} Sek.
           {secs > 130 ? " · ⚠︎ evtl. zu lang" : ""}
         </p>
+        {/* Was ElevenLabs beim letzten Vertonen wirklich bekam: Zahlen und Daten als Wörter
+            (Migration 0070). Nur zum Nachsehen; geschrieben wird oben, gesprochen hier. */}
+        {spokenFor(lang) && (
+          <details className="rounded-[10px] bg-black/[0.03] px-3 py-2 text-[12px] text-muted">
+            <summary className="cursor-pointer font-medium text-ink">
+              Sprechfassung{spokenStaleFor(lang) ? " (älterer Textstand, wird beim Vertonen erneuert)" : ""}
+            </summary>
+            <p className="mt-1.5 whitespace-pre-wrap leading-relaxed">{spokenFor(lang)}</p>
+          </details>
+        )}
         <div className="flex flex-wrap items-center gap-2">
           <AiButton
             loading={ttsBusy.includes(lang)}
