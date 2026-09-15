@@ -1,6 +1,7 @@
 import { createServiceClient } from "./supabase/service";
 import { IMMUTABLE_CACHE_SECONDS } from "./storage";
 import type { AudioKind } from "./tts-rules";
+import { LOUDNESS_TARGET_LUFS, normalizeSpeechMp3 } from "./loudness";
 
 // ═══════════════════════════════════════════════════════════════════════════════════════
 //  Sprechtext -> MP3. Die EINE Stelle, die ElevenLabs anspricht.
@@ -102,11 +103,19 @@ function elevenErrorText(status: number, body: string): string {
   return `ElevenLabs ${status}: ${(message || body).slice(0, 160)}`;
 }
 
+export type Loudness = { inputLufs: number; outputLufs: number; gainDb: number; normalized: boolean };
+
 export type SpeakResult =
-  | { ok: true; bytes: Uint8Array }
+  | { ok: true; bytes: Uint8Array; loudness: Loudness }
   | { ok: false; error: string; status?: number };
 
-/** Nur der Aufruf: Text und Stimme rein, MP3-Bytes raus. Nichts wird gespeichert. */
+/**
+ * Nur der Aufruf: Text und Stimme rein, MP3-Bytes raus. Nichts wird gespeichert.
+ *
+ * Die Bytes kommen LAUTHEITSGLEICH zurueck (lib/loudness.ts, -16 LUFS wie bei Apple):
+ * Jede Stimme, jede Sprache, jede Kostprobe gleich laut, und der Player muss nichts
+ * wissen. Innerhalb der Toleranz bleibt die ElevenLabs-Datei bytegleich.
+ */
 export async function elevenSpeak(input: { text: string; elevenVoiceId: string }): Promise<SpeakResult> {
   const text = input.text.trim();
   if (!text) return { ok: false, error: "Kein Text zum Vertonen." };
@@ -129,16 +138,21 @@ export async function elevenSpeak(input: { text: string; elevenVoiceId: string }
     if (!res.ok) {
       return { ok: false, error: elevenErrorText(res.status, await res.text()), status: res.status };
     }
-    const bytes = new Uint8Array(await res.arrayBuffer());
-    if (!bytes.length) return { ok: false, error: "Leere Audio-Antwort von ElevenLabs." };
-    return { ok: true, bytes };
+    const raw = new Uint8Array(await res.arrayBuffer());
+    if (!raw.length) return { ok: false, error: "Leere Audio-Antwort von ElevenLabs." };
+    const n = await normalizeSpeechMp3(raw);
+    return {
+      ok: true,
+      bytes: n.bytes,
+      loudness: { inputLufs: n.inputLufs, outputLufs: n.outputLufs, gainDb: n.gainDb, normalized: n.changed },
+    };
   } catch {
     return { ok: false, error: "TTS gerade nicht erreichbar, bitte nochmal versuchen." };
   }
 }
 
 export type VoiceResult =
-  | { ok: true; path: string; bytes: number; profile: string }
+  | { ok: true; path: string; bytes: number; profile: string; loudness: Loudness }
   | { ok: false; error: string; status?: number };
 
 /**
@@ -174,7 +188,10 @@ export async function synthesizeVoice(input: {
     ok: true,
     path,
     bytes: spoken.bytes.length,
-    profile: `${ttsProfile()}|${input.elevenVoiceId.trim()}`,
+    // Das Lautheits-Ziel steht mit im Profil: So sieht man einer Zeile an, ob sie schon
+    // durch die Angleichung gegangen ist (Bestands-Skript, scripts/tts-normalize-stock.ts).
+    profile: `${ttsProfile()}|${input.elevenVoiceId.trim()}|lufs${LOUDNESS_TARGET_LUFS}`,
+    loudness: spoken.loudness,
   };
 }
 

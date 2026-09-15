@@ -603,6 +603,17 @@ andere. Damit man das hört, ohne dass eine Runde je zwei Stimmen mischt, ist da
 Die Offenlegung im Player folgt der Stimm-Art (docs/39 §2): KI-Stimme, „Die Stimme von
 Simon, per KI gesprochen" oder „Gesprochen von …" bei echten Aufnahmen.
 
+**Alle Stimmen gleich laut (seit 15.09.2026).** Simons geklonte Stimme kam mit -34 LUFS aus
+ElevenLabs, Toni mit -16: fast 19 LU, gefühlt ein Viertel der Lautstärke. Geregelt wird das
+nicht im Player (`volume` ignoriert iOS, Web Audio verträgt sich schlecht mit Sperrbildschirm
+und Hintergrund), sondern in der Datei, einmal beim Erzeugen (`lib/loudness.ts`): -16 LUFS
+integriert nach BS.1770-4, dieselbe Messung wie Apple Podcasts und Sound Check, Spitzen unter
+-1 dB über einen Vorausschau-Begrenzer, gemessen wird die fertig kodierte Datei. Innerhalb von
+±1 LU bleibt eine Datei bytegleich, deshalb blieben Toni und der Bestand (-16,2 bis -16,4)
+unangetastet. `npm run loudness:check` hält die Messung gegen ffmpeg `ebur128`;
+`npm run tts:normalize-stock` misst den Bestand und zieht Ausreißer nach (Trockenlauf ohne
+`APPLY=1`).
+
 **Was noch fehlt**, in dieser Reihenfolge: Apple Pay und Google Pay im selben Fenster (der
 Sprung zu Stripes Kasse ist der letzte verbliebene Seitenwechsel), und eine Preiszeile vor
 dem Start, damit Stopp 3 als Bestätigung ankommt und nicht als Überraschung.
