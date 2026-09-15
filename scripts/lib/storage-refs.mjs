@@ -100,12 +100,18 @@ export async function collectStorageRefs(sel, patch, patchHome) {
  * Alle referenzierten Objekt-PFADE im privaten Bucket `tour-audio`.
  *
  * Dort stehen PFADE in der DB (kein Public-Read, Auslieferung per Signed-URL), deshalb
- * eine eigene, kleine Liste: tour_point_audio.audio_url ist die einzige Quelle.
+ * eine eigene, kleine Liste: tour_point_audio.audio_url UND teaser_url sind die Quellen.
  */
 export async function collectTourAudioPaths(sel) {
   const paths = [];
-  for (const a of await sel("tour_point_audio", "point_id,lang,audio_url")) {
+  // BEIDE Pfade je Zeile: Volldatei UND Kostprobe (teaser_url, Migration 0065). Bis
+  // 15.09.2026 stand hier nur audio_url, und der woechentliche Waisen-Sweep hat daraufhin
+  // alle sieben Kostproben der Runde A aus dem Bucket geloescht: Die DB zeigte auf Dateien,
+  // die es nicht mehr gab, und der Fahrbildschirm zeigte Gaesten ohne Pro ein Schloss statt
+  // der 20 Sekunden gratis. Wer hier eine Spalte vergisst, loescht Inhalte, keine Waisen.
+  for (const a of await sel("tour_point_audio", "point_id,lang,audio_url,teaser_url")) {
     if (typeof a.audio_url === "string" && a.audio_url) paths.push(a.audio_url);
+    if (typeof a.teaser_url === "string" && a.teaser_url) paths.push(a.teaser_url);
   }
   return paths;
 }
