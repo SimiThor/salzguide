@@ -39,7 +39,7 @@ const PUBLIC_ROUTES: RegExp[] = [
   /^\/admin$/,
   /^\/admin\/(events|settings|tours|users)$/,
   /^\/admin\/events\/[^/]+$/,
-  /^\/admin\/settings\/(analytics|home|intro-videos|mails|system)$/,
+  /^\/admin\/settings\/(analytics|home|intro-videos|mails|system|voices)$/,
   /^\/admin\/spots\/[^/]+$/,
   /^\/admin\/tours\/[^/]+$/,
   /^\/admin\/tours\/gebiete\/[^/]+$/,

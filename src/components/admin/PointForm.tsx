@@ -7,19 +7,21 @@ import {
   savePoint,
   deletePoint,
   translatePointTextsAll,
-  synthesizePointVoice,
   generatePointAll,
   type PointInput,
   type PointTexts,
 } from "@/lib/tour-pool-actions";
-import type { PointEditData } from "@/lib/tour-pool";
+import { attachManualFile, removeVoiceFile, voicePointFile } from "@/lib/tts-actions";
+import { pointVoicesPublishable, ttsTextHash } from "@/lib/tts-rules";
+import type { PointEditData, PointVoiceData, PointVoiceFile } from "@/lib/tour-pool";
 import { TAG_KEYS, TAG_LABELS_DE, TAG_EMOJI } from "@/lib/tour-tags";
 import { routing } from "@/i18n/routing";
 import { localeMeta } from "@/i18n/locales";
 import { hashTexts } from "@/lib/spot-hash";
 
 const POINT_TARGETS = routing.locales.filter((l) => l !== "de");
-const emptyPointTexts = (): PointTexts => ({ title: "", audioText: "", audioUrl: null });
+const ALL_LANGS = routing.locales as readonly string[];
+const emptyPointTexts = (): PointTexts => ({ title: "", audioText: "" });
 import LocationPicker from "./LocationPicker";
 import AiButton from "./AiButton";
 import { blockEnterSubmit } from "./form-utils";
@@ -79,10 +81,13 @@ export default function PointForm({
   areaId,
   areaName = "",
   initial,
+  voice,
 }: {
   areaId: string;
   areaName?: string;
   initial?: PointEditData;
+  /** Stimmen, Dateien je Stimme und Runden des Punkts (getPointForEdit / getVoiceDataForNewPoint). */
+  voice: PointVoiceData;
 }) {
   const router = useRouter();
   const backHref = `/admin/tours/gebiete/${areaId}`;
@@ -96,20 +101,41 @@ export default function PointForm({
   const [filling, setFilling] = useState(false);
   const [translating, setTranslating] = useState(false);
   const [ttsBusy, setTtsBusy] = useState<string[]>([]);
-  // Vorbefüllt mit den Signed-URLs aus getPointForEdit: Vorher stand bei bestehenden
-  // Punkten nur „✓ MP3" ohne Player – zum Anhören musste man neu vertonen (kostet
-  // ElevenLabs-Guthaben) oder die Live-Tour öffnen.
-  const [preview, setPreview] = useState<Record<string, string | undefined>>(() => {
-    const p: Record<string, string | undefined> = {};
-    if (initial?.de.audioPreviewUrl) p.de = initial.de.audioPreviewUrl;
-    for (const [l, t] of Object.entries(initial?.translations ?? {})) {
-      if (t.audioPreviewUrl) p[l] = t.audioPreviewUrl;
-    }
-    return p;
-  });
+  // ── Dateien je Stimme und Sprache (Migration 0068) ─────────────────────────
+  // Sie hängen NICHT am Formular-Zustand von „Speichern": Vertonen, MP3 anhängen und
+  // Entfernen schreiben sofort (lib/tts-actions.ts). Vorbefüllt mit den Signed-URLs aus
+  // getPointForEdit, damit man Vorhandenes anhören kann, ohne neu zu vertonen.
+  const [files, setFiles] = useState<Record<string, Record<string, PointVoiceFile>>>(() => voice.files);
+  // Welche Stimme gerade bearbeitet wird: zuerst die Pflicht-Stimme (Runde live), sonst Standard.
+  const [activeVoiceId, setActiveVoiceId] = useState<string>(
+    () => voice.requiredVoiceIds[0] ?? voice.defaultVoiceId ?? voice.voices[0]?.id ?? "",
+  );
   const [reviewLang, setReviewLang] = useState<string>(POINT_TARGETS[0] ?? "en");
   const set = (patch: Partial<FormState>) => setForm((f) => ({ ...f, ...patch }));
   const isUploading = (k: string) => uploading.includes(k);
+  const saved = Boolean(initial?.id);
+
+  const voiceName = (id: string) => voice.voices.find((v) => v.id === id)?.name ?? "?";
+  const fileFor = (lang: string): PointVoiceFile | undefined => files[activeVoiceId]?.[lang];
+  // Die Stimme kommt explizit mit: Wechselt der Admin den Chip, während eine Vertonung
+  // läuft, landete das Ergebnis sonst bei der falschen Stimme.
+  const patchFile = (voiceId: string, lang: string, patch: Partial<PointVoiceFile>) =>
+    setFiles((all) => {
+      const prev = all[voiceId]?.[lang] ?? { audioUrl: null, audioHash: null, teaserUrl: null, previewUrl: null };
+      return { ...all, [voiceId]: { ...(all[voiceId] ?? {}), [lang]: { ...prev, ...patch } } };
+    });
+  const completeFor = (voiceId: string) => ALL_LANGS.filter((l) => Boolean(files[voiceId]?.[l]?.audioUrl)).length;
+  // Dieselbe Regel wie savePoint (tts-rules.ts): Pflicht-Stimmen komplett, sonst eine komplett.
+  const filesPublishable = pointVoicesPublishable({
+    required: voice.requiredVoiceIds,
+    langs: ALL_LANGS,
+    files: Object.fromEntries(
+      Object.entries(files).map(([v, byLang]) => [
+        v,
+        Object.fromEntries(Object.entries(byLang).map(([l, f]) => [l, { url: f.audioUrl, hash: f.audioHash }])),
+      ]),
+    ),
+  });
 
   // Texte einer Sprache lesen/schreiben (DE = form.de, sonst form.translations[lang]).
   const getTexts = (lang: string): PointTexts =>
@@ -128,11 +154,17 @@ export default function PointForm({
     );
   };
 
-  // Status: eine Sprache ist „fertig" mit Titel + Sprechtext + Audiodatei.
+  // Status: eine Sprache ist „fertig" mit Titel + Sprechtext + Audiodatei der aktiven Stimme.
   const langComplete = (lang: string) => {
     const t = getTexts(lang);
-    return Boolean(t.title.trim() && t.audioText.trim() && t.audioUrl);
+    return Boolean(t.title.trim() && t.audioText.trim() && fileFor(lang)?.audioUrl);
   };
+  const textsComplete =
+    Boolean(form.de.title.trim() && form.de.audioText.trim()) &&
+    POINT_TARGETS.every((l) => {
+      const t = form.translations[l];
+      return Boolean(t?.title.trim() && t?.audioText.trim());
+    });
   const completeCount = POINT_TARGETS.filter(langComplete).length;
   const allComplete = langComplete("de") && POINT_TARGETS.every(langComplete);
   const liveDeHash = hashTexts([form.de.title, form.de.audioText]);
@@ -233,21 +265,54 @@ export default function PointForm({
     })();
   }
 
-  function onSynthesize(lang: string) {
+  // Eine Sprache mit der aktiven Stimme vertonen. Schreibt Text UND Datei sofort (tts-actions):
+  // Der Kern überspringt, was schon aktuell ist (kein Guthaben), `force` erzwingt einen
+  // neuen Take nach Rückfrage.
+  async function voiceLang(
+    voiceId: string,
+    lang: string,
+    force: boolean,
+  ): Promise<{ ok: boolean; skipped: boolean; error?: string }> {
+    const r = await voicePointFile({
+      pointId: initial!.id,
+      lang,
+      kind: "voll",
+      voiceId,
+      text: getTexts(lang).audioText,
+      force,
+    });
+    if (r.ok && r.path) {
+      patchFile(voiceId, lang, { audioUrl: r.path, audioHash: r.audioHash ?? null, previewUrl: r.previewUrl ?? null });
+      return { ok: true, skipped: Boolean(r.skipped) };
+    }
+    return { ok: false, skipped: false, error: r.error };
+  }
+
+  function onSynthesize(lang: string, force = false) {
     if (ttsBusy.includes(lang)) return;
+    if (!saved) return setErr(adminErrorText("save_first"));
+    if (!activeVoiceId) return setErr(adminErrorText("no_voice"));
     const text = getTexts(lang).audioText;
     if (!text.trim()) return setErr(`Bitte zuerst den Sprechtext (${lang.toUpperCase()}).`);
+    if (
+      force &&
+      !confirm(`${lang.toUpperCase()} mit ${voiceName(activeVoiceId)} neu aufnehmen? Das kostet ElevenLabs-Guthaben.`)
+    )
+      return;
+    const voiceId = activeVoiceId;
     setTtsBusy((b) => [...b, lang]);
     setErr("");
     setMsg("");
     void (async () => {
       try {
-        const r = await synthesizePointVoice({ text, lang });
-        if (r.ok && r.path) {
-          setTexts(lang, { audioUrl: r.path });
-          setPreview((p) => ({ ...p, [lang]: r.previewUrl ?? undefined }));
-          setMsg(`✓ Stimme (${lang.toUpperCase()}) erzeugt. Nicht vergessen zu speichern.`);
-        } else setErr(adminErrorText(r.error));
+        const r = await voiceLang(voiceId, lang, force);
+        if (r.ok)
+          setMsg(
+            r.skipped
+              ? `✓ ${lang.toUpperCase()} ist mit ${voiceName(voiceId)} schon aktuell, nichts neu vertont.`
+              : `✓ Stimme (${lang.toUpperCase()}, ${voiceName(voiceId)}) erzeugt und gespeichert.`,
+          );
+        else setErr(adminErrorText(r.error));
       } catch {
         setErr("Gerade nicht erreichbar. Bitte nochmal versuchen.");
       } finally {
@@ -256,25 +321,28 @@ export default function PointForm({
     })();
   }
 
-  // ALLE Sprachen (mit Sprechtext) nacheinander vertonen – ein Klick.
+  // ALLE Sprachen (mit Sprechtext) nacheinander vertonen – ein Klick. Aktuelle bleiben liegen.
   function onSynthesizeAll() {
     if (ttsBusy.length) return;
+    if (!saved) return setErr(adminErrorText("save_first"));
+    if (!activeVoiceId) return setErr(adminErrorText("no_voice"));
     const langs = ["de", ...POINT_TARGETS].filter((l) => getTexts(l).audioText.trim());
     if (!langs.length) return setErr("Kein Sprechtext zum Vertonen – zuerst übersetzen.");
+    const voiceId = activeVoiceId;
     setErr("");
     setMsg("");
     void (async () => {
-      let ok = 0;
+      let made = 0;
+      let kept = 0;
       const failed: string[] = [];
       let firstErr: string | undefined;
       for (const lang of langs) {
         setTtsBusy((b) => [...b, lang]);
         try {
-          const r = await synthesizePointVoice({ text: getTexts(lang).audioText, lang });
-          if (r.ok && r.path) {
-            setTexts(lang, { audioUrl: r.path });
-            setPreview((p) => ({ ...p, [lang]: r.previewUrl ?? undefined }));
-            ok++;
+          const r = await voiceLang(voiceId, lang, false);
+          if (r.ok) {
+            if (r.skipped) kept++;
+            else made++;
           } else {
             failed.push(lang.toUpperCase());
             firstErr ??= r.error;
@@ -291,11 +359,35 @@ export default function PointForm({
           `${failed.join(", ")} nicht vertont${firstErr ? ` (${adminErrorText(firstErr)})` : ""}.`,
         );
       }
-      if (ok > 0) setMsg(`✓ ${ok}/${langs.length} Sprachen vertont. Nicht vergessen zu speichern.`);
+      if (made + kept > 0)
+        setMsg(
+          `✓ ${made} ${made === 1 ? "Sprache" : "Sprachen"} mit ${voiceName(voiceId)} vertont${
+            kept ? `, ${kept} waren schon aktuell` : ""
+          }.`,
+        );
+    })();
+  }
+
+  // Datei aus der Zuordnung nehmen (das Objekt räumt der Waisen-Sweep).
+  function onRemoveFile(lang: string) {
+    if (!saved || !activeVoiceId) return;
+    const voiceId = activeVoiceId;
+    setErr("");
+    void (async () => {
+      try {
+        const r = await removeVoiceFile({ pointId: initial!.id, lang, voiceId, kind: "voll" });
+        if (r.ok) patchFile(voiceId, lang, { audioUrl: null, audioHash: null, previewUrl: null });
+        else setErr(adminErrorText(r.error));
+      } catch {
+        setErr("Gerade nicht erreichbar. Bitte nochmal versuchen.");
+      }
     })();
   }
 
   async function uploadAudio(lang: string, file: File) {
+    if (!saved) return setErr(adminErrorText("save_first"));
+    if (!activeVoiceId) return setErr(adminErrorText("no_voice"));
+    const voiceId = activeVoiceId;
     if (file.type !== "audio/mpeg" && file.type !== "audio/mp3") {
       setErr("Bitte eine MP3-Datei wählen (andere Audio-Formate nimmt der Speicher nicht an).");
       return;
@@ -315,7 +407,7 @@ export default function PointForm({
     setErr("");
     try {
       const supabase = createClient();
-      const path = `point-${lang}-${crypto.randomUUID()}.mp3`;
+      const path = `point-${lang}-manual-${crypto.randomUUID()}.mp3`;
       const { error } = await supabase.storage
         .from("tour-audio")
         .upload(path, file, {
@@ -324,7 +416,10 @@ export default function PointForm({
           cacheControl: IMMUTABLE_CACHE_SECONDS,
         });
       if (error) throw new Error(error.message);
-      setTexts(lang, { audioUrl: path });
+      // Sofort an (Punkt, Sprache, Stimme) hängen; ohne Zeile wäre die Datei eine Waise.
+      const r = await attachManualFile({ pointId: initial!.id, lang, voiceId, path });
+      if (!r.ok) throw new Error(adminErrorText(r.error));
+      patchFile(voiceId, lang, { audioUrl: path, audioHash: null, previewUrl: r.previewUrl ?? null });
     } catch (e) {
       // Wie im VideoUploader: Das Speicher-Limit ist der häufigste Grund und die
       // Roh-Meldung ("exceeded the maximum allowed size") sagt nicht, was zu tun ist.
@@ -358,10 +453,13 @@ export default function PointForm({
     setErr("");
     setMsg("");
     if (!form.de.title.trim()) return setErr("Bitte einen deutschen Titel eingeben.");
-    // Veröffentlichen nur, wenn ALLE Sprachen fertig (Titel + Sprechtext + Audio).
-    if (form.status === "published" && !allComplete)
+    // Veröffentlichen nur, wenn ALLE Sprachen Titel + Sprechtext haben UND die Dateien der
+    // Pflicht-Stimme(n) da sind. Dieselbe Regel prüft der Server (savePoint).
+    if (form.status === "published" && !(textsComplete && filesPublishable))
       return setErr(
-        "Zum Veröffentlichen müssen ALLE Sprachen Titel + Sprechtext + Audio haben. Erst übersetzen + alle vertonen, oder als Entwurf speichern.",
+        !textsComplete
+          ? "Zum Veröffentlichen müssen ALLE Sprachen Titel + Sprechtext haben. Erst übersetzen, oder als Entwurf speichern."
+          : adminErrorText("voice_files_incomplete"),
       );
     if (
       trStale &&
@@ -386,7 +484,8 @@ export default function PointForm({
     start(async () => {
       try {
         const r = await savePoint(payload);
-        if (r.ok) router.push(backHref);
+        // Neuer Punkt: direkt in die Bearbeitung, denn Vertonen geht erst mit einer ID.
+        if (r.ok) router.push(initial?.id ? backHref : `${backHref}/punkt/${r.id}`);
         else
           setErr(
             r.error?.startsWith("langs_incomplete")
@@ -419,6 +518,10 @@ export default function PointForm({
     const data = getTexts(lang);
     const secs = secEstimate(data.audioText);
     const m = localeMeta(lang);
+    const f = fileFor(lang);
+    // Text seit der Vertonung geändert? Nur prüfbar, wenn die Datei eine Marke trägt
+    // (Altbestand und manuelle Uploads haben keine, tts-rules.ts).
+    const stale = Boolean(f?.audioUrl && f.audioHash && f.audioHash !== ttsTextHash(data.audioText));
     return (
       <div className="space-y-2">
         {lang !== "de" && (
@@ -450,34 +553,46 @@ export default function PointForm({
             loading={ttsBusy.includes(lang)}
             loadingLabel="Stimme"
             onClick={() => onSynthesize(lang)}
-            disabled={!data.audioText.trim()}
+            disabled={!data.audioText.trim() || !saved || !activeVoiceId}
+            title={!saved ? "Zuerst speichern, dann vertonen." : undefined}
             className="rounded-full bg-accent px-3 py-1.5 text-[12px] font-semibold text-white"
           >
             Vertonen
           </AiButton>
-          <label className="cursor-pointer rounded-full bg-black/5 px-3 py-1.5 text-[12px] font-semibold text-ink">
-            {isUploading(lang) ? <Busy>Lädt</Busy> : data.audioUrl ? "MP3 ersetzen" : "MP3 wählen"}
+          <label
+            className={`rounded-full bg-black/5 px-3 py-1.5 text-[12px] font-semibold text-ink ${
+              saved ? "cursor-pointer" : "cursor-not-allowed opacity-60"
+            }`}
+          >
+            {isUploading(lang) ? <Busy>Lädt</Busy> : f?.audioUrl ? "MP3 ersetzen" : "MP3 wählen"}
             <input
               type="file"
               accept="audio/mpeg,audio/mp3,.mp3"
               className="hidden"
-              disabled={isUploading(lang)}
+              disabled={isUploading(lang) || !saved}
               onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) void uploadAudio(lang, f);
+                const file = e.target.files?.[0];
+                if (file) void uploadAudio(lang, file);
                 e.target.value = "";
               }}
             />
           </label>
-          {data.audioUrl && (
+          {f?.audioUrl && (
             <>
               <span className="text-[12px] text-emerald-700">✓ MP3</span>
+              {stale && <span className="text-[12px] font-medium text-accent">⚠ Text seit Vertonung geändert</span>}
               <button
                 type="button"
-                onClick={() => {
-                  setTexts(lang, { audioUrl: null });
-                  setPreview((p) => ({ ...p, [lang]: undefined }));
-                }}
+                onClick={() => onSynthesize(lang, true)}
+                disabled={ttsBusy.includes(lang)}
+                className="cursor-pointer text-[12px] text-muted underline"
+                title="Neuen Take erzeugen, auch wenn der Text gleich ist (kostet Guthaben)"
+              >
+                neu vertonen
+              </button>
+              <button
+                type="button"
+                onClick={() => onRemoveFile(lang)}
                 className="cursor-pointer text-[12px] text-muted underline"
               >
                 entfernen
@@ -485,7 +600,7 @@ export default function PointForm({
             </>
           )}
         </div>
-        {preview[lang] && <audio controls src={preview[lang]} className="mt-1 h-8 w-full" />}
+        {f?.previewUrl && <audio controls src={f.previewUrl} className="mt-1 h-8 w-full" />}
       </div>
     );
   }
@@ -675,8 +790,52 @@ export default function PointForm({
         </div>
         <p className="text-[12px] text-muted">
           Deutsch = Quelle. Ein Klick übersetzt Titel + Sprechtext in alle Sprachen, ein Klick
-          vertont sie. Veröffentlichen geht erst, wenn jede Sprache Titel + Sprechtext + Audio hat.
+          vertont sie mit der gewählten Stimme. Veröffentlichen geht erst, wenn jede Sprache
+          Titel + Sprechtext + Audio hat.
         </p>
+
+        {/* Die Stimmen (0068): je Punkt, Sprache UND Stimme eine Datei. Der aktive Chip
+            bestimmt, welche Dateien unten stehen und welche Stimme „Vertonen" nimmt. Pflicht
+            sind die Stimmen der Runden, in denen der Punkt LIVE ist. */}
+        <div className="flex flex-wrap items-center gap-1.5">
+          {voice.voices.map((v) => {
+            const n = completeFor(v.id);
+            const required = voice.requiredVoiceIds.includes(v.id);
+            const on = v.id === activeVoiceId;
+            return (
+              <button
+                key={v.id}
+                type="button"
+                onClick={() => setActiveVoiceId(v.id)}
+                className={`cursor-pointer rounded-full px-2.5 py-1 text-[12px] font-medium transition ${
+                  on
+                    ? "bg-ink text-white"
+                    : n === ALL_LANGS.length
+                      ? "bg-emerald-600/10 text-emerald-700"
+                      : "bg-black/5 text-muted"
+                }`}
+                title={`${n}/${ALL_LANGS.length} Sprachen mit ${v.name} vertont${required ? " · Pflicht (Runde live)" : ""}`}
+              >
+                🎙️ {v.name} {n}/{ALL_LANGS.length}
+                {required ? " · Pflicht" : ""}
+              </button>
+            );
+          })}
+          {voice.voices.length === 0 && (
+            <span className="text-[12px] text-accent">{adminErrorText("no_voice")}</span>
+          )}
+        </div>
+        {voice.tours.length > 0 && (
+          <p className="text-[12px] text-muted">
+            In Runden:{" "}
+            {voice.tours
+              .map((t) => `${t.title} (${t.status === "published" ? "live" : "Entwurf"}, ${voiceName(t.voiceId)})`)
+              .join(" · ")}
+          </p>
+        )}
+        {!saved && (
+          <p className="text-[12px] text-muted">Vertonen und MP3s gehen nach dem ersten Speichern.</p>
+        )}
 
         <div className="flex flex-wrap gap-2">
           <AiButton

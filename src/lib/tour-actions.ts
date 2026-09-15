@@ -8,6 +8,8 @@ import { guardStorageUrl } from "./storage-guard";
 import { hashTourTexts, translationsPublishable } from "./spot-hash";
 import { cleanRouteGeo, tourRouteHash, type RoutePoint } from "./tour-route";
 import type { TourMode } from "./tour-mode";
+import { getDefaultVoice, getVoiceById } from "./tts-voices";
+import { loadTourVoiceMisses } from "./tts-files";
 import { routing } from "@/i18n/routing";
 import { localeMeta } from "@/i18n/locales";
 
@@ -39,6 +41,8 @@ export type TourInput = {
   status: "draft" | "published";
   // Fortbewegungsart (0064). "bike" schaltet den eigenen Navigations-Screen frei.
   mode: TourMode;
+  // Die EINE Stimme der Runde (0068). null = Standard-Stimme, wird aber explizit gespeichert.
+  voiceId: string | null;
   durationMin: number | null;
   distanceKm: number | null;
   de: TourTexts;
@@ -147,6 +151,17 @@ export async function saveTour(input: TourInput): Promise<TourSaveResult> {
   if (wantsPublish && publishedStops === 0)
     return { ok: false, error: "no_published_stops" };
 
+  // Die Stimme der Runde (0068). Immer explizit gespeichert, auch wenn das Formular den
+  // Standard meinte: Ein späterer Standard-Wechsel darf keine Runde still umstellen.
+  const voice = (input.voiceId ? await getVoiceById(input.voiceId) : null) ?? (await getDefaultVoice());
+  if (!voice) return { ok: false, error: "no_voice" };
+  // Stimmen-Gate: Live gehen darf eine Runde nur, wenn jede veröffentlichte Station für
+  // GENAU DIESE Stimme in allen Sprachen eine aktuelle Volldatei hat (tts-rules.ts). Der
+  // Stimmwechsel einer Live-Runde ist damit atomar: erst „Vertonen" an der Runde, dann hier
+  // speichern; bis dahin spielt die alte Stimme durchgehend.
+  if (wantsPublish && (await loadTourVoiceMisses(supabase, pointIds, voice.id)).length)
+    return { ok: false, error: "voice_files_incomplete" };
+
   const row = {
     area_id: input.areaId ?? null,
     region: "stadt-salzburg", // vestigial (Gebiet ersetzt Region); Spalte bleibt NOT-NULL-frei
@@ -156,6 +171,7 @@ export async function saveTour(input: TourInput): Promise<TourSaveResult> {
     free_stops: freeStops,
     status: input.status === "published" ? "published" : "draft",
     mode: input.mode === "bike" ? "bike" : "walk",
+    voice_id: voice.id,
     duration_min:
       input.durationMin != null && Number.isFinite(input.durationMin)
         ? Math.max(0, Math.floor(input.durationMin))
@@ -379,6 +395,19 @@ export async function setTourStatus(
     const mark = rows.find((r) => r.lang !== "de" && r.source_hash)?.source_hash ?? null;
     if (!translationsPublishable(present, mark, deHash, TOUR_TARGET_LOCALES))
       return { ok: false, error: "translations_incomplete" };
+
+    // Stimmen-Gate wie in saveTour: keine Runde live, deren Stationen die Stimme der Runde
+    // noch nicht (oder mit altem Text) sprechen.
+    const { data: tourRow, error: voiceErr } = await gate.supabase
+      .from("tours")
+      .select("voice_id")
+      .eq("id", id)
+      .maybeSingle();
+    if (voiceErr) return { ok: false, error: "db" };
+    const voiceId = (tourRow as { voice_id?: string | null } | null)?.voice_id ?? null;
+    if (!voiceId) return { ok: false, error: "no_voice" };
+    if ((await loadTourVoiceMisses(gate.supabase, pointIds, voiceId)).length)
+      return { ok: false, error: "voice_files_incomplete" };
   }
 
   const { error } = await gate.supabase.from("tours").update({ status: s }).eq("id", id);

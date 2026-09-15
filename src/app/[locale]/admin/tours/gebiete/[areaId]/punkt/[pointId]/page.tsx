@@ -4,6 +4,7 @@ import PointForm from "@/components/admin/PointForm";
 import BackButton from "@/components/BackButton";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60; // Vertonen je Datei, siehe tours/[id]/page.tsx
 
 export default async function EditPointPage({
   params,
@@ -17,7 +18,7 @@ export default async function EditPointPage({
     <div className="space-y-4">
       <BackButton fallbackHref={`/admin/tours/gebiete/${areaId}`} />
       <h1 className="text-2xl font-bold text-ink">Punkt bearbeiten</h1>
-      <PointForm areaId={areaId} areaName={area?.de.name ?? ""} initial={point} />
+      <PointForm areaId={areaId} areaName={area?.de.name ?? ""} initial={point} voice={point.voice} />
     </div>
   );
 }

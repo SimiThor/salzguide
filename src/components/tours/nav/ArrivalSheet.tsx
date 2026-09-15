@@ -5,8 +5,9 @@ import { useTranslations } from "next-intl";
 import BottomSheet from "@/components/BottomSheet";
 import AudioTransport from "@/components/tours/AudioTransport";
 import StopLockedCard from "@/components/tours/StopLockedCard";
+import VoiceDisclosure from "@/components/tours/VoiceDisclosure";
 import type { TourAudioApi } from "@/components/tours/useTourAudio";
-import type { TourStopView } from "@/lib/tour-types";
+import type { TourStopView, VoiceInfo } from "@/lib/tour-types";
 
 // Erscheint automatisch, sobald bike-nav-core.ts eine Ankunft meldet. `variant="floating"`
 // (BottomSheet.tsx), weil die Karte dahinter scharf & bedienbar bleiben soll – die
@@ -20,6 +21,7 @@ export default function ArrivalSheet({
   totalStops,
   proPrice,
   tourSlug,
+  voice,
   audio,
   index,
   total,
@@ -36,6 +38,8 @@ export default function ArrivalSheet({
   proPrice: string;
   /** Slug dieser Runde, damit der Kauf hierher zurückführt statt auf /pro. */
   tourSlug: string;
+  /** Stimme der Runde für den Hinweis unter dem Play-Knopf (VoiceDisclosure). */
+  voice?: VoiceInfo | null;
   audio: TourAudioApi;
   isCurrent: boolean;
   onPlayThis: () => void;
@@ -101,7 +105,7 @@ export default function ArrivalSheet({
                 ▶ {t("play")}
               </button>
             )}
-            <p className="mt-1.5 text-[11px] leading-snug text-muted/80">{t("aiVoice")}</p>
+            <VoiceDisclosure voice={voice} />
           </div>
         ) : (
           <p className="rounded-[16px] bg-white/70 p-4 text-center text-[13px] text-muted">

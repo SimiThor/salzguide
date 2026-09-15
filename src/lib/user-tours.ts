@@ -4,6 +4,9 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "./supabase/server";
 import { createServiceClient } from "./supabase/service";
 import { viewerCanSeePro } from "./spots";
+import { pickRoundVoice } from "./tts-rules";
+import { getDefaultVoice, getVoiceById, voiceInfoOf } from "./tts-voices";
+import { loadStopAudio } from "./tours";
 import type { TourDetail, TourStopView } from "./tour-types";
 
 // Gespeicherte User-Runden (0028). Persistiert wird nur der SNAPSHOT (geordnete
@@ -171,18 +174,35 @@ export async function getUserTourDetail(
     }
   }
 
-  // Audio je Punkt (RLS-dicht -> Service-Client).
+  // EINE Stimme je Runde (0068): die mit der größten Abdeckung über die gespeicherten
+  // Punkte. Wurde der Pool seither teilweise umvertont und ein Punkt hat diese Stimme nicht
+  // mehr, bleibt er stumm statt in fremder Stimme zu sprechen; der Hinweis wird generisch.
+  const { data: fileRows } = await svc
+    .from("tour_point_voice_files")
+    .select("point_id, voice_id, audio_url")
+    .in("point_id", orderedIds);
+  const voicesByPoint = new Map<string, string[]>();
+  for (const f of (fileRows as { point_id: string; voice_id: string; audio_url: string | null }[] | null) ?? []) {
+    if (!f.audio_url) continue;
+    voicesByPoint.set(f.point_id, [...(voicesByPoint.get(f.point_id) ?? []), f.voice_id]);
+  }
+  const roundVoiceId = pickRoundVoice(
+    orderedIds.map((id) => ({ voiceIds: voicesByPoint.get(id) ?? [] })),
+    (await getDefaultVoice())?.id ?? null,
+  );
+  const allSameVoice =
+    roundVoiceId != null && orderedIds.every((id) => (voicesByPoint.get(id) ?? []).includes(roundVoiceId));
+  const roundVoice = roundVoiceId && allSameVoice ? await getVoiceById(roundVoiceId) : null;
+
+  // Audio je Punkt (RLS-dicht -> Service-Client), nur Dateien der Runden-Stimme.
   const audioByPoint = new Map<
     string,
     { url: string | null; text: string | null; dur: number | null }
   >();
   {
-    const { data: audioRows } = await svc
-      .from("tour_point_audio")
-      .select("point_id, lang, audio_url, audio_text, duration_sec")
-      .in("point_id", orderedIds);
+    const audioRows = await loadStopAudio(svc, orderedIds, roundVoiceId);
     const grouped = new Map<string, Record<string, unknown>[]>();
-    for (const a of (audioRows as Record<string, unknown>[] | null) ?? []) {
+    for (const a of audioRows) {
       const pid = a.point_id as string;
       const list = grouped.get(pid) ?? [];
       list.push(a);
@@ -267,6 +287,7 @@ export async function getUserTourDetail(
     distanceKm: (r.distance_km as number | null) ?? null,
     // Gespeicherte Runden kommen ausschliesslich aus dem (Geh-)KI-Builder.
     mode: "walk",
+    voice: voiceInfoOf(roundVoice),
     stops,
     canSeePro,
     routeGeo: (r.route_geo as [number, number][] | null) ?? null,

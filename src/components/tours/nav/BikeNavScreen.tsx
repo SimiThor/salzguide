@@ -674,6 +674,7 @@ export default function BikeNavScreen({
         totalStops={tour.stops.length}
         proPrice={proPrice}
         tourSlug={tour.slug}
+        voice={tour.voice}
         audio={audio}
         isCurrent={shownSpotId != null && shownSpotId === activeAudioIndex}
         onPlayThis={playOffered}

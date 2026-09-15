@@ -1,5 +1,6 @@
 import { createServiceClient } from "./supabase/service";
 import { IMMUTABLE_CACHE_SECONDS } from "./storage";
+import type { AudioKind } from "./tts-rules";
 
 // ═══════════════════════════════════════════════════════════════════════════════════════
 //  Sprechtext -> MP3. Die EINE Stelle, die ElevenLabs anspricht.
@@ -7,28 +8,35 @@ import { IMMUTABLE_CACHE_SECONDS } from "./storage";
 //
 // Herausgezogen aus tour-pool-actions.ts, weil die Runden nicht mehr nur im Admin entstehen:
 // Eine Radrunde hat sieben Punkte, und jeder braucht in dreizehn Sprachen ZWEI Dateien, die
-// volle Geschichte und die Kostprobe. Das sind 182 Dateien. Der Weg über den Admin, Punkt
-// fuer Punkt und Knopf fuer Knopf, ist dafuer kein Weg mehr.
+// volle Geschichte und die Kostprobe. Das sind 182 Dateien je Stimme.
+//
+// WELCHE STIMME SPRICHT, entscheidet nicht mehr diese Datei. Bis 09/2026 stand die Stimme in
+// der ENV (ELEVENLABS_VOICE_ID, mit hart kodiertem Fallback auf eine ElevenLabs-Vorlage und
+// einem Sprach-Override je Locale). Seit Migration 0068 stehen die Stimmen in tts_voices,
+// jede Runde trägt eine, und der Aufrufer reicht die ElevenLabs-ID herein (lib/tts-voices.ts
+// löst sie auf, lib/tts-files.ts entscheidet, ob überhaupt vertont werden muss). Ein
+// Fallback gibt es hier absichtlich nicht: Eine still falsche Stimme ist genau der Fehler,
+// gegen den das gebaut ist.
 //
 // Die Datei landet im PRIVATEN tour-audio-Bucket, und zurueck kommt nur der Objekt-PFAD.
 // Ausgeliefert wird weiterhin ausschliesslich ueber kurzlebige Signed-URLs an Hoerer, die
 // sie bekommen duerfen (lib/tour-audio-gate.ts entscheidet, welche der beiden Dateien).
 //
-// RECHTLICH: Die Stimme ist synthetisch und faellt unter Art. 50 EU AI Act. Die Offenlegung
-// steht in docs/39 und erscheint sichtbar im Player (Tours.aiVoice). Wer hier eine neue
-// Aufrufstelle baut, prueft das mit.
+// RECHTLICH: Synthetische und geklonte Stimmen fallen unter Art. 50 EU AI Act. Die
+// Offenlegung steht in docs/39 und erscheint sichtbar im Player (VoiceDisclosure.tsx, aus
+// der Stimm-Art). Wer hier eine neue Aufrufstelle baut, prueft das mit.
+//
+// KEIN ops-Import in dieser Datei: scripts/seed-runde-a.ts laedt sie direkt, und lib/ops.ts
+// zieht die halbe Server-Welt nach. Gemeldet wird in der Action-Schicht (tts-actions.ts).
 
-const ELEVEN_MODEL = "eleven_multilingual_v2"; // EINE Stimme spricht ALLE Sprachen
-
-function elevenVoiceId(lang: string): string {
-  // Optional pro Sprache überschreibbar via ELEVENLABS_VOICE_ID_<LANG> (z. B. _EN, _FR).
-  const base = process.env.ELEVENLABS_VOICE_ID || "21m00Tcm4TlvDq8ikWAM";
-  // `trim()` erst NACH der Prüfung: Eine Variable, die nur aus Leerzeichen besteht, ergäbe
-  // sonst eine leere Stimmen-ID und damit eine kaputte Adresse. So faellt sie auf die Basis
-  // zurueck, wie in der urspruenglichen Fassung.
-  const perLang = process.env[`ELEVENLABS_VOICE_ID_${lang.toUpperCase()}`]?.trim();
-  return perLang || base;
-}
+const ELEVEN_API = "https://api.elevenlabs.io/v1";
+const ELEVEN_MODEL = "eleven_multilingual_v2"; // EINE Stimme spricht ALLE Sprachen, auch Klone
+// 96 kbps statt 128: für gesprochene Stimme nicht unterscheidbar, ein Viertel weniger
+// Storage und Datenverkehr pro Guide-Punkt. Der Bestand wurde am 10.08.2026 auf 80 kbps
+// mono umkodiert; neue Dateien kommen mit diesem Format schon sparsam an. Konstante
+// Bitrate, deshalb kann tts-rules.ts die Dauer aus der Dateigroesse rechnen.
+const OUTPUT_FORMAT = "mp3_44100_96";
+const MAX_CHARS = 5000;
 
 /**
  * Zahl aus einer Umgebungsvariable, mit Grenzen und Standardwert.
@@ -59,35 +67,32 @@ function elevenVoiceSettings() {
   };
 }
 
-export type VoiceResult =
-  | { ok: true; path: string; bytes: number }
-  | { ok: false; error: string };
-
 /**
- * Text vertonen und im privaten Bucket ablegen. Gibt den OBJEKT-PFAD zurueck, nie eine URL.
- *
- * `kind` landet im Dateinamen und trennt die volle Geschichte von der Kostprobe. Das ist
- * kein Schoenheitsdetail: Beide liegen im selben Bucket, und wer sie am Namen nicht
- * auseinanderhaelt, signiert irgendwann die falsche.
+ * Modell und Settings als eine Zeile. Steht informativ an jeder Datei (tts_profile), damit
+ * man spaeter weiss, womit sie entstand. BEWUSST keine Veraltet-Regel: siehe tts-rules.ts.
  */
-export async function synthesizeVoice(input: {
-  text: string;
-  lang: string;
-  kind?: "voll" | "kostprobe";
-}): Promise<VoiceResult> {
+export function ttsProfile(): string {
+  const s = elevenVoiceSettings();
+  return [ELEVEN_MODEL, s.stability, s.similarity_boost, s.style, s.use_speaker_boost ? 1 : 0, s.speed].join("|");
+}
+
+export type SpeakResult =
+  | { ok: true; bytes: Uint8Array }
+  | { ok: false; error: string; status?: number };
+
+/** Nur der Aufruf: Text und Stimme rein, MP3-Bytes raus. Nichts wird gespeichert. */
+export async function elevenSpeak(input: { text: string; elevenVoiceId: string }): Promise<SpeakResult> {
   const text = input.text.trim();
   if (!text) return { ok: false, error: "Kein Text zum Vertonen." };
-  if (text.length > 5000) return { ok: false, error: "Text zu lang (max. 5000 Zeichen)." };
+  if (text.length > MAX_CHARS) return { ok: false, error: `Text zu lang (max. ${MAX_CHARS} Zeichen).` };
   const key = process.env.ELEVENLABS_API_KEY;
   if (!key) return { ok: false, error: "ELEVENLABS_API_KEY fehlt, bitte in .env.local eintragen" };
-  const lang = (input.lang || "de").toLowerCase();
+  const voiceId = input.elevenVoiceId.trim();
+  if (!voiceId) return { ok: false, error: "voice_not_synthesizable" };
 
   try {
-    // 96 kbps statt 128: für gesprochene Stimme nicht unterscheidbar, ein Viertel weniger
-    // Storage und Datenverkehr pro Guide-Punkt. Der Bestand wurde am 10.08.2026 auf
-    // 80 kbps mono umkodiert; neue Dateien kommen mit diesem Format schon sparsam an.
     const res = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${elevenVoiceId(lang)}?output_format=mp3_44100_96`,
+      `${ELEVEN_API}/text-to-speech/${encodeURIComponent(voiceId)}?output_format=${OUTPUT_FORMAT}`,
       {
         method: "POST",
         headers: { "xi-api-key": key, "content-type": "application/json", accept: "audio/mpeg" },
@@ -97,23 +102,78 @@ export async function synthesizeVoice(input: {
     );
     if (!res.ok) {
       const t = await res.text();
-      return { ok: false, error: `ElevenLabs ${res.status}: ${t.slice(0, 160)}` };
+      return { ok: false, error: `ElevenLabs ${res.status}: ${t.slice(0, 160)}`, status: res.status };
     }
     const bytes = new Uint8Array(await res.arrayBuffer());
     if (!bytes.length) return { ok: false, error: "Leere Audio-Antwort von ElevenLabs." };
-
-    const teil = input.kind === "kostprobe" ? "kostprobe" : "point";
-    const path = `${teil}-${lang}-${crypto.randomUUID()}.mp3`;
-    const { error } = await createServiceClient()
-      .storage.from("tour-audio")
-      .upload(path, bytes, {
-        contentType: "audio/mpeg",
-        upsert: false,
-        cacheControl: IMMUTABLE_CACHE_SECONDS,
-      });
-    if (error) return { ok: false, error: "Upload der Stimme fehlgeschlagen." };
-    return { ok: true, path, bytes: bytes.length };
+    return { ok: true, bytes };
   } catch {
     return { ok: false, error: "TTS gerade nicht erreichbar, bitte nochmal versuchen." };
+  }
+}
+
+export type VoiceResult =
+  | { ok: true; path: string; bytes: number; profile: string }
+  | { ok: false; error: string; status?: number };
+
+/**
+ * Text vertonen und im privaten Bucket ablegen. Gibt den OBJEKT-PFAD zurueck, nie eine URL.
+ *
+ * `kind` und `voiceKey` landen im Dateinamen. Das ist kein Schoenheitsdetail: Volldatei und
+ * Kostprobe liegen im selben Bucket, und wer sie am Namen nicht auseinanderhaelt, signiert
+ * irgendwann die falsche. Und wer den Bucket von Hand durchsieht, soll erkennen koennen,
+ * welche Stimme in einer Datei spricht, statt vor lauter UUIDs zu stehen.
+ */
+export async function synthesizeVoice(input: {
+  text: string;
+  lang: string;
+  kind?: AudioKind;
+  elevenVoiceId: string;
+  voiceKey: string;
+}): Promise<VoiceResult> {
+  const spoken = await elevenSpeak({ text: input.text, elevenVoiceId: input.elevenVoiceId });
+  if (!spoken.ok) return spoken;
+  const lang = (input.lang || "de").toLowerCase();
+  const teil = input.kind === "kostprobe" ? "kostprobe" : "point";
+  const key = input.voiceKey.toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 24) || "voice";
+  const path = `${teil}-${lang}-${key}-${crypto.randomUUID()}.mp3`;
+  const { error } = await createServiceClient()
+    .storage.from("tour-audio")
+    .upload(path, spoken.bytes, {
+      contentType: "audio/mpeg",
+      upsert: false,
+      cacheControl: IMMUTABLE_CACHE_SECONDS,
+    });
+  if (error) return { ok: false, error: "Upload der Stimme fehlgeschlagen." };
+  return {
+    ok: true,
+    path,
+    bytes: spoken.bytes.length,
+    profile: `${ttsProfile()}|${input.elevenVoiceId.trim()}`,
+  };
+}
+
+/**
+ * Gibt es diese Stimme in unserem ElevenLabs-Konto? Kostet keine Zeichen. Wird beim
+ * Speichern einer Stimme im Admin geprueft, damit ein Tippfehler in der ID nicht erst beim
+ * 98-Dateien-Lauf auffaellt.
+ */
+export async function validateElevenVoice(
+  id: string,
+): Promise<{ ok: true; name: string } | { ok: false; error: string; status?: number }> {
+  const key = process.env.ELEVENLABS_API_KEY;
+  if (!key) return { ok: false, error: "ELEVENLABS_API_KEY fehlt, bitte in .env.local eintragen" };
+  try {
+    const res = await fetch(`${ELEVEN_API}/voices/${encodeURIComponent(id.trim())}`, {
+      headers: { "xi-api-key": key },
+      signal: AbortSignal.timeout(15000),
+    });
+    if (res.status === 404 || res.status === 400 || res.status === 422)
+      return { ok: false, error: "bad_voice_id", status: res.status };
+    if (!res.ok) return { ok: false, error: `ElevenLabs ${res.status}`, status: res.status };
+    const j = (await res.json()) as { name?: string };
+    return { ok: true, name: j.name ?? "" };
+  } catch {
+    return { ok: false, error: "ElevenLabs gerade nicht erreichbar, bitte nochmal versuchen." };
   }
 }

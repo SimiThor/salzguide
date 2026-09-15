@@ -292,6 +292,17 @@ export const OPS_EVENTS = {
     quietMinutes: 60,
     hint: "status.anthropic.com prüfen und das Guthaben in der Anthropic-Konsole. Toni antwortet solange nicht.",
   },
+  tts_failed: {
+    area: "ai",
+    severity: "error",
+    title: "Vertonung fehlgeschlagen",
+    // ElevenLabs antwortet nicht oder lehnt ab. Einmal ist ein Schluckauf, dreimal im
+    // Fenster ist das Guthaben, der Schlüssel oder eine falsche Stimmen-ID. Nie der Text
+    // im Detail: Der Sprechtext ist Pro-Ware.
+    alertAfter: 3,
+    quietMinutes: 60,
+    hint: "ElevenLabs-Status und Guthaben prüfen, dann die Stimmen-ID unter Einstellungen → Stimmen (Probehören). Bis dahin entstehen keine neuen Aufnahmen.",
+  },
   ai_ip_cap_hit: {
     area: "ai",
     severity: "warn",

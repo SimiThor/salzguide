@@ -303,14 +303,20 @@ async function loadArea(): Promise<{ areaId: string; points: DbPoint[] }> {
 
   const { data: rows, error: e2 } = await db
     .from("tour_points")
-    .select("id, lat, lng, emoji, image_url, tags, kind, tour_point_translations(lang, title), tour_point_audio(lang, audio_text, audio_url)")
+    // Die Dateien liegen seit Migration 0068 je Stimme in tour_point_voice_files; fuer die
+    // Frage "gibt es eine Aufnahme?" zaehlt hier jede Stimme.
+    .select("id, lat, lng, emoji, image_url, tags, kind, tour_point_translations(lang, title), tour_point_audio(lang, audio_text), tour_point_voice_files(lang, audio_url)")
     .eq("area_id", area.id);
   if (e2) throw new Error(`Punkte nicht lesbar: ${e2.message}`);
 
   const points: DbPoint[] = ((rows ?? []) as unknown as Record<string, unknown>[]).map((p) => {
     const trs = (p.tour_point_translations as { lang: string; title: string }[] | null) ?? [];
-    const audio =
-      (p.tour_point_audio as { lang: string; audio_text: string | null; audio_url: string | null }[] | null) ?? [];
+    const texts = (p.tour_point_audio as { lang: string; audio_text: string | null }[] | null) ?? [];
+    const files = (p.tour_point_voice_files as { lang: string; audio_url: string | null }[] | null) ?? [];
+    const audio = texts.map((t) => ({
+      ...t,
+      audio_url: files.find((f) => f.lang === t.lang && f.audio_url)?.audio_url ?? null,
+    }));
     const de = audio.find((a) => a.lang === "de");
     return {
       id: p.id as string,
