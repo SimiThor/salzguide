@@ -590,10 +590,12 @@ andere. Damit man das hört, ohne dass eine Runde je zwei Stimmen mischt, ist da
   Dateien fehlen (auch solche, deren Objekt im Bucket weg ist, wie die sieben Kostproben vom
   15.09.), welche einen älteren Text sprechen und wie viele Zeichen das kostet. Erst danach
   „Vertonen". Ein zweiter Lauf findet nichts mehr.
-- **Veröffentlichen geht nur vollständig:** jede veröffentlichte Station braucht für die
-  Stimme der Runde in allen 13 Sprachen eine aktuelle Volldatei. Ein Stimmwechsel einer
-  Live-Runde ist damit atomar: erst die Dateien der neuen Stimme erzeugen, dann die Stimme
-  speichern. Bis dahin spielt die alte Stimme durchgehend.
+- **Veröffentlichen sichert die Stimme, nicht die Übersetzung:** jede veröffentlichte
+  Station braucht die deutsche Volldatei der Runden-Stimme (Deutsch ist die Rückfall-Sprache
+  des Players), und keine Datei darf einen älteren Text sprechen. Fehlende andere Sprachen
+  blockieren nicht, der Gast hört dann wie bisher Deutsch, in derselben Stimme; „Prüfen"
+  zeigt die Lücke. Ein Stimmwechsel einer Live-Runde ist damit atomar: erst die Dateien der
+  neuen Stimme erzeugen, dann die Stimme speichern. Bis dahin spielt die alte Stimme.
 - Ersetzte Dateien werden nie sofort gelöscht. Der wöchentliche Waisen-Sweep räumt sie nach
   48 Stunden, und nur, wenn keine Zeile mehr auf sie zeigt (`storage-refs.mjs` kennt die neue
   Tabelle seit demselben Commit wie die Migration).

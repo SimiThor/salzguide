@@ -126,9 +126,14 @@ console.log("\n6. Wann eine Runde live darf");
     [],
   );
   expect(
-    "eine Sprache fehlt",
+    "eine andere Sprache fehlt: der Player fällt auf Deutsch zurück, kein Treffer",
     tourVoiceGate([stop({ de: { url: "1", hash: null } })], langs),
-    [{ pointId: "p", lang: "en", reason: "missing" }],
+    [],
+  );
+  expect(
+    "Deutsch fehlt: die Station wäre stumm",
+    tourVoiceGate([stop({ en: { url: "2", hash: null } })], langs),
+    [{ pointId: "p", lang: "de", reason: "missing" }],
   );
   expect(
     "Text seit Vertonung geändert",

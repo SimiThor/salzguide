@@ -201,9 +201,10 @@ export default function TourForm({
   // ── Stimme ─────────────────────────────────────────────────────────────────
   const voiceName = voices.find((v) => v.id === form.voiceId)?.name ?? "";
   const voicedOf = (s: FormStop) => s.voicedLangs[form.voiceId] ?? 0;
-  // Dieselbe Grenze wie der Server (tourVoiceGate): jede Station, alle Sprachen. Ob eine
-  // Datei auch den aktuellen Text spricht, weiss nur „Prüfen"; hier zählt die Anzahl.
-  const stopsMissingVoice = form.stops.filter((s) => voicedOf(s) < LANG_COUNT).length;
+  // Der Server (tourVoiceGate) verlangt je Station die deutsche Datei der Runden-Stimme und
+  // keine veraltete; hier reicht als Vorwarnung: gar keine Datei dieser Stimme. Fehlende
+  // andere Sprachen zeigt der Chip (n/13), sie blockieren nicht (Player fällt auf Deutsch).
+  const stopsMissingVoice = form.stops.filter((s) => voicedOf(s) === 0).length;
 
   function onTranslateAll() {
     if (translating) return;
@@ -682,8 +683,8 @@ export default function TourForm({
             )}
             {form.status === "published" && canPublish && stopsMissingVoice > 0 && (
               <p className="mt-1 text-[12px] font-medium text-accent">
-                Live gehen kann die Runde erst, wenn jede Station mit {voiceName || "der Stimme"} in
-                allen Sprachen vertont ist (unten „Stimme prüfen“).
+                Live gehen kann die Runde erst, wenn jede Station mit {voiceName || "der Stimme"}
+                vertont ist (unten „Stimme prüfen“).
               </p>
             )}
           </div>

@@ -144,22 +144,31 @@ export type TourGateStop = {
 };
 export type TourGateMiss = { pointId: string; lang: string; reason: "missing" | "text_changed" };
 
+const FALLBACK_LANG = "de";
+
 /**
- * Jede Station braucht für die Stimme der Runde in allen Sprachen eine Volldatei, die den
- * aktuellen Text spricht. Kostproben blockieren nicht (fehlt eine, zeigt der Player wie
- * bisher das Schloss). Die Existenz im Bucket prüft „Prüfen" an der Runde, nicht das Gate:
- * Das Gate ist eine reine Datenbank-Frage.
+ * Das Gate sichert die EINE Stimme, nicht die Übersetzungs-Vollständigkeit:
+ *
+ *   - Jede Station braucht die DEUTSCHE Volldatei der Runden-Stimme. Deutsch ist die
+ *     Sprache, auf die der Player zurückfällt; ohne sie wäre die Station stumm.
+ *   - Keine vorhandene Datei darf einen älteren Text sprechen (text_changed).
+ *   - Fehlt eine andere Sprache, blockiert das NICHT: Der Player spielt dann wie bisher
+ *     die deutsche Datei (voiced(locale) ?? voiced(de)), also weiterhin dieselbe Stimme.
+ *     „Prüfen" an der Runde zeigt diese Lücken trotzdem, mit Zeichen und Kosten.
+ *
+ * Kostproben blockieren nie (fehlt eine, zeigt der Player das Schloss). Die Existenz im
+ * Bucket prüft „Prüfen", nicht das Gate: Das Gate ist eine reine Datenbank-Frage.
  */
 export function tourVoiceGate(stops: TourGateStop[], langs: readonly string[]): TourGateMiss[] {
   const out: TourGateMiss[] = [];
   for (const s of stops) {
     for (const lang of langs) {
       const f = s.files[lang];
+      const text = (s.textByLang[lang] ?? "").trim();
       if (!f?.url) {
-        out.push({ pointId: s.pointId, lang, reason: "missing" });
+        if (lang === FALLBACK_LANG) out.push({ pointId: s.pointId, lang, reason: "missing" });
         continue;
       }
-      const text = (s.textByLang[lang] ?? "").trim();
       if (f.hash !== null && text && f.hash !== ttsTextHash(text))
         out.push({ pointId: s.pointId, lang, reason: "text_changed" });
     }

@@ -40,7 +40,7 @@ const ADMIN_ERRORS: Record<string, string> = {
     "Mindestens eine Station gehört nicht zum gewählten Gebiet. Bitte Stationen prüfen.",
   // Stimmen (Migration 0068)
   voice_files_incomplete:
-    "Zum Veröffentlichen braucht jede Station eine aktuelle Vertonung mit der Stimme der Runde in allen Sprachen. Erst „Prüfen“ und „Vertonen“ ausführen.",
+    "Zum Veröffentlichen braucht jede Station mindestens die deutsche Vertonung mit der Stimme der Runde, und keine Datei darf einen älteren Text sprechen. Erst „Stimme prüfen“ und „Vertonen“ ausführen.",
   voice_in_use: "Diese Stimme spricht noch in Runden oder Dateien und kann nicht gelöscht werden.",
   voice_is_default: "Die Standard-Stimme kann nicht gelöscht werden. Erst eine andere zum Standard machen.",
   voice_has_files:
