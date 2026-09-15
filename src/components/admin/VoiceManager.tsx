@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "@/i18n/navigation";
 import { deleteVoice, previewVoice, saveVoice, setDefaultVoice } from "@/lib/tts-voice-actions";
 import type { VoiceUsage } from "@/lib/tts-voices";
@@ -153,9 +153,12 @@ export default function VoiceManager({
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [previewing, setPreviewing] = useState<string | null>(null);
+  // Blob-URLs, keine data-URLs: Die CSP laesst als Medienquelle nur `blob:` und Supabase zu.
   const [previewUrl, setPreviewUrl] = useState<Record<string, string>>({});
   const [listErr, setListErr] = useState<string | null>(null);
   const [, startTransition] = useTransition();
+  // Beim Abbau alle Blob-URLs freigeben, sonst haelt der Tab die MP3s im Speicher.
+  useEffect(() => () => Object.values(previewUrl).forEach((u) => URL.revokeObjectURL(u)), [previewUrl]);
 
   const done = () => {
     setEditingId(null);
@@ -189,8 +192,14 @@ export default function VoiceManager({
     setPreviewing(id);
     try {
       const r = await previewVoice(id);
-      if (r.ok && r.dataUrl) setPreviewUrl((p) => ({ ...p, [id]: r.dataUrl! }));
-      else setListErr(adminErrorText(r.error));
+      if (r.ok && r.audioBase64) {
+        const bytes = Uint8Array.from(atob(r.audioBase64), (c) => c.charCodeAt(0));
+        const url = URL.createObjectURL(new Blob([bytes], { type: "audio/mpeg" }));
+        setPreviewUrl((p) => {
+          if (p[id]) URL.revokeObjectURL(p[id]);
+          return { ...p, [id]: url };
+        });
+      } else setListErr(adminErrorText(r.error));
     } catch {
       setListErr("Gerade nicht erreichbar. Bitte nochmal versuchen.");
     } finally {
