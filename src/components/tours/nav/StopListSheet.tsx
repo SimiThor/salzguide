@@ -39,7 +39,7 @@ export default function StopListSheet({
       open={open}
       onClose={onClose}
       variant="floating"
-      detents={[0.55, 0.92]}
+      detents={[0.55, 1]}
       title={t("navAllStops")}
     >
       <ul className="space-y-2 pb-[calc(env(safe-area-inset-bottom)+1rem)]">

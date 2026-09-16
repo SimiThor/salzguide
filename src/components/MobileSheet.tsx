@@ -18,7 +18,7 @@ import {
   type CSSProperties,
   type ReactNode,
 } from "react";
-import { NAV_H_VAR, SHEET_PEEK_VAR, readCssLength } from "@/lib/sheet-metrics";
+import { NAV_H_VAR, SHEET_PEEK_VAR, SHEET_TOP_VAR, readCssLength } from "@/lib/sheet-metrics";
 import SheetGrabber from "./SheetGrabber";
 import { useBodyDrag } from "./useBodyDrag";
 
@@ -74,7 +74,9 @@ const DETENT_AIR = 16;
 export type Detent = number | { fits: string; fallback: number };
 
 // Modul-Konstante, kein Inline-Default: sonst wäre es bei jedem Render ein neues Array.
-const DEFAULT_DETENTS: Detent[] = [0.5, 0.9];
+// Die obere Stufe ist 1 = „ganz auf": Wo es aufhört, sagt der Deckel --sg-sheet-top,
+// und der ist für alle Sheets derselbe (siehe railStyle).
+const DEFAULT_DETENTS: Detent[] = [0.5, 1];
 
 // Der Peek ist entweder eine feste CSS-Länge ODER – wie eine `fits`-Stufe – die Ansage
 // „so hoch, dass DIESES Element im Ruhezustand ganz sichtbar ist".
@@ -115,6 +117,16 @@ function offsetBottomWithin(el: HTMLElement, sheet: HTMLElement): number {
     node = node.offsetParent as HTMLElement | null;
   }
   return top + el.offsetHeight;
+}
+
+// Höhe der Fläche, auf die sich die Stufen beziehen (der Bildschirm bzw. der Bereich
+// unter dem Desktop-Kopf). Das ist NICHT mehr `Schienenhöhe / Anteil`: Seit die Schiene
+// oben gedeckelt ist (--sg-sheet-top), rechnete diese Division die Fläche zu klein, und
+// jede Stufe darunter wäre mitgeschrumpft. Gemessen wird deshalb der Elternkasten; nur
+// wenn es den nicht gibt, bleibt die alte Rückrechnung als Netz.
+function containerHeight(rail: HTMLElement, fullPx: number, fraction: number): number {
+  const parent = rail.parentElement?.getBoundingClientRect().height ?? 0;
+  return parent > 0 ? parent : fullPx / fraction;
 }
 
 export default function MobileSheet({
@@ -290,7 +302,9 @@ export default function MobileSheet({
     };
   }, [effectivePeek, metrics.fullPx]);
 
-  // Die oberste Stufe gibt dem Sheet seine Höhe, muss also ein Anteil sein.
+  // Die oberste Stufe gibt dem Sheet seine Höhe, muss also ein Anteil sein. `1` heisst
+  // „ganz auf": Der Deckel --sg-sheet-top holt sie ein, und damit hören alle Sheets, die
+  // bis nach oben gehen, an derselben Linie auf (siehe railStyle weiter unten).
   const last = detents[detents.length - 1];
   const fullFraction = typeof last === "number" ? last : 0.9;
 
@@ -309,7 +323,7 @@ export default function MobileSheet({
       setMetrics({
         peekPx: readCssLength(SHEET_PEEK_VAR, rail),
         fullPx,
-        containerPx: fullPx / fullFraction,
+        containerPx: containerHeight(rail, fullPx, fullFraction),
       });
     };
     measure();
@@ -336,7 +350,7 @@ export default function MobileSheet({
     if (!rail || !sheet) return [0];
     const fullPx = rail.getBoundingClientRect().height;
     if (!fullPx) return [0];
-    const containerPx = fullPx / fullFraction;
+    const containerPx = containerHeight(rail, fullPx, fullFraction);
     const peekPx = readCssLength(SHEET_PEEK_VAR, rail);
     const navPx = readCssLength(NAV_H_VAR, rail);
 
@@ -458,7 +472,11 @@ export default function MobileSheet({
   }
 
   const railStyle = {
-    height: `${fullFraction * 100}%`,
+    // Die Höhe der Schiene IST die oberste Stufe – und sie hat einen Deckel: Über
+    // --sg-sheet-top (globals.css) fährt kein Sheet der App hinaus, sonst klebt das
+    // eine an den schwebenden Knöpfen und das nächste hört 30px tiefer auf. Reines CSS,
+    // damit die Ruheposition eine CSS-Rechnung bleibt (siehe Kopf dieser Datei).
+    height: `min(${fullFraction * 100}%, calc(100% - var(${SHEET_TOP_VAR})))`,
     // DIE Zeile, die den Ladesprung beseitigt: Ruheposition = Peek, komplett in CSS.
     // `100%` ist die Höhe dieses Elements, --sg-sheet-peek kommt aus globals.css.
     transform: `translate3d(0, calc(100% - var(${SHEET_PEEK_VAR})), 0)`,

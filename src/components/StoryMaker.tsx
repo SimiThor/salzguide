@@ -65,7 +65,7 @@ export default function StoryMaker({
   // Höhe; sanft geklemmt, damit es auf sehr kleinen/grossen Geräten nicht entartet.
   const vh = useViewportHeight();
   const peek = vh ? Math.max(0.42, Math.min(0.72, PEEK_CONTENT_PX / vh)) : 0.56;
-  const detents = [peek, 0.95];
+  const detents = [peek, 1];
   const bgRef = useRef<HTMLVideoElement>(null);
   const heroRef = useRef<HTMLCanvasElement>(null);
   const sectionRef = useRef<HTMLElement>(null);

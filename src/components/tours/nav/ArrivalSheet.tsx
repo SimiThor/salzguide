@@ -250,7 +250,7 @@ function OpenStopSheet({
       open={open}
       onClose={onContinue}
       variant="floating"
-      detents={[0.46, 0.9]}
+      detents={[0.46, 1]}
       title={t("arrivedTitle")}
     >
       <div className="space-y-4 pb-[calc(env(safe-area-inset-bottom)+1rem)]">

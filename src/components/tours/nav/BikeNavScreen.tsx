@@ -508,13 +508,13 @@ export default function BikeNavScreen({
         // Ein Admin sieht hier einen ENTWURF. Ohne diesen Streifen sieht das aus wie die
         // veroeffentlichte Runde, und genau daran haengt die Frage, ob Gaeste sie schon
         // finden koennen.
-        <div className="pointer-events-none absolute inset-x-0 top-0 z-[48] flex justify-center pt-[calc(env(safe-area-inset-top)+2px)]">
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-[48] flex justify-center pt-[calc(var(--sg-sat)+2px)]">
           <span className="rounded-full bg-amber-400/95 px-3 py-1 text-[11px] font-bold tracking-wide text-black shadow">
             ENTWURF, nur für dich sichtbar
           </span>
         </div>
       )}
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-[46] flex items-start justify-between gap-2 px-3 pt-[calc(env(safe-area-inset-top)+10px)]">
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-[46] flex items-start justify-between gap-2 px-3 pt-[calc(var(--sg-sat)+10px)]">
         <div className="pointer-events-auto">
           {/* Ohne label: Der Tourtitel war eine breite Textflaeche direkt neben dem
               Abbiege-Banner, dem Wichtigsten auf dem Schirm. Der Pfeil genuegt, wohin er
@@ -527,7 +527,7 @@ export default function BikeNavScreen({
           statt der Abbiegung "Bitte umdrehen" (bike-nav-core, wrongWay): Die naechste
           Abbiegung laege hinter ihm und waere die falsche Ansage. */}
       {!showStartGate && !bike.finished && (bike.wrongWay || maneuverStep) && (
-        <div className="pointer-events-none absolute inset-x-3 z-[45] top-[calc(env(safe-area-inset-top)+64px)]">
+        <div className="pointer-events-none absolute inset-x-3 z-[45] top-[calc(var(--sg-sat)+64px)]">
           {bike.wrongWay ? (
             <ManeuverBanner
               instruction={t("navWrongWay")}
