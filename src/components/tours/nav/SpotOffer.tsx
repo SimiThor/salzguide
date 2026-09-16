@@ -98,9 +98,20 @@ export default function SpotOffer({
         </button>
 
         {locked ? (
-          <span className="shrink-0 rounded-full bg-white/10 px-3 py-2 text-[13px] font-semibold text-muted">
+          // Das Schloss ist ein KNOPF, kein Abzeichen. Vorher war es ein totes <span>: Der
+          // Daumen ging an die Stelle, an der sonst Play sitzt, und es passierte nichts –
+          // den Weg zum Angebot gab nur der Titel daneben her, und den trifft man im Fahren
+          // nicht. Gleiche Grösse und gleiche Stelle wie der Play-Knopf, aber bewusst nicht
+          // in Rot: Rot heisst in diesem Streifen „es spielt", und ein rotes Schloss, das
+          // eine Kauffläche aufmacht, wäre ein Versprechen, das der Tipp nicht hält.
+          <button
+            type="button"
+            onClick={onOpenDetails}
+            aria-label={stop.locked ? t("lockedTitle") : stop.title}
+            className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-white/10 text-[20px] transition active:scale-95"
+          >
             🔒
-          </span>
+          </button>
         ) : (
           // 56px, weit über den 44pt Mindestfläche: Dieser Knopf wird mit dem Daumen
           // getroffen, während das Rad rollt. Er ist das einzige Bedienelement im

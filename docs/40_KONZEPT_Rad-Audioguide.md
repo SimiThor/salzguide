@@ -625,6 +625,42 @@ Waisen und löschte sie. Behoben im Sammler; die sieben Dateien müssen neu vert
 Kostproben ist die sparsamere Variante). Lehre: Wer eine Spalte mit Objektpfaden anlegt,
 trägt sie im selben Commit in `storage-refs.mjs` ein, sonst löscht der Sweep Inhalte.
 
+**Die Kauffläche selbst (16.09.2026).** Anton am Handy: „Es öffnet sich nicht weit genug und
+ist nicht kompakt genug aufs Wesentliche reduziert." Nachgestellt im Fahrsimulator, drei
+Fehler, alle drei kosten Abschlüsse:
+
+1. **Der Kauf-Knopf lag unter der Kante.** Das Blatt ging auf einer Stufe von 0,46 auf, und
+   0,46 ist auf jedem Gerät eine andere Menge Inhalt: am iPhone 15 blieb vom Knopf ein roter
+   Streifen am unteren Rand. Schlimmer, ein Sheet unterhalb seiner obersten Stufe scrollt
+   nicht (`BottomSheet.tsx`). Der Knopf war also nicht bloss unten, er war unerreichbar,
+   bis man das Blatt aufzog.
+2. **Drei Kopfzeilen vor dem Preis:** „Angekommen" als Blatt-Titel, „Stopp 3 von 6", dann in
+   der Karte darunter noch einmal „Ab hier geht es mit Pro weiter". Und „Angekommen" stimmte
+   oft nicht, das Blatt geht auch bei einem Halt 1,7 km weiter auf.
+3. **Das Schloss im Streifen war ein totes `<span>`.** Der Daumen ging an die Stelle, an der
+   sonst Play sitzt, und es passierte nichts.
+
+Jetzt: ein eigenes Blatt für den gesperrten Halt (`LockedStopSheet` in `nav/ArrivalSheet.tsx`)
+mit **fester Höhe in Pixeln statt eines Anteils**: Derselbe Inhalt braucht auf jedem Gerät
+dieselbe Höhe, und `BottomSheet` nimmt seit 16.09.2026 Stufen wahlweise als Anteil (≤ 1) oder
+in Pixeln (> 1) entgegen. Der Kaufblock (`ProPurchase`, `density="sheet"`) steht im **Fuss**,
+also ausserhalb des Scrollbereichs: Er kann in keiner Sprache und auf keinem Bildschirm unter
+die Kante rutschen. Im Körper steht nur noch, worum es geht: Bild oder Emoji mit der
+Halt-Nummer, der Name des Ortes, ein Satz. Der Knopf „Weiter zur nächsten Station" fehlt hier bewusst; er
+war die zweite gleich laute Aufforderung direkt unter dem Kauf-Knopf. Hinaus geht es, wie aus
+jedem iOS-Sheet: runterwischen.
+
+**Ein Tipp, nicht drei.** Ein Tipp auf einen gesperrten Halt (Liste oder Pin) macht die
+Kauffläche direkt auf, so wie überall sonst in der App ein Tipp auf gesperrten Pro-Inhalt ein
+Sheet öffnet (`ProGate`). Nur die automatische Ankunft bleibt ein Streifen: Auf dem Rad soll
+nichts von selbst die Karte zumachen. Gezählt wird der Moment als `pro_gate`-Ereignis mit
+`target = tour-stop`.
+
+**Gemessen** (Fahrsimulator, Chrome for Testing): 520 px Blatt, Kauf-Knopf in allen 13
+Sprachen und auf iPhone SE / 15 / Pro Max / iPad / Desktop sichtbar, ohne Ziehen und ohne
+Scrollen, auch im ungünstigsten Fall (Französisch am iPhone SE mit eingeblendeter
+Fehlermeldung).
+
 ## Eine Stimme je Runde (seit 09/2026)
 
 Route 66 spricht Simon, der Giro später Anton, und die Erzählstimme „Toni" bleibt für alles

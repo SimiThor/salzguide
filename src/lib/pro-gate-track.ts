@@ -28,6 +28,9 @@ import { isOperatorClient } from "@/lib/analytics-operator";
  *   `related`, damit sich zeigt, ob die Stelle weiter oben mehr bewirkt als die unten.
  * - `water`: gesperrter See auf /wasser
  * - `tour-build`: Runden-Builder (Feature-Sperre, kein Spot)
+ * - `tour-stop`: gesperrter Halt im Fahrbildschirm des Rad-Audioguides. Die kaufnächste
+ *   Fläche der App (der Gast steht vor dem Ort) und deshalb die, deren Zahl am meisten
+ *   sagt – sie gehört mit `checkout_start` verglichen, nicht mit den Spot-Flächen.
  */
 export const PRO_GATE_SURFACES = [
   "sheet",
@@ -36,6 +39,7 @@ export const PRO_GATE_SURFACES = [
   "nearby",
   "water",
   "tour-build",
+  "tour-stop",
 ] as const;
 export type ProGateSurface = (typeof PRO_GATE_SURFACES)[number];
 

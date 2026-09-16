@@ -49,7 +49,9 @@ const KEYBOARD_TOP_GAP = 24;
 type BottomSheetProps = {
   open: boolean;
   onClose: () => void;
-  detents?: number[]; // Mobile: aufsteigend, letzter = Voll
+  // Mobile: aufsteigend, letzter = Voll. Jede Stufe ist entweder ein ANTEIL der
+  // Bildschirmhöhe (≤ 1) oder eine Höhe in PIXELN (> 1) – siehe `steps` weiter unten.
+  detents?: number[];
   initialDetent?: number;
   // Von aussen angeforderte Stufe. Wirkt als SIGNAL: nur wenn sich der Wert ändert, springt
   // das Sheet dorthin (danach kann der Nutzer frei ziehen). Z.B. Story: bei Foto-/Clip-Auswahl
@@ -124,8 +126,22 @@ export default function BottomSheet({
   // Der Kopf zieht, tippt aber nicht: Ein Tipp auf Titel oder Avatar soll nichts bewegen.
   const headerHandle = useSheetHandle(dragControls);
 
-  const full = detents[detents.length - 1];
   const base = vh || 800;
+  // Stufen dürfen als ANTEIL (≤ 1) oder in PIXELN (> 1) angegeben werden.
+  //
+  // WARUM ES BEIDES GIBT: Ein Anteil ist richtig für Sheets, deren Inhalt mitwächst – eine
+  // Liste, ein Chat, eine Karte darunter, die man noch sehen will. Für ein Sheet mit einer
+  // FESTEN Menge Inhalt ist er falsch: Dieselben 0,46 sind am iPhone SE 307 px und am
+  // Pro Max 429 px. Entweder steht der Inhalt unten heraus (und beim Kauf-Sheet der
+  // Navigation hing genau deshalb der Kauf-Knopf unter der Kante), oder es bleibt oben
+  // eine leere Fläche. In Pixeln angegeben ist die Stufe auf jedem Gerät so hoch, wie der
+  // Inhalt es braucht.
+  //
+  // Der Deckel ist kein Schönheitswert: Auf einem kleinen Bildschirm darf das Sheet nicht
+  // die ganze Seite werden. Passt der Inhalt dann nicht, scrollt der Körper – bei einem
+  // einzelnen Detent ist er ohnehin „voll" und damit scrollbar.
+  const steps = detents.map((d) => (d > 1 ? Math.min(0.94, d / base) : d));
+  const full = steps[steps.length - 1];
   // Ohne Tastatur ändert sich hier NICHTS: Das Sheet ist ein Anteil von svh, und svh ist
   // die kleinste Höhe, die der Bildschirm annehmen kann. Fährt die Tastatur aus, ist der
   // sichtbare Streifen zum ersten Mal kleiner als svh – dann deckelt er die Höhe. Sonst
@@ -157,7 +173,7 @@ export default function BottomSheet({
   useEffect(() => {
     if (isDesktop || !vh) return;
     if (open) idxRef.current = initialDetent;
-    const target = open ? snapY(detents[initialDetent]) : closedY;
+    const target = open ? snapY(steps[initialDetent]) : closedY;
     const controls = animate(y, target, SPRING);
     return () => controls.stop();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -181,14 +197,14 @@ export default function BottomSheet({
 
   // Klemmt oben und unten, damit Tippen auf dem obersten Detent einfach stehen bleibt,
   // statt zuzuklappen.
-  const clampDetent = (i: number) => Math.max(0, Math.min(detents.length - 1, i));
+  const clampDetent = (i: number) => Math.max(0, Math.min(steps.length - 1, i));
 
   // Eine Stufe ansteuern – aus einer Geste heraus (Ziehen, Tippen auf den Balken).
   const snapToIndex = (i: number) => {
     const c = clampDetent(i);
     idxRef.current = c;
-    setAtFull(c === detents.length - 1);
-    animate(y, snapY(detents[c]), SPRING);
+    setAtFull(c === steps.length - 1);
+    animate(y, snapY(steps[c]), SPRING);
   };
 
   // Angeforderte Stufe von aussen: wirkt nur bei WERT-Änderung (nicht beim ersten Mount und
@@ -212,13 +228,13 @@ export default function BottomSheet({
     // Ziel beim Öffnen (initialDetent).
     const target =
       snapIndex != null && !isDesktop && vh && open ? clampDetent(snapIndex) : null;
-    if (target != null) setAtFull(target === detents.length - 1);
+    if (target != null) setAtFull(target === steps.length - 1);
     setSnapTarget(target);
   }
   useEffect(() => {
     if (snapTarget == null) return;
     idxRef.current = snapTarget;
-    animate(y, snapY(detents[snapTarget]), SPRING);
+    animate(y, snapY(steps[snapTarget]), SPRING);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [snapTarget]);
 
@@ -228,7 +244,7 @@ export default function BottomSheet({
   ) => {
     void _event;
     const current = y.get();
-    const points = detents.map((d) => snapY(d));
+    const points = steps.map((d) => snapY(d));
     const lowest = Math.max(...points);
     if (current > lowest + 90 || info.velocity.y > 850) {
       onClose();

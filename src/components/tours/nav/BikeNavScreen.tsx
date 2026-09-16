@@ -17,6 +17,7 @@ import { useBikeNavigation } from "@/lib/use-bike-navigation";
 import { atSpot } from "@/lib/bike-nav-core";
 import { readRide, writeRide, clearRide, type SavedRide } from "@/lib/bike-nav-memory";
 import { useTourAudio, type PlayerStop } from "@/components/tours/useTourAudio";
+import { trackProGate } from "@/lib/pro-gate-track";
 import { estimateEtaMin } from "@/lib/nav-format";
 import { sliceAlong, haversineMeters } from "@/lib/geo";
 import { reconcileVia, type ViaLeg } from "@/lib/tour-route";
@@ -289,8 +290,21 @@ export default function BikeNavScreen({
       setManualSpotId(i);
       setClosedSpotIds(NO_CLOSED_SPOTS);
       setStopsOpen(false);
+      // GESPERRTER HALT: Der Tipp IST die Frage, also kommt gleich die Antwort. So haelt
+      // es die App an jeder anderen Stelle auch – ein Tipp auf gesperrten Pro-Inhalt macht
+      // ein Sheet auf (components/ProGate.tsx). Hier ist es ein eigenes, weil ProGate auf
+      // /pro verlinkt und ein Seitensprung im Fahrbetrieb Karte, Route, Ortung und Wake
+      // Lock mitnimmt; der Kauf muss dort stattfinden, wo der Gast gerade steht.
+      //
+      // Nur bei einem TIPP, nie bei einer Ankunft: Das automatische Angebot bleibt ein
+      // Streifen (docs/40), auf dem Rad soll nichts von selbst die Karte zumachen.
+      const stop = geoStops[i];
+      if (stop?.locked) {
+        setDetailsOpen(true);
+        trackProGate("tour-stop", locale);
+      }
     },
-    [activeAudioIndex, audio],
+    [activeAudioIndex, audio, geoStops, locale],
   );
 
   // Das X: anhalten, wegraeumen, und weder diesen Spot noch die angefangene Geschichte
@@ -305,6 +319,14 @@ export default function BikeNavScreen({
     setLetzterAngebot(null);
     bike.dismissOffer();
   }, [audio, shownSpotId, startedStory, bike]);
+
+  // Tipp auf den Streifen (Titel oder Schloss): dasselbe Blatt, derselbe Zaehler wie beim
+  // Tipp auf den Halt selbst. Ohne den Zaehler bliebe die kaufnaechste Flaeche der App die
+  // einzige ungemessene (lib/pro-gate-track.ts).
+  const openDetails = useCallback(() => {
+    setDetailsOpen(true);
+    if (offeredStop?.locked) trackProGate("tour-stop", locale);
+  }, [offeredStop, locale]);
 
   const playOffered = useCallback(() => {
     const id = shownSpotId;
@@ -568,7 +590,7 @@ export default function BikeNavScreen({
               isCurrent={activeAudioIndex === shownSpotId}
               onPlay={playOffered}
               onDismiss={dismissShown}
-              onOpenDetails={() => setDetailsOpen(true)}
+              onOpenDetails={openDetails}
             />
           )}
 

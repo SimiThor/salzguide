@@ -33,6 +33,7 @@ export default function StopListSheet({
   onPick: (index: number) => void;
 }) {
   const t = useTranslations("Tours");
+  const tPro = useTranslations("Pro");
   return (
     <BottomSheet
       open={open}
@@ -79,10 +80,21 @@ export default function StopListSheet({
                   </span>
                   <span className="block text-[12px] text-muted">
                     {/* Gesperrt heisst hier NICHT "geht nicht": Der Tipp fuehrt zur Kostprobe
-                        und zum Kauf. Deshalb steht hier die Dauer und kein Schloss-Satz. */}
+                        oder, wo es keine gibt, zur Kauffläche. */}
                     {gehoert ? `${t("navHeard")} · ` : ""}
                     {s.locked
-                      ? t("navTeaser", { seconds: s.teaserSec ?? 20 })
+                      ? // Die Kostprobe VERSPRECHEN darf hier nur stehen, wenn es sie auch
+                        // wirklich gibt: `teaserSec` ist die geplante Länge aus der
+                        // Datenbank, `teaserUrl` die fertige Aufnahme. Solange die noch
+                        // nicht eingesprochen ist (Stand 09/2026 bei allen Runden),
+                        // versprach die Liste „17 Sekunden gratis", und im Streifen
+                        // daneben stand dann ein Schloss.
+                        s.teaserUrl
+                        ? t("navTeaser", { seconds: s.teaserSec ?? 20 })
+                        : // Kurz, weil es in jeder gesperrten Zeile steht: der ganze Satz
+                          // („Ab hier geht es mit Pro weiter") viermal untereinander liest
+                          // sich wie eine Mahnung. Hier genügt, was der Tipp bringt.
+                          tPro("cta")
                       : s.durationSec
                         ? // Aufgerundet auf ganze Minuten, `minutes` gibt es schon. Eine
                           // Geschichte von 46 Sekunden liest sich damit als "1 Min", und
@@ -92,13 +104,22 @@ export default function StopListSheet({
                   </span>
                 </span>
 
+                {/* Ein Play-Zeichen an einem Halt ohne Kostprobe verspricht eine
+                    Wiedergabe, die es nicht gibt – der Tipp macht dort die Kauffläche auf.
+                    Dann steht hier das Schloss, das auch im Streifen steht. */}
                 <span
                   aria-hidden
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent text-white"
+                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
+                    s.locked && !s.teaserUrl ? "bg-black/[0.06] text-[15px]" : "bg-accent text-white"
+                  }`}
                 >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M8 5.2v13.6a.8.8 0 0 0 1.23.67l10.4-6.8a.8.8 0 0 0 0-1.34L9.23 4.53A.8.8 0 0 0 8 5.2Z" />
-                  </svg>
+                  {s.locked && !s.teaserUrl ? (
+                    "🔒"
+                  ) : (
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M8 5.2v13.6a.8.8 0 0 0 1.23.67l10.4-6.8a.8.8 0 0 0 0-1.34L9.23 4.53A.8.8 0 0 0 8 5.2Z" />
+                    </svg>
+                  )}
                 </span>
               </button>
             </li>
