@@ -2,29 +2,26 @@
 
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
-import ProPurchase from "@/components/ProPurchase";
 
-// Pro-Hinweis für einen gesperrten Stopp, aus TourView.tsx herausgezogen (stand dort inline
-// im Peek-Anker), damit ArrivalSheet.tsx (S-Bike-Navigation) dieselbe Kauf-Oberfläche zeigt
-// statt einer zweiten Kopie derselben, kaufkritischen Fläche.
+// Pro-Hinweis für einen gesperrten Stopp in der Tour-Übersicht (TourView.tsx). Er sitzt dort
+// IM Peek-Anker des Sheets, also in der Fläche, die auch eingeklappt sichtbar ist: ein
+// kurzer Satz und ein Weg weiter, mehr passt dort nicht hin, ohne die halbe Karte zu
+// verdecken.
 //
-// WARUM HIER JETZT DER ECHTE KAUFBLOCK STEHT: Vorher war das ein `<Link href="/pro">`. Auf
-// einer Tour-Seite ist ein Seitensprung unschön, im FAHRBETRIEB ist er ein Ausfall: Karte,
-// Route, Ortung und Wake Lock sind weg, und die Navigation muss am Straßenrand neu gestartet
-// werden. Wer bezahlen wollte, verlor dafür seine Fahrt. Mit `price` bleibt der Kauf da, wo
-// der Gast ist, und `returnTour` bringt ihn nach Stripe genau hierher zurück.
+// WARUM HIER KEIN KAUFBLOCK STEHT: Er stand hier, und er gehört woanders hin. Der
+// Fahrbildschirm der Rad-Navigation braucht den Kauf an Ort und Stelle (ein Seitensprung
+// nimmt dort Karte, Route, Ortung und Wake Lock mit), aber er braucht ihn in einem eigenen
+// Blatt mit eigener Höhe und fixem Fuß – nav/ArrivalSheet.tsx, `LockedStopSheet`. In den
+// Peek-Anker gepresst wuchs derselbe Block das eingeklappte Sheet auf die halbe Seite.
+//
+// Auf der Übersichtsseite ist der Sprung auf /pro dagegen richtig: Wer hier liest, sitzt
+// nicht auf dem Rad, und auf /pro steht, was Pro sonst noch kann.
 export default function StopLockedCard({
   freeStops,
   total,
-  price,
-  returnTour = null,
 }: {
   freeStops: number;
   total: number;
-  /** Preis aus Stripe, serverseitig geholt. Gesetzt = Kauf an Ort und Stelle. */
-  price?: string;
-  /** Slug der Runde, in die der Kauf zurückführen soll. Nur der Slug (siehe safeTourSlug). */
-  returnTour?: string | null;
 }) {
   const t = useTranslations("Tours");
   const tPro = useTranslations("Pro");
@@ -36,19 +33,12 @@ export default function StopLockedCard({
           {t("lockedFree", { free: freeStops, total })}
         </p>
       </div>
-      {price ? (
-        <ProPurchase price={price} returnTour={returnTour} className="px-4 pb-4" />
-      ) : (
-        // Ohne Preis (Stripe nicht erreichbar) bleibt der alte Weg. Besser ein Seitensprung
-        // als eine Kauffläche, die keinen Preis nennen kann: § 8 Abs. 1 FAGG verlangt ihn
-        // unmittelbar vor der Vertragserklärung.
-        <Link
-          href="/pro"
-          className="m-4 mt-0 flex items-center justify-center rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white transition active:scale-[0.98]"
-        >
-          {tPro("cta")}
-        </Link>
-      )}
+      <Link
+        href="/pro"
+        className="m-4 mt-0 flex items-center justify-center rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white transition active:scale-[0.98]"
+      >
+        {tPro("cta")}
+      </Link>
     </div>
   );
 }

@@ -27,10 +27,20 @@ export default function ProPurchase({
   price,
   className = "",
   returnTour = null,
+  density = "page",
 }: {
   /** Kommt serverseitig aus Stripe. Leer = Kauf gerade nicht möglich. */
   price: string;
   className?: string;
+  /**
+   * "sheet" = derselbe Block, nur enger: kleinere Preiszeile, weniger Luft zwischen den
+   * Zeilen. Für den Fuß eines Sheets, wo jede Zeile Höhe kostet, die der Karte fehlt.
+   *
+   * Es ändert sich NUR der Abstand und die Schriftgröße der Preiszeile. Kein Satz und kein
+   * Häkchen fällt weg: Preis, § 18-Zustimmung, Knopftext, AGB und Widerrufsbelehrung sind
+   * die Pflichtteile (siehe oben), und eine engere Fläche ist kein Grund, sie zu kürzen.
+   */
+  density?: "page" | "sheet";
   /**
    * Slug der Runde, aus der der Kauf kommt. Gesetzt heisst: Nach dem Bezahlen geht es dorthin
    * zurück statt auf /pro. Nur der Slug, den Pfad baut der Server (siehe safeTourSlug).
@@ -84,12 +94,18 @@ export default function ProPurchase({
     startCheckout();
   }
 
+  const eng = density === "sheet";
+
   return (
     <div className={className}>
       <div className="flex items-baseline justify-center gap-2">
         {price ? (
           <>
-            <span className="text-[34px] font-bold tracking-tight text-ink">{price}</span>
+            <span
+              className={`font-bold tracking-tight text-ink ${eng ? "text-[28px]" : "text-[34px]"}`}
+            >
+              {price}
+            </span>
             <span className="text-[14px] text-muted">{t("oneTime")}</span>
           </>
         ) : (
@@ -102,7 +118,9 @@ export default function ProPurchase({
           nicht das 16px-Kästchen (44pt-Regel, siehe .sg-hit). */}
       {price && (
         <label
-          className={`mt-4 flex cursor-pointer items-start gap-2.5 rounded-[14px] px-2 py-2.5 text-left text-[12px] leading-snug transition ${
+          className={`flex cursor-pointer items-start gap-2.5 rounded-[14px] px-2 text-left text-[12px] leading-snug transition ${
+            eng ? "mt-2 py-2" : "mt-4 py-2.5"
+          } ${
             nudge && !consent ? "bg-accent/[0.07] text-ink ring-1 ring-accent/30" : "text-muted"
           }`}
         >
@@ -146,18 +164,26 @@ export default function ProPurchase({
         onClick={onBuy}
         disabled={pending || !price}
         aria-busy={pending}
+        // py-4 auch im engen Fuß: Der Knopf ist die Fläche, die getroffen werden muss.
+        // Gespart wird an den Abständen darüber und darunter, nie an ihm.
         className="mt-3 flex w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-accent px-5 py-4 text-[16px] font-semibold text-white shadow-[0_10px_24px_-8px_rgba(204,41,36,0.6)] transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
       >
         {pending && <Spinner />}
         {pending ? t("redirecting") : t("buy")}
       </button>
 
-      <p className="mt-3.5 text-center text-[12px] text-muted/80">🔒 {t("securePay")}</p>
+      <p className={`text-center text-[12px] text-muted/80 ${eng ? "mt-2.5" : "mt-3.5"}`}>
+        🔒 {t("securePay")}
+      </p>
 
       {/* Das Kleingedruckte, und es MUSS an JEDER Kauffläche stehen: Seit der Kauf ohne
           Anmeldung läuft, gibt es keinen Login-Screen mehr, der die AGB einbezieht, und
           § 4 FAGG verlangt die Angaben zum Rücktrittsrecht VOR der Bestellung. */}
-      <p className="mt-2 px-2 text-center text-[11px] leading-relaxed text-muted/90">
+      <p
+        className={`px-2 text-center text-[11px] leading-relaxed text-muted/90 ${
+          eng ? "mt-1.5" : "mt-2"
+        }`}
+      >
         {t.rich("legalHint", {
           terms: (c) => (
             <Link href="/rechtliches/agb" className="underline">
