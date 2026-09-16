@@ -27,6 +27,10 @@ import type { TourDetail, TourStopView } from "@/lib/tour-types";
 // URL nicht GENAU in der Sekunde zwischen "noch gültig" und "schon 403" angetippt wird.
 const SIGNED_URL_REFRESH_MS = 100 * 60 * 1000;
 
+// Leere Menge fuer closedSpotIds, EINMAL angelegt: Ein neues Set je Tipp waere fuer React
+// jedes Mal ein "anderer" Wert und kostete ein Rendern, das nichts aendert.
+const NO_CLOSED_SPOTS: ReadonlySet<number> = new Set();
+
 // Nummer des ersten offenen Halts, fuer den Knopf "Weiterfahren, Halt n von total".
 function firstOpenOrder(stops: TourStopView[], done: number[]): number {
   const i = stops.findIndex((_, idx) => !done.includes(idx));
@@ -218,20 +222,29 @@ export default function BikeNavScreen({
   // Absicht, und die darf ein Vorschlag nicht ueberschreiben.
   const [manualSpotId, setManualSpotId] = useState<number | null>(null);
   const [stopsOpen, setStopsOpen] = useState(false);
-  // Welchen Spot hat der Gast per X ausdruecklich weggeschickt?
+  // Welche Spots hat der Gast per X ausdruecklich weggeschickt?
   //
   // Ohne diesen Merker liess sich der Streifen im Grunde nicht schliessen: Er zeigt eine
   // angefangene Geschichte auch im PAUSIERTEN Zustand weiter (audio.time > 0), damit man
   // sie wieder aufnehmen kann. Genau diese Regel holte ihn nach jedem X sofort zurueck.
   // Das X ist aber eine Ansage, und die schlaegt die Regel.
-  const [closedSpotId, setClosedSpotId] = useState<number | null>(null);
+  //
+  // EINE MENGE, KEIN EINZELNER SPOT (seit 16.09.2026, Anton am Handy): Im Streifen kann
+  // ein anderer Spot stehen als im Player. Wer Halt 1 startet und dann Halt 5 antippt,
+  // hat Halt 1 pausiert im Player und Halt 5 im Streifen. Das X merkte sich nur Halt 5,
+  // und die Regel oben holte Halt 1 sofort zurueck: Hinter dem weggetippten Streifen kam
+  // der vorige wieder hoch. Dasselbe passiert, wenn ein automatisches Angebot ueber eine
+  // laufende Geschichte kommt. Das X schickt deshalb BEIDE weg, den gezeigten Spot und
+  // die angefangene Geschichte. Ein spaeterer Halt ist davon nicht betroffen, er kommt
+  // wie bisher von selbst.
+  const [closedSpotIds, setClosedSpotIds] = useState<ReadonlySet<number>>(NO_CLOSED_SPOTS);
 
+  // Die Geschichte im Player, sobald sie einmal lief, auch pausiert.
+  const startedStory = audio.playing || audio.time > 0 ? activeAudioIndex : null;
   // Eine angefangene Geschichte haelt den Streifen offen, auch pausiert. Weggeschickt
-  // wurde sie aber, wenn ihr Spot in closedSpotId steht.
+  // wurde sie aber, wenn ihr Spot in closedSpotIds steht.
   const laufenderSpot =
-    (audio.playing || audio.time > 0) && activeAudioIndex !== closedSpotId
-      ? activeAudioIndex
-      : null;
+    startedStory != null && !closedSpotIds.has(startedStory) ? startedStory : null;
 
   // Der zuletzt angebotene Halt bleibt stehen, bis etwas Neues passiert.
   //
@@ -250,7 +263,7 @@ export default function BikeNavScreen({
     void Promise.resolve().then(() => setLetzterAngebot(id));
   }, [bike.offeredSpotId]);
   const haengengeblieben =
-    letzterAngebot != null && letzterAngebot !== closedSpotId ? letzterAngebot : null;
+    letzterAngebot != null && !closedSpotIds.has(letzterAngebot) ? letzterAngebot : null;
 
   const shownSpotId = manualSpotId ?? bike.offeredSpotId ?? laufenderSpot ?? haengengeblieben;
   const offeredStop = shownSpotId != null ? (geoStops[shownSpotId] ?? null) : null;
@@ -274,25 +287,29 @@ export default function BikeNavScreen({
       // Auf denselben Spot tippen aendert nichts, der steht ja schon da.
       if (i !== activeAudioIndex) audio.pause();
       setManualSpotId(i);
-      setClosedSpotId(null);
+      setClosedSpotIds(NO_CLOSED_SPOTS);
       setStopsOpen(false);
     },
     [activeAudioIndex, audio],
   );
 
-  // Das X: anhalten, wegraeumen, und diesen Spot nicht von selbst zurueckholen.
+  // Das X: anhalten, wegraeumen, und weder diesen Spot noch die angefangene Geschichte
+  // von selbst zurueckholen (siehe closedSpotIds).
   const dismissShown = useCallback(() => {
     audio.pause();
-    setClosedSpotId(shownSpotId);
+    const closed = new Set<number>();
+    if (shownSpotId != null) closed.add(shownSpotId);
+    if (startedStory != null) closed.add(startedStory);
+    setClosedSpotIds(closed);
     setManualSpotId(null);
     setLetzterAngebot(null);
     bike.dismissOffer();
-  }, [audio, shownSpotId, bike]);
+  }, [audio, shownSpotId, startedStory, bike]);
 
   const playOffered = useCallback(() => {
     const id = shownSpotId;
     if (id == null) return;
-    setClosedSpotId(null); // wer startet, will den Streifen sehen
+    setClosedSpotIds(NO_CLOSED_SPOTS); // wer startet, will den Streifen sehen
     if (activeAudioIndex !== id) audio.playAt(id);
     else audio.toggle();
   }, [shownSpotId, activeAudioIndex, audio]);

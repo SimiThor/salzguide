@@ -222,6 +222,14 @@ diese Regel holte ihn nach jedem X sofort zurück. Der Streifen liess sich also 
 schliessen. Das X ist aber eine Ansage, und die schlägt die Regel. Wer danach wieder Play
 drückt, hebt sie auf.
 
+Der Merker ist eine MENGE, kein einzelner Spot (seit 16.09.2026, Anton am Handy): Im Streifen
+kann ein anderer Spot stehen als im Player. Wer Halt 1 startet und dann Halt 5 antippt, hat
+Halt 1 pausiert im Player und Halt 5 im Streifen. Das X merkte sich nur Halt 5, und die Regel
+holte Halt 1 sofort zurück: Hinter dem weggetippten Streifen kam der vorige wieder hoch.
+Dasselbe passierte, wenn ein automatisches Angebot über eine laufende Geschichte kam. Das X
+schickt deshalb beide weg, den gezeigten Spot und die angefangene Geschichte
+(`closedSpotIds` in `BikeNavScreen`). Ein späterer Halt kommt weiterhin von selbst.
+
 `pause()` ist dafür eine eigene Funktion im Player und nicht `toggle()`: Toggle STARTET,
 wenn gerade nichts läuft, und das ist beim Schliessen das Gegenteil dessen, was gemeint ist.
 
