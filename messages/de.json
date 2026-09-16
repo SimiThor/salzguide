@@ -199,7 +199,11 @@
     "navEtaLabel": "Ankunft",
     "navWrongWay": "Bitte umdrehen",
     "navResume": "Weiterfahren, Halt {n} von {total}",
-    "navRestart": "Von vorne beginnen"
+    "navRestart": "Von vorne beginnen",
+    "navWalkIntro": "Die Führung von Stopp zu Stopp braucht deinen Standort.",
+    "navResumeWalk": "Weitergehen, Halt {n} von {total}",
+    "navDoneContinueWalk": "Weitergehen",
+    "navDoneTitleEnd": "Am Ziel"
   },
   "Water": {
     "title": "Wassertemperaturen",

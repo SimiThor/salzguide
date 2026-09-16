@@ -6,12 +6,20 @@ import {
   initNavState,
   resetForNewRoute,
   settleSpot,
+  navTuningFor,
   type NavState,
   type NavRoute,
   type GeoFix,
   type SpotPhase,
 } from "./bike-nav-core";
-import { fetchBikeRoute, selectNavVias, type BikeRoute, type BikeLegError } from "./bike-directions";
+import {
+  fetchBikeRoute,
+  selectNavVias,
+  directionsProfileFor,
+  type BikeRoute,
+  type BikeLegError,
+} from "./bike-directions";
+import type { TourMode } from "./tour-mode";
 import type { ViaLeg } from "./tour-route";
 import { useLatestRef } from "./use-latest-ref";
 
@@ -71,7 +79,14 @@ export function useBikeNavigation(
   // String, "start", "end". Welche davon in eine Anfrage gehen, entscheidet selectNavVias
   // je Laden: nur die vor dem Gast, nur die zu offenen Halten.
   vias: ViaLeg[] = [],
+  // Fortbewegung der Runde (tours.mode): waehlt das Mapbox-Profil UND die Zahlentabelle
+  // des Kerns (bike-nav-core, navTuningFor). Aendert sich waehrend einer Runde nie.
+  mode: TourMode = "bike",
 ): UseBikeNavigation {
+  // Beide haengen nur an `mode`, und der ist fuer die Lebensdauer des Hooks fest. Als
+  // Refs, damit weder loadRoute noch der Fix-Effekt sie als Abhaengigkeit brauchen.
+  const tuningRef = useLatestRef(navTuningFor(mode));
+  const profileRef = useLatestRef(directionsProfileFor(mode));
   const [route, setRoute] = useState<BikeRoute | null>(null);
   const [spotIds, setSpotIds] = useState<number[]>(() => stops.map((_, i) => i));
   const [status, setStatus] = useState<BikeNavStatus>("idle");
@@ -206,6 +221,7 @@ export function useBikeNavigation(
         ac.signal,
         endRef.current,
         chosenVias,
+        profileRef.current,
       )
         .then((r) => {
           clearTimeout(timeout);
@@ -222,7 +238,7 @@ export function useBikeNavigation(
           // sonst stünden Restdistanz und Fahrtrichtung bis zum nächsten GPS-Signal auf
           // ihren Anfangswerten, und die Anzeige zeigte Unsinn.
           const seededBase = resetForNewRoute(navRef.current, keptPhases);
-          const seeded = stepNav(seededBase, originFix, toNavRoute(r.route));
+          const seeded = stepNav(seededBase, originFix, toNavRoute(r.route), tuningRef.current);
           navRef.current = seeded.state;
           setNavSnapshot(seeded.state);
           setRoute(r.route);
@@ -251,7 +267,7 @@ export function useBikeNavigation(
           retryLater();
         });
     },
-    [stopsRef, localeRef, endRef, viasRef, routeRef, clearRetry, fixRef, spotIdsRef, applyEvents],
+    [stopsRef, localeRef, endRef, viasRef, routeRef, clearRetry, fixRef, spotIdsRef, applyEvents, profileRef, tuningRef],
   );
 
   // Die Ref auf den aktuellen Stand bringen, damit eine Wiederholung nicht eine alte
@@ -283,7 +299,7 @@ export function useBikeNavigation(
   useEffect(() => {
     const r = routeRef.current;
     if (!fix || !r) return;
-    const result = stepNav(navRef.current, fix, toNavRoute(r));
+    const result = stepNav(navRef.current, fix, toNavRoute(r), tuningRef.current);
     navRef.current = result.state;
     setNavSnapshot(result.state);
 

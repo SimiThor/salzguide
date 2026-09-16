@@ -156,7 +156,11 @@
     "navEtaLabel": "Arrivée",
     "navWrongWay": "Fais demi-tour",
     "navResume": "Continuer à rouler, arrêt {n} sur {total}",
-    "navRestart": "Recommencer depuis le début"
+    "navRestart": "Recommencer depuis le début",
+    "navWalkIntro": "Pour te guider d'arrêt en arrêt, l'appli a besoin de ta position.",
+    "navResumeWalk": "Continuer à pied, arrêt {n} sur {total}",
+    "navDoneContinueWalk": "Continuer à pied",
+    "navDoneTitleEnd": "À l'arrivée"
   },
   "Water": {
     "title": "Températures de l'eau",

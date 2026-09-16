@@ -23,8 +23,9 @@ const PUBLIC_ROUTES: RegExp[] = [
   /^\/rechtliches\/(agb|datenschutz|impressum|widerruf)$/,
   /^\/spot\/[^/]+$/,
   /^\/touren\/meine\/[^/]+$/,
+  /^\/touren\/meine\/[^/]+\/navigation$/, // Navigation einer gespeicherten eigenen Runde
   /^\/touren\/[^/]+$/, // deckt auch /touren/bauen ab
-  /^\/touren\/[^/]+\/navigation$/, // S-Bike-Navigation-Screen (nur mode="bike", sonst notFound())
+  /^\/touren\/[^/]+\/navigation$/, // Navigation-Screen einer Runde (Rad und zu Fuss)
   /^\/auth\/callback$/,
   // Admin: echte Pfad-Formen statt Pauschal-Freibrief. Hier stand /^\/admin(\/.*)?$/ mit
   // der Begründung, der Admin-Wächter fange unbekannte Unterpfade selbst — das war

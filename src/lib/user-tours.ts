@@ -292,5 +292,10 @@ export async function getUserTourDetail(
     canSeePro,
     routeGeo: (r.route_geo as [number, number][] | null) ?? null,
     start: startLat != null && startLng != null ? { lat: startLat, lng: startLng } : null,
+    // Das Ziel IST der Start: Der Builder plant ausschliesslich Rundwege (optimized-trips
+    // mit roundtrip=true, tour-generate.ts). Die Navigation braucht das Ziel ausdruecklich,
+    // sonst endet sie am letzten Halt statt wieder am Ausgangspunkt (docs/40, Rundtour);
+    // die Karte der Uebersicht setzt bei Start = Ziel ohnehin keine zweite Fahne.
+    end: startLat != null && startLng != null ? { lat: startLat, lng: startLng } : null,
   };
 }

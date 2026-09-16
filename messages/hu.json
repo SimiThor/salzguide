@@ -156,7 +156,11 @@
     "navEtaLabel": "Érkezés",
     "navWrongWay": "Fordulj meg",
     "navResume": "Tovább tekerek, {n}. megálló (összesen {total})",
-    "navRestart": "Kezdés elölről"
+    "navRestart": "Kezdés elölről",
+    "navWalkIntro": "A megállótól megállóig vezetéshez szükség van a helyzetedre.",
+    "navResumeWalk": "Tovább gyalog, {n}. megálló (összesen {total})",
+    "navDoneContinueWalk": "Tovább gyalog",
+    "navDoneTitleEnd": "A célnál"
   },
   "Water": {
     "title": "Vízhőmérséklet",

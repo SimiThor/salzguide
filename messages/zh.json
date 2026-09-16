@@ -156,7 +156,11 @@
     "navEtaLabel": "到达",
     "navWrongWay": "请掉头",
     "navResume": "继续骑行，第 {n} 站，共 {total} 站",
-    "navRestart": "从头开始"
+    "navRestart": "从头开始",
+    "navWalkIntro": "从一站到下一站的引导需要你的位置信息。",
+    "navResumeWalk": "继续步行，第 {n} 站，共 {total} 站",
+    "navDoneContinueWalk": "继续步行",
+    "navDoneTitleEnd": "到达终点"
   },
   "Water": {
     "title": "水温",

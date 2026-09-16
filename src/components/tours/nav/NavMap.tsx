@@ -7,6 +7,7 @@ import { MapLoadingScreen, useMapLoading } from "@/components/MapLoading";
 import { MapUnavailableScreen, tryCreateMap } from "@/components/MapUnavailable";
 import { useLatestRef } from "@/lib/use-latest-ref";
 import { unwrapDegrees } from "@/lib/geo";
+import type { TourMode } from "@/lib/tour-mode";
 import { declutterBasemap } from "@/lib/map-declutter";
 import {
   addRouteSourceAndLayers,
@@ -20,8 +21,15 @@ import {
 } from "@/lib/route-anim";
 
 const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
-const NAV_PITCH = 58;
-const NAV_ZOOM = 17;
+// Kamera je Fortbewegung. Rad: 58 Grad und Zoom 17, am Geraet geprueft (docs/40, weicht
+// bewusst von Mapbox' 45 ab). Zu Fuss naeher dran und flacher: Bei 1,4 m/s zaehlt die
+// naechste Gasse, nicht die Strasse in 300 m, und mit weniger Neigung liest man Hausecken
+// und Plaetze als Flaechen statt als Fluchtlinien. Zoom 18 zeigt rund 250 m Kartenhoehe,
+// also gut zwei Minuten Weg.
+const CAMERA: Record<TourMode, { zoom: number; pitch: number }> = {
+  bike: { zoom: 17, pitch: 58 },
+  walk: { zoom: 18, pitch: 45 },
+};
 // Wo im Bild der Positions-Punkt sitzen soll, als Anteil der Kartenhöhe von oben. NICHT
 // die Mitte: Beim Fahren zählt allein, was VOR einem liegt, und ein zentrierter Punkt
 // verschenkt die halbe Fläche an die Strecke, die man schon hinter sich hat. Google Maps
@@ -43,7 +51,8 @@ function topPaddingFor(heightPx: number, bottomPx: number): number {
 const FOLLOW_EASE_MS = 1000;
 const RECENTER_EASE_MS = 500;
 
-// Eigene, schlanke Mapbox-Karte NUR für die S-Bike-Turn-by-Turn-Navigation. BEWUSST
+// Eigene, schlanke Mapbox-Karte NUR für die Turn-by-Turn-Navigation (Rad und zu Fuss,
+// die Kamera unterscheidet sich je `mode`, siehe CAMERA). BEWUSST
 // keine SpotMap-Variante (siehe docs/40): SpotMap ist für seine ~15 Aufrufer auf eine
 // flache 2D-Kamera (pitch:0/maxPitch:0), fitBounds-Einpassen und ein Kamera-Gedächtnis
 // (viewKey) festgelegt. Hier ist fast alles davon umgekehrt: geneigte, dauerhaft dem
@@ -64,6 +73,7 @@ export default function NavMap({
   onStopTap,
   paddingBottom = 0,
   recenterLabel,
+  mode = "bike",
 }: {
   /**
    * Die AKTUELLE ETAPPE, von einem Halt zum naechsten. NICHT die ganze Runde.
@@ -106,8 +116,12 @@ export default function NavMap({
   // fliesst als Kamera-Padding ein, damit der Punkt nicht darunter verschwindet.
   paddingBottom?: number;
   recenterLabel: string;
+  /** Fortbewegung der Runde: waehlt Zoom und Neigung (CAMERA). Fest fuer die Lebensdauer. */
+  mode?: TourMode;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
+  // Als Ref, weil die Kamera-Effekte unten ihre Abhaengigkeiten bewusst eng halten.
+  const camRef = useLatestRef(CAMERA[mode]);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const puckRef = useRef<mapboxgl.Marker | null>(null);
   const coneRef = useRef<mapboxgl.Marker | null>(null);
@@ -133,9 +147,9 @@ export default function NavMap({
       container: containerRef.current,
       style: "mapbox://styles/mapbox/outdoors-v12",
       center: fix ? [fix.lng, fix.lat] : [13.05, 47.8],
-      zoom: NAV_ZOOM,
+      zoom: camRef.current.zoom,
       bearing: bearingDeg,
-      pitch: NAV_PITCH,
+      pitch: camRef.current.pitch,
       maxPitch: 60,
       pitchWithRotate: false,
       touchPitch: false,
@@ -430,8 +444,8 @@ export default function NavMap({
     map.easeTo({
       center: [fix.lng, fix.lat],
       bearing: bearingDeg,
-      pitch: NAV_PITCH,
-      zoom: NAV_ZOOM,
+      pitch: camRef.current.pitch,
+      zoom: camRef.current.zoom,
       // "Bewegung reduzieren": Sprung statt Gleiten. essential:true (unten) sorgt zwar
       // dafür, dass Mapbox die Bewegung nicht selbst kürzt, aber ein wiederkehrendes
       // Gleiten bei jedem Fix ist genau die Art Dauerbewegung, die die Einstellung
@@ -456,8 +470,8 @@ export default function NavMap({
       map.easeTo({
         center: [fix.lng, fix.lat],
         bearing: bearingDeg,
-        pitch: NAV_PITCH,
-        zoom: NAV_ZOOM,
+        pitch: camRef.current.pitch,
+        zoom: camRef.current.zoom,
         duration: reducedMotion() ? 0 : RECENTER_EASE_MS,
         padding: {
           top: topPaddingFor(map.getContainer().clientHeight, paddingBottomRef.current),

@@ -156,7 +156,11 @@
     "navEtaLabel": "Chegada",
     "navWrongWay": "Dá meia-volta",
     "navResume": "Continuar a pedalar, paragem {n} de {total}",
-    "navRestart": "Começar do início"
+    "navRestart": "Começar do início",
+    "navWalkIntro": "Para te guiar de paragem em paragem, a app precisa da tua localização.",
+    "navResumeWalk": "Continuar a pé, paragem {n} de {total}",
+    "navDoneContinueWalk": "Continuar a pé",
+    "navDoneTitleEnd": "Na meta"
   },
   "Water": {
     "title": "Temperaturas da água",

@@ -8,7 +8,7 @@ import type Stripe from "stripe";
 import { createClient } from "./supabase/server";
 import { createServiceClient } from "./supabase/service";
 import { stripe, proPriceId, stripeTaxEnabled, stripeLocale } from "./stripe";
-import { safeTourSlug } from "./url";
+import { safeTourSlug, tourNavPath } from "./url";
 import { siteUrl } from "./site-url";
 import { safeLocale } from "@/i18n/locales";
 import { serverEventContext, trackCheckoutStart } from "./analytics";
@@ -190,7 +190,7 @@ export async function createCheckoutSession(
       // Abbruch führt dorthin zurück, wo der Kauf begonnen hat. Wer an der Kasse "zurück"
       // drückt, will weiterfahren, nicht auf einer Verkaufsseite landen.
       cancel_url: zurueckZu
-        ? `${origin}${lp}/touren/${zurueckZu}/navigation?checkout=cancel`
+        ? `${origin}${lp}${tourNavPath(zurueckZu)}?checkout=cancel`
         : `${origin}${lp}/pro?checkout=cancel`,
     };
 

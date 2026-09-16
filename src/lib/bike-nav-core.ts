@@ -1,10 +1,17 @@
-// Reine Entscheidungslogik des Rad-Audioguides: aus dem aktuellen Zustand + einem neuen
-// GPS-Fix + der GANZEN Runde wird der NEUE Zustand plus 0..n Ereignisse (Play-Knopf für
-// einen Spot zeigen, Spot als vorbei verbuchen, neu routen, Runde zu Ende). Keine Mapbox,
-// kein DOM, kein `Date.now()` (Zeit kommt als `at` im Fix rein) -> mit `npm run nav:check`
-// ohne Browser prüfbar, und die einzige Stelle, die weiss, WANN etwas passiert. Die
-// Kamera/Karte (NavMap.tsx) und der Routen-Abruf (useBikeNavigation.ts) reagieren nur auf
-// das, was hier rauskommt.
+// Reine Entscheidungslogik des Audioguides (Rad UND zu Fuss): aus dem aktuellen Zustand +
+// einem neuen GPS-Fix + der GANZEN Runde wird der NEUE Zustand plus 0..n Ereignisse
+// (Play-Knopf für einen Spot zeigen, Spot als vorbei verbuchen, neu routen, Runde zu
+// Ende). Keine Mapbox, kein DOM, kein `Date.now()` (Zeit kommt als `at` im Fix rein) ->
+// mit `npm run nav:check` ohne Browser prüfbar, und die einzige Stelle, die weiss, WANN
+// etwas passiert. Die Kamera/Karte (NavMap.tsx) und der Routen-Abruf
+// (useBikeNavigation.ts) reagieren nur auf das, was hier rauskommt.
+//
+// EIN KERN, ZWEI ZAHLENTABELLEN (seit 16.09.2026): Die Regeln sind zu Fuss dieselben wie
+// am Rad, nur die Distanzen nicht. Alles unten ist aus dem Auslegungstempo gerechnet, und
+// das ist am Rad 5 m/s, zu Fuss 1,4 m/s. Deshalb bekommt stepNav die Tabelle als Parameter
+// (`NAV` fuers Rad, `WALK_NAV` zu Fuss, `navTuningFor(mode)` waehlt) statt sie als Modul-
+// Konstante zu lesen. Wer eine dritte Fortbewegung baut, legt eine dritte Tabelle an und
+// aendert an der Logik nichts.
 //
 // EINE Route statt vieler Etappen (docs/40): Der Fortschritt wird entlang der gesamten
 // Linie gemessen, und jeder Spot hat darauf eine feste Stelle (spotAlongM, aus
@@ -20,8 +27,9 @@ import {
 } from "./geo";
 
 // Schwellwerte an einem Ort, mit Begründung – wer daran dreht, sieht sofort, wogegen.
-// Alle Distanzen sind aus dem Auslegungstempo von 18 km/h (5 m/s) gerechnet, siehe
-// docs/40. Wer das Tempo ändert, zieht sie alle mit.
+// DIESE Tabelle ist die fuers RAD: Alle Distanzen sind aus dem Auslegungstempo von 18 km/h
+// (5 m/s) gerechnet, siehe docs/40. Wer das Tempo ändert, zieht sie alle mit. Die Tabelle
+// zu Fuss steht darunter (WALK_NAV) und nennt nur, was sich aendert und warum.
 export const NAV = {
   // ——— Audio-Spots ———
   // Play-Knopf erscheint: 40 Sekunden Vorlauf bei 18 km/h.
@@ -113,6 +121,93 @@ export const NAV = {
   HEADING_EMA: 0.25, // wie träge die angezeigte Fahrtrichtung nachzieht
 } as const;
 
+// Dieselben Regler als Typ, damit eine zweite Tabelle dieselbe Form haben MUSS: Ein
+// vergessener Wert faellt bei tsc auf, nicht erst auf der Strasse.
+export type NavTuning = { readonly [K in keyof typeof NAV]: number };
+
+// Ab so viel Weg gilt ein Fix als "bewegt" und der Kurs ueber Grund als brauchbar. Gilt
+// fuer beide Fortbewegungen: Die Zahl haengt am GPS-Rauschen, nicht am Tempo. Unter 3 m
+// ist die Richtung zwischen zwei Punkten nur noch Rauschen.
+export const MIN_MOVE_M = 3;
+
+// ——— Die Tabelle ZU FUSS —————————————————————————————————————————————————————
+// Auslegungstempo 5 km/h, also 1,4 m/s: ein Gast, der schaut, nicht einer, der marschiert.
+// Die Runde, an der gemessen wurde (antons-hausrunde): 14 Halte auf 5,6 km, der kleinste
+// Abstand zwischen zwei Halten 106 m. Jede Distanz hier muss deutlich darunter bleiben,
+// sonst ueberlappen zwei Halte im selben Fenster.
+export const WALK_NAV: NavTuning = {
+  // 60 m sind rund 40 Sekunden, dasselbe Zeitfenster wie am Rad (200 m bei 5 m/s), und
+  // man sieht den Ort schon. Mehr waere bei 106 m Halt-Abstand ein Angebot fuer den
+  // uebernaechsten Halt, waehrend man am naechsten steht.
+  SPOT_NEAR_M: 60,
+  SPOT_PASSED_M: 40, // 30 Sekunden weitergegangen: der Gast war da, gehoert oder nicht
+  SPOT_GRACE_M: 80,
+  // KEINE Sperrzone vor Abbiegungen. Am Rad ist sie eine Sicherheitsregel, weil man beim
+  // Abbiegen nicht aufs Handy schauen soll. Zu Fuss bleibt man einfach stehen; die Regel
+  // wuerde in einer Altstadt mit einer Gasse alle 40 m nur Angebote verschlucken.
+  MANEUVER_QUIET_M: 0,
+  // "Dort gewesen" als Luftlinie: 11 bis 13 m Ortungsfehler in der Altstadt plus 25 m
+  // Abstand zum Anschauen. Bewusst unter der Haelfte von 106 m, sonst hakte die
+  // Geschichte des einen Halts den Nachbarn ab.
+  SPOT_ARRIVE_M: 45,
+  BACKTRACK_M: 30,
+
+  // ——— Gegenrichtung ———
+  // Greift ueber Fenster-Boden + Rueckfall auf die globale Suche bei rund 65 m Rueckweg,
+  // also nach etwa 45 Sekunden (nav:check 28). Am Rad sind es 100 m bei 20 Sekunden.
+  WRONG_WAY_M: 45,
+  WRONG_WAY_FIXES: 3,
+  WRONG_WAY_CLEAR_M: 15,
+
+  // ——— Ende der Runde ———
+  FINISH_M: 25,
+  FINISH_FIXES: 3, // zu Fuss hat man Zeit fuer einen dritten sauberen Fix
+  FINISH_APPROACH_M: 120,
+  FINISH_RELEASE_M: 60,
+
+  // Sprung-Deckel: zu Fuss ist nach einer Ortungsluecke jeder Sprung ueber 150 m Raten.
+  MAX_JUMP_M: 150,
+  // Die Zugabe muss den RUECKSPRUNG beim Umdrehen decken: Wer zurueckgeht, wird vom
+  // Fenster-Boden (BACKTRACK_M) erst festgehalten, bis der Abstand dorthin OFF_ROUTE_M
+  // uebersteigt; dann fällt die Suche auf die echte Stelle zurueck, und das sind auf einen
+  // Schlag rund BACKTRACK_M + OFF_ROUTE_M plus ein Segment, also 65 bis 85 m. Mit 30 m
+  // Zugabe (Deckel 38 m je Sekunde) wurde genau dieser Sprung verworfen, der Fortschritt
+  // fror ein, und statt "Bitte umdrehen" kam nach vier Fixen eine Neuberechnung
+  // (Geh-Simulator, 16.09.2026). Spatiale Ausreisser faengt vorher der Teleport-Filter
+  // (MAX_SPEED_MPS), die Zugabe darf deshalb gross sein. Am Rad reichen 50, weil dort
+  // schon 20 m/s mal eine Sekunde dazukommen.
+  JUMP_SLACK_M: 80,
+
+  // ——— Off-Route ———
+  // Ein Platz ist zu Fuss der Normalfall: Wer den Residenzplatz diagonal quert, ist 30 m
+  // von der Linie am Rand entfernt und trotzdem nicht verloren. Deshalb ein Fix mehr,
+  // bevor neu gerechnet wird, und doppelte Ruhezeit danach.
+  OFF_ROUTE_M: 35,
+  OFF_ROUTE_FIXES: 4,
+  REROUTE_COOLDOWN_MS: 20_000,
+
+  // ——— Guete der Messung ——— (haengt am GPS, nicht am Tempo)
+  MAX_ACCURACY_M: 60,
+  DECIDE_ACCURACY_M: 35,
+  // Teleport-Filter: 8 m/s ist doppeltes Joggen. Nicht tiefer, denn beim Stehen streut
+  // die Ortung leicht 5 bis 8 m von einer Sekunde zur naechsten, und das darf kein
+  // verworfener Fix sein, sonst friert die Anzeige an jeder Ampel ein.
+  MAX_SPEED_MPS: 8,
+
+  // ——— Anzeige ———
+  // Der Geraetekurs wird zu Fuss NIE genommen: Bei 1,4 m/s ist er Rauschen, und die Karte
+  // zappelte damit bei jedem Schritt. Stattdessen immer die Richtung der Route an der
+  // aktuellen Stelle (routeBearing in stepNav), die ist ruhig und stimmt, solange der
+  // Gast auf dem Weg ist. Fuer die Segment-Wahl bleibt der Kurs ueber Grund (Anker).
+  MOVING_MPS: Infinity,
+  HEADING_EMA: 0.25,
+};
+
+// Client-sicher (kein Server-Import): Die Fortbewegung kommt aus tours.mode (0064).
+export function navTuningFor(mode: "walk" | "bike"): NavTuning {
+  return mode === "walk" ? WALK_NAV : NAV;
+}
+
 export type GeoFix = {
   lng: number;
   lat: number;
@@ -183,6 +278,12 @@ export type NavState = {
   lowAlongM: number; // Tiefststand seit dem Hinweis; ab hier wird das Vorwärts gemessen
   lastFixAt: number | null;
   lastFixCoord: [number, number] | null;
+  // Anker fuer den Kurs ueber Grund: die letzte Stelle, von der aus der Gast MIN_MOVE_M
+  // weit gekommen ist. Bis 16.09.2026 wurde der Kurs zwischen zwei aufeinanderfolgenden
+  // Fixen gerechnet, und die liegen am Rad 5 m auseinander, zu Fuss aber nur 1,4 m: unter
+  // der 3-m-Schwelle, also gab es zu Fuss nie einen Kurs, nie eine Stichweg-Absicherung
+  // und nie einen Umdreh-Hinweis. Der Anker sammelt die Schritte, bis es 3 m sind.
+  moveAnchor: [number, number] | null;
   lastRerouteAt: number | null;
 };
 
@@ -207,6 +308,7 @@ export function initNavState(spotCount = 0): NavState {
     lowAlongM: 0,
     lastFixAt: null,
     lastFixCoord: null,
+    moveAnchor: null,
     lastRerouteAt: null,
   };
 }
@@ -261,9 +363,9 @@ export function settleSpot(state: NavState, route: NavRoute | null, routeIndex: 
 // Weg dorthin; wer sie 500 m vorher startet, bekommt das Ziel beim Ankommen weitergerückt,
 // ohne noch einmal zu drücken. Und "gehört" heisst gestartet, nicht zu Ende gehört: Nichts
 // in der Navigation wartet je auf das Ende einer Geschichte.
-export function atSpot(phase: SpotPhase, airlineM: number | null): boolean {
+export function atSpot(phase: SpotPhase, airlineM: number | null, nav: NavTuning = NAV): boolean {
   if (phase === "pending" || phase === "near") return true;
-  return airlineM != null && airlineM <= NAV.SPOT_ARRIVE_M;
+  return airlineM != null && airlineM <= nav.SPOT_ARRIVE_M;
 }
 
 export type NavEvent =
@@ -278,11 +380,14 @@ export function stepNav(
   state: NavState,
   fix: GeoFix,
   route: NavRoute,
+  // Die Zahlentabelle der Fortbewegung (NAV am Rad, WALK_NAV zu Fuss). Als Parameter,
+  // nicht als Modul-Konstante: Derselbe Kern faehrt beide Runden.
+  nav: NavTuning = NAV,
 ): { state: NavState; events: NavEvent[] } {
   // Zu ungenauer Fix: gar nicht erst bewerten. Die UI darf den Punkt trotzdem anzeigen
   // (das macht sie mit dem rohen fix, nicht mit diesem Zustand) – hier geht es nur um
   // Entscheidungen, die ein schlechter Fix sonst verfälscht.
-  if (fix.accuracyM > NAV.MAX_ACCURACY_M) return { state, events: [] };
+  if (fix.accuracyM > nav.MAX_ACCURACY_M) return { state, events: [] };
 
   // Teleport-Filter: ein GPS-Ausreisser springt oft weiter, als ein Radl in der
   // vergangenen Zeit fahren kann. Der Fix wird verworfen, lastFix bleibt der ALTE gute
@@ -291,7 +396,7 @@ export function stepNav(
     const dtS = (fix.at - state.lastFixAt) / 1000;
     if (dtS > 0) {
       const impliedMps = haversineMeters(state.lastFixCoord, [fix.lng, fix.lat]) / dtS;
-      if (impliedMps > NAV.MAX_SPEED_MPS) return { state, events: [] };
+      if (impliedMps > nav.MAX_SPEED_MPS) return { state, events: [] };
     }
   }
 
@@ -313,23 +418,25 @@ export function stepNav(
   //
   // NICHT verwendet wird die Richtung der Route an der aktuellen Stelle (rawHeading
   // weiter unten). Die stammt aus dem Segment, das hier erst bestimmt werden soll.
-  // 3 m als Untergrenze, nicht 5: Bei 18 km/h und einem Fix je Sekunde liegen die Punkte
-  // rund 5 m auseinander, und mit 5 als Schwelle fiel jeder zweite Schritt knapp darunter
-  // durch. Unter 3 m ist die Richtung zwischen zwei Punkten nur noch Rauschen.
-  const gefahrenM = state.lastFixCoord ? haversineMeters(state.lastFixCoord, here) : 0;
-  const kursUeberGrund =
-    state.lastFixCoord && gefahrenM >= 3 ? bearingBetween(state.lastFixCoord, here) : undefined;
+  // Gemessen wird vom ANKER (NavState.moveAnchor), nicht vom letzten Fix: Der Anker
+  // rueckt erst weiter, wenn MIN_MOVE_M zusammen sind. Am Rad (5 m je Fix) ist das
+  // jeder Fix, also wie bisher; zu Fuss (1,4 m je Fix) jeder dritte, und vorher gab es
+  // dort gar keinen Kurs. Unter 3 m ist die Richtung zwischen zwei Punkten nur Rauschen.
+  const anker = state.moveAnchor ?? state.lastFixCoord;
+  const gefahrenM = anker ? haversineMeters(anker, here) : 0;
+  const bewegt = anker != null && gefahrenM >= MIN_MOVE_M;
+  const kursUeberGrund = bewegt && anker ? bearingBetween(anker, here) : undefined;
   const headingForMatch =
-    fix.headingDeg != null && (fix.speedMps ?? 0) >= NAV.MOVING_MPS
+    fix.headingDeg != null && (fix.speedMps ?? 0) >= nav.MOVING_MPS
       ? fix.headingDeg
       : kursUeberGrund;
 
   const nearest = nearestPointOnRoute(route.geometry, here, {
     nearAlongM: state.alongM,
-    // Boden am Höchststand: siehe NAV.BACKTRACK_M und die Begründung in geo.ts.
-    minAlongM: state.maxAlongM - NAV.BACKTRACK_M,
+    // Boden am Höchststand: siehe nav.BACKTRACK_M und die Begründung in geo.ts.
+    minAlongM: state.maxAlongM - nav.BACKTRACK_M,
     headingDeg: headingForMatch,
-    plausibleM: NAV.OFF_ROUTE_M,
+    plausibleM: nav.OFF_ROUTE_M,
   });
 
   // Stetigkeits-Riegel: Der Fortschritt darf nur so weit springen, wie in der vergangenen
@@ -341,7 +448,7 @@ export function stepNav(
   const maxJumpM =
     state.lastFixAt == null
       ? Infinity // erster Fix der Route: es gibt noch nichts, wovon er springen koennte
-      : Math.min(NAV.MAX_JUMP_M, dtS * NAV.MAX_SPEED_MPS + NAV.JUMP_SLACK_M);
+      : Math.min(nav.MAX_JUMP_M, dtS * nav.MAX_SPEED_MPS + nav.JUMP_SLACK_M);
   const proposedAlongM = nearest?.alongM ?? state.alongM;
   const jumpRejected = Math.abs(proposedAlongM - state.alongM) > maxJumpM;
   const alongM = jumpRejected ? state.alongM : proposedAlongM;
@@ -381,12 +488,12 @@ export function stepNav(
       : null;
   const routeBearing = segA && segB ? bearingBetween(segA, segB) : state.bearingDeg;
   const rawHeading =
-    fix.speedMps != null && fix.speedMps > NAV.MOVING_MPS && fix.headingDeg != null
+    fix.speedMps != null && fix.speedMps > nav.MOVING_MPS && fix.headingDeg != null
       ? fix.headingDeg
       : routeBearing;
   const targetBearing = unwrapDegrees(state.bearingDeg, rawHeading);
   const bearingDeg =
-    (((state.bearingDeg + NAV.HEADING_EMA * (targetBearing - state.bearingDeg)) % 360) + 360) % 360;
+    (((state.bearingDeg + nav.HEADING_EMA * (targetBearing - state.bearingDeg)) % 360) + 360) % 360;
 
   const events: NavEvent[] = [];
 
@@ -408,13 +515,16 @@ export function stepNav(
   if (!wrongWay) {
     peakAlongM = Math.max(peakAlongM, alongM);
     const rueckfall =
-      gefahrenM >= 3 &&
-      crossTrackM <= NAV.OFF_ROUTE_M &&
-      fix.accuracyM <= NAV.DECIDE_ACCURACY_M &&
+      bewegt &&
+      crossTrackM <= nav.OFF_ROUTE_M &&
+      fix.accuracyM <= nav.DECIDE_ACCURACY_M &&
       !state.finished &&
-      peakAlongM - alongM >= NAV.WRONG_WAY_M;
-    wrongWayStreak = rueckfall ? wrongWayStreak + 1 : 0;
-    if (wrongWayStreak >= NAV.WRONG_WAY_FIXES) {
+      peakAlongM - alongM >= nav.WRONG_WAY_M;
+    // Gezaehlt werden nur BEWEGTE Fixe; ein Fix im Stand laesst die Reihe stehen, statt
+    // sie zu loeschen. Zu Fuss ist nur jeder dritte Fix bewegt (siehe Anker), und mit dem
+    // alten "sonst null" kam die Reihe dort nie ueber eins.
+    if (bewegt) wrongWayStreak = rueckfall ? wrongWayStreak + 1 : 0;
+    if (wrongWayStreak >= nav.WRONG_WAY_FIXES) {
       wrongWay = true;
       wrongWayStreak = 0;
       lowAlongM = alongM;
@@ -422,7 +532,7 @@ export function stepNav(
     }
   } else {
     lowAlongM = Math.min(lowAlongM, alongM);
-    if (alongM >= lowAlongM + NAV.WRONG_WAY_CLEAR_M) {
+    if (alongM >= lowAlongM + nav.WRONG_WAY_CLEAR_M) {
       wrongWay = false;
       peakAlongM = alongM; // von hier an wird neu gemessen, sonst flackert der Hinweis
       events.push({ type: "on-track" });
@@ -442,14 +552,14 @@ export function stepNav(
     step != null &&
     step.type !== "arrive" &&
     distanceToManeuverM != null &&
-    distanceToManeuverM <= NAV.MANEUVER_QUIET_M;
+    distanceToManeuverM <= nav.MANEUVER_QUIET_M;
 
   // 1. Was hinter uns liegt, ist erledigt, gehört oder nicht.
   for (let i = 0; i < spotPhase.length; i++) {
     const spotAt = route.spotAlongM[i];
     if (spotAt == null) continue;
     // Ein vorgemerkter Spot, der nie angeboten werden konnte, bekommt mehr Zeit.
-    const behindLimit = spotPhase[i] === "pending" ? NAV.SPOT_GRACE_M : NAV.SPOT_PASSED_M;
+    const behindLimit = spotPhase[i] === "pending" ? nav.SPOT_GRACE_M : nav.SPOT_PASSED_M;
     if (spotPhase[i] !== "done" && spotAt - alongM < -behindLimit) {
       spotPhase[i] = "done";
       events.push({ type: "spot-passed", index: i });
@@ -464,7 +574,7 @@ export function stepNav(
     if (spotAt == null) continue;
     // Auch Spots, die schon knapp hinter uns liegen: Wer in der Sperrzone an einem
     // vorbeigefahren ist, soll ihn noch angeboten bekommen (SPOT_GRACE_M oben).
-    if (spotPhase[i] === "open" && spotAt - alongM <= NAV.SPOT_NEAR_M) {
+    if (spotPhase[i] === "open" && spotAt - alongM <= nav.SPOT_NEAR_M) {
       spotPhase[i] = "pending";
     }
   }
@@ -506,25 +616,25 @@ export function stepNav(
   //   ein wirklich sauberer Fix (schlechte werden gar nicht erst gezaehlt),
   //   der Fortschritt lag VORHER schon in Zielnaehe (ein Sprung ist kein Zieleinlauf),
   //   und das ueber mehrere Fixe hintereinander.
-  const nearFinish = remainingM <= NAV.FINISH_M;
-  const approached = state.remainingM <= NAV.FINISH_M + NAV.FINISH_APPROACH_M || state.finished;
+  const nearFinish = remainingM <= nav.FINISH_M;
+  const approached = state.remainingM <= nav.FINISH_M + nav.FINISH_APPROACH_M || state.finished;
   const finishStreak =
-    nearFinish && approached && fix.accuracyM <= NAV.DECIDE_ACCURACY_M ? state.finishStreak + 1 : 0;
+    nearFinish && approached && fix.accuracyM <= nav.DECIDE_ACCURACY_M ? state.finishStreak + 1 : 0;
   // Reversibel mit Hysterese: Wer sich wieder deutlich entfernt, faehrt weiter. Ohne das
   // waere jeder Fehlalarm endgueltig.
   const finished = state.finished
-    ? remainingM <= NAV.FINISH_RELEASE_M
-    : finishStreak >= NAV.FINISH_FIXES;
+    ? remainingM <= nav.FINISH_RELEASE_M
+    : finishStreak >= nav.FINISH_FIXES;
 
   // Die Neuberechnung haengt BEWUSST nicht mehr an `finished`: Ein falsches "fertig" darf
   // nicht auch noch die einzige Selbstheilung abschalten. Sie ruht nur, wenn der Gast
   // wirklich am Ziel steht, und das heisst hier: nah dran UND kein Spot mehr offen.
   const reallyDone = finished && nextSpotIndex < 0;
 
-  if (fix.accuracyM <= NAV.DECIDE_ACCURACY_M && !reallyDone) {
-    offRouteStreak = crossTrackM > NAV.OFF_ROUTE_M ? offRouteStreak + 1 : 0;
-    const cooldownOk = lastRerouteAt == null || fix.at - lastRerouteAt >= NAV.REROUTE_COOLDOWN_MS;
-    if (offRouteStreak >= NAV.OFF_ROUTE_FIXES && cooldownOk) {
+  if (fix.accuracyM <= nav.DECIDE_ACCURACY_M && !reallyDone) {
+    offRouteStreak = crossTrackM > nav.OFF_ROUTE_M ? offRouteStreak + 1 : 0;
+    const cooldownOk = lastRerouteAt == null || fix.at - lastRerouteAt >= nav.REROUTE_COOLDOWN_MS;
+    if (offRouteStreak >= nav.OFF_ROUTE_FIXES && cooldownOk) {
       offRouteStreak = 0;
       lastRerouteAt = fix.at;
       events.push({ type: "reroute" });
@@ -556,6 +666,7 @@ export function stepNav(
       lowAlongM,
       lastFixAt: fix.at,
       lastFixCoord: here,
+      moveAnchor: bewegt || !anker ? here : anker,
       lastRerouteAt,
     },
     events,

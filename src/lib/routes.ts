@@ -30,6 +30,7 @@ export function isMarketingRoute(pathname: string): boolean {
 //   /touren/<slug>               -> components/tours/TourView.tsx
 //   /touren/meine/<id>           -> components/tours/TourView.tsx
 //   /touren/<slug>/navigation    -> components/tours/nav/BikeNavScreen.tsx
+//   /touren/meine/<id>/navigation -> components/tours/nav/BikeNavScreen.tsx
 // NICHT dabei: /touren (normale Liste) und /touren/bauen (TourBuilder läuft im Fluss, dort
 // gehört die Fußzeile sichtbar hin).
 //
@@ -44,15 +45,18 @@ export function isFullscreenMapRoute(pathname: string): boolean {
 
 // Vollständig eigene Bildschirme OHNE jede App-Navigation drumherum: zusätzlich zu dem,
 // was isFullscreenMapRoute schon abdeckt (die Fussleiste), fällt hier auch noch Header,
-// Tab-Leiste und die schwebende Toni-Blase weg. Heute nur die S-Bike-Turn-by-Turn-
-// Navigation (docs/40): Auf dem Fahrrad ist jede Fläche, die einen wegnavigieren kann,
-// ein Sicherheitsrisiko, und Tab-Leiste/Toni-Blase fressen dort genau den Platz, den die
-// Abbiege-Anzeige braucht. Eine normale Tour-Detailseite (/touren/<slug>) behält Header
-// UND Tab-Leiste, nur die Fussleiste ist dort schon weg (isFullscreenMapRoute) – diese
-// Funktion prüft ZUSÄTZLICH, nicht ANSTELLE davon.
+// Tab-Leiste und die schwebende Toni-Blase weg. Heute die Turn-by-Turn-Navigation der
+// Runden (docs/40), am Rad wie zu Fuss, fuer kuratierte Runden (/touren/<slug>) und
+// gespeicherte eigene (/touren/meine/<id>): Auf dem Fahrrad ist jede Fläche, die einen
+// wegnavigieren kann, ein Sicherheitsrisiko, und Tab-Leiste/Toni-Blase fressen dort genau
+// den Platz, den die Abbiege-Anzeige braucht; zu Fuss gilt dasselbe fuer den Platz, und
+// derselbe Bildschirm soll sich nicht je Fortbewegung anders anfuehlen. Eine normale
+// Tour-Detailseite (/touren/<slug>) behält Header UND Tab-Leiste, nur die Fussleiste ist
+// dort schon weg (isFullscreenMapRoute) – diese Funktion prüft ZUSÄTZLICH, nicht ANSTELLE
+// davon.
 //
 // Wer einen weiteren so immersiven Screen baut, ergänzt ihn HIER statt an AppChrome/
 // ToniLauncher einzeln vorbeizuprüfen – siehe die Begründung bei isFullscreenMapRoute.
 export function isImmersiveRoute(pathname: string): boolean {
-  return /^\/touren\/[^/]+\/navigation$/.test(pathname);
+  return /^\/touren\/(?:meine\/)?[^/]+\/navigation$/.test(pathname);
 }

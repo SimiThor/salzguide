@@ -156,7 +156,11 @@
     "navEtaLabel": "Llegada",
     "navWrongWay": "Da la vuelta",
     "navResume": "Seguir pedaleando, parada {n} de {total}",
-    "navRestart": "Empezar de nuevo"
+    "navRestart": "Empezar de nuevo",
+    "navWalkIntro": "Para guiarte de parada en parada necesitamos tu ubicación.",
+    "navResumeWalk": "Seguir caminando, parada {n} de {total}",
+    "navDoneContinueWalk": "Seguir caminando",
+    "navDoneTitleEnd": "En la meta"
   },
   "Water": {
     "title": "Temperaturas del agua",

@@ -62,3 +62,18 @@ export function safeTourSlug(slug: string | null | undefined): string | null {
   const trimmed = slug.trim().toLowerCase();
   return /^[a-z0-9][a-z0-9-]{0,79}$/.test(trimmed) ? trimmed : null;
 }
+
+/**
+ * Pfad (ohne Sprach-Praefix) zum Navigations-Bildschirm einer Runde, aus ihrem Slug.
+ * EINE Stelle dafuer, weil der Pfad an vier Orten gebaut wird (Tour-Seite, Kasse-Rueckweg,
+ * Kasse-Abbruch, Zugangs-Mail) und gespeicherte eigene Runden ANDERS liegen: Ihr Slug ist
+ * `meine-<id>` (user-tours.ts), ihre Seiten unter /touren/meine/<id>. Bis 16.09.2026 fuehrte
+ * der Rueckweg nach dem Kauf aus einer solchen Runde auf /touren/meine-<id>/navigation, und
+ * das ist eine 404. Kuratierte Slugs duerfen deshalb nicht mit "meine-" beginnen.
+ *
+ * Erwartet einen Slug, der safeTourSlug() bestanden hat (oder aus der Datenbank kommt).
+ */
+export function tourNavPath(slug: string): string {
+  const own = /^meine-(.+)$/.exec(slug);
+  return own ? `/touren/meine/${own[1]}/navigation` : `/touren/${slug}/navigation`;
+}

@@ -7,7 +7,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { sendLoginLink } from "@/lib/login-link";
 import { authOrigin } from "@/lib/site-url";
 import { safeLocale } from "@/i18n/locales";
-import { safeTourSlug } from "@/lib/url";
+import { safeTourSlug, tourNavPath } from "@/lib/url";
 import {
   PRO_CLAIM_COOKIE,
   claimMatches,
@@ -71,7 +71,7 @@ export async function GET(
   const done = async (state: ProCheckoutState): Promise<Response> => {
     (await cookies()).delete(PRO_CLAIM_COOKIE);
     const ziel = zurueckZu
-      ? `/${locale}/touren/${zurueckZu}/navigation?checkout=${state}`
+      ? `/${locale}${tourNavPath(zurueckZu)}?checkout=${state}`
       : `/${locale}/pro?checkout=${state}`;
     return NextResponse.redirect(new URL(ziel, origin));
   };
@@ -222,7 +222,7 @@ async function sendAccessLink(
       email,
       locale,
       next: returnTour
-        ? `/${locale}/touren/${returnTour}/navigation?checkout=success`
+        ? `/${locale}${tourNavPath(returnTour)}?checkout=success`
         : `/${locale}/pro?checkout=success`,
       origin: await authOrigin(requestUrl),
     });

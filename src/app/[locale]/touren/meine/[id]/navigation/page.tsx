@@ -2,15 +2,16 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { setRequestLocale } from "next-intl/server";
 import { getUserTourDetail } from "@/lib/user-tours";
-import TourView from "@/components/tours/TourView";
+import BikeNavScreen from "@/components/tours/nav/BikeNavScreen";
 import { getProPrice, formatProPrice } from "@/lib/pro";
-import { tourNavPath } from "@/lib/url";
 
-// Gespeicherte User-Runde. RLS stellt sicher, dass nur der Eigentümer sie laden kann;
-// nicht öffentlich indexierbar. Audio wird beim Laden frisch gegatet + signiert.
+// Navigation einer gespeicherten eigenen Runde (KI-Builder, immer zu Fuss). Derselbe
+// Bildschirm wie bei den kuratierten Runden; nur die Quelle der Daten und der Rueckweg
+// sind andere. RLS laesst nur den Eigentuemer laden, deshalb nicht indexierbar, wie die
+// Uebersicht daneben.
 export const metadata: Metadata = { robots: { index: false, follow: false } };
 
-export default async function MyTourPage({
+export default async function MyTourNavigationPage({
   params,
 }: {
   params: Promise<{ locale: string; id: string }>;
@@ -20,5 +21,5 @@ export default async function MyTourPage({
   const tour = await getUserTourDetail(id, locale);
   if (!tour) notFound();
   const proPrice = formatProPrice(await getProPrice(), locale);
-  return <TourView tour={tour} proPrice={proPrice} navHref={tourNavPath(tour.slug)} />;
+  return <BikeNavScreen tour={tour} proPrice={proPrice} backHref={`/touren/meine/${id}`} />;
 }

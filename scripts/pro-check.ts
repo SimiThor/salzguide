@@ -10,7 +10,7 @@
 // Die Abwehr ist, dass NUR EIN SLUG mitreist und der Server den Pfad selbst baut. Diese
 // Prüfung hält fest, dass der Slug-Filter hält und dass aus dem, was er durchlässt, kein
 // Pfad entstehen kann, der unsere Seite verlässt.
-import { safeTourSlug } from "@/lib/url";
+import { safeTourSlug, tourNavPath } from "@/lib/url";
 import { stopAudioAccess } from "@/lib/tour-audio-gate";
 
 let failed = 0;
@@ -113,6 +113,30 @@ console.log("\n5. Ein gesperrter Stopp bekommt NIE die Volldatei");
   const leer = stopAudioAccess({ locked: false, audioUrl: null, teaserUrl: probe });
   if (leer.signPath === null) ok("offen ohne Vertonung -> gar nichts");
   else bad("unerwarteter Pfad ohne Vertonung", JSON.stringify(leer));
+}
+
+console.log("\n6. Der Rueckweg kennt beide Arten von Runden");
+{
+  // Kuratierte Runden liegen unter /touren/<slug>, gespeicherte eigene unter
+  // /touren/meine/<id> mit dem Slug `meine-<id>` (user-tours.ts). Bis 16.09.2026 baute der
+  // Rueckweg fuer beide denselben Pfad, und der zweite war eine 404: Wer aus seiner eigenen
+  // Runde heraus gekauft hatte, landete nach dem Bezahlen im Nichts.
+  const id = "3f2a9c1e-7b4d-4e8a-9c21-0d5e6f7a8b9c";
+  const faelle: [string, string][] = [
+    ["die-stadt-von-aussen", "/touren/die-stadt-von-aussen/navigation"],
+    ["antons-hausrunde", "/touren/antons-hausrunde/navigation"],
+    [`meine-${id}`, `/touren/meine/${id}/navigation`],
+  ];
+  let alleGut = true;
+  for (const [slug, soll] of faelle) {
+    const sicher = safeTourSlug(slug);
+    if (!sicher) { bad("Slug faelschlich abgewiesen", slug); alleGut = false; continue; }
+    const ist = tourNavPath(sicher);
+    if (ist !== soll) { bad(`falscher Rueckweg fuer ${slug}`, `${ist} statt ${soll}`); alleGut = false; }
+    const u = new URL(`/de${ist}?checkout=success`, "https://salzguide.com");
+    if (u.origin !== "https://salzguide.com") { bad("Pfad verlaesst die Seite", u.href); alleGut = false; }
+  }
+  if (alleGut) ok(`alle ${faelle.length} Rueckwege stimmen und bleiben auf der Seite`);
 }
 
 console.log(failed ? `\n${failed} Prüfung(en) fehlgeschlagen.` : "\nAlles grün.");

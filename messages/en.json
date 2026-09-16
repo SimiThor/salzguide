@@ -156,7 +156,11 @@
     "navEtaLabel": "Arrival",
     "navWrongWay": "Please turn around",
     "navResume": "Keep riding, stop {n} of {total}",
-    "navRestart": "Start over"
+    "navRestart": "Start over",
+    "navWalkIntro": "Guiding you from stop to stop needs your location.",
+    "navResumeWalk": "Keep walking, stop {n} of {total}",
+    "navDoneContinueWalk": "Keep walking",
+    "navDoneTitleEnd": "At the finish"
   },
   "Water": {
     "title": "Water temperatures",

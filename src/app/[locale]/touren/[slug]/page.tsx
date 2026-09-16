@@ -5,6 +5,7 @@ import { getTourDetail } from "@/lib/tours";
 import { alternatesFor, ogFor } from "@/lib/metadata";
 import TourView from "@/components/tours/TourView";
 import { getProPrice, formatProPrice } from "@/lib/pro";
+import { tourNavPath } from "@/lib/url";
 
 export async function generateMetadata({
   params,
@@ -40,5 +41,5 @@ export default async function TourPage({
   // Preis serverseitig aus Stripe (eine Quelle, gecacht). Damit steht der Kauf auf dieser
   // Seite statt hinter einem Sprung auf /pro: Wer hier liest, hat die Runde schon gewählt.
   const proPrice = formatProPrice(await getProPrice(), locale);
-  return <TourView tour={tour} proPrice={proPrice} />;
+  return <TourView tour={tour} proPrice={proPrice} navHref={tourNavPath(tour.slug)} />;
 }
