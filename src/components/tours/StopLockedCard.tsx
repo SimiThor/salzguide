@@ -29,8 +29,12 @@ export default function StopLockedCard({
     <div className="overflow-hidden rounded-[16px] bg-white/85 shadow-sm ring-1 ring-black/[0.04]">
       <div className="p-4">
         <p className="text-[14px] font-semibold text-ink">🔒 {t("lockedTitle")}</p>
+        {/* Je Satz eine Zeile, damit der Umbruch an der Satzgrenze sitzt und nicht dort,
+            wo die Breite gerade endet. Dieselbe Regel wie in der Kauffläche der Navigation
+            (nav/ArrivalSheet.tsx), damit derselbe Satz überall gleich bricht. */}
         <p className="mt-1 text-[13px] leading-snug text-muted">
-          {t("lockedFree", { free: freeStops, total })}
+          <span className="block">{t("lockedFree", { free: freeStops })}</span>
+          <span className="block">{t("lockedAll", { total })}</span>
         </p>
       </div>
       <Link
