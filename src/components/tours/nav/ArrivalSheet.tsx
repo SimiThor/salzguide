@@ -186,9 +186,32 @@ function LockedStopSheet({
           {stop.title}
         </h2>
         {/* Der einzige Erklärsatz, und er beantwortet genau die Frage, die das Schloss
-            stellt: Warum hier und nicht vorhin? */}
+            stellt: Warum hier und nicht vorhin?
+
+            JE SATZ EINE ZEILE, und das ist der ganze Punkt: Vorher stand der Satz in
+            einem Stück da und brach, wo die Breite gerade endete. Am iPhone hing
+            „alle 6." allein in der zweiten Zeile, auf dem nächsten Gerät woanders
+            (Anton, 16.09.2026). Jetzt sind es zwei Kästen, also bricht es an der
+            Satzgrenze und auf jedem Bildschirm gleich.
+
+            WARUM NICHT `text-balance`: Das gleicht die Zeilen nur in der BREITE aus und
+            kennt keine Sätze. Gemessen brach es „Die ersten 2 Stopps sind / gratis. Mit
+            Pro hörst du alle 6." – gleich lange Zeilen, aber der Schnitt mitten im Satz.
+            `text-pretty` ändert an dieser Stelle gar nichts (Chrome 152 gemessen).
+
+            WARUM ZWEI BLÖCKE UND NICHT ZWEI `inline-block` MIT LEERZEICHEN DAZWISCHEN:
+            Auf Chinesisch passen beide Sätze nebeneinander, und dann stünde dort ein
+            Leerzeichen hinter dem 。 – im Chinesischen falsch, weil das Schriftzeichen
+            seinen Abstand schon mitbringt. Zwei Blöcke brauchen gar kein Trennzeichen.
+
+            DIE REGEL HAT EINE GRENZE: Sie taugt nur, wo jeder Satz auf eine Zeile passt.
+            Der längste ist Ungarisch mit 274 px, die engste Fläche das iPhone SE mit
+            280 px. Bei einem längeren Text (z.B. Tours.lockedBody auf der Übersicht)
+            würde dieselbe Aufteilung drei Zeilen und einen neuen Ausreisser ergeben; ein
+            Fliesstext bleibt deshalb ein Fliesstext. */}
         <p className="max-w-[20rem] text-[13px] leading-snug text-muted">
-          🔒 {t("lockedFree", { free: freeStops, total: totalStops })}
+          <span className="block">🔒 {t("lockedFree", { free: freeStops })}</span>
+          <span className="block">{t("lockedAll", { total: totalStops })}</span>
         </p>
       </div>
     </BottomSheet>
