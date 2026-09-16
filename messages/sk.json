@@ -84,7 +84,6 @@
     "next": "Ďalšia zastávka",
     "seek": "Vybrať čas",
     "lockedTitle": "Odtiaľto pokračuješ s Pro",
-    "lockedBody": "Prvé zastávky sú zadarmo. Zvyšok prehliadky odomkneš s Pro.",
     "lockedFree": "{free, plural, =1 {Prvá zastávka je zadarmo} few {Prvé # zastávky sú zadarmo} many {Prvé # zastávky sú zadarmo} other {Prvých # zastávok je zadarmo}}.",
     "lockedAll": "S Pro si vypočuješ {total, plural, one {# zastávku} few {všetky # zastávky} many {# zastávky} other {všetkých # zastávok}}.",
     "noAudio": "Pre túto zastávku zatiaľ nemáme nahrávku.",

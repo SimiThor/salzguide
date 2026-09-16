@@ -661,6 +661,36 @@ Sprachen und auf iPhone SE / 15 / Pro Max / iPad / Desktop sichtbar, ohne Ziehen
 Scrollen, auch im ungünstigsten Fall (Französisch am iPhone SE mit eingeblendeter
 Fehlermeldung).
 
+## Die Seite davor: die Runden-Übersicht (16.09.2026)
+
+Der Fahrbildschirm ist nur die zweite Seite. Davor liegt `/touren/<slug>`, und die entschied
+bisher nichts: Im Ruhezustand stand dort der Mini-Player des ersten Stopps, also
+„STOPP 1 VON 6 – Marko-Feingold-Steg". Der Name der Runde stand nirgends sichtbar, nur im
+`sr-only`-`<h1>`; wer über die Runden-Liste oder einen geteilten Link kam, las den Namen
+einer Brücke. Dazu zwei rote Knöpfe untereinander (Navigation und Play), das Transkript des
+ersten Stopps als längster Text der Seite, und ganz unten – hinter der Stopp-Liste UND den
+Anfahrt-Kacheln, am iPhone nach 1700 px Scrollen – ein Fließtext mit einem Knopf auf /pro.
+Ohne Preis.
+
+**Jetzt: die Runde und eine Aktion.** Der Ruhezustand des Sheets (der Peek-Anker) trägt den
+Titel, eine leise Faktenzeile in derselben Form wie die Runden-Liste (`6 Stopps · 38 Min ·
+8,3 km`) und genau EINEN Knopf: bei einer S-Bike-Runde „Navigation starten", sonst
+„Tour starten" (spielt den ersten offenen Stopp). Gemessen 121 px Anker in allen 13 Sprachen,
+Titel und Faktenzeile je einzeilig.
+
+**Die Liste IST der Player.** Eine Zeile je Stopp, dieselbe Form wie im Fahrbildschirm
+(Kachel mit Nummer, Titel, leise Unterzeile, rechts der Zustand). Ein Tipp wählt den Stopp,
+die Karte fliegt hin, und er spielt sofort – der aufgeklappte Stopp zeigt Wiedergabe,
+Stimmen-Hinweis und Text zum Mitlesen. Vorher stand derselbe Stopp zweimal auf dem
+Bildschirm: oben als Block mit Foto und Transkript, unten noch einmal in der Liste.
+Beim Laden ist nichts aufgeklappt (sechs Zeilen à 68 px statt einer à 349 px), der Kaufblock
+rückt damit um eine Bildschirmhöhe nach oben.
+
+**Der Kauf steht direkt unter den Schlössern**, mit Preis und § 18-Häkchen, und es ist
+derselbe Block wie im Fahrbildschirm (`ProPurchase`, `density="sheet"`). Nach dem Bezahlen
+führt `returnTour` zurück auf diese Runde. Gemessen: Kauf-Knopf am iPhone 15 bei 611 px, am
+iPhone SE bei 333 px, auf dem Desktop ohne Scrollen im Panel.
+
 ## Eine Stimme je Runde (seit 09/2026)
 
 Route 66 spricht Simon, der Giro später Anton, und die Erzählstimme „Toni" bleibt für alles

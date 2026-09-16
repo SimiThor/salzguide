@@ -84,7 +84,6 @@
     "next": "Paragem seguinte",
     "seek": "Escolher tempo",
     "lockedTitle": "A partir daqui continua com o Pro",
-    "lockedBody": "As primeiras paragens são grátis. O resto do percurso está atrás do Pro.",
     "lockedFree": "{free, plural, =1 {A primeira paragem é grátis} other {As primeiras # paragens são grátis}}.",
     "lockedAll": "Com o Pro ouves todas as {total}.",
     "noAudio": "Ainda não há gravação áudio para esta paragem.",

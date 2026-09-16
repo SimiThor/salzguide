@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
+import { kmLabel } from "@/lib/tour-format";
 import { getPublishedTours } from "@/lib/tours";
 import { listUserTours } from "@/lib/user-tours";
 import { viewerCanSeePro } from "@/lib/spots";
@@ -120,7 +121,7 @@ export default async function ToursPage({
                   {[
                     t("stops", { count: tour.stopCount }),
                     tour.durationMin != null ? t("minutes", { count: tour.durationMin }) : null,
-                    tour.distanceKm != null ? `${tour.distanceKm} km` : null,
+                    tour.distanceKm != null ? kmLabel(tour.distanceKm, locale) : null,
                   ]
                     .filter(Boolean)
                     .join(" · ")}

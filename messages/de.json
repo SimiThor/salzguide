@@ -127,7 +127,6 @@
     "next": "Nächster Stopp",
     "seek": "Zeit wählen",
     "lockedTitle": "Ab hier geht es mit Pro weiter",
-    "lockedBody": "Die ersten Stopps sind gratis. Der Rest der Tour liegt hinter Pro.",
     "lockedFree": "{free, plural, =1 {Der erste Stopp ist gratis} other {Die ersten # Stopps sind gratis}}.",
     "lockedAll": "Mit Pro hörst du alle {total}.",
     "noAudio": "Für diesen Stopp gibt es noch keine Audio-Aufnahme.",

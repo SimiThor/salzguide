@@ -84,7 +84,6 @@
     "next": "다음 정거장",
     "seek": "구간 이동",
     "lockedTitle": "여기서부터는 Pro로 이어져요",
-    "lockedBody": "처음 몇 곳은 무료예요. 투어의 나머지는 Pro에 있어요.",
     "lockedFree": "{free, plural, =1 {첫 번째 정거장은 무료예요} other {처음 정거장 #개는 무료예요}}.",
     "lockedAll": "Pro로 {total}개를 전부 들을 수 있어요.",
     "noAudio": "이 정거장에는 아직 오디오 녹음이 없어요.",

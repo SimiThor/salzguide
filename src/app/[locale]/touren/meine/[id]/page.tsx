@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { setRequestLocale } from "next-intl/server";
 import { getUserTourDetail } from "@/lib/user-tours";
 import TourView from "@/components/tours/TourView";
+import { getProPrice, formatProPrice } from "@/lib/pro";
 
 // Gespeicherte User-Runde. RLS stellt sicher, dass nur der Eigentümer sie laden kann;
 // nicht öffentlich indexierbar. Audio wird beim Laden frisch gegatet + signiert.
@@ -17,5 +18,6 @@ export default async function MyTourPage({
   setRequestLocale(locale);
   const tour = await getUserTourDetail(id, locale);
   if (!tour) notFound();
-  return <TourView tour={tour} />;
+  const proPrice = formatProPrice(await getProPrice(), locale);
+  return <TourView tour={tour} proPrice={proPrice} />;
 }

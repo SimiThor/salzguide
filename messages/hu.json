@@ -84,7 +84,6 @@
     "next": "Következő megálló",
     "seek": "Idő beállítása",
     "lockedTitle": "Innentől a Próval megy tovább",
-    "lockedBody": "Az első megállók ingyenesek. A túra többi része a Pro mögött van.",
     "lockedFree": "{free, plural, =1 {Az első megálló ingyenes} other {Az első # megálló ingyenes}}.",
     "lockedAll": "A Próval mind a {total} megállót meghallgathatod.",
     "noAudio": "Ehhez a megállóhoz még nincs hangfelvétel.",
