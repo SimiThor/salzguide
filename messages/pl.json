@@ -156,7 +156,11 @@
     "navEtaLabel": "Przyjazd",
     "navWrongWay": "Zawróć",
     "navResume": "Jedź dalej, przystanek {n} z {total}",
-    "navRestart": "Zacznij od nowa"
+    "navRestart": "Zacznij od nowa",
+    "navWalkIntro": "Prowadzenie od przystanku do przystanku wymaga twojej lokalizacji.",
+    "navResumeWalk": "Idź dalej, przystanek {n} z {total}",
+    "navDoneContinueWalk": "Idź dalej",
+    "navDoneTitleEnd": "U celu"
   },
   "Water": {
     "title": "Temperatura wody",

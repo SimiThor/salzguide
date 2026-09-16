@@ -156,7 +156,11 @@
     "navEtaLabel": "도착",
     "navWrongWay": "되돌아가 주세요",
     "navResume": "계속 주행, {total}개 중 {n}번째 지점",
-    "navRestart": "처음부터 시작"
+    "navRestart": "처음부터 시작",
+    "navWalkIntro": "지점에서 지점으로 안내하려면 위치 정보가 필요해요.",
+    "navResumeWalk": "계속 걷기, {total}개 중 {n}번째 지점",
+    "navDoneContinueWalk": "계속 걷기",
+    "navDoneTitleEnd": "목적지 도착"
   },
   "Water": {
     "title": "수온",

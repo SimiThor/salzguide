@@ -1,4 +1,6 @@
-// Reine Formatierung für die S-Bike-Navigation. Absichtlich OHNE next-intl: "km"/"m"
+import type { TourMode } from "./tour-mode";
+
+// Reine Formatierung für die Navigation (Rad und zu Fuss). Absichtlich OHNE next-intl: "km"/"m"
 // sind in allen 13 Sprachen dieselbe Abkürzung (dasselbe Muster wie `${distanceKm} km`
 // auf der Tourenliste, src/app/[locale]/touren/page.tsx) – nur echte Wörter (Minuten)
 // laufen über die bestehenden Tours.*-Keys, nicht hier.
@@ -32,11 +34,21 @@ export function maneuverArrowDeg(modifier: string | undefined): number {
 }
 
 // Grobe Ankunftsschätzung fürs HUD: die echte GPS-Geschwindigkeit, wenn der Nutzer
-// gerade in Fahrt ist, sonst eine Stadtrad-Pauschale (~12 km/h) – NIE das statische
+// gerade in Fahrt ist, sonst eine Pauschale je Fortbewegung – NIE das statische
 // Directions-`duration` der Etappe, das lief seit dem letzten Fetch schon wieder ab.
-const FALLBACK_SPEED_MPS = 3.3;
+// Stadtrad rund 12 km/h; zu Fuss 4,5 km/h, also etwas unter dem Auslegungstempo von
+// 5 km/h (bike-nav-core, WALK_NAV), weil man an einer Runde stehen bleibt und schaut.
+const FALLBACK_SPEED_MPS: Record<TourMode, number> = { bike: 3.3, walk: 1.25 };
+// Erst ab hier zaehlt die gemessene Geschwindigkeit. Am Rad 1 m/s (unter dem ist es die
+// Ampel); zu Fuss 0,5 m/s, denn 1 m/s ist schon fast normales Gehtempo, und mit der
+// Rad-Schwelle fiele der Fussgaenger fast immer auf die Pauschale zurueck.
+const TRUST_SPEED_MPS: Record<TourMode, number> = { bike: 1, walk: 0.5 };
 
-export function estimateEtaMin(remainingM: number, speedMps: number | null): number {
-  const v = speedMps != null && speedMps > 1 ? speedMps : FALLBACK_SPEED_MPS;
+export function estimateEtaMin(
+  remainingM: number,
+  speedMps: number | null,
+  mode: TourMode = "bike",
+): number {
+  const v = speedMps != null && speedMps > TRUST_SPEED_MPS[mode] ? speedMps : FALLBACK_SPEED_MPS[mode];
   return Math.max(1, Math.round(remainingM / v / 60));
 }

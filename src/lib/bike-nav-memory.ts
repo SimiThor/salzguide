@@ -1,7 +1,8 @@
 "use client";
 
 /**
- * Gedächtnis der Radrunde: welche Halte erledigt und welche Geschichten gehört sind.
+ * Gedächtnis einer Runde (Rad und zu Fuss): welche Halte erledigt und welche Geschichten
+ * gehört sind.
  *
  * DAS PROBLEM: Tab zu, Handy aus, Rückkehr von der Stripe-Kasse. Die Seite baut sich neu
  * auf, und bis 15.09.2026 begann die Runde dann wieder bei Halt 1: GPS-Gate, Route über
@@ -22,7 +23,9 @@ export type SavedRide = {
   heard: number[];
 };
 
-const PREFIX = "sg-bike-nav:";
+// Neutraler Name seit 16.09.2026 (Geh-Runden haben dasselbe Gedaechtnis). Der alte
+// Schluessel "sg-bike-nav:" faellt still weg: Eintraege leben ohnehin nur 12 Stunden.
+const PREFIX = "sg-tour-nav:";
 const MAX_AGE_MS = 12 * 60 * 60 * 1000;
 // Plausibilität: So viele Halte hat keine Runde (Mapbox nimmt 25 Punkte je Anfrage).
 const MAX_STOPS = 50;

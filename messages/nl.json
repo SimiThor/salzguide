@@ -156,7 +156,11 @@
     "navEtaLabel": "Aankomst",
     "navWrongWay": "Keer om",
     "navResume": "Verder fietsen, halte {n} van {total}",
-    "navRestart": "Opnieuw beginnen"
+    "navRestart": "Opnieuw beginnen",
+    "navWalkIntro": "Om je van halte naar halte te leiden heeft de app je locatie nodig.",
+    "navResumeWalk": "Verder lopen, halte {n} van {total}",
+    "navDoneContinueWalk": "Verder lopen",
+    "navDoneTitleEnd": "Bij de finish"
   },
   "Water": {
     "title": "Watertemperaturen",

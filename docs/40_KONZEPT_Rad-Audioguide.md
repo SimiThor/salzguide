@@ -1,6 +1,11 @@
 # Rad-Audioguide: Navigation, Audio-Spots, Auslegung
 
-Stand: 2026-09-15 · Code: `src/lib/bike-nav-core.ts`, `src/components/tours/nav/` · Prüfung: `npm run nav:check` (26 Prüfungen)
+Stand: 2026-09-16 · Code: `src/lib/bike-nav-core.ts`, `src/components/tours/nav/` · Prüfung: `npm run nav:check` (32 Prüfungen, davon 6 zu Fuss)
+
+Seit 16.09.2026 gilt alles hier auch für die **Geh-Runden**: derselbe Bildschirm, derselbe
+Kern, eine zweite Zahlentabelle. Der eigene Abschnitt „Zu Fuss" weiter unten nennt, was
+sich unterscheidet und warum. Wo dieses Dokument „Rad", „fahren" oder „Lenker" sagt, gilt
+die Regel zu Fuss sinngemäss, sofern der Abschnitt nichts anderes sagt.
 
 Dieses Dokument war ab dem 24.08.2026 an neun Stellen im Code als „siehe docs/40" zitiert,
 bevor es existierte. Es holt das nach: Es hält fest, was gebaut wird, mit welchen Zahlen,
@@ -690,6 +695,108 @@ rückt damit um eine Bildschirmhöhe nach oben.
 derselbe Block wie im Fahrbildschirm (`ProPurchase`, `density="sheet"`). Nach dem Bezahlen
 führt `returnTour` zurück auf diese Runde. Gemessen: Kauf-Knopf am iPhone 15 bei 611 px, am
 iPhone SE bei 333 px, auf dem Desktop ohne Scrollen im Panel.
+
+## Zu Fuss: derselbe Bildschirm, andere Zahlen (16.09.2026)
+
+Bis dahin hatte nur die Radrunde einen Navigations-Bildschirm. Der grosse Knopf einer
+Geh-Runde spielte den ersten Stopp, und der Gast stand mit einer laufenden Geschichte in der
+Getreidegasse, ohne zu wissen, wohin. Anton am 16.09.2026: einheitlich wie am Rad, Übersicht
+und Knopf gleich, dahinter dieselbe Navigation, „nur dass es halt an Gehen angepasst ist",
+und ohne die Bestätigung, dass das Handy in einer Halterung steckt.
+
+**Was gleich ist, mit Absicht:** Übersichts-Seite mit EINEM roten Knopf „Navigation
+starten", derselbe Bildschirm (`BikeNavScreen`, der Name blieb, weil er an neun Stellen
+zitiert wird), dieselbe Abbiegekarte, dieselbe Zielleiste, derselbe Play-Streifen, dieselbe
+Stopp-Liste, dieselbe Kauffläche am gesperrten Halt, dasselbe Gedächtnis für den
+Wiedereinstieg (`bike-nav-memory.ts`, jetzt unter dem neutralen Schlüssel `sg-tour-nav:`),
+dieselbe Rundtour-Absicherung. Wer die Radrunde kennt, findet sich zu Fuss sofort zurecht.
+Auch der Startbildschirm bleibt: `watchPosition()` braucht eine Geste, also gibt es weiter
+einen Knopf. Er sagt zu Fuss nur in einem Satz, wofür der Standort gebraucht wird
+(„Die Führung von Stopp zu Stopp braucht deinen Standort."); der Halterungs-Hinweis mit dem
+Warndreieck ist eine StVO-Sache fürs Rad und fällt weg.
+
+**Was sich unterscheidet, alles an `tours.mode` aufgehängt:**
+
+| Stelle | Rad | Zu Fuss | Warum |
+|---|---|---|---|
+| Mapbox-Profil (`bike-directions.ts`) | cycling | walking | Dieselbe Zuordnung wie im Runden-Editor; der Gast geht die Linie, die der Admin gesehen hat. Treppen und Gassen sind zu Fuss der Weg, nicht das Hindernis. |
+| Zahlentabelle (`bike-nav-core.ts`) | `NAV` | `WALK_NAV` | Auslegungstempo 1,4 statt 5 m/s. Tabelle unten. |
+| Kamera (`NavMap.tsx`) | Zoom 17, 58° | Zoom 18, 45° | Näher und flacher: Es zählt die nächste Gasse, nicht die Strasse in 300 m; Hausecken und Plätze liest man flach als Flächen. |
+| Kartenausrichtung | Gerätekurs ab 1,5 m/s, sonst Route | immer die Richtung der Route | Bei 1,4 m/s ist der Gerätekurs Rauschen, die Karte zappelte bei jedem Schritt (`MOVING_MPS: Infinity`). |
+| Farbstufen des Abbiege-Banners | 30 / 120 m | 10 / 40 m | Dieselben Sekunden (6 und 25), andere Meter. Mit den Rad-Zahlen stünde zu Fuss jede Abbiegung anderthalb Minuten lang rot. |
+| Ankunftsschätzung (`nav-format.ts`) | Pauschale 3,3 m/s, gemessen ab 1 m/s | 1,25 m/s, gemessen ab 0,5 m/s | 1 m/s ist zu Fuss fast normales Tempo; mit der Rad-Schwelle fiele der Fussgänger fast immer auf die Pauschale zurück. |
+| Vier Texte | „Weiterfahren", Halterungs-Hinweis | „Weitergehen", Standort-Satz | Und „Am Ziel" statt „Wieder am Start", wenn die Runde kein Rundweg ist (`isLoop`, 50 m Toleranz). |
+
+**Die Zahlen zu Fuss** (`WALK_NAV`), gemessen an `antons-hausrunde`: 14 Halte auf 5,6 km,
+kleinster Abstand zwischen zwei Halten 106 m. Jede Distanz muss deutlich darunter bleiben,
+sonst überlappen zwei Halte im selben Fenster.
+
+| Zweck | Rad | Zu Fuss | Warum |
+|---|---|---|---|
+| Audio-Spot ankündigen | 200 m | 60 m | Dieselben rund 40 Sekunden. Mehr wäre bei 106 m Halt-Abstand ein Angebot für den übernächsten Halt. Gemessen (nav:check 27): 56 m. |
+| Spot als vorbei werten | 100 m | 40 m | 30 Sekunden weitergegangen. Gemessen: 43 m. |
+| Kulanz für vorgemerkte Spots | 250 m | 80 m | |
+| Sperrzone vor Abbiegung | 140 m | **0 m** | Am Rad eine Sicherheitsregel, zu Fuss bleibt man stehen. In einer Altstadt mit einer Gasse alle 40 m verschluckte die Regel sonst jedes Angebot (nav:check 30). |
+| „Dort gewesen" als Luftlinie | 100 m | 45 m | 11 bis 13 m Ortungsfehler plus 25 m Abstand zum Anschauen; unter der Hälfte von 106 m, sonst hakte eine Geschichte den Nachbarn ab. |
+| Fenster-Boden | 40 m | 30 m | |
+| Gegenrichtung | 60 m, 3 Fixe, aufgehoben nach 25 m | 45 m, 3 Fixe, aufgehoben nach 15 m | Greift über Fenster-Boden + Rückfall auf die globale Suche bei rund 65 bis 85 m Rückweg, also unter einer Minute. Gemessen: 85 m im Kern (nav:check 28), 66 m im Browser (Geh-Simulator d). |
+| Ende der Runde | 35 m, 2 Fixe, Annäherung 250 m, Rücknahme ab 90 m | 25 m, 3 Fixe, 120 m, 60 m | Zu Fuss hat man Zeit für einen dritten sauberen Fix. |
+| Grösster Fortschritts-Sprung | 400 m + 50 m Zugabe | 150 m + **80 m** Zugabe | Die Zugabe muss den Rücksprung beim Umdrehen decken (unten). |
+| Off-Route | 40 m, 3 Fixe, Ruhe 10 s | 35 m, 4 Fixe, Ruhe 20 s | Ein Platz ist zu Fuss der Normalfall: Wer den Residenzplatz diagonal quert, ist 30 m von der Linie am Rand entfernt und nicht verloren. |
+| Ausreisser-Filter | 20 m/s | 8 m/s | Doppeltes Joggen. Nicht tiefer: Im Stand streut die Ortung leicht 5 bis 8 m je Sekunde, und das darf kein verworfener Fix sein, sonst friert die Anzeige an jeder Ampel ein (nav:check 31). |
+
+**Zwei Dinge am Kern mussten sich ändern, damit das zu Fuss überhaupt funktioniert:**
+
+1. **Der Kurs über Grund kommt von einem Anker, nicht vom letzten Fix.** Bis dahin wurde er
+   zwischen zwei aufeinanderfolgenden Fixen gerechnet, und die liegen am Rad 5 m auseinander,
+   zu Fuss aber nur 1,4 m: unter der 3-m-Schwelle, also gab es zu Fuss nie einen Kurs, nie
+   die Stichweg-Absicherung und nie einen Umdreh-Hinweis. `NavState.moveAnchor` ist die letzte
+   Stelle, von der aus der Gast 3 m weit gekommen ist; er sammelt die Schritte. Am Rad rückt
+   er bei jedem Fix weiter, das Ergebnis ist dort dasselbe wie vorher (nav:check 32 hält das
+   fest). Dazu zählt die Gegenrichtung nur noch **bewegte** Fixe; ein Fix im Stand lässt die
+   Reihe stehen, statt sie zu löschen. Zu Fuss ist nur jeder dritte Fix bewegt, mit dem alten
+   „sonst null" kam die Reihe nie über eins.
+2. **Die Sprung-Zugabe ist zu Fuss gross (80 m).** Gefunden im Geh-Simulator: Wer umdreht,
+   wird vom Fenster-Boden erst festgehalten, bis der Abstand dorthin die Off-Route-Schwelle
+   übersteigt; dann fällt die Suche auf die echte Stelle zurück, und das sind auf einen
+   Schlag rund 35 bis 85 m. Mit 30 m Zugabe (Deckel 38 m je Sekunde) wurde genau dieser
+   Rücksprung verworfen, der Fortschritt fror ein, und statt „Bitte umdrehen" kam nach vier
+   Fixen eine Neuberechnung. Die Zugabe darf gross sein, weil räumliche Ausreisser vorher der
+   Teleport-Filter fängt; sie begrenzt nur das Schnappen entlang der Linie.
+
+**Geh-Simulator** (Scratchpad `walk.mjs`, nach dem Muster des Fahrsimulators, bewusst nicht
+im Repo): Szenarien o (Übersicht → Knopf → Navigation), gate (Text ohne Halterung, Profil
+walking), a (ganze Runde), b (250 m abseits), c (Play am Halt rückt die Leiste weiter),
+d (Gegenrichtung), e (Neuladen → „Weitergehen, Halt 3 von 14"), g (Ortungslücke → genau eine
+Neuberechnung), x (gesperrter Halt 3 → Kauffläche mit Preis und sichtbarem Knopf), z
+(Zieleinlauf mit vorbelegtem Gedächtnis: 200 m vor Halt 14 starten → „Weitergehen, Halt 14
+von 14", Angebot am Mönchsberg, „Wieder am Start", ein Routen-Abruf). Gemessen am
+16.09.2026: Halte 1 bis 13 in Reihenfolge angeboten (Rad-Simulator-Lauf über route_geo), Halte
+1 bis 6 auf der Live-Route ohne eine einzige Neuberechnung, dann z für den Schluss; der
+Komplettdurchlauf am Stück ist noch offen, weil der Dev-Server zweimal von aussen beendet
+wurde (ein fremder `next dev` aus einem anderen Projekt übernahm Port 3000).
+
+Eine Lehre daraus für beide Simulatoren: **abgegangen wird die Live-Route der Seite, nicht
+`tours.route_geo`.** Die Navigation holt ihre Linie selbst ab der aktuellen Position, und die
+weicht von der gespeicherten Linie des Editors stellenweise ab (anderer Fussweg, andere
+Strassenseite). Wer die gespeicherte Linie abgeht, läuft neben der Live-Route und löst
+Neuberechnungen aus, die ein Gast, der der Anzeige folgt, nie sähe (gemessen: zwei je
+Szenario, und eine davon verdeckte genau den Umdreh-Hinweis, den das Szenario prüfen sollte).
+
+**Gespeicherte eigene Runden** (`/touren/meine/<id>`, aus dem KI-Builder, immer zu Fuss)
+haben dieselbe Navigation unter `/touren/meine/<id>/navigation`. Ihr Ziel ist ihr Start
+(`getUserTourDetail` setzt `end`), denn der Builder plant nur Rundwege; ohne Ziel endete die
+Führung am letzten Halt. Der Rückweg aus der Kasse kennt beide Arten seit demselben Tag
+(`tourNavPath` in `lib/url.ts`, geprüft in `npm run pro:check` Nr. 6): Vorher führte er aus
+einer eigenen Runde auf `/touren/meine-<id>/navigation`, eine 404. Die Vorschau im Builder
+(noch ohne URL) behält den Play-Knopf.
+
+**Was zu Fuss offen bleibt:** Der Kompass. Apple Maps dreht die Karte beim Gehen nach der
+Blickrichtung des Geräts; im Browser braucht das `DeviceOrientationEvent` mit einer eigenen
+Erlaubnis-Geste auf iOS. Bis dahin zeigt die Karte in Richtung der Route, und wer sich
+umdreht, sieht seinen Punkt nach unten wandern und die Ansage „Bitte umdrehen". Und der
+Bildschirm bleibt an (Wake Lock), obwohl das Handy zu Fuss oft in der Tasche steckt; ein
+Ruhezustand zwischen den Abbiegungen steht schon beim Rad als offen.
 
 ## Eine Stimme je Runde (seit 09/2026)
 

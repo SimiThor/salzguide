@@ -1,5 +1,7 @@
-// Routing für den Rad-Audioguide: die GANZE Runde in einer Anfrage, mit den Audio-Spots
-// als stillen Wegpunkten (docs/40). Bis 24.08.2026 stand hier das Gegenteil, ein eigener
+// Routing für den Audioguide (Rad und zu Fuss): die GANZE Runde in einer Anfrage, mit den
+// Audio-Spots als stillen Wegpunkten (docs/40). Das Profil kommt vom Aufrufer
+// (`profile`): "cycling" fuer eine S-Bike-Runde, "walking" fuer eine Geh-Runde. Alles
+// andere ist fuer beide gleich. Bis 24.08.2026 stand hier das Gegenteil, ein eigener
 // Abruf je Etappe von der aktuellen Position zum nächsten Stopp. Das war als erster Wurf
 // richtig, kann aber drei Dinge grundsätzlich nicht: die Route vor dem Gast farbig und
 // hinter ihm ausgegraut zeigen (eine Etappe kennt die Runde nicht), einen exakten
@@ -32,6 +34,14 @@ import { prepareSteps, turnAngle, type RawStep } from "./nav-steps";
 const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
 export type BikeLegError = "no-token" | "network" | "no-route";
+
+// Mapbox-Directions-Profil je Fortbewegung (tours.mode, 0064). Dieselbe Zuordnung wie
+// im Runden-Editor (tour-actions.ts, snapTourRoute): Der Gast faehrt die Linie, die der
+// Admin in der Vorschau gesehen hat.
+export type DirectionsProfile = "cycling" | "walking";
+export function directionsProfileFor(mode: "walk" | "bike"): DirectionsProfile {
+  return mode === "bike" ? "cycling" : "walking";
+}
 
 type MapboxStep = {
   distance: number;
@@ -220,6 +230,9 @@ export async function fetchBikeRoute(
   end?: [number, number] | null,
   // Wegpunkte ohne Geschichte, schon ausgewaehlt (selectNavVias). Auch sie sind keine Spots.
   vias: NavVia[] = [],
+  // "cycling" oder "walking" (directionsProfileFor). Bis 16.09.2026 stand hier fest
+  // "cycling", weil es nur die Radrunde gab.
+  profile: DirectionsProfile = "cycling",
 ): Promise<BikeRouteResult> {
   if (!TOKEN) return { ok: false, error: "no-token" };
   if (spots.length === 0) return { ok: false, error: "no-route" };
@@ -232,12 +245,14 @@ export async function fetchBikeRoute(
   const coords = chain.coords;
   const last = coords.length - 1;
   const coordStr = coords.map((c) => `${c[0]},${c[1]}`).join(";");
-  // Bewusst NUR "cycling". Der Vorgänger fragte zusätzlich "walking" ab und nahm das
-  // kürzere von beiden (docs/40); das kann den Gast auf eine Treppe oder in
-  // eine Fussgängerzone führen. Wo ein Fussweg die bessere Verbindung ist, gehört er als
-  // Schiebestelle markiert, nicht still als Radweg ausgegeben.
+  // EIN Profil je Anfrage, nie das kuerzere von zweien. Der Vorgänger fragte am Rad
+  // zusätzlich "walking" ab und nahm das kürzere von beiden (docs/40); das kann den Gast
+  // auf eine Treppe oder in eine Fussgängerzone führen. Wo ein Fussweg die bessere
+  // Verbindung ist, gehört er als Schiebestelle markiert, nicht still als Radweg
+  // ausgegeben. Zu Fuss ist "walking" umgekehrt genau richtig: Treppen und Gassen sind
+  // dort der Weg, nicht das Hindernis.
   const url =
-    `https://api.mapbox.com/directions/v5/mapbox/cycling/${coordStr}` +
+    `https://api.mapbox.com/directions/v5/mapbox/${profile}/${coordStr}` +
     `?steps=true&geometries=geojson&overview=full&waypoints=0;${last}` +
     `&language=${encodeURIComponent(locale)}&access_token=${TOKEN}`;
 

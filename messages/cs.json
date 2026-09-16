@@ -156,7 +156,11 @@
     "navEtaLabel": "Příjezd",
     "navWrongWay": "Otoč se, prosím",
     "navResume": "Pokračovat v jízdě, zastávka {n} z {total}",
-    "navRestart": "Začít od začátku"
+    "navRestart": "Začít od začátku",
+    "navWalkIntro": "Navigace od zastávky k zastávce potřebuje tvoji polohu.",
+    "navResumeWalk": "Pokračovat pěšky, zastávka {n} z {total}",
+    "navDoneContinueWalk": "Pokračovat pěšky",
+    "navDoneTitleEnd": "V cíli"
   },
   "Water": {
     "title": "Teplota vody",

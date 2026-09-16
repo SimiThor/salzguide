@@ -156,7 +156,11 @@
     "navEtaLabel": "Arrivo",
     "navWrongWay": "Fai inversione",
     "navResume": "Continua a pedalare, tappa {n} di {total}",
-    "navRestart": "Ricomincia da capo"
+    "navRestart": "Ricomincia da capo",
+    "navWalkIntro": "Per guidarti di tappa in tappa serve la tua posizione.",
+    "navResumeWalk": "Continua a piedi, tappa {n} di {total}",
+    "navDoneContinueWalk": "Continua a piedi",
+    "navDoneTitleEnd": "Al traguardo"
   },
   "Water": {
     "title": "Temperature dell'acqua",

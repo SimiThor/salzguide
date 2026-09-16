@@ -1,6 +1,9 @@
-// Prüft den reinen Entscheidungs-Kern des Rad-Audioguides (bike-nav-core.ts) gegen
-// synthetische GPS-Fix-Folgen. Aufruf:
+// Prüft den reinen Entscheidungs-Kern des Audioguides (bike-nav-core.ts, Rad UND zu Fuss)
+// gegen synthetische GPS-Fix-Folgen. Aufruf:
 //   npm run nav:check
+//
+// Die Faelle 1 bis 26 fahren mit der Rad-Tabelle (NAV), ab 27 gehen sie mit WALK_NAV: Der
+// Kern ist derselbe, nur die Zahlen und das Tempo (1,4 statt 5 m/s) sind andere.
 //
 // WARUM ES DIESES SKRIPT GIBT: Priorität 1 der Runde ist zuverlässige Navigation (siehe
 // docs/40). Ob der Play-Knopf rechtzeitig kommt, ob eine Neuberechnung feuert und ob der
@@ -15,7 +18,10 @@ import {
   resetForNewRoute,
   settleSpot,
   atSpot,
+  navTuningFor,
   NAV,
+  WALK_NAV,
+  type NavTuning,
   type GeoFix,
   type NavRoute,
   type NavState,
@@ -63,12 +69,12 @@ function fix(coord: [number, number], atMs: number, opts: Partial<GeoFix> = {}):
 
 type RunResult = { states: NavState[]; events: { type: string; index?: number }[] };
 
-function runOn(route: NavRoute, fixes: GeoFix[], startState?: NavState): RunResult {
+function runOn(route: NavRoute, fixes: GeoFix[], startState?: NavState, tuning: NavTuning = NAV): RunResult {
   let state = startState ?? initNavState(route.spotAlongM.length);
   const states: NavState[] = [];
   const events: { type: string; index?: number }[] = [];
   for (const f of fixes) {
-    const r = stepNav(state, f, route);
+    const r = stepNav(state, f, route, tuning);
     state = r.state;
     states.push(state);
     for (const e of r.events) events.push(e as { type: string; index?: number });
@@ -133,6 +139,8 @@ type RideOpts = {
   // an. Fährt der Simulator stattdessen stur gegen die alte Geometrie weiter, meldet er
   // nach Ablauf der Cooldown ein zweites Reroute, das es in der App nie gäbe.
   stopOn?: "reroute" | "finished";
+  // Die Zahlentabelle: NAV (Rad, Vorgabe) oder WALK_NAV (zu Fuss).
+  tuning?: NavTuning;
 };
 
 function ride(opts: RideOpts): { fixes: GeoFix[] } & RunResult {
@@ -170,7 +178,7 @@ function ride(opts: RideOpts): { fixes: GeoFix[] } & RunResult {
   const events: { type: string; index?: number }[] = [];
   const used: GeoFix[] = [];
   for (const f of fixes) {
-    const r = stepNav(state, f, opts.route);
+    const r = stepNav(state, f, opts.route, opts.tuning ?? NAV);
     state = r.state;
     states.push(state);
     used.push(f);
@@ -904,6 +912,152 @@ console.log("\n26. Abhaken von Hand: das Ziel rueckt sofort weiter, der naechste
     }
   }
   if (alleOk) ok(`"dort gewesen" stimmt in allen ${faelle.length} Faellen`);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════
+//  ZU FUSS (16.09.2026)
+//
+//  Dieselben Regeln, andere Zahlen (WALK_NAV). Auslegungstempo 1,4 m/s, ein Fix je
+//  Sekunde: Die Punkte liegen also nur 1,4 m auseinander, unter der 3-m-Schwelle fuer
+//  einen brauchbaren Kurs. Genau daran haengt der Bewegungs-Anker im Kern.
+// ═══════════════════════════════════════════════════════════════════════════════════
+
+console.log("\n27. Zu Fuss: Angebot bei rund 60 m, verpasst nach 40 m, Ende am Ziel");
+{
+  if (navTuningFor("walk") === WALK_NAV && navTuningFor("bike") === NAV) ok("die Fortbewegung waehlt die Tabelle");
+  else bad("navTuningFor", "liefert die falsche Tabelle");
+
+  const route = straightRoute(600, [200, 450]);
+  const { states, events } = ride({ route, path: route.geometry, speedMps: 1.4, noiseM: 3, accuracyM: 12, seed: 27, tuning: WALK_NAV });
+
+  const atFire = states.find((s) => s.spotPhase[0] === "near");
+  const ahead = atFire ? 200 - atFire.alongM : NaN;
+  if (ahead <= WALK_NAV.SPOT_NEAR_M && ahead > WALK_NAV.SPOT_NEAR_M - 12) ok(`Angebot bei ${ahead.toFixed(0)} m Vorlauf (Sollwert ${WALK_NAV.SPOT_NEAR_M} m)`);
+  else bad("Vorlauf zu Fuss", `${ahead.toFixed(0)} m statt rund ${WALK_NAV.SPOT_NEAR_M} m`);
+
+  const passed = states.find((s) => s.spotPhase[0] === "done");
+  const behind = passed ? passed.alongM - 200 : NaN;
+  if (behind >= WALK_NAV.SPOT_PASSED_M && behind < WALK_NAV.SPOT_PASSED_M + 12) ok(`ungehoert verbucht ${behind.toFixed(0)} m dahinter (Sollwert ${WALK_NAV.SPOT_PASSED_M} m)`);
+  else bad("Verbuchen zu Fuss", `${behind.toFixed(0)} m statt rund ${WALK_NAV.SPOT_PASSED_M} m`);
+
+  const near = events.filter((e) => e.type === "spot-near").map((e) => e.index);
+  if (near.length === 2 && new Set(near).size === 2) ok("jeder der beiden Spots genau einmal angeboten");
+  else bad("Spot-Angebote zu Fuss", JSON.stringify(near));
+  if (countOf(events, "reroute") === 0) ok("keine Neuberechnung mit 3 m Rauschen");
+  else bad("Neuberechnung zu Fuss", `${countOf(events, "reroute")} statt 0`);
+  if (countOf(events, "finished") === 1 && states[states.length - 1].finished) ok("genau ein Ende der Runde, und es haelt");
+  else bad("Ende der Runde zu Fuss", `${countOf(events, "finished")} Ereignis(se)`);
+  if (countOf(events, "wrong-way") === 0) ok("kein Umdreh-Hinweis auf dem geraden Weg");
+  else bad("falscher Umdreh-Hinweis", `${countOf(events, "wrong-way")} Ereignis(se)`);
+}
+
+console.log("\n28. Zu Fuss: Gegenrichtung wird erkannt, obwohl die Fixe nur 1,4 m auseinanderliegen");
+{
+  // Bis 16.09.2026 gab es zu Fuss nie einen Kurs ueber Grund (zwei Fixe lagen unter 3 m
+  // auseinander) und damit nie einen bewegten Fix: Der Umdreh-Hinweis kam nicht, egal wie
+  // weit jemand zurueckging. Jetzt sammelt der Anker die Schritte.
+  const route = straightRoute(800, [550]);
+  const path: [number, number][] = [];
+  for (let d = 0; d <= 300; d += 10) path.push(alongRoute(d));
+  for (let d = 290; d >= 150; d -= 10) path.push(alongRoute(d));
+  for (let d = 160; d <= 600; d += 10) path.push(alongRoute(d));
+  const { states, events } = ride({ route, path, speedMps: 1.4, noiseM: 2, seed: 28, tuning: WALK_NAV });
+
+  if (countOf(events, "wrong-way") === 1) ok("genau ein Umdreh-Hinweis");
+  else bad("Umdreh-Hinweis zu Fuss", `${countOf(events, "wrong-way")} statt 1`);
+  const beim = states.find((s) => s.wrongWay);
+  if (beim && 300 - beim.alongM <= 90) ok(`der Hinweis kommt nach ${(300 - beim.alongM).toFixed(0)} m Rueckweg, also unter ${Math.round(90 / 1.4)} Sekunden`);
+  else if (beim) bad("Hinweis kommt zu spaet", `erst nach ${(300 - beim.alongM).toFixed(0)} m Rueckweg`);
+  if (countOf(events, "on-track") === 1) ok("und genau einmal aufgehoben");
+  else bad("Aufhebung zu Fuss", `${countOf(events, "on-track")} statt 1`);
+  const wieder = states.findIndex((s, i) => i > 0 && states[i - 1].wrongWay && !s.wrongWay);
+  if (wieder > 0 && states[wieder].alongM <= 150 + WALK_NAV.WRONG_WAY_CLEAR_M + 15) ok(`aufgehoben bei ${states[wieder].alongM.toFixed(0)} m, kurz nach dem Umdrehen`);
+  else if (wieder > 0) bad("Aufhebung kommt zu spaet", `erst bei ${states[wieder].alongM.toFixed(0)} m`);
+  if (countOf(events, "reroute") === 0) ok("keine Neuberechnung, der Gast ist auf dem Weg");
+  else bad("Neuberechnung in der Gegenrichtung", `${countOf(events, "reroute")} Ereignis(se)`);
+  if (events.some((e) => e.type === "spot-near" && e.index === 0)) ok("der Spot danach wird angeboten");
+  else bad("Spot nach dem Umdrehen bleibt stumm", JSON.stringify(events));
+
+  // Dasselbe mit duenneren Fixen: alle drei Sekunden (Safari drosselt), und im Tempo des
+  // Geh-Simulators (6 m/s). Beim ersten Anlauf im Browser fror der Fortschritt beim
+  // Umdrehen ein und es kam eine Neuberechnung statt des Hinweises: Der Ruecksprung vom
+  // Fenster-Boden auf die echte Stelle (rund 35 bis 50 m) war groesser als der Sprung-
+  // Deckel bei 1 s (damals 38 m). WALK_NAV.JUMP_SLACK_M erklaert die Zahl.
+  const duenn = ride({ route, path, speedMps: 1.4, dtMs: 3000, noiseM: 2, seed: 28, tuning: WALK_NAV });
+  const schnell = ride({ route, path, speedMps: 6, noiseM: 2, seed: 28, tuning: WALK_NAV });
+  for (const [name, r] of [["ein Fix alle 3 s", duenn], ["6 m/s", schnell]] as [string, RunResult][]) {
+    if (countOf(r.events, "wrong-way") === 1 && countOf(r.events, "reroute") === 0) ok(`auch mit ${name}: ein Hinweis, keine Neuberechnung`);
+    else bad(`Gegenrichtung mit ${name}`, `${countOf(r.events, "wrong-way")} Hinweise, ${countOf(r.events, "reroute")} Neuberechnungen`);
+  }
+}
+
+console.log("\n29. Zu Fuss: Stehenbleiben mit Rauschen ist weder Gegenrichtung noch Off-Route");
+{
+  // Man bleibt zu Fuss staendig stehen: schauen, fotografieren, zuhoeren. Dabei streut die
+  // Ortung um einige Meter. Das darf weder "Bitte umdrehen" noch eine Neuberechnung
+  // ausloesen, und der Halt 250 m weiter bleibt offen.
+  const route = straightRoute(600, [400]);
+  const path: [number, number][] = [];
+  for (let d = 0; d <= 150; d += 10) path.push(alongRoute(d));
+  const r = ride({ route, path, speedMps: 1.4, noiseM: 6, accuracyM: 12, seed: 29, tuning: WALK_NAV, haltAt: { index: path.length - 1, fixes: 120 } });
+  const last = r.states[r.states.length - 1];
+  if (countOf(r.events, "wrong-way") === 0) ok("kein Umdreh-Hinweis nach zwei Minuten Stehen");
+  else bad("Umdreh-Hinweis im Stand", `${countOf(r.events, "wrong-way")} Ereignis(se)`);
+  if (countOf(r.events, "reroute") === 0) ok("keine Neuberechnung im Stand");
+  else bad("Neuberechnung im Stand", `${countOf(r.events, "reroute")} Ereignis(se)`);
+  if (Math.abs(last.alongM - 150) <= 15) ok(`der Fortschritt bleibt stehen (${last.alongM.toFixed(0)} m)`);
+  else bad("Fortschritt wandert im Stand", `${last.alongM.toFixed(0)} m statt ~150 m`);
+  if (last.spotPhase[0] === "open") ok("der Halt in 250 m bleibt offen");
+  else bad("Halt im Stand verbucht oder angeboten", last.spotPhase[0]);
+}
+
+console.log("\n30. Zu Fuss: keine Sperrzone, das Angebot kommt auch direkt vor einer Abbiegung");
+{
+  // Am Rad wartet der Play-Knopf, solange eine Abbiegung bevorsteht (Sicherheitsregel).
+  // Zu Fuss bleibt man stehen; in einer Altstadt mit einer Gasse alle 40 m verschluckte
+  // die Regel sonst jedes Angebot.
+  const route = straightRoute(600, [200]);
+  route.steps = [{ alongM: 185, instruction: "Links abbiegen", type: "turn", modifier: "left" }];
+  const { states } = ride({ route, path: route.geometry, speedMps: 1.4, tuning: WALK_NAV });
+  const atFire = states.find((s) => s.spotPhase[0] === "near");
+  if (atFire && atFire.alongM < 185) ok(`Angebot bei ${atFire.alongM.toFixed(0)} m, vor der Abbiegung bei 185 m`);
+  else bad("Angebot wartet auf die Abbiegung", atFire ? `erst bei ${atFire.alongM.toFixed(0)} m` : "nie");
+}
+
+console.log("\n31. Zu Fuss: der Teleport-Filter laesst Stand-Rauschen durch und verwirft echte Spruenge");
+{
+  // MAX_SPEED_MPS ist zu Fuss 8: Ein Fix, der 7 m weiter liegt als der vorige (Rauschen an
+  // der Ampel), zaehlt; einer, der 15 m weiter liegt, ist ein Ausreisser.
+  const route = straightRoute(600, []);
+  let t = 1000;
+  const f = (d: number, dt: number) => { t += dt; return fix(alongRoute(d), t, { speedMps: 0, headingDeg: null }); };
+  const fixes = [f(100, 1000), f(107, 1000), f(122, 1000), f(113, 1000)];
+  const { states } = runOn(route, fixes, undefined, WALK_NAV);
+  if (Math.abs(states[1].alongM - 107) < 1) ok("7 m in einer Sekunde werden uebernommen");
+  else bad("Stand-Rauschen verworfen", `${states[1].alongM.toFixed(0)} m`);
+  if (states[2] === states[1]) ok("15 m in einer Sekunde werden verworfen");
+  else bad("Ausreisser uebernommen", `${states[2].alongM.toFixed(0)} m`);
+  if (Math.abs(states[3].alongM - 113) < 1) ok("und der naechste echte Fix zaehlt wieder (gegen den letzten guten gemessen)");
+  else bad("nach dem Ausreisser bleibt es haengen", `${states[3].alongM.toFixed(0)} m`);
+}
+
+console.log("\n32. Der Anker aendert am Rad nichts: Stichweg und Gegenrichtung wie vorher");
+{
+  // Der Bewegungs-Anker (NavState.moveAnchor) ist fuers Gehen da. Am Rad liegen die Fixe
+  // 5 m auseinander, der Anker rueckt also bei jedem Fix weiter, und das Ergebnis muss
+  // dasselbe sein wie mit dem alten "Kurs aus zwei Fixen". Zwei Stichproben aus 19 und 23.
+  const spur = spurRoute();
+  const s19 = ride({ route: spur, path: spur.geometry, speedMps: 5 });
+  if (s19.states[s19.states.length - 1].alongM >= 900 && countOf(s19.events, "wrong-way") === 0) ok("Stichweg am Rad: kommt an, kein Umdreh-Hinweis");
+  else bad("Stichweg am Rad veraendert", `${s19.states[s19.states.length - 1].alongM.toFixed(0)} m, ${countOf(s19.events, "wrong-way")} Hinweise`);
+  const route = straightRoute(1200, [900]);
+  const path: [number, number][] = [];
+  for (let d = 0; d <= 500; d += 20) path.push(alongRoute(d));
+  for (let d = 480; d >= 300; d -= 20) path.push(alongRoute(d));
+  for (let d = 320; d <= 1000; d += 20) path.push(alongRoute(d));
+  const s23 = ride({ route, path, noiseM: 2, seed: 23 });
+  if (countOf(s23.events, "wrong-way") === 1 && countOf(s23.events, "on-track") === 1) ok("Gegenrichtung am Rad: ein Hinweis, einmal aufgehoben");
+  else bad("Gegenrichtung am Rad veraendert", `${countOf(s23.events, "wrong-way")} / ${countOf(s23.events, "on-track")}`);
 }
 
 console.log(failed ? `\n${failed} Prüfung(en) fehlgeschlagen.` : "\nAlles grün.");

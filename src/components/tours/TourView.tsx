@@ -39,6 +39,7 @@ const SHEET_DETENTS = [0.62, 1];
 export default function TourView({
   tour,
   proPrice = "",
+  navHref,
   onRestart,
   topRight,
 }: {
@@ -49,6 +50,13 @@ export default function TourView({
    * die Aufrufstelle kennt keinen Preis), dann bleibt der Weg über /pro.
    */
   proPrice?: string;
+  /**
+   * Pfad zum Navigations-Bildschirm dieser Runde (ohne Sprach-Praefix). Gesetzt heisst:
+   * Der grosse Knopf im Ruhezustand fuehrt dorthin, am Rad wie zu Fuss (seit 16.09.2026,
+   * vorher nur bei mode="bike"). Fehlt er (die Vorschau im Builder hat noch keine URL),
+   * spielt der Knopf den ersten offenen Stopp.
+   */
+  navHref?: string;
   onRestart?: () => void;
   topRight?: React.ReactNode;
 }) {
@@ -234,14 +242,17 @@ export default function TourView({
     audio.playAt(firstPlayable);
   };
 
-  // GENAU EINE Aktion im Ruhezustand. Bei einer S-Bike-Runde ist das der Fahrbildschirm
-  // (die Navigation kostet nichts, nur das Audio an den Stopps ist Pro), sonst der Start
-  // der Wiedergabe. Vorher standen beide untereinander, zwei rote Knöpfe, gleich laut.
+  // GENAU EINE Aktion im Ruhezustand: der Navigations-Bildschirm, wo es einen gibt (die
+  // Navigation kostet nichts, nur das Audio an den Stopps ist Pro). Am Rad UND zu Fuss
+  // derselbe Knopf und dieselbe Seite dahinter; bis 16.09.2026 spielte er bei einer
+  // Geh-Runde nur den ersten Stopp, und der Gast stand mit einer laufenden Geschichte da,
+  // ohne zu wissen, wohin. Nur die Vorschau im Builder (keine URL) startet weiter die
+  // Wiedergabe. Vorher standen beide untereinander, zwei rote Knöpfe, gleich laut.
   const cta =
     "flex w-full items-center justify-center gap-2 rounded-full bg-accent px-5 py-3.5 text-[16px] font-semibold text-white shadow-[0_10px_24px_-10px_rgba(204,41,36,0.55)] transition active:scale-[0.98]";
   const primaryAction =
-    tour.mode === "bike" ? (
-      <Link href={`/touren/${tour.slug}/navigation`} className={`${cta} mt-4`}>
+    navHref ? (
+      <Link href={navHref} className={`${cta} mt-4`}>
         🧭 {t("startNavigation")}
       </Link>
     ) : firstPlayable >= 0 ? (

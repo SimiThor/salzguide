@@ -14,7 +14,7 @@ import SpotOffer from "./SpotOffer";
 import { useGeolocationWatch } from "@/lib/use-geolocation-watch";
 import { useWakeLock } from "@/lib/use-wake-lock";
 import { useBikeNavigation } from "@/lib/use-bike-navigation";
-import { atSpot } from "@/lib/bike-nav-core";
+import { atSpot, navTuningFor } from "@/lib/bike-nav-core";
 import { readRide, writeRide, clearRide, type SavedRide } from "@/lib/bike-nav-memory";
 import { useTourAudio, type PlayerStop } from "@/components/tours/useTourAudio";
 import { trackProGate } from "@/lib/pro-gate-track";
@@ -38,16 +38,31 @@ function firstOpenOrder(stops: TourStopView[], done: number[]): number {
   return i >= 0 ? stops[i].order : 1;
 }
 
-// Der Fahrbildschirm des Rad-Audioguides (docs/40): permanente Abbiege-Führung über die
-// GANZE Runde, ein Play-Angebot kurz vor jedem Spot, danach ein mitlaufender Player.
+// Der Navigations-Bildschirm des Audioguides (docs/40): permanente Abbiege-Führung über
+// die GANZE Runde, ein Play-Angebot kurz vor jedem Spot, danach ein mitlaufender Player.
 // Bündelt GPS (use-geolocation-watch), den reinen Kern (bike-nav-core über
 // use-bike-navigation) und die Karte (NavMap) zu EINEM Bildschirm. Priorität ist die
 // Karte, alles andere ist HUD darüber und darf sie nie ganz verdecken.
+//
+// RAD UND ZU FUSS, EIN BILDSCHIRM (seit 16.09.2026). Der Name blieb, weil er an neun
+// Stellen im Code und in docs/40 zitiert wird; was er tut, haengt an `tour.mode`:
+// Routing-Profil und Zahlentabelle (use-bike-navigation), Kamera (NavMap), Farbstufen des
+// Abbiege-Banners (ManeuverBanner), Ankunftsschaetzung (nav-format) und vier Texte hier
+// unten (Gate, Wiedereinstieg, Weiter, Abschluss). Alles andere ist gleich, mit Absicht:
+// Wer die Radrunde kennt, findet sich zu Fuss sofort zurecht, und umgekehrt. Was zu Fuss
+// WEGFAELLT, ist der Halterungs-Hinweis am Gate; er ist eine StVO-Sache fuers Rad.
 export default function BikeNavScreen({
   tour,
   proPrice = "",
+  backHref,
 }: {
   tour: TourDetail;
+  /**
+   * Wohin der Pfeil oben links und "Zurueck zur Tour" fuehren: die Uebersicht DIESER Runde.
+   * Kuratierte Runden liegen unter /touren/<slug>, gespeicherte eigene unter
+   * /touren/meine/<id>; die Seite weiss das, der Bildschirm nicht.
+   */
+  backHref?: string;
   /**
    * Preis aus Stripe, serverseitig geholt. Gesetzt heisst: Der Kauf passiert im Sheet und
    * fuehrt danach hierher zurueck. Leer heisst: Stripe war nicht erreichbar, dann bleibt der
@@ -59,6 +74,14 @@ export default function BikeNavScreen({
   const t = useTranslations("Tours");
   const locale = useLocale();
   const router = useRouter();
+  // Fortbewegung der Runde (tours.mode, 0064). Siehe den Kopf der Datei: Sie waehlt
+  // Zahlen und vier Texte, nie den Aufbau.
+  const mode = tour.mode;
+  const walk = mode === "walk";
+  const tuning = navTuningFor(mode);
+  // Im Rumpf statt als Vorgabewert im Parameter, weil der Vorgabewert einen anderen Prop
+  // (tour.slug) lesen muesste.
+  const back = backHref ?? `/touren/${tour.slug}`;
   // Erst im Effekt gesetzt (nicht direkt useRef(Date.now())): Date.now() während des
   // Renderns auszuwerten gilt als unreine Render-Funktion, auch wenn nur der ERSTE Wert
   // je verwendet wird.
@@ -132,7 +155,7 @@ export default function BikeNavScreen({
 
   const { fix, status: gpsStatus, start } = useGeolocationWatch();
   useWakeLock(gpsStatus === "requesting" || gpsStatus === "watching" || gpsStatus === "signal-lost");
-  const bike = useBikeNavigation(stopCoords, fix, locale, endCoord, resumeDone, navVias);
+  const bike = useBikeNavigation(stopCoords, fix, locale, endCoord, resumeDone, navVias, mode);
 
   const [activeAudioIndex, setActiveAudioIndex] = useState(0);
   const audio = useTourAudio(playerStops, activeAudioIndex, setActiveAudioIndex);
@@ -371,11 +394,18 @@ export default function BikeNavScreen({
     fix && nextStop?.lat != null && nextStop.lng != null
       ? haversineMeters([fix.lng, fix.lat], [nextStop.lng, nextStop.lat])
       : null;
-  const zielErreicht =
-    nextRouteSpot >= 0 &&
-    heard.has(nextRouteSpot) &&
-    zielPhase != null &&
-    atSpot(zielPhase, zielLuftlinieM);
+  // In useMemo: `zielPhase` ist hier eingeengt (nach der null-Pruefung), und sobald die
+  // Tabelle als drittes Argument dazukam, uebersprang der React-Compiler die ganze Datei
+  // (preserve-manual-memoization, gemeldet an zwei useCallbacks weiter oben, die nichts
+  // damit zu tun haben; per Probe-Kopien eingegrenzt am 16.09.2026).
+  const zielErreicht = useMemo(
+    () =>
+      nextRouteSpot >= 0 &&
+      heard.has(nextRouteSpot) &&
+      zielPhase != null &&
+      atSpot(zielPhase, zielLuftlinieM, tuning),
+    [nextRouteSpot, heard, zielPhase, zielLuftlinieM, tuning],
+  );
   const markSpotDone = bike.markSpotDone;
   useEffect(() => {
     if (!zielErreicht) return;
@@ -411,7 +441,22 @@ export default function BikeNavScreen({
 
   const maneuverStep =
     bike.route && bike.nav.stepIndex >= 0 ? (bike.route.steps[bike.nav.stepIndex] ?? null) : null;
-  const etaMin = bike.status === "ready" ? estimateEtaMin(bike.nav.remainingM, fix?.speedMps ?? null) : null;
+  const etaMin =
+    bike.status === "ready" ? estimateEtaMin(bike.nav.remainingM, fix?.speedMps ?? null, mode) : null;
+
+  // Endet die Runde, wo sie beginnt? Davon haengt der Titel des Abschlusses ab: "Wieder am
+  // Start" stimmt nur auf einer Rundtour. Die kuratierten Runden und alle Runden aus dem
+  // Builder sind Rundtouren; eine Runde mit eigenem Ziel (0061) oder ganz ohne Ziel (die
+  // Navigation endet dann am letzten Halt) bekommt "Am Ziel". 50 m Toleranz, weil Start
+  // und Ziel im Editor von Hand gesetzt werden und selten auf den Meter uebereinstimmen.
+  // In useMemo, nicht als nackte Ableitung: Ein im Render eingeengter Wert (tour.start nach
+  // der null-Pruefung) laesst den React-Compiler die ganze Datei ueberspringen, und seine
+  // Meldung zeigt auf einen useCallback ganz woanders (dasselbe wie bei `resumable` oben).
+  const isLoop = useMemo(() => {
+    const a = tour.start;
+    const b = tour.end;
+    return a != null && b != null && haversineMeters([a.lng, a.lat], [b.lng, b.lat]) < 50;
+  }, [tour.start, tour.end]);
 
   const totalM = bike.route?.distanceM ?? 0;
 
@@ -484,7 +529,7 @@ export default function BikeNavScreen({
     return (
       <div className="flex h-full flex-col items-center justify-center gap-4 bg-cream p-6 text-center">
         <p className="text-[15px] text-muted">{t("noAudio")}</p>
-        <BackButton fallbackHref={`/touren/${tour.slug}`} label={tour.title} />
+        <BackButton fallbackHref={back} label={tour.title} />
       </div>
     );
   }
@@ -502,6 +547,7 @@ export default function BikeNavScreen({
         activeIndex={nextRouteSpot >= 0 ? nextRouteSpot : geoStops.length - 1}
         paddingBottom={offeredStop ? 240 : 190}
         recenterLabel={t("navRecenter")}
+        mode={mode}
       />
 
       {tour.isDraftPreview && (
@@ -519,7 +565,7 @@ export default function BikeNavScreen({
           {/* Ohne label: Der Tourtitel war eine breite Textflaeche direkt neben dem
               Abbiege-Banner, dem Wichtigsten auf dem Schirm. Der Pfeil genuegt, wohin er
               fuehrt weiss man, weil man gerade von dort kam. */}
-          <BackButton fallbackHref={`/touren/${tour.slug}`} />
+          <BackButton fallbackHref={back} />
         </div>
       </div>
 
@@ -534,6 +580,7 @@ export default function BikeNavScreen({
               distanceM={null}
               type="wrong-way"
               modifier="uturn"
+              mode={mode}
             />
           ) : (
             maneuverStep && (
@@ -543,6 +590,7 @@ export default function BikeNavScreen({
                 type={maneuverStep.type}
                 modifier={maneuverStep.modifier}
                 followedBy={maneuverStep.followedBy}
+                mode={mode}
               />
             )
           )}
@@ -633,9 +681,11 @@ export default function BikeNavScreen({
                 Wer drei von sieben Geschichten gehoert hat, hat eine schoene Runde gefahren
                 und bekommt hier keine Bilanz vorgelegt. Auch das Konfetti geht: Es stimmt
                 nicht, wenn jemand bei Halt vier aufgehoert hat. */}
-            <p className="text-[19px] font-bold text-ink">{t("navDoneTitle")}</p>
+            <p className="text-[19px] font-bold text-ink">
+              {isLoop ? t("navDoneTitle") : t("navDoneTitleEnd")}
+            </p>
             <Link
-              href={`/touren/${tour.slug}`}
+              href={back}
               className="sg-nav-on-accent flex items-center justify-center rounded-full bg-accent px-5 py-3 text-[15px] font-semibold transition active:scale-[0.98]"
             >
               {t("navDoneBack")}
@@ -649,7 +699,7 @@ export default function BikeNavScreen({
               onClick={bike.clearFinished}
               className="w-full rounded-full px-5 py-2.5 text-[14px] font-semibold text-muted transition active:scale-[0.98]"
             >
-              {t("navDoneContinue")}
+              {walk ? t("navDoneContinueWalk") : t("navDoneContinue")}
             </button>
           </div>
         </div>
@@ -668,7 +718,16 @@ export default function BikeNavScreen({
               derselbe, es war nie ein zusätzlicher Tipp, nur ein zusätzlicher Satz. Und
               bei einer StVO-Sache ist "jedes Mal" ohnehin die richtige Antwort. */}
           <div className="sg-nav-card w-full max-w-sm space-y-3 rounded-[22px] p-5 text-center">
-            <p className="text-[15px] font-semibold text-ink">⚠️ {t("navSafetyHint")}</p>
+            {/* ZU FUSS OHNE WARNDREIECK. Der Halterungs-Hinweis ist eine StVO-Sache fuers
+                Rad (Anton, 16.09.2026: eine Bestaetigung, dass das Handy eingespannt ist,
+                braucht es beim Gehen nicht). Das Gate selbst bleibt, weil watchPosition()
+                eine Geste braucht; es sagt zu Fuss nur in einem Satz, wofuer der Standort
+                gebraucht wird, und stellt den Knopf hin. */}
+            {walk ? (
+              <p className="text-[15px] font-semibold text-ink">{t("navWalkIntro")}</p>
+            ) : (
+              <p className="text-[15px] font-semibold text-ink">⚠️ {t("navSafetyHint")}</p>
+            )}
             {/* Die Knoepfe erst, wenn das Gedaechtnis gelesen ist (eine Microtask nach dem
                 ersten Bild): Sonst stuende kurz "Navigation starten" da und spraenge auf
                 "Weiterfahren" um. Wer mitten in der Runde neu oeffnet (Tab zu, Handy aus,
@@ -681,7 +740,7 @@ export default function BikeNavScreen({
                     onClick={resumeRide}
                     className="sg-nav-on-accent w-full rounded-full bg-accent px-5 py-3 text-[15px] font-semibold active:scale-[0.98]"
                   >
-                    🧭 {t("navResume", { n: resumeOrder, total: geoStops.length })}
+                    🧭 {t(walk ? "navResumeWalk" : "navResume", { n: resumeOrder, total: geoStops.length })}
                   </button>
                   <button
                     type="button"
