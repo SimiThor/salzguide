@@ -2,53 +2,59 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import SpotMap, { type MapMarker } from "@/components/SpotMap";
 import MobileSheet from "@/components/MobileSheet";
 import PartnerCredits from "@/components/PartnerCredits";
+import ProPurchase from "@/components/ProPurchase";
 import BackButton from "@/components/BackButton";
 import ActionTile from "@/components/ActionTile";
 import { buildMapsLink } from "@/lib/maps";
 import { useTourAudio, type PlayerStop } from "./useTourAudio";
 import AudioTransport from "./AudioTransport";
 import TranscriptView from "./TranscriptView";
-import StopLockedCard from "./StopLockedCard";
 import VoiceDisclosure from "./VoiceDisclosure";
 import type { TourDetail } from "@/lib/tour-types";
 import { chainCoords, flattenChain } from "@/lib/tour-route";
 import { useSheetPeek } from "@/lib/sheet-metrics";
 import { TOUR_MODE_EMOJI } from "@/lib/tour-mode";
+import { kmLabel } from "@/lib/tour-format";
 
-// Im Ruhezustand muss der Player vollständig dastehen – er ist das, wofür man die Seite
-// öffnet. Vorher stand hier ein Anteil (34svh), und der konnte gar nicht stimmen: über
-// dem Player hängt das Stopp-Foto, auf einem iPhone allein schon gut 220px hoch. Der
-// Player rutschte damit unter die Kante und war mittendrin abgeschnitten.
+// Im Ruhezustand zeigt das Sheet die RUNDE und genau eine Aktion: Titel, eine leise
+// Faktenzeile, ein Knopf. Vorher stand hier der Mini-Player des ersten Stopps, und damit
+// las die Seite sich so: „STOPP 1 VON 6 – Marko-Feingold-Steg". Wer über die Runden-Liste
+// oder einen geteilten Link kam, sah den Namen einer Brücke, nie den Namen der Runde; der
+// stand nur im unsichtbaren <h1>. Dazu zwei rote Knöpfe untereinander (Navigation + Play)
+// und das Kaufangebot ganz unten, hinter der Stopp-Liste und den Anfahrt-Kacheln.
 //
-// Jetzt zeigt der Peek genau den Anker unten (Stopp-Zähler, Titel, Transport) und misst
-// sich daran – wie ein Mini-Player in Musik/Podcasts. Der Wert ist die Schätzung fürs
-// Server-HTML: Griff 26 + pt-1 4 + Zähler 15 + Titel 22 + mt-4 16 + Transport 117
-// (Scrubber 22 + 10 + Zeiten 19 + 10 + Knöpfe 56) + 16 Luft. Der Titel ist einzeilig
-// (truncate), deshalb kommt die Schätzung hier auf den Pixel hin – am Browser nachgemessen.
-//
-// Bei einem GESPERRTEN Stopp steht statt des Transports der Pro-Hinweis im Anker – die
-// Messung folgt dem Inhalt (ResizeObserver in MobileSheet), die Schätzung hier gilt nur
-// für den ersten Paint, und der beginnt immer auf Stopp 1 (gratis, mit Transport).
-const SHEET_PEEK = { fits: '[data-sg="tour-peek"]', fallback: "calc(216px + var(--sg-nav-h))" };
+// Der Wert ist die Schätzung fürs Server-HTML: Griff 26 + pt-1 4 + Titel 28 + Faktenzeile
+// 6 + 17 + Knopf 16 + 52 + 16 Luft. Gemessen wird trotzdem am Anker (ResizeObserver in
+// MobileSheet); die Zahl gilt nur für den ersten Paint, und ein zweizeiliger Titel oder
+// eine Runde ohne Fahrbildschirm ändert sie.
+const SHEET_PEEK = { fits: '[data-sg="tour-peek"]', fallback: "calc(165px + var(--sg-nav-h))" };
 // Ohne Peek – die ist beim Sheet eine eigene Angabe.
 const SHEET_DETENTS = [0.62, 0.94];
 
 export default function TourView({
   tour,
+  proPrice = "",
   onRestart,
   topRight,
 }: {
   tour: TourDetail;
+  /**
+   * Preis aus Stripe, serverseitig geholt. Gesetzt heisst: Der Kauf passiert auf dieser
+   * Seite und führt danach hierher zurück. Leer heisst: Stripe war nicht erreichbar (oder
+   * die Aufrufstelle kennt keinen Preis), dann bleibt der Weg über /pro.
+   */
+  proPrice?: string;
   onRestart?: () => void;
   topRight?: React.ReactNode;
 }) {
   const t = useTranslations("Tours");
   const tPro = useTranslations("Pro"); // Knopfbeschriftung: eine Quelle, siehe SpotSheet.tsx
+  const locale = useLocale();
   const [active, setActive] = useState(0);
   const [focused, setFocused] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
@@ -86,6 +92,26 @@ export default function TourView({
     durationSec: s.durationSec,
   }));
   const audio = useTourAudio(playerStops, active, selectStop);
+
+  // Tipp auf eine Stopp-Zeile: auswählen UND anspielen. Ein Tipp, nicht zwei.
+  //
+  // Auf dieser Seite entscheidet sich, ob jemand die Runde kauft, und das stärkste Argument
+  // ist eine Geschichte, die man gehört hat. Sie darf nicht hinter einem zweiten Tipp auf
+  // einen Play-Knopf liegen. (Auf dem Rad gilt das Gegenteil, dort startet nichts von
+  // selbst – docs/40. Hier ist der Tipp die Absicht, dort wäre es die Ankunft.)
+  //
+  // Ein gesperrter Stopp wird nur ausgewählt: Die Karte fliegt hin, die Zeile klappt auf
+  // und sagt, warum hier Schluss ist. Antworten tut der Kaufblock unter der Liste.
+  const pickStop = (i: number) => {
+    const s = tour.stops[i];
+    selectStop(i);
+    if (s?.locked || !s?.audioUrl) {
+      audio.pause();
+      return;
+    }
+    if (i === active) audio.toggle();
+    else audio.playAt(i);
+  };
 
   // ── Karte: nummerierte Pins + echte Route (KI-Runde) + Startpunkt ──
   const geoStops = tour.stops.filter((s) => s.lat != null && s.lng != null);
@@ -166,11 +192,9 @@ export default function TourView({
       ? { lng: activeStop.lng as number, lat: activeStop.lat as number, padTop: 96, padBottom: sheetPad }
       : null;
 
-  // Inhaltslage des aktiven Stopps: Audio + Text laufen ZUSAMMEN (Mitlesen), kein Umschalten.
-  const hasAudio = !!activeStop?.audioUrl;
-  const hasText = !!activeStop?.audioText;
-  const locked = !!activeStop?.locked;
-  const canPlay = hasAudio && !locked;
+  // Darf der Player den aktiven Stopp überhaupt abspielen? Audio und Text laufen ZUSAMMEN
+  // (Mitlesen), deshalb hängt beides am selben Stopp und nicht an zwei Zuständen.
+  const canPlay = !!activeStop?.audioUrl && !activeStop?.locked;
 
   // ── Kopf-Chrome (Zurück/Andere-Runde + Speichern) — schwebt über der Karte ──
   const backControl = onRestart ? (
@@ -185,160 +209,250 @@ export default function TourView({
     <BackButton fallbackHref="/touren" label={t("backToList")} />
   );
 
+  // Eine leise Faktenzeile, dieselbe Reihenfolge und dasselbe Trennzeichen wie auf der
+  // Runden-Liste und der gespeicherten Runde: Wer dort eine Kachel antippt, liest hier
+  // dieselbe Zeile wieder. Drei Angaben, mehr braucht der Kopf nicht.
+  const facts = [
+    t("stops", { count: tour.stops.length }),
+    tour.durationMin != null ? t("minutes", { count: tour.durationMin }) : null,
+    tour.distanceKm != null ? kmLabel(tour.distanceKm, locale) : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+  // Erster Stopp, den man wirklich hören kann. Er ist das Ziel des Knopfs „Tour starten"
+  // bei Runden ohne Fahrbildschirm.
+  const firstPlayable = tour.stops.findIndex((s) => !s.locked && !!s.audioUrl);
+  const started = audio.playing || audio.time > 0;
+  const startTour = () => {
+    if (audio.playing || audio.time > 0) {
+      audio.toggle();
+      return;
+    }
+    if (firstPlayable < 0) return;
+    selectStop(firstPlayable);
+    audio.playAt(firstPlayable);
+  };
+
+  // GENAU EINE Aktion im Ruhezustand. Bei einer S-Bike-Runde ist das der Fahrbildschirm
+  // (die Navigation kostet nichts, nur das Audio an den Stopps ist Pro), sonst der Start
+  // der Wiedergabe. Vorher standen beide untereinander, zwei rote Knöpfe, gleich laut.
+  const cta =
+    "flex w-full items-center justify-center gap-2 rounded-full bg-accent px-5 py-3.5 text-[16px] font-semibold text-white shadow-[0_10px_24px_-10px_rgba(204,41,36,0.55)] transition active:scale-[0.98]";
+  const primaryAction =
+    tour.mode === "bike" ? (
+      <Link href={`/touren/${tour.slug}/navigation`} className={`${cta} mt-4`}>
+        🧭 {t("startNavigation")}
+      </Link>
+    ) : firstPlayable >= 0 ? (
+      <button type="button" onClick={startTour} className={`cursor-pointer ${cta} mt-4`}>
+        {audio.playing ? `⏸ ${t("pause")}` : started ? `▶ ${t("play")}` : `▶ ${t("start")}`}
+      </button>
+    ) : null;
+
   // ── Panel-Inhalt (identisch in Sheet [mobil] und Aside [Desktop]) ──
   const panel = (
     <div className="px-5">
-      {/* Now Playing – Trennung nur über Weißraum (keine Hairline, die am Peek-Rand
-          durchblitzt), iOS-2026-minimalistisch. */}
-      <div className="pb-2">
-        {/* Zähler, Titel und Transport bilden zusammen den Ruhezustand des Sheets – der
-            Anker, an dem sich der Peek misst (SHEET_PEEK oben). Sie stehen deshalb VOR
-            dem Foto: läge das Foto darüber, müsste der Peek es mitzeigen und würde die
-            halbe Karte verdecken. So ist der eingeklappte Zustand ein Mini-Player. */}
-        <div data-sg="tour-peek">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">
-            {t("stopOf", { current: active + 1, total: tour.stops.length })}
-          </p>
-          <h2 className="truncate text-[18px] font-bold leading-tight text-ink">
-            {activeStop?.title}
-          </h2>
-          {/* S-Bike-Runden: Chip zur Unterscheidung + Sprung in den eigenen Navigation-
-              Screen. Bewusst IMMER sichtbar (auch gesperrt) – die Navigation selbst
-              kostet nichts, nur das Audio an den Stopps ist Pro (Migration 0029). */}
-          {tour.mode === "bike" && (
-            <div className="mt-3 space-y-2.5">
-              <span className="inline-flex items-center gap-1 rounded-full bg-black/5 px-2.5 py-1 text-[11px] font-semibold text-ink">
-                {TOUR_MODE_EMOJI.bike} {t("modeBike")}
-              </span>
-              <Link
-                href={`/touren/${tour.slug}/navigation`}
-                className="flex items-center justify-center gap-2 rounded-full bg-accent px-5 py-3 text-[15px] font-semibold text-white shadow-md transition active:scale-[0.98]"
-              >
-                🧭 {t("startNavigation")}
-              </Link>
-            </div>
-          )}
-          {canPlay && (
-            <div className="mt-4">
-              <AudioTransport
-                audio={audio}
-                index={active}
-                total={tour.stops.length}
-                canPlay={canPlay}
-              />
-              {/* Stimmen-Hinweis (Ehrlichkeit + Art. 50 KI-VO, docs/39): KI-Stimme,
-                  geklonte Stimme mit Namen oder echte Aufnahme, je nach Stimme der Runde.
-                  Steht IM Peek-Anker unter dem Transport und ist damit sichtbar, BEVOR
-                  jemand auf Play drückt, auch im eingeklappten Mini-Player. */}
-              <VoiceDisclosure voice={tour.voice} />
-            </div>
-          )}
-          {/* Gesperrter Stopp: Der Pro-Hinweis übernimmt den Platz des Transports und
-              steht damit IM Peek-Anker – sichtbar, ohne das Sheet aufzuziehen. Genau
-              dieser Moment entscheidet über den Kauf: Der letzte Gratis-Stopp läuft
-              aus, useTourAudio wählt den nächsten (gesperrten) Stopp an, und statt
-              eines toten Players steht hier, wie es weitergeht. Das Sheet misst den
-              Anker per ResizeObserver nach (MobileSheet), der Peek wächst also von
-              selbst mit. */}
-          {locked && (
-            <div className="mt-4">
-              <StopLockedCard freeStops={tour.freeStops} total={tour.stops.length} />
-            </div>
-          )}
-        </div>
-        {/* Foto bleibt auch bei gesperrten Stopps sichtbar: Titel/Bild/Position sind
-            bei Touren öffentliche Teaser, nur das Audio ist Pro (Migration 0029). */}
-        {activeStop?.imageUrl && (
-          <div className="relative mt-4 aspect-[16/10] overflow-hidden rounded-[16px] bg-black/5 shadow-sm">
-            <Image
-              src={activeStop.imageUrl}
-              alt=""
-              fill
-              sizes="(min-width: 768px) 27rem, 100vw"
-              quality={62}
-              className="object-cover"
-            />
-          </div>
-        )}
+      {/* Der Ruhezustand: die Runde und eine Aktion. Er ist zugleich der Anker, an dem der
+          Peek sich misst (SHEET_PEEK oben) – deshalb steht hier NICHTS, was man auch
+          später lesen kann. */}
+      <div data-sg="tour-peek">
+        <h2 className="text-balance text-[22px] font-bold leading-tight text-ink">{tour.title}</h2>
+        <p className="mt-1.5 text-[13px] text-muted">
+          {TOUR_MODE_EMOJI[tour.mode]} {facts}
+        </p>
+        {primaryAction}
       </div>
 
-      {/* Inhalt: Transkript zum Mitlesen (immer sichtbar, wenn vorhanden).
-          Gesperrt -> nichts: Der Pro-Hinweis steht schon oben im Peek-Anker, ein
-          zweiter Block direkt darunter wäre derselbe Text zweimal im Blick. Der
-          `locked`-Zweig bleibt trotzdem in der Kette, sonst fiele ein gesperrter
-          Stopp (audioUrl/audioText sind serverseitig null) in die noAudio-Meldung
-          und behauptete, es gäbe keine Aufnahme. */}
-      {locked ? null : !hasAudio && !hasText ? (
-        <p className="mt-6 rounded-[16px] bg-white/70 p-4 text-center text-[13px] text-muted">
-          {t("noAudio")}
-        </p>
-      ) : hasText ? (
-        <div className="mt-6">
-          <TranscriptView text={activeStop?.audioText ?? ""} />
-        </div>
-      ) : (
-        activeStop?.shortDesc && (
-          <p className="mt-6 rounded-[16px] bg-white/60 p-4 text-[14px] leading-relaxed text-muted">
-            {activeStop.shortDesc}
-          </p>
-        )
+      {/* Der Einzeiler der Runde, sonst nichts: Die lange Beschreibung steht auf der
+          Runden-Liste und in den Metadaten. Hier zählt, dass der Gast in einem Blick
+          weiss, worauf er sich einlässt. */}
+      {tour.subtitle && (
+        <p className="mt-5 text-[14px] leading-relaxed text-muted">{tour.subtitle}</p>
       )}
 
-      {/* Alle Stopps */}
-      <div className="mt-8">
+      {/* ── Die Stopps ──
+          Eine Zeile je Stopp, und die Zeile IST der Stopp: Ein Tipp wählt ihn aus (die
+          Karte fliegt hin) und spielt ihn an, der ausgewählte klappt darunter auf und
+          zeigt Wiedergabe, Stimmen-Hinweis und Text zum Mitlesen.
+
+          Vorher standen beide Dinge getrennt: oben ein Block „STOPP 1 VON 6" mit Foto,
+          Player und Transkript, darunter noch einmal die ganze Liste mit denselben
+          Titeln. Derselbe Stopp zweimal auf einem Bildschirm, und dazwischen der längste
+          Text der Seite.
+
+          Dieselbe Zeilenform wie die Stopp-Liste im Fahrbildschirm (nav/StopListSheet):
+          Kachel mit Nummer, Titel, eine leise Unterzeile, rechts der Zustand. */}
+      <div className="mt-7">
         <p className="mb-3 px-1 text-[12px] font-semibold uppercase tracking-wide text-muted">
           {t("allStops")}
         </p>
-        <ol className="space-y-3">
+        <ol className="space-y-2.5">
           {tour.stops.map((s, i) => {
-            const on = i === active;
+            // Aufgeklappt wird erst, wenn der Gast einen Stopp GEWÄHLT hat (`focused`
+            // ist genau das: gesetzt vom Tipp auf die Zeile, auf einen Pin, vom
+            // Start-Knopf und vom Weiterschalten des Players). Beim Laden steht die
+            // Liste damit kompakt da, sechs Zeilen statt einer aufgeschlagenen mit
+            // Wiedergabe und Text – und der Kaufblock rückt um eine Bildschirmhöhe
+            // nach oben. Dieselbe Bedingung fliegt die Karte an: Was aufgeklappt ist,
+            // ist auch das, was die Karte zeigt.
+            const on = focused && i === active;
+            const rowLocked = s.locked;
+            const rowPlayable = !rowLocked && !!s.audioUrl;
             return (
-              <li key={`${s.spotSlug}-${i}`}>
+              <li
+                key={`${s.spotSlug}-${i}`}
+                className={`overflow-hidden rounded-[16px] bg-white/80 shadow-sm ring-1 transition ${
+                  on ? "ring-2 ring-accent" : "ring-black/[0.04]"
+                }`}
+              >
                 <button
                   type="button"
-                  onClick={() => selectStop(i)}
-                  className={`cursor-pointer flex w-full items-center gap-3 rounded-[14px] bg-white/80 px-3.5 py-3.5 text-left shadow-sm ring-1 transition ${
-                    on ? "ring-2 ring-accent" : "ring-black/[0.04]"
-                  }`}
+                  onClick={() => pickStop(i)}
+                  className="sg-hit flex w-full items-center gap-3 p-2.5 text-left"
                 >
-                  {s.imageUrl ? (
-                    <span className="relative h-11 w-11 shrink-0 overflow-hidden rounded-[12px] bg-black/5">
-                      <Image src={s.imageUrl} alt="" fill sizes="44px" quality={62} className="object-cover" />
-                      <span className="absolute left-0.5 top-0.5 flex h-[17px] min-w-[17px] items-center justify-center rounded-full bg-black/55 px-1 text-[10px] font-bold text-white">
-                        {s.order}
+                  <span className="relative shrink-0">
+                    {s.imageUrl ? (
+                      <Image
+                        src={s.imageUrl}
+                        alt=""
+                        width={48}
+                        height={48}
+                        quality={62}
+                        className="h-12 w-12 rounded-[12px] object-cover"
+                      />
+                    ) : (
+                      <span className="flex h-12 w-12 items-center justify-center rounded-[12px] bg-black/[0.06] text-[22px]">
+                        {s.emoji ?? "🎧"}
                       </span>
-                    </span>
-                  ) : (
-                    <span
-                      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-[12px] text-[14px] font-bold ${
-                        on ? "bg-accent text-white" : "bg-accent/10 text-accent"
-                      }`}
-                    >
+                    )}
+                    <span className="absolute -left-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-ink text-[11px] font-bold text-cream">
                       {s.order}
                     </span>
-                  )}
-                  <span className="min-w-0 flex-1 truncate text-[15px] font-semibold text-ink">
-                    {s.title}
                   </span>
-                  {s.locked ? (
-                    <span className="shrink-0 text-[15px]" aria-hidden>
-                      🔒
+
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[15px] font-semibold text-ink">
+                      {s.title}
                     </span>
-                  ) : on && audio.playing ? (
-                    <span className="shrink-0 text-[11px] font-semibold text-accent">
-                      {t("playingNow")}
+                    <span className="block text-[12px] text-muted">
+                      {rowLocked
+                        ? tPro("cta")
+                        : on && audio.playing
+                          ? t("playingNow")
+                          : s.durationSec
+                            ? t("minutes", { count: Math.max(1, Math.round(s.durationSec / 60)) })
+                            : t("play")}
                     </span>
-                  ) : (
-                    <span className="shrink-0 text-[12px] text-muted" aria-hidden>
-                      ›
+                  </span>
+
+                  {/* Das Zeichen rechts sagt, was ein Tipp auf die ZEILE tut – es ist
+                      kein eigener Knopf (die ganze Zeile ist einer). Am aufgeklappten
+                      Stopp bleibt es weg: Dort steht die Wiedergabe zwei Zentimeter
+                      tiefer, und zwei rote Play-Kreise übereinander wären eine Frage,
+                      die keine ist. */}
+                  {!on && (
+                    <span
+                      aria-hidden
+                      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
+                        rowLocked ? "bg-black/[0.06] text-[15px]" : "bg-accent text-white"
+                      }`}
+                    >
+                      {rowLocked ? (
+                        "🔒"
+                      ) : (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M8 5.2v13.6a.8.8 0 0 0 1.23.67l10.4-6.8a.8.8 0 0 0 0-1.34L9.23 4.53A.8.8 0 0 0 8 5.2Z" />
+                        </svg>
+                      )}
                     </span>
                   )}
                 </button>
+
+                {on && (
+                  <div className="px-2.5 pb-3">
+                    {/* Foto: Titel, Bild und Position sind bei Touren öffentliche Teaser,
+                        nur das Audio ist Pro (Migration 0029) – es bleibt also auch am
+                        gesperrten Stopp stehen. */}
+                    {s.imageUrl && (
+                      <div className="relative mb-3 aspect-[16/10] overflow-hidden rounded-[14px] bg-black/5">
+                        <Image
+                          src={s.imageUrl}
+                          alt=""
+                          fill
+                          sizes="(min-width: 768px) 27rem, 100vw"
+                          quality={62}
+                          className="object-cover"
+                        />
+                      </div>
+                    )}
+                    {rowLocked ? (
+                      // Derselbe Satz wie in der Kauffläche, und er bricht genauso an der
+                      // Satzgrenze. Die Antwort darauf steht im Kaufblock unter der Liste.
+                      <p className="px-1 text-[13px] leading-snug text-muted">
+                        <span className="block">
+                          🔒 {t("lockedFree", { free: tour.freeStops })}
+                        </span>
+                        <span className="block">{t("lockedAll", { total: tour.stops.length })}</span>
+                      </p>
+                    ) : rowPlayable ? (
+                      <>
+                        <AudioTransport
+                          audio={audio}
+                          index={active}
+                          total={tour.stops.length}
+                          canPlay={canPlay}
+                        />
+                        {/* Stimmen-Hinweis (Ehrlichkeit + Art. 50 KI-VO, docs/39): steht
+                            direkt an der Wiedergabe, also bevor jemand sie startet. */}
+                        <VoiceDisclosure voice={tour.voice} />
+                        {s.audioText && (
+                          <div className="mt-4">
+                            <TranscriptView text={s.audioText} />
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <p className="px-1 text-[13px] text-muted">{t("noAudio")}</p>
+                    )}
+                  </div>
+                )}
               </li>
             );
           })}
         </ol>
       </div>
+
+      {/* ── Der Kauf, direkt unter den Schlössern ──
+          Vorher stand hier ganz unten, hinter der Stopp-Liste UND den Anfahrt-Kacheln, ein
+          Fließtext mit einem Knopf auf /pro: kein Preis, ein Seitenwechsel, und am iPhone
+          erst nach 1700 px Scrollen zu sehen. Jetzt beantwortet der Block die Frage, die
+          die Schlösser eine Zeile weiter oben stellen, und zwar an Ort und Stelle.
+          Derselbe Kaufblock wie im Fahrbildschirm (ProPurchase) – eine Quelle für Preis,
+          § 18-Häkchen, Knopftext und das Kleingedruckte. */}
+      {tour.isPro && !tour.canSeePro && (
+        <div className="mt-8 rounded-[18px] bg-white/70 p-5 shadow-sm ring-1 ring-black/[0.04]">
+          <p className="text-center text-[13px] leading-snug text-muted">
+            <span className="block">🔒 {t("lockedFree", { free: tour.freeStops })}</span>
+            <span className="block">{t("lockedAll", { total: tour.stops.length })}</span>
+          </p>
+          {proPrice ? (
+            <ProPurchase
+              price={proPrice}
+              returnTour={tour.slug}
+              density="sheet"
+              className="mt-3"
+            />
+          ) : (
+            // Ohne Preis (Stripe nicht erreichbar) bleibt der alte Weg. Besser ein
+            // Seitensprung als eine Kauffläche, die keinen Preis nennen kann: § 8 Abs. 1
+            // FAGG verlangt ihn unmittelbar vor der Vertragserklärung.
+            <Link href="/pro" className={`${cta} mt-4`}>
+              {tPro("cta")}
+            </Link>
+          )}
+        </div>
+      )}
 
       {/* Zum Startpunkt: Navigation per Auto / Öffis (Google Maps) */}
       {startPoint && (
@@ -360,19 +474,6 @@ export default function TourView({
               sub={t("mapsSub")}
             />
           </div>
-        </div>
-      )}
-
-      {/* Voll-Sperre-Hinweis bei komplett gegateter Tour */}
-      {tour.isPro && !tour.canSeePro && (
-        <div className="mt-8 flex flex-col items-start gap-3 rounded-[16px] bg-white/70 p-5">
-          <p className="text-[14px] leading-relaxed text-muted">{t("lockedBody")}</p>
-          <Link
-            href="/pro"
-            className="rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white active:scale-[0.98]"
-          >
-            {tPro("cta")}
-          </Link>
         </div>
       )}
 

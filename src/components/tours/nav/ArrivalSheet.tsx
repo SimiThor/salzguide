@@ -206,9 +206,9 @@ function LockedStopSheet({
 
             DIE REGEL HAT EINE GRENZE: Sie taugt nur, wo jeder Satz auf eine Zeile passt.
             Der längste ist Ungarisch mit 274 px, die engste Fläche das iPhone SE mit
-            280 px. Bei einem längeren Text (z.B. Tours.lockedBody auf der Übersicht)
-            würde dieselbe Aufteilung drei Zeilen und einen neuen Ausreisser ergeben; ein
-            Fliesstext bleibt deshalb ein Fliesstext. */}
+            280 px. Bei einem längeren Fliesstext würde dieselbe Aufteilung drei Zeilen
+            und einen neuen Ausreisser ergeben; ein Fliesstext bleibt deshalb ein
+            Fliesstext. */}
         <p className="max-w-[20rem] text-[13px] leading-snug text-muted">
           <span className="block">🔒 {t("lockedFree", { free: freeStops })}</span>
           <span className="block">{t("lockedAll", { total: totalStops })}</span>

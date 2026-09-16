@@ -1,8 +1,9 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { BookmarkFilled } from "@/components/icons";
+import { kmLabel } from "@/lib/tour-format";
 import type { UserTourSummary } from "@/lib/user-tours";
 
 // Eine gespeicherte User-Runde als Kachel. Entfernen = EIN Tipp auf das gefüllte
@@ -16,11 +17,12 @@ export default function SavedRouteCard({
   onRemove: () => void;
 }) {
   const t = useTranslations("Tours");
+  const locale = useLocale();
 
   const meta = [
     t("stops", { count: route.stopCount }),
     route.durationMin != null ? t("minutes", { count: route.durationMin }) : null,
-    route.distanceKm != null ? `${route.distanceKm} km` : null,
+    route.distanceKm != null ? kmLabel(route.distanceKm, locale) : null,
   ].filter(Boolean);
 
   return (
