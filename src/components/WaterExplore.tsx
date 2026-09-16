@@ -384,7 +384,7 @@ export default function WaterExplore({
         open={selectedLake != null}
         onClose={() => setSelected(null)}
         title={selectedLake?.name}
-        detents={[0.42, 0.9]}
+        detents={[0.42, 1]}
         variant="floating"
       >
         {selectedLake && (

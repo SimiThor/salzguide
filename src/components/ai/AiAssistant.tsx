@@ -542,7 +542,7 @@ export default function AiAssistant({
     <BottomSheet
       open={open}
       onClose={onClose}
-      detents={[0.92]}
+      detents={[1]}
       header={header}
       footer={footer}
     >

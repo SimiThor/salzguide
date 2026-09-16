@@ -14,6 +14,7 @@ import SheetGrabber, { SHEET_HANDLE_CLASS } from "./SheetGrabber";
 import { useBodyDrag } from "./useBodyDrag";
 import { useSheetHandle } from "./useSheetHandle";
 import { useKeyboard, useViewportHeight } from "@/lib/viewport";
+import { useSheetTop } from "@/lib/sheet-metrics";
 
 // iOS-2026 Overlay (docs/02 §8), responsiv:
 // - Mobile: ziehbares Bottom-Sheet mit Detents (Halb/Voll), Grabber, Spring.
@@ -51,6 +52,10 @@ type BottomSheetProps = {
   onClose: () => void;
   // Mobile: aufsteigend, letzter = Voll. Jede Stufe ist entweder ein ANTEIL der
   // Bildschirmhöhe (≤ 1) oder eine Höhe in PIXELN (> 1) – siehe `steps` weiter unten.
+  //
+  // `1` heisst „ganz auf": 100 % des Bildschirms, was der Deckel --sg-sheet-top
+  // zwangsläufig einholt. So hören alle Sheets, die bis nach oben gehen, an derselben
+  // Linie auf, statt dass jede Aufrufstelle ihre eigene Zahl nennt (0,9 / 0,92 / 0,94).
   detents?: number[];
   initialDetent?: number;
   // Von aussen angeforderte Stufe. Wirkt als SIGNAL: nur wenn sich der Wert ändert, springt
@@ -102,6 +107,8 @@ export default function BottomSheet({
   const floating = variant === "floating";
   const { backdrop: zBackdrop, sheet: zSheet } = LAYERS[layer];
   const vh = useViewportHeight();
+  // Die gemeinsame Obergrenze für die Höhe (globals.css, --sg-sheet-top).
+  const topLine = useSheetTop();
   // Die Tastatur ist das einzige, was weniger Platz lässt als svh – siehe useKeyboard.
   // Beide Zahlen sind 0, solange keine offen ist: dann ändert sich hier gar nichts.
   const kb = useKeyboard();
@@ -142,18 +149,32 @@ export default function BottomSheet({
   // einzelnen Detent ist er ohnehin „voll" und damit scrollbar.
   const steps = detents.map((d) => (d > 1 ? Math.min(0.94, d / base) : d));
   const full = steps[steps.length - 1];
-  // Ohne Tastatur ändert sich hier NICHTS: Das Sheet ist ein Anteil von svh, und svh ist
-  // die kleinste Höhe, die der Bildschirm annehmen kann. Fährt die Tastatur aus, ist der
-  // sichtbare Streifen zum ersten Mal kleiner als svh – dann deckelt er die Höhe. Sonst
-  // behielte das Sheet seine 92% und stünde oben aus dem Bild heraus, während die
-  // Eingabezeile hinter der Tastatur läge.
-  const sheetH = kb.visible
-    ? Math.min(base * full, Math.max(0, kb.visible - KEYBOARD_TOP_GAP))
-    : base * full;
+  // Drei Deckel auf derselben Höhe, in dieser Reihenfolge:
+  //
+  //  1. Die oberste Stufe selbst (base * full) – was das Sheet haben WILL.
+  //  2. Die gemeinsame Linie oben (--sg-sheet-top): Höher fährt kein Sheet, egal welche
+  //     Stufe es hat. Darüber sitzt das schwebende Chrome der Karten-Seiten; klebte das
+  //     Sheet daran, sah es auf jeder Seite anders aus (globals.css erklärt die Zahl).
+  //     0 heisst „noch nicht gelesen" (Server, erster Render) und deckelt deshalb nicht.
+  //  3. Die Tastatur. Ohne sie ändert sich hier NICHTS: Das Sheet ist ein Anteil von svh,
+  //     und svh ist die kleinste Höhe, die der Bildschirm annehmen kann. Fährt sie aus,
+  //     ist der sichtbare Streifen zum ersten Mal kleiner – sonst behielte das Sheet
+  //     seine 92% und stünde oben aus dem Bild heraus, die Eingabezeile hinter der
+  //     Tastatur.
+  const sheetH = Math.min(
+    base * full,
+    topLine > 0 ? Math.max(0, base - topLine) : Infinity,
+    kb.visible ? Math.max(0, kb.visible - KEYBOARD_TOP_GAP) : Infinity,
+  );
   const closedY = sheetH;
-  // Nie unter die eigene Unterkante: Mit Tastatur wäre eine Stufe sonst eine Position,
-  // die es am geschrumpften Sheet gar nicht gibt.
-  const snapY = (d: number) => Math.min((full - d) * base, closedY);
+  // Der sichtbare Streifen auf Stufe d ist d * base – DAS ist die Stufe, und daran ändert
+  // ein Deckel nichts. Nur die oberste Stufe wird vom Deckel eingeholt, dort ist
+  // sheetH < full * base und y wird 0.
+  //
+  // Vorher stand hier `(full - d) * base`, was dasselbe ist, solange sheetH = full * base
+  // gilt. Mit Deckel wäre es falsch herum gerechnet: Jede tiefere Stufe wäre um den
+  // gedeckelten Betrag mitgewandert.
+  const snapY = (d: number) => Math.max(0, Math.min(sheetH - d * base, closedY));
 
   // Desktop/Mobile erkennen. Die Viewport-Höhe kommt aus useViewportHeight() und darf
   // NICHT an diesem resize hängen: iOS feuert resize bei jedem Leisten-Zug, `vh` steht

@@ -40,7 +40,10 @@ import { useViewportHeight } from "@/lib/viewport";
 // Der Fallback greift nur, solange gar nichts da ist (leere Saison).
 const EXPLORE_DETENTS: Detent[] = [
   { fits: '[data-sg="detent-anchor"]', fallback: 0.5 },
-  0.9,
+  // 1 = ganz auf, also bis zur gemeinsamen Linie (--sg-sheet-top, siehe globals.css).
+  // Vorher 0,9: Das war auf jedem Gerät eine andere Höhe und auf jeder Seite eine andere
+  // Zahl (die Runden-Übersicht hatte 0,94, die Stopp-Liste 0,92).
+  1,
 ];
 
 // Ruheposition des Sheets: so hoch, dass die Filter-Leiste GANZ dasteht.

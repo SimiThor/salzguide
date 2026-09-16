@@ -42,7 +42,7 @@ export default async function BuildTourPage({
   } = await supabase.auth.getUser();
   if (!user) {
     return (
-      <div className="mx-auto w-full max-w-[640px] px-4 pt-[calc(env(safe-area-inset-top)+1.25rem)] md:pt-6">
+      <div className="mx-auto w-full max-w-[640px] px-4 pt-[calc(var(--sg-sat)+1.25rem)] md:pt-6">
         <BackButton fallbackHref="/touren" label={t("backToList")} className="mb-3" />
         <div className="rounded-[18px] bg-white p-8 text-center shadow-sm">
           <div className="text-4xl" aria-hidden>
@@ -75,7 +75,7 @@ export default async function BuildTourPage({
   if (!canSeePro) {
     const tPro = await getTranslations({ locale, namespace: "Pro" });
     return (
-      <div className="mx-auto w-full max-w-[640px] px-4 pt-[calc(env(safe-area-inset-top)+1.25rem)] md:pt-6">
+      <div className="mx-auto w-full max-w-[640px] px-4 pt-[calc(var(--sg-sat)+1.25rem)] md:pt-6">
         <BackButton fallbackHref="/touren" label={t("backToList")} className="mb-3" />
         <div className="rounded-[18px] bg-white p-6 text-center shadow-sm">
           <div className="mx-auto max-w-[22rem]">

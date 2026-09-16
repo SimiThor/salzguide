@@ -146,7 +146,7 @@ export default function MapCard({
               onClick={closeFullscreen}
               aria-label={t("elevation.close")}
               className="cursor-pointer sg-hit absolute left-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-ink shadow-md ring-1 ring-black/5 backdrop-blur active:scale-95"
-              style={{ top: "calc(env(safe-area-inset-top) + 12px)" }}
+              style={{ top: "calc(var(--sg-sat) + 12px)" }}
             >
               <svg
                 width="20"
@@ -166,7 +166,7 @@ export default function MapCard({
             {title && (
               <div
                 className="absolute left-1/2 z-10 max-w-[60%] -translate-x-1/2 truncate rounded-full bg-white/90 px-3.5 py-1.5 text-sm font-medium text-ink ring-1 ring-black/5 backdrop-blur"
-                style={{ top: "calc(env(safe-area-inset-top) + 14px)" }}
+                style={{ top: "calc(var(--sg-sat) + 14px)" }}
               >
                 {title}
               </div>

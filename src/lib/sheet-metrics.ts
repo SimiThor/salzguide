@@ -14,6 +14,10 @@ export const SHEET_PEEK_VAR = "--sg-sheet-peek";
 // Höhe der Tab-Leiste inkl. Home-Indicator. Sie liegt ÜBER dem Sheet, ihre Höhe gehört
 // deshalb zu jeder Stufe dazu, die etwas sichtbar halten soll.
 export const NAV_H_VAR = "--sg-nav-h";
+// Die Linie, über die kein voll ausgefahrenes Sheet hinausfährt (siehe globals.css).
+// CSS kann sie allein anwenden, wo die Höhe in CSS steht (MobileSheet); wo JS die Höhe
+// rechnet (BottomSheet), braucht es die Zahl.
+export const SHEET_TOP_VAR = "--sg-sheet-top";
 
 // Liest eine registrierte CSS-Länge als Pixelzahl. `el` bestimmt, welcher Wert gilt –
 // die Property vererbt, ein Sheet darf sie also lokal überschreiben (z.B. Audio-Tour).
@@ -52,4 +56,26 @@ export function useSheetPeek(): number {
     };
   }, []);
   return peek;
+}
+
+// Obergrenze für die Höhe eines Sheets, in Pixeln: Abstand vom oberen Bildschirmrand,
+// den auch die oberste Stufe nicht unterschreitet. Aktuell gehalten bei Drehung und
+// Grössenwechsel – die Safe Area steckt darin, und die ändert sich beim Drehen.
+//
+// Auf dem Server (und im ersten Render) 0. Das heisst „noch nicht gelesen", nicht
+// „keine Grenze": Die Aufrufstelle behandelt 0 als „nicht deckeln", sonst wäre ein
+// Sheet vor dem ersten Effekt bildschirmhoch.
+export function useSheetTop(): number {
+  const [top, setTop] = useState(() => readCssLength(SHEET_TOP_VAR));
+  useEffect(() => {
+    const read = () => setTop(readCssLength(SHEET_TOP_VAR));
+    read();
+    window.addEventListener("resize", read);
+    window.addEventListener("orientationchange", read);
+    return () => {
+      window.removeEventListener("resize", read);
+      window.removeEventListener("orientationchange", read);
+    };
+  }, []);
+  return top;
 }

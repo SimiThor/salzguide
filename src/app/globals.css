@@ -250,10 +250,42 @@ body {
   inherits: true;
   initial-value: 0px;
 }
+@property --sg-sheet-top {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 0px;
+}
 
 :root {
   --sg-sab: env(safe-area-inset-bottom, 0px);
   --sg-sat: env(safe-area-inset-top, 0px);
+
+  /* ═══ WIE WEIT EIN SHEET NACH OBEN FÄHRT ═══════════════════════════════════
+     Die Linie, über die KEIN voll ausgefahrenes Sheet hinausfährt. Eine Zahl für
+     alle, sonst hört jede Seite woanders auf: Die Runden-Übersicht (0,94) stand am
+     iPhone 51px unter dem oberen Rand, Explore (0,90) bei 84px – und der
+     Zurück-Knopf endet bei 50px. Das Sheet klebte also an den schwebenden Knöpfen,
+     auf einem Gerät mit Safe Area schob es sich sogar darüber (Anton, 16.09.2026:
+     „eine Spur zu weit nach oben, eine Spur weiter drunter sollte es aufhören").
+
+     Die 84px sind gemessen, nicht geschätzt. Oben sitzen zwei Arten von Chrome:
+     die schwebenden Knöpfe der Karten-Seiten bei `calc(var(--sg-sat) + 10px)`, 40px
+     hoch (BackButton, Menü, Speichern) und die Wortmarke im Mobile-Header von
+     Explore/Wasser, 60px hoch. 84 lässt darunter 34px bzw. 24px Luft.
+
+     Warum nicht knapper: Bei 72 blieb unter dem Header von Explore ein 12px-Streifen
+     Karte stehen, und ein so schmaler Streifen liest sich wie ein Fehler statt wie
+     Absicht. 84 ist ausserdem genau die Linie, an der Explore vorher schon stand
+     (0,9 am iPhone 15) – die Seite, an der nie etwas auszusetzen war.
+
+     Sie sind eine OBERGRENZE, keine Vorgabe: Ein Sheet, dessen oberste Stufe
+     ohnehin tiefer endet (Pro-Hinweis, Sprachwähler, Kauffläche), bleibt, wo es
+     ist. Gleich sieht es dort aus, wo es darauf ankommt – bei den Sheets, die
+     wirklich bis nach oben gehen.
+
+     --sg-sat steckt drin, weil die Knöpfe auch daran hängen: Auf einem iPhone mit
+     Dynamic Island (installiert als App) rutschen beide zusammen nach unten. */
+  --sg-sheet-top: calc(var(--sg-sat) + 84px);
 
   /* Höhe der Tab-Leiste inkl. Home-Indicator. Die Leiste RICHTET SICH nach
      diesem Wert (BottomNav setzt height darauf) – er beschreibt sie nicht nur,

@@ -34,7 +34,7 @@ import { kmLabel } from "@/lib/tour-format";
 // eine Runde ohne Fahrbildschirm ändert sie.
 const SHEET_PEEK = { fits: '[data-sg="tour-peek"]', fallback: "calc(165px + var(--sg-nav-h))" };
 // Ohne Peek – die ist beim Sheet eine eigene Angabe.
-const SHEET_DETENTS = [0.62, 0.94];
+const SHEET_DETENTS = [0.62, 1];
 
 export default function TourView({
   tour,
@@ -516,7 +516,7 @@ export default function TourView({
       </div>
 
       {/* Kopf-Chrome schwebt über der Karte (nur mobil; Desktop im Panel-Kopf) */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-[46] flex items-start justify-between gap-2 px-3 pt-[calc(env(safe-area-inset-top)+10px)] md:hidden">
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-[46] flex items-start justify-between gap-2 px-3 pt-[calc(var(--sg-sat)+10px)] md:hidden">
         <div className="pointer-events-auto">{backControl}</div>
         <div className="pointer-events-auto">{topRight}</div>
       </div>

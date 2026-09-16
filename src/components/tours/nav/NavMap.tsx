@@ -487,10 +487,10 @@ export default function NavMap({
           onClick={recenter}
           aria-label={recenterLabel}
           // Oben rechts, auf derselben Höhe wie der Beenden-Knopf oben links
-          // (BikeNavScreen.tsx: calc(env(safe-area-inset-top) + 10px)) – bewusst NICHT
+          // (BikeNavScreen.tsx: calc(var(--sg-sat) + 10px)) – bewusst NICHT
           // mehr unten, das lag zu nah an der Ankunfts-Leiste/dem Sheet und wanderte
           // mit deren wechselnder Höhe (paddingBottom) ständig mit.
-          style={{ top: "calc(env(safe-area-inset-top) + 10px)" }}
+          style={{ top: "calc(var(--sg-sat) + 10px)" }}
           className="absolute right-4 z-[47] flex h-12 w-12 items-center justify-center rounded-full bg-white/90 text-ink shadow-lg backdrop-blur-md transition active:scale-95"
         >
           <svg

@@ -59,7 +59,7 @@ export default function TourBuilder({ areas }: { areas: PublicArea[] }) {
   }
 
   return (
-    <div className="mx-auto w-full max-w-[640px] px-4 pt-[calc(env(safe-area-inset-top)+1.25rem)] md:pt-6">
+    <div className="mx-auto w-full max-w-[640px] px-4 pt-[calc(var(--sg-sat)+1.25rem)] md:pt-6">
       <BackButton fallbackHref="/touren" label={t("backToList")} className="mb-3" />
       <h1 className="text-2xl font-bold text-ink">{t("buildTitle")}</h1>
       <p className="mt-1 text-[15px] leading-relaxed text-muted">{t("buildLead")}</p>
