@@ -383,6 +383,35 @@ export const OPS_EVENTS = {
     quietMinutes: 60,
     hint: "Resend-Dashboard prüfen: Kontingent aufgebraucht, Domain nicht mehr verifiziert oder Key abgelaufen.",
   },
+  mail_channel_down: {
+    area: "mail",
+    severity: "critical",
+    title: "Mailversand ist blockiert",
+    // ═══════════════════════════════════════════════════════════════════════════════
+    //  DER EINZIGE AUSFALL, DEN DAS MELDEWESEN NICHT MELDEN KANN
+    // ═══════════════════════════════════════════════════════════════════════════════
+    //
+    // Am 19.09.2026 um 09:58 hat Resend unseren Schlüssel zum ersten Mal abgewiesen
+    // (401, "API key is invalid"). Was danach passierte, ist die ganze Begründung für
+    // diesen Eintrag: Vier Anmeldelinks gingen nicht raus, die Montags-Erinnerung über
+    // elf wartende Events auch nicht, und VIER KRITISCHE ALARME (login_mail_failed)
+    // liefen ins Leere, weil der Alarmweg genau der Weg ist, der kaputt war. Im Logbuch
+    // standen fünf graue "E-Mail konnte nicht zugestellt werden" zwischen vierzig
+    // CSP-Zeilen. Gemerkt hat es Anton erst zwei Tage später, weil eine Mail AUSBLIEB,
+    // die er erwartet hat.
+    //
+    // Unterschied zu mail_send_failed: Dort ist EIN Versand gescheitert (falsche
+    // Adresse, einmal 5xx). Hier ist der KANAL zu, und das heisst: kein Anmeldelink,
+    // keine Kaufbestätigung, kein Alarm, bis jemand etwas tut.
+    //
+    // alertAfter: 0, weil eine Alarm-Mail über einen kaputten Mailversand das Papier
+    // nicht wert ist, auf dem sie nicht ankommt. Die Meldung geht stattdessen über den
+    // zweiten Kanal, den es schon gibt: das Banner im Admin (components/admin/
+    // MailChannelBanner.tsx) steht auf JEDER Admin-Seite, nicht nur im Logbuch.
+    alertAfter: 0,
+    quietMinutes: 720,
+    hint: "Kein Anmeldelink, keine Kaufbestätigung und kein Alarm kommt an, solange das anliegt. In Resend einen neuen API-Key anlegen, ihn in Vercel als RESEND_KEY eintragen (alle Umgebungen) und neu deployen. Steht der Schlüssel auch in Supabase unter Auth als SMTP-Passwort, dort mit tauschen, sonst bleibt der Notausgang für Anmeldelinks zu. Danach auf der Systemseite einmal „Testalarm schicken\" drücken.",
+  },
 
   // ── Medien ────────────────────────────────────────────────────────────────────────
   upload_failed: {

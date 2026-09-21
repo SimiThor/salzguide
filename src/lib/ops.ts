@@ -396,6 +396,52 @@ export async function writeHeartbeat(
   }
 }
 
+/**
+ * Der Schlüssel der Mailkanal-Zeile in `ops_heartbeats`.
+ *
+ * ═══════════════════════════════════════════════════════════════════════════════════════
+ *  WARUM DER MAILVERSAND EIN LEBENSZEICHEN BEKOMMT WIE EIN CRON-JOB
+ * ═══════════════════════════════════════════════════════════════════════════════════════
+ *
+ * Weil er dieselbe Sorte Ausfall hat: Er meldet sich nicht. Ein Cron, der ausbleibt, wirft
+ * keinen Fehler, er erzeugt Stille — und ein Mailkanal, der keine Mail mehr durchlässt,
+ * erzeugt eine Stille, die man für Ruhe hält. Am 19.09.2026 hat Resend unseren Schlüssel
+ * abgewiesen, und weil der Alarmweg selbst die Mail ist, hat zwei Tage lang nichts davon
+ * berichtet (siehe mail_channel_down im Katalog).
+ *
+ * Die Tabelle passt ohne eine einzige Änderung, weil die Fragen dieselben sind:
+ *   last_run_at  wann wurde es zuletzt versucht
+ *   last_ok_at   wann hat es zuletzt geklappt
+ *   ok           hat es beim letzten Mal geklappt
+ *
+ * WARUM „mail" TROTZDEM NICHT IN OPS_JOBS STEHT: Dort stehen Läufe mit Fahrplan, und der
+ * Totmannschalter fragt „wie lange ist der letzte her?". Auf den Mailversand übersetzt wäre
+ * das Unsinn — eine Woche ohne eine einzige Mail ist kein Ausfall, sondern eine ruhige
+ * Woche. Deshalb liest getJobStatus() nur OPS_JOBS, und diese Zeile bleibt dort unsichtbar.
+ * Gelesen wird sie von getMailHealth() (lib/ops-read.ts), angezeigt im Admin-Banner.
+ */
+export const MAIL_CHANNEL_JOB = "mail";
+
+/**
+ * „Der Mailversand hat gerade funktioniert" beziehungsweise „er ist zu". Wirft nie.
+ *
+ * Wird von lib/email.ts nach JEDEM Versuch gerufen, und vom täglichen Aufräum-Lauf, der den
+ * Kanal einmal anklopft, ohne etwas zu verschicken. Das Anklopfen ist der Teil, der auch dann
+ * trägt, wenn eine Woche lang niemand eine Mail auslöst.
+ *
+ * WICHTIG, welcher Fehler hier landen darf: NUR der kaputte Kanal (Schlüssel abgelehnt,
+ * Kontingent voll, Resend down). Eine abgewiesene EMPFÄNGER-Adresse gehört NICHT hierher —
+ * sonst stünde nach einem Tippfehler in einer Adresse tagelang „Mailversand ist blockiert"
+ * im Admin, und beim nächsten echten Ausfall glaubt es niemand mehr. Die Unterscheidung
+ * trifft channelFault() in lib/email.ts.
+ */
+export async function writeMailChannelState(
+  ok: boolean,
+  detail?: Record<string, unknown>,
+): Promise<void> {
+  await writeHeartbeat(MAIL_CHANNEL_JOB, ok, detail);
+}
+
 export type JobStatus = {
   job: string;
   label: string;

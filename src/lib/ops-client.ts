@@ -213,8 +213,20 @@ export function listenForClientErrors(): () => void {
     // können wir erst, wenn wir WISSEN, wie WebKit solche Skripte meldet: mit leerem
     // filename oder mit der Dokument-URL. Deshalb reist hier zunächst nur die Herkunft
     // mit (Origin oder ein Wort, nie Pfad oder Query — die können Tokens tragen).
-    // Zeigt das Logbuch „leer"/fremd für diese Fehler, kommt als zweiter Schritt das
-    // Tor: nur noch melden, was aus unseren eigenen Bundles kommt.
+    //
+    // DIE BEOBACHTUNG HAT GEANTWORTET, am 16.09.2026: Dieselben og:type-Fehler standen
+    // mit `quelle: eigen` im Logbuch. WebKit meldet solche Skripte also NICHT leer und
+    // nicht mit fremdem Origin, sondern mit UNSERER Seitenadresse. Ein Tor, das nur den
+    // Origin vergleicht, hätte den fremden Lärm damit dauerhaft behalten — genau die
+    // Richtung, vor der der Absatz darüber warnt.
+    //
+    // Was die beiden Fälle trennt, ist der PFAD: Eigener Code liegt in einer Bundle-Datei
+    // unter /_next/, eingeschleuster Code nennt das HTML-Dokument selbst. Deshalb heisst
+    // „eigen" ab jetzt nur noch das Bundle, und alles andere von unserem Origin heisst
+    // „inline". Bewusst ohne Werturteil: Auch Nexts eigenes Startskript steht inline im
+    // Dokument. Gefiltert wird weiterhin NICHTS — erst muss die Zahl zeigen, ob unter
+    // „inline" wirklich nur Fremdes liegt. Weiterhin nur Origin und Pfad-ANFANG, nie der
+    // ganze Pfad und nie die Query: dort können Tokens stehen.
     let quelle = "leer";
     if (e.filename) {
       try {
@@ -233,7 +245,11 @@ export function listenForClientErrors(): () => void {
           origin === "null"
             ? `opak:${url.protocol.replace(/:$/, "")}`
             : origin === window.location.origin
-              ? "eigen"
+              ? // Unsere Adresse, aber welche Datei? /_next/ ist unser Bundle, alles
+                // andere ist Code, der im Dokument selbst steht (siehe oben).
+                url.pathname.startsWith("/_next/")
+                ? "eigen"
+                : "inline"
               : origin;
       } catch {
         quelle = "unlesbar";

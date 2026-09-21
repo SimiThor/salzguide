@@ -1,6 +1,7 @@
 import "server-only";
 import { createServiceClient } from "./supabase/service";
 import { getAdminUserId } from "./admin-guard";
+import { MAIL_CHANNEL_JOB } from "./ops";
 import { SEVERITY_RANK, type OpsSeverity } from "./ops-events";
 
 // Die Leseseite des Logbuchs. Getrennt von lib/ops.ts, wie analytics-queries.ts von
@@ -117,5 +118,57 @@ export async function getOpsSummary(): Promise<OpsSummary> {
     return out;
   } catch {
     return empty;
+  }
+}
+
+// ───────────────────────────────────────────────────────────────────────────────────────
+//  Der Mailkanal
+// ───────────────────────────────────────────────────────────────────────────────────────
+
+export type MailHealth = {
+  /** Ist der letzte Versuch durchgegangen? Ohne jede Zeile: ja (nicht ohne Not Alarm schlagen). */
+  ok: boolean;
+  /** Letzter Versuch, egal ob Versand oder Klopftest. */
+  lastAt: string | null;
+  /** Wann zuletzt etwas durchging. Die Antwort auf „seit wann geht das schon?". */
+  lastOkAt: string | null;
+  /** Warum es klemmt, in einem Halbsatz („Schlüssel wird abgelehnt"). */
+  reason: string | null;
+};
+
+/**
+ * Geht gerade Post raus?
+ *
+ * Liest die Mailkanal-Zeile aus ops_heartbeats (geschrieben von lib/email.ts nach jedem
+ * Versuch und vom täglichen Klopftest, siehe MAIL_CHANNEL_JOB in lib/ops.ts).
+ *
+ * WARUM DIESE FRAGE EINE EIGENE FUNKTION IST und nicht in getJobStatus() mitläuft: Dort
+ * geht es um Läufe mit Fahrplan, hier um einen Kanal, der auch tagelang ungenutzt gesund
+ * sein darf. Das Ergebnis hängt im Admin-Rahmen und damit auf JEDER Admin-Seite, nicht nur
+ * im Logbuch: Ein kaputter Mailversand ist der eine Ausfall, über den keine Mail kommt.
+ *
+ * Fällt bei jedem Zweifel auf „ok" zurück. Ein Banner, das wegen eines Datenbank-Schluckaufs
+ * erscheint, ist schlimmer als keins.
+ */
+export async function getMailHealth(): Promise<MailHealth> {
+  const unknown: MailHealth = { ok: true, lastAt: null, lastOkAt: null, reason: null };
+  if (!(await getAdminUserId())) return unknown;
+  try {
+    const { data } = await createServiceClient()
+      .from("ops_heartbeats")
+      .select("last_run_at, last_ok_at, ok, detail")
+      .eq("job", MAIL_CHANNEL_JOB)
+      .maybeSingle();
+    if (!data) return unknown;
+    const detail = (data.detail ?? {}) as Record<string, unknown>;
+    const reason = typeof detail.grund === "string" ? detail.grund : null;
+    return {
+      ok: data.ok !== false,
+      lastAt: data.last_run_at ?? null,
+      lastOkAt: data.last_ok_at ?? null,
+      reason,
+    };
+  } catch {
+    return unknown;
   }
 }

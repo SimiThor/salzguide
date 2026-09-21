@@ -105,7 +105,15 @@ export async function GET(req: Request): Promise<Response> {
   // Laufs bewerten (die Recherche), nicht die Nebenarbeiten. Sonst stünde der Job wochenlang
   // auf Rot, weil ein Aufräumschritt hakt, den niemand vermisst — und man würde die Farbe
   // ignorieren lernen, genau dann, wenn sie einmal zählt.
-  await finishCron("events", result.ok, {
+  //
+  // DIE FREIGABE-MAIL ZÄHLT SEIT 09/2026 ZUR KERNAUFGABE, die Aufräumschritte nicht. Der
+  // Unterschied ist, was ohne sie liegen bleibt: Am 21.09.2026 lief die Recherche sauber
+  // durch, fand elf Events, und die Erinnerung scheiterte still an einem abgelehnten
+  // Resend-Schlüssel. Die Karte auf der Systemseite sagte trotzdem grün „läuft" — der Lauf
+  // hatte ja recherchiert. Nur gemacht hatte er damit nichts: Entwürfe, von denen niemand
+  // weiss, sind Veranstaltungen, die vorbeigehen. `failed` ist bewusst enger als `!sent`,
+  // ein Montag ohne offene Entwürfe verschickt nichts und ist trotzdem grün.
+  await finishCron("events", result.ok && !reviewMail.failed, {
     wochen: result.weeks.length,
     neueEvents: result.weeks.reduce((n, w) => n + w.inserted, 0),
     ...(result.error ? { grund: result.error } : {}),
