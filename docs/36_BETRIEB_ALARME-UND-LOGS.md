@@ -37,6 +37,8 @@ Start** einrichten.
 | `src/lib/ops-mail.ts` | Die Alarm-Mail und die globale Stundengrenze. |
 | `src/lib/ops-read.ts` | Lesen für die Admin-Seite (prüft selbst die Admin-Rolle). |
 | `src/lib/ops-client.ts` | Melden aus dem Browser. Kein Import aus `ops.ts` (server-only!). |
+| `src/lib/email.ts` | Der Versand selbst — und `probeMailChannel()`, der Klopftest ohne Mail. |
+| `src/components/admin/MailChannelBanner.tsx` | Der zweite Kanal: Zustand des Mailversands auf JEDER Admin-Seite. |
 | `instrumentation.ts` | `onRequestError` — jeder unbehandelte Serverfehler. |
 | `src/lib/cron-guard.ts` | Ein Wächter für beide Cron-Routen, inkl. Lebenszeichen. |
 | `/admin/settings/system` | Das Logbuch zum Anschauen, Job-Zustand, Test-Knopf. |
@@ -100,6 +102,44 @@ das Logbuch, und ein volllaufendes Logbuch ist selbst ein Ausfall.
 
 ---
 
+## Der Ausfall, der sich nicht selbst melden kann
+
+Alles oben hängt an einem einzigen Weg nach draussen: einer Mail über Resend. Für jeden
+Vorfall ist das richtig. Für einen nicht — den Ausfall dieses Weges selbst.
+
+**Was am 19.09.2026 passiert ist.** Resend wies unseren Schlüssel ab (401, „API key is
+invalid"). Vier Anmeldelinks gingen nicht raus, die Montags-Erinnerung über elf wartende
+Event-Entwürfe auch nicht, und vier `critical`-Alarme darüber ebenso wenig — sie wollten
+denselben Weg nehmen. Im Logbuch standen fünf graue „E-Mail konnte nicht zugestellt werden"
+zwischen vierzig CSP-Zeilen. Gemerkt wurde es zwei Tage später, und zwar nicht an einem
+Signal, sondern am FEHLEN eines gewohnten: Die Montags-Mail kam nicht.
+
+Eine bessere Alarm-Mail hilft dagegen nicht. Nur ein Weg, der ohne Mail auskommt:
+
+1. **Jeder Versuch hinterlässt seinen Zustand.** `lib/email.ts` schreibt nach jedem Versand
+   in `ops_heartbeats` unter dem Schlüssel `mail` (`MAIL_CHANNEL_JOB`): letzter Versuch,
+   letzter Erfolg, Grund. Nur KANAL-Fehler zählen (Schlüssel abgelehnt, Kontingent
+   erschöpft, Resend nicht erreichbar) — eine abgewiesene Empfänger-Adresse nicht, sonst
+   stünde nach einem Tippfehler tagelang „Mailversand ist blockiert" da.
+2. **Der tägliche Lauf klopft an.** `probeMailChannel()` schickt einen leeren POST an
+   Resend. Resend prüft zuerst den Schlüssel und erst danach den Inhalt, also kann dabei
+   keine Mail entstehen, und ein toter Schlüssel fällt trotzdem binnen 24 Stunden auf —
+   auch in einer Woche, in der niemand eine Mail auslöst. (`GET /domains` taugt nicht: Ein
+   Schlüssel mit „Sending access" darf Domains nicht lesen und sähe fälschlich tot aus.)
+3. **Das Banner im Admin-Rahmen** zeigt den Zustand auf jeder Admin-Seite, nicht nur hier im
+   Logbuch. Solange alles geht, zeigt es NICHTS — ein Kasten, der immer „alles gut" sagt,
+   wird nicht mehr gelesen.
+4. **`mail_channel_down`** ist der Katalog-Eintrag dazu: `critical`, aber `alertAfter: 0`.
+   Eine Alarm-Mail über einen kaputten Mailversand wäre das Papier nicht wert, auf dem sie
+   nicht ankommt.
+
+**Zweiter Weg statt besserer Mail, auch anderswo.** Aus demselben Grund trägt der Reiter
+„Events" jetzt ein Abzeichen mit den Entwürfen, die auf Freigabe warten: Die Mail bleibt die
+Erinnerung, das Abzeichen ist die Wahrheit. Und der Montags-Lauf gilt nur noch als grün,
+wenn die Erinnerung, für die es ihn gibt, auch rausgegangen ist.
+
+---
+
 ## Datenschutz
 
 Diese Tabellen sind **Betriebsdaten, kein zweites Analytics**. Es kommt kein neuer
@@ -155,6 +195,8 @@ Admin umgeht es ausdrücklich.
       Impressums-Adresse).
 - [ ] **Test-Knopf drücken:** `/admin/settings/system` → „Testalarm schicken". Beweist die
       ganze Kette bis ins Postfach. Nach jeder Änderung an den Mail-Einstellungen wiederholen.
+      Er ist ausserdem die Quittung nach einem Kanal-Ausfall: Geht die Testmail durch,
+      verschwindet das Banner „Mailversand ist blockiert" von selbst.
 - [ ] **Nach 24 h prüfen,** ob unter „Hintergrund-Läufe" beide Jobs auf „läuft" stehen. Vorher
       steht dort „noch nie gelaufen" — das ist richtig so und löst bewusst keinen Alarm aus.
 
@@ -167,6 +209,11 @@ Admin umgeht es ausdrücklich.
   das melden könnte. Vollständig wäre nur ein externer Uptime-Dienst, der von aussen anklopft
   (z. B. eine kostenlose Prüfung alle fünf Minuten auf die Startseite). Empfohlen vor dem
   öffentlichen Start, gehört zu den Punkten in `vor-public-start`.
+- **Das Banner braucht jemanden, der in den Admin schaut.** Es ist der zweite Kanal, aber
+  kein aktiver: Wer eine Woche nicht in den Admin sieht, sieht es auch nicht. Vollständig
+  wäre erst ein Weg, der von sich aus ankommt und nicht über Resend läuft (Push, Telegram,
+  oder eine externe Prüfung, die den Mailkanal-Zustand abfragt). Gehört zum selben offenen
+  Punkt wie der unabhängige Wächter darüber.
 - **Log-Drain.** Die Konsolenzeilen haben eine feste Form (`[ops] <stufe> <ecke>/<art> …`),
   damit ein späterer Drain sie greifen kann, ohne dass heute einer gebraucht wird.
 - **`ops_events` als Aggregat.** Die Zusammenfassung zählt heute im Code über die letzten
