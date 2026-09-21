@@ -5,7 +5,7 @@ import ScrollStrip from "@/components/ScrollStrip";
 import AutoRefresh from "@/components/admin/AutoRefresh";
 import TestAlertButton from "@/components/admin/TestAlertButton";
 import { getJobStatus } from "@/lib/ops";
-import { getOpsEvents, getOpsSummary } from "@/lib/ops-read";
+import { getMailHealth, getOpsEvents, getOpsSummary } from "@/lib/ops-read";
 import { opsPolicy, SEVERITY_LOOK, type OpsSeverity } from "@/lib/ops-events";
 import { STATUS_GOOD, STATUS_NEUTRAL, STATUS_ACCENT } from "@/lib/ui";
 
@@ -53,10 +53,11 @@ export default async function AdminSystemPage({
   const raw = (await searchParams).ab;
   const minSeverity = isSeverity(raw) ? raw : undefined;
 
-  const [summary, jobs, events] = await Promise.all([
+  const [summary, jobs, events, mail] = await Promise.all([
     getOpsSummary(),
     getJobStatus(),
     getOpsEvents({ minSeverity, limit: 120 }),
+    getMailHealth(),
   ]);
 
   const quiet = summary.critical === 0 && summary.error === 0;
@@ -156,7 +157,7 @@ export default async function AdminSystemPage({
         </ul>
       </div>
 
-      <TestAlertButton />
+      <TestAlertButton lastOkLabel={mail.lastOkAt ? when(mail.lastOkAt) : null} />
 
       {/* ── Die Liste ─────────────────────────────────────────────────────────────── */}
       <div className="rounded-[18px] bg-white p-5 shadow-sm ring-1 ring-black/5">

@@ -16,7 +16,12 @@ import { BTN_SECONDARY } from "@/lib/ui";
 // Ein Zustand mit drei Fällen statt eines Häkchens: „geschickt" heisst NICHT „angekommen".
 // Ob Resend die Mail wirklich zugestellt hat, weiss diese Seite nicht und darf sie deshalb
 // auch nicht behaupten. Der Text sagt genau das und schickt einen ins Postfach.
-export default function TestAlertButton() {
+//
+// `lastOkLabel` ist die Gegenrichtung: wann zuletzt überhaupt etwas durchging (Versand oder
+// der tägliche Klopftest, siehe getMailHealth). Der Knopf beantwortet „geht es JETZT?", die
+// Zeile darunter „seit wann geht es nicht mehr?" — und genau die zweite Frage fehlte am
+// 19.09.2026, als der Mailversand zwei Tage lang still zu war.
+export default function TestAlertButton({ lastOkLabel }: { lastOkLabel?: string | null }) {
   const [pending, startTransition] = useTransition();
   const [state, setState] = useState<"idle" | "sent" | "failed">("idle");
   const [error, setError] = useState<string | null>(null);
@@ -28,6 +33,11 @@ export default function TestAlertButton() {
         Schickt eine Testmail über denselben Weg wie ein echter Alarm. Nach jeder Änderung an
         den Mail-Einstellungen einmal drücken.
       </p>
+      {lastOkLabel && (
+        <p className="mt-2 text-[12px] text-muted">
+          Zuletzt ging eine Mail durch: {lastOkLabel}
+        </p>
+      )}
 
       <button
         type="button"

@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation";
 import { getAdminUserId } from "@/lib/admin-guard";
 import { getOpenSupportCount } from "@/lib/admin";
+import { countPendingEventDrafts } from "@/lib/event-review";
 import AdminNav from "@/components/admin/AdminNav";
+import MailChannelBanner from "@/components/admin/MailChannelBanner";
 
 // Der Admin-Rahmen: Wächter + Navigation.
 //
@@ -27,7 +29,12 @@ export default async function AdminLayout({
   if (!adminId) redirect(`/${locale}/profil`);
 
   // Erst NACH dem Wächter: Wer nicht rein darf, soll auch nichts auslösen.
-  const supportCount = await getOpenSupportCount();
+  // Nebeneinander statt nacheinander: Es sind zwei kleine Abfragen, die nichts voneinander
+  // wissen, und sie stehen vor JEDER Admin-Seite.
+  const [supportCount, pendingEvents] = await Promise.all([
+    getOpenSupportCount(),
+    countPendingEventDrafts(),
+  ]);
 
   return (
     // pb mit --sg-nav-h: Im Admin rendert die Rechts-Fusszeile bewusst nicht (kein
@@ -40,7 +47,14 @@ export default async function AdminLayout({
     // md:pb-12 des Footers, zwei Zahlen für denselben Abstand.
     <div className="mx-auto w-full max-w-[820px] px-4 pb-[calc(var(--sg-nav-h)+var(--sg-page-bottom))] pt-[var(--sg-page-top)] md:pb-[var(--sg-page-bottom)] md:pt-6">
       <div className="mb-4">
-        <AdminNav supportCount={supportCount} />
+        <AdminNav
+          badges={{ "/admin/users": supportCount, "/admin/events": pendingEvents }}
+        />
+      </div>
+      {/* Steht ÜBER dem Seiteninhalt und auf jeder Seite, nicht nur im Logbuch: Es ist die
+          einzige Meldung, die uns nicht per Mail erreichen kann (siehe die Komponente). */}
+      <div className="mb-4 empty:mb-0">
+        <MailChannelBanner />
       </div>
       {children}
     </div>

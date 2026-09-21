@@ -188,11 +188,41 @@ export async function sendLoginLink(opts: {
   //
   // Gemeldet wird NUR hier, nicht schon beim gescheiterten Eigenversand darüber: Solange
   // der Notausgang trägt, ist nichts passiert, was jemanden wecken müsste.
-  if (await sendViaSupabase(opts, locale)) return "sent";
+  const fallback = await sendViaSupabase(opts, locale);
+  if (!fallback) return "sent";
 
+  // ═══════════════════════════════════════════════════════════════════════════════════
+  //  DIE MINDESTPAUSE IST KEIN AUSFALL — und darf deshalb weder so aussehen noch so klingen
+  // ═══════════════════════════════════════════════════════════════════════════════════
+  //
+  // Supabase lässt je Adresse nur alle 60 Sekunden eine Mail durch (Auth -> Emails ->
+  // „Minimum interval per user"). Wer auf den Knopf drückt, nichts im Postfach sieht und
+  // ein zweites Mal drückt, läuft genau hinein. Bis 09/2026 hiess das zweimal falsch:
+  //
+  //   1. Der Mensch las „Hat nicht geklappt, bitte versuche es noch mal" — also
+  //      ausgerechnet die Aufforderung zu der einen Sache, die gerade NICHT gehen kann.
+  //      Dabei liegt seine Mail längst im Postfach, vom Versuch eine Minute davor.
+  //   2. Das Logbuch bekam ein `login_mail_failed`, und das ist `critical` mit Schwelle 1,
+  //      weil es „niemand kommt mehr in sein Konto" bedeutet. Ein Fehlalarm dieser Stufe
+  //      ist teurer als gar keiner: Nach dem dritten glaubt man auch dem echten nicht mehr.
+  //
+  // „rate" ist der Code, den es für genau diesen Fall längst gibt (die eigene Bremse oben
+  // benutzt ihn), und er trägt den richtigen Text: warten, nicht neu tippen.
+  if (fallback.status === 429) return "rate";
+
+  // WARUM DER GRUND MITMUSS: Am 21.09.2026 stand genau diese Zeile im Logbuch, während
+  // Anton vor einer Anmeldemaske sass, die nur „hat nicht geklappt" sagte. Warum der
+  // Notausgang zu war, wusste allein Vercels Laufzeit-Log — also die eine Quelle, an die
+  // man im Zweifel nicht herankommt, und die nach Stunden ohnehin weg ist. Supabase
+  // unterscheidet hier Dinge, die völlig verschiedene Handgriffe brauchen: ein gescheiterter
+  // SMTP-Versand (Schlüssel, Absender-Domain), eine nicht erlaubte Rücksprung-Adresse
+  // (Allowlist in Supabase) und die Mindestpause je Adresse. Ohne den Grund probiert man
+  // alle drei durch. Der Schwärzer in logOps nimmt eine Adresse heraus, falls Supabase eine
+  // in die Meldung schreibt.
   await logOps("login_mail_failed", {
     message: "Weder der eigene Versand noch Supabase konnten den Anmeldelink zustellen.",
     group: "login:failed",
+    detail: { notausgang: fallback.reason },
   });
   return "failed";
 }
@@ -240,11 +270,14 @@ async function buildLinkUrl(
  * Englisch und in fremder Gestaltung, aber sie kommt an, und der Link darin funktioniert.
  * Läuft über den PKCE-Weg, deshalb trägt er `code` statt `token_hash` — der Rücksprung
  * versteht beides (siehe auth/callback/route.ts).
+ *
+ * Gibt `null` zurück, wenn die Mail draussen ist, sonst Statuscode und GRUND. Ein blosses
+ * `false` hat am 21.09.2026 eine halbe Stunde Suche gekostet (siehe Aufrufstelle).
  */
 async function sendViaSupabase(
   opts: { email: string; next: string; origin: string; newsletter?: boolean },
   locale: string,
-): Promise<boolean> {
+): Promise<{ status: number | null; reason: string } | null> {
   try {
     const supabase = await createClient();
     const redirect =
@@ -256,11 +289,16 @@ async function sendViaSupabase(
     });
     if (error) {
       console.error("[login] Auch Supabase-Versand fehlgeschlagen", error.status, error.message);
-      return false;
+      // Der Statuscode gehört dazu: 429 ist die Mindestpause (kein Ausfall), 500 ist der
+      // SMTP-Versand, 400/422 ist meist die Rücksprung-Adresse.
+      return {
+        status: error.status ?? null,
+        reason: `${error.status ?? "?"}: ${error.message}`.slice(0, 200),
+      };
     }
-    return true;
+    return null;
   } catch (e) {
     console.error("[login] Auch Supabase-Versand fehlgeschlagen", e);
-    return false;
+    return { status: null, reason: (e instanceof Error ? e.message : "unbekannt").slice(0, 200) };
   }
 }

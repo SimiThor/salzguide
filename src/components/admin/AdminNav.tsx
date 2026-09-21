@@ -20,14 +20,24 @@ import ScrollStrip from "@/components/ScrollStrip";
 // merkt es, weil ein falsch markierter Reiter nichts kaputtmacht, nur verwirrt. Der Pfad
 // weiss ohnehin, wo man ist.
 
-type Tab = { href: string; label: string };
+// `badgeWord`: [Einzahl, Mehrzahl] für die Vorlesehilfe. Ohne Text wäre die Zahl im
+// Screenreader ein nacktes „3", und zwei Abzeichen an zwei Reitern klängen gleich.
+type Tab = { href: string; label: string; badgeWord?: readonly [string, string] };
 
 // Reihenfolge = Häufigkeit. Was man täglich braucht, steht links.
 const TABS: readonly Tab[] = [
   { href: "/admin", label: "Spots" },
-  { href: "/admin/events", label: "Events" },
+  {
+    href: "/admin/events",
+    label: "Events",
+    badgeWord: ["Event wartet auf Freigabe", "Events warten auf Freigabe"],
+  },
   { href: "/admin/tours", label: "Audio-Touren" },
-  { href: "/admin/users", label: "Nutzer" },
+  {
+    href: "/admin/users",
+    label: "Nutzer",
+    badgeWord: ["offene Support-Anfrage", "offene Support-Anfragen"],
+  },
   { href: "/admin/settings", label: "Einstellungen" },
 ];
 
@@ -47,7 +57,16 @@ function activeHref(pathname: string): string {
   return best;
 }
 
-export default function AdminNav({ supportCount = 0 }: { supportCount?: number }) {
+/**
+ * `badges`: Zahl je Reiter, geholt im Admin-Layout. Zwei Reiter tragen heute eine:
+ * Nutzer (offener Support) und Events (Entwürfe, die auf Freigabe warten).
+ *
+ * WARUM EINE TABELLE UND KEIN PROP JE ZÄHLER: Beim zweiten Zähler stünde sonst schon
+ * `supportCount` neben `eventCount` in der Signatur, beim dritten drei — und jedes davon
+ * müsste unten in einer Kette von Ternären dem richtigen Reiter zugeordnet werden. Der
+ * Reiter kennt seinen Schlüssel selbst, das genügt.
+ */
+export default function AdminNav({ badges = {} }: { badges?: Record<string, number> }) {
   const pathname = usePathname();
   const active = activeHref(pathname);
   const strip = useRef<HTMLDivElement>(null);
@@ -83,10 +102,11 @@ export default function AdminNav({ supportCount = 0 }: { supportCount?: number }
           sie schmal rechnen und „Audio-Touren" umbrechen, statt zu scrollen. */}
       <nav className="flex w-max rounded-full bg-black/5 p-1">
         {TABS.map((t) => {
-          // Der Zähler hängt an Nutzer, weil Support dort drinsteckt. Ohne ihn müsste man
-          // hineinklicken, um zu sehen, dass jemand wartet — und dann klickt man jedes Mal
-          // umsonst, oder man vergisst es.
-          const badge = t.href === "/admin/users" ? supportCount : 0;
+          // Ein Abzeichen sagt, dass dort Arbeit liegt, ohne dass man hineinklicken muss.
+          // Ohne es klickt man jedes Mal umsonst — oder man vergisst es. Bei den Events
+          // hing diese Information bis 09/2026 allein an der Montags-Mail, und als die
+          // ausfiel, lagen elf Entwürfe eine Woche lang unbemerkt da.
+          const badge = badges[t.href] ?? 0;
           return (
             <Link
               key={t.href}
@@ -103,8 +123,7 @@ export default function AdminNav({ supportCount = 0 }: { supportCount?: number }
               {badge > 0 && (
                 <span
                   className="flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-accent px-1 text-[11px] font-bold leading-none text-white"
-                  // Ohne Text wäre die Zahl für Screenreader ein nacktes „3".
-                  aria-label={`${badge} offene Support-Anfrage${badge === 1 ? "" : "n"}`}
+                  aria-label={`${badge} ${t.badgeWord?.[badge === 1 ? 0 : 1] ?? ""}`.trim()}
                 >
                   {badge > 9 ? "9+" : badge}
                 </span>
