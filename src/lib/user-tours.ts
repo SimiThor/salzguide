@@ -40,7 +40,7 @@ export type UserTourSummary = {
   durationMin: number | null;
 };
 
-// Runde des aktuellen Users speichern. RLS erzwingt user_id = auth.uid().
+// Runde des aktuellen Users speichern. RLS erzwingt user_id = auth.uid() und Pro (0072).
 export async function saveUserTour(
   input: SaveUserTourInput,
 ): Promise<{ ok: boolean; id?: string; error?: string }> {
@@ -49,6 +49,10 @@ export async function saveUserTour(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "auth" };
+  // Eine Server-Action ist ein eigener Eingang, nicht nur ein Schritt von generateTour: Sie
+  // lässt sich auch ohne den Builder aufrufen. Speichern ist deshalb dasselbe Pro-Recht wie
+  // Bauen, und die Prüfung gehört hierher, nicht nur zum Aufrufer.
+  if (!(await viewerCanSeePro())) return { ok: false, error: "pro" };
 
   const pointIds = (input.pointIds ?? []).filter((x) => typeof x === "string" && x);
   if (!input.areaId || pointIds.length < 2) return { ok: false, error: "invalid" };
