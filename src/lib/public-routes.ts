@@ -26,7 +26,7 @@ const PUBLIC_ROUTES: RegExp[] = [
   /^\/touren\/meine\/[^/]+\/navigation$/, // Navigation einer gespeicherten eigenen Runde
   /^\/touren\/[^/]+$/, // deckt auch /touren/bauen ab
   /^\/touren\/[^/]+\/navigation$/, // Navigation-Screen einer Runde (Rad und zu Fuss)
-  /^\/auth\/callback$/,
+  /^\/auth\/(callback|confirm)$/,
   // Admin: echte Pfad-Formen statt Pauschal-Freibrief. Hier stand /^\/admin(\/.*)?$/ mit
   // der Begründung, der Admin-Wächter fange unbekannte Unterpfade selbst — das war
   // falsch: Der Wächter prüft nur, WER fragt, nicht OB es die Seite gibt. Einen Pfad wie

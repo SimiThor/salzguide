@@ -186,11 +186,12 @@ export const OPS_EVENTS = {
     area: "auth",
     severity: "warn",
     title: "Anmeldung am Rücksprung gescheitert",
-    // Einzelfälle sind normal: abgelaufener Link, zweimal geklickt, Link aus dem Spam-
-    // Ordner von gestern. Eine Häufung heisst, der Weg ist kaputt.
+    // Einzelfälle sind normal: abgelaufener Link, Link aus dem Spam-Ordner von gestern.
+    // Eine Häufung heisst, der Weg ist kaputt. Bis 18.10.2026 kam hier jeder Hotmail-Kunde
+    // an, weil Outlooks Link-Prüfer den Link vor ihm einlöste (siehe auth/callback/route.ts).
     alertAfter: 5,
     quietMinutes: 60,
-    hint: "Meist abgelaufene Links (normal). Häufen sie sich, die Redirect-Allowlist in Supabase und NEXT_PUBLIC_SITE_URL prüfen.",
+    hint: "Einzeln meist ein abgelaufener Link (normal). Häufen sie sich: Redirect-Allowlist in Supabase und NEXT_PUBLIC_SITE_URL prüfen. Steht \"linkart: pkce\" dabei, betrifft es Google oder Supabases Notausgang-Mail.",
   },
   login_rate_limited: {
     area: "auth",

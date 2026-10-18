@@ -423,6 +423,8 @@
     "captchaUnavailable": "La verificación de seguridad no funciona ahora mismo. Recarga la página.",
     "captchaUnavailableGoogle": "La verificación de seguridad no funciona ahora mismo. Usa el acceso con Google de arriba o recarga la página.",
     "error": "No ha funcionado. Inténtalo otra vez.",
+    "linkError": "Este enlace ya no es válido.",
+    "linkErrorNext": "Pide uno nuevo aquí.",
     "captchaError": "Confirma que no eres un robot e inténtalo de nuevo.",
     "sentTitle": "Revisa tu bandeja de entrada",
     "sentBody": "Te enviamos un enlace a <mail>{email}</mail>. Tócalo y listo.",
@@ -446,7 +448,10 @@
     "emailLabel": "Correo electrónico",
     "emailError": "Ese correo no parece correcto.",
     "rateError": "Demasiados intentos. Inténtalo de nuevo en unos minutos.",
-    "changeEmail": "Cambiar correo"
+    "changeEmail": "Cambiar correo",
+    "confirmTitle": "Casi listo",
+    "confirmBody": "Un toque más y ya estás dentro.",
+    "confirmCta": "Iniciar sesión"
   },
   "Pro": {
     "title": "SalzGuide",

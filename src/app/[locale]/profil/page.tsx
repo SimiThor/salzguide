@@ -68,7 +68,7 @@ export default async function ProfilPage({
           reason={safeLoginReason(reasonParam)}
           titleAs="h1"
           next={next}
-          authError={auth_error === "1"}
+          authError={auth_error === "link" ? "link" : auth_error ? "generic" : undefined}
           googleEnabled={await googleLoginEnabled()}
           relaunchNotice={await getRelaunchNotice()}
         />
