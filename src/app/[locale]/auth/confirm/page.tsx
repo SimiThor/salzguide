@@ -23,8 +23,11 @@ export async function generateMetadata({
   return {
     title: t("confirmCta"),
     robots: { index: false, follow: false },
-    // Der Nachweis steht in der Adresse. Kein Referer, nirgendwohin.
-    referrer: "no-referrer",
+    // Der Nachweis steht in der Adresse: kein Referer nach aussen. NICHT "no-referrer":
+    // Damit schickt der Browser beim Abschicken `Origin: null`, und der CSRF-Schutz in
+    // auth/callback lehnte am 18.10.2026 jede echte Anmeldung als „fremde Herkunft" ab.
+    // "same-origin" gibt Referer und Origin nur an uns selbst weiter.
+    referrer: "same-origin",
   };
 }
 
