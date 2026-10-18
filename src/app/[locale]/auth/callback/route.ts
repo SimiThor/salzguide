@@ -79,10 +79,16 @@ function safeOtpType(raw: string | null): EmailOtpType | undefined {
  * mit; fehlt es, sagt `Sec-Fetch-Site` dasselbe. Fehlt beides (sehr alter Browser), lassen
  * wir durch: Ein Login, der dort scheitert, ist der grössere Schaden als ein Angriff, den
  * es so praktisch nicht gibt.
+ *
+ * `Origin: null` heisst NICHT „fremd", sondern „verschwiegen": Der Browser schickt es so,
+ * wenn die Seite eine strenge Referrer-Regel hat (no-referrer), aus Datenschutzgründen und
+ * mancher In-App-Browser von sich aus. Am 18.10.2026 stand genau das auf auth/confirm, und
+ * diese Prüfung hat ab dem Deploy JEDE Anmeldung per Mail abgelehnt. Bei `null` deshalb
+ * auf Sec-Fetch-Site ausweichen, das der Browser unabhängig von der Referrer-Regel setzt.
  */
 function isSameOrigin(request: Request, origin: string): boolean {
   const o = request.headers.get("origin");
-  if (o) return o === origin;
+  if (o && o !== "null") return o === origin;
   const site = request.headers.get("sec-fetch-site");
   if (site) return site === "same-origin" || site === "none";
   return true;
