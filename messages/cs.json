@@ -423,6 +423,8 @@
     "captchaUnavailable": "Bezpečnostní kontrola teď nefunguje. Načti prosím stránku znovu.",
     "captchaUnavailableGoogle": "Bezpečnostní kontrola teď nefunguje. Použij prosím přihlášení přes Google nahoře nebo načti stránku znovu.",
     "error": "Nevyšlo to. Zkus to prosím znovu.",
+    "linkError": "Tento odkaz už neplatí.",
+    "linkErrorNext": "Vyžádej si tady nový.",
     "captchaError": "Potvrď prosím, že nejsi robot, a zkus to znovu.",
     "sentTitle": "Koukni do schránky",
     "sentBody": "Poslali jsme ti odkaz na <mail>{email}</mail>. Klepni na něj a je to.",
@@ -446,7 +448,10 @@
     "emailLabel": "E-mailová adresa",
     "emailError": "Tahle e-mailová adresa nevypadá správně.",
     "rateError": "Moc pokusů. Zkus to za pár minut znovu.",
-    "changeEmail": "Změnit adresu"
+    "changeEmail": "Změnit adresu",
+    "confirmTitle": "Skoro hotovo",
+    "confirmBody": "Ještě jedno klepnutí a jsi přihlášený.",
+    "confirmCta": "Přihlásit se"
   },
   "Pro": {
     "title": "SalzGuide",

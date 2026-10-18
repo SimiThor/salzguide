@@ -423,6 +423,8 @@
     "captchaUnavailable": "De beveiligingscheck werkt nu even niet. Laad de pagina opnieuw.",
     "captchaUnavailableGoogle": "De beveiligingscheck werkt nu even niet. Gebruik de Google-login hierboven of laad de pagina opnieuw.",
     "error": "Dat lukte niet. Probeer het opnieuw.",
+    "linkError": "Deze link werkt niet meer.",
+    "linkErrorNext": "Vraag hier een nieuwe aan.",
     "captchaError": "Bevestig even dat je geen robot bent en probeer het opnieuw.",
     "sentTitle": "Kijk in je inbox",
     "sentBody": "We stuurden een link naar <mail>{email}</mail>. Tik erop en je bent binnen.",
@@ -446,7 +448,10 @@
     "emailLabel": "E-mailadres",
     "emailError": "Dit e-mailadres klopt niet.",
     "rateError": "Te veel pogingen. Probeer het over een paar minuten opnieuw.",
-    "changeEmail": "Adres wijzigen"
+    "changeEmail": "Adres wijzigen",
+    "confirmTitle": "Bijna klaar",
+    "confirmBody": "Nog één tik en je bent ingelogd.",
+    "confirmCta": "Inloggen"
   },
   "Pro": {
     "title": "SalzGuide",

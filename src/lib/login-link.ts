@@ -8,6 +8,7 @@ import { mailTexts } from "./mail-i18n";
 import { renderMailShell, renderMailShellText, type MailContent } from "./mail-layout";
 import { logOps, opsSubject } from "./ops";
 import { safeLocale } from "@/i18n/locales";
+import { CONFIRM_PATH } from "./auth-link";
 
 // ═══════════════════════════════════════════════════════════════════════════════════════
 //  Der Anmeldelink. Eine Mail, ein Weg, unser Design.
@@ -252,7 +253,9 @@ async function buildLinkUrl(
       console.error("[login] Anmeldelink nicht erzeugbar", error?.message);
       return null;
     }
-    const url = new URL(`${opts.origin}/${locale}/auth/callback`);
+    // Auf die Bestätigungsseite, NICHT direkt auf den Rücksprung: Mail-Prüfer (Hotmail)
+    // rufen Links selbst auf und verbrauchten so das Token. Siehe auth/callback/route.ts.
+    const url = new URL(`${opts.origin}/${locale}/${CONFIRM_PATH}`);
     url.searchParams.set("token_hash", tokenHash);
     url.searchParams.set("type", data.properties.verification_type ?? "magiclink");
     url.searchParams.set("next", opts.next);

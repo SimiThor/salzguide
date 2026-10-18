@@ -423,6 +423,8 @@
     "captchaUnavailable": "Weryfikacja bezpieczeństwa chwilowo nie działa. Odśwież stronę.",
     "captchaUnavailableGoogle": "Weryfikacja bezpieczeństwa chwilowo nie działa. Zaloguj się przez Google powyżej albo odśwież stronę.",
     "error": "Nie wyszło. Spróbuj jeszcze raz.",
+    "linkError": "Ten link jest już nieważny.",
+    "linkErrorNext": "Poproś tutaj o nowy.",
     "captchaError": "Potwierdź, że nie jesteś robotem, i spróbuj jeszcze raz.",
     "sentTitle": "Zajrzyj do skrzynki",
     "sentBody": "Wysłaliśmy ci link na <mail>{email}</mail>. Kliknij i gotowe.",
@@ -446,7 +448,10 @@
     "emailLabel": "Adres e-mail",
     "emailError": "Ten adres e-mail wygląda na błędny.",
     "rateError": "Za dużo prób. Spróbuj za kilka minut.",
-    "changeEmail": "Zmień adres"
+    "changeEmail": "Zmień adres",
+    "confirmTitle": "Prawie gotowe",
+    "confirmBody": "Jeszcze jedno kliknięcie i jesteś zalogowany.",
+    "confirmCta": "Zaloguj się"
   },
   "Pro": {
     "title": "SalzGuide",

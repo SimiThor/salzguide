@@ -423,6 +423,8 @@
     "captchaUnavailable": "A biztonsági ellenőrzés most nem működik. Töltsd újra az oldalt.",
     "captchaUnavailableGoogle": "A biztonsági ellenőrzés most nem működik. Használd fent a Google-bejelentkezést, vagy töltsd újra az oldalt.",
     "error": "Nem sikerült. Próbáld újra.",
+    "linkError": "Ez a link már nem érvényes.",
+    "linkErrorNext": "Kérj itt egy újat.",
     "captchaError": "Erősítsd meg gyorsan, hogy nem vagy robot, és próbáld újra.",
     "sentTitle": "Nézd meg a postaládád",
     "sentBody": "Küldtünk egy linket ide: <mail>{email}</mail>. Koppints rá, és kész.",
@@ -446,7 +448,10 @@
     "emailLabel": "E-mail-cím",
     "emailError": "Ez az e-mail-cím nem tűnik jónak.",
     "rateError": "Túl sok próbálkozás. Próbáld újra pár perc múlva.",
-    "changeEmail": "Cím módosítása"
+    "changeEmail": "Cím módosítása",
+    "confirmTitle": "Majdnem kész",
+    "confirmBody": "Még egy koppintás, és be vagy jelentkezve.",
+    "confirmCta": "Bejelentkezés"
   },
   "Pro": {
     "title": "SalzGuide",

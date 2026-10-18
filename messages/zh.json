@@ -423,6 +423,8 @@
     "captchaUnavailable": "安全检测暂时无法使用。请刷新页面。",
     "captchaUnavailableGoogle": "安全检测暂时无法使用。请使用上方的 Google 登录，或刷新页面。",
     "error": "没成功。请再试一次。",
+    "linkError": "这个链接已失效。",
+    "linkErrorNext": "在这里重新获取一个。",
     "captchaError": "请先确认你不是机器人，然后再试一次。",
     "sentTitle": "去邮箱看看",
     "sentBody": "我们把链接发到了 <mail>{email}</mail>。点一下就进去了。",
@@ -446,7 +448,10 @@
     "emailLabel": "邮箱地址",
     "emailError": "这个邮箱地址好像不对。",
     "rateError": "尝试次数太多了。过几分钟再试。",
-    "changeEmail": "换个邮箱"
+    "changeEmail": "换个邮箱",
+    "confirmTitle": "马上就好",
+    "confirmBody": "再点一下就登录了。",
+    "confirmCta": "登录"
   },
   "Pro": {
     "title": "SalzGuide",

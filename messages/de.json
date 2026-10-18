@@ -466,6 +466,8 @@
     "captchaUnavailable": "Der Sicherheitscheck klappt gerade nicht. Bitte lade die Seite neu.",
     "captchaUnavailableGoogle": "Der Sicherheitscheck klappt gerade nicht. Nutze bitte den Google-Login oben oder lade die Seite neu.",
     "error": "Hat nicht geklappt. Bitte versuch es nochmal.",
+    "linkError": "Der Link gilt nicht mehr.",
+    "linkErrorNext": "Hol dir hier einen neuen.",
     "captchaError": "Bitte bestätige kurz, dass du kein Roboter bist, und versuch's nochmal.",
     "sentTitle": "Schau in dein Postfach",
     "sentBody": "Wir haben dir einen Link an <mail>{email}</mail> geschickt. Tippe darauf, fertig.",
@@ -489,7 +491,10 @@
     "emailLabel": "E-Mail-Adresse",
     "emailError": "Diese E-Mail-Adresse sieht nicht richtig aus.",
     "rateError": "Zu viele Versuche. Probier es in ein paar Minuten nochmal.",
-    "changeEmail": "Adresse ändern"
+    "changeEmail": "Adresse ändern",
+    "confirmTitle": "Fast geschafft",
+    "confirmBody": "Ein Tipp noch, dann bist du angemeldet.",
+    "confirmCta": "Anmelden"
   },
   "Pro": {
     "title": "SalzGuide",

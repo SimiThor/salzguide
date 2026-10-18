@@ -129,7 +129,11 @@ type LoginPanelProps = {
   /** Woraus die Anmeldung entstanden ist -> Emoji + Überschrift. Siehe loginReasons.ts. */
   reason?: LoginReason;
   next?: string;
-  authError?: boolean;
+  /**
+   * Warum der letzte Anlauf gescheitert ist. "link" = der Mail-Link war abgelaufen oder
+   * schon benutzt (der Rücksprung schickt dann hierher), "generic" = alles andere.
+   */
+  authError?: "link" | "generic";
   /**
    * Den Umzugs-Hinweis zeigen (Admin-Einstellung `relaunch_notice`).
    *
@@ -181,7 +185,7 @@ export default function LoginPanel(props: LoginPanelProps = {}) {
 function LoginPanelForm({
   reason = "default",
   next,
-  authError = false,
+  authError,
   googleEnabled = false,
   relaunchNotice = false,
   titleAs = "h2",
@@ -282,7 +286,16 @@ function LoginPanelForm({
 
       {authError && (
         <p className="mt-5 rounded-[14px] bg-accent/10 px-4 py-3 text-center text-[13px] leading-snug text-accent">
-          {t("error")}
+          {/* Zwei Sätze, zwei Blöcke: Der Umbruch landet an der Satzgrenze statt mitten
+              im Satz, auf jedem Gerät gleich. */}
+          {authError === "link" ? (
+            <>
+              <span className="block">{t("linkError")}</span>
+              <span className="block">{t("linkErrorNext")}</span>
+            </>
+          ) : (
+            t("error")
+          )}
         </p>
       )}
 
