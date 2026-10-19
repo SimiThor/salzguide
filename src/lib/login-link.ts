@@ -271,8 +271,20 @@ async function buildLinkUrl(
  * Der Notausgang: Supabase schickt seine eigene Mail.
  *
  * Englisch und in fremder Gestaltung, aber sie kommt an, und der Link darin funktioniert.
- * Läuft über den PKCE-Weg, deshalb trägt er `code` statt `token_hash` — der Rücksprung
- * versteht beides (siehe auth/callback/route.ts).
+ *
+ * DER LINK DARIN STEHT IM SUPABASE-DASHBOARD, nicht hier: Authentication -> Emails ->
+ * Templates, „Magic link" UND „Confirm signup" (die zweite bekommt, wer noch kein Konto
+ * hat). Seit 19.10.2026 steht in beiden statt `{{ .ConfirmationURL }}`:
+ *
+ *   <a href="{{ .RedirectTo }}&token_hash={{ .TokenHash }}&type=email">…</a>
+ *
+ * `{{ .ConfirmationURL }}` zeigte auf Supabases eigenen Prüfpunkt, der das Token schon beim
+ * Öffnen einlöst. Outlook/Hotmail öffnet Links vorab und verbrauchte es damit, derselbe
+ * Fehler wie in auth/callback/route.ts beschrieben. Mit `{{ .TokenHash }}` geht der Link auf
+ * unseren Rücksprung (`RedirectTo` ist die Adresse unten, sie trägt immer schon `?next=`),
+ * der leitet auf auth/confirm weiter, und erst der Knopf dort löst ein. WER DIE VORLAGEN
+ * ÄNDERT, LÄSST `{{ .ConfirmationURL }}` DRAUSSEN. Probe: Skript, das signInWithOtp mit
+ * dieser Rücksprung-Adresse aufruft, dann den Link in der Mail am Handy öffnen.
  *
  * Gibt `null` zurück, wenn die Mail draussen ist, sonst Statuscode und GRUND. Ein blosses
  * `false` hat am 21.09.2026 eine halbe Stunde Suche gekostet (siehe Aufrufstelle).
