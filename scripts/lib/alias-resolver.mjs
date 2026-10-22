@@ -3,7 +3,7 @@ import { pathToFileURL } from "node:url";
 
 const SRC = pathToFileURL(process.cwd() + "/src/").href;
 
-// Nexts Server-Module gibt es ausserhalb von Next nicht, und ausserhalb eines Requests wären
+// Nexts Server-Module (next/headers, next/server, next/cache) gibt es ausserhalb von Next nicht, und ausserhalb eines Requests wären
 // sie ohnehin nicht benutzbar. Die Attrappe wirft, statt still etwas zurückzugeben: Ein
 // Prüf-Skript, das versehentlich `headers()` aufruft, soll auffliegen und nicht messen.
 const STUB = new URL("./next-stub.mjs", import.meta.url).href;
@@ -16,7 +16,7 @@ const EMPTY = "data:text/javascript,";
 // `next()` liefert ein Promise, deshalb async: Ein synchrones try/catch bekäme den Fehler
 // nie zu sehen und der Endungs-Nachschlag unten liefe ins Leere.
 export async function resolve(specifier, context, next) {
-  if (specifier === "next/headers" || specifier === "next/server") {
+  if (specifier === "next/headers" || specifier === "next/server" || specifier === "next/cache") {
     return { url: STUB, format: "module", shortCircuit: true };
   }
   if (specifier === "server-only" || specifier === "client-only") {
