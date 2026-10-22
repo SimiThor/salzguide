@@ -71,11 +71,32 @@ export async function getPublishedTours(locale: string): Promise<TourSummary[]> 
 }
 
 // Eine Tour mit allen Stops (Pool-Punkte) + serverseitig gegatetem Audio.
+// Web-Fassung: Betrachter und Admin-Prüfung kommen aus den Cookies.
 export async function getTourDetail(
   slug: string,
   locale: string,
 ): Promise<TourDetail | null> {
   const canSeePro = await viewerCanSeePro();
+  return getTourDetailFor(slug, locale, canSeePro, async () => {
+    // `await import`, weil admin-guard.ts `server-only` ist: Ein fester Import zöge das
+    // Modul in jeden Bündel-Graphen, der tours.ts auch nur für einen TYP anfasst, und das
+    // endet in HTTP 500 auf jeder Seite.
+    const { getAdminUserId } = await import("./admin-guard");
+    return Boolean(await getAdminUserId());
+  });
+}
+
+// Kern von getTourDetail, mit dem Betrachter als Parameter statt aus den Cookies. Die App-API
+// (/api/app/v1) entscheidet Pro per Bearer-Token und übergibt `() => false`: Entwurfs-Vorschau
+// gibt es über die App nicht. Das Web übergibt die Cookie-Admin-Prüfung. `isAdmin` ist ein
+// Callback, damit es LAZY bleibt: Er wird nur gefragt, wenn die veröffentlichte Abfrage nichts
+// fand, normaler Verkehr zahlt also keinen Auth-Roundtrip.
+export async function getTourDetailFor(
+  slug: string,
+  locale: string,
+  canSeePro: boolean,
+  isAdmin: () => Promise<boolean>,
+): Promise<TourDetail | null> {
   const supabase = createServiceClient();
 
   // Start/Ziel und die gesnappte Linie kommen erst mit Migration 0061. Solange sie
@@ -121,11 +142,7 @@ export async function getTourDetail(
   let tour = await versuche(true);
   let istEntwurf = false;
   if (!tour) {
-    // `await import`, weil admin-guard.ts `server-only` ist: Ein fester Import zöge das
-    // Modul in jeden Bündel-Graphen, der tours.ts auch nur für einen TYP anfasst, und das
-    // endet in HTTP 500 auf jeder Seite.
-    const { getAdminUserId } = await import("./admin-guard");
-    if (await getAdminUserId()) {
+    if (await isAdmin()) {
       tour = await versuche(false);
       istEntwurf = Boolean(tour);
     }
