@@ -335,7 +335,10 @@ export async function getExploreData(locale: string): Promise<ExploreData> {
   return loadExploreData(locale, canSeePro);
 }
 
-const loadExploreData = (locale: string, canSeePro: boolean): Promise<ExploreData> =>
+// Exportiert für die App-API (/api/app/v1): Sie entscheidet den Betrachter selbst (Bearer statt
+// Cookie) und ruft diese Funktion mit dem fertigen Wert. Die Betrachter-Prüfung muss weiterhin
+// AUSSERHALB von unstable_cache bleiben (siehe oben).
+export const loadExploreData = (locale: string, canSeePro: boolean): Promise<ExploreData> =>
   unstable_cache(
     () => queryExploreData(locale, canSeePro),
     // Beide Werte gehören in den Schlüssel: Sonst bekäme ein Ausgeloggter die Fassung
@@ -806,7 +809,9 @@ export const getSpotDetail = cache(async function getSpotDetail(
 // sofort an; die fünf Minuten sind nur das Sicherheitsnetz (EXPLORE_REVALIDATE).
 // Vorher lief die Abfrage (2-3 Supabase-Queries) bei JEDEM Aufruf jeder Spot-Seite —
 // also bei jedem Google-Besucher — komplett neu.
-const loadSpotDetail = (
+// Exportiert für die App-API (/api/app/v1), gleiche Regel wie bei loadExploreData: Die
+// Betrachter-Prüfung bleibt draußen, hier geht nur der fertige Wert hinein.
+export const loadSpotDetail = (
   slug: string,
   locale: string,
   canSeePro: boolean,
