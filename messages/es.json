@@ -160,7 +160,24 @@
     "navWalkIntro": "Para guiarte de parada en parada necesitamos tu ubicación.",
     "navResumeWalk": "Seguir caminando, parada {n} de {total}",
     "navDoneContinueWalk": "Seguir caminando",
-    "navDoneTitleEnd": "En la meta"
+    "navDoneTitleEnd": "En la meta",
+    "maneuver": {
+      "left": "Gira a la izquierda",
+      "right": "Gira a la derecha",
+      "slightLeft": "Gira ligeramente a la izquierda",
+      "slightRight": "Gira ligeramente a la derecha",
+      "sharpLeft": "Gira bruscamente a la izquierda",
+      "sharpRight": "Gira bruscamente a la derecha",
+      "keepLeft": "Mantente a la izquierda",
+      "keepRight": "Mantente a la derecha",
+      "straight": "Sigue recto",
+      "uturn": "Haz un cambio de sentido",
+      "roundabout": "En la rotonda, toma la salida {exit}",
+      "arrive": "Has llegado"
+    },
+    "navUnavailable": "Navegación no disponible por ahora. Toca para reintentar.",
+    "navTooFar": "Demasiado lejos de la ruta. Toca para reintentar.",
+    "routeAttribution": "Ruta: © colaboradores de OpenStreetMap"
   },
   "Water": {
     "title": "Temperaturas del agua",

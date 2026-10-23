@@ -160,7 +160,24 @@
     "navWalkIntro": "Navigácia od zastávky k zastávke potrebuje tvoju polohu.",
     "navResumeWalk": "Pokračovať pešo, zastávka {n} z {total}",
     "navDoneContinueWalk": "Pokračovať pešo",
-    "navDoneTitleEnd": "V cieli"
+    "navDoneTitleEnd": "V cieli",
+    "maneuver": {
+      "left": "Odbočte doľava",
+      "right": "Odbočte doprava",
+      "slightLeft": "Odbočte mierne doľava",
+      "slightRight": "Odbočte mierne doprava",
+      "sharpLeft": "Odbočte ostro doľava",
+      "sharpRight": "Odbočte ostro doprava",
+      "keepLeft": "Držte sa vľavo",
+      "keepRight": "Držte sa vpravo",
+      "straight": "Pokračujte rovno",
+      "uturn": "Otočte sa",
+      "roundabout": "V kruhovom objazde zvoľte {exit}. výjazd",
+      "arrive": "Ste v cieli"
+    },
+    "navUnavailable": "Navigácia momentálne nie je dostupná. Ťuknutím to skúsite znova.",
+    "navTooFar": "Príliš ďaleko od trasy. Ťuknutím to skúsite znova.",
+    "routeAttribution": "Trasa: © prispievatelia OpenStreetMap"
   },
   "Water": {
     "title": "Teplota vody",

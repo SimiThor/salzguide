@@ -142,6 +142,7 @@ Schlüssel enthalten schon `pro|public`. Touren und Merkliste sind ungecacht, da
 | `GET /tours?lang=` | wie `getPublishedTours` | optional |
 | `GET /tours/{slug}?lang=` | wie `getTourDetail` (Stopps, gesperrt/frei, signierte Links 2 h) | optional |
 | `GET /tours/{slug}/package?lang=` | Offline-Paket-Manifest (Abschnitt 6.3) | optional |
+| `POST /route` | Online umrouten ab der Position des Gastes über die offenen Stopps einer Runde. Body `{ tourSlug, from: [lng, lat], mode?, lang?, keep?, alongM?, viaAlongM? }`, Antwort `{ lang, tier, route }`; kein freier Routendienst, nichts gespeichert, keine Koordinate im Log; `422 no_route`, `429` (60 je Konto, 120 je IP für Gäste in 10 min). Vertrag: docs/42, Abschnitt 7 | optional |
 | `GET /me` | E-Mail, `canSeePro` (inkl. Admin, damit Admins keinen Kauf-Knopf sehen), Sprache, Newsletter | Pflicht |
 | `PATCH /me` | Body `{ locale?, newsletter? }`, mindestens ein Feld, `locale` aus den 13 Codes, unbekannte Felder = `400 invalid`. Antwort wie `GET /me`. Kerne in `account-core.ts` (auch `setNewsletter`/`rememberLocale` im Web) | Pflicht, **Handeln** (`auth.getUser`, keine anonymen Konten) |
 | `DELETE /me` | Konto löschen (Kern `account-delete.ts`; bei Apple-Login zusätzlich Apple-Token widerrufen, Abschnitt 5). Body optional `{ appleAuthorizationCode }`. Antwort `200 { deleted: true, appleRevoked: true \| false \| null }`: `null` = kein Apple-Konto, `false` = Apple-Konto, Widerruf nicht gelungen. **Das Konto wird immer gelöscht**, der Apple-Widerruf ist Best Effort und meldet Fehler über `logOps`: `apple_revoke_failed` (Apple hat abgelehnt oder war nicht erreichbar, oder die App hat keinen `authorizationCode` mitgeschickt), `config_missing`, wenn die `APPLE_SIWA_*`-Werte in Vercel fehlen | Pflicht, **Handeln** |
@@ -153,7 +154,7 @@ Schlüssel enthalten schon `pro|public`. Touren und Merkliste sind ungecacht, da
 
 Regeln für alle Routen:
 - JSON, Fehlerformat `{ error: "<code>" }` mit festen Codes (`auth`, `pro`, `not_found`,
-  `rate_limit`, `invalid`, `unavailable`), nie rohe Fehlermeldungen. `unavailable` (503) heißt:
+  `rate_limit`, `invalid`, `unavailable`, nur bei `POST /route` und Paket zusätzlich `no_route` mit 422), nie rohe Fehlermeldungen. `unavailable` (503) heißt:
   Auth-Server oder Datenbank sind gerade nicht erreichbar; die App meldet den Nutzer dabei
   NICHT ab.
 - **Ratenbegrenzung** über `hit_rate_limit` (0055), Schlüssel gehasht. `/auth/email-code`
@@ -284,11 +285,13 @@ Regeln für alle Routen:
 
 ### 6.3 Offline-Paket
 
-**Achtung, Stand 23.10.2026: der Server-Teil unten ist so nicht erlaubt, siehe 6.4.** Die
-Tabelle `tour_nav_routes` mit gespeicherter Mapbox-Linie und Mapbox-Schritten verstößt gegen
-die Mapbox Product Terms. Offline-Karten über das Maps SDK (`TileStore`) sind erlaubt.
+**Stand 23.10.2026: Das Routing steht in docs/42 (die eine Quelle).** Linie und Schritte
+kommen aus unserem eigenen BRouter (OpenStreetMap), nicht aus Mapbox; die Tabelle
+`tour_nav_routes` (Migration `0076`) speichert deshalb nur unsere eigenen Ergebnisse.
+Offline-Karten über das Maps SDK (`TileStore`) sind erlaubt. Wo die Aufzählung unten von
+docs/42 abweicht (Tabellenspalten, `language=`, Mapbox-Token), gilt docs/42.
 
-**Server (Web-Repo):**
+**Server (Web-Repo), gebaut auf `feat/routing-brouter`; Verträge und Ablauf: docs/42, Abschnitte 4 und 7:**
 - Heute holt die Navigation die Route bei jedem Start live von Mapbox; gespeichert ist nur die
   Linie (`route_geo`), nicht die Abbiegehinweise. Neu: Tabelle `tour_nav_routes`
   (`tour_id`, `lang`, `route_hash`, `geometry`, `steps`, `via_along`, `created_at`),
@@ -309,7 +312,11 @@ die Mapbox Product Terms. Offline-Karten über das Maps SDK (`TileStore`) sind e
   `contentHash`. Gesperrte Stopps bekommen nur die Kostprobe (gleiche Regel wie
   `stopAudioAccess`), freie die Vollfassung. Eine Sprache, eine Stimme.
 
-### 6.4 Mapbox-Bedingungen und Routing (offen, Antons Entscheidung)
+### 6.4 Mapbox-Bedingungen und Routing (entschieden: eigener BRouter, siehe docs/42)
+
+**Entschieden 23.10.2026: eigener Router (BRouter, MIT) auf OpenStreetMap-Daten, Antons Geo-Server,
+ein Token je Projekt. Alles Weitere (Profile, Schritte, Tabelle, Endpunkte, Betrieb) steht in
+docs/42. Die Recherche und ihre Empfehlung unten bleiben als Begründung stehen.**
 
 Recherche 23.10.2026 gegen die Mapbox Product Terms (Stand 20.10.2026); Bericht mit
 wörtlichen Zitaten im privaten App-Repo (`doku/mapbox-recherche-2026-10-23.md`). Keine
@@ -330,7 +337,7 @@ Rechtsberatung.
   Online-Umrouten über eine eigene Route (`/api/app/v1/route`) genutzt werden. Mapbox bleibt
   für die Kartenanzeige. Alternativen: Mapbox Navigation SDK mit Offline-Routing (teuer: ab
   100 MAU 0,30 $ je MAU, zweiter Navigations-Kern) oder eine Vertragsausnahme von Mapbox.
-- **Bis zur Entscheidung angehalten:** Server-Teil von 6.3 (`tour_nav_routes`, `/package`),
+- **Bis zur Entscheidung angehalten (jetzt aufgehoben, siehe docs/42):** Server-Teil von 6.3 (`tour_nav_routes`, `/package`),
   Online-Umrouten in der App, Umstellung von `route_geo` im Web. Weiter gebaut wird alles, was
   davon nicht abhängt: Karte, Spots, Merkliste, Touren mit Stopps und Audio (Sperrbildschirm,
   Hintergrund), Stopp-Einladungen nach Standort. Abbiegehinweise und Umrouten im
@@ -569,7 +576,18 @@ Web-Repo-PRs merged Simon; Migrationen spielt Anton VOR dem Merge im SQL Editor 
 - [ ] Simon: `APP_EMAIL_CODE_ENABLED=1` in Vercel setzen, VOR dem TestFlight-Start (bis dahin ist die Code-Route dunkel)
 - [ ] Google Cloud: iOS-OAuth-Client-ID
 - [ ] Mapbox: eigener Token für die App (nur nötige Rechte). Preise: siehe 6.4 (Maps SDK bis 25.000 MAU gratis)
-- [ ] **Entscheidung Routing (6.4):** eigener OSM-Router, Navigation SDK oder Vertragsausnahme; dazu, was mit `route_geo` im Web passiert
+- [ ] **Routing, Reihenfolge (nicht vertauschen):** Geo-Server-Token -> Vercel-ENV (Production UND Preview) -> Migration 0076 -> Merge. Seit dem Umbau der Web-Navigation (docs/42, Abschnitt 8.3) hängt auch der Fahrbildschirm im Web am Routendienst: ohne ENV keine Navigation
+- [x] **Entscheidung Routing (6.4):** eigener BRouter auf dem Geo-Server (docs/42). `route_geo` im Web wird beim Neu-Berechnen im Editor aus BRouter gefüllt
+- [ ] **Anton, VOR dem Merge:** Migration `0076_tour_nav_routes.sql` im SQL Editor einspielen (eine neue Tabelle, RLS an ohne Richtlinie, kein Datenverlust, wiederholbar). Der Code läuft auch ohne sie, rechnet dann aber bei jedem Paket-Abruf neu
+- [ ] **Anton, Geo-Server (docs/42, Abschnitt 11, ca. 15 Minuten):**
+  1. Token erzeugen: `openssl rand -base64 36`, Wert sicher ablegen.
+  2. In `/opt/geo/.env` die Zeile `GEO_TOKEN_SALZGUIDE=<token>` ergänzen.
+  3. In `/opt/geo/Caddyfile` unter der Kraxelbande-Zeile `@salzguide header Authorization "Bearer {$GEO_TOKEN_SALZGUIDE}"` und im Block `handle /routing/*` VOR `respond "unauthorized" 401` den Block `handle @salzguide { uri strip_prefix /routing` / `reverse_proxy brouter:17777 { header_up -Authorization }` / `}` einfügen (genauer Wortlaut in docs/42).
+  4. **Fehlt im README des Geo-Servers:** in `/opt/geo/docker-compose.yml` beim Dienst `caddy` unter `environment:` die Zeile `GEO_TOKEN_SALZGUIDE: ${GEO_TOKEN_SALZGUIDE:?fehlt}` ergänzen, sonst bleibt der Wert im Container leer und jede Anfrage bekommt 401.
+  5. Prüfen und neu starten: `docker compose config >/dev/null`, `docker compose run --rm --no-deps caddy caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile`, dann `docker compose up -d` (Kraxelbande-Anfragen brechen für eine Sekunde ab).
+  6. Von aussen testen: ohne Token `401`, mit Token liefert `/routing/brouter?lonlats=...&profile=trekking&format=geojson&timode=2` ein GeoJSON.
+- [ ] **Simon, Vercel-ENV (Production und Preview):** `ROUTING_URL=https://<geo-host>/routing` und `ROUTING_TOKEN=<token>` (beide nur Server, nie `NEXT_PUBLIC_`), danach neu deployen. Ohne `ROUTING_URL` gibt es in Produktion keine Route (Meldung `config_missing` im Logbuch, sobald jemand den Editor, das Paket oder das Umrouten benutzt); lokal springt der Testadapter ein. Dieselben Werte in `.env.local` für Anton
+- [ ] **Anton, nach dem Merge:** beide Runden im Admin-Editor ansehen und neu berechnen (Hinweise zu Kehren beachten, Abweichung der Geh-Runde prüfen, docs/42 Abschnitt 14, Frage 1); Datenschutzerklärung "Navigation" um den Routendienst ergänzen (Frage 2)
 - [ ] **Entscheidung Mapbox-Telemetrie (11):** Standard an mit Opt-out oder Standard aus; Mapbox-Support und Datenschutz fragen
 - [ ] App Store Connect: China als Verkaufsland ausschließen (Mapbox Product Terms 2.3)
 - [ ] Privates Repo für die App anlegen, Simon Zugriff geben

@@ -9,6 +9,8 @@ import type { TourDetail, TourSummary } from "./tour-types";
 import type { SavedSpot } from "./saved";
 import type { WeatherDay } from "./weather";
 import type { OpeningWeek } from "./opening-hours";
+import type { LngLat, RouteSource, RouteStep } from "./routing/types";
+import type { TourMode } from "./tour-mode";
 
 /** Feste Fehlercodes. Nie rohe Fehlertexte nach außen. */
 export type AppErrorCode =
@@ -17,6 +19,9 @@ export type AppErrorCode =
   | "not_found"
   | "rate_limit"
   | "invalid"
+  // 422, nur POST /route: zwischen den Punkten gibt es keinen Weg (oder ein Punkt liegt
+  // ausserhalb der Wegdaten). Die App bleibt auf der alten Linie.
+  | "no_route"
   | "unavailable";
 
 export type AppError = { error: AppErrorCode };
@@ -135,4 +140,110 @@ export type AppApplePurchaseResult = {
 export type AppApplePurchaseResponse = {
   canSeePro: boolean;
   results: AppApplePurchaseResult[];
+};
+
+// ── Routing (docs/42) ───────────────────────────────────────────────────────────────────
+
+/**
+ * Die Navigationsroute einer Runde ab dem Tour-Start, aus unserem eigenen Routendienst
+ * (OpenStreetMap, ODbL; nie Mapbox). Schritte sind sprachneutral: Den Text baut die App aus
+ * ihren Sprachdateien (toNavSteps/prepareSteps als Port, docs/42 Abschnitt 5). Wer die Linie
+ * oder eine Anweisung anzeigt, zeigt auch `source.attribution`.
+ */
+export type AppNavRoute = {
+  v: 1;
+  mode: TourMode;
+  /** Profil beim Routendienst, etwa "trekking". */
+  profile: string;
+  /** Marke der Kette (wie tours.route_hash): ändert sie sich, ist die Runde umgebaut. */
+  routeHash: string;
+  /** Fingerabdruck der Linie: Schritte und Stellen gelten nur für genau diese Linie. */
+  lineHash: string;
+  geometry: LngLat[];
+  steps: RouteStep[];
+  /** Je Stopp in `tour.stops` (gleiche Reihenfolge) die Strecke ab Start in Metern; null = Stopp ohne Punkt. */
+  stopAlongM: (number | null)[];
+  /** Je Wegpunkt ohne Geschichte (Kennung wie tour.routeVia) seine Strecke ab Start. */
+  viaAlongM: Record<string, number>;
+  distanceM: number;
+  /**
+   * Dauer aus Länge und Tempo der Navigation (Fahr- bzw. Gehzeit plus Zuschlag je Stopp), NUR für
+   * die Ankunftszeit. Angezeigt wird `tour.durationMin` / `tour.distanceKm`: Das sind die Werte,
+   * die der Admin gesetzt hat.
+   */
+  durationMin: number;
+  source: RouteSource;
+};
+
+/** Eine Audiodatei im Paket: gesperrte Stopps nur die Kostprobe, freie die Vollfassung. */
+export type AppPackageAudio = {
+  /** Wie `tour.stops[].spotSlug`. */
+  stopId: string;
+  kind: "full" | "sample";
+  /** Signiert, 2 Stunden gültig: die App lädt sofort. */
+  url: string;
+  durationSec: number | null;
+};
+
+/**
+ * Antwort von GET /tours/{slug}/package: alles, was die App für die Fahrt ohne Netz braucht.
+ * `tour` ist EXAKT die Antwort von GET /tours/{slug} für diesen Betrachter. Der
+ * `contentHash` bleibt gleich, solange sich nichts ändert, was die App neu laden müsste
+ * (Texte, Stopps, Sperren, Dateien, Linie, Schritte); die Links ändern sich bei jedem Abruf
+ * und zählen nicht mit.
+ */
+export type AppTourPackage = {
+  lang: string;
+  tier: AppTier;
+  tour: TourDetail;
+  /** null nur, wenn die Runde weniger als zwei Punkte mit Koordinate hat. */
+  route: AppNavRoute | null;
+  /** Kartenausschnitt für die Offline-Karte: Linie und Stopps mit Puffer. */
+  bbox: { west: number; south: number; east: number; north: number };
+  images: string[];
+  audio: AppPackageAudio[];
+  contentHash: string;
+  /** Pflichthinweis zur Linie (ODbL): "© OpenStreetMap-Mitwirkende". */
+  attribution: string;
+};
+
+/**
+ * Body von POST /route (Umrouten). Der Server baut die Kette selbst aus der Runde; es gibt
+ * KEINEN freien Routendienst. Unbekannte Felder = 400 invalid.
+ */
+export type AppRerouteRequest = {
+  tourSlug: string;
+  /** Position des Gastes [lng, lat]; höchstens 5 km von der Linie der Runde. */
+  from: LngLat;
+  /** Optional, muss zur Runde passen (sonst 400 invalid). */
+  mode?: TourMode;
+  lang?: string;
+  /** Indizes in `tour.stops` der noch offenen Stopps, aufsteigend. Fehlt es: alle. */
+  keep?: number[];
+  /** Fortschritt auf der alten Linie in Metern: lässt Wegpunkte hinter dem Gast weg. */
+  alongM?: number;
+  /** `viaAlongM` der alten Route. */
+  viaAlongM?: Record<string, number>;
+};
+
+export type AppReroute = {
+  lang: string;
+  tier: AppTier;
+  route: {
+    v: 1;
+    mode: TourMode;
+    profile: string;
+    lineHash: string;
+    geometry: LngLat[];
+    steps: RouteStep[];
+    /** Die Indizes in `tour.stops`, die diese Route anfährt (Echo der Anfrage, bei fehlendem `keep` alle mit Punkt). */
+    keep: number[];
+    /** Je Eintrag aus `keep` (gleiche Reihenfolge) die Strecke ab `from` in Metern. */
+    stopAlongM: (number | null)[];
+    viaAlongM: Record<string, number>;
+    distanceM: number;
+    /** Reine Fahr- bzw. Gehzeit der Reststrecke in Minuten. */
+    durationMin: number;
+    attribution: string;
+  };
 };

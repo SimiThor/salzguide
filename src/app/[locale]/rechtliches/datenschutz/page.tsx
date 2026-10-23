@@ -297,23 +297,25 @@ export default async function DatenschutzPage({
         siehe Punkt 6). Nutzt du die Standortanzeige, wertet dein Gerät den Standort aus; wir
         speichern ihn nicht.
       </p>
-      {/* Ergänzt am 24.08.2026 mit der Rad-Navigation: Bis dahin deckte der Absatz oben nur
-          die Standortanzeige ab, bei der die Position das Gerät nie verlässt. Die Navigation
-          schickt sie sehr wohl weg (bike-directions.ts ruft api.mapbox.com direkt aus dem
-          Browser auf, beim Start und bei jeder Neuberechnung), und das ist eine Übermittlung
-          an einen Dritten in die USA. Sie gehört benannt, auch wenn wir selbst nichts davon
-          speichern. Wer die Navigation umbaut und dabei den Anbieter wechselt, ändert diesen
-          Absatz mit und zieht LEGAL.updated in lib/legal.ts nach. */}
+      {/* Ergänzt am 24.08.2026 mit der Rad-Navigation, umgeschrieben am 23.10.2026: Die Route
+          rechnet seit docs/42 NICHT mehr Mapbox aus dem Browser, sondern unser eigener Server
+          (POST /api/tours/[slug]/route) über einen eigenen Routendienst auf OpenStreetMap-Daten
+          (BRouter, Geo-Server). Die Position verlässt das Gerät also weiter, geht aber an uns
+          und unseren Routendienst, nicht mehr an Mapbox. Hoster und Standort stehen unten und in
+          Punkt 5 (Hostinger, Frankfurt, bestaetigt 23.10.2026). LEGAL.updated in lib/legal.ts
+          wird beim MERGE nachgezogen, nicht vorher. */}
       <p>
-        Startest du eine Rad-Navigation, kommt zur Kartendarstellung die Routenberechnung
-        hinzu: Deine Position wird dabei aus deinem Browser an Mapbox übermittelt, beim Start
-        und noch einmal bei jeder Neuberechnung, etwa wenn du von der Route abkommst. Anders
-        als bei der reinen Standortanzeige verlässt der Standort dein Gerät hier also. Wir
-        selbst speichern ihn weiterhin nicht: Es entsteht bei uns keine Fahrtaufzeichnung und
-        kein Bewegungsprofil, weder während der Fahrt noch danach. Die Navigation startet nie
-        von allein, sondern erst, wenn du sie ausdrücklich beginnst und deinem Browser den
-        Standortzugriff erlaubst. Die Erlaubnis kannst du jederzeit in den
-        Browser-Einstellungen wieder entziehen.
+        Startest du eine Navigation, kommt zur Kartendarstellung die Routenberechnung hinzu:
+        Deine Position wird dabei aus deinem Browser an unseren Server übermittelt, beim Start
+        und noch einmal bei jeder Neuberechnung, etwa wenn du von der Route abkommst. Unser
+        Server rechnet die Route mit einem eigenen Routendienst auf Grundlage von
+        OpenStreetMap-Daten, der auf einem Server von Hostinger in Frankfurt am Main
+        (Deutschland) läuft; deine IP-Adresse wird dabei nicht weitergegeben. Anders als bei
+        der reinen Standortanzeige verlässt der Standort dein Gerät hier also. Wir speichern
+        ihn nicht: Es entsteht bei uns keine Fahrtaufzeichnung und kein Bewegungsprofil, weder
+        während der Fahrt noch danach. Die Navigation startet nie von allein, sondern erst,
+        wenn du sie ausdrücklich beginnst und deinem Browser den Standortzugriff erlaubst. Die
+        Erlaubnis kannst du jederzeit in den Browser-Einstellungen wieder entziehen.
       </p>
 
       <h3>m) Unsere Profile auf Instagram und TikTok</h3>
@@ -401,8 +403,12 @@ export default async function DatenschutzPage({
           <strong>Apple</strong> (Apple Distribution International Ltd.) – „Mit Apple anmelden“, Irland/USA.
         </li>
         <li>
-          <strong>Mapbox</strong> (mit OpenStreetMap) – Kartendarstellung und, bei der
-          Rad-Navigation, Routenberechnung aus deiner Position (siehe Punkt 3l), USA.
+          <strong>Mapbox</strong> (mit OpenStreetMap) – Kartendarstellung, USA.
+        </li>
+        <li>
+          <strong>Hostinger</strong> (Hostinger International Ltd.) – Server für unseren eigenen
+          Routendienst (Navigation und Offline-Routen, siehe Punkt 3l); Serverstandort Frankfurt
+          am Main, Deutschland (EU).
         </li>
         <li>
           <strong>Cloudflare</strong> – Bot-Schutz (Turnstile), USA.
