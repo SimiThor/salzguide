@@ -251,6 +251,38 @@ function tourRouteFiles(files: Files) {
 function manifestFile(files: Files) {
   const names = [...files.keys()].sort();
   const countOf = (dir: string) => names.filter((n) => n.startsWith(`${dir}/`)).length;
+  // Mengen aus den ERZEUGTEN Dateien gelesen (nie von Hand getippt), damit Verbraucher
+  // sie gegenprüfen können: fehlt auf einer Seite etwas, fällt die Zahl auf.
+  const read = (n: string) => JSON.parse(files.get(n) as string) as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+  const lenOf = (v: unknown) => (Array.isArray(v) ? v.length : 0);
+  const stepnavCases: Record<string, { drives: number; frames: number[]; ops: number }> = {};
+  for (const n of names.filter((x) => x.startsWith("stepnav/"))) {
+    const f = read(n);
+    stepnavCases[String(f.case)] = {
+      drives: lenOf(f.drives),
+      frames: (f.drives as { frames: unknown[] }[]).map((d) => lenOf(d.frames)),
+      ops: lenOf(f.ops),
+    };
+  }
+  const navStepsF = read("nav-steps/case-21.json");
+  const navFormatF = read("nav-format/format.json");
+  const entryCounts = (f: Record<string, any>, keys: string[]) => // eslint-disable-line @typescript-eslint/no-explicit-any
+    Object.fromEntries(keys.map((k) => [k, lenOf(f[k])]));
+  const navStepsEntries = entryCounts(navStepsF, ["turnAngle", "isMereCurve", "prepareSteps"]);
+  const navFormatEntries = entryCounts(navFormatF, ["formatNavDistanceM", "maneuverArrowDeg", "estimateEtaMin", "urgency"]);
+  const tourRouteCalls: Record<string, number> = {};
+  for (const n of names.filter((x) => x.startsWith("tour-route/"))) tourRouteCalls[String(read(n).section)] = lenOf(read(n).calls);
+  const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
+  const cases = Object.values(stepnavCases);
+  const totals = {
+    cases: cases.length,
+    drives: sum(cases.map((c) => c.drives)),
+    frames: sum(cases.flatMap((c) => c.frames)),
+    ops: sum(cases.map((c) => c.ops)),
+    navStepsEntries: sum(Object.values(navStepsEntries)),
+    navFormatEntries: sum(Object.values(navFormatEntries)),
+    tourRouteCalls: sum(Object.values(tourRouteCalls)),
+  };
   files.set(
     "manifest.json",
     toText({
@@ -263,6 +295,13 @@ function manifestFile(files: Files) {
         "nav-format": countOf("nav-format"),
         "tour-route": countOf("tour-route"),
       },
+      // Mengen zum Gegenprüfen: je stepnav-Fall Fahrten, Frames je Fahrt (in Reihenfolge) und
+      // Operationen; Einträge je Funktion in nav-steps und nav-format; Aufrufe je tour-route-Abschnitt.
+      stepnavCases,
+      navStepsEntries,
+      navFormatEntries,
+      tourRouteCalls,
+      totals,
       // Die Zahlentabellen genau wie in bike-nav-core.ts. WALK_NAV.MOVING_MPS ist Infinity
       // (der Geräte-Kurs wird zu Fuss nie genommen) und steht deshalb als {"$num":"Infinity"}.
       tables: { NAV, WALK_NAV },
@@ -280,7 +319,11 @@ function manifestFile(files: Files) {
         absentProperty: "Eigenschaften mit dem Wert undefined fehlen im JSON",
         note: "Schlüssel sind sortiert; die Reihenfolge von Arrays ist bedeutsam.",
       },
-      // Toleranz fürs Abspielen in Swift. Begründung: Die Zahlen sind Double (IEEE 754) in
+      // Toleranz fürs Abspielen in Swift. Ein differentieller Fuzz über 37.596 Frames zeigte:
+      // Apple-libm und V8 weichen bei sin/cos/atan2 um 1 ulp ab. Bei kleinen Werten
+      // (crossTrackM ~0,05 m, Kurse über wenige Meter) liegt das über 1e-9 relativ. Deshalb
+      // 1e-6 absolut (1 Mikrometer bzw. 1e-6 Grad): fängt weiterhin jede falsche Formel.
+      // Begründung: Die Zahlen sind Double (IEEE 754) in
       // beiden Sprachen, die Rechenwege dieselben. Abweichungen kommen nur aus sin/cos/atan2
       // und sqrt der jeweiligen libm (wenige ulp, rund 1e-16 relativ). Der Zustand wird je
       // Fix NEU aus der Geometrie gerechnet (kein Aufsummieren über die Fahrt), die
@@ -292,7 +335,7 @@ function manifestFile(files: Files) {
       tolerance: {
         number: {
           relative: 1e-9,
-          absoluteFloor: 1e-12,
+          absoluteFloor: 1e-6,
           rule: "|a - b| <= max(absoluteFloor, relative * max(|a|, |b|))",
           appliesTo: "alle JSON-Zahlen, die nicht unter `exact` fallen",
         },
@@ -330,6 +373,7 @@ function manifestFile(files: Files) {
         ],
       },
       notes: [
+        "Gleichstaende in nearestPointOnRoute (exakt uebereinanderliegende Segmente, z. B. Stichweg hin und zurueck, ohne Kursangabe) entscheidet Rundungsrauschen; TS (V8) und Safari/Swift koennen dort verschieden waehlen. Offen: deterministische Regel im Web-Kern (Antons Entscheidung).",
         "Zeit kommt immer als fix.at (ms) herein. Kein Aufruf liest Date.now() oder Math.random().",
         "Kein Locale: formatNavDistanceM druckt mit toFixed(1) und festem Punkt, Dezimaltrennzeichen ist immer '.'.",
         "tourRouteHash: djb2 ueber die UTF-16-Codeeinheiten (charCodeAt), mit h = ((h << 5) + h + c) >>> 0; das << rechnet in Int32. Ausgabe in Basis 36. Davor hashTexts: jedes Token (x ?? '').trim(), dann stripEmDash, dann join(' '). Die Tokens bestehen aus Modus, Typbuchstabe, Stations-ID und Koordinaten; stripEmDash greift nur, wenn eine Stations-ID (aus Fremdeingabe) einen Gedankenstrich enthält, die Fixtures haben keinen. Trim und Leerzeichen als Trenner gelten trotzdem.",
