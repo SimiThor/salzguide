@@ -580,6 +580,13 @@
       "tileLabel": "Logujesz się adresem",
       "note": "To nie ty? Usuń tego maila."
     },
+    "loginCode": {
+      "subject": "Twój kod do SalzGuide",
+      "headline": "Twój kod do SalzGuide",
+      "body": "👇 Wpisz kod w aplikacji i jesteś w środku. Hasła nie potrzebujesz.\n\n🔒 Kod działa tylko dla tego adresu i tylko raz.",
+      "codeLabel": "Twój kod",
+      "note": "To nie ty? Usuń tego maila."
+    },
     "gift": {
       "subject": "Masz SalzGuide Pro",
       "headline": "SalzGuide Pro odblokowane",
@@ -636,5 +643,42 @@
     "title": "Nie ten zakręt",
     "body": "Tej drogi nie zna nawet lokals. Najlepiej tu zawróć.",
     "home": "Na stronę główną"
+  },
+  "App": {
+    "tabs": {
+      "explore": "Odkrywaj",
+      "tours": "Przewodniki",
+      "saved": "Zapisane",
+      "profile": "Profil"
+    },
+    "login": {
+      "title": "Zaloguj się",
+      "intro": "Kod dostajesz mailem. Hasła nie potrzebujesz.",
+      "emailLabel": "Adres e-mail",
+      "emailPlaceholder": "twoj@email.pl",
+      "sendCode": "Wyślij kod",
+      "sending": "Wysyłanie…",
+      "codeTitle": "Zajrzyj do skrzynki",
+      "codeHint": "Kod z maila",
+      "codeSent": "Wysłaliśmy kod na adres {email}.",
+      "newestOnly": "Działa tylko najnowszy kod.",
+      "verify": "Zaloguj się",
+      "resend": "Wyślij kod ponownie",
+      "resendIn": "Wyślij kod ponownie za {seconds} s",
+      "changeEmail": "Zmień adres",
+      "errorEmail": "Ten adres e-mail wygląda na błędny.",
+      "errorWrongCode": "Kod się nie zgadza. Sprawdź go i spróbuj jeszcze raz.",
+      "errorExpired": "Kod już nie działa. Poproś o nowy.",
+      "errorRate": "Za dużo prób. Spróbuj za kilka minut.",
+      "errorOffline": "Brak połączenia. Spróbuj za chwilę.",
+      "errorGeneric": "Nie wyszło. Spróbuj jeszcze raz.",
+      "apple": "Zaloguj się przez Apple",
+      "google": "Zaloguj się przez Google",
+      "appleHint": "Pro kupione w sieci? Zaloguj się tym samym adresem e-mail."
+    },
+    "profile": {
+      "signOut": "Wyloguj się",
+      "deleteAccount": "Usuń konto"
+    }
   }
 }

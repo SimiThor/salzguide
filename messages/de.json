@@ -623,6 +623,13 @@
       "tileLabel": "Du meldest dich an mit",
       "note": "Du hast das nicht angefordert? Lösch die Mail."
     },
+    "loginCode": {
+      "subject": "Dein Code für SalzGuide",
+      "headline": "Dein Code für SalzGuide",
+      "body": "👇 Gib den Code in der App ein, und du bist drin. Passwort brauchst du keins.\n\n🔒 Der Code gilt nur für diese Adresse und funktioniert einmal.",
+      "codeLabel": "Dein Code",
+      "note": "Du hast das nicht angefordert? Lösch die Mail."
+    },
     "gift": {
       "subject": "Du hast SalzGuide Pro",
       "headline": "SalzGuide Pro freigeschaltet",
@@ -679,5 +686,42 @@
     "title": "Falsch abgebogen",
     "body": "Diesen Weg kennt nicht mal ein Local. Dreh am besten hier um.",
     "home": "Zur Startseite"
+  },
+  "App": {
+    "tabs": {
+      "explore": "Entdecken",
+      "tours": "Touren",
+      "saved": "Gespeichert",
+      "profile": "Profil"
+    },
+    "login": {
+      "title": "Anmelden",
+      "intro": "Du bekommst einen Code per Mail. Ein Passwort brauchst du nicht.",
+      "emailLabel": "E-Mail-Adresse",
+      "emailPlaceholder": "deine@email.at",
+      "sendCode": "Code senden",
+      "sending": "Wird gesendet …",
+      "codeTitle": "Schau in dein Postfach",
+      "codeHint": "Code aus der Mail",
+      "codeSent": "Wir haben einen Code an {email} geschickt.",
+      "newestOnly": "Es gilt nur der neueste Code.",
+      "verify": "Anmelden",
+      "resend": "Code erneut senden",
+      "resendIn": "Code erneut senden in {seconds} s",
+      "changeEmail": "Adresse ändern",
+      "errorEmail": "Diese E-Mail-Adresse sieht nicht richtig aus.",
+      "errorWrongCode": "Der Code stimmt nicht. Prüf ihn nochmal.",
+      "errorExpired": "Der Code gilt nicht mehr. Fordere einen neuen an.",
+      "errorRate": "Zu viele Versuche. Probier es in ein paar Minuten nochmal.",
+      "errorOffline": "Keine Verbindung. Versuch es gleich nochmal.",
+      "errorGeneric": "Hat nicht geklappt. Bitte versuch es nochmal.",
+      "apple": "Mit Apple anmelden",
+      "google": "Mit Google anmelden",
+      "appleHint": "Pro im Web gekauft? Melde dich mit derselben E-Mail an."
+    },
+    "profile": {
+      "signOut": "Abmelden",
+      "deleteAccount": "Konto löschen"
+    }
   }
 }

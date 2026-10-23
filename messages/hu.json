@@ -580,6 +580,13 @@
       "tileLabel": "Ezzel a címmel jelentkezel be",
       "note": "Nem te kérted? Töröld a levelet."
     },
+    "loginCode": {
+      "subject": "A SalzGuide-kódod",
+      "headline": "A SalzGuide-kódod",
+      "body": "👇 Írd be a kódot az appban, és bent vagy. Jelszó nem kell.\n\n🔒 A kód csak erre a címre érvényes, és egyszer működik.",
+      "codeLabel": "A kódod",
+      "note": "Nem te kérted? Töröld a levelet."
+    },
     "gift": {
       "subject": "Tiéd a SalzGuide Pro",
       "headline": "SalzGuide Pro feloldva",
@@ -636,5 +643,42 @@
     "title": "Rossz kanyar",
     "body": "Ezt az utat még egy local sem ismeri. Legjobb, ha itt visszafordulsz.",
     "home": "A kezdőoldalra"
+  },
+  "App": {
+    "tabs": {
+      "explore": "Felfedezés",
+      "tours": "Túrák",
+      "saved": "Mentések",
+      "profile": "Profil"
+    },
+    "login": {
+      "title": "Bejelentkezés",
+      "intro": "A kódot e-mailben kapod. Jelszó nem kell.",
+      "emailLabel": "E-mail-cím",
+      "emailPlaceholder": "te@email.hu",
+      "sendCode": "Kód küldése",
+      "sending": "Küldés …",
+      "codeTitle": "Nézd meg a postaládád",
+      "codeHint": "Kód az e-mailből",
+      "codeSent": "Küldtünk egy kódot erre a címre: {email}.",
+      "newestOnly": "Csak a legfrissebb kód érvényes.",
+      "verify": "Bejelentkezés",
+      "resend": "Kód újraküldése",
+      "resendIn": "Kód újraküldése {seconds} mp múlva",
+      "changeEmail": "Cím módosítása",
+      "errorEmail": "Ez az e-mail-cím nem tűnik jónak.",
+      "errorWrongCode": "A kód nem stimmel. Nézd át, és próbáld újra.",
+      "errorExpired": "A kód már nem érvényes. Kérj újat.",
+      "errorRate": "Túl sok próbálkozás. Próbáld újra pár perc múlva.",
+      "errorOffline": "Nincs kapcsolat. Próbáld újra egy perc múlva.",
+      "errorGeneric": "Nem sikerült. Próbáld újra.",
+      "apple": "Bejelentkezés Apple-lel",
+      "google": "Bejelentkezés Google-lel",
+      "appleHint": "Webes Pro-vásárlás? Jelentkezz be ugyanazzal az e-mail-címmel."
+    },
+    "profile": {
+      "signOut": "Kijelentkezés",
+      "deleteAccount": "Fiók törlése"
+    }
   }
 }

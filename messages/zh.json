@@ -580,6 +580,13 @@
       "tileLabel": "你用这个邮箱登录",
       "note": "不是你申请的？删掉就好。"
     },
+    "loginCode": {
+      "subject": "你的 SalzGuide 登录验证码",
+      "headline": "你的 SalzGuide 登录验证码",
+      "body": "👇 在 App 里输入验证码就进去了。不用密码。\n\n🔒 这个验证码只对这个邮箱有效，只能用一次。",
+      "codeLabel": "你的验证码",
+      "note": "不是你申请的？删掉就好。"
+    },
     "gift": {
       "subject": "你有 SalzGuide Pro 了",
       "headline": "SalzGuide Pro 已开通",
@@ -636,5 +643,42 @@
     "title": "走错路啦",
     "body": "这条路连本地人都不认识。最好在这里掉头。",
     "home": "回到首页"
+  },
+  "App": {
+    "tabs": {
+      "explore": "探索",
+      "tours": "导览",
+      "saved": "收藏",
+      "profile": "我的"
+    },
+    "login": {
+      "title": "登录",
+      "intro": "验证码会发到你的邮箱。不用密码。",
+      "emailLabel": "邮箱地址",
+      "emailPlaceholder": "you@email.com",
+      "sendCode": "发送验证码",
+      "sending": "发送中……",
+      "codeTitle": "去邮箱看看",
+      "codeHint": "邮件里的验证码",
+      "codeSent": "我们已把验证码发到 {email}。",
+      "newestOnly": "只有最新的验证码有效。",
+      "verify": "登录",
+      "resend": "重新发送验证码",
+      "resendIn": "{seconds} 秒后可重新发送",
+      "changeEmail": "换个邮箱",
+      "errorEmail": "这个邮箱地址好像不对。",
+      "errorWrongCode": "验证码不对，请检查后再试。",
+      "errorExpired": "验证码已失效，请重新获取。",
+      "errorRate": "尝试次数太多了。过几分钟再试。",
+      "errorOffline": "没有网络连接，请稍后再试。",
+      "errorGeneric": "没成功。请再试一次。",
+      "apple": "通过 Apple 登录",
+      "google": "使用 Google 账号登录",
+      "appleHint": "在网页上买过 Pro？请用同一个邮箱登录。"
+    },
+    "profile": {
+      "signOut": "退出登录",
+      "deleteAccount": "删除账号"
+    }
   }
 }

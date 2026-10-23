@@ -580,6 +580,13 @@
       "tileLabel": "Tu te connectes avec",
       "note": "Tu n’as rien demandé ? Supprime ce mail."
     },
+    "loginCode": {
+      "subject": "Ton code pour SalzGuide",
+      "headline": "Ton code pour SalzGuide",
+      "body": "👇 Saisis le code dans l’appli et c’est fait. Pas besoin de mot de passe.\n\n🔒 Le code ne vaut que pour cette adresse et fonctionne une seule fois.",
+      "codeLabel": "Ton code",
+      "note": "Tu n’as rien demandé ? Supprime ce mail."
+    },
     "gift": {
       "subject": "Tu as SalzGuide Pro",
       "headline": "SalzGuide Pro débloqué",
@@ -636,5 +643,42 @@
     "title": "Mauvaise direction",
     "body": "Même les locaux ne connaissent pas ce chemin. Fais demi-tour ici.",
     "home": "Retour à l'accueil"
+  },
+  "App": {
+    "tabs": {
+      "explore": "Explorer",
+      "tours": "Visites",
+      "saved": "Enregistrés",
+      "profile": "Profil"
+    },
+    "login": {
+      "title": "Se connecter",
+      "intro": "Tu reçois un code par mail. Pas besoin de mot de passe.",
+      "emailLabel": "Adresse e-mail",
+      "emailPlaceholder": "toi@email.com",
+      "sendCode": "Envoyer le code",
+      "sending": "Envoi …",
+      "codeTitle": "Regarde ta boîte mail",
+      "codeHint": "Code reçu par mail",
+      "codeSent": "On t’a envoyé un code à {email}.",
+      "newestOnly": "Seul le dernier code est valable.",
+      "verify": "Se connecter",
+      "resend": "Renvoyer le code",
+      "resendIn": "Renvoyer le code dans {seconds} s",
+      "changeEmail": "Changer d’adresse",
+      "errorEmail": "Cette adresse e-mail ne semble pas correcte.",
+      "errorWrongCode": "Le code n’est pas bon. Vérifie-le et réessaie.",
+      "errorExpired": "Le code n’est plus valable. Demande-en un nouveau.",
+      "errorRate": "Trop de tentatives. Réessaie dans quelques minutes.",
+      "errorOffline": "Pas de connexion. Réessaie dans un instant.",
+      "errorGeneric": "Ça n’a pas marché. Réessaie.",
+      "apple": "Se connecter avec Apple",
+      "google": "Se connecter avec Google",
+      "appleHint": "Pro acheté sur le web ? Connecte-toi avec la même adresse e-mail."
+    },
+    "profile": {
+      "signOut": "Se déconnecter",
+      "deleteAccount": "Supprimer le compte"
+    }
   }
 }

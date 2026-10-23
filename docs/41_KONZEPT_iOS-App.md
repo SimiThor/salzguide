@@ -20,7 +20,7 @@ weiterläuft, gesprochene Abbiegehinweise, Steuerung am Sperrbildschirm, Touren 
 | Umfang v1 | Explore, Spots, Merkliste, Login, Pro erkennen + kaufen, Audiotouren mit nativer Navigation (Fuß + Rad), Touren offline |
 | Später (v1.1+) | Toni, Events, Runden-Bauer (KI), Wasser, Story-Maker, Live-Aktivität, Apple Watch |
 | Kauf | Apple-In-App-Kauf, Einmalkauf (kein Abo), **19,99 €**; nur angemeldet; im Web gekauftes Pro gilt in der App und umgekehrt |
-| Login | 6-stelliger **Code per Mail** (kein Link), **Mit Apple anmelden**, **Google** |
+| Login | **Code per Mail** (6-8 Stellen, siehe Abschnitt 5; kein Link), **Mit Apple anmelden**, **Google** |
 | Anbieter im App Store | Anton als Person (Apple-Entwicklerkonto existiert, bezahlt) |
 | Code | **eigenes privates Repo** für die App; die App-Schnittstelle kommt per PR ins Web-Repo, Simon merged |
 | iOS-Version | aktuelle + vorige Hauptversion |
@@ -144,14 +144,16 @@ Schlüssel enthalten schon `pro|public`. Touren und Merkliste sind ungecacht, da
 | `PATCH /me` | Sprache, Newsletter (über den `server-only`-Kern) | Pflicht |
 | `DELETE /me` | Konto löschen (Kern aus 4.2; bei Apple-Login zusätzlich Apple-Token widerrufen, Abschnitt 5) | Pflicht |
 | `GET /saved`, `PUT /saved/{slug}`, `DELETE /saved/{slug}` | Merkliste. `toggleSaved` ist ein Umschalter über `saved_lists`/`saved_items` und nicht idempotent; PUT/DELETE werden **idempotent** neu gebaut (gleiche Tabellen, Standardliste über `getOrCreateDefaultList`), samt `spot_save`-Ereignis wie im Web | Pflicht |
-| `POST /auth/email-code` | Anmelde-Code per Mail senden (Abschnitt 5) | keine |
+| `POST /auth/email-code` | Anmelde-Code per Mail senden (Abschnitt 5). Body `{ email, locale }` (JSON, max. 2000 Byte, `locale` aus den 13 Codes), Antwort `200 { ok: true }` auch für unbekannte Adressen; `400 invalid`, `429 rate_limit`, `503 unavailable`. Ein Authorization-Header wird ignoriert | keine |
 | `POST /purchases/apple` | App-Store-Transaktion prüfen und Pro verbuchen (Abschnitt 7) | Pflicht |
 | `POST /apple/notifications` | App Store Server Notifications V2 (Erstattung u. a.) | Apple-Signatur |
 | `POST /track` | Analytics-Ereignisse der App (Regeln unten) | optional |
 
 Regeln für alle Routen:
 - JSON, Fehlerformat `{ error: "<code>" }` mit festen Codes (`auth`, `pro`, `not_found`,
-  `rate_limit`, `invalid`), nie rohe Fehlermeldungen.
+  `rate_limit`, `invalid`, `unavailable`), nie rohe Fehlermeldungen. `unavailable` (503) heißt:
+  Auth-Server oder Datenbank sind gerade nicht erreichbar; die App meldet den Nutzer dabei
+  NICHT ab.
 - **Ratenbegrenzung** über `hit_rate_limit` (0055), Schlüssel gehasht. `/auth/email-code`
   nutzt **dieselben Schlüssel wie der Web-Login** (`login-mail:<hash>`, `login-ip:<hash>` aus
   `login-link.ts`; `withinLimit`/`subject` dafür exportieren), sonst bekommt ein Mail-Bomber
@@ -177,14 +179,25 @@ Regeln für alle Routen:
   `properties.email_otp` (in auth-js vorhanden), und schickt eine eigene Mail **nur mit dem
   Code** über `mail-layout.ts` (Texte im `Mail`-Namensraum, alle 13 Sprachen, kein Em-Dash).
   Die App löst den Code mit supabase-swift `verifyOTP(email:token:type: .email)` ein.
-  Drei Fallen:
+  Fallen und Regeln:
   1. Für eine **neue** Adresse legt `generateLink` das Konto an und liefert ein
      **signup**-Token (in `login-link.ts` dokumentiert, hat schon einmal gebissen).
      `type: .email` sollte beides annehmen: mit einer nagelneuen Adresse testen.
   2. Der Web-Notausgang `signInWithOtp` nutzt die Supabase-Mailvorlage, und die enthält nur
-     einen Link mit `{{ .TokenHash }}`. Für die App braucht die Vorlage zusätzlich
-     `{{ .Token }}` (den Code), sonst hat der Code-Weg keinen Notausgang.
-  3. In Supabase Auth die **Email-OTP-Länge** prüfen (6 Stellen).
+     einen Link mit `{{ .TokenHash }}`. **Der App-Pfad hat bewusst keinen Vorlagen-Notausgang:**
+     Er schickt seine eigene Code-Mail über Resend; fällt sie aus, antwortet die Route mit
+     `unavailable`. Für das Web bleibt, wie es ist (Link, keine `{{ .Token }}` nötig).
+  3. **Länge des Codes: offen, Antons Entscheidung.** Supabase stellt heute **8 Stellen** aus.
+     Empfehlung: bei 8 bleiben (6 Stellen sind mit vielen IPs erratbar, weil Supabase die
+     Prüfversuche nur je IP begrenzt). Server und App nehmen 6 bis 8 Stellen an. Wird es 6,
+     "Email OTP Expiration" auf 10 bis 15 Minuten verkürzen.
+  4. **Nur der neueste Code gilt:** App-Code und Web-Link teilen sich den Token-Platz von
+     Supabase, ein neuer Code oder Link macht den vorigen ungültig. Die App sagt das
+     (`App.login.newestOnly`).
+  5. **Schalter:** Die Route antwortet 503 `unavailable`, solange `APP_EMAIL_CODE_ENABLED` nicht
+     `1` ist (Server-ENV). Sie bleibt in Produktion dunkel, bis die App in TestFlight geht.
+     Zusätzliche Grenzen nur für die App: IPv6-/64-Eimer und ein globaler Deckel von 200 Codes
+     pro Stunde. Aufrufe mit `Origin`-Header oder ohne `application/json` bekommen 400.
   Kein Turnstile in der App; Ersatz sind die Limits (App Attest als spätere Härtung).
 - **Mit Apple anmelden:** AuthenticationServices → `signInWithIdToken(provider: .apple)`.
   In Supabase den Apple-Provider mit der App-Bundle-ID aktivieren.
@@ -404,7 +417,8 @@ Web-Repo-PRs merged Simon; Migrationen spielt Anton VOR dem Merge im SQL Editor 
 - [ ] App anlegen (Name, Bundle-ID), In-App-Produkt 19,99 €
 - [ ] App Store Server API Schlüssel (.p8) erzeugen, an Simon für Vercel-ENV
 - [ ] Sign-in-with-Apple-Schlüssel (.p8, eigener Schlüssel) für den Token-Widerruf
-- [ ] Supabase: Apple-Provider mit Bundle-ID aktivieren; Email-OTP-Länge 6; Mailvorlage um `{{ .Token }}` ergänzen
+- [ ] Supabase: Apple-Provider mit Bundle-ID aktivieren; **offen: Antons Entscheidung** zur Code-Länge (heute 8, Empfehlung 8; bei 6 "Email OTP Expiration" auf 10 bis 15 Minuten)
+- [ ] Simon: `APP_EMAIL_CODE_ENABLED=1` in Vercel setzen, VOR dem TestFlight-Start (bis dahin ist die Code-Route dunkel)
 - [ ] Google Cloud: iOS-OAuth-Client-ID
 - [ ] Mapbox: eigener Token für die App (nur nötige Rechte), Preise für mobile Apps ansehen
 - [ ] Privates Repo für die App anlegen, Simon Zugriff geben

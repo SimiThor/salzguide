@@ -52,7 +52,7 @@ const MAX_PER_IP = 15;
  * Ohne das stünde in `rate_limits` eine Liste aller Adressen, die sich je anmelden wollten,
  * mit Zeitstempel. Diese Tabelle soll zählen können, nicht wissen, wer wer ist.
  */
-function subject(kind: "mail" | "ip", value: string): string {
+export function subject(kind: "mail" | "ip", value: string): string {
   const salt = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "salzguide";
   const hash = createHash("sha256").update(`${kind}:${value}:${salt}`).digest("hex").slice(0, 32);
   return `login-${kind}:${hash}`;
@@ -66,7 +66,7 @@ function subject(kind: "mail" | "ip", value: string): string {
  * alle, und das ist der schlimmere Fehler: Ein Limit soll Missbrauch bremsen, nicht den
  * Login abschalten.
  */
-async function withinLimit(email: string, ip: string | null): Promise<boolean> {
+export async function withinLimit(email: string, ip: string | null): Promise<boolean> {
   const svc = createServiceClient();
   const hit = async (subj: string, max: number): Promise<boolean> => {
     try {

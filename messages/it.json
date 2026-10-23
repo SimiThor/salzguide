@@ -580,6 +580,13 @@
       "tileLabel": "Accedi con",
       "note": "Non l’hai chiesto tu? Cancella la mail."
     },
+    "loginCode": {
+      "subject": "Il tuo codice per SalzGuide",
+      "headline": "Il tuo codice per SalzGuide",
+      "body": "👇 Inserisci il codice nell’app e sei dentro. Password non serve.\n\n🔒 Il codice vale solo per questo indirizzo e funziona una volta sola.",
+      "codeLabel": "Il tuo codice",
+      "note": "Non l’hai chiesto tu? Cancella la mail."
+    },
     "gift": {
       "subject": "Hai SalzGuide Pro",
       "headline": "SalzGuide Pro sbloccato",
@@ -636,5 +643,42 @@
     "title": "Strada sbagliata",
     "body": "Questo sentiero non lo conosce neanche chi è del posto. Meglio girare qui.",
     "home": "Vai alla home"
+  },
+  "App": {
+    "tabs": {
+      "explore": "Esplora",
+      "tours": "Tour",
+      "saved": "Salvati",
+      "profile": "Profilo"
+    },
+    "login": {
+      "title": "Accedi",
+      "intro": "Ricevi un codice per email. Password non serve.",
+      "emailLabel": "Indirizzo email",
+      "emailPlaceholder": "tua@email.it",
+      "sendCode": "Invia codice",
+      "sending": "Invio in corso …",
+      "codeTitle": "Controlla la tua casella",
+      "codeHint": "Codice dalla mail",
+      "codeSent": "Abbiamo inviato un codice a {email}.",
+      "newestOnly": "Vale solo il codice più recente.",
+      "verify": "Accedi",
+      "resend": "Invia di nuovo il codice",
+      "resendIn": "Invia di nuovo il codice tra {seconds} s",
+      "changeEmail": "Cambia indirizzo",
+      "errorEmail": "Questa email non sembra corretta.",
+      "errorWrongCode": "Il codice non è corretto. Controllalo e riprova.",
+      "errorExpired": "Il codice non vale più. Richiedine uno nuovo.",
+      "errorRate": "Troppi tentativi. Riprova tra qualche minuto.",
+      "errorOffline": "Nessuna connessione. Riprova tra un attimo.",
+      "errorGeneric": "Non ha funzionato. Riprova.",
+      "apple": "Accedi con Apple",
+      "google": "Accedi con Google",
+      "appleHint": "Hai comprato Pro sul web? Accedi con la stessa email."
+    },
+    "profile": {
+      "signOut": "Esci",
+      "deleteAccount": "Elimina account"
+    }
   }
 }

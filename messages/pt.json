@@ -580,6 +580,13 @@
       "tileLabel": "Entras com",
       "note": "Não foste tu que pediste? Apaga o email."
     },
+    "loginCode": {
+      "subject": "O teu código para o SalzGuide",
+      "headline": "O teu código para o SalzGuide",
+      "body": "👇 Introduz o código na app e estás dentro. Não precisas de palavra-passe.\n\n🔒 O código é só para este endereço e funciona uma vez.",
+      "codeLabel": "O teu código",
+      "note": "Não foste tu que pediste? Apaga o email."
+    },
     "gift": {
       "subject": "Tens o SalzGuide Pro",
       "headline": "SalzGuide Pro desbloqueado",
@@ -636,5 +643,42 @@
     "title": "Caminho errado",
     "body": "Este caminho, nem quem é daqui o conhece. Melhor dar meia-volta.",
     "home": "Ir para o início"
+  },
+  "App": {
+    "tabs": {
+      "explore": "Explorar",
+      "tours": "Tours",
+      "saved": "Guardados",
+      "profile": "Perfil"
+    },
+    "login": {
+      "title": "Iniciar sessão",
+      "intro": "Recebes um código por email. Não precisas de palavra-passe.",
+      "emailLabel": "Endereço de email",
+      "emailPlaceholder": "tu@email.com",
+      "sendCode": "Enviar código",
+      "sending": "A enviar …",
+      "codeTitle": "Vê a tua caixa de entrada",
+      "codeHint": "Código do email",
+      "codeSent": "Enviámos um código para {email}.",
+      "newestOnly": "Só vale o código mais recente.",
+      "verify": "Iniciar sessão",
+      "resend": "Enviar o código outra vez",
+      "resendIn": "Enviar o código outra vez em {seconds} s",
+      "changeEmail": "Mudar endereço",
+      "errorEmail": "Este email não parece correto.",
+      "errorWrongCode": "O código não está certo. Verifica e tenta outra vez.",
+      "errorExpired": "O código já não é válido. Pede um novo.",
+      "errorRate": "Demasiadas tentativas. Tenta de novo daqui a uns minutos.",
+      "errorOffline": "Sem ligação. Tenta outra vez daqui a pouco.",
+      "errorGeneric": "Não resultou. Tenta outra vez.",
+      "apple": "Iniciar sessão com a Apple",
+      "google": "Iniciar sessão com o Google",
+      "appleHint": "Compraste o Pro na web? Entra com o mesmo email."
+    },
+    "profile": {
+      "signOut": "Terminar sessão",
+      "deleteAccount": "Eliminar conta"
+    }
   }
 }

@@ -83,8 +83,15 @@ export default async function LocaleLayout({
   // Mail-Texte stehen dort, weil `npm run i18n:check` sie dann mitprüft (siehe mail-i18n.ts),
   // gerendert werden sie aber ausschliesslich auf dem Server. Im Browser wären sie totes
   // Gewicht in jedem einzelnen Seitenaufruf.
+  //
+  // `App` ebenso: Das sind die Texte der iOS-App (docs/41, Abschnitt 8). Ihr Skript im App-Repo
+  // liest messages/*.json direkt, die Website zeigt davon nichts. Beide Namensräume gehören
+  // zusammen, sonst wächst die Nutzlast jeder Seite um Texte, die nur das Handy-Programm braucht.
+  const SERVER_ONLY_NAMESPACES = new Set(["Mail", "App"]);
   const messages = Object.fromEntries(
-    Object.entries(await getMessages()).filter(([namespace]) => namespace !== "Mail"),
+    Object.entries(await getMessages()).filter(
+      ([namespace]) => !SERVER_ONLY_NAMESPACES.has(namespace),
+    ),
   );
 
   // min-h-viewport (= var(--sg-vh) = 100svh) am body, NICHT min-h-dvh: Auf kurzen Seiten
