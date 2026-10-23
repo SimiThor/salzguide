@@ -1,22 +1,22 @@
 // Routing für den Audioguide (Rad und zu Fuss): die GANZE Runde in einer Anfrage, mit den
-// Audio-Spots als stillen Wegpunkten (docs/40). Das Profil kommt vom Aufrufer
-// (`profile`): "cycling" fuer eine S-Bike-Runde, "walking" fuer eine Geh-Runde. Alles
-// andere ist fuer beide gleich. Bis 24.08.2026 stand hier das Gegenteil, ein eigener
-// Abruf je Etappe von der aktuellen Position zum nächsten Stopp. Das war als erster Wurf
-// richtig, kann aber drei Dinge grundsätzlich nicht: die Route vor dem Gast farbig und
-// hinter ihm ausgegraut zeigen (eine Etappe kennt die Runde nicht), einen exakten
-// Audio-Vorlauf liefern, und beim Neu-Routen nach vorn an den offenen Spots vorbeiführen.
-// Nebenbei kostete es rund 40 statt rund 11 Anfragen je Fahrt.
+// Audio-Spots als stillen Wegpunkten (docs/40). Seit docs/42 (23.10.2026) rechnet der
+// Server über den eigenen Routendienst (BRouter auf OpenStreetMap-Daten), nicht mehr Mapbox
+// Directions: Der Fahrbildschirm im Web, vorher mit eigener Linie von Mapbox, fährt damit
+// DIESELBE Linie mit demselben Profil wie die Vorschau im Runden-Editor (snapTourRoute), die
+// Tour-Seite und die App. Genau diese Abweichung (Vorschau gleich andere Linie als die
+// Fahrt) hat der Code zweimal gekostet.
+//
+// Der Browser fragt NUR unseren Server (POST /api/tours/[slug]/route, selbe Herkunft). Der
+// Server baut die Kette selbst (lib/tour-reroute.ts, mit selectNavVias und buildBikeChain
+// aus dieser Datei), kein Token und keine Adresse des Routendienstes verlassen ihn. Die
+// Schritte kommen sprachneutral zurück; den Text baut toNavSteps() aus den Sprachdateien
+// (Tours.maneuver.*) und schickt sie durch prepareSteps (lib/nav-steps.ts). BRouter kennt
+// keine Strassennamen, die Anweisungen sagen deshalb nur "links", "rechts", ... (ohne Namen).
 //
 // Seit 15.09.2026 fahren die WEGPUNKTE OHNE GESCHICHTE des Admins mit (tours.route_via,
-// lib/tour-route.ts): dieselben stillen Zwischenpunkte, die der Editor an Mapbox schickt.
-// Ohne sie routete Mapbox den Gast doch durch die Fussgaengerzone, um die der Admin
-// herumgeplant hat. Welche Wegpunkte in eine Anfrage gehoeren, entscheidet selectNavVias:
-// nur die vor dem Gast, nur die zu einem noch offenen Halt.
-//
-// Läuft im BROWSER mit dem öffentlichen, URL-beschränkten Token: der Request trägt einen
-// Referer (anders als serverseitige Aufrufe), und eine Neuberechnung während der Fahrt
-// darf keinen zusätzlichen Server-Hop kosten.
+// lib/tour-route.ts): dieselben stillen Zwischenpunkte, die der Editor an den Routendienst
+// schickt. Welche Wegpunkte in eine Anfrage gehoeren, entscheidet selectNavVias: nur die
+// vor dem Gast, nur die zu einem noch offenen Halt.
 import {
   cleanRouteGeo,
   reconcileVia,
@@ -27,35 +27,14 @@ import {
   type LngLat,
   type ViaLeg,
 } from "./tour-route";
-import { haversineMeters, routeCumulativeMeters } from "./geo";
+import { haversineMeters } from "./geo";
 import type { NavStep } from "./bike-nav-core";
-import { prepareSteps, turnAngle, type RawStep } from "./nav-steps";
+import { toNavSteps, type InstructionFor, type RouteStep } from "./routing/types";
 
-const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
-
-export type BikeLegError = "no-token" | "network" | "no-route";
-
-// Mapbox-Directions-Profil je Fortbewegung (tours.mode, 0064). Dieselbe Zuordnung wie
-// im Runden-Editor (tour-actions.ts, snapTourRoute): Der Gast faehrt die Linie, die der
-// Admin in der Vorschau gesehen hat.
-export type DirectionsProfile = "cycling" | "walking";
-export function directionsProfileFor(mode: "walk" | "bike"): DirectionsProfile {
-  return mode === "bike" ? "cycling" : "walking";
-}
-
-type MapboxStep = {
-  distance: number;
-  maneuver: {
-    instruction: string;
-    type: string;
-    modifier?: string;
-    // Kurs vor und nach der Abbiegung. Daraus wird der Winkel, und der entscheidet, ob es
-    // eine Abbiegung ist oder nur ein Bogen (lib/nav-steps.ts). Mapbox liefert die Felder
-    // seit jeher mit, gelesen wurden sie bis 25.08.2026 nicht.
-    bearing_before?: number;
-    bearing_after?: number;
-  };
-};
+// no-token: Routendienst nicht eingerichtet oder Token abgelehnt (docs/42 Abschnitt 6);
+// too-far: die Position liegt zu weit von der Runde; no-route: zwischen den Punkten kein Weg;
+// network: Dienst oder Netz nicht erreichbar (die Navigation fasst von selbst nach).
+export type BikeLegError = "no-token" | "too-far" | "network" | "no-route";
 
 // ——— Die ganze Runde in EINER Anfrage ————————————————————————————————————————
 // Alle Spots gehen als STILLE
@@ -81,8 +60,6 @@ export type BikeRoute = {
 };
 
 export type BikeRouteResult = { ok: true; route: BikeRoute } | { ok: false; error: BikeLegError };
-
-type ViaWaypoint = { waypoint_index: number; geometry_index: number; distance_from_start: number };
 
 // ——— Wegpunkte ohne Geschichte in der Anfrage ————————————————————————————————
 /** Ein Wegpunkt fuer eine Anfrage: vor welchem Halt (Position in `spots`) oder vor dem Ziel er liegt. */
@@ -127,6 +104,22 @@ export function buildBikeChain(
     kinds.push({ kind: "end" });
   }
   return { coords, kinds };
+}
+
+/**
+ * Wegpunkte (tours.route_via) auf die Halte DIESES Bildschirms umgeschluesselt: Die
+ * Abschnitte kennen Punkt-IDs (spotSlug), die Navigation kennt Halte nur als Index in der
+ * Liste der Halte MIT Koordinaten. Erst an die Kette dieser Halte anpassen (ein Abschnitt
+ * an einer Station ohne Punkt wird dabei zusammengeklebt, so wie die Navigation die Station
+ * ohnehin nicht anfaehrt), dann umschluesseln. Eine Quelle fuer den Fahrbildschirm im Web
+ * und das Umrouten der App (lib/tour-reroute.ts).
+ */
+export function navViasForStops(legs: ViaLeg[], stopIds: string[], hasEnd: boolean): ViaLeg[] {
+  if (!legs.length) return [];
+  const keys = [START_KEY, ...stopIds, ...(hasEnd ? [END_KEY] : [])];
+  const idx = new Map(stopIds.map((id, i) => [id, String(i)]));
+  const rekey = (k: string) => (k === START_KEY || k === END_KEY ? k : (idx.get(k) ?? k));
+  return reconcileVia(legs, keys).legs.map((l) => ({ from: rekey(l.from), to: rekey(l.to), coords: l.coords }));
 }
 
 // Ein Wegpunkt so knapp vor dem Gast ist keine Kehrtwende wert.
@@ -190,129 +183,65 @@ export function selectNavVias(input: {
   return out;
 }
 
-/**
- * Stellen der Halte und Wegpunkte auf UNSERER Linie, aus den `via_waypoints` der Antwort.
- * Ein Halt ohne Eintrag ist das Routenende (der letzte Halt, wenn kein Ziel mitgeht).
- */
-export function alongFromViaWaypoints(
-  kinds: BikeChainKind[],
-  via: ViaWaypoint[],
-  cumGeo: number[],
-  spotCount: number,
-): { spotAlongM: number[]; viaAlongM: Record<string, number> } {
-  const routeLenM = cumGeo[cumGeo.length - 1] ?? 0;
-  const spotAlongM: number[] = new Array(spotCount).fill(routeLenM);
-  const viaAlongM: Record<string, number> = {};
-  for (const v of via) {
-    const k = kinds[v.waypoint_index];
-    if (!k) continue;
-    const gi = Math.max(0, Math.min(v.geometry_index, cumGeo.length - 1));
-    const m = cumGeo[gi];
-    if (k.kind === "stop") spotAlongM[k.pos] = m;
-    else if (k.kind === "via") viaAlongM[k.id] = m;
-  }
-  return { spotAlongM, viaAlongM };
-}
+/** Was der Server fuers Umrouten braucht (POST /api/tours/[slug]/route). */
+export type FetchBikeRouteInput = {
+  slug: string;
+  from: LngLat;
+  /** Indizes in der Liste der Halte MIT Koordinate (so zaehlt der Fahrbildschirm), die noch angefahren werden. */
+  keep: number[];
+  locale: string;
+  /** Fortschritt auf der alten Linie, nur bei einer Neuberechnung (selectNavVias laesst Wegpunkte dahinter weg). */
+  alongM?: number;
+  /** viaAlongM der alten Route. */
+  viaAlongM?: Record<string, number>;
+  signal?: AbortSignal;
+  /** Text einer Anweisung aus den Sprachdateien (Tours.maneuver.*). */
+  instructionFor: InstructionFor;
+};
 
-export async function fetchBikeRoute(
-  from: [number, number],
-  spots: [number, number][],
-  locale: string,
-  signal?: AbortSignal,
-  // Ziel der Runde, falls es nicht der letzte Spot ist. EINE RUNDTOUR ENDET DORT, WO SIE
-  // BEGINNT, und ohne diesen Punkt endete die Navigation am letzten Spot: Bei Runde A ist
-  // das Mülln, 692 m vom Hanuschplatz entfernt. Der Gast bekäme "Ziel erreicht", während
-  // sein Rad noch sieben Minuten weiter steht.
-  //
-  // Wichtig ist, dass das Ziel KEIN Audio-Spot ist. Deshalb steht es hier und nicht in
-  // `spots`: Alles in `spots` bekommt einen Play-Knopf, und ein Play-Knopf ohne Geschichte
-  // ist ein Knopf, der nichts tut.
-  end?: [number, number] | null,
-  // Wegpunkte ohne Geschichte, schon ausgewaehlt (selectNavVias). Auch sie sind keine Spots.
-  vias: NavVia[] = [],
-  // "cycling" oder "walking" (directionsProfileFor). Bis 16.09.2026 stand hier fest
-  // "cycling", weil es nur die Radrunde gab.
-  profile: DirectionsProfile = "cycling",
-): Promise<BikeRouteResult> {
-  if (!TOKEN) return { ok: false, error: "no-token" };
-  if (spots.length === 0) return { ok: false, error: "no-route" };
-
-  const chain = buildBikeChain(from, spots, end ?? null, vias);
-  // Der Editor deckelt Start + Halte + Ziel, selectNavVias die Wegpunkte. Hier nur noch
-  // der Riegel: lieber ein Fehler als eine still gekuerzte Runde ohne Ziel (so war es bis
-  // 15.09.2026, `.slice(0, 25)` nahm als Erstes das Ziel weg).
-  if (chain.coords.length > MAX_DIRECTIONS_COORDS) return { ok: false, error: "no-route" };
-  const coords = chain.coords;
-  const last = coords.length - 1;
-  const coordStr = coords.map((c) => `${c[0]},${c[1]}`).join(";");
-  // EIN Profil je Anfrage, nie das kuerzere von zweien. Der Vorgänger fragte am Rad
-  // zusätzlich "walking" ab und nahm das kürzere von beiden (docs/40); das kann den Gast
-  // auf eine Treppe oder in eine Fussgängerzone führen. Wo ein Fussweg die bessere
-  // Verbindung ist, gehört er als Schiebestelle markiert, nicht still als Radweg
-  // ausgegeben. Zu Fuss ist "walking" umgekehrt genau richtig: Treppen und Gassen sind
-  // dort der Weg, nicht das Hindernis.
-  const url =
-    `https://api.mapbox.com/directions/v5/mapbox/${profile}/${coordStr}` +
-    `?steps=true&geometries=geojson&overview=full&waypoints=0;${last}` +
-    `&language=${encodeURIComponent(locale)}&access_token=${TOKEN}`;
-
+export async function fetchBikeRoute(input: FetchBikeRouteInput): Promise<BikeRouteResult> {
+  if (input.keep.length === 0) return { ok: false, error: "no-route" };
   try {
-    const res = await fetch(url, { signal });
-    // 401/403 heisst Token, nicht "keine Route": Der öffentliche pk-Token ist auf unsere
-    // Domains beschränkt und schlägt überall fehl, wo kein Referer mitgeht (Prüfskript,
-    // Server, fremde Einbettung). Das als "no-route" zu melden schickt jeden, der es
-    // sucht, in die falsche Richtung – genau das ist mir beim Prüfen selbst passiert.
-    if (res.status === 401 || res.status === 403) return { ok: false, error: "no-token" };
-    if (!res.ok) return { ok: false, error: res.status >= 500 ? "network" : "no-route" };
-    const j = await res.json();
-    const route = Array.isArray(j.routes) ? j.routes[0] : null;
-    const geometry = cleanRouteGeo(route?.geometry?.coordinates);
-    if (j.code !== "Ok" || !route || !geometry) return { ok: false, error: "no-route" };
-
-    const mapboxLeg = route.legs?.[0];
-    if (!mapboxLeg) return { ok: false, error: "no-route" };
-
-    // Ein Step trägt das Manöver, mit dem er BEGINNT, seine `distance` ist die Strecke
-    // danach. Der erste ist das Losfahren und damit kein Abbiege-Hinweis.
-    const rawSteps = (mapboxLeg.steps ?? []) as MapboxStep[];
-    let cum = 0;
-    const roh: RawStep[] = [];
-    for (let i = 0; i < rawSteps.length; i++) {
-      if (i > 0) {
-        const m = rawSteps[i].maneuver;
-        roh.push({
-          alongM: cum,
-          instruction: m.instruction,
-          type: m.type,
-          modifier: m.modifier,
-          angleDeg: turnAngle(m.bearing_before, m.bearing_after),
-        });
-      }
-      cum += rawSteps[i].distance ?? 0;
+    const res = await fetch(`/api/tours/${encodeURIComponent(input.slug)}/route`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      credentials: "same-origin",
+      cache: "no-store",
+      signal: input.signal,
+      body: JSON.stringify({
+        from: input.from,
+        keep: input.keep,
+        locale: input.locale,
+        ...(input.alongM != null ? { alongM: input.alongM } : {}),
+        ...(input.viaAlongM ? { viaAlongM: input.viaAlongM } : {}),
+      }),
+    });
+    // Feste Codes aus der Route: too_far, no_token, no_route (422/400/404: kein Weg oder
+    // unbrauchbare Anfrage); alles andere (429, 5xx) ist ein Netz- bzw. Dienstproblem: Die
+    // Navigation haelt die alte Linie und fasst nach.
+    if (!res.ok) {
+      const code = (await res.json().catch(() => null))?.error;
+      if (code === "too_far") return { ok: false, error: "too-far" };
+      if (code === "no_token") return { ok: false, error: "no-token" };
+      if (res.status === 422 || res.status === 400 || res.status === 404) return { ok: false, error: "no-route" };
+      return { ok: false, error: "network" };
     }
-    // Bögen raus, dicht beieinanderliegende Abbiegungen aneinanderhängen. Gemessen an
-    // Runde A: aus 54 Schritten werden deutlich weniger Ansagen, ohne dass eine Abbiegung
-    // verschwindet (lib/nav-steps.ts erklärt, was verworfen werden darf und was nie).
-    const steps: NavStep[] = prepareSteps(roh);
-
-    // Spot-Positionen über `geometry_index` statt über `distance_from_start`: Beide
-    // liefern dasselbe auf wenige Meter genau (gemessen: höchstens 5,4 m auf 4,7 km),
-    // aber der Index zeigt auf UNSERE Linie. Damit wird der Spot-Offset auf derselben
-    // Geometrie gemessen wie der Fortschritt des Gastes (nearestPointOnRoute), und die
-    // beiden Zahlen können gar nicht auseinanderlaufen.
-    const cumGeo = routeCumulativeMeters(geometry);
-    const via = (mapboxLeg.via_waypoints ?? []) as ViaWaypoint[];
-    const { spotAlongM, viaAlongM } = alongFromViaWaypoints(chain.kinds, via, cumGeo, spots.length);
-
+    const j = await res.json();
+    const r = j?.route;
+    const geometry = cleanRouteGeo(r?.geometry);
+    if (!geometry || !Array.isArray(r?.steps) || !Array.isArray(r?.stopAlongM)) return { ok: false, error: "no-route" };
+    const distanceM = typeof r.distanceM === "number" ? r.distanceM : 0;
     return {
       ok: true,
       route: {
         geometry,
-        steps,
-        spotAlongM,
-        viaAlongM,
-        distanceM: typeof route.distance === "number" ? route.distance : cum,
-        durationS: typeof route.duration === "number" ? route.duration : 0,
+        // Bögen raus, dicht beieinanderliegende Abbiegungen aneinanderhängen (prepareSteps).
+        steps: toNavSteps(r.steps as RouteStep[], input.instructionFor),
+        // Der letzte Halt ohne Ziel liegt am Routenende: Der Server liefert dann dessen Laenge.
+        spotAlongM: (r.stopAlongM as (number | null)[]).map((m) => (typeof m === "number" ? m : distanceM)),
+        viaAlongM: (r.viaAlongM ?? {}) as Record<string, number>,
+        distanceM,
+        durationS: typeof r.durationMin === "number" ? r.durationMin * 60 : 0,
       },
     };
   } catch (err) {

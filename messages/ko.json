@@ -160,7 +160,24 @@
     "navWalkIntro": "지점에서 지점으로 안내하려면 위치 정보가 필요해요.",
     "navResumeWalk": "계속 걷기, {total}개 중 {n}번째 지점",
     "navDoneContinueWalk": "계속 걷기",
-    "navDoneTitleEnd": "목적지 도착"
+    "navDoneTitleEnd": "목적지 도착",
+    "maneuver": {
+      "left": "좌회전",
+      "right": "우회전",
+      "slightLeft": "약간 왼쪽으로",
+      "slightRight": "약간 오른쪽으로",
+      "sharpLeft": "급좌회전",
+      "sharpRight": "급우회전",
+      "keepLeft": "왼쪽 유지",
+      "keepRight": "오른쪽 유지",
+      "straight": "직진",
+      "uturn": "유턴",
+      "roundabout": "회전교차로에서 {exit}번째 출구로 나가세요",
+      "arrive": "목적지에 도착했습니다"
+    },
+    "navUnavailable": "지금은 내비게이션을 사용할 수 없습니다. 탭하여 다시 시도하세요.",
+    "navTooFar": "코스에서 너무 멀리 떨어져 있습니다. 탭하여 다시 시도하세요.",
+    "routeAttribution": "경로: © OpenStreetMap 기여자"
   },
   "Water": {
     "title": "수온",

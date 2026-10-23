@@ -160,7 +160,24 @@
     "navWalkIntro": "Pour te guider d'arrêt en arrêt, l'appli a besoin de ta position.",
     "navResumeWalk": "Continuer à pied, arrêt {n} sur {total}",
     "navDoneContinueWalk": "Continuer à pied",
-    "navDoneTitleEnd": "À l'arrivée"
+    "navDoneTitleEnd": "À l'arrivée",
+    "maneuver": {
+      "left": "Tournez à gauche",
+      "right": "Tournez à droite",
+      "slightLeft": "Tournez légèrement à gauche",
+      "slightRight": "Tournez légèrement à droite",
+      "sharpLeft": "Tournez franchement à gauche",
+      "sharpRight": "Tournez franchement à droite",
+      "keepLeft": "Restez à gauche",
+      "keepRight": "Restez à droite",
+      "straight": "Continuez tout droit",
+      "uturn": "Faites demi-tour",
+      "roundabout": "Au rond-point, prenez la {exit}e sortie",
+      "arrive": "Vous êtes arrivé"
+    },
+    "navUnavailable": "Navigation momentanément indisponible. Touchez pour réessayer.",
+    "navTooFar": "Trop loin du parcours. Touchez pour réessayer.",
+    "routeAttribution": "Itinéraire : © contributeurs d’OpenStreetMap"
   },
   "Water": {
     "title": "Températures de l'eau",

@@ -160,7 +160,24 @@
     "navWalkIntro": "从一站到下一站的引导需要你的位置信息。",
     "navResumeWalk": "继续步行，第 {n} 站，共 {total} 站",
     "navDoneContinueWalk": "继续步行",
-    "navDoneTitleEnd": "到达终点"
+    "navDoneTitleEnd": "到达终点",
+    "maneuver": {
+      "left": "左转",
+      "right": "右转",
+      "slightLeft": "稍向左转",
+      "slightRight": "稍向右转",
+      "sharpLeft": "向左急转",
+      "sharpRight": "向右急转",
+      "keepLeft": "保持靠左",
+      "keepRight": "保持靠右",
+      "straight": "直行",
+      "uturn": "掉头",
+      "roundabout": "在环岛从第{exit}个出口驶出",
+      "arrive": "已到达目的地"
+    },
+    "navUnavailable": "导航暂时不可用。点按重试。",
+    "navTooFar": "离路线太远。点按重试。",
+    "routeAttribution": "路线：© OpenStreetMap 贡献者"
   },
   "Water": {
     "title": "水温",

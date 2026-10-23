@@ -160,7 +160,24 @@
     "navWalkIntro": "Para te guiar de paragem em paragem, a app precisa da tua localização.",
     "navResumeWalk": "Continuar a pé, paragem {n} de {total}",
     "navDoneContinueWalk": "Continuar a pé",
-    "navDoneTitleEnd": "Na meta"
+    "navDoneTitleEnd": "Na meta",
+    "maneuver": {
+      "left": "Vire à esquerda",
+      "right": "Vire à direita",
+      "slightLeft": "Vire ligeiramente à esquerda",
+      "slightRight": "Vire ligeiramente à direita",
+      "sharpLeft": "Vire acentuadamente à esquerda",
+      "sharpRight": "Vire acentuadamente à direita",
+      "keepLeft": "Mantenha-se à esquerda",
+      "keepRight": "Mantenha-se à direita",
+      "straight": "Siga em frente",
+      "uturn": "Faça retorno",
+      "roundabout": "Na rotunda, siga pela saída {exit}",
+      "arrive": "Chegou ao destino"
+    },
+    "navUnavailable": "Navegação indisponível de momento. Toque para tentar de novo.",
+    "navTooFar": "Demasiado longe do percurso. Toque para tentar de novo.",
+    "routeAttribution": "Percurso: © colaboradores do OpenStreetMap"
   },
   "Water": {
     "title": "Temperaturas da água",
