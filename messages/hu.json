@@ -417,6 +417,7 @@
     "newsletter": "Igen, kérek e-mailt az új spotokról és tippekről a SalzGuide-tól. Leiratkozás bármikor.",
     "submit": "Bejelentkezési link küldése",
     "googleCta": "Folytatás Google-fiókkal",
+    "appleCta": "Bejelentkezés az Apple-lel",
     "or": "vagy",
     "sending": "Küldés …",
     "preparing": "Robot-ellenőrzés … 🤖",
@@ -672,7 +673,7 @@
       "errorRate": "Túl sok próbálkozás. Próbáld újra pár perc múlva.",
       "errorOffline": "Nincs kapcsolat. Próbáld újra egy perc múlva.",
       "errorGeneric": "Nem sikerült. Próbáld újra.",
-      "apple": "Bejelentkezés Apple-lel",
+      "apple": "Bejelentkezés az Apple-lel",
       "google": "Bejelentkezés Google-lel",
       "appleHint": "Webes Pro-vásárlás? Jelentkezz be ugyanazzal az e-mail-címmel."
     },

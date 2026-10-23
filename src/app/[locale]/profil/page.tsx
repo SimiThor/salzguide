@@ -3,7 +3,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getProPrice, formatProPrice } from "@/lib/pro";
-import { googleLoginEnabled } from "@/lib/auth-providers";
+import { appleLoginEnabled, googleLoginEnabled } from "@/lib/auth-providers";
 import { getRelaunchNotice } from "@/lib/settings";
 import LoginPanel from "@/components/auth/LoginPanel";
 import { safeLoginReason } from "@/components/auth/loginReasons";
@@ -70,6 +70,7 @@ export default async function ProfilPage({
           next={next}
           authError={auth_error === "link" ? "link" : auth_error ? "generic" : undefined}
           googleEnabled={await googleLoginEnabled()}
+          appleEnabled={await appleLoginEnabled()}
           relaunchNotice={await getRelaunchNotice()}
         />
       </div>

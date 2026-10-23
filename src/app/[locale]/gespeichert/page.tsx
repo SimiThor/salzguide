@@ -4,7 +4,7 @@ import { Link } from "@/i18n/navigation";
 import { getSavedSpots } from "@/lib/saved";
 import { getSavedEvents } from "@/lib/events";
 import { viennaDayKey } from "@/lib/events-format";
-import { googleLoginEnabled } from "@/lib/auth-providers";
+import { appleLoginEnabled, googleLoginEnabled } from "@/lib/auth-providers";
 import { getRelaunchNotice } from "@/lib/settings";
 import LoginPanel from "@/components/auth/LoginPanel";
 import { BookmarkFilled } from "@/components/icons";
@@ -48,6 +48,7 @@ export default async function GespeichertPage({
           reason="saved"
           titleAs="h1"
           googleEnabled={await googleLoginEnabled()}
+          appleEnabled={await appleLoginEnabled()}
           relaunchNotice={await getRelaunchNotice()}
         />
       </div>

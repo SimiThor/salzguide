@@ -9,6 +9,7 @@ import {
   type MagicLinkState,
 } from "@/app/[locale]/profil/actions";
 import TurnstileWidget from "@/components/TurnstileWidget";
+import AppleSignInButton from "./AppleSignInButton";
 import { Spinner } from "@/components/Busy";
 import { BookmarkFilled } from "@/components/icons";
 import { LOGIN_EMOJI, type LoginReason } from "./loginReasons";
@@ -155,6 +156,8 @@ type LoginPanelProps = {
    * zu wenig. Andersherum zeigte er einen, der auf Supabases JSON-Fehlerseite endet.
    */
   googleEnabled?: boolean;
+  /** Wie googleEnabled, aus appleLoginEnabled() (lib/auth-providers.ts). Default false. */
+  appleEnabled?: boolean;
   /** h1 auf eigenen Seiten, h2 wenn schon eine Überschrift darübersteht (Pro-Seite). */
   titleAs?: "h1" | "h2";
   className?: string;
@@ -187,6 +190,7 @@ function LoginPanelForm({
   next,
   authError,
   googleEnabled = false,
+  appleEnabled = false,
   relaunchNotice = false,
   titleAs = "h2",
   className = "",
@@ -330,8 +334,11 @@ function LoginPanelForm({
           Weg auf eine JSON-Fehlerseite (siehe lib/auth-providers.ts). Mit dem Knopf
           verschwindet auch der Trenner — „oder" ohne ein Davor ist keine Wahl. */}
       <div className="mt-7 flex flex-col gap-3">
-        {googleEnabled && (
+        {(googleEnabled || appleEnabled) && (
           <>
+            {/* Apple zuerst oder gleichrangig: gleiche Reihenfolge wie in der App. */}
+            {appleEnabled && <AppleSignInButton next={next} />}
+            {googleEnabled && (
             <form action={signInWithGoogle}>
               <input type="hidden" name="locale" value={locale} />
               {next && <input type="hidden" name="next" value={next} />}
@@ -343,6 +350,7 @@ function LoginPanelForm({
                 {t("googleCta")}
               </button>
             </form>
+            )}
 
             {/* Trenner ohne Hintergrund-Trick -> passt auf Creme UND Weiß */}
             <div className="flex items-center gap-3 py-0.5 text-[12px] text-muted">
