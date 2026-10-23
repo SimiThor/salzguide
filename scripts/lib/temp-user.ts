@@ -36,13 +36,13 @@ function isTempEmail(email: string | undefined | null): boolean {
   return !!email && email.startsWith(PREFIX) && email.endsWith(SUFFIX);
 }
 
-function serviceClient(): SupabaseClient {
+export function serviceClient(): SupabaseClient {
   return createClient(env("NEXT_PUBLIC_SUPABASE_URL"), env("SUPABASE_SERVICE_ROLE_KEY"), {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 }
 
-function anonClient(): SupabaseClient {
+export function anonClient(): SupabaseClient {
   return createClient(env("NEXT_PUBLIC_SUPABASE_URL"), env("NEXT_PUBLIC_SUPABASE_ANON_KEY"), {
     auth: { persistSession: false, autoRefreshToken: false },
   });
@@ -185,4 +185,26 @@ export async function sweepTempUsers(): Promise<number> {
     count++;
   }
   return count;
+}
+
+/** Eine frische Wegwerf-Adresse OHNE Konto (für Prüfungen, die das Konto erst erzeugen lassen). */
+export function newTempEmail(): string {
+  return `${PREFIX}new-${Date.now()}-${Math.random().toString(36).slice(2, 10)}${SUFFIX}`;
+}
+
+/**
+ * Löscht das Konto zu einer Wegwerf-Adresse, falls es eines gibt, und bestätigt es.
+ * Gibt true zurück, wenn danach keines mehr existiert (auch wenn nie eines angelegt wurde).
+ * Die Muster-Sicherung gilt wie überall: Fremde Adressen werden nie angefasst.
+ */
+export async function deleteTempUserByEmail(email: string): Promise<boolean> {
+  if (!isTempEmail(email)) throw new Error("Sicherung: keine Wegwerf-Adresse, Abbruch.");
+  const svc = serviceClient();
+  for (let page = 1; ; page++) {
+    const { data, error } = await svc.auth.admin.listUsers({ page, perPage: 1000 });
+    if (error) throw new Error(`listUsers fehlgeschlagen: ${error.message}`);
+    const hit = data.users.find((u) => u.email === email);
+    if (hit) return deleteTempUser(hit.id);
+    if (data.users.length < 1000) return true;
+  }
 }

@@ -35,3 +35,13 @@ export async function resolve(specifier, context, next) {
     }
   }
 }
+
+// JSON-Importe (messages/*.json in mail-i18n.ts) trägt der Bundler ohne Attribut. Node verlangt
+// `with { type: "json" }`; hier beim Laden nachreichen, damit der ECHTE Mail-Lader laufen kann
+// statt eines Nachbaus im Prüf-Skript.
+export async function load(url, context, nextLoad) {
+  if (url.endsWith(".json")) {
+    return nextLoad(url, { ...context, format: "json", importAttributes: { type: "json" } });
+  }
+  return nextLoad(url, context);
+}

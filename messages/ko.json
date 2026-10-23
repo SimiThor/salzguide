@@ -580,6 +580,13 @@
       "tileLabel": "로그인하는 주소",
       "note": "요청한 적이 없나요? 메일은 지우면 돼요."
     },
+    "loginCode": {
+      "subject": "SalzGuide 로그인 코드",
+      "headline": "SalzGuide 로그인 코드",
+      "body": "👇 앱에 코드를 입력하면 바로 들어가요. 비밀번호는 필요 없어요.\n\n🔒 이 코드는 이 주소 전용이고 한 번만 쓸 수 있어요.",
+      "codeLabel": "내 코드",
+      "note": "요청한 적이 없나요? 메일은 지우면 돼요."
+    },
     "gift": {
       "subject": "SalzGuide Pro가 열렸어요",
       "headline": "SalzGuide Pro 이용 시작",
@@ -636,5 +643,42 @@
     "title": "길을 잘못 들었어요",
     "body": "이 길은 현지인도 몰라요. 여기서 돌아가는 게 좋겠어요.",
     "home": "처음으로"
+  },
+  "App": {
+    "tabs": {
+      "explore": "둘러보기",
+      "tours": "투어",
+      "saved": "저장됨",
+      "profile": "프로필"
+    },
+    "login": {
+      "title": "로그인",
+      "intro": "메일로 코드를 받아요. 비밀번호는 필요 없어요.",
+      "emailLabel": "이메일 주소",
+      "emailPlaceholder": "you@email.com",
+      "sendCode": "코드 보내기",
+      "sending": "보내는 중 …",
+      "codeTitle": "메일함을 확인하세요",
+      "codeHint": "메일에 있는 코드",
+      "codeSent": "{email}로 코드를 보냈어요.",
+      "newestOnly": "가장 최근 코드만 사용할 수 있어요.",
+      "verify": "로그인",
+      "resend": "코드 다시 보내기",
+      "resendIn": "{seconds}초 뒤에 코드 다시 보내기",
+      "changeEmail": "주소 바꾸기",
+      "errorEmail": "이메일 주소가 올바르지 않은 것 같아요.",
+      "errorWrongCode": "코드가 맞지 않아요. 다시 확인해 주세요.",
+      "errorExpired": "코드가 만료됐어요. 새 코드를 받아 주세요.",
+      "errorRate": "시도가 너무 많아요. 몇 분 뒤에 다시 해보세요.",
+      "errorOffline": "연결이 안 돼요. 잠시 후 다시 시도해 주세요.",
+      "errorGeneric": "잘 안 됐어요. 다시 시도해 주세요.",
+      "apple": "Apple로 로그인",
+      "google": "Google로 로그인",
+      "appleHint": "웹에서 Pro를 구매했나요? 같은 이메일로 로그인하세요."
+    },
+    "profile": {
+      "signOut": "로그아웃",
+      "deleteAccount": "계정 삭제"
+    }
   }
 }

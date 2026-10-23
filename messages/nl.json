@@ -580,6 +580,13 @@
       "tileLabel": "Je logt in met",
       "note": "Heb je dit niet aangevraagd? Verwijder de mail."
     },
+    "loginCode": {
+      "subject": "Je code voor SalzGuide",
+      "headline": "Je code voor SalzGuide",
+      "body": "👇 Vul de code in de app in en je bent binnen. Wachtwoord heb je niet nodig.\n\n🔒 De code geldt alleen voor dit adres en werkt één keer.",
+      "codeLabel": "Je code",
+      "note": "Heb je dit niet aangevraagd? Verwijder de mail."
+    },
     "gift": {
       "subject": "Je hebt SalzGuide Pro",
       "headline": "SalzGuide Pro vrijgeschakeld",
@@ -636,5 +643,42 @@
     "title": "Verkeerd afgeslagen",
     "body": "Dit pad kent zelfs een local niet. Draai hier maar om.",
     "home": "Naar de startpagina"
+  },
+  "App": {
+    "tabs": {
+      "explore": "Ontdekken",
+      "tours": "Tours",
+      "saved": "Bewaard",
+      "profile": "Profiel"
+    },
+    "login": {
+      "title": "Inloggen",
+      "intro": "Je krijgt een code per mail. Een wachtwoord heb je niet nodig.",
+      "emailLabel": "E-mailadres",
+      "emailPlaceholder": "jouw@email.nl",
+      "sendCode": "Code sturen",
+      "sending": "Wordt verzonden …",
+      "codeTitle": "Kijk in je inbox",
+      "codeHint": "Code uit de mail",
+      "codeSent": "We hebben een code naar {email} gestuurd.",
+      "newestOnly": "Alleen de nieuwste code werkt.",
+      "verify": "Inloggen",
+      "resend": "Code opnieuw sturen",
+      "resendIn": "Code opnieuw sturen over {seconds} s",
+      "changeEmail": "Adres wijzigen",
+      "errorEmail": "Dit e-mailadres klopt niet.",
+      "errorWrongCode": "De code klopt niet. Check hem en probeer het opnieuw.",
+      "errorExpired": "De code is niet meer geldig. Vraag een nieuwe aan.",
+      "errorRate": "Te veel pogingen. Probeer het over een paar minuten opnieuw.",
+      "errorOffline": "Geen verbinding. Probeer het zo nog eens.",
+      "errorGeneric": "Dat lukte niet. Probeer het opnieuw.",
+      "apple": "Inloggen met Apple",
+      "google": "Inloggen met Google",
+      "appleHint": "Pro via het web gekocht? Log in met hetzelfde e-mailadres."
+    },
+    "profile": {
+      "signOut": "Afmelden",
+      "deleteAccount": "Account verwijderen"
+    }
   }
 }

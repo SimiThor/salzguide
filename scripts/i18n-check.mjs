@@ -71,7 +71,12 @@ const isBaseOnly = (key) => BASE_ONLY_NAMESPACES.has(key.split(".")[0]);
 // Ein Key-NAME als String taucht dabei nirgends auf, die Suche unten findet also keinen
 // Leser und meldete alle 48 Mail-Keys als tot. So viele Fehlalarme wären das Ende dieses
 // Checks (siehe die Begründung ganz oben).
-const NO_STRING_READER = new Set(["Mail"]);
+//
+// `App` sind die Texte der iOS-App (docs/41, Abschnitt 8). Gelesen werden sie vom Strings-Skript
+// im App-Repo, das messages/*.json einliest und daraus Localizable.xcstrings baut. Im Web-Code
+// gibt es keinen Leser, und `src/app/[locale]/layout.tsx` nimmt den Namensraum aus dem
+// Browser-Paket heraus (wie `Mail`). Beide Stellen gehören zusammengedacht.
+const NO_STRING_READER = new Set(["Mail", "App"]);
 const hasObjectReader = (key) => NO_STRING_READER.has(key.split(".")[0]);
 
 // Platzhalter-Namen über den ICU-PARSER statt per Regex. Der alte Regex (/\{\s*(\w+)/)

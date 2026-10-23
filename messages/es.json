@@ -580,6 +580,13 @@
       "tileLabel": "Entras con",
       "note": "¿No lo has pedido tú? Borra el correo."
     },
+    "loginCode": {
+      "subject": "Tu código para SalzGuide",
+      "headline": "Tu código para SalzGuide",
+      "body": "👇 Introduce el código en la app y estás dentro. No necesitas contraseña.\n\n🔒 El código es solo para esta dirección y funciona una vez.",
+      "codeLabel": "Tu código",
+      "note": "¿No lo has pedido tú? Borra el correo."
+    },
     "gift": {
       "subject": "Tienes SalzGuide Pro",
       "headline": "SalzGuide Pro desbloqueado",
@@ -636,5 +643,42 @@
     "title": "Giro equivocado",
     "body": "Este camino no lo conoce ni la gente de aquí. Mejor da la vuelta.",
     "home": "Ir al inicio"
+  },
+  "App": {
+    "tabs": {
+      "explore": "Explorar",
+      "tours": "Tours",
+      "saved": "Guardados",
+      "profile": "Perfil"
+    },
+    "login": {
+      "title": "Iniciar sesión",
+      "intro": "Recibes un código por correo. No necesitas contraseña.",
+      "emailLabel": "Correo electrónico",
+      "emailPlaceholder": "tu@email.com",
+      "sendCode": "Enviar código",
+      "sending": "Enviando …",
+      "codeTitle": "Revisa tu bandeja de entrada",
+      "codeHint": "Código del correo",
+      "codeSent": "Hemos enviado un código a {email}.",
+      "newestOnly": "Solo vale el código más reciente.",
+      "verify": "Iniciar sesión",
+      "resend": "Enviar el código otra vez",
+      "resendIn": "Enviar el código otra vez en {seconds} s",
+      "changeEmail": "Cambiar correo",
+      "errorEmail": "Ese correo no parece correcto.",
+      "errorWrongCode": "El código no es correcto. Compruébalo e inténtalo otra vez.",
+      "errorExpired": "El código ya no vale. Pide uno nuevo.",
+      "errorRate": "Demasiados intentos. Inténtalo de nuevo en unos minutos.",
+      "errorOffline": "Sin conexión. Inténtalo de nuevo en un momento.",
+      "errorGeneric": "No ha funcionado. Inténtalo otra vez.",
+      "apple": "Iniciar sesión con Apple",
+      "google": "Iniciar sesión con Google",
+      "appleHint": "¿Compraste Pro en la web? Entra con el mismo correo."
+    },
+    "profile": {
+      "signOut": "Cerrar sesión",
+      "deleteAccount": "Eliminar cuenta"
+    }
   }
 }

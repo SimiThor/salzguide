@@ -580,6 +580,13 @@
       "tileLabel": "Prihlasuješ sa adresou",
       "note": "Tento e-mail nečakáš? Vymaž ho."
     },
+    "loginCode": {
+      "subject": "Tvoj kód do SalzGuide",
+      "headline": "Tvoj kód do SalzGuide",
+      "body": "👇 Zadaj kód v aplikácii a si dnu. Heslo nepotrebuješ.\n\n🔒 Kód platí len pre túto adresu a funguje iba raz.",
+      "codeLabel": "Tvoj kód",
+      "note": "Tento e-mail nečakáš? Vymaž ho."
+    },
     "gift": {
       "subject": "Máš SalzGuide Pro",
       "headline": "SalzGuide Pro odomknuté",
@@ -636,5 +643,42 @@
     "title": "Zlá odbočka",
     "body": "Túto cestu nepozná ani miestny. Radšej sa tu otoč.",
     "home": "Na úvodnú stránku"
+  },
+  "App": {
+    "tabs": {
+      "explore": "Objavuj",
+      "tours": "Prehliadky",
+      "saved": "Uložené",
+      "profile": "Profil"
+    },
+    "login": {
+      "title": "Prihlásiť sa",
+      "intro": "Kód dostaneš e-mailom. Heslo nepotrebuješ.",
+      "emailLabel": "E-mailová adresa",
+      "emailPlaceholder": "tvoj@email.sk",
+      "sendCode": "Poslať kód",
+      "sending": "Odosiela sa …",
+      "codeTitle": "Pozri sa do schránky",
+      "codeHint": "Kód z e-mailu",
+      "codeSent": "Poslali sme kód na {email}.",
+      "newestOnly": "Platí len najnovší kód.",
+      "verify": "Prihlásiť sa",
+      "resend": "Poslať kód znova",
+      "resendIn": "Poslať kód znova o {seconds} s",
+      "changeEmail": "Zmeniť adresu",
+      "errorEmail": "Táto e-mailová adresa nevyzerá správne.",
+      "errorWrongCode": "Kód nesedí. Skontroluj ho a skús to znova.",
+      "errorExpired": "Kód už neplatí. Vyžiadaj si nový.",
+      "errorRate": "Priveľa pokusov. Skús to o pár minút znova.",
+      "errorOffline": "Bez pripojenia. Skús to o chvíľu znova.",
+      "errorGeneric": "Nevyšlo to. Skús to znova.",
+      "apple": "Prihlásiť sa cez Apple",
+      "google": "Prihlásiť sa cez Google",
+      "appleHint": "Pro kúpené na webe? Prihlás sa rovnakým e-mailom."
+    },
+    "profile": {
+      "signOut": "Odhlásiť sa",
+      "deleteAccount": "Zmazať účet"
+    }
   }
 }

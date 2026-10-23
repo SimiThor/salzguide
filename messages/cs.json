@@ -580,6 +580,13 @@
       "tileLabel": "Přihlašuješ se adresou",
       "note": "Tenhle e-mail nečekáš? Smaž ho."
     },
+    "loginCode": {
+      "subject": "Tvůj kód pro SalzGuide",
+      "headline": "Tvůj kód pro SalzGuide",
+      "body": "👇 Zadej kód v aplikaci a jsi uvnitř. Heslo nepotřebuješ.\n\n🔒 Kód platí jen pro tuhle adresu a funguje jednou.",
+      "codeLabel": "Tvůj kód",
+      "note": "Tenhle e-mail nečekáš? Smaž ho."
+    },
     "gift": {
       "subject": "Máš SalzGuide Pro",
       "headline": "SalzGuide Pro odemčeno",
@@ -636,5 +643,42 @@
     "title": "Špatná odbočka",
     "body": "Tuhle cestu nezná ani místní. Nejlíp se tady otoč.",
     "home": "Na úvodní stránku"
+  },
+  "App": {
+    "tabs": {
+      "explore": "Objevovat",
+      "tours": "Prohlídky",
+      "saved": "Uložené",
+      "profile": "Profil"
+    },
+    "login": {
+      "title": "Přihlášení",
+      "intro": "Kód dostaneš e-mailem. Heslo nepotřebuješ.",
+      "emailLabel": "E-mailová adresa",
+      "emailPlaceholder": "tvuj@email.cz",
+      "sendCode": "Poslat kód",
+      "sending": "Odesílá se …",
+      "codeTitle": "Koukni do schránky",
+      "codeHint": "Kód z e-mailu",
+      "codeSent": "Poslali jsme kód na {email}.",
+      "newestOnly": "Platí jen nejnovější kód.",
+      "verify": "Přihlásit se",
+      "resend": "Poslat kód znovu",
+      "resendIn": "Poslat kód znovu za {seconds} s",
+      "changeEmail": "Změnit adresu",
+      "errorEmail": "Tahle e-mailová adresa nevypadá správně.",
+      "errorWrongCode": "Kód nesedí. Zkontroluj ho a zkus to znovu.",
+      "errorExpired": "Kód už neplatí. Vyžádej si nový.",
+      "errorRate": "Moc pokusů. Zkus to za pár minut znovu.",
+      "errorOffline": "Bez připojení. Zkus to za chvíli znovu.",
+      "errorGeneric": "Nevyšlo to. Zkus to prosím znovu.",
+      "apple": "Přihlásit se přes Apple",
+      "google": "Přihlásit se přes Google",
+      "appleHint": "Pro koupené na webu? Přihlas se stejným e-mailem."
+    },
+    "profile": {
+      "signOut": "Odhlásit se",
+      "deleteAccount": "Smazat účet"
+    }
   }
 }

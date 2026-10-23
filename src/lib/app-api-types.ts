@@ -18,6 +18,9 @@ export type AppErrorCode =
 
 export type AppError = { error: AppErrorCode };
 
+/** Antwort von POST /auth/email-code: Der Code ist unterwegs (auch für unbekannte Adressen). */
+export type AppEmailCodeSent = { ok: true };
+
 /** Welche Fassung der Inhalte der Betrachter bekommen hat. */
 export type AppTier = "pro" | "public";
 

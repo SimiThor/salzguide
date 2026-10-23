@@ -7,6 +7,7 @@ import { renderProGift } from "@/lib/pro-gift-mail";
 import { renderProPurchase } from "@/lib/pro-purchase-mail";
 import { renderWithdrawal } from "@/lib/withdrawal-mail";
 import { previewLoginMail } from "@/lib/login-link";
+import { previewLoginCodeMail } from "@/lib/login-code";
 import {
   renderIntroExportReady,
   renderIntroExportFailed,
@@ -51,8 +52,9 @@ export default async function AdminMailsPage({
   // der Vorschau, und man sucht den Unterschied bei sich statt bei der Uhr.
   const sampleDate = "2026-07-27T10:30:00.000Z";
 
-  const [login, gift, purchase, withdrawal] = await Promise.all([
+  const [login, loginCode, gift, purchase, withdrawal] = await Promise.all([
     previewLoginMail(lang, SAMPLE_EMAIL),
+    previewLoginCodeMail(lang),
     renderProGift(lang),
     renderProPurchase({
       email: SAMPLE_EMAIL,
@@ -116,6 +118,11 @@ export default async function AdminMailsPage({
       title: "Anmeldelink",
       when: "Bei jeder Anmeldung, und nach einem Gast-Kauf. Sprache: aus dem Formular.",
       mail: login,
+    },
+    {
+      title: "Anmelde-Code (App)",
+      when: "Wenn sich jemand in der iOS-App mit der E-Mail-Adresse anmeldet. Sprache: aus der App.",
+      mail: loginCode,
     },
     {
       title: "Pro geschenkt",
