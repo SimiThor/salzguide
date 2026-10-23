@@ -411,9 +411,10 @@ export default async function DatenschutzPage({
           übermittelt (Sitz in den USA, siehe Punkt 6). Das Kartenmodul von Mapbox kann
           außerdem Nutzungs- und Diagnosedaten mit einer zufälligen, von Mapbox vergebenen
           Kennung an Mapbox senden; hast du der App den Standort erlaubt, gehören dazu auch
-          Standortdaten. Mapbox nutzt diese Daten, um seine Karten und Dienste zu verbessern. Wir
-          erhalten sie nicht und verknüpfen sie nicht mit deinem Konto. Über das „i“ auf der
-          Karte kannst du diese Übermittlung jederzeit ein- oder ausschalten.
+          Standortdaten. Mapbox nutzt diese Daten, um seine Karten und Dienste zu verbessern. Diese
+          Übermittlung ist in der App ausgeschaltet, solange du sie nicht selbst über das „i“ auf
+          der Karte einschaltest (Einwilligung). Du kannst sie dort jederzeit wieder ausschalten.
+          Wir erhalten diese Daten nicht und verknüpfen sie nicht mit deinem Konto.
         </li>
         <li>
           <strong>Audio-Touren:</strong> Die Aufnahmen spielt die App direkt aus unserem Speicher
