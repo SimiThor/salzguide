@@ -755,4 +755,11 @@ export const OPS_JOBS: readonly OpsJob[] = [
     schedule: "montags 05:00 UTC",
     overdueHours: 24 * 10,
   },
+  {
+    job: "apple-secret",
+    label: "Apple-Secret erneuern (Web-Login)",
+    schedule: "monatlich am 1., 04:00 UTC",
+    // Das Secret gilt 180 Tage. 45 Tage ohne Lauf = ein Lauf verpasst, noch ~135 Tage Puffer.
+    overdueHours: 24 * 45,
+  },
 ] as const;

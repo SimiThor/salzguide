@@ -21,7 +21,9 @@ weiterläuft, gesprochene Abbiegehinweise, Steuerung am Sperrbildschirm, Touren 
 | Später (v1.1+) | Toni, Events, Runden-Bauer (KI), Wasser, Story-Maker, Live-Aktivität, Apple Watch |
 | Kauf | Apple-In-App-Kauf, Einmalkauf (kein Abo), **19,99 €**; nur angemeldet; im Web gekauftes Pro gilt in der App und umgekehrt |
 | Login | **Code per Mail** (6-8 Stellen, siehe Abschnitt 5; kein Link), **Mit Apple anmelden**, **Google** |
+| Login im Web | **Mit Apple anmelden** kommt auch ins Web (neben Google und Mail-Link), entschieden 23.10.2026. Grund: Wer sich in der App mit Apple und "E-Mail verbergen" anmeldet, hat eine fremde Relay-Adresse und käme sonst im Web nicht an sein Konto (und sein Pro). Ersetzt das Nein vom 17.07.2026. Der Knopf erscheint, wenn Apple in Supabase eingeschaltet UND `APPLE_SIWA_SERVICES_ID` gesetzt ist (`appleLoginEnabled()`, `lib/auth-providers.ts`) |
 | Anbieter im App Store | Anton als Person (Apple-Entwicklerkonto existiert, bezahlt) |
+| Bundle-ID | `com.salzguide.app` (23.10.2026): die Domain des Projekts statt einer Firma, damit sie auch nach einem späteren Umzug zu einer gemeinsamen Firma passt (App Transfer behält die Bundle-ID; Apple-Login-Nutzer brauchen dann einmal Apples Umzugsverfahren). Web-Kennung für Apple-Login: `com.salzguide.web` |
 | Code | **eigenes privates Repo** für die App; die App-Schnittstelle kommt per PR ins Web-Repo, Simon merged |
 | iOS-Version | aktuelle + vorige Hauptversion |
 | Sprachen | alle 13 ab v1 (de, en, it, nl, ko, fr, zh, es, pt, pl, cs, hu, sk) |
@@ -32,7 +34,7 @@ Begründungen, damit sie nicht neu diskutiert werden:
   Link), was über umgeschriebene Safe-Links-Adressen nicht zuverlässig klappt. Einen Code
   tippt man ab, da kann kein Scanner etwas verbrauchen.
 - **Apple-Login ist Pflicht**, weil die App Google-Login anbietet (Apple-Richtlinie). Fürs
-  WEB bleibt es bei Antons Nein vom 17.07.2026. In der App entfällt der Hauptgrund von damals:
+  WEB galt Antons Nein vom 17.07.2026; es ist seit 23.10.2026 aufgehoben (Abschnitt 5, "Apple im Web"). In der App entfällt der Hauptgrund von damals:
   Der native Weg (`signInWithIdToken`) braucht laut Supabase-Doku nur die Bundle-ID, nicht das
   alle 6 Monate ablaufende Client-Secret. Beim Einrichten prüfen.
 - **Kaufen nur angemeldet:** Pro hängt an `profiles.is_pro`. Nur mit Konto gilt ein App-Kauf
@@ -207,6 +209,28 @@ Regeln für alle Routen:
   Nutzer noch einmal mit Apple an, die App schickt den frischen `authorizationCode` mit
   `DELETE /me`, der Server tauscht ihn bei Apple und widerruft. Dafür braucht der Server einen
   **eigenen Sign-in-with-Apple-Schlüssel (.p8)**, getrennt vom App-Store-Server-Schlüssel.
+- **Apple im Web (23.10.2026):** Knopf "Mit Apple anmelden" über dem Google-Knopf (Login-Screen,
+  `components/auth/AppleSignInButton.tsx`), sichtbar nur, wenn Apple in Supabase eingeschaltet UND `APPLE_SIWA_SERVICES_ID` gesetzt ist (`appleLoginEnabled()`; Apple in Supabase allein trägt auch den nativen App-Login und genügt deshalb nicht).
+  Ablauf: Der Browser-Client ruft `signInWithOAuth({ provider: "apple" })` selbst auf (keine neue
+  Server-Action). Das geht, weil `@supabase/ssr` den PKCE-Verifier als Cookie
+  (`sb-<ref>-auth-token-code-verifier`, Pfad `/`, Lax) ablegt und `/[locale]/auth/callback` den `code` mit
+  dem Server-Client tauscht, der dieselben Cookies liest. Rücksprung: `<origin>/<locale>/auth/callback?next=<next>`,
+  `next` mit derselben Regel wie bei Google geprüft, im Callback nochmal (`safeNextPath`). Apple
+  schickt per POST an Supabase (`https://<ref>.supabase.co/auth/v1/callback`), nicht an uns; Supabase leitet
+  mit `code` per GET zu uns. Darum keine CSP-Änderung nötig (Top-Level-Navigation; `form-action`/`connect-src`
+  greifen nicht). Mail-Links und Callback bleiben unberührt.
+  **Konto-Verknüpfung:** Supabase verknüpft gleiche E-Mail automatisch. Wer in der App "E-Mail verbergen"
+  wählte, hat eine `@privaterelay.appleid.com`-Adresse; sein App-Konto ist im Web über denselben Apple-Knopf
+  erreichbar, weil Apple für dieselbe Team-ID und Person dieselbe Relay-Adresse liefert.
+  **Secret-Rotation:** Apple verlangt für den Web-Ablauf ein Client-Secret (ES256-JWT), höchstens 6 Monate gültig.
+  Der Cron `/api/cron/apple-secret` (`vercel.json`, `0 4 1 * *`, Schutz `CRON_SECRET`, Job `apple-secret` im
+  Totmannschalter, überfällig nach 45 Tagen) baut mit `buildAppleClientSecret()` (`lib/apple-revoke.ts`,
+  `sub` = `APPLE_SIWA_SERVICES_ID`, Laufzeit 180 Tage) ein frisches Secret und schreibt es per
+  `PATCH https://api.supabase.com/v1/projects/<ref>/config/auth` mit dem Körper `{ "external_apple_secret": "<jwt>" }`
+  (Bearer `SUPABASE_MANAGEMENT_TOKEN`; Projekt-Referenz aus `NEXT_PUBLIC_SUPABASE_URL`). **Nur dieses eine Feld**:
+  `external_apple_client_id` (Services-ID + Bundle-ID) bleibt unberührt. Erfolg = Heartbeat, Fehler = `cron_failed`
+  (Alarm), fehlende ENV = `config_missing`, aber nur wenn die Services-ID gesetzt ist (sonst still). Das Secret
+  steht nie im Log. Prüfung: `npm run apple-web-secret:check`.
 - **Google:** GoogleSignIn-SDK → `signInWithIdToken(provider: .google)`; dafür eine
   iOS-OAuth-Client-ID in der Google Cloud Console.
 - Sitzung im Schlüsselbund (supabase-swift Standard), Token-Erneuerung durch die Bibliothek.
@@ -539,8 +563,9 @@ Web-Repo-PRs merged Simon; Migrationen spielt Anton VOR dem Merge im SQL Editor 
 - [ ] App Store Connect: Vertrag für kostenpflichtige Apps, Bank, Steuer; EU-Händlerangaben
 - [ ] App anlegen (Name, Bundle-ID), In-App-Produkt 19,99 €
 - [ ] **Anton, VOR dem Merge:** Migration `0073_saved_lists_one_default.sql` im SQL Editor einspielen (eindeutiger Index: höchstens eine Standard-Merkliste je Nutzer; bricht mit klarer Meldung ab, falls es Doppelte gibt, Stand 23.10.2026: 0). Der Code läuft auch ohne sie
+- [ ] **Apple-Login im Web: Anleitung unten ("Apple-Login im Web einrichten")**, ersetzt auch den Supabase-Punkt zur Bundle-ID (dort Services-ID + Bundle-ID eintragen)
 - [ ] Sign-in-with-Apple-Schlüssel (.p8, eigener Schlüssel) für den Token-Widerruf; Vercel-ENV `APPLE_SIWA_KEY_ID`, `APPLE_SIWA_TEAM_ID`, `APPLE_SIWA_PRIVATE_KEY` (PEM, `\n` als Text erlaubt), `APPLE_SIWA_CLIENT_ID` (Bundle-ID). Ohne sie löscht `DELETE /me` trotzdem, meldet aber `appleRevoked: false` und `config_missing`
-- [ ] Supabase: Apple-Provider mit Bundle-ID aktivieren; **offen: Antons Entscheidung** zur Code-Länge (heute 8, Empfehlung 8; bei 6 "Email OTP Expiration" auf 10 bis 15 Minuten)
+- [ ] Supabase: Apple-Provider einschalten, Anleitung unten ("Apple-Login im Web einrichten", Client IDs: Services-ID zuerst, dann Bundle-ID; reine App-Einrichtung geht auch, der Web-Knopf braucht zusätzlich die ENV `APPLE_SIWA_SERVICES_ID`); **offen: Antons Entscheidung** zur Code-Länge (heute 8, Empfehlung 8; bei 6 "Email OTP Expiration" auf 10 bis 15 Minuten)
 - [ ] Simon: `APP_EMAIL_CODE_ENABLED=1` in Vercel setzen, VOR dem TestFlight-Start (bis dahin ist die Code-Route dunkel)
 - [ ] Google Cloud: iOS-OAuth-Client-ID
 - [ ] Mapbox: eigener Token für die App (nur nötige Rechte). Preise: siehe 6.4 (Maps SDK bis 25.000 MAU gratis)
@@ -549,3 +574,40 @@ Web-Repo-PRs merged Simon; Migrationen spielt Anton VOR dem Merge im SQL Editor 
 - [ ] App Store Connect: China als Verkaufsland ausschließen (Mapbox Product Terms 2.3)
 - [ ] Privates Repo für die App anlegen, Simon Zugriff geben
 - [ ] Simon über Phase 1 informieren (neue Routen unter `/api/app/v1`)
+
+### Apple-Login im Web einrichten (Anton, Schritt für Schritt)
+
+Es gibt keinen eigenen Schalter: Der Knopf erscheint (nach höchstens 5 Minuten), sobald die ENV `APPLE_SIWA_SERVICES_ID` gesetzt UND der Apple-Provider in Supabase eingeschaltet ist. Nur die App-Einrichtung (Bundle-ID, ohne Services-ID-ENV) zeigt also keinen Web-Knopf. Darum die Reihenfolge einhalten, Supabase kommt zuletzt. Platzhalter: `<ref>` = die Projekt-Kennung deiner Supabase-Adresse (`https://<ref>.supabase.co`), Bundle-ID = die der App.
+
+**1. Apple Developer (developer.apple.com, Account)**
+1. **Identifiers** öffnen. Prüfen, dass die App-ID (Bundle-ID) "Sign in with Apple" aktiviert hat (Haken setzen, Save).
+2. Im Identifiers-Filter **Services IDs** wählen, **+** klicken, **Services IDs**, Continue.
+3. Description: `SalzGuide Web`. Identifier: `com.salzguide.web` (beschlossen 23.10.2026; gleiche Vorsilbe wie die Bundle-ID `com.salzguide.app`, aber NICHT identisch). Continue, Register.
+4. Die neue Services ID anklicken, **Sign in with Apple** abhaken, **Configure**:
+   - Primary App ID: die App (Bundle-ID).
+   - Domains and Subdomains: `<ref>.supabase.co` (Apple prüft die Domain, die den Rücksprung entgegennimmt, das ist Supabase) und `salzguide.com` (+ `www.salzguide.com`, falls genutzt).
+   - Return URLs: `https://<ref>.supabase.co/auth/v1/callback`
+   - Next, Done, Continue, Save.
+5. **Keys**: Gibt es schon den Sign-in-with-Apple-Schlüssel (.p8) vom Konto-Löschen (`APPLE_SIWA_*`), **diesen weiterverwenden**: Ein Schlüssel gilt für App und Web, solange er mit der Primary App ID der App verknüpft ist. Sonst **+**, Name `SalzGuide Sign in with Apple`, "Sign in with Apple" abhaken, Configure, Primary App ID = die App, Register, **.p8 herunterladen (geht nur einmal)**, Key-ID notieren. Die Team-ID steht oben rechts unter deinem Namen / auf der Seite Membership.
+6. **Zugriffstoken für den Cron (Entscheidung offen, Anton):** Ein persönliches Supabase-Zugriffstoken kann ALLES in ALLEN Projekten seines Kontos (kein Projekt-Token möglich). Empfehlung: das Token von einem **eigenen Supabase-Konto** erzeugen, das nur Mitglied einer Organisation ist, in der nur das SalzGuide-Projekt liegt; dann reicht das Token auch nur dorthin. supabase.com/dashboard/account/tokens, "Generate new token", Name `salzguide apple-secret cron`, Ablaufdatum setzen, falls angeboten (dann im Kalender erneuern). Nur in Vercel eintragen, nie ins Repo. Alternativen: (a) ein geplanter GitHub-Action-Lauf mit dem Token in den Actions-Secrets statt in Vercel; (b) keine Automatik: Alarm um Tag 150 und das Secret von Hand erneuern.
+
+**2. Vercel-ENV (Simon, Production)**
+- `APPLE_SIWA_KEY_ID`, `APPLE_SIWA_TEAM_ID`, `APPLE_SIWA_PRIVATE_KEY`: wie beim Konto-Löschen (schon gesetzt, wenn dort eingerichtet).
+- `APPLE_SIWA_SERVICES_ID` = `com.salzguide.web`
+- `SUPABASE_MANAGEMENT_TOKEN` = das Token aus 1.6
+- Danach Redeploy.
+
+**3. Den Cron einmal von Hand auslösen (schreibt das erste Secret)**
+In Vercel: Projekt, Settings, Cron Jobs, bei `/api/cron/apple-secret` auf **Run** (Vercel sendet das Geheimnis selbst; kein `curl` mit `$CRON_SECRET` nötig). Bei Erfolg `{"ok":true,...}` in der Antwort. Der Lauf braucht Apple in Supabase NICHT eingeschaltet, er schreibt das Secret in die Konfiguration des Providers. Antwortet er `skipped`, fehlt die ENV `APPLE_SIWA_SERVICES_ID` (Schritt 2). Kommt `ok:false`, steht im Logbuch `cron_failed` oder `config_missing` mit dem Grund.
+
+**4. Supabase-Dashboard (Authentication, Sign In / Providers, Apple): zuletzt**
+1. **Client IDs**: `com.salzguide.web,com.salzguide.app` (kommagetrennt, **Services-ID zuerst**, danach die Bundle-ID). Beide müssen drinstehen: Services-ID fürs Web, Bundle-ID für den nativen App-Login. Der Cron fasst dieses Feld nie an.
+2. **Secret Key**: steht schon drin (vom Cron aus Schritt 3), nicht anfassen.
+3. Apple einschalten, Save. Nach höchstens 5 Minuten erscheint der Knopf auf der Website.
+4. Prüfen: Authentication, URL Configuration: `https://salzguide.com/**` steht in den Redirect URLs (steht bereits für Google).
+5. Test: im Web "Mit Apple anmelden" (Knopf erscheint nach höchstens 5 Minuten), zurück auf der Seite angemeldet; ein Konto mit "E-Mail verbergen" einmal ausprobieren.
+- Ab da erneuert sich das Secret monatlich selbst (Gültigkeit 180 Tage). Meldet das Logbuch `cron_failed` oder `config_missing` für `apple-secret`: Token/ENV prüfen, Cron von Hand starten.
+
+**5. Apples E-Mail-Weiterleitung (Private Email Relay)**
+Damit unsere Mails (Login, Pro-Quittung, Newsletter) bei "E-Mail verbergen"-Nutzern ankommen, muss Apple unsere Absender kennen: developer.apple.com, Certificates, Identifiers & Profiles, links **Services**, **Sign in with Apple for Email Communication**, **+** Domain/E-Mail-Adresse. Eintragen: die Absender-Domain und die Absenderadressen UND die `send.`-Subdomain, von der Resend tatsächlich sendet (der Envelope-From, "Return-Path", liegt dort; Apple prüft SPF/DKIM an dieser Domain). Domain per DNS bestätigen lassen. Ohne das werden Mails an `@privaterelay.appleid.com` verworfen.
+**Testmail:** Mit einem Apple-Konto im Web "Mit Apple anmelden", "E-Mail verbergen" wählen, danach vom Admin eine Testmail (oder Anmelde-Code) an diese `...@privaterelay.appleid.com`-Adresse auslösen. Kommt sie an, ist es fertig; sonst die eingetragenen Absender prüfen.

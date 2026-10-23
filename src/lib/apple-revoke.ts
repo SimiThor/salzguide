@@ -31,9 +31,22 @@ export type AppleSiwaConfig = {
 
 /** Die Konfiguration aus der ENV, oder null, solange etwas fehlt. */
 export function appleSiwaConfig(): AppleSiwaConfig | null {
+  return siwaConfigFor(process.env.APPLE_SIWA_CLIENT_ID);
+}
+
+/**
+ * Dieselbe Konfiguration für das WEB: gleicher Schlüssel, aber `sub` ist die Services-ID
+ * (APPLE_SIWA_SERVICES_ID) statt der Bundle-ID. Genutzt vom Rotations-Cron
+ * (lib/apple-web-secret.ts). Null, solange etwas fehlt.
+ */
+export function appleSiwaWebConfig(): AppleSiwaConfig | null {
+  return siwaConfigFor(process.env.APPLE_SIWA_SERVICES_ID);
+}
+
+function siwaConfigFor(rawClientId: string | undefined): AppleSiwaConfig | null {
   const keyId = process.env.APPLE_SIWA_KEY_ID?.trim();
   const teamId = process.env.APPLE_SIWA_TEAM_ID?.trim();
-  const clientId = process.env.APPLE_SIWA_CLIENT_ID?.trim();
+  const clientId = rawClientId?.trim();
   // Viele Hoster speichern mehrzeilige Werte mit wörtlichem "\n".
   const privateKey = process.env.APPLE_SIWA_PRIVATE_KEY?.replace(/\\n/g, "\n").trim();
   if (!keyId || !teamId || !clientId || !privateKey) return null;
@@ -47,13 +60,17 @@ const b64url = (v: string | Buffer) => Buffer.from(v).toString("base64url");
  * gebaut, ohne neue Abhängigkeit. Die Signatur muss im IEEE-P1363-Format (r||s, 64 Bytes)
  * stehen, wie JWS es verlangt; Nodes Standard wäre DER und Apple lehnte sie ab.
  */
-export function buildAppleClientSecret(cfg: AppleSiwaConfig, nowMs: number = Date.now()): string {
+export function buildAppleClientSecret(
+  cfg: AppleSiwaConfig,
+  nowMs: number = Date.now(),
+  ttlSeconds: number = SECRET_TTL_SECONDS,
+): string {
   const iat = Math.floor(nowMs / 1000);
   const header = { alg: "ES256", kid: cfg.keyId, typ: "JWT" };
   const claims = {
     iss: cfg.teamId,
     iat,
-    exp: iat + SECRET_TTL_SECONDS,
+    exp: iat + ttlSeconds,
     aud: APPLE_ISSUER,
     sub: cfg.clientId,
   };
