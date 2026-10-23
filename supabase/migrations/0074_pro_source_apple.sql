@@ -1,0 +1,11 @@
+-- Neue Pro-Herkunft 'apple' (Kauf in der iOS-App, docs/41 Abschnitt 7).
+--
+-- WARUM DIESE MIGRATION NUR EINE ZEILE HAT:
+-- Ein neuer Enum-Wert darf in derselben Transaktion NICHT benutzt werden, in der er
+-- angelegt wurde (Postgres: "unsafe use of new value"). Der SQL Editor führt eine Datei als
+-- eine Transaktion aus. Stünde 'apple' hier und in 0075 (set_user_pro vergleicht damit),
+-- bräche die Migration ab. Also: erst der Wert, allein, und BEVOR 0075 eingespielt wird.
+--
+-- Additiv und folgenlos: Kein bestehender Code oder Datensatz kennt den Wert, bis 0075 und
+-- der App-Kauf-Code live sind. `if not exists` macht die Datei wiederholbar.
+alter type pro_source add value if not exists 'apple';

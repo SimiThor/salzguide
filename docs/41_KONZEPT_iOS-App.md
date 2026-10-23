@@ -145,8 +145,8 @@ Schlüssel enthalten schon `pro|public`. Touren und Merkliste sind ungecacht, da
 | `DELETE /me` | Konto löschen (Kern `account-delete.ts`; bei Apple-Login zusätzlich Apple-Token widerrufen, Abschnitt 5). Body optional `{ appleAuthorizationCode }`. Antwort `200 { deleted: true, appleRevoked: true \| false \| null }`: `null` = kein Apple-Konto, `false` = Apple-Konto, Widerruf nicht gelungen. **Das Konto wird immer gelöscht**, der Apple-Widerruf ist Best Effort und meldet Fehler über `logOps`: `apple_revoke_failed` (Apple hat abgelehnt oder war nicht erreichbar, oder die App hat keinen `authorizationCode` mitgeschickt), `config_missing`, wenn die `APPLE_SIWA_*`-Werte in Vercel fehlen | Pflicht, **Handeln** |
 | `GET /saved?lang=`, `PUT /saved/{slug}`, `DELETE /saved/{slug}` | Merkliste. `GET` liefert `{ lang, slugs, spots }`, `PUT`/`DELETE` liefern `{ saved: true \| false }`; ein Pro-Spot, den die RLS dem Nutzer ausblendet, ist `404 not_found` wie ein unbekannter Slug (auch bei `DELETE`). Das `spot_save`-Ereignis fällt nur beim tatsächlich neuen Eintrag an, mit Gerät `other` (siehe `/track`). Kern in `saved-core.ts`. PUT/DELETE sind **Handeln** und nehmen optional `?lang=` für die Analytics-Sprache (ohne den Parameter wird keine Sprache gezählt). `toggleSaved` ist ein Umschalter über `saved_lists`/`saved_items` und nicht idempotent; PUT/DELETE werden **idempotent** neu gebaut (gleiche Tabellen, Standardliste über `getOrCreateDefaultList`), samt `spot_save`-Ereignis wie im Web | Pflicht |
 | `POST /auth/email-code` | Anmelde-Code per Mail senden (Abschnitt 5). Body `{ email, locale }` (JSON, max. 2000 Byte, `locale` aus den 13 Codes), Antwort `200 { ok: true }` auch für unbekannte Adressen; `400 invalid`, `429 rate_limit`, `503 unavailable`. Ein Authorization-Header wird ignoriert | keine |
-| `POST /purchases/apple` | App-Store-Transaktion prüfen und Pro verbuchen (Abschnitt 7) | Pflicht |
-| `POST /apple/notifications` | App Store Server Notifications V2 (Erstattung u. a.) | Apple-Signatur |
+| `POST /purchases/apple` | Signierte App-Store-Transaktionen prüfen und Pro verbuchen (Abschnitt 7). Body `{ signedTransactions: string[] }` (1 bis 50, je höchstens 10 000 Zeichen, nur dieses Feld), Antwort `{ canSeePro, results: [{ originalTransactionId, status }] }`, `status` = `granted` (verbucht), `already` (war schon dieses Kontos), `foreign` (gehört einem anderen, noch bestehenden Konto, nichts geändert), `invalid` (Signatur, Bundle-ID, Umgebung, Produkt oder Form falsch; `originalTransactionId` dann `null`), `revoked` (erstattet, kein Pro). Ergebnis i gehört zu Eingabe i. `400 invalid`, `401 auth`, `429 rate_limit` (zusätzlich 20 Anfragen je Konto in 10 Minuten), `503 unavailable` (Datenbank/Konfiguration; die App wiederholt, die Verbuchung ist idempotent). Code: `apple-purchase.ts`, Entscheidungen in `apple-purchase-core.ts` | Pflicht, **Handeln** |
+| `POST /apple/notifications` | App Store Server Notifications V2. Body mit `signedPayload` (JSON, höchstens 100 KB; weitere Felder von Apple sind erlaubt und werden ignoriert). **Kein Authorization-Header:** die Apple-Signatur ist die Anmeldung. `REFUND` und `REVOKE` entziehen Pro (Regeln in Abschnitt 7), `REFUND_REVERSED` meldet `apple_purchase_manual`, alle anderen Typen nur `apple_notification_ignored`. `200 { ok: true }` erst nach fertiger Verarbeitung (auch bei "nichts zu tun" und bei einer echten Benachrichtigung der anderen Umgebung), `400 invalid` bei ungültiger Signatur oder anderer App, `503 unavailable`, wenn die Verarbeitung gerade scheitert (Apple stellt erneut zu, die Verarbeitung ist idempotent) | Apple-Signatur |
 | `POST /track` | Analytics-Ereignisse der App (Regeln unten) | optional |
 
 Regeln für alle Routen:
@@ -171,6 +171,7 @@ Regeln für alle Routen:
   (`/de/spot/<slug>`, `/de/touren/<slug>`). Der Standard-User-Agent von URLSession enthält
   kein "iPhone", `classifyDevice` hielte die App für Desktop: Gerät aus dem neuen Feld
   ableiten. (`npm run analytics:check` prüft nur Seiten, nicht API-Routen.)
+- **Conversion aus der App:** Das Kauf-Ereignis (`conversion`) trägt bis zum Feld `client` das Gerät `other` und die Sprache der Anfrage, `source` bleibt leer. Es fällt genau einmal je neu verbuchter Transaktion an (nie bei Wiederherstellen oder Umbinden), nur für `Production`-Käufe und nur auf dem echten Deployment (`isRealSite()`).
 
 ## 5. Login in der App
 
@@ -333,35 +334,110 @@ Rechtsberatung.
   neu laden. "Käufe wiederherstellen" (`AppStore.sync`) schickt alle Transaktionen erneut.
 - Bereits Pro (im Web gekauft, Geschenk, Admin): Kauf-Knopf ausblenden, wie im Web.
 
-**Server (Web-Repo):**
-- **Zwei Migrationen:** `ALTER TYPE ... ADD VALUE 'apple'` darf nicht in derselben
-  Transaktion stehen, die den Wert benutzt. Also erst den Enum-Wert (eigene Migration),
-  dann Tabelle + Funktionen.
-- Tabelle `apple_purchases` (`original_transaction_id` PK, `user_id` **on delete set null**,
-  `product_id`, `environment`, `purchased_at`, `revoked_at`, `app_account_token`); RLS: nur
-  eigene Zeilen lesen, schreiben nur Service.
-- Transaktion mit Apples Server-Bibliothek (`@apple/app-store-server-library`) prüfen:
-  Signaturkette, Bundle-ID, Produkt-ID, Umgebung.
-- **Eigene Funktion `grantApplePro`, NICHT `grantPro` erweitern.** `grantPro` ist
-  Stripe-spezifisch (Idempotenz über `pro_source === "stripe"`, überschreibt jede andere
-  Quelle, setzt `stripe_customer_id`, loggt `stripe_fulfillment_failed`). Regel für beide
-  Wege: **ist `is_pro` schon true, wird `pro_source` nie geändert.** Sonst überschreibt ein
-  Apple-Kauf `stripe`, und eine spätere Stripe-Erstattung (`revokePro` filtert auf
-  `pro_source = 'stripe'`) griffe nicht mehr.
-- **SQL-Funktionen kennen nur Stripe als bezahlt:** `set_user_pro` (0038) schützt nur
-  aktives `'stripe'`. Ohne Anpassung könnte ein Admin-Geschenk `'apple'` überschreiben (die
-  Erstattung griffe dann nicht) oder ein Admin bezahltes Apple-Pro entziehen. Anpassen:
-  `'apple'` gilt wie `'stripe'` als bezahlt. Ebenso `handle_new_user` (0053) und die
-  Erstattungsfunktion (0054) prüfen.
-- **Zuordnung zum Konto (Wiederherstellen):** Gibt es die `original_transaction_id` schon:
-  gehört sie einem lebenden anderen Konto → ablehnen + Ops-Meldung; ist `user_id` null (Konto
-  gelöscht) → an das angemeldete Konto binden. Neue Transaktion: `appAccountToken` muss zum
-  angemeldeten Nutzer passen; fehlt er (alte Transaktion), an das angemeldete Konto binden.
-  Opus-Review dieser Regel Pflicht.
-- `POST /apple/notifications`: `REFUND`/`REVOKE` → Pro nur entziehen, wenn
-  `pro_source = 'apple'` (Geschenk/Migration/Stripe bleiben unberührt).
-- Conversion-Ereignis wie beim Stripe-Kauf, mit App-Kennung (Feld aus 4.3).
-- Schlüssel für die App Store Server API (.p8, Key-ID, Issuer-ID) nur in Vercel-ENV.
+**Server (Web-Repo), Stand der Umsetzung (Phase 7, Web-Teil):**
+- **Zwei Migrationen, in dieser Reihenfolge, beide VOR dem Merge:** `0074_pro_source_apple.sql`
+  (nur `ALTER TYPE pro_source ADD VALUE 'apple'`; ein neuer Enum-Wert darf nicht in derselben
+  Transaktion benutzt werden, deshalb allein) und `0075_apple_purchases.sql` (Tabelle,
+  RLS, `set_user_pro`). 0075 prüft gleich am Anfang, ob `'apple'` im Enum steht, und bricht sonst mit
+  "Migration 0075 abgebrochen: erst 0074 einspielen" ab, ohne etwas anzulegen (ohne diese
+  Prüfung würde die Datei laufen und erst `set_user_pro` beim Aufruf scheitern).
+- Tabelle `apple_purchases` (`original_transaction_id` PK, `user_id` **on delete set null**
+  auf `auth.users`, `product_id`, `environment` nur `Production`/`Sandbox`, `purchased_at`,
+  `revoked_at`, `app_account_token`, `created_at`, `updated_at`). RLS: Nutzer lesen nur eigene
+  Zeilen; es gibt keine Insert/Update/Delete-Policy und die Tabellenrechte für `anon` und
+  `authenticated` sind zusätzlich entzogen (nur `select` bleibt). Geschrieben wird nur mit dem
+  Service-Key. Der Datenexport (`exportMyData`) enthält die eigenen Zeilen als `applePurchases`.
+- **SQL-Funktionen:** `set_user_pro` (0038) liefert für aktives `'apple'`-Pro `apple_pro`
+  (Schenken und Entziehen abgelehnt), wie `stripe_pro` für Stripe. `handle_new_user` (0054)
+  bleibt UNVERÄNDERT: Es vergibt Pro nur beim Anlegen eines Profils aus Stripe-Kauf oder
+  Übernahme-Liste; ein Apple-Kauf entsteht immer erst nach der Anmeldung, ein neues Konto
+  bekommt Pro über "Käufe wiederherstellen". Die Stripe-Erstattung (`revokePro`) ist keine
+  SQL-Funktion und filtert schon auf `pro_source = 'stripe'`; ihr Verhalten gegenüber Apple
+  ist per SQL-Beweis abgesichert (Apple-Pro bleibt, auch bei gleicher Kunden-ID).
+- **Prüfung der Transaktion** mit `@apple/app-store-server-library` (`SignedDataVerifier`,
+  exakt 3.1.0): Signaturkette gegen Apples gebündelte Wurzeln (`src/lib/apple-roots/`, G3 und
+  G2, mit Prüfsummen), Bundle-ID, App-ID (in Production), Umgebung, danach die Produkt-ID.
+  **Familienfreigabe wird im Code abgelehnt:** nur `inAppOwnershipType = PURCHASED` zählt
+  (andere oder fehlende Angabe = `invalid`); bei Benachrichtigungen gilt das nicht, eine
+  Erstattung gilt immer.
+  Die Online-Prüfung (OCSP-Widerruf der Zertifikate) ist **standardmäßig aus**
+  (`APPLE_IAP_ONLINE_CHECKS=1` schaltet sie ein): Sie hängt jeden Kauf an Apples
+  Erreichbarkeit (bis 30 s je Frage) für ein Risiko, das wir nicht besser bemerken als Apple;
+  Kette, Wurzeln, Gültigkeit zum Signaturzeitpunkt und Apples Zertifikatserweiterungen werden
+  weiter geprüft. Wir rufen Apple nie an, der **App-Store-Server-API-Schlüssel (.p8) wird nicht
+  gebraucht.**
+- **Umgebung:** `APPLE_IAP_ENVIRONMENT` = `Production` (Standard, lehnt Sandbox ab), `Sandbox`
+  oder `Both` (erst Production, dann Sandbox). **TestFlight und die App-Store-Prüfung kaufen
+  in der Sandbox, obwohl die App gegen den Produktions-Server spricht:** dafür muss `Both`
+  gesetzt sein, sonst scheitert jeder Test-Kauf mit `invalid`. **Empfehlung: `Both` dauerhaft
+  lassen** (die App-Prüfung kauft bei jedem Update in der Sandbox), TestFlight nur per
+  Einladung, kein öffentlicher Link. Sandbox-Käufe schalten echtes Pro frei (kein Geld).
+  Optional `APPLE_IAP_SANDBOX_USERS` (Komma-getrennte Supabase-Konto-IDs; eine kaputte Liste sperrt
+  Sandbox für alle und wird gemeldet, Production und Erstattungen laufen weiter): ist sie gesetzt,
+  bekommen NUR diese Konten Pro aus Sandbox-Käufen (andere: `invalid`, einmal gemeldet); ist
+  sie leer, dürfen alle (nötig für die Prüfung durch Apple, deren Konto wir nicht kennen).
+  Umgebungen bleiben getrennt: Dieselbe ID in der anderen Umgebung bindet und erstattet
+  nichts, und nach einer Production-Erstattung hält nur ein anderer Production-Kauf das Pro
+  am Leben.
+- **Eigene Funktion `grantApplePro`, NICHT `grantPro` erweitert.** Regel für beide Wege:
+  **ist `is_pro` schon true, wird `pro_source` nie geändert.** `grantApplePro` schreibt nur
+  `WHERE is_pro = false` (die Bedingung steckt im UPDATE) und setzt gleich
+  `pro_notice_seen_at`, damit das Web dem Käufer keinen Geschenk-Gruß zeigt. `grantPro`
+  (Stripe) bekam genau die Schutzzeile für aktives `'apple'`-Pro; sein Verhalten gegenüber
+  Geschenk und Übernahme ist bewusst unverändert (Stripe gewinnt, der Kauf bleibt
+  erstattbar).
+- **Zuordnung zum Konto (Wiederherstellen), je Transaktion einzeln:**
+  1. Zeile schon erstattet (`revoked_at`): `revoked`, nie wieder freischalten.
+  2. Zeile gehört einem lebenden anderen Konto: `foreign` + Ops `apple_purchase_foreign`,
+     nichts umgebunden.
+  3. Zeile gehört dem angemeldeten Konto: `already` (Pro wird bei Bedarf nachgezogen).
+  4. `user_id` null (Konto gelöscht): an das angemeldete Konto binden (bedingtes UPDATE,
+     `granted`).
+  5. Neue Transaktion: `appAccountToken` muss die ID des angemeldeten Kontos sein, sonst
+     `foreign`; fehlt er (alte Transaktion), an das angemeldete Konto binden. Neu angelegt
+     heißt `granted`.
+  **Opus-Review dieser Regeln bleibt Pflicht vor dem Merge.**
+  Verlorene Rennen (anderer war schneller) werden neu gelesen und neu bewertet. Hat das Konto
+  schon Pro aus anderer Quelle, bleibt die Quelle und der Kauf wird als doppelt bezahlt gemeldet
+  (`apple_purchase_manual`, Erstattung bei Apple prüfen). Zeigt der Token einer NEUEN
+  Transaktion auf ein Konto, das es nicht mehr gibt (Käufer hat gelöscht und neu angemeldet),
+  wird sie an das angemeldete Konto gebunden und gemeldet (`apple_purchase_manual`): Nur das
+  Gerät des Zahlenden hat diese Transaktion.
+  **Doppelt bezahlt, Stripe + Apple:** Zahlt jemand mit Apple-Pro zusätzlich bei Stripe,
+  bleibt `pro_source = 'apple'` (`grantPro` meldet `apple_purchase_manual`). Wird Apple
+  erstattet und das Konto hat einen aktiven Stripe-Kauf (`pro_purchases`: eingelöst, nicht
+  erstattet), entzieht der Server Pro NICHT, sondern stellt die Quelle auf `stripe` UND setzt
+  `stripe_customer_id` aus diesem Kauf (ohne sie fände `revokePro` das Profil nie; ein
+  Gast-Kauf hat sie nie ans Profil geschrieben) und meldet es. Hat der Stripe-Kauf keine
+  Kunden-ID, wird Pro entzogen und gemeldet (Handarbeit). Nach der Umstellung prüft der Server
+  noch einmal und entzieht selbst, falls Stripe inzwischen auch erstattet wurde.
+  **Die iOS-App muss bei jedem Start `Transaction.currentEntitlements` erneut an
+  `POST /purchases/apple` schicken** (idempotent). Das deckt ab, was der Server nicht mitbekommt:
+  Pro, das nach einer Stripe-Erstattung oder einem entzogenen Geschenk entfällt, während Apple
+  weiter besteht, kommt so zurück.
+- **`POST /apple/notifications`:** `REFUND`/`REVOKE` setzen `revoked_at` und entziehen Pro
+  **nur, wenn `pro_source = 'apple'` (im UPDATE) und das Konto keinen anderen nicht erstatteten
+  Apple-Kauf hat.** Geschenk, Übernahme und Stripe bleiben unberührt. Kennt der Server die
+  Transaktion noch nicht, legt er sie als erstattete Zeile ohne Konto an, damit eine VOR der
+  Erstattung signierte Transaktion später kein Pro bringt. Der Entzug läuft auch bei schon
+  gesetztem `revoked_at` noch einmal (heilt eine halb gescheiterte Zustellung).
+- **Conversion-Ereignis:** wie beim Stripe-Kauf (`trackConversion`), Gerät `other`, nur wenn die
+  Zeile neu angelegt UND Pro dadurch gesetzt wurde, für `Production` und `isRealSite()`
+  (Abschnitt 4.3).
+- **ENV (nur Vercel, nichts davon ins Repo):** `APPLE_IAP_BUNDLE_ID` (Pflicht),
+  `APPLE_IAP_PRODUCT_ID` (Pflicht), `APPLE_IAP_APP_APPLE_ID` (numerische App-ID aus App Store
+  Connect, Pflicht bei `Production`/`Both`), `APPLE_IAP_ENVIRONMENT` (`Production` | `Sandbox` |
+  `Both`, Standard `Production`), optional `APPLE_IAP_SANDBOX_USERS`, optional
+  `APPLE_IAP_ONLINE_CHECKS=1`. Fehlt etwas, meldet
+  der Server `config_missing` und antwortet 503.
+- **Ops-Arten** (Katalog `ops-events.ts`): `apple_notification_app_mismatch` (error, sofort: echte Apple-Meldung mit falscher Bundle-/App-ID, Erstattungen kämen sonst nie an), `apple_purchase_failed` (error, sofort),
+  `apple_purchase_invalid` (warn, ab 3, höchstens eine Meldung je Anfrage mit Anzahl), `apple_purchase_foreign` (warn, sofort),
+  `apple_purchase_manual` (warn, sofort), `apple_notification_invalid` (warn, ab 3),
+  `apple_notification_ignored` (info).
+- **Prüfung:** `npm run app-purchase:check` (Wurzeln, Signaturprüfung mit eigener Testkette,
+  Bindungs- und Entzugsregeln gegen einen Speicher im Arbeitsspeicher, Stripe-Weg).
+  Die SQL-Seite ist als echter Client in einem lokalen Wegwerf-Postgres bewiesen (Migrationen
+  0001 bis 0075, Gegenprobe ohne 0075 rot).
 
 **Recht:** Kauf über Apple läuft nach Apples Bedingungen (Zahlung, Widerruf, Erstattung
 über Apple). AGB um einen Abschnitt "Kauf in der iOS-App" ergänzen. Die FAGG-Zustimmung des
@@ -444,15 +520,24 @@ Web-Repo-PRs merged Simon; Migrationen spielt Anton VOR dem Merge im SQL Editor 
   Routing und Karten. So in den Apple-Datenschutzangaben und in der Datenschutzerklärung.
 - **Datenschutzerklärung** (Webseite, deutsch fest im Code) um einen App-Abschnitt ergänzen:
   Apple als Zahlungsabwickler, Standort, Mapbox SDK, Anmeldung über Apple/Google.
+- **Apple-Käufe in Datenschutzerklärung und Export (Phase 8):** Die Tabelle `apple_purchases` speichert
+  Transaktions-ID, Produkt, Umgebung, Kaufzeitpunkt, Erstattungszeitpunkt und den Konto-Token; bei
+  Kontolöschung wird die Zeile vom Konto gelöst (`user_id` null), die Transaktions-ID bleibt als
+  Zahlungsnachweis. In die Datenschutzerklärung aufnehmen (Zweck: Zahlungsabwicklung und Nachweis,
+  Aufbewahrung nach den Fristen für Buchhaltung). Der Datenexport enthält die eigenen Zeilen
+  bereits (`applePurchases`).
 - **KI-Kennzeichnung:** Stimmen-Offenlegung wie im Web (docs/39); Toni ist nicht in v1.
 - **Konto löschen in der App** ist Apple-Pflicht (Phase 3).
 
 ## 12. Was Anton außerhalb des Codes erledigt
 
 - [x] Apple-Entwicklerkonto (als Person, bezahlt)
+- [ ] **Anton, VOR dem Merge, in dieser Reihenfolge:** Migration `0074_pro_source_apple.sql`, danach `0075_apple_purchases.sql` im SQL Editor einspielen (beide ohne Datenverlust; 0074 ist eine einzelne Zeile und MUSS vor 0075 laufen)
+- [ ] **Simon, Vercel-ENV (Production):** `APPLE_IAP_BUNDLE_ID`, `APPLE_IAP_PRODUCT_ID`, `APPLE_IAP_APP_APPLE_ID` (numerische App-ID aus App Store Connect, Seite "App-Informationen", "Apple-ID"), `APPLE_IAP_ENVIRONMENT`. **`Both` dauerhaft** (die App-Store-Prüfung kauft bei jedem Update in der Sandbox), TestFlight nur per Einladung, kein öffentlicher Link. Optional `APPLE_IAP_SANDBOX_USERS` (Konto-IDs der Tester, Komma-getrennt; leer = alle Sandbox-Käufe erlaubt). Ein In-App-Purchase-Schlüssel (.p8) wird dafür NICHT gebraucht
+- [ ] **Anton, App Store Connect:** unter App-Informationen "App-Store-Server-Benachrichtigungen" die URL `https://<produktions-domain>/api/app/v1/apple/notifications` eintragen, Version 2, für Production UND Sandbox (bei `Production` allein die Sandbox-URL leer lassen: Sandbox-Benachrichtigungen werden sonst mit 400 abgelehnt). Danach "Testbenachrichtigung anfordern" (kommt als `apple_notification_ignored` im Logbuch an)
+- [ ] **Anton, App Store Connect:** beim Produkt "Familienfreigabe" AUS lassen (der Server lehnt Familienfreigabe-Transaktionen ohnehin ab)
 - [ ] App Store Connect: Vertrag für kostenpflichtige Apps, Bank, Steuer; EU-Händlerangaben
 - [ ] App anlegen (Name, Bundle-ID), In-App-Produkt 19,99 €
-- [ ] App Store Server API Schlüssel (.p8) erzeugen, an Simon für Vercel-ENV
 - [ ] **Anton, VOR dem Merge:** Migration `0073_saved_lists_one_default.sql` im SQL Editor einspielen (eindeutiger Index: höchstens eine Standard-Merkliste je Nutzer; bricht mit klarer Meldung ab, falls es Doppelte gibt, Stand 23.10.2026: 0). Der Code läuft auch ohne sie
 - [ ] Sign-in-with-Apple-Schlüssel (.p8, eigener Schlüssel) für den Token-Widerruf; Vercel-ENV `APPLE_SIWA_KEY_ID`, `APPLE_SIWA_TEAM_ID`, `APPLE_SIWA_PRIVATE_KEY` (PEM, `\n` als Text erlaubt), `APPLE_SIWA_CLIENT_ID` (Bundle-ID). Ohne sie löscht `DELETE /me` trotzdem, meldet aber `appleRevoked: false` und `config_missing`
 - [ ] Supabase: Apple-Provider mit Bundle-ID aktivieren; **offen: Antons Entscheidung** zur Code-Länge (heute 8, Empfehlung 8; bei 6 "Email OTP Expiration" auf 10 bis 15 Minuten)
