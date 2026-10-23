@@ -1,5 +1,7 @@
 # Konzept — Routen super-einfach anlegen (Admin)
 
+> **Stand 23.10.2026:** Das Snapping läuft nicht mehr über openrouteservice, sondern über unseren eigenen Routendienst (BRouter, Profil `hiking-mountain`), siehe `docs/42_ROUTING_BROUTER.md`, Abschnitt 16. Die Felder und der Ablauf unten gelten weiter.
+
 Anforderung (Anton): Beim Anlegen eines neuen Spots soll die Wanderroute **ohne GPX-Import** entstehen — Admin setzt nur **Start, Ziel und optionale Zwischenstops**, die Route wird **automatisch entlang echter Wege** berechnet und gespeichert.
 Stand: 2026-06-21.
 
