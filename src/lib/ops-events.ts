@@ -234,6 +234,14 @@ export const OPS_EVENTS = {
     quietMinutes: 60,
     hint: "Bots klopfen am Login. Der Check hält sie. Nur relevant, wenn gleichzeitig echte Nutzer klagen, sie kämen nicht durch.",
   },
+  apple_revoke_failed: {
+    area: "auth",
+    severity: "error",
+    title: "Apple-Token nicht widerrufen",
+    alertAfter: 1,
+    quietMinutes: 360,
+    hint: "Jemand hat sein Konto mit „Mit Apple anmelden“ gelöscht. Das Konto ist weg, aber Apples Token wurde nicht widerrufen (Apple-Richtlinie 5.1.1). Die Meldung sagt, welcher Fall: „ohne authorizationCode“ = die App hat keinen Code mitgeschickt (Fehler in der App, an Anton melden). „Apple-Widerruf fehlgeschlagen“ = Apple hat abgelehnt oder war nicht erreichbar (Schlüssel, Team-ID und Bundle-ID in Vercel prüfen, ist der Schlüssel in der Apple-Entwicklerkonsole noch gültig?). Der Nutzer kann den Zugriff selbst beenden: Einstellungen, Apple-Konto, Mit Apple anmelden.",
+  },
 
   // ── Zahlung: hier hängt Geld dran ─────────────────────────────────────────────────
   stripe_fulfillment_failed: {

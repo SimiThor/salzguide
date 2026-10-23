@@ -6,6 +6,7 @@ import {
   isAuthApiError,
   isAuthRetryableFetchError,
   type SupabaseClient,
+  type User,
 } from "@supabase/supabase-js";
 import { createServiceClient } from "./supabase/service";
 
@@ -173,6 +174,16 @@ async function findJwk(kid: string): Promise<Jwk | null | "unavailable"> {
 }
 
 /**
+ * Ist dieser Fehler ein Ausfall des Auth-Servers (und KEIN Urteil über den Token)? Eine Quelle
+ * für appViewer (getClaims) und appActor (getUser), damit beide Wege gleich klassifizieren.
+ */
+function isAuthServerOutage(error: { name?: string; status?: number }): boolean {
+  if (isAuthRetryableFetchError(error)) return true;
+  if (isAuthApiError(error) && (error.status >= 500 || error.status === 429)) return true;
+  return error.name === "AuthUnknownError";
+}
+
+/**
  * Wer fragt? Kein Header = Gast. Ein Header, der nicht exakt `Bearer <token>` ist, ist
  * KEIN Gast, sondern ein Fehler: Die App soll einen kaputten Header nicht stillschweigend
  * als ausgeloggt erleben.
@@ -210,12 +221,7 @@ export async function appViewer(req: Request): Promise<AppAuth> {
       //  - AuthUnknownError: nicht lesbare Antwort des Auth-Servers (kein Token-Urteil).
       //  Alles andere (AuthInvalidJwtError: abgelaufen, Signatur falsch, kaputt gebaut;
       //  AuthApiError 4xx) heißt wirklich: dieser Token taugt nicht.
-      if (isAuthRetryableFetchError(error)) return { ok: false, reason: "unavailable" };
-      if (isAuthApiError(error) && (error.status >= 500 || error.status === 429)) {
-        return { ok: false, reason: "unavailable" };
-      }
-      if (error.name === "AuthUnknownError") return { ok: false, reason: "unavailable" };
-      return { ok: false, reason: "auth" };
+      return { ok: false, reason: isAuthServerOutage(error) ? "unavailable" : "auth" };
     }
     const claims = data?.claims;
     const sub = claims?.sub;
@@ -272,5 +278,48 @@ export function createBearerClient(token: string): SupabaseClient {
       global: { headers: { Authorization: `Bearer ${token}` } },
       auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
     },
+  );
+}
+
+export type AppActorResult =
+  | { ok: true; userId: string; token: string; user: User }
+  | { ok: false; reason: "auth" | "unavailable" };
+
+/**
+ * Wer HANDELT? Für alle schreibenden Routen (Merkliste, Profil, Konto löschen). Docs/41 4.1:
+ * erst die lokale Vorprüfung (appViewer), dann zusätzlich auth.getUser(token) beim Auth-Server,
+ * wie lib/viewer.ts es für Handeln verlangt. Die lokale Prüfung sieht nicht, dass ein Konto
+ * gelöscht oder gesperrt wurde, solange der Token noch gilt.
+ *
+ * Gäste und anonyme Anmeldungen (is_anonymous) sind hier draußen: Sie dürfen lesen, aber
+ * nichts verändern. Ausfall des Auth-Servers = "unavailable" (503), nie "auth": Die App meldet
+ * den Nutzer dabei nicht ab.
+ */
+export async function appActor(req: Request): Promise<AppActorResult> {
+  const viewer = await appViewer(req);
+  if (!viewer.ok) return viewer;
+  if (!viewer.userId || !viewer.token) return { ok: false, reason: "auth" };
+  try {
+    const { data, error } = await getAuthClient().auth.getUser(viewer.token);
+    if (error) return { ok: false, reason: isAuthServerOutage(error) ? "unavailable" : "auth" };
+    const user = data?.user;
+    if (!user || user.id !== viewer.userId || user.is_anonymous) {
+      return { ok: false, reason: "auth" };
+    }
+    return { ok: true, userId: user.id, token: viewer.token, user };
+  } catch (e) {
+    return { ok: false, reason: isAuthRetryableFetchError(e) ? "unavailable" : "auth" };
+  }
+}
+
+/**
+ * Client für Gäste: Anon-Key ohne Nutzer, also genau die Sicht eines nicht angemeldeten
+ * Besuchers (RLS blendet Pro-Spots aus). Pro Aufruf frisch, trägt nie eine Sitzung.
+ */
+export function createGuestClient(): SupabaseClient {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } },
   );
 }

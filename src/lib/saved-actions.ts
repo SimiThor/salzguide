@@ -2,7 +2,7 @@
 
 import { createClient } from "./supabase/server";
 import { getOrCreateDefaultList } from "./saved";
-import { trackEvent, serverEventContext, isOperatorUser } from "./analytics";
+import { findSavableSpot, recordSpotSave } from "./saved-core";
 
 export type ToggleResult = { saved?: boolean; needLogin?: boolean };
 
@@ -14,12 +14,7 @@ export async function toggleSaved(slug: string): Promise<ToggleResult> {
   } = await supabase.auth.getUser();
   if (!user) return { needLogin: true };
 
-  const { data: spot } = await supabase
-    .from("spots")
-    .select("id, subtype")
-    .eq("slug", slug)
-    .eq("status", "published")
-    .maybeSingle();
+  const spot = await findSavableSpot(supabase, slug);
   if (!spot) return {};
 
   const listId = await getOrCreateDefaultList(supabase, user.id);
@@ -38,18 +33,6 @@ export async function toggleSaved(slug: string): Promise<ToggleResult> {
   }
 
   await supabase.from("saved_items").insert({ list_id: listId, spot_id: spot.id });
-  // Nur echte Nutzer zählen — der eingeloggte Betreiber (Admin) wird ausgenommen.
-  if (!(await isOperatorUser(supabase, user.id))) {
-    const ctx = await serverEventContext();
-    await trackEvent({
-      type: "spot_save",
-      kind: "spot",
-      target: slug,
-      category: (spot.subtype as string | null) ?? null,
-      device: ctx.device,
-      country: ctx.country,
-      locale: ctx.locale,
-    });
-  }
+  await recordSpotSave(supabase, user.id, slug, spot.subtype);
   return { saved: true };
 }

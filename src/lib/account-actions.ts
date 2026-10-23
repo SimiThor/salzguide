@@ -5,7 +5,8 @@
 // eigene Daten); die Löschung der auth.users-Zeile braucht den Service-Client
 // (Auth-Admin-API) und kaskadiert auf alle personenbezogenen Tabellen.
 import { createClient } from "./supabase/server";
-import { createServiceClient } from "./supabase/service";
+import { applyNewsletter } from "./account-core";
+import { deleteAccountCore } from "./account-delete";
 
 export type MyDataExport = {
   ok: true;
@@ -83,22 +84,9 @@ export async function setNewsletter(
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "auth" };
 
-  // Der Zeitstempel MUSS mitgeführt werden. Art. 7 Abs. 1 DSGVO verlangt, dass wir eine
-  // Einwilligung nachweisen können, und „ja" ohne „seit wann" ist kein Nachweis. Vorher
-  // schrieb dieser Schalter nur das Ja/Nein: Wer sich hier eintrug, stand danach mit
-  // newsletter_opt_in = true und newsletter_opt_in_at = null in der Tabelle — genau die
-  // Zeile, die im Streitfall nichts belegt.
-  //
-  // Beim Widerruf zurück auf null: Der Zeitpunkt gehört zu einer BESTEHENDEN Einwilligung.
-  // Bleibt er stehen, sieht ein Widerruf später aus wie eine gültige Zustimmung von damals.
-  const { error } = await supabase
-    .from("profiles")
-    .update({
-      newsletter_opt_in: optIn,
-      newsletter_opt_in_at: optIn ? new Date().toISOString() : null,
-    })
-    .eq("id", user.id);
-  if (error) return { ok: false, error: error.message };
+  // Der Zeitstempel und der Widerruf stehen im Kern (account-core.ts), den auch die App nutzt.
+  const { error } = await applyNewsletter(supabase, user.id, optIn);
+  if (error) return { ok: false, error };
   return { ok: true };
 }
 
@@ -108,17 +96,9 @@ export async function deleteMyAccount(): Promise<{ ok: boolean; error?: string }
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "auth" };
-  const userId = user.id;
-
-  const service = createServiceClient();
-
-  // ai_usage hängt per Text-Subject (kein FK) am User -> explizit entfernen.
-  await service.from("ai_usage").delete().eq("subject", `u:${userId}`);
-
-  // auth.users löschen -> on delete cascade räumt profiles, saved_lists/-items,
-  // saved_events, ai_conversations/-messages restlos ab.
-  const { error } = await service.auth.admin.deleteUser(userId);
-  if (error) return { ok: false, error: error.message };
+  // ai_usage + auth.users (Kaskade) räumt der Kern, den auch die App-API nutzt.
+  const { error } = await deleteAccountCore(user.id);
+  if (error) return { ok: false, error };
 
   // Session-Cookie serverseitig entwerten (Konto existiert nicht mehr).
   try {

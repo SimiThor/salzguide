@@ -1,4 +1,5 @@
 import "server-only";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { cachedJson } from "./api-cache";
 import { createClient } from "./supabase/server";
 import {
@@ -59,22 +60,28 @@ export type OpeningResult = { week: OpeningWeek; source: "google" | "manual" };
 
 // Migrationssicher: liest die (neuen) opening_hours-Spalten separat & fehlertolerant,
 // damit die öffentliche Spot-Seite nie bricht, falls die Migration noch nicht lief.
-export async function getSpotOpeningWeek(
+//
+// Variante mit ausdrücklichem Client für die App-API (docs/41 4.2): Sie übergibt den Anon-Client
+// (Gast) oder den Bearer-Client des Nutzers, damit die RLS (Pro-Spots, 0017) wie im Web greift.
+// `client = null` heißt "kein Client verfügbar" und verhält sich wie ein Lesefehler: Defaults.
+export async function getSpotOpeningWeekWith(
+  client: SupabaseClient | null,
   slug: string,
   googlePlaceId: string | null,
 ): Promise<OpeningResult | null> {
   let openingHoursManual = false;
   let openingHours: unknown = null;
   try {
-    const supabase = await createClient();
-    const { data, error } = await supabase
-      .from("spots")
-      .select("opening_hours_manual, opening_hours")
-      .eq("slug", slug)
-      .maybeSingle();
-    if (!error && data) {
-      openingHoursManual = Boolean(data.opening_hours_manual);
-      openingHours = data.opening_hours;
+    if (client) {
+      const { data, error } = await client
+        .from("spots")
+        .select("opening_hours_manual, opening_hours")
+        .eq("slug", slug)
+        .maybeSingle();
+      if (!error && data) {
+        openingHoursManual = Boolean(data.opening_hours_manual);
+        openingHours = data.opening_hours;
+      }
     }
     // Fehler (z. B. Spalten noch nicht migriert) -> Defaults -> Google-Fallback
   } catch {
@@ -87,4 +94,17 @@ export async function getSpotOpeningWeek(
   });
   if (!week) return null;
   return { week, source: openingHoursManual ? "manual" : "google" };
+}
+
+export async function getSpotOpeningWeek(
+  slug: string,
+  googlePlaceId: string | null,
+): Promise<OpeningResult | null> {
+  let client: SupabaseClient | null = null;
+  try {
+    client = await createClient();
+  } catch {
+    /* ignore -> Defaults */
+  }
+  return getSpotOpeningWeekWith(client, slug, googlePlaceId);
 }
