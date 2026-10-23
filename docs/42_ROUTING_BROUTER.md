@@ -493,3 +493,119 @@ in Abschnitt 1 steht.
    Anton eine gespeicherte Route nach einem Wegdaten-Update bewusst erneuern will (heute:
    Runde ändern).
 5. **Anstieg** (`ascentM`) steht noch nicht im Paket (nur Auskunft, nicht gespeichert).
+
+## 16. Übergabe: Spot-Wanderrouten und eigene Runden auf BRouter (in Arbeit, 23.10.2026)
+
+Branch `feat/spot-routes-brouter` (auf #316). Abgebrochen wegen Shutdown, Stand und Plan hier,
+damit die nächste Sitzung ohne Scratchpad weiterkommt. Beim Abschluss diesen Abschnitt in §1, §8,
+§13, §14 und §15 einarbeiten und löschen.
+
+### 16.1 Inventar (fertig): alles, was nicht über BRouter routet
+
+| Stelle | Datei:Zeile | Dienst | Speichert | Auslöser |
+|---|---|---|---|---|
+| `snapRoute()` Spot-Wanderung | `src/lib/admin-actions.ts:583-660` (ORS-Aufruf Zeile 596) | openrouteservice `foot-hiking` (`ORS_KEY`), mit Höhe | Formular -> `saveSpot` schreibt `spots.route_geojson` (LineString), `spots.elevation_profile`, `route_waypoints`; Dauer/Schwierigkeit nur, wenn leer (`adopt`-Regel in SpotForm) | Admin, Knopf "Anpassen" / "Hin & zurück" in `src/components/admin/SpotForm.tsx:364` |
+| `optimizeLoop()` eigene Runden | `src/lib/tour-generate.ts:336-390` (URL Zeile 353) | Mapbox Optimization `optimized-trips/v1/mapbox/walking` (`MAPBOX_SERVER_TOKEN`), roundtrip ab Start | `user_tours.route_geo`, `distance_km`, `duration_min` (`saveUserTour`, `src/lib/user-tours.ts:70`) | Pro-Nutzer im KI-Builder `/touren/bauen` (`src/components/tours/TourBuilder.tsx`) |
+| `scripts/wp-import/routes.ts:140` (`wp:routes`) | ORS `foot-hiking` | `.wp-cache/routes.json` (lokal; `wp:import` schreibt später in die DB) | Einmal-Import, Anton von Hand |
+| `scripts/seed-runde-a.ts:209` | Mapbox Directions `cycling` | `tours.route_geo` + `route_hash` | Einmal-Seed, Anton von Hand; docs/42 §1: "nicht mehr ausführen bis umgestellt" |
+| `scripts/routing-web-drive.mjs` | nur Prüfung ("keine Anfrage an api.mapbox.com/directions"), kein Aufruf | - | - |
+
+Alles andere (Runden-Editor, Web-Navigation, App-Paket, App-Umrouten) ist seit #316 BRouter.
+
+### 16.2 Datenstand Produktion (nur gelesen, 23.10.2026)
+
+- 48 veröffentlichte Spots mit `route_geojson` (LineString), 32 davon Pro, ALLE mit
+  `elevation_profile`; `route_waypoints` je 4 bis 20 Punkte (nie > 25, also unter
+  `MAX_ROUTE_POINTS`); Linien 40 bis 797 Punkte.
+- 6 `user_tours`, 5 mit `route_geo`, je 4 bis 5 Stopps.
+- Folge einer Neuberechnung der Spot-Linien: `introSourceHash` (`src/lib/intro-hash.ts`) hängt
+  an `route_geojson` -> alle Intro-Videos würden als "veraltet" gelten und neu gerendert.
+  Anton muss das wissen, bevor jemand `--write` läuft.
+
+### 16.3 Gebaut (im Worktree, committed als WIP)
+
+- `src/lib/routing/types.ts`: `NormalizedRoute.elevationM: number[] | null` (additiv).
+- `src/lib/routing/normalize.ts`: `finishRoute({ rawElevationM })` überträgt die Höhen auf die
+  gesäuberte Linie (`elevationFor`), null bei Lücken.
+- `src/lib/routing/brouter.ts`: `parseBrouterGeojson` liest die 3. Koordinate (Höhe; lokal
+  geprüft: BRouter 1.7.10 liefert sie für jeden Punkt).
+- `src/lib/routing/run.ts`: `RoutePurpose` um `"spot"` und `"builder"` (20 s) erweitert.
+- Lokaler BRouter: `scratchpad/brouter/` (jar `dl/brouter-1.7.10/brouter-1.7.10-all.jar`,
+  `segments4/E10_N45.rd5`, `profiles2/`), Start wie docs/42 §11 mit
+  `/opt/homebrew/opt/openjdk@21/bin/java`. Liegt im Scratchpad, überlebt den Neustart evtl. nicht
+  (dann neu laden von brouter.de, NIE ins Repo).
+
+`npx tsc --noEmit` lief beim Abbruch noch (Ergebnis in `scratchpad/spot-routes/tsc.log`, falls
+vorhanden). Lint und die Prüfskripte sind NICHT gelaufen.
+
+### 16.4 Plan (entschieden, noch nicht gebaut)
+
+1. `src/lib/elevation.ts` (OHNE server-only): Typ `ElevationProfile`, `downsample`,
+   `buildElevationProfile(coords, elevationM)` (Format wie Migration 0006, 100 Punkte).
+   `admin-actions.ts`, `spots.ts`, `SpotForm.tsx`, `SpotDetailMap.tsx`, `ElevationProfile.tsx`
+   importieren den Typ von dort (heute aus der "use server"-Datei). `scripts/wp-import/route-math.ts`
+   reicht `downsample`/`elevationProfile` von dort weiter (eine Quelle).
+2. `src/lib/routing/snap-spot.ts` (server-only): `routeSpotLine(waypoints)` = Kette in
+   Stücken zu je `MAX_ROUTE_POINTS` (25, Überlappung 1 Punkt; "Hin & zurück" mit 20
+   Kontrollpunkten ergibt 39), je Stück `runRoute({ mode: "walk", purpose: "spot" })`
+   (Profil `hiking-mountain`, docs/42 §3), Linie/Höhen/Länge zusammensetzen, Labels
+   "Start", "Punkt n", "Ziel". `snapSpotRouteCore(waypoints)` = Profil über
+   `buildElevationProfile`, Auf/Ab über `ascentDescent`, Dauer `hikingTimeMinutes` (SAC, wie
+   heute), Testadapter-Riegel wie `snapTourRouteCore`, Fehlertexte `adminRoutingError`.
+   Rückgabe wie `SnapResult` heute plus `warnings`, `attribution`.
+3. `admin-actions.ts` `snapRoute`: nur `requireAdmin()` + Kern; ORS-Code, lokales `haversine`
+   und `downsample` raus. NICHTS Neues aus der "use server"-Datei exportieren.
+   `SpotForm.tsx`: Meldung um Hinweise + "© OpenStreetMap-Mitwirkende" ergänzen; die
+   `adopt`-Regel (Dauer nur, wenn leer oder forceDuration) bleibt unverändert.
+4. `src/lib/routing/order.ts` (rein): `orderLoop(start, coords) -> number[]`, exakt
+   (Held-Karp) bis 10 Stopps auf Luftlinie ab Start und zurück, deterministisch; darüber
+   Nächster-Nachbar + 2-opt. `src/lib/routing/user-loop.ts` (server-only):
+   `routeUserLoop(start, stops)` = EINE `runChain`-Anfrage `[start, ...stops, start]`,
+   `mode: "walk"`, `purpose: "builder"`, Dauer `tourDurationMin(distanceM, "walk", n)`
+   (= 4,5 km/h + 2 min je Stopp, docs/42 §4); `planUserLoop` = `orderLoop` + `routeUserLoop`.
+5. `tour-generate.ts`: `optimizeLoop`/`nearestNeighbor` raus, `planUserLoop` rein; Rückgabe
+   `{ order, geo, distanceM, durationMin }`, bei Fehler `geo: null` wie heute (Linie
+   geradlinig im Client), UX/Form der Antwort unverändert. Kommentare in `user-tours.ts`
+   (Mapbox) anpassen. `MAPBOX_SERVER_TOKEN` wird dann nirgends mehr gebraucht.
+6. `scripts/seed-runde-a.ts`: Mapbox-Block durch `runChain({ points: [start, ...spots, start],
+   mode: "bike", purpose: "editor" })` + `tourDurationMin` ersetzen (nicht ausführen).
+   `scripts/wp-import/routes.ts`: `snap()` durch `routeSpotLine` ersetzen, ORS-Schlaf und
+   Tageslimit-Logik raus; Rauchtest mit `--limit 1` braucht `.wp-cache/` aus dem Haupt-Checkout
+   (liegt dort, 95 Quellen, gitignored).
+7. Vergleich VOR jeder Live-Änderung: `scripts/lib/line-compare.ts` (aus `routing-compare.ts`
+   herauslösen: `sample`, `distToLine`, `compareLines`), neues
+   `scripts/spot-routes-compare.ts` (nur lesend, `ROUTING_URL` im Skript auf
+   `ROUTING_URL_LOCAL ?? http://127.0.0.1:17777` setzen, Token löschen): alle 48 Spots
+   (`route_waypoints` -> `snapSpotRouteCore`) und alle 5 eigenen Runden
+   (`[start, ...point_ids-Reihenfolge, start]` -> `routeUserLoop`) gegen das Gespeicherte:
+   Länge, Dauer (alt: `duration`-Text und SAC aus altem Profil; neu: SAC), Auf-/Abstieg,
+   Hausdorff/Mittel/"nah innerhalb 15 m"; Flags bei |Δkm| > max(0,5 km, 15 %), Hausdorff > 250 m,
+   nah < 60 %, |ΔAnstieg| > max(50 m, 30 %). Markdown-Bericht nach
+   `scratchpad/spot-routes/report.md`, Spots mit Slug (öffentliche URLs), eigene Runden nur als
+   "Eigene Runde n" (Nutzerdaten). Screenshots der schlechtesten Fälle: Leaflet-HTML (alt links,
+   rot; neu rechts, blau; gleiche Bounds) per playwright-core mit System-Chrome
+   (`/Applications/Google Chrome.app/Contents/MacOS/Google Chrome`, wie `routing-web-drive.mjs`).
+8. `scripts/spot-routes-rewrite.ts`: Trockenlauf-Standard, `--write` schreibt NUR
+   `spots.route_geojson` + `elevation_profile` (nie `duration`, `difficulty`, `route_waypoints`)
+   und `user_tours.route_geo` + `distance_km` + `duration_min`; `--only=<slug>`. NICHT ausführen.
+   Nach einem `--write`: Katalog-Cache (`updateTag(SPOTS_TAG)`) wird vom Skript nicht
+   invalidiert -> ein Spot im Admin speichern oder redeploy.
+9. `scripts/routing-check.ts` erweitern: Spot-Kern gegen lokalen BRouter (Höhen da, Profil
+   100 Punkte, Dauer = SAC-Formel, Stückelung bei 30 Punkten = 2 Anfragen, Labels), `orderLoop`
+   gegen Brute-Force + Determinismus, eigene Runde = eine Anfrage und Linie endet am Start,
+   Testadapter-Riegel. Dann `tsc`, `lint`, `routing:check`, `nav:check`, `tour-route:check`,
+   `i18n:check`, Browser: Admin-Spot-Editor (Wächter per `SG_NAV_PROBE` im Worktree, Memory
+   "Admin testen ohne Login") und Builder mit Wegwerf-Pro-Konto (`scripts/lib/temp-user.ts`,
+   `setProfile({ is_pro: true })`, `webCookieHeader`) auf Port > 3030.
+10. docs/42: §1-Tabelle, §8 Schritt 5 "gebaut", §13, §14 Frage 5, §15 Punkte 1+2 erledigen,
+    neuen Abschnitt zu Spot-Wanderrouten (Profil, Höhen, Stückelung, Rewrite-Skript,
+    Vergleichszahlen). `ORS_KEY` und `MAPBOX_SERVER_TOKEN` danach aus Vercel entfernbar
+    (erst nach Merge prüfen, ob noch jemand sie liest).
+
+### 16.5 Was Anton entscheiden muss
+
+- Spot-Linien neu rechnen (Skript `--write`) oder Spot für Spot im Admin ("Anpassen")?
+  Beides erzeugt neue Intro-Hashes (Videos "veraltet").
+- Profil `hiking-mountain` für Spot-Wanderungen bestätigen, sobald der Vergleich die
+  Abweichungen zeigt (ORS foot-hiking gegen BRouter).
+- Eigene Runden: 5 gespeicherte Linien neu rechnen (Reihenfolge bleibt `point_ids`).

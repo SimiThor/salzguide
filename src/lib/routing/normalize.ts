@@ -106,6 +106,24 @@ export function projectWaypoints(
   return { alongM: out, offM: off };
 }
 
+/**
+ * Höhen auf die gesäuberte Linie übertragen: Je neuem Punkt die Höhe seines ersten
+ * Rohpunkts. Fehlt irgendwo eine Höhe, gibt es keine Reihe (null), denn ein Profil mit
+ * Lücken rechnet falsche Höhenmeter.
+ */
+function elevationFor(indexMap: number[], count: number, raw: (number | null)[] | null | undefined): number[] | null {
+  if (!raw || raw.length !== indexMap.length) return null;
+  const out: number[] = new Array(count);
+  for (let i = 0; i < indexMap.length; i++) {
+    const j = indexMap[i];
+    if (out[j] !== undefined) continue;
+    const v = raw[i];
+    if (v == null || !Number.isFinite(v)) return null;
+    out[j] = v;
+  }
+  return out;
+}
+
 function bearingBeforeAt(geometry: LngLat[], alongM: number[], index: number): number {
   if (index <= 0) return geometry.length > 1 ? bearingBetween(geometry[0], geometry[1]) : 0;
   let j = index - 1;
@@ -131,11 +149,14 @@ export function finishRoute(input: {
   warnings?: string[];
   /** Name je Eingabepunkt für die Hinweise; ohne: "Punkt N". */
   labels?: string[];
+  /** Höhe je Punkt von rawGeometry; fehlt eine, gilt die ganze Reihe als nicht geliefert. */
+  rawElevationM?: (number | null)[] | null;
 }): NormalizedRoute {
   const { geometry, indexMap } = dedupe(input.rawGeometry);
   const alongM = routeCumulativeMeters(geometry);
   const distanceM = alongM[alongM.length - 1] ?? 0;
   const warnings = [...(input.warnings ?? [])];
+  const elevationM = elevationFor(indexMap, geometry.length, input.rawElevationM);
 
   const nameOf = (k: number) => input.labels?.[k] ?? `Punkt ${k + 1}`;
   const way = projectWaypoints(geometry, alongM, input.points);
@@ -186,6 +207,7 @@ export function finishRoute(input: {
     v: 1,
     geometry,
     alongM,
+    elevationM,
     distanceM,
     durationS: input.durationS,
     ascentM: input.ascentM,

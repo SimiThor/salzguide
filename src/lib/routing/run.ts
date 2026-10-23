@@ -18,9 +18,17 @@ import type { TourMode } from "../tour-mode";
 // "Einstellung fehlt" (config_missing) wird NUR gemeldet, wenn eine Funktion den Dienst
 // wirklich braucht, nie beim Start oder beim Laden einer Seite.
 
-export type RoutePurpose = "editor" | "package" | "reroute";
+// editor = Runden-Editor, spot = Spot-Wanderung im Admin, builder = eigene Runde (KI-Builder),
+// package = Offline-Paket, reroute = Umrouten in der Navigation.
+export type RoutePurpose = "editor" | "spot" | "builder" | "package" | "reroute";
 
-const TIMEOUT_MS: Record<RoutePurpose, number> = { editor: 20_000, package: 20_000, reroute: 8_000 };
+const TIMEOUT_MS: Record<RoutePurpose, number> = {
+  editor: 20_000,
+  spot: 20_000,
+  builder: 20_000,
+  package: 20_000,
+  reroute: 8_000,
+};
 
 export type RouteOutcome =
   | { ok: true; route: NormalizedRoute; ms: number }

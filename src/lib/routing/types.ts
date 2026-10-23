@@ -67,6 +67,12 @@ export type NormalizedRoute = {
   geometry: LngLat[];
   /** Je Punkt der Geometrie die Strecke ab Start (nicht gespeichert, aus geometry ableitbar). */
   alongM: number[];
+  /**
+   * Höhe je Punkt der Geometrie in Metern, aus den Wegdaten des Dienstes (BRouter: SRTM in
+   * den rd5-Dateien). null, wenn er keine nennt. Braucht das Höhenprofil der Spot-Wanderungen
+   * (routing/snap-spot.ts); in tour_nav_routes wird es nicht abgelegt.
+   */
+  elevationM: number[] | null;
   distanceM: number;
   /** Dauer laut Dienst; die Anzeige rechnet ihre eigene (docs/42, Abschnitt 4). */
   durationS: number | null;
