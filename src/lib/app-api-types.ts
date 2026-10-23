@@ -4,7 +4,7 @@
 // Die native App spiegelt diese Typen als Swift-Codable. Deshalb gilt: Änderungen nur
 // ADDITIV (neue optionale Felder, neue Fälle bei Unions, die die App tolerant liest).
 // Ein Umbenennen, Entfernen oder eine neue Bedeutung eines Feldes ist ein Bruch und heißt /v2.
-import type { ExploreCategory, ExploreData, SpotDetail } from "./spots";
+import type { ExploreCategory, ExploreData, LockedTeaser, SpotCardData, SpotDetail } from "./spots";
 import type { TourDetail, TourSummary } from "./tour-types";
 import type { SavedSpot } from "./saved";
 import type { WeatherDay } from "./weather";
@@ -48,7 +48,18 @@ export type AppBootstrap = {
 
 export type AppExplore = { lang: string; tier: AppTier } & ExploreData;
 
-export type AppSpot = { lang: string; tier: AppTier; spot: SpotDetail };
+export type AppSpot = {
+  lang: string;
+  tier: AppTier;
+  spot: SpotDetail;
+  /**
+   * "Geheimtipps in der Nähe": nur gesperrte Teaser (key + Blur-Vorschau, sonst nichts). Leer für
+   * Pro und für gesperrte Spots; sonst wie im Web (2 bis 3 Treffer im 20-km-Umkreis).
+   */
+  nearby?: LockedTeaser[];
+  /** "Ähnliche Spots": bis zu 8 Karten wie im Web, gesperrte als `locked-N`-Teaser. Leer bei gesperrtem Spot. */
+  similar?: SpotCardData[];
+};
 
 export type AppTours = { lang: string; tours: TourSummary[] };
 

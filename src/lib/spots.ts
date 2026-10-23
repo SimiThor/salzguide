@@ -516,7 +516,8 @@ export const getRelatedSpots = cache(async function getRelatedSpots(
   return loadRelatedSpots(slug, locale, canSeePro);
 });
 
-const loadRelatedSpots = (
+// Exportiert für die App-API (/api/app/v1), gleiche Regel wie loadSpotDetail: Betrachter-Prüfung draußen.
+export const loadRelatedSpots = (
   slug: string,
   locale: string,
   canSeePro: boolean,
@@ -662,11 +663,26 @@ export const getNearbyLockedSpots = cache(async function getNearbyLockedSpots(
   return loadNearbyLocked(slug);
 });
 
-const loadNearbyLocked = (slug: string): Promise<LockedTeaser[]> =>
+// Exportiert für die App-API. Nur die öffentliche Fassung; für Pro ist der Streifen leer
+// (die Route entscheidet das mit canSeePro, wie getNearbyLockedSpots oben).
+export const loadNearbyLocked = (slug: string): Promise<LockedTeaser[]> =>
   unstable_cache(() => queryNearbyLocked(slug), ["nearby-locked", slug], {
     tags: [SPOTS_TAG],
     revalidate: EXPLORE_REVALIDATE,
   })();
+
+/**
+ * Was oben als Geheimtipp in der Nähe steht, kommt unten nicht ein zweites Mal (Verglichen wird
+ * über die Vorschau-Adresse, denn gesperrte Karten tragen keinen echten Slug). Eine Quelle für
+ * die Spot-Seite und die App-API.
+ */
+export function dropRelatedShownAsNearby(
+  related: SpotCardData[],
+  nearby: LockedTeaser[],
+): SpotCardData[] {
+  const nearbyPreviews = new Set(nearby.map((n) => n.previewUrl).filter(Boolean));
+  return related.filter((s) => !(s.locked && s.previewUrl && nearbyPreviews.has(s.previewUrl)));
+}
 
 async function queryNearbyLocked(slug: string): Promise<LockedTeaser[]> {
   const supabase = createServiceClient();
