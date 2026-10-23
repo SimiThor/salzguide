@@ -11,67 +11,16 @@
 // Ausgabe ohne Titel und Slugs (öffentliches Repo): "Tour 1 (Rad, Pro)".
 import { BrouterProvider, BROUTER_PROFILE, parseBrouterGeojson } from "../src/lib/routing/brouter.ts";
 import { toNavSteps, type LngLat, type NormalizedRoute } from "../src/lib/routing/types.ts";
-import { routeCumulativeMeters, toLocalM } from "../src/lib/geo.ts";
+import { routeCumulativeMeters } from "../src/lib/geo.ts";
 import type { TourMode } from "../src/lib/tour-mode.ts";
 import { brouterBase, loadPublishedTours, tourTitle, type TourForRouting } from "./lib/routing-tours.ts";
+import { compareLines, NEAR_M } from "./lib/line-compare.ts";
 
 const CANDIDATES: Record<TourMode, string[]> = {
   bike: ["trekking", "fastbike", "safety"],
   walk: ["hiking-mountain", "shortest"],
 };
-const NEAR_M = 15;
-const SAMPLE_M = 5;
-
 const all = process.argv.includes("--profiles=all");
-
-// ── Abstand zweier Linien ─────────────────────────────────────────────────────────────
-function sample(line: LngLat[], stepM: number): LngLat[] {
-  const cum = routeCumulativeMeters(line);
-  const total = cum[cum.length - 1];
-  const out: LngLat[] = [];
-  let seg = 0;
-  for (let d = 0; d <= total; d += stepM) {
-    while (seg < line.length - 2 && cum[seg + 1] < d) seg++;
-    const len = cum[seg + 1] - cum[seg];
-    const f = len > 0 ? (d - cum[seg]) / len : 0;
-    out.push([line[seg][0] + (line[seg + 1][0] - line[seg][0]) * f, line[seg][1] + (line[seg + 1][1] - line[seg][1]) * f]);
-  }
-  return out;
-}
-
-function distToLine(p: [number, number], line: [number, number][]): number {
-  let best = Infinity;
-  for (let i = 0; i < line.length - 1; i++) {
-    const a = line[i];
-    const b = line[i + 1];
-    const dx = b[0] - a[0];
-    const dy = b[1] - a[1];
-    const len2 = dx * dx + dy * dy;
-    let t = len2 > 0 ? ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / len2 : 0;
-    t = Math.max(0, Math.min(1, t));
-    const d = Math.hypot(p[0] - (a[0] + t * dx), p[1] - (a[1] + t * dy));
-    if (d < best) best = d;
-  }
-  return best;
-}
-
-function compareLines(a: LngLat[], b: LngLat[]) {
-  const lat0 = a[0][1];
-  const la = a.map((p) => toLocalM(p, lat0));
-  const lb = b.map((p) => toLocalM(p, lat0));
-  const da = sample(a, SAMPLE_M).map((p) => distToLine(toLocalM(p, lat0), lb));
-  const db = sample(b, SAMPLE_M).map((p) => distToLine(toLocalM(p, lat0), la));
-  const mean = (xs: number[]) => xs.reduce((s, x) => s + x, 0) / xs.length;
-  const share = (xs: number[]) => xs.filter((x) => x <= NEAR_M).length / xs.length;
-  return {
-    hausdorffM: Math.max(...da, ...db),
-    meanM: (mean(da) + mean(db)) / 2,
-    nearAonB: share(da),
-    nearBonA: share(db),
-    // Wie viele Meter der neuen Linie liegen weiter als 15 m von der alten weg?
-    offM: da.filter((x) => x > NEAR_M).length * SAMPLE_M,
-  };
-}
 
 // ── Wegarten aus den Abschnittsmerkmalen (nur Auswertung, nichts davon wird gespeichert) ──
 type WayStats = Record<string, number>;
