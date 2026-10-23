@@ -1,6 +1,7 @@
 import { appError, appFailure, appGuard, appJson } from "@/lib/app-api";
 import type { AppSpot } from "@/lib/app-api-types";
 import { appCanSeePro } from "@/lib/app-auth";
+import { logOps } from "@/lib/ops";
 import {
   dropRelatedShownAsNearby,
   loadNearbyLocked,
@@ -25,12 +26,18 @@ export async function GET(req: Request, { params }: { params: Promise<{ slug: st
     if (!spot) return appError("not_found", 404);
 
     // Regale wie auf der Web-Seite (dieselben Funktionen, Entscheidung am App-Betrachter und
-    // außerhalb des Caches). Ein gesperrter Spot zeigt nur die Paywall, keine Regale.
+    // außerhalb des Caches). Ein gesperrter Spot zeigt nur die Paywall, keine Regale. Die Regale
+    // sind Beiwerk: Scheitern sie, kommt der Spot trotzdem, nur ohne sie (gemeldet).
+    const shelf = <T,>(p: Promise<T[]>): Promise<T[]> =>
+      p.catch(async (error: unknown) => {
+        await logOps("server_error", { error, path: new URL(req.url).pathname, group: "app-spot-shelves" });
+        return [];
+      });
     const [related, nearby] = spot.locked
       ? [[], []]
       : await Promise.all([
-          loadRelatedSpots(slug, ctx.lang, canSeePro),
-          canSeePro ? Promise.resolve([]) : loadNearbyLocked(slug),
+          shelf(loadRelatedSpots(slug, ctx.lang, canSeePro)),
+          canSeePro ? Promise.resolve([]) : shelf(loadNearbyLocked(slug)),
         ]);
     const body: AppSpot = {
       lang: ctx.lang,
