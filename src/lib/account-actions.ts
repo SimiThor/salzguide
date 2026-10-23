@@ -21,7 +21,7 @@ export async function exportMyData(): Promise<MyDataExport> {
   if (!user) return { ok: false, error: "auth" };
 
   // Alles über den Session-Client -> RLS liefert ausschließlich die eigenen Daten.
-  const [profileRes, spotsRes, eventsRes, convRes, buyRes] = await Promise.all([
+  const [profileRes, spotsRes, eventsRes, convRes, buyRes, appleRes] = await Promise.all([
     supabase
       .from("profiles")
       .select(
@@ -42,6 +42,13 @@ export async function exportMyData(): Promise<MyDataExport> {
       .from("pro_purchases")
       .select("paid_at, email, amount_minor, currency, stripe_session_id")
       .order("paid_at", { ascending: true }),
+    // Käufe aus der iOS-App (Migration 0075): ebenfalls nur die eigenen Zeilen über die
+    // RLS-Policy „apple_purchases_read_own". Fehlt die Tabelle noch, bleibt data null und der
+    // Export zeigt eine leere Liste, statt zu scheitern.
+    supabase
+      .from("apple_purchases")
+      .select("original_transaction_id, product_id, environment, purchased_at, revoked_at")
+      .order("purchased_at", { ascending: true }),
   ]);
 
   const spotRow = (r: { created_at: string; spots: unknown }) => {
@@ -67,6 +74,7 @@ export async function exportMyData(): Promise<MyDataExport> {
     savedEvents: (eventsRes.data ?? []).map(eventRow),
     aiConversations: convRes.data ?? [],
     purchases: buyRes.data ?? [],
+    applePurchases: appleRes.data ?? [],
   };
 
   return { ok: true, data };

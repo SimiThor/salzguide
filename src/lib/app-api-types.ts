@@ -113,3 +113,26 @@ export type AppSpotLive = {
   opening: AppOpening | null;
   waterTemp: AppWaterTemp | null;
 };
+
+/** Body von POST /purchases/apple: bis zu 50 signierte Transaktionen (JWS), je höchstens ca. 10 KB. */
+export type AppApplePurchaseRequest = { signedTransactions: string[] };
+
+/**
+ * Ergebnis je Transaktion, in der Reihenfolge der Anfrage (Eintrag i gehört zu Eingabe i).
+ * granted = verbucht (neu oder an dieses Konto gebunden); already = war schon dieses Kontos;
+ * foreign = gehört einem anderen, noch bestehenden Konto (nichts geändert); invalid = Signatur,
+ * Bundle-ID, Umgebung, Produkt oder Form falsch (originalTransactionId dann null); revoked =
+ * erstattet oder entzogen (kein Pro).
+ */
+export type AppApplePurchaseStatus = "granted" | "already" | "foreign" | "invalid" | "revoked";
+
+export type AppApplePurchaseResult = {
+  originalTransactionId: string | null;
+  status: AppApplePurchaseStatus;
+};
+
+/** Antwort von POST /purchases/apple. `canSeePro` wie GET /me (inkl. Admin). */
+export type AppApplePurchaseResponse = {
+  canSeePro: boolean;
+  results: AppApplePurchaseResult[];
+};

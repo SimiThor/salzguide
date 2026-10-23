@@ -356,8 +356,16 @@ export async function trackCheckoutStart(fields: {
 }
 
 // Conversion (Free -> Pro). Wird beim Stripe-Webhook scharf geschaltet (docs/34 §H).
+//
+// `device`: Der Kauf in der iOS-App (docs/41 Abschnitt 4.3/7) zählt mit device "other" (die
+// App-Kennung braucht ein eigenes Feld, `source` bleibt die Herkunft). Der Stripe-Kauf im Web
+// lässt es leer.
 export async function trackConversion(
-  fields: { locale?: string | null } = {},
+  fields: { locale?: string | null; device?: string | null } = {},
 ): Promise<void> {
-  await trackEvent({ type: "conversion", locale: fields.locale ?? null });
+  await trackEvent({
+    type: "conversion",
+    locale: fields.locale ?? null,
+    device: fields.device ?? null,
+  });
 }

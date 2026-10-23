@@ -83,6 +83,31 @@ export async function appRateLimit(req: Request): Promise<boolean> {
   }
 }
 
+/**
+ * Zusätzliche Grenze je KONTO für teure Routen (z. B. Apple-Kauf: bis zu 50 Signaturprüfungen
+ * je Anfrage). Die IP-Grenze oben ist großzügig und für Hotel-WLANs gebaut; ein einzelnes Konto
+ * hat kein Recht auf 300 Anfragen. Gleiche Regeln: Schlüssel gehasht, fällt offen aus.
+ */
+export async function appUserRateLimit(
+  userId: string,
+  bucket: string,
+  windowSeconds: number,
+  max: number,
+): Promise<boolean> {
+  try {
+    const salt = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "salzguide";
+    const hash = createHash("sha256").update(`${userId}:${salt}`).digest("hex").slice(0, 32);
+    const { data } = await createServiceClient().rpc("hit_rate_limit", {
+      p_subject: `app-user:${bucket}:${hash}`,
+      p_window_seconds: windowSeconds,
+      p_max: max,
+    });
+    return data !== false;
+  } catch {
+    return true;
+  }
+}
+
 export type AppContext = { lang: string; userId: string | null; token: string | null };
 
 /**
