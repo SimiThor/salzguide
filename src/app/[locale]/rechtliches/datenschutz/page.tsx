@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { setRequestLocale } from "next-intl/server";
-import { Link } from "@/i18n/navigation";
+import LegalLink from "@/components/LegalLink";
 import LegalShell from "@/components/LegalShell";
 import { LEGAL, legalAddress, legalMetadata } from "@/lib/legal";
 
@@ -84,7 +84,7 @@ export default async function DatenschutzPage({
         daraus nicht. Zur Verbesserung des Angebots speichern wir ausschließlich anonyme
         Auswertungen (z.&nbsp;B. Themen-Kategorien) ohne Bezug zu deiner Person, deinem Konto
         oder deiner IP. Wo überall KI mithilft, erklärt unsere Seite{" "}
-        <Link href="/ki">„Mit Liebe und KI gemacht“</Link>.
+        <LegalLink href="/ki">„Mit Liebe und KI gemacht“</LegalLink>.
       </p>
       <h3>e) Kauf von SalzGuide Pro</h3>
       {/* Muss beschreiben, was der Code WIRKLICH tut (Art. 13 DSGVO). Seit dem Gast-Kauf ist
@@ -353,6 +353,85 @@ export default async function DatenschutzPage({
         kommst.
       </p>
 
+      <h3>o) SalzGuide-App für iPhone</h3>
+      {/* Ergänzt am 23.10.2026 für die iOS-App (App-Store-Regel 5.1.1(i): die Erklärung muss
+          sagen, was die App verarbeitet). Muss beschreiben, was die App WIRKLICH tut:
+            Anmeldung    -> api/app/v1/auth/email-code, Apple/Google nativ, Sitzung im Schlüsselbund
+            Konto löschen -> DELETE api/app/v1/me (widerruft das Apple-Token)
+            Kauf          -> api/app/v1/purchases/apple + apple/notifications, Tabelle
+                             apple_purchases (Migration 0075, user_id "on delete set null")
+            Standort      -> nur "Beim Verwenden", kein Hintergrund (SalzNavLocation im App-Repo);
+                             Anfahrt zum Tourstart über POST api/app/v1/route (docs/42)
+            Karte         -> Mapbox Maps SDK; Telemetrie-Schalter SG_MAPBOX_TELEMETRY im App-Repo
+          Bewusst ein eigener Punkt und nicht in a) oder l) eingearbeitet: Die Web-Navigation in
+          l) wird getrennt gepflegt (docs/42), und die App kommt hier an EINER Stelle zusammen.
+          Wer an der App etwas davon ändert, ändert diesen Punkt mit und zieht LEGAL.updated in
+          lib/legal.ts nach. */}
+      <p>
+        Für unsere App auf dem iPhone gilt diese Erklärung ebenso, soweit die App dieselben
+        Funktionen bietet. Folgendes kommt in der App dazu oder läuft dort anders:
+      </p>
+      <ul>
+        <li>
+          <strong>Anmeldung:</strong> In der App meldest du dich mit einem Code an, den wir dir
+          per E-Mail schicken, mit „Mit Apple anmelden“ oder mit „Anmelden mit Google“. Wir
+          erhalten dabei dieselben Angaben wie unter Punkt a), die Anmeldung läuft auch hier über
+          Supabase. Damit du angemeldet bleibst, legt die App deine Sitzung im Schlüsselbund
+          deines iPhones ab.
+        </li>
+        <li>
+          <strong>Konto löschen:</strong> Dein Konto kannst du direkt in der App löschen, im
+          Profil unter „Konto löschen“. Es wird genauso gelöscht wie über die Website. Hast du
+          dich mit Apple angemeldet, heben wir dabei auch die Verbindung zu deiner Apple-ID auf.
+        </li>
+        <li>
+          <strong>Kauf von SalzGuide Pro in der App:</strong> In der App kaufst du Pro über den
+          App Store. Die Zahlung wickelt Apple ab, nach den Bestimmungen von Apple; Zahlungsdaten
+          erreichen uns nicht. Nach dem Kauf und wenn du „Käufe wiederherstellen“ wählst, schickt
+          uns die App die von Apple signierte Bestätigung des Kaufs. Daraus speichern wir die
+          Kennung des Kaufs, das Produkt, den Kaufzeitpunkt und ob es ein Testkauf war, verbunden
+          mit deinem Konto, damit Pro freigeschaltet ist, in der App und auf der Website. Erstattet
+          Apple einen Kauf, erfahren wir das von Apple und nehmen die Freischaltung zurück.
+          Rechtsgrundlage ist die Erfüllung des Vertrags (Art. 6 Abs. 1 lit. b DSGVO). Löschst du
+          dein Konto, bleibt der Kauf als Nachweis bestehen, ohne Verknüpfung zu einem Konto.
+        </li>
+        <li>
+          <strong>Standort:</strong> Die App nutzt deinen Standort nur, wenn du es ihr erlaubst,
+          und nur, während du sie verwendest, nie im Hintergrund. Um dich auf der Karte zu zeigen
+          und dich auf einer Tour von Stopp zu Stopp zu führen, wertet dein iPhone den Standort
+          selbst aus; an uns geht er dafür nicht. Lässt du dir den Weg zum Start einer Tour
+          zeigen, schickt die App deine Position an unseren Server, der daraus mit unserem
+          eigenen Routendienst den Weg berechnet (siehe Punkt l). Wir speichern sie dabei nicht.
+          Öffnest du einen Weg in Apple Karten, gelten dort die Bestimmungen von Apple. Die
+          Erlaubnis kannst du jederzeit in den Einstellungen deines iPhones entziehen.
+        </li>
+        <li>
+          <strong>Karte:</strong> Die Karte in der App kommt ebenfalls von Mapbox (Mapbox Maps
+          SDK, auf Basis von OpenStreetMap). Beim Laden der Karte wird deine IP-Adresse an Mapbox
+          übermittelt (Sitz in den USA, siehe Punkt 6). Das Kartenmodul von Mapbox kann
+          außerdem Nutzungs- und Diagnosedaten mit einer zufälligen, von Mapbox vergebenen
+          Kennung an Mapbox senden; hast du der App den Standort erlaubt, gehören dazu auch
+          Standortdaten. Mapbox nutzt diese Daten, um seine Karten und Dienste zu verbessern. Diese
+          Übermittlung ist in der App ausgeschaltet, solange du sie nicht selbst über das „i“ auf
+          der Karte einschaltest (Einwilligung). Du kannst sie dort jederzeit wieder ausschalten.
+          Wir erhalten diese Daten nicht und verknüpfen sie nicht mit deinem Konto.
+        </li>
+        <li>
+          <strong>Audio-Touren:</strong> Die Aufnahmen spielt die App direkt aus unserem Speicher
+          in der EU ab (Supabase, siehe Punkt 5).
+        </li>
+        <li>
+          <strong>Auf deinem iPhone:</strong> Neben der Sitzung speichert die App Einstellungen
+          und zwischengespeicherte Inhalte wie Bilder, damit sie schneller lädt. Das bleibt auf
+          deinem Gerät.
+        </li>
+        <li>
+          <strong>Kein Tracking:</strong> Die App enthält keine Werbung und kein Tracking, liest
+          die Werbe-ID deines iPhones nicht aus und gibt keine Daten an Werbenetzwerke weiter. Die
+          Reichweitenmessung aus Punkt h) läuft in der App nicht.
+        </li>
+      </ul>
+
       <h2>4. Rechtsgrundlagen</h2>
       <ul>
         <li>
@@ -398,7 +477,8 @@ export default async function DatenschutzPage({
           <strong>Google</strong> – „Anmelden mit Google“ sowie Öffnungszeiten (Google Places), Irland/USA.
         </li>
         <li>
-          <strong>Apple</strong> (Apple Distribution International Ltd.) – „Mit Apple anmelden“, Irland/USA.
+          <strong>Apple</strong> (Apple Distribution International Ltd.) – „Mit Apple anmelden“ sowie
+          Kauf in der iPhone-App über den App Store (siehe Punkt 3o), Irland/USA.
         </li>
         <li>
           <strong>Mapbox</strong> (mit OpenStreetMap) – Kartendarstellung und, bei der
@@ -464,7 +544,7 @@ export default async function DatenschutzPage({
       </ul>
       <p>
         Auskunft, Export und Löschung kannst du großteils selbst im Bereich{" "}
-        <Link href="/profil/daten">„Deine Daten &amp; Datenschutz“</Link> in deinem Profil
+        <LegalLink href="/profil/daten">„Deine Daten &amp; Datenschutz“</LegalLink> in deinem Profil
         ausführen. Es
         besteht kein automatisiertes Entscheidungsverfahren mit rechtlicher Wirkung; der
         KI-Assistent liefert ausschließlich unverbindliche Informationen.

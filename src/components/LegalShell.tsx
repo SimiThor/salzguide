@@ -1,5 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import BackButton from "@/components/BackButton";
+import { SiteOnly } from "@/components/LegalLink";
 
 // Einheitlicher Rahmen für alle Rechtstexte: iOS-2026-Typografie, Zurück-Knopf,
 // Stand-Datum, dezenter Deutsch-Hinweis auf /en und der Footer mit den Rechts-Links.
@@ -28,8 +29,14 @@ export default async function LegalShell({
 
           `fallbackHref="/explore"`, weil die App die Karte ist und nicht die
           Verkaufs-Startseite. Das greift nur beim Direktaufruf (geteilter Link, Fussnote in
-          einer Mail), wo es keine eigene Historie gibt. */}
-      <BackButton fallbackHref="/explore" label={t("backToApp")} />
+          einer Mail), wo es keine eigene Historie gibt.
+
+          SiteOnly: In der App-Ansicht für die iOS-App (/app/..., lib/routes.ts) fehlt er. Dort
+          schliesst die App ihr Safari-Fenster selbst, und der Rückweg auf die Karte wäre ein
+          Weg auf die Website samt Pro-Kauf. */}
+      <SiteOnly>
+        <BackButton fallbackHref="/explore" label={t("backToApp")} />
+      </SiteOnly>
 
       <h1 className="mt-4 text-[26px] font-bold leading-tight tracking-tight text-ink">
         {title}

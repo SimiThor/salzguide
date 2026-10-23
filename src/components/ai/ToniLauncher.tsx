@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useTranslations } from "next-intl";
 import { usePathname } from "@/i18n/navigation";
-import { isMarketingRoute, isImmersiveRoute } from "@/lib/routes";
+import { isAppEmbedRoute, isMarketingRoute, isImmersiveRoute } from "@/lib/routes";
 import ToniAvatar from "./ToniAvatar";
 
 // Schwebender KI-Guide-Launcher unten rechts (nur Desktop; mobil öffnet die
@@ -82,7 +82,14 @@ export default function ToniLauncher({
   // Immersive Screens (S-Bike-Navigation, lib/routes.ts): die Blase frässe dort den
   // Platz, den die Abbiege-Anzeige braucht, und ein Chat-Sprung weg von der laufenden
   // Navigation ist auf dem Fahrrad kein Zustand, in den man versehentlich geraten soll.
-  if (isOpen || pathname.startsWith("/admin") || isMarketingRoute(pathname) || isImmersiveRoute(pathname))
+  // App-Ansicht der iOS-App (lib/routes.ts): dort gibt es nur den Inhalt, keine Wege hinaus.
+  if (
+    isOpen ||
+    pathname.startsWith("/admin") ||
+    isMarketingRoute(pathname) ||
+    isImmersiveRoute(pathname) ||
+    isAppEmbedRoute(pathname)
+  )
     return null;
 
   const lines = t.raw("launcherBubbles") as string[];

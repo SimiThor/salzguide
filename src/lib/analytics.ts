@@ -188,6 +188,9 @@ export function classifyPath(
   if (p === "" || p === "/") return { kind: "landing", target: null };
   if (p.startsWith("/explore")) return { kind: "explore", target: null };
   if (p.startsWith("/admin")) return null; // Admin nicht tracken
+  // App-Ansicht der iOS-App (lib/routes.ts): AppChrome misst dort nicht, und auch ein
+  // fremder Aufruf wird nicht gezählt. Die Datenschutzerklärung sagt für die App "kein Tracking".
+  if (p === "/app" || p.startsWith("/app/")) return null;
   const spot = p.match(/^\/spot\/([a-z0-9-]+)\/?$/i);
   if (spot) return { kind: "spot", target: spot[1] };
   if (p.startsWith("/events")) return { kind: "events", target: null };

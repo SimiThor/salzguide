@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { setRequestLocale } from "next-intl/server";
-import { Link } from "@/i18n/navigation";
+import LegalLink from "@/components/LegalLink";
 import LegalShell from "@/components/LegalShell";
 import WithdrawalForm from "@/components/WithdrawalForm";
 import { LEGAL, legalAddress, legalMetadata } from "@/lib/legal";
@@ -105,7 +105,7 @@ export default async function WiderrufPage({
       <p>
         Das erhöhte Toni-Tageslimit ist eine unentgeltliche Zugabe und nicht Teil der
         bezahlten Leistung; darauf entfällt kein Preisanteil (Punkt 2 und 5 der{" "}
-        <Link href="/rechtliches/agb">AGB</Link>). Für ihn gibt es daher nichts zurückzuzahlen.
+        <LegalLink href="/rechtliches/agb">AGB</LegalLink>). Für ihn gibt es daher nichts zurückzuzahlen.
         Würde ein laufend erbrachter Teil dennoch als entgeltlich angesehen, bliebe dein Recht
         insoweit bis zur vollständigen Erbringung bestehen (§ 18 Abs. 1 Z 1 FAGG) und ein
         Wertersatz bemäße sich nach § 16 FAGG (siehe „Folgen des Widerrufs“).

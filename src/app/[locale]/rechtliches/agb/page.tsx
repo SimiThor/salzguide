@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { setRequestLocale } from "next-intl/server";
-import { Link } from "@/i18n/navigation";
+import LegalLink from "@/components/LegalLink";
 import LegalShell from "@/components/LegalShell";
 import { LEGAL, legalMetadata } from "@/lib/legal";
 
@@ -121,7 +121,7 @@ export default async function AgbPage({
         Als Verbraucher:in steht dir ein 14-tägiges Rücktrittsrecht zu, das auch Widerrufsrecht
         genannt wird; das FAGG spricht von Rücktritt, die europäische Richtlinie von Widerruf. Wir
         verwenden beide Wörter gleichbedeutend. Details, Fristen und das Muster-Formular findest du in
-        der <Link href="/rechtliches/widerruf">Widerrufsbelehrung</Link>; erklären kannst du den
+        der <LegalLink href="/rechtliches/widerruf">Widerrufsbelehrung</LegalLink>; erklären kannst du den
         Rücktritt jederzeit login-frei über das dortige Formular.
       </p>
       <p>
@@ -179,7 +179,7 @@ export default async function AgbPage({
       <p>
         SalzGuide Pro ist eine Einmalzahlung ohne laufende Verpflichtung. Dein kostenloses Konto
         kannst du jederzeit selbst im Bereich{" "}
-        <Link href="/profil/daten">„Deine Daten &amp; Datenschutz“</Link> löschen. Mit der
+        <LegalLink href="/profil/daten">„Deine Daten &amp; Datenschutz“</LegalLink> löschen. Mit der
         Kontolöschung
         endet auch der Zugang zu Pro-Inhalten.
       </p>
@@ -202,7 +202,7 @@ export default async function AgbPage({
       <h2>14. Datenschutz</h2>
       <p>
         Informationen zur Verarbeitung deiner personenbezogenen Daten findest du in unserer{" "}
-        <Link href="/rechtliches/datenschutz">Datenschutzerklärung</Link>.
+        <LegalLink href="/rechtliches/datenschutz">Datenschutzerklärung</LegalLink>.
       </p>
 
       <h2>15. Schlussbestimmungen</h2>

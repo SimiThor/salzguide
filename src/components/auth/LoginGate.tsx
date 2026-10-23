@@ -2,7 +2,8 @@
 
 import { createContext, useCallback, useContext, useState, type ReactNode } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { useRouter } from "@/i18n/navigation";
+import { usePathname, useRouter } from "@/i18n/navigation";
+import { isAppEmbedRoute } from "@/lib/routes";
 import BottomSheet from "@/components/BottomSheet";
 import { LoginHeader } from "@/components/auth/LoginPanel";
 import type { LoginReason } from "@/components/auth/loginReasons";
@@ -58,6 +59,7 @@ export function useLoginGate(): LoginGateValue {
 
 export default function LoginGateProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<{ reason: LoginReason; next?: string } | null>(null);
+  const pathname = usePathname();
 
   const show = useCallback((reason: LoginReason = "default", opts?: GateOptions) => {
     setState({ reason, next: opts?.next });
@@ -83,7 +85,11 @@ export default function LoginGateProvider({ children }: { children: ReactNode })
   return (
     <Ctx.Provider value={{ show, run }}>
       {children}
-      <LoginGateSheet state={state} onClose={() => setState(null)} />
+      {/* Nicht in der App-Ansicht für die iOS-App (lib/routes.ts): Das Sheet steht auch
+          geschlossen im HTML, und sein Knopf führt auf die Website. */}
+      {!isAppEmbedRoute(pathname) && (
+        <LoginGateSheet state={state} onClose={() => setState(null)} />
+      )}
     </Ctx.Provider>
   );
 }

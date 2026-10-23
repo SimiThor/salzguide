@@ -21,6 +21,8 @@ const PUBLIC_ROUTES: RegExp[] = [
   /^\/pro\/(aktivieren|rechnung)$/,
   /^\/profil\/daten$/,
   /^\/rechtliches\/(agb|datenschutz|impressum|widerruf)$/,
+  // App-Ansicht der Rechtstexte für die iOS-App (lib/routes.ts, isAppEmbedRoute)
+  /^\/app\/rechtliches\/(agb|datenschutz|impressum|widerruf)$/,
   /^\/spot\/[^/]+$/,
   /^\/touren\/meine\/[^/]+$/,
   /^\/touren\/meine\/[^/]+\/navigation$/, // Navigation einer gespeicherten eigenen Runde
