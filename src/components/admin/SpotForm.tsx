@@ -388,7 +388,14 @@ export default function SpotForm({
           // veraltete) Dauer fällt sofort auf, sobald man z.B. auf hin+zurück umstellt.
           const time = r.durationMin ? ` · ~${formatHikingDuration(r.durationMin)}` : "";
           const autoMsg = auto.length ? ` · ${auto.join(" & ")} übernommen` : "";
-          setSnapMsg({ ok: true, text: `Angepasst · ${km}${hm}${time}${autoMsg}` });
+          // Pflichtzeile (ODbL) und die Hinweise des Dienstes (Kontrollpunkt neben der Linie,
+          // Kehre), höchstens drei, damit die Zeile lesbar bleibt.
+          const osm = r.attribution ? ` · Route: ${r.attribution}` : "";
+          const hints = r.warnings ?? [];
+          const hintMsg = hints.length
+            ? ` · ${hints.slice(0, 3).join(" · ")}${hints.length > 3 ? ` · +${hints.length - 3} weitere` : ""}`
+            : "";
+          setSnapMsg({ ok: true, text: `Angepasst · ${km}${hm}${time}${autoMsg}${osm}${hintMsg}` });
         } else {
           setSnapMsg({ ok: false, text: r.error ?? "Fehler beim Anpassen" });
         }

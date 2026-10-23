@@ -10,8 +10,8 @@ import { loadStopAudio } from "./tours";
 import type { TourDetail, TourStopView } from "./tour-types";
 
 // Gespeicherte User-Runden (0028). Persistiert wird nur der SNAPSHOT (geordnete
-// Punkt-IDs + fertige Geh-Route + Meta) -> erneutes Ansehen kostet KEINE API (Claude/
-// Mapbox liefen nur einmal beim Bauen). Titel/Audio werden beim Ansehen frisch geladen,
+// Punkt-IDs + fertige Geh-Route + Meta) -> erneutes Ansehen kostet KEINE API (Claude und
+// der Routendienst liefen nur einmal beim Bauen). Titel/Audio werden beim Ansehen frisch geladen,
 // neu gegatet und signiert. Owner-Zugriff über RLS (Auth-Client); Struktur/Audio über
 // den Service-Client (wie bei kuratierten Touren).
 
@@ -296,8 +296,8 @@ export async function getUserTourDetail(
     canSeePro,
     routeGeo: (r.route_geo as [number, number][] | null) ?? null,
     start: startLat != null && startLng != null ? { lat: startLat, lng: startLng } : null,
-    // Das Ziel IST der Start: Der Builder plant ausschliesslich Rundwege (optimized-trips
-    // mit roundtrip=true, tour-generate.ts). Die Navigation braucht das Ziel ausdruecklich,
+    // Das Ziel IST der Start: Der Builder plant ausschliesslich Rundwege (ab Start und
+    // zurück, lib/routing/user-loop.ts). Die Navigation braucht das Ziel ausdruecklich,
     // sonst endet sie am letzten Halt statt wieder am Ausgangspunkt (docs/40, Rundtour);
     // die Karte der Uebersicht setzt bei Start = Ziel ohnehin keine zweite Fahne.
     end: startLat != null && startLng != null ? { lat: startLat, lng: startLng } : null,

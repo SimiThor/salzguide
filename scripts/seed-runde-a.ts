@@ -17,12 +17,13 @@ import { tourRouteHash } from "../src/lib/tour-route.ts";
 import { ensureVoiceFile } from "../src/lib/tts-files.ts";
 import { getDefaultVoice } from "../src/lib/tts-voices.ts";
 import { cleanRouteGeo } from "../src/lib/tour-route.ts";
+import { runChain } from "../src/lib/routing/run.ts";
+import { tourDurationMin } from "../src/lib/routing/chain.ts";
 
 const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPA_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const MAPBOX = process.env.MAPBOX_SERVER_TOKEN ?? process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 if (!SUPA_URL || !SUPA_KEY) throw new Error("Supabase-Zugang fehlt in .env.local");
-if (!MAPBOX) throw new Error("MAPBOX_SERVER_TOKEN fehlt in .env.local");
+if (!process.env.ROUTING_URL) throw new Error("ROUTING_URL fehlt in .env.local (Routendienst, docs/42)");
 const db = createClient(SUPA_URL, SUPA_KEY);
 
 const AREA_KEY = "salzburg-stadt-rad";
@@ -198,24 +199,21 @@ for (const [i, s] of SPOTS.entries()) {
   log(`  ${i + 1}. ${s.titel}  ${id}`);
 }
 
-// ── 3. Route über Mapbox, Radprofil ──────────────────────────────────────────
-// Dieselbe Kette und dieselbe Anfrageform wie Editor und Navigation: Start, alle Spots
-// als STILLE Wegpunkte (`waypoints=0;<letzter>`, braucht steps=true), Ziel. Die
-// Vorschau-Linie auf der Tour-Seite und die gefahrene Linie sind damit dieselbe. Bis
-// 15.09.2026 gingen die Spots hier als echte Zwischenhalte mit, entgegen diesem Kommentar.
-const kette = [HANUSCHPLATZ, ...SPOTS.map((s) => ({ lat: s.lat, lng: s.lng })), HANUSCHPLATZ];
-const coordStr = kette.map((c) => `${c.lng},${c.lat}`).join(";");
-const res = await fetch(
-  `https://api.mapbox.com/directions/v5/mapbox/cycling/${coordStr}` +
-    `?geometries=geojson&overview=full&steps=true&waypoints=0;${kette.length - 1}&access_token=${MAPBOX}`,
-);
-if (!res.ok) throw new Error(`Mapbox antwortet ${res.status}`);
-const j = await res.json();
-const route = Array.isArray(j.routes) ? j.routes[0] : null;
-const routeGeo = cleanRouteGeo(route?.geometry?.coordinates);
-if (!routeGeo) throw new Error("Mapbox hat keine Radroute geliefert");
-const distanceKm = Math.round((route.distance as number) / 100) / 10;
-const durationMin = Math.round((route.duration as number) / 60) + SPOTS.length; // 1 Min je Spot
+// ── 3. Route über unseren Routendienst (BRouter, Radprofil), docs/42 ─────────────────
+// Dieselbe Kette wie Editor, Offline-Paket und Navigation: Start, alle Spots als stille
+// Wegpunkte, Ziel. Die Vorschau-Linie auf der Tour-Seite und die gefahrene Linie sind damit
+// dieselbe. Bis 23.10.2026 kam die Linie von Mapbox Directions; deren Ergebnisse dürfen
+// nicht gespeichert werden (docs/42, Abschnitt 0).
+const kette: [number, number][] = [HANUSCHPLATZ, ...SPOTS, HANUSCHPLATZ].map((c) => [c.lng, c.lat]);
+const geroutet = await runChain({ points: kette, mode: "bike", purpose: "editor" });
+if (!geroutet.ok) throw new Error(`Routendienst: ${geroutet.code}${geroutet.message ? ` (${geroutet.message})` : ""}`);
+if (geroutet.route.source.provider === "local") throw new Error("Testadapter aktiv (ROUTING_URL fehlt): keine erfundene Linie speichern");
+const routeGeo = cleanRouteGeo(geroutet.route.geometry);
+if (!routeGeo) throw new Error("Der Routendienst hat keine Radroute geliefert");
+const distanceKm = Math.round(geroutet.route.distanceM / 100) / 10;
+// Dieselbe Formel wie der Editor: 12 km/h plus 1 Minute je Spot (docs/42, Abschnitt 4).
+const durationMin = tourDurationMin(geroutet.route.distanceM, "bike", SPOTS.length);
+for (const w of geroutet.route.warnings) log(`  Hinweis: ${w}`);
 log(`Route: ${routeGeo.length} Punkte, ${distanceKm} km, ${durationMin} min inkl. Hören`);
 
 // ── 4. Die Runde ─────────────────────────────────────────────────────────────

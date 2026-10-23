@@ -54,8 +54,8 @@ const NEAR_MIN = 0.6;
 const ASC_PCT = 0.3;
 const ASC_ABS = 50;
 /** Abstand der abgeleiteten Kontrollpunkte auf der gespeicherten Linie. */
-const KP_SPACING_M = 250;
-const KP_MIN = 4;
+const KP_SPACING_M = 150;
+const KP_MIN = 6;
 const KP_MAX = 40;
 
 /** Kontrollpunkte aus der gespeicherten Linie: Wendepunkt bleibt erhalten (hin&zurück = Hinweg verdoppelt). */
@@ -79,7 +79,7 @@ type Row = {
   /** Ergebnis aus den GESPEICHERTEN Kontrollpunkten (route_waypoints), so wie "Anpassen" im Admin heute. */
   storedKp: { n: number; km: number; near: number | null; error?: string } | null;
   old: { coords: LngLat[]; km: number; ascent: number | null; descent: number | null; min: number | null; minStated: string | null; minStatedNum: number | null };
-  neu: { coords: LngLat[]; km: number; ascent: number | null; descent: number | null; min: number; warnings: string[]; requests?: number } | null;
+  neu: { coords: LngLat[]; km: number; ascent: number | null; descent: number | null; min: number; warnings: string[]; requests?: number; ms?: number } | null;
   error?: string;
   cmp: LineComparison | null;
   flags: string[];
@@ -186,6 +186,7 @@ async function spots(): Promise<Row[]> {
           min: r.durationMin ?? 0,
           warnings: r.warnings ?? [],
           requests: Math.ceil((derived.points.length - 1) / 24),
+          ms: Date.now() - t0,
         };
         row.cmp = compareLines(r.coords, rg.coordinates);
         console.log(`  ${row.label.padEnd(26)} ${derived.shape.padEnd(10)} ${(Date.now() - t0).toString().padStart(5)} ms  alt ${oldKm.toFixed(2)} km  neu ${row.neu.km.toFixed(2)} km  Hausdorff ${Math.round(row.cmp.hausdorffM)} m  | aus gesp. KP: ${row.storedKp ? (row.storedKp.error ? "FEHLER" : row.storedKp.km.toFixed(2) + " km") : "-"}`);
@@ -387,6 +388,19 @@ function report(spotRows: Row[], userRows: Row[], pngs: string[]): string {
     }
     L.push(``);
   }
+  const slow = ok.filter((r) => (r.neu!.ms ?? 0) > 5000).sort((a, b) => (b.neu!.ms ?? 0) - (a.neu!.ms ?? 0));
+  const ascDiff = ok
+    .filter((r) => r.old.ascent != null && r.neu!.ascent != null)
+    .map((r) => ({ r, d: r.neu!.ascent! - r.old.ascent! }))
+    .sort((a, b) => Math.abs(b.d) - Math.abs(a.d))
+    .slice(0, 8);
+  L.push(`## Hinweise aus der Durchsicht`);
+  L.push(``);
+  L.push(`- **Linien:** Mit Kontrollpunkten alle ${KP_SPACING_M} m entlang der alten Linie liegt BRouter bei ${ok.filter((r) => r.cmp && r.cmp.hausdorffM <= 20).length} von ${ok.length} Spots innerhalb 20 m der alten Linie (Hausdorff). Die Linien sind damit praktisch dieselben Wege, nur auf OSM-Daten und ohne CC-BY-SA-Pflicht.`);
+  L.push(`- **Höhenmeter sind die eigentliche Änderung:** BRouter nimmt die Höhen aus seinen Wegdaten (SRTM, in den rd5-Kacheln geglättet), openrouteservice aus eigenen Höhendaten. Beide laufen durch dieselbe Glättung (ascentDescent, Zacken unter 3 m). Die neuen Anstiege liegen meist NIEDRIGER (Median ${sgn(Math.round(median(dAsc)))} m). Plausibilitätsprobe für Anton: Mönchsberg ab Altstadt (ca. 80 m je Richtung) alt ${spotRows.find((r) => r.label === "monchsberg")?.old.ascent ?? "?"} m, neu ${spotRows.find((r) => r.label === "monchsberg")?.neu?.ascent ?? "?"} m; Gollinger Wasserfall alt ${spotRows.find((r) => r.label === "gollinger-wasserfall")?.old.ascent ?? "?"} m, neu ${spotRows.find((r) => r.label === "gollinger-wasserfall")?.neu?.ascent ?? "?"} m. Grösste Unterschiede: ${ascDiff.map(({ r, d }) => `${r.label} ${sgn(d)} m (alt ${r.old.ascent}, neu ${r.neu!.ascent})`).join("; ")}. Die SAC-Gehzeit folgt den Höhenmetern; das Feld "Dauer" bleibt aber vom Admin gesetzt und wird nicht angetastet. Das Höhenprofil auf der Spot-Seite ändert sich sichtbar.`);
+  L.push(`- **Langsame Anfragen:** ${slow.length ? slow.map((r) => `${r.label} ${Math.round((r.neu!.ms ?? 0) / 1000)} s (${r.neu!.requests} Anfrage(n))`).join(", ") : "keine über 5 s"}. Der Server bricht nach 20 s ab (purpose "spot"); das Profil hiking-mountain braucht in alpinem Gelände für einzelne Teilstücke bis 28 s (gemessen: ein 500-m-Teilstück der Spinnerin 18 bis 28 s, mit \`shortest\` 0 s, gleiche Linie). Fällt ein Spot im Admin auf "Routendienst zu langsam", hilft ein Kontrollpunkt weniger in diesem Abschnitt, oder der Geo-Server ist schneller als dieser Mac.`);
+  L.push(`- **Hinweise des Dienstes** ("Punkt n liegt x m neben der berechneten Linie", "Kehre bei Punkt n") sind bei abgeleiteten Punkten erwartbar (sie liegen auf der alten Linie, nicht auf einem OSM-Knoten) und im Admin nach dem Neu-Rechnen sichtbar; sie ändern nichts an der Linie.`);
+  L.push(``);
   const worst = [...spotRows, ...userRows].filter((r) => r.neu).sort((a, b) => b.score - a.score).slice(0, SHOTS);
   L.push(`## Schlechteste Fälle (Screenshots: alt links rot, neu rechts blau)`);
   L.push(``);

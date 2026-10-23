@@ -1,5 +1,6 @@
-// Legt die importierten Wanderlinien auf echte Wanderwege (OpenRouteService foot-hiking)
-// und vergleicht das Ergebnis mit den Dauer-Angaben der alten Seite.
+// Legt die importierten Wanderlinien auf echte Wanderwege (unser Routendienst, BRouter mit
+// Profil hiking-mountain, docs/42; bis 23.10.2026 openrouteservice foot-hiking) und
+// vergleicht das Ergebnis mit den Dauer-Angaben der alten Seite.
 // Aufruf:
 //   npm run wp:routes                nur rechnen und berichten
 //   npm run wp:routes -- --limit 5   Stichprobe
@@ -11,8 +12,8 @@
 // WAS SNAPPING NICHT KANN, und das ist hier der wichtigere Teil: Es richtet eine Linie am
 // Weg aus. Es erfindet keine fehlende Strecke. Ein Teil der alten Linien ist nicht ungenau,
 // sondern ein STUMMEL: Die Seisenbergklamm hat 16 Punkte im Abstand von zehn Metern, die
-// ganze Linie passt in eine Box von 130 Metern, angegeben sind zwei Stunden. Da gibt ORS
-// wieder 160 Meter zurück. Solche Routen brauchen Handarbeit, kein API.
+// ganze Linie passt in eine Box von 130 Metern, angegeben sind zwei Stunden. Da gibt der
+// Dienst wieder 160 Meter zurück. Solche Routen brauchen Handarbeit, kein API.
 //
 // Das Ergebnis landet in .wp-cache/routes.json und im Report — es wird NICHTS geschrieben.
 // Was am Ende in die Datenbank geht, entscheidet der Import.
@@ -21,9 +22,9 @@ import { join } from "node:path";
 import { routeLengthKm, hikingTimeMinutes, isClosedRoute } from "../../src/lib/geo.ts";
 import type { WpSource } from "./parse.ts";
 import { ascentDescent, doubled, downsample } from "./route-math.ts";
+import { routeSpotLine } from "../../src/lib/routing/snap-spot.ts";
 
-const ORS_KEY = process.env.ORS_KEY;
-if (!ORS_KEY) throw new Error("ORS_KEY fehlt (.env.local)");
+if (!process.env.ROUTING_URL) throw new Error("ROUTING_URL fehlt (.env.local, Routendienst nach docs/42)");
 
 const CACHE_DIR = ".wp-cache";
 const SOURCE_DIR = join(CACHE_DIR, "source");
@@ -51,7 +52,7 @@ const TOO_LONG = 2.0;
  * entscheidet, ist die alte Dauer-Angabe — beide Varianten werden gerechnet und die
  * genommen, die besser dazu passt.
  *
- * Verdoppeln braucht KEINE zweite ORS-Anfrage: Der Rückweg ist der Hinweg rückwärts, also
+ * Verdoppeln braucht KEINE zweite Anfrage: Der Rückweg ist der Hinweg rückwärts, also
  * verdoppelt sich die Strecke, und Auf- und Abstieg tauschen die Plätze und addieren sich.
  * Das ist exakt, nicht geschätzt.
  */
@@ -99,7 +100,7 @@ export type RouteResult = {
   points: number;
   /** Länge der Linie, wie sie auf der alten Seite lag. */
   rawKm: number;
-  /** Länge nach dem Ausrichten an echten Wegen, oder null wenn ORS nichts fand. */
+  /** Länge nach dem Ausrichten an echten Wegen, oder null wenn der Dienst nichts fand. */
   snappedKm: number | null;
   ascent: number | null;
   descent: number | null;
@@ -110,7 +111,7 @@ export type RouteResult = {
   ratio: number | null;
   /** "loop" = geschlossen, "there-and-back" = verdoppelt, "one-way" = so gelassen. */
   shape: "loop" | "there-and-back" | "one-way" | null;
-  verdict: "stimmig" | "alte Angabe prüfen" | "Linie unvollständig" | "ORS fand nichts" | "kein Vergleich";
+  verdict: "stimmig" | "alte Angabe prüfen" | "Linie unvollständig" | "kein Weg gefunden" | "kein Vergleich";
   coords?: [number, number][];
   elevations?: number[];
   error?: string;
@@ -129,31 +130,22 @@ function parseStated(v: string | null): number | null {
   return min > 0 ? min : null;
 }
 
-// Wörtlich der Aufruf aus snapRoute (admin-actions.ts): foot-hiking mit Höhe. ORS nimmt
-// höchstens 50 Wegpunkte, deshalb wird die Linie vorher eingedampft; die Zwischenpunkte
-// liefert ORS ohnehin selbst, es soll ja dem Weg folgen und nicht meiner Linie.
+// Derselbe Kern wie snapRoute im Admin (lib/routing/snap-spot.ts): Profil hiking-mountain,
+// Höhe je Punkt aus den Wegdaten. Die Linie wird vorher auf 50 Punkte eingedampft; die
+// Zwischenpunkte liefert der Dienst ohnehin selbst, er soll dem Weg folgen und nicht meiner
+// Linie. Mehr als 25 Punkte je Anfrage schneidet der Kern selbst in Stücke.
 async function snap(waypoints: [number, number][]): Promise<{
   coords: [number, number][];
   elevations: number[] | null;
   distanceKm: number | null;
 } | null> {
-  const res = await fetch("https://api.openrouteservice.org/v2/directions/foot-hiking/geojson", {
-    method: "POST",
-    headers: { Authorization: ORS_KEY!, "Content-Type": "application/json" },
-    body: JSON.stringify({ coordinates: downsample(waypoints, 50), elevation: true }),
-    signal: AbortSignal.timeout(30_000),
-  });
-  if (!res.ok) throw new Error(`ORS ${res.status}: ${(await res.text()).slice(0, 120)}`);
-  const data = (await res.json()) as {
-    features?: { geometry?: { coordinates?: number[][] }; properties?: { summary?: { distance?: number } } }[];
-  };
-  const feat = data.features?.[0];
-  const raw = feat?.geometry?.coordinates;
-  if (!raw || raw.length < 2) return null;
-  const coords = raw.map((c) => [c[0], c[1]] as [number, number]);
-  const elevations = raw[0].length >= 3 ? raw.map((c) => c[2]) : null;
-  const dist = feat?.properties?.summary?.distance;
-  return { coords, elevations, distanceKm: typeof dist === "number" ? dist / 1000 : null };
+  const r = await routeSpotLine(downsample(waypoints, 50));
+  if (!r.ok) {
+    if (r.code === "no-route") return null;
+    throw new Error(`Routendienst: ${r.code}${r.message ? ` (${r.message})` : ""}`);
+  }
+  if (r.line.provider === "local") throw new Error("Testadapter aktiv (ROUTING_URL fehlt): keine erfundene Linie");
+  return { coords: r.line.geometry, elevations: r.line.elevationM, distanceKm: r.line.distanceM / 1000 };
 }
 
 async function main() {
@@ -179,8 +171,8 @@ async function main() {
       if (previous[src.slug]) results.push(previous[src.slug]);
       continue;
     }
-    // Schon gerechnet? Nicht nochmal: ORS hat ein Tageslimit, und ein Skript, das bei jedem
-    // Lauf 60 Anfragen verbrennt, ist nach einer Handvoll Läufen für den Tag erledigt.
+    // Schon gerechnet? Nicht nochmal: Ein Lauf, der von vorn anfängt, wirft die Handarbeit
+    // am Bericht weg (und der Geo-Server muss nicht 60 Routen am Stück rechnen).
     if (previous[src.slug] && !previous[src.slug].error) {
       results.push(previous[src.slug]);
       continue;
@@ -202,14 +194,14 @@ async function main() {
       statedMinutes: stated,
       ratio: null,
       shape: null,
-      verdict: "ORS fand nichts",
+      verdict: "kein Weg gefunden",
     };
 
     try {
       const snapped = await snap(coords);
       if (!snapped) {
         results.push(base);
-        console.log(`  ${src.slug.padEnd(34)} ORS fand keine Route`);
+        console.log(`  ${src.slug.padEnd(34)} kein Weg gefunden`);
       } else {
         const km = snapped.distanceKm ?? routeLengthKm(snapped.coords);
         const ad = snapped.elevations ? ascentDescent(snapped.elevations) : { ascent: 0, descent: 0 };
@@ -273,8 +265,6 @@ async function main() {
       console.log(`  ${src.slug.padEnd(34)} FEHLER ${msg.slice(0, 60)}`);
     }
 
-    // ORS lässt im Gratis-Tarif 40 Anfragen pro Minute zu.
-    await new Promise((r) => setTimeout(r, 1600));
     writeFileSync(OUT_FILE, JSON.stringify(results, null, 1));
   }
 
@@ -285,7 +275,7 @@ async function main() {
   console.log(`stimmig:              ${by("stimmig").length}`);
   console.log(`alte Angabe prüfen:   ${by("alte Angabe prüfen").length}`);
   console.log(`Linie unvollständig:  ${by("Linie unvollständig").length}  (Handarbeit, kein API hilft)`);
-  console.log(`ORS fand nichts:      ${by("ORS fand nichts").length}`);
+  console.log(`kein Weg gefunden:    ${by("kein Weg gefunden").length}`);
   console.log(`kein Vergleich:       ${by("kein Vergleich").length}`);
   console.log(`\n-> ${OUT_FILE}`);
 }
