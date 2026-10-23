@@ -5,8 +5,9 @@ import { DEFAULT_LOCALE, LOCALE_CODES } from "@/i18n/locales";
 import { clientIp } from "@/lib/analytics";
 import { logOps } from "@/lib/ops";
 import { createServiceClient } from "@/lib/supabase/service";
-import { appViewer } from "@/lib/app-auth";
-import type { AppErrorCode } from "@/lib/app-api-types";
+import { appActor, appViewer, createBearerClient } from "@/lib/app-auth";
+import type { User } from "@supabase/supabase-js";
+import type { AppErrorCode, AppMe } from "@/lib/app-api-types";
 
 // Gemeinsame Helfer der Routen unter /api/app/v1. Keine CORS-Header mit Absicht: Die native
 // App braucht keine, und Browser auf fremden Origins sollen die Antworten nicht lesen können.
@@ -15,11 +16,21 @@ import type { AppErrorCode } from "@/lib/app-api-types";
  * Erfolgsantwort. "private" darf die App kurz zwischenspeichern, "no-store" nie (Audio-URLs,
  * Profil). `Vary: Authorization`, weil dieselbe URL je nach Nutzer eine andere Fassung liefert.
  */
-export function appJson(body: unknown, cache: "private" | "no-store", status = 200): NextResponse {
+export function appJson(
+  body: unknown,
+  cache: "private" | "private-5min" | "no-store",
+  status = 200,
+): NextResponse {
+  const cacheControl =
+    cache === "private"
+      ? "private, max-age=60"
+      : cache === "private-5min"
+        ? "private, max-age=300"
+        : "private, no-store";
   return NextResponse.json(body, {
     status,
     headers: {
-      "Cache-Control": cache === "private" ? "private, max-age=60" : "private, no-store",
+      "Cache-Control": cacheControl,
       Vary: "Authorization",
     },
   });
@@ -92,6 +103,49 @@ export async function appGuard(req: Request): Promise<AppContext | NextResponse>
   return { lang, userId: viewer.userId, token: viewer.token };
 }
 
+export type AppActContext = AppContext & { userId: string; token: string; user: User };
+
+/**
+ * Vorspann jeder SCHREIBENDEN Route: wie appGuard (Limit, Sprache), aber der Betrachter wird
+ * zusätzlich beim Auth-Server bestätigt (appActor). Gast, anonyme Anmeldung, gelöschtes oder
+ * gesperrtes Konto = 401; Ausfall des Auth-Servers = 503.
+ */
+export async function appActGuard(req: Request): Promise<AppActContext | NextResponse> {
+  if (!(await appRateLimit(req))) return appError("rate_limit", 429);
+
+  const lang = appLang(req);
+  if (!lang) return appError("invalid", 400);
+
+  const actor = await appActor(req);
+  if (!actor.ok) {
+    return actor.reason === "auth" ? appError("auth", 401) : appError("unavailable", 503);
+  }
+  return { lang, userId: actor.userId, token: actor.token, user: actor.user };
+}
+
+/**
+ * JSON-Body einer schreibenden Route lesen: höchstens `maxBytes`, nur application/json, ein
+ * Objekt. null = ungültig (Route antwortet 400 invalid). Leerer Body zählt als `{}`.
+ */
+export async function appReadJson(
+  req: Request,
+  maxBytes = 4000,
+): Promise<Record<string, unknown> | null> {
+  const declared = Number(req.headers.get("content-length") ?? "0");
+  if (Number.isFinite(declared) && declared > maxBytes) return null;
+  const raw = await req.text();
+  if (raw.length > maxBytes) return null;
+  if (raw.trim() === "") return {};
+  const type = (req.headers.get("content-type") ?? "").split(";")[0].trim().toLowerCase();
+  if (type !== "application/json") return null;
+  try {
+    const v: unknown = JSON.parse(raw);
+    return v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Für den Catch jeder Route: melden (ohne Query, ohne Token) und neutral mit 503 antworten. */
 export async function appFailure(req: Request, error: unknown): Promise<NextResponse> {
   await logOps("server_error", {
@@ -100,4 +154,48 @@ export async function appFailure(req: Request, error: unknown): Promise<NextResp
     group: "app-api",
   });
   return appError("unavailable", 503);
+}
+
+/**
+ * Die eigene Profilzeile als AppMe (GET /me und Antwort von PATCH /me). Im Namen des Nutzers
+ * gelesen: RLS liefert nur die eigene Zeile. Die Spalten sind ausgewählt, nicht "*", damit nie
+ * Rolle oder Stripe-Felder in die Antwort geraten.
+ *
+ * null = Token oder Konto taugt nicht, die Route antwortet 401 (die App loggt aus). Alles
+ * andere ist ein Ausfall und WIRFT (Route: appFailure, 503).
+ */
+export async function appLoadMe(
+  userId: string,
+  token: string,
+  fallbackLang: string,
+): Promise<AppMe | null> {
+  const { data, error, status } = await createBearerClient(token)
+    .from("profiles")
+    .select("email, locale, newsletter_opt_in, is_pro, role")
+    .eq("id", userId)
+    .maybeSingle();
+  if (error) {
+    // PostgREST lehnt den JWT selbst ab (PGRST301/302/303, HTTP 401): Token taugt nicht, die
+    // App soll ausloggen. 403 gehört NICHT dazu: Das ist ein GRANT-/RLS-Fehler auf unserer
+    // Seite und muss als 503 mit Ops-Alarm sichtbar werden, statt still alle App-Nutzer
+    // auszuloggen.
+    if (
+      error.code === "PGRST301" ||
+      error.code === "PGRST302" ||
+      error.code === "PGRST303" ||
+      status === 401
+    ) {
+      return null;
+    }
+    throw error;
+  }
+  // Keine Zeile: Das Konto gibt es nicht mehr. Die App soll ausloggen.
+  if (!data) return null;
+  return {
+    userId,
+    email: (data.email as string | null) ?? null,
+    canSeePro: Boolean(data.is_pro) || data.role === "admin",
+    locale: (data.locale as string | null) ?? fallbackLang,
+    newsletter: Boolean(data.newsletter_opt_in),
+  };
 }

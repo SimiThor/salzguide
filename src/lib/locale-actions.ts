@@ -2,6 +2,7 @@
 
 import { createClient } from "./supabase/server";
 import { safeLocale } from "@/i18n/locales";
+import { applyProfileLocale } from "./account-core";
 
 /**
  * Die gewählte Sprache am Konto vermerken.
@@ -27,7 +28,7 @@ export async function rememberLocale(code: string): Promise<void> {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) return;
-    await supabase.from("profiles").update({ locale }).eq("id", user.id);
+    await applyProfileLocale(supabase, user.id, locale);
   } catch (e) {
     console.error("rememberLocale:", e instanceof Error ? e.message : e);
   }
