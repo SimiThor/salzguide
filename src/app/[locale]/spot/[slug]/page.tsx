@@ -3,7 +3,7 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
-import { getNearbyLockedSpots, getRelatedSpots, getSpotDetail } from "@/lib/spots";
+import { dropRelatedShownAsNearby, getNearbyLockedSpots, getRelatedSpots, getSpotDetail } from "@/lib/spots";
 import { getSavedSlugs } from "@/lib/saved";
 import { isLoggedIn } from "@/lib/viewer";
 import LockedMedia from "@/components/LockedMedia";
@@ -369,13 +369,9 @@ export default async function SpotPage({
     getRelatedSpots(spot.slug, locale),
     getNearbyLockedSpots(spot.slug),
   ]);
-  // Was oben als Geheimtipp in der Nähe steht, kommt unten nicht ein zweites Mal: Dasselbe
-  // verschwommene Motiv zweimal auf einer Seite sähe nach einem Fehler aus. Verglichen wird
-  // über die Vorschau-Adresse, denn gesperrte Karten tragen keinen echten Slug.
-  const nearbyPreviews = new Set(nearby.map((n) => n.previewUrl).filter(Boolean));
-  const relatedShown = related.filter(
-    (s) => !(s.locked && s.previewUrl && nearbyPreviews.has(s.previewUrl)),
-  );
+  // Was oben als Geheimtipp in der Nähe steht, kommt unten nicht ein zweites Mal
+  // (lib/spots.ts, dropRelatedShownAsNearby; dieselbe Regel nutzt die App-API).
+  const relatedShown = dropRelatedShownAsNearby(related, nearby);
 
   // Strukturierte Daten: der Spot als schema.org-Objekt + Brotkrumen-Pfad. spotLd()
   // liefert für gesperrte Pro-Spots null (kein Geheimtipp-Leak in die Metadaten).

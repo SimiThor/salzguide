@@ -389,6 +389,59 @@ async function runTier(
     }
   }
 
+  // b2. Regale "Geheimtipps in der Naehe" (nearby) und "Aehnliche Spots" (similar)
+  {
+    const sample = [
+      ...(truth.freeSpot ? [truth.freeSpot.slug] : []),
+      ...open.map((s) => s.slug as string).filter((s) => s !== truth.freeSpot?.slug).slice(0, 3),
+    ];
+    let withNearby = 0;
+    let withSimilar = 0;
+    let shelfBad = 0;
+    let webMismatch = 0;
+    let secretLeak = 0;
+    let proNotEmpty = 0;
+    for (const slug of sample) {
+      const a = await apiGet(`/spots/${slug}?${L}`, auth);
+      const w = await webGet(`/${LANG}/spot/${slug}`, cookie);
+      const nearby: Loose[] = a.json?.nearby ?? [];
+      const similar: Loose[] = a.json?.similar ?? [];
+      if (!Array.isArray(a.json?.nearby) || !Array.isArray(a.json?.similar)) shelfBad++;
+      if (nearby.length) withNearby++;
+      if (similar.length) withSimilar++;
+      // Nearby: nur key + previewUrl, nie etwas Echtes.
+      if (nearby.some((n) => Object.keys(n).sort().join() !== "key,previewUrl" || !/^nearby-\d$/.test(n.key))) secretLeak++;
+      // Locked-Teaser in similar: keine echten Felder.
+      for (const s of similar.filter((x) => x.locked)) {
+        if (!String(s.slug).startsWith("locked-") || s.emoji != null || s.imageUrl != null ||
+            s.shortDesc != null || s.imageAiOrigin != null) secretLeak++;
+      }
+      if (truth.proSpot && !expectPro && leaks(JSON.stringify({ nearby, similar }), truth.proSpot.title)) secretLeak++;
+      if (expectPro) {
+        if (nearby.length || similar.some((x) => x.locked)) proNotEmpty++;
+      } else {
+        // Web-Gleichheit: jede offene Karte steht im HTML, die Ueberschrift nur bei nearby (de).
+        if (similar.some((x) => !x.locked && !w.text.includes(x.slug))) webMismatch++;
+        if (LANG === "de" && w.status === 200 && w.text.includes("Geheimtipps in der Nähe</h2>") !== nearby.length > 0) webMismatch++;
+        const prevs = [...nearby, ...similar.filter((x) => x.locked)].map((x) => x.previewUrl).filter(Boolean);
+        if (w.status === 200 && prevs.some((u) => !w.text.includes(u) && !w.text.includes(encodeURIComponent(u)))) webMismatch++;
+      }
+    }
+    check(`${tierName}: Regale nearby/similar sind Arrays (${sample.length} Spots)`, shelfBad === 0, `${shelfBad} ohne`);
+    info(`${tierName}: ${withNearby} Spots mit nearby, ${withSimilar} mit similar`);
+    check(`${tierName}: similar ist gefuellt`, withSimilar > 0);
+    check(`${tierName}: Teaser enthalten keine echten Felder`, secretLeak === 0, `${secretLeak} Auffaelligkeiten`);
+    if (expectPro) check(`${tierName}: Pro sieht keine gesperrten Regal-Eintraege`, proNotEmpty === 0, `${proNotEmpty} Spots`);
+    else check(`${tierName}: Regale == Web-HTML (Karten, Ueberschrift, Vorschau)`, webMismatch === 0, `${webMismatch} Abweichungen`);
+    if (truth.proSpot) {
+      const a = await apiGet(`/spots/${truth.proSpot.slug}?${L}`, auth);
+      if (!expectPro) {
+        check(`${tierName}: gesperrter Spot liefert leere Regale`,
+          Array.isArray(a.json?.nearby) && a.json.nearby.length === 0 && Array.isArray(a.json?.similar) && a.json.similar.length === 0);
+      }
+    }
+  }
+
   // c. tours
   const aT = await apiGet(`/tours?${L}`, auth);
   const wT = await webGet(`/${LANG}/touren`, cookie);
