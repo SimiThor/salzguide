@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { setRequestLocale } from "next-intl/server";
-import { Link } from "@/i18n/navigation";
+import LegalLink from "@/components/LegalLink";
 import LegalShell from "@/components/LegalShell";
 import { LEGAL, legalAddress, legalMetadata } from "@/lib/legal";
 
@@ -84,7 +84,7 @@ export default async function DatenschutzPage({
         daraus nicht. Zur Verbesserung des Angebots speichern wir ausschließlich anonyme
         Auswertungen (z.&nbsp;B. Themen-Kategorien) ohne Bezug zu deiner Person, deinem Konto
         oder deiner IP. Wo überall KI mithilft, erklärt unsere Seite{" "}
-        <Link href="/ki">„Mit Liebe und KI gemacht“</Link>.
+        <LegalLink href="/ki">„Mit Liebe und KI gemacht“</LegalLink>.
       </p>
       <h3>e) Kauf von SalzGuide Pro</h3>
       {/* Muss beschreiben, was der Code WIRKLICH tut (Art. 13 DSGVO). Seit dem Gast-Kauf ist
@@ -464,7 +464,7 @@ export default async function DatenschutzPage({
       </ul>
       <p>
         Auskunft, Export und Löschung kannst du großteils selbst im Bereich{" "}
-        <Link href="/profil/daten">„Deine Daten &amp; Datenschutz“</Link> in deinem Profil
+        <LegalLink href="/profil/daten">„Deine Daten &amp; Datenschutz“</LegalLink> in deinem Profil
         ausführen. Es
         besteht kein automatisiertes Entscheidungsverfahren mit rechtlicher Wirkung; der
         KI-Assistent liefert ausschließlich unverbindliche Informationen.
