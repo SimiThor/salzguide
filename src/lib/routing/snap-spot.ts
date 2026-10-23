@@ -2,7 +2,7 @@ import "server-only";
 
 import { buildElevationProfile, type ElevationProfile } from "../elevation";
 import { haversineMeters, hikingTimeMinutes } from "../geo";
-import { runRoute } from "./run";
+import { runRoute, type RouteOutcome } from "./run";
 import { adminRoutingError } from "./snap-tour";
 import { MAX_ROUTE_POINTS, type LngLat, type RouteSource, type RoutingErrorCode } from "./types";
 
@@ -18,20 +18,37 @@ import { MAX_ROUTE_POINTS, type LngLat, type RouteSource, type RoutingErrorCode 
 // Zahl für alle); längere Spuren werden in Stücke geschnitten, die sich um einen Punkt
 // überlappen, und die Stücke hintereinandergehängt. Die Höhe je Punkt bringt der Dienst mit
 // (NormalizedRoute.elevationM); daraus entsteht das Profil wie bisher aus den ORS-Höhen.
+//
+// ZEIT UND RÜCKFALL (gemessen 23.10.2026, Spinnerin): Das Wanderprofil verbietet Pfade über
+// SAC T3 (`SAC_scale_limit 3`) mit Strafe 999. Liegt die Spur auf einem solchen Steig
+// (sac_scale=alpine_hiking), sucht BRouter nach einer billigeren Alternative, bis die
+// Strafe billiger ist als jeder Umweg: 500 m brauchten 9 bis 28 s, mit `trekking` 26 ms auf
+// demselben Pfad. Deshalb: (1) alle Stücke parallel, 25 s je Stück (purpose "spot", run.ts),
+// (2) ein Stück, das die Frist reisst oder "kein Weg" meldet, wird einmal mit
+// SPOT_FALLBACK_PROFILE gerechnet, und das steht als ERSTER Hinweis in der Antwort (Formular,
+// Prüfskripte, Rewrite-Skript). Nie eine stille Linie aus einem anderen Profil, nie eine
+// erfundene. Zwei Durchgänge zu je 25 s bleiben unter der maxDuration 60 der Spot-Seiten.
 
 /** Mehr Kontrollpunkte als das sind keine Spur mehr, sondern eine eingefügte Linie. */
 export const MAX_SPOT_WAYPOINTS = 200;
+/** Profil für ein Stück, das das Wanderprofil nicht schafft (siehe Kopf). Liegt auf dem Server (docs/42, Abschnitt 3). */
+export const SPOT_FALLBACK_PROFILE = "trekking";
+/** So viele Stücke gleichzeitig: Der Geo-Server ist geteilt (docs/42, Abschnitt 12). */
+const PARALLEL = 3;
 
 export type SpotLine = {
   geometry: LngLat[];
   /** Höhe je Punkt der Linie, null wenn der Dienst keine liefert. */
   elevationM: number[] | null;
   distanceM: number;
+  /** Rückfall-Hinweise zuerst, dann die des Dienstes (Punkt neben der Linie, Kehre). */
   warnings: string[];
   provider: RouteSource["provider"];
   attribution: string;
-  /** Anfragen an den Dienst (1, ausser die Spur war länger als MAX_ROUTE_POINTS). */
+  /** Anfragen an den Dienst (Stücke plus Rückfälle). */
   requests: number;
+  /** Profil je Stück, in Reihenfolge der Spur; "trekking" markiert einen Rückfall. */
+  profiles: string[];
 };
 
 export type SpotLineResult =
@@ -49,6 +66,20 @@ function labelOf(i: number, n: number): string {
   return i === 0 ? "Start" : i === n - 1 ? "Ziel" : `Punkt ${i + 1}`;
 }
 
+/** Höchstens `limit` gleichzeitig, Ergebnisse in Eingabereihenfolge. */
+async function mapLimit<T, R>(items: T[], limit: number, fn: (item: T, i: number) => Promise<R>): Promise<R[]> {
+  const out: R[] = new Array(items.length);
+  let next = 0;
+  const worker = async () => {
+    while (next < items.length) {
+      const i = next++;
+      out[i] = await fn(items[i], i);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+  return out;
+}
+
 export async function routeSpotLine(waypoints: LngLat[], compute: typeof runRoute = runRoute): Promise<SpotLineResult> {
   if (!Array.isArray(waypoints) || waypoints.length < 2)
     return { ok: false, code: "invalid", message: "Mindestens 2 Punkte nötig" };
@@ -59,19 +90,50 @@ export async function routeSpotLine(waypoints: LngLat[], compute: typeof runRout
       return { ok: false, code: "invalid", message: "Ungültige Koordinate." };
   }
 
+  const n = waypoints.length;
+  const pieces = chunkWaypoints(waypoints).map((points, i) => {
+    const from = i * (MAX_ROUTE_POINTS - 1);
+    return { points, from, to: from + points.length - 1, labels: points.map((_, k) => labelOf(from + k, n)) };
+  });
+
+  // Durchgang 1: Wanderprofil, alle Stücke parallel.
+  const results: RouteOutcome[] = await mapLimit(pieces, PARALLEL, (p) =>
+    compute({ points: p.points, mode: "walk", labels: p.labels, purpose: "spot" }),
+  );
+  // Durchgang 2: Rückfall je Stück, das die Frist riss oder keinen Weg fand.
+  const fallbackHints: string[] = [];
+  const retry = pieces.map((p, i) => ({ p, i })).filter(({ i }) => {
+    const r = results[i];
+    return !r.ok && (r.code === "timeout" || r.code === "no-route");
+  });
+  if (retry.length) {
+    const again = await mapLimit(retry, PARALLEL, ({ p }) =>
+      compute({ points: p.points, mode: "walk", labels: p.labels, purpose: "spot", profile: SPOT_FALLBACK_PROFILE }),
+    );
+    retry.forEach(({ p, i }, j) => {
+      const first = results[i];
+      results[i] = again[j];
+      if (again[j].ok)
+        fallbackHints.push(
+          `Abschnitt ${labelOf(p.from, n)} bis ${labelOf(p.to, n)}: Wanderprofil ${
+            !first.ok && first.code === "timeout" ? "zu langsam (alpiner Steig über T3?)" : "fand keinen Weg"
+          }, mit Profil ${SPOT_FALLBACK_PROFILE} gerechnet. Linie dort prüfen.`,
+        );
+    });
+  }
+  const failed = results.find((r) => !r.ok);
+  if (failed && !failed.ok) return { ok: false, code: failed.code, message: failed.message };
+
   const geometry: LngLat[] = [];
   const elevation: number[] = [];
   let hasElevation = true;
   let distanceM = 0;
   const warnings: string[] = [];
+  const profiles: string[] = [];
   let provider: RouteSource["provider"] = "brouter";
   let attribution = "";
-  let offset = 0;
-  const chunks = chunkWaypoints(waypoints);
-  for (const chunk of chunks) {
-    const labels = chunk.map((_, k) => labelOf(offset + k, waypoints.length));
-    const r = await compute({ points: chunk, mode: "walk", labels, purpose: "spot" });
-    if (!r.ok) return { ok: false, code: r.code, message: r.message };
+  for (const r of results) {
+    if (!r.ok) continue;
     const { route } = r;
     // Nahtstelle: Das Ende des einen Stücks ist der Anfang des nächsten (derselbe Punkt,
     // vom Dienst auf denselben Weg gelegt). Nicht doppelt aufnehmen.
@@ -85,9 +147,9 @@ export async function routeSpotLine(waypoints: LngLat[], compute: typeof runRout
     }
     distanceM += route.distanceM;
     warnings.push(...route.warnings);
+    profiles.push(route.source.profile);
     provider = route.source.provider;
     attribution = route.source.attribution;
-    offset += chunk.length - 1;
   }
   if (geometry.length < 2) return { ok: false, code: "no-route" };
   return {
@@ -96,10 +158,11 @@ export async function routeSpotLine(waypoints: LngLat[], compute: typeof runRout
       geometry,
       elevationM: hasElevation ? elevation : null,
       distanceM,
-      warnings,
+      warnings: [...fallbackHints, ...warnings],
       provider,
       attribution,
-      requests: chunks.length,
+      requests: pieces.length + retry.length,
+      profiles,
     },
   };
 }
@@ -111,7 +174,7 @@ export type SpotSnapResult = {
   distanceKm?: number;
   durationMin?: number;
   profile?: ElevationProfile | null;
-  /** Hinweise für den Admin ("Punkt 3 liegt 80 m neben der berechneten Linie."). */
+  /** Hinweise für den Admin, Rückfall auf ein anderes Profil zuerst ("Abschnitt Punkt 3 bis Punkt 7: ... mit Profil trekking gerechnet"). */
   warnings?: string[];
   /** Pflichthinweis für die Vorschau (ODbL): "© OpenStreetMap-Mitwirkende". */
   attribution?: string;

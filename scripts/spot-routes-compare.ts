@@ -1,7 +1,8 @@
 // BRouter gegen die gespeicherten Spot-Wanderlinien (openrouteservice) und die gespeicherten
 // eigenen Runden (Mapbox Optimization), BEVOR etwas davon ersetzt wird (docs/42, Abschnitt 16).
 //
-//   npm run spot-routes:compare -- --out=<ordner> [--shots=5] [--only=<slug>] [--no-user-tours]
+//   npm run spot-routes:compare -- --out=<ordner> [--shots=5] [--only=<slug>[,<slug>...]] [--no-user-tours]
+//                                   [--budget-ms=<n>]   Frist je Stück künstlich kürzen (zeigt den Rückfall)
 //
 // Braucht einen BRouter auf 127.0.0.1:17777 (oder ROUTING_URL_LOCAL, docs/42 Abschnitt 11)
 // und .env.local für den LESENDEN Zugriff. Geschrieben wird NUR in --out: report.md,
@@ -29,6 +30,7 @@ import { createClient } from "@supabase/supabase-js";
 import { hikingTimeMinutes, routeLengthKm } from "../src/lib/geo.ts";
 import { tourDurationMin } from "../src/lib/routing/chain.ts";
 import { snapSpotRouteCore } from "../src/lib/routing/snap-spot.ts";
+import { runRoute } from "../src/lib/routing/run.ts";
 import { routeUserLoop } from "../src/lib/routing/user-loop.ts";
 import type { LngLat } from "../src/lib/routing/types.ts";
 import type { ElevationProfile } from "../src/lib/elevation.ts";
@@ -39,6 +41,8 @@ const arg = (n: string, d: string | null = null) => process.argv.find((a) => a.s
 const OUT = arg("out");
 const SHOTS = Number(arg("shots", "5"));
 const ONLY = arg("only");
+const ONLY_SET = ONLY ? new Set(ONLY.split(",").map((x) => x.trim()).filter(Boolean)) : null;
+const BUDGET_MS = Number(arg("budget-ms", "0")) || 0;
 const USER_TOURS = !process.argv.includes("--no-user-tours");
 if (!OUT) {
   console.error("--out=<ordner> fehlt");
@@ -72,6 +76,21 @@ type Row = {
 };
 
 const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { persistSession: false } });
+
+// Mit --budget-ms: dieselbe runRoute, aber je Stück mit kurzer Frist, damit der Rückfall
+// (routing/snap-spot.ts) sichtbar wird, ohne 25 s zu warten. Ein Abbruch durch die Frist
+// zählt wie "zu langsam".
+const compute: typeof runRoute = BUDGET_MS
+  ? async (input) => {
+      const t0 = Date.now();
+      try {
+        return await runRoute({ ...input, signal: AbortSignal.timeout(BUDGET_MS) });
+      } catch {
+        return { ok: false, code: "timeout", ms: Date.now() - t0 };
+      }
+    }
+  : runRoute;
+const spotCore = (points: LngLat[]) => snapSpotRouteCore(points, compute);
 
 // "~1 Std", "1–2 Std", "2 h 30 min", "45 min" -> Minuten (bei einer Spanne die untere Grenze).
 function parseStated(v: string | null): number | null {
@@ -116,7 +135,7 @@ async function spots(): Promise<Row[]> {
     .eq("status", "published")
     .not("route_geojson", "is", null)
     .order("slug");
-  if (ONLY) q = q.eq("slug", ONLY);
+  if (ONLY_SET) q = q.in("slug", [...ONLY_SET]);
   const { data, error } = await q;
   if (error) throw new Error(`Supabase: ${error.message}`);
   const rows: Row[] = [];
@@ -151,7 +170,7 @@ async function spots(): Promise<Row[]> {
     };
     // (a) aus den gespeicherten Kontrollpunkten, wie "Anpassen" im Admin heute
     if (waypoints.length >= 2) {
-      const a = await snapSpotRouteCore(waypoints);
+      const a = await spotCore(waypoints);
       row.storedKp = a.ok && a.coords
         ? { n: waypoints.length, km: a.distanceKm ?? routeLengthKm(a.coords), near: Math.min(...(({ nearAonB, nearBonA }) => [nearAonB, nearBonA])(compareLines(a.coords, rg.coordinates))) }
         : { n: waypoints.length, km: 0, near: null, error: a.error };
@@ -159,7 +178,7 @@ async function spots(): Promise<Row[]> {
     // (b) aus Kontrollpunkten entlang der gespeicherten Linie (Vorschlag für das Neu-Rechnen)
     {
       const t0 = Date.now();
-      const r = await snapSpotRouteCore(derived.points);
+      const r = await spotCore(derived.points);
       if (!r.ok || !r.coords) row.error = r.error ?? "?";
       else {
         row.neu = {
@@ -383,7 +402,9 @@ function report(spotRows: Row[], userRows: Row[], pngs: string[]): string {
   L.push(``);
   L.push(`- **Linien:** Mit Kontrollpunkten alle ${KP_SPACING_M} m entlang der alten Linie liegt BRouter bei ${ok.filter((r) => r.cmp && r.cmp.hausdorffM <= 20).length} von ${ok.length} Spots innerhalb 20 m der alten Linie (Hausdorff). Die Linien sind damit praktisch dieselben Wege, nur auf OSM-Daten und ohne CC-BY-SA-Pflicht.`);
   L.push(`- **Höhenmeter sind die eigentliche Änderung:** BRouter nimmt die Höhen aus seinen Wegdaten (SRTM, in den rd5-Kacheln geglättet), openrouteservice aus eigenen Höhendaten. Beide laufen durch dieselbe Glättung (ascentDescent, Zacken unter 3 m). Die neuen Anstiege liegen meist NIEDRIGER (Median ${sgn(Math.round(median(dAsc)))} m). Plausibilitätsprobe für Anton: Mönchsberg ab Altstadt (ca. 80 m je Richtung) alt ${spotRows.find((r) => r.label === "monchsberg")?.old.ascent ?? "?"} m, neu ${spotRows.find((r) => r.label === "monchsberg")?.neu?.ascent ?? "?"} m; Gollinger Wasserfall alt ${spotRows.find((r) => r.label === "gollinger-wasserfall")?.old.ascent ?? "?"} m, neu ${spotRows.find((r) => r.label === "gollinger-wasserfall")?.neu?.ascent ?? "?"} m. Grösste Unterschiede: ${ascDiff.map(({ r, d }) => `${r.label} ${sgn(d)} m (alt ${r.old.ascent}, neu ${r.neu!.ascent})`).join("; ")}. Die SAC-Gehzeit folgt den Höhenmetern; das Feld "Dauer" bleibt aber vom Admin gesetzt und wird nicht angetastet. Das Höhenprofil auf der Spot-Seite ändert sich sichtbar.`);
-  L.push(`- **Langsame Anfragen:** ${slow.length ? slow.map((r) => `${r.label} ${Math.round((r.neu!.ms ?? 0) / 1000)} s (${r.neu!.requests} Anfrage(n))`).join(", ") : "keine über 5 s"}. Der Server bricht nach 20 s ab (purpose "spot"); das Profil hiking-mountain braucht in alpinem Gelände für einzelne Teilstücke bis 28 s (gemessen: ein 500-m-Teilstück der Spinnerin 18 bis 28 s, mit \`shortest\` 0 s, gleiche Linie). Fällt ein Spot im Admin auf "Routendienst zu langsam", hilft ein Kontrollpunkt weniger in diesem Abschnitt, oder der Geo-Server ist schneller als dieser Mac.`);
+  L.push(`- **Langsame Anfragen:** ${slow.length ? slow.map((r) => `${r.label} ${Math.round((r.neu!.ms ?? 0) / 1000)} s (${r.neu!.requests} Anfrage(n))`).join(", ") : "keine über 5 s"}. Stücke laufen parallel mit 25 s Frist je Stück (purpose "spot"); ein Stück, das die Frist reisst, wird einmal mit trekking gerechnet und als Hinweis gemeldet (docs/42 Abschnitt 16). Ursache der Langsamkeit: Das Wanderprofil verbietet Pfade über SAC T3 mit Strafe 999 (sac_scale=alpine_hiking), BRouter sucht dann riesig nach einer Alternative; ein 500-m-Teilstück der Spinnerin brauchte 4 bis 28 s, mit \`trekking\` 26 ms auf demselben Pfad.`);
+  const fell = ok.filter((r) => r.neu!.warnings.some((w) => /mit Profil trekking/.test(w)));
+  L.push(`- **Rückfall auf trekking** (Wanderprofil zu langsam oder kein Weg, docs/42 Abschnitt 16): ${fell.length ? fell.map((r) => `${r.label} (${r.neu!.warnings.filter((w) => /trekking/.test(w)).join("; ")})`).join("; ") : "bei keinem Spot"}${BUDGET_MS ? ` (Frist je Stück künstlich ${BUDGET_MS} ms)` : ""}.`);
   L.push(`- **Hinweise des Dienstes** ("Punkt n liegt x m neben der berechneten Linie", "Kehre bei Punkt n") sind bei abgeleiteten Punkten erwartbar (sie liegen auf der alten Linie, nicht auf einem OSM-Knoten) und im Admin nach dem Neu-Rechnen sichtbar; sie ändern nichts an der Linie.`);
   L.push(``);
   const worst = [...spotRows, ...userRows].filter((r) => r.neu).sort((a, b) => b.score - a.score).slice(0, SHOTS);

@@ -23,7 +23,7 @@ function modifierFor(angle: number): RawManeuver["modifier"] {
 export class LocalRoutingProvider implements RoutingProvider {
   readonly name = "local" as const;
 
-  async route({ points, mode, labels }: RouteRequest): Promise<NormalizedRoute> {
+  async route({ points, mode, labels, profile }: RouteRequest): Promise<NormalizedRoute> {
     assertRoutable(points);
     const raw: LngLat[] = [points[0]];
     const corners: number[] = [];
@@ -46,7 +46,7 @@ export class LocalRoutingProvider implements RoutingProvider {
       ascentM: null,
       source: {
         provider: "local",
-        profile: mode,
+        profile: profile ?? mode,
         engine: null,
         data: "Testadapter",
         attribution: "Testadapter ohne echte Wegdaten",

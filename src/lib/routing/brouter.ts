@@ -291,9 +291,9 @@ export class BrouterProvider implements RoutingProvider {
     this.opts = opts;
   }
 
-  async route({ points, mode, labels, signal }: RouteRequest): Promise<NormalizedRoute> {
+  async route({ points, mode, labels, signal, profile: wanted }: RouteRequest): Promise<NormalizedRoute> {
     assertRoutable(points);
-    const profile = this.opts.profileFor?.(mode) ?? BROUTER_PROFILE[mode];
+    const profile = wanted ?? this.opts.profileFor?.(mode) ?? BROUTER_PROFILE[mode];
 
     // Die Adresse kann einen Pfad tragen (".../routing"), deshalb anhängen statt ersetzen.
     const url = new URL(`${this.baseUrl.replace(/\/+$/, "")}/brouter`);

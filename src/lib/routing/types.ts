@@ -93,6 +93,12 @@ export type RouteRequest = {
   mode: TourMode;
   /** Optional ein Name je Punkt ("Stopp 3", "Start") für die Hinweise an den Admin. */
   labels?: string[];
+  /**
+   * Profil beim Dienst statt des Profils nach `mode`. Nur für den Rückfall der Spot-Spur
+   * (routing/snap-spot.ts: ein Stück, das das Wanderprofil nicht in der Frist schafft, mit
+   * `trekking`). Runden, Paket und Navigation setzen es nie.
+   */
+  profile?: string;
   signal?: AbortSignal;
 };
 

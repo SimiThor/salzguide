@@ -240,8 +240,10 @@ der Radrunde werden später angeboten als mit Mapbox (nach 115 m statt sofort am
 | `no-route` | BRouter 400 (kein Weg, Punkt ausserhalb der Wegdaten) | "kein Weg zwischen diesen Punkten" | `no-route` |
 | `invalid` | Grenzen unten | Satz aus der Prüfung | `no-route` |
 
-- Fristen: Server zu BRouter 20 s (Editor, Speichern), 8 s beim Umrouten; Client wie heute
-  15 s (`FETCH_TIMEOUT_MS`). Abbruch durch den Aufrufer (AbortSignal) wird nicht umgedeutet.
+- Fristen: Server zu BRouter 20 s (Editor, Speichern), 8 s beim Umrouten, 25 s je Stück der
+  Spot-Spur (die Stücke laufen parallel, dazu ein Rückfall-Durchgang, Abschnitt 16); Client
+  wie heute 15 s (`FETCH_TIMEOUT_MS`). Abbruch durch den Aufrufer (AbortSignal) wird nicht
+  umgedeutet.
 - Grenzen: 2 bis 25 Punkte (`MAX_ROUTE_POINTS` = `MAX_DIRECTIONS_COORDS`, eine Zahl für
   alle), höchstens 30 km Luftlinie zwischen zwei Punkten, Antwort höchstens 8 MB,
   Linie höchstens 10 000 Punkte. Wegdaten auf dem Server: sechs 5-Grad-Kacheln, 5 bis 20 Grad
@@ -545,9 +547,23 @@ Branch `feat/spot-routes-brouter` (auf #316). Ein System: derselbe Adapter, dass
 - **Höhenmeter:** BRouter (SRTM in den rd5-Kacheln) liegt meist unter openrouteservice,
   Median -23 m: Mönchsberg 182 -> 72 m, Gollinger Wasserfall 194 -> 76 m, Falkensteinwand
   533 -> 205 m. Das Profil auf der Spot-Seite ändert sich sichtbar; das Feld "Dauer" nicht.
-- **Langsam:** `hiking-mountain` braucht im alpinen Gelände für einzelne Teilstücke 18 bis
-  28 s (Spinnerin, 500 m; mit `shortest` 0 s bei gleicher Linie). Frist 20 s je Stück: Fällt
-  ein Spot im Admin auf "zu langsam", einen Kontrollpunkt in dem Abschnitt verschieben.
+- **Langsam, Ursache und Abhilfe:** `hiking-mountain` verbietet Pfade über SAC T3
+  (`SAC_scale_limit 3`) mit `SAC_access_penalty 999`: Liegt die Spur auf einem Steig mit
+  `sac_scale=alpine_hiking` (Spinnerin, 355 m, cost/km 1 000 000), sucht BRouter nach jeder
+  billigeren Alternative, bis die Strafe billiger ist als der Umweg. Gemessen: dieses 500-m-
+  Teilstück 4 bis 28 s, `trekking` 26 ms und `shortest` 11 ms auf DEMSELBEN Pfad. Abhilfe in
+  `routing/snap-spot.ts` (23.10.2026): alle Stücke parallel (höchstens 3 gleichzeitig), 25 s
+  je Stück (purpose `spot`), und ein Stück, das die Frist reisst oder "kein Weg" meldet, wird
+  einmal mit `trekking` gerechnet; das steht als ERSTER Hinweis in der Antwort ("Abschnitt
+  Punkt 25 bis Ziel: Wanderprofil zu langsam (alpiner Steig über T3?), mit Profil trekking
+  gerechnet. Linie dort prüfen."), im Formular, im Vergleich und im Rewrite-Skript. Scheitert
+  auch trekking, gibt es den Fehler und keine Linie. Zwei Durchgänge zu 25 s bleiben unter der
+  maxDuration 60. Gemessen (lokal, dieselben Spots): Spinnerin 10,0 s -> 4,2 s, Tristkogel
+  3,7 s -> 1,3 s, Almwelt Lofer 0,6 s -> 0,14 s; mit künstlicher Frist 3 s greift der
+  Rückfall (`spot-routes:compare -- --only=spinnerin --budget-ms=3000`): Linie identisch
+  (6,90 km, Hausdorff 8 m), Hinweis gesetzt, 3,0 s. Echte Abhilfe am Server (Antons
+  Entscheidung, Kraxelbande-Infra): ein SalzGuide-Profil mit `SAC_scale_limit 4`, dann
+  rechnet das Wanderprofil solche Steige in Millisekunden ohne Rückfall.
 - **Eigene Runden:** Linien 3 bis 4 % länger (hiking-mountain meidet Hauptstrassen), Dauer
   nach Formel 6 bis 7 min mehr (4,5 km/h statt Mapbox-Gehzeit), Hausdorff 165 bis 190 m.
 - **Intro-Videos:** `introSourceHash` (lib/intro-hash.ts) hängt an `route_geojson`. Jede neu

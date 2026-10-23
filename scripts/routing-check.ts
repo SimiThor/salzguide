@@ -24,7 +24,9 @@ import { OSM_ATTRIBUTION, MAX_ROUTE_POINTS, RoutingError, toNavSteps } from "../
 import { getRoutingProvider } from "../src/lib/routing/index.ts";
 import { BROUTER_PROFILE, BrouterProvider, maneuverFromHint, parseBrouterGeojson } from "../src/lib/routing/brouter.ts";
 import { loopLengthM, orderLoop } from "../src/lib/routing/order.ts";
-import { chunkWaypoints, routeSpotLine, snapSpotRouteCore } from "../src/lib/routing/snap-spot.ts";
+import { chunkWaypoints, routeSpotLine, snapSpotRouteCore, SPOT_FALLBACK_PROFILE } from "../src/lib/routing/snap-spot.ts";
+import { LocalRoutingProvider } from "../src/lib/routing/local.ts";
+import type { runRoute } from "../src/lib/routing/run.ts";
 import { planUserLoop, routeUserLoop } from "../src/lib/routing/user-loop.ts";
 import { haversineMeters, hikingTimeMinutes, routeCumulativeMeters } from "../src/lib/geo.ts";
 import type { LngLat } from "../src/lib/routing/types.ts";
@@ -326,6 +328,66 @@ async function partOffline(): Promise<void> {
     check("ohne dritte Koordinate: elevationM null", r2.elevationM === null);
     const rGap = parseBrouterGeojson(geo([[13.04, 47.8, 420], [13.041, 47.8], [13.042, 47.8, 423]]), [[13.04, 47.8], [13.042, 47.8]], "hiking-mountain");
     check("Lücke in den Höhen: elevationM null (kein Profil mit Löchern)", rGap.elevationM === null);
+  }
+
+  head("3c. Spot-Spur: Stücke parallel, Rückfall je Stück (Attrappe statt Dienst)");
+  {
+    const local = new LocalRoutingProvider();
+    const line = (n: number): LngLat[] => Array.from({ length: n }, (_, i) => [13.04 + i * 0.0005, 47.8 + (i % 2) * 0.0002]);
+    type Compute = typeof runRoute;
+    const okWith = async (points: LngLat[], profile?: string, ms = 0) => {
+      await new Promise((r) => setTimeout(r, ms));
+      return { ok: true as const, route: await local.route({ points, mode: "walk", profile }), ms };
+    };
+    // Rückfall: Wanderprofil reisst die Frist, trekking liefert.
+    const calls: string[] = [];
+    const flaky: Compute = async (input) => {
+      calls.push(input.profile ?? "walk");
+      if (!input.profile) return { ok: false, code: "timeout", ms: 25000 };
+      return okWith(input.points, input.profile);
+    };
+    const r1 = await routeSpotLine(line(10), flaky);
+    check("Frist gerissen: zweiter Durchgang mit trekking, Linie da", r1.ok && r1.line.profiles.join() === SPOT_FALLBACK_PROFILE && calls.join() === `walk,${SPOT_FALLBACK_PROFILE}`, calls.join());
+    check("Rückfall steht als ERSTER Hinweis, nennt Abschnitt und Profil", r1.ok && /^Abschnitt Start bis Ziel: Wanderprofil zu langsam.*mit Profil trekking gerechnet/.test(r1.line.warnings[0] ?? ""), r1.ok ? r1.line.warnings.join(" | ") : r1.code);
+    check("requests zählt Stück plus Rückfall", r1.ok && r1.line.requests === 2);
+    const core1 = await (async () => {
+      process.env.ROUTING_ALLOW_TEST_ADAPTER = "1";
+      const r = await snapSpotRouteCore(line(10), flaky);
+      delete process.env.ROUTING_ALLOW_TEST_ADAPTER;
+      return r;
+    })();
+    check("Admin-Rückgabe trägt den Rückfall-Hinweis zuerst", core1.ok && /trekking/.test(core1.warnings?.[0] ?? ""));
+    // "kein Weg" löst denselben Rückfall aus, mit eigenem Wortlaut.
+    const noway: Compute = async (input) => (!input.profile ? { ok: false, code: "no-route", ms: 10 } : okWith(input.points, input.profile));
+    const r2 = await routeSpotLine(line(5), noway);
+    check("'kein Weg' im Wanderprofil: Rückfall mit Wortlaut 'fand keinen Weg'", r2.ok && /fand keinen Weg, mit Profil trekking/.test(r2.line.warnings[0] ?? ""));
+    // Beide Durchgänge scheitern: Fehler, keine Linie.
+    const dead: Compute = async () => ({ ok: false, code: "timeout", ms: 25000 });
+    const r3 = await routeSpotLine(line(5), dead);
+    check("auch trekking reisst die Frist: Fehler timeout, keine Linie", !r3.ok && r3.code === "timeout");
+    const core3 = await snapSpotRouteCore(line(5), dead);
+    check("Admin liest dann 'nicht erreichbar' (keine erfundene Linie)", !core3.ok && /nicht erreichbar/.test(core3.error ?? ""));
+    // Andere Fehler (auth, invalid) lösen keinen Rückfall aus.
+    const authCalls: string[] = [];
+    const auth: Compute = async (input) => (authCalls.push(input.profile ?? "walk"), { ok: false, code: "auth", ms: 5 });
+    const r4 = await routeSpotLine(line(5), auth);
+    check("auth-Fehler: kein Rückfall, Fehler durchgereicht", !r4.ok && r4.code === "auth" && authCalls.length === 1);
+    // Parallel: drei Stücke, das erste antwortet zuletzt; Reihenfolge und Naht bleiben.
+    const order: number[] = [];
+    let seq = 0;
+    const slowFirst: Compute = async (input) => {
+      const k = seq++;
+      const r = await okWith(input.points, undefined, k === 0 ? 120 : 10);
+      order.push(k);
+      return r;
+    };
+    const pts50 = line(50);
+    const t0 = Date.now();
+    const r5 = await routeSpotLine(pts50, slowFirst);
+    const took = Date.now() - t0;
+    check("50 Punkte: 3 Stücke gleichzeitig (erstes antwortet zuletzt), Linie in Spur-Reihenfolge", r5.ok && r5.line.profiles.length === 3 && order[order.length - 1] === 0 && haversineMeters(r5.line.geometry[0], pts50[0]) < 1 && haversineMeters(r5.line.geometry[r5.line.geometry.length - 1], pts50[49]) < 1, `Antwortreihenfolge ${order.join(",")}`);
+    check("parallel: Gesamtzeit nahe dem langsamsten Stück, nicht der Summe", took < 120 + 60, `${took} ms`);
+    check("Naht ohne Sprung: Länge der Linie = Summe der Stücke", r5.ok && Math.abs((routeCumulativeMeters(r5.line.geometry).at(-1) ?? 0) - r5.line.distanceM) < 1);
   }
 
   head("4. Paket: Gast gegen Pro (ohne Netz)");
@@ -657,6 +719,7 @@ async function partBrouter(): Promise<void> {
     // Ein Sprung läge in der Linie, aber in keinem Stück.
     const lineM = big.ok ? (routeCumulativeMeters(big.line.geometry).at(-1) ?? 0) : 0;
     check("30 Kontrollpunkte: 2 Anfragen (25 + Überlappung), eine Linie ohne Sprung an der Naht", big.ok && big.line.requests === 2 && brouterRequests === 2 && Math.abs(lineM - big.line.distanceM) < 1, big.ok ? `${brouterRequests} Anfragen, Linie ${Math.round(lineM)} m, Summe ${Math.round(big.line.distanceM)} m` : big.code);
+    check("beide Stücke mit dem Wanderprofil, kein Rückfall", big.ok && big.line.profiles.join() === "hiking-mountain,hiking-mountain" && big.line.warnings.every((w) => !/trekking/.test(w)));
     check("Höhe je Punkt der zusammengesetzten Linie", big.ok && big.line.elevationM?.length === big.line.geometry.length);
     const one = await snapSpotRouteCore([COORDS[0]]);
     check("ein Punkt: 'Mindestens 2 Punkte nötig' (wie bisher)", !one.ok && one.error === "Mindestens 2 Punkte nötig");

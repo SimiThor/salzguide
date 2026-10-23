@@ -22,9 +22,12 @@ import type { TourMode } from "../tour-mode";
 // package = Offline-Paket, reroute = Umrouten in der Navigation.
 export type RoutePurpose = "editor" | "spot" | "builder" | "package" | "reroute";
 
+// spot: 25 s je Stück, die Stücke laufen parallel und danach höchstens ein Rückfall-Durchgang
+// (routing/snap-spot.ts): zusammen unter der maxDuration 60 der Spot-Seiten. Das Wanderprofil
+// braucht auf alpinen Steigen (sac_scale über T3, Strafe 999) für 500 m bis zu 28 s.
 const TIMEOUT_MS: Record<RoutePurpose, number> = {
   editor: 20_000,
-  spot: 20_000,
+  spot: 25_000,
   builder: 20_000,
   package: 20_000,
   reroute: 8_000,
@@ -51,12 +54,14 @@ export async function runRoute(input: {
   mode: TourMode;
   labels?: string[];
   purpose: RoutePurpose;
+  /** Profil statt des Profils nach mode; nur der Rückfall der Spot-Spur setzt es. */
+  profile?: string;
   signal?: AbortSignal;
 }): Promise<RouteOutcome> {
   const t0 = Date.now();
   try {
     const provider = getRoutingProvider({ timeoutMs: TIMEOUT_MS[input.purpose] });
-    const route = await provider.route({ points: input.points, mode: input.mode, labels: input.labels, signal: input.signal });
+    const route = await provider.route({ points: input.points, mode: input.mode, labels: input.labels, profile: input.profile, signal: input.signal });
     return { ok: true, route, ms: Date.now() - t0 };
   } catch (err) {
     // Abbruch durch den Aufrufer ist kein Ausfall des Dienstes.
