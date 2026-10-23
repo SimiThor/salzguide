@@ -22,7 +22,19 @@
 // setzt darauf kurz is_pro und role=admin und LÖSCHT es IMMER wieder (finally sowie bei
 // SIGINT/SIGTERM). Am Ende steht, ob die Löschung bestätigt wurde. Die Ausgabe nennt nie
 // Titel, Slugs oder Texte von Pro-Inhalten, nur "Pro-Spot" und "Pro-Tour".
-import { randomBytes, randomUUID } from "node:crypto";
+//
+// PHASE 3 (docs/41): Die Abschnitte 9 bis 13 pruefen die HANDELNDEN Routen (Merkliste, PATCH und
+// DELETE /me) und /spots/{slug}/live. Sie legen zusaetzlich zwei weitere Wegwerf-Konten an (ein
+// zweites fuer die RLS-Gegenprobe, ein drittes, das DELETE /me wirklich loescht) und raeumen auch
+// diese immer ab. Der Apple-Widerruf ist ohne Schluessel nicht testbar: Abschnitt 9 prueft den
+// Client-Secret-Bauer offline mit einem Wegwerf-EC-Schluessel.
+import {
+  createPrivateKey,
+  createVerify,
+  generateKeyPairSync,
+  randomBytes,
+  randomUUID,
+} from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import {
   createTempUser,
@@ -30,6 +42,8 @@ import {
   webCookieHeader,
   deleteTempUser,
   sweepTempUsers,
+  serviceClient,
+  anonClient,
 } from "./lib/temp-user.ts";
 import type { TempUser } from "./lib/temp-user.ts";
 
@@ -101,6 +115,31 @@ function apiGet(path: string, auth: string | null = null): Promise<Res> {
   return getRaw(`${API}${path}`, h);
 }
 const bearer = (token: string | null) => (token ? `Bearer ${token}` : null);
+
+/** Schreibende Abfrage. `body` als JSON, ausser `rawBody` ist gesetzt (dann genau dieser Text). */
+async function apiSend(
+  method: "PUT" | "PATCH" | "DELETE" | "POST",
+  path: string,
+  auth: string | null,
+  opts: { body?: unknown; rawBody?: string; contentType?: string | null } = {},
+): Promise<Res> {
+  const h: Record<string, string> = { Accept: "application/json" };
+  if (auth !== null) h.Authorization = auth;
+  let body: string | undefined;
+  if (opts.rawBody !== undefined) body = opts.rawBody;
+  else if (opts.body !== undefined) body = JSON.stringify(opts.body);
+  const ct = opts.contentType === undefined ? (body !== undefined ? "application/json" : null) : opts.contentType;
+  if (ct) h["Content-Type"] = ct;
+  const r = await fetch(`${API}${path}`, { method, headers: h, body, redirect: "manual", signal: AbortSignal.timeout(90_000) });
+  const text = await r.text();
+  let json: Loose = null;
+  try {
+    json = JSON.parse(text);
+  } catch {
+    /* kein JSON */
+  }
+  return { status: r.status, headers: r.headers, text, json };
+}
 
 function webGet(path: string, cookie: string | null): Promise<Res> {
   const h: Record<string, string> = { "User-Agent": UA, Accept: "text/html" };
@@ -221,8 +260,25 @@ async function loadTruth(): Promise<Truth> {
 // ── Aufräumen ─────────────────────────────────────────────────────────────────
 let tempUser: TempUser | null = null;
 let deletedConfirmed: boolean | null = null;
+// Weitere Wegwerf-Konten der Phase-3-Abschnitte (zweites Konto fuer RLS, Konto fuer DELETE /me).
+const extraUsers: TempUser[] = [];
+
+async function cleanupExtras(): Promise<void> {
+  for (const u of extraUsers.splice(0)) {
+    try {
+      if (!(await deleteTempUser(u.id))) {
+        failed++;
+        console.log("  FEHLT Aufraeumen: weiteres Wegwerf-Konto nicht bestaetigt geloescht (app-api-check+...@example.com pruefen)");
+      }
+    } catch (e) {
+      failed++;
+      console.log(`  FEHLT Aufraeumen (weiteres Konto): ${(e as Error).message}`);
+    }
+  }
+}
 
 async function cleanup(): Promise<void> {
+  await cleanupExtras();
   if (!tempUser || deletedConfirmed !== null) return;
   try {
     deletedConfirmed = await deleteTempUser(tempUser.id);
@@ -367,6 +423,432 @@ async function runTier(
     check(`${tierName}: /me Cache-Control enthaelt no-store`, cc(me).includes("no-store"), cc(me));
     check(`${tierName}: /me canSeePro = ${expectPro}`, me.json?.canSeePro === expectPro, `ist ${me.json?.canSeePro}`);
     if (isUser) check(`${tierName}: /me email == Wegwerf-Adresse`, me.json?.email === tempEmail);
+  }
+}
+
+
+// ── Phase 3: handelnde Routen und /live ───────────────────────────────────────
+type LiveTruth = {
+  activityWithCoords: string | null;
+  lakeSpot: { slug: string; lake: string } | null;
+  manualHours: string | null;
+  anyHours: string | null;
+};
+
+async function loadLiveTruth(): Promise<LiveTruth> {
+  const db = serviceClient();
+  const pick = async (
+    filter: (q: Loose) => Loose,
+  ): Promise<Loose | null> => {
+    const q = filter(
+      db.from("spots").select("slug, type, lat, lng, lake_name, has_opening_hours, opening_hours_manual").eq("status", "published").eq("is_pro", false),
+    ).order("slug").limit(1);
+    const { data, error } = await q;
+    if (error) throw new Error(`spots lesen (live): ${error.message}`);
+    return (data?.[0] as Loose) ?? null;
+  };
+  const act = await pick((q) => q.eq("type", "activity").not("lat", "is", null).not("lng", "is", null));
+  const lake = await pick((q) => q.not("lake_name", "is", null));
+  const manual = await pick((q) => q.eq("has_opening_hours", true).eq("opening_hours_manual", true));
+  const any = await pick((q) => q.eq("has_opening_hours", true));
+  return {
+    activityWithCoords: act?.slug ?? null,
+    lakeSpot: lake ? { slug: lake.slug, lake: lake.lake_name } : null,
+    manualHours: manual?.slug ?? null,
+    anyHours: any?.slug ?? null,
+  };
+}
+
+/** Zeilen in saved_items fuer (Nutzer, Spot), mit dem Service-Key gezaehlt. */
+async function savedRows(userId: string, slug: string): Promise<number> {
+  const svc = serviceClient();
+  const { data: sp } = await svc.from("spots").select("id").eq("slug", slug).maybeSingle();
+  const { data: lists } = await svc.from("saved_lists").select("id").eq("user_id", userId);
+  const ids = (lists ?? []).map((l: Loose) => l.id as string);
+  if (!sp || ids.length === 0) return 0;
+  const { count } = await svc
+    .from("saved_items")
+    .select("id", { count: "exact", head: true })
+    .in("list_id", ids)
+    .eq("spot_id", sp.id);
+  return count ?? 0;
+}
+
+const b64u = (b: Buffer) => b.toString("base64url");
+
+async function runAppleUnit(): Promise<void> {
+  head("9. Apple-Widerruf: Client-Secret offline (Wegwerf-EC-Schluessel)");
+  const mod = await import("@/lib/apple-revoke");
+  const { privateKey, publicKey } = generateKeyPairSync("ec", { namedCurve: "P-256" });
+  const pem = privateKey.export({ type: "pkcs8", format: "pem" }).toString();
+  const cfg = { keyId: "KEYID12345", teamId: "TEAMID1234", privateKey: pem, clientId: "at.example.test" };
+  const now = 1_800_000_000_000;
+  const jwt = mod.buildAppleClientSecret(cfg, now);
+  const parts = jwt.split(".");
+  check("Client-Secret hat drei Teile", parts.length === 3);
+  const header = JSON.parse(Buffer.from(parts[0], "base64url").toString("utf8")) as Loose;
+  const claims = JSON.parse(Buffer.from(parts[1], "base64url").toString("utf8")) as Loose;
+  check("Header: alg ES256, kid, typ JWT", header.alg === "ES256" && header.kid === cfg.keyId && header.typ === "JWT");
+  check("Claims: iss = Team-ID, sub = Client-ID, aud = Apple", claims.iss === cfg.teamId && claims.sub === cfg.clientId && claims.aud === "https://appleid.apple.com");
+  check("Claims: iat = jetzt, exp hoechstens 10 Min danach", claims.iat === now / 1000 && claims.exp > claims.iat && claims.exp - claims.iat <= 600);
+  const sig = Buffer.from(parts[2], "base64url");
+  check("Signatur ist rohes r||s (64 Bytes), nicht DER", sig.length === 64);
+  const verify = (data: string, signature: Buffer) =>
+    createVerify("SHA256").update(data).verify({ key: publicKey, dsaEncoding: "ieee-p1363" }, signature);
+  check("Signatur stimmt mit dem oeffentlichen Schluessel", verify(`${parts[0]}.${parts[1]}`, sig));
+  const forged = b64u(Buffer.from(JSON.stringify({ ...claims, sub: "evil" })));
+  check("veraenderte Claims: Signatur ungueltig", !verify(`${parts[0]}.${forged}`, sig));
+  // createPrivateKey nimmt das PEM wie aus der ENV (mit echten Zeilenumbruechen).
+  check("PEM laesst sich laden", createPrivateKey(pem).asymmetricKeyType === "ec");
+
+  // Konfiguration: fehlende ENV = null, wortwoertliches "\n" wird zu Zeilenumbruechen.
+  const names = ["APPLE_SIWA_KEY_ID", "APPLE_SIWA_TEAM_ID", "APPLE_SIWA_PRIVATE_KEY", "APPLE_SIWA_CLIENT_ID"] as const;
+  const saved = names.map((n) => process.env[n]);
+  try {
+    for (const n of names) delete process.env[n];
+    check("ohne ENV: appleSiwaConfig = null", mod.appleSiwaConfig() === null);
+    const r0 = await mod.revokeAppleToken("dummy");
+    check("ohne ENV: revokeAppleToken = not_configured (kein Netzaufruf)", r0.status === "not_configured");
+    process.env.APPLE_SIWA_KEY_ID = cfg.keyId;
+    process.env.APPLE_SIWA_TEAM_ID = cfg.teamId;
+    process.env.APPLE_SIWA_CLIENT_ID = cfg.clientId;
+    process.env.APPLE_SIWA_PRIVATE_KEY = pem.replace(/\n/g, "\\n");
+    const c = mod.appleSiwaConfig();
+    check("ENV mit \\n-Text: PEM wird wiederhergestellt", c?.privateKey === pem.trim());
+    if (c) check("ENV-Konfiguration baut ein gueltiges Secret", mod.buildAppleClientSecret(c).split(".").length === 3);
+    delete process.env.APPLE_SIWA_TEAM_ID;
+    check("ein Wert fehlt: appleSiwaConfig = null", mod.appleSiwaConfig() === null);
+  } finally {
+    names.forEach((n, i) => {
+      if (saved[i] === undefined) delete process.env[n];
+      else process.env[n] = saved[i];
+    });
+  }
+}
+
+async function runSaved(truth: Truth, user: TempUser, token: string): Promise<void> {
+  head("10. Merkliste (/saved)");
+  const L = `lang=${LANG}`;
+  const free = truth.freeSpot;
+  const pro = truth.proSpot;
+  if (!free) { info("kein freier Spot, uebersprungen"); return; }
+  await setProfile(user.id, { is_pro: false, role: "user" });
+  info("Konto auf Nutzer ohne Pro zurueckgesetzt");
+  const auth = bearer(token);
+
+  // Zugriffsschutz
+  for (const [m, p] of [["GET", `/saved?${L}`], ["PUT", `/saved/${free.slug}`], ["DELETE", `/saved/${free.slug}`]] as const) {
+    const shown = p.replace(free.slug, "<frei>").replace(/\?.*/, "");
+    for (const [label, value] of [["ohne Header", null], ["Bearer garbage", "Bearer garbage"], ["Anon-Key als Bearer", `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`]] as const) {
+      const r = m === "GET" ? await apiGet(p, value) : await apiSend(m, p, value);
+      check(`${m} ${shown}: ${label} -> 401 auth`, r.status === 401 && r.json?.error === "auth", `Status ${r.status}`);
+    }
+  }
+  check("GET /saved?lang=xx -> 400 invalid", (await apiGet("/saved?lang=xx", auth)).status === 400);
+  const nf = await apiSend("PUT", "/saved/does-not-exist-123", auth);
+  check("PUT unbekannter Slug -> 404 not_found", nf.status === 404 && nf.json?.error === "not_found", `Status ${nf.status}`);
+  const bad = await apiSend("PUT", "/saved/a%20b", auth);
+  check("PUT Slug mit Leerzeichen -> 404 not_found", bad.status === 404 && bad.json?.error === "not_found", `Status ${bad.status}`);
+
+  // Anfangszustand leer
+  const g0 = await apiGet(`/saved?${L}`, auth);
+  check("GET /saved: 200, no-store, Form { lang, slugs[], spots[] }",
+    g0.status === 200 && cc(g0).includes("no-store") && g0.json?.lang === LANG && Array.isArray(g0.json?.slugs) && Array.isArray(g0.json?.spots),
+    `Status ${g0.status} ${cc(g0)}`);
+  check("GET /saved: anfangs leer", g0.json?.slugs?.length === 0 && g0.json?.spots?.length === 0);
+
+  // PUT zweimal -> eine Zeile
+  const p1 = await apiSend("PUT", `/saved/${free.slug}`, auth);
+  const p2 = await apiSend("PUT", `/saved/${free.slug}`, auth);
+  check("PUT zweimal: beide 200 { saved: true }", p1.status === 200 && p2.status === 200 && p1.json?.saved === true && p2.json?.saved === true, `${p1.status}/${p2.status}`);
+  check("PUT: no-store", cc(p1).includes("no-store"), cc(p1));
+  check("PUT zweimal: genau EINE Zeile in saved_items", (await savedRows(user.id, free.slug)) === 1);
+  const g1 = await apiGet(`/saved?${L}`, auth);
+  const sp1: Loose[] = g1.json?.spots ?? [];
+  check("GET /saved listet den Spot (slugs und spots)", g1.json?.slugs?.includes(free.slug) && sp1.some((x) => x.slug === free.slug));
+  check("GET /saved: Karte nie gesperrt, Titel == DB", sp1.every((x) => x.locked === false) && sp1.find((x) => x.slug === free.slug)?.title === free.title);
+
+  // DELETE zweimal -> idempotent
+  const d1 = await apiSend("DELETE", `/saved/${free.slug}`, auth);
+  const d2 = await apiSend("DELETE", `/saved/${free.slug}`, auth);
+  check("DELETE zweimal: beide 200 { saved: false }", d1.status === 200 && d2.status === 200 && d1.json?.saved === false && d2.json?.saved === false, `${d1.status}/${d2.status}`);
+  check("DELETE: keine Zeile mehr", (await savedRows(user.id, free.slug)) === 0);
+  check("GET /saved nach DELETE wieder leer", (await apiGet(`/saved?${L}`, auth)).json?.slugs?.length === 0);
+
+  // Pro-Spot: Nicht-Pro -> 404, Pro -> ok
+  if (pro) {
+    const pn = await apiSend("PUT", `/saved/${pro.slug}`, auth);
+    check("Nutzer ohne Pro: PUT Pro-Spot -> 404 not_found (wie unbekannt)", pn.status === 404 && pn.json?.error === "not_found", `Status ${pn.status}`);
+    const dn = await apiSend("DELETE", `/saved/${pro.slug}`, auth);
+    check("Nutzer ohne Pro: DELETE Pro-Spot -> 404 not_found", dn.status === 404 && dn.json?.error === "not_found", `Status ${dn.status}`);
+    check("Nutzer ohne Pro: keine Zeile fuer den Pro-Spot", (await savedRows(user.id, pro.slug)) === 0);
+
+    await setProfile(user.id, { is_pro: true });
+    const pp = await apiSend("PUT", `/saved/${pro.slug}`, auth);
+    check("Pro: PUT Pro-Spot -> 200 { saved: true }", pp.status === 200 && pp.json?.saved === true, `Status ${pp.status}`);
+    const gp = await apiGet(`/saved?${L}`, auth);
+    check("Pro: GET /saved enthaelt den Pro-Spot", gp.json?.slugs?.includes(pro.slug) && (gp.json?.spots ?? []).some((x: Loose) => x.slug === pro.slug && x.title === pro.title));
+    // Pro entzogen (z.B. Erstattung): Der gemerkte Pro-Spot darf nicht mehr ausgeliefert werden.
+    await setProfile(user.id, { is_pro: false });
+    const gl = await apiGet(`/saved?${L}`, auth);
+    check("Pro entzogen: Pro-Slug nirgends in GET /saved", !leaks(gl.text, pro.slug));
+    check("Pro entzogen: Pro-Titel nirgends in GET /saved", !leaks(gl.text, pro.title));
+    await setProfile(user.id, { is_pro: true });
+    const dp = await apiSend("DELETE", `/saved/${pro.slug}`, auth);
+    check("Pro: DELETE Pro-Spot -> 200 { saved: false }", dp.status === 200 && dp.json?.saved === false, `Status ${dp.status}`);
+    check("Pro: keine Zeile mehr fuer den Pro-Spot", (await savedRows(user.id, pro.slug)) === 0);
+    await setProfile(user.id, { is_pro: false });
+  } else info("kein Pro-Spot, Pro-Faelle uebersprungen");
+
+  // RLS mit einem zweiten Konto
+  head("10b. Merkliste: RLS mit zwei Konten");
+  const other = await createTempUser();
+  extraUsers.push(other);
+  info("zweites Wegwerf-Konto angelegt");
+  const o1 = await apiSend("PUT", `/saved/${free.slug}`, bearer(other.session.access_token));
+  check("Konto 2: PUT -> 200", o1.status === 200, `Status ${o1.status}`);
+  const g2 = await apiGet(`/saved?${L}`, auth);
+  check("Konto 1 sieht die Merkung von Konto 2 nicht (GET /saved leer)", g2.status === 200 && g2.json?.slugs?.length === 0 && g2.json?.spots?.length === 0);
+  const rls1 = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
+    auth: { persistSession: false },
+    global: { headers: { Authorization: `Bearer ${token}` } },
+  });
+  // Konto 1 braucht eine eigene Liste, damit "nur die eigene" etwas zu beweisen hat.
+  const own = await apiSend("PUT", `/saved/${free.slug}`, auth);
+  check("Konto 1: PUT -> 200", own.status === 200);
+  const svc = serviceClient();
+  const { data: lists } = await svc.from("saved_lists").select("id, user_id").in("user_id", [user.id, other.id]);
+  const list1 = (lists ?? []).find((l: Loose) => l.user_id === user.id)?.id as string | undefined;
+  const list2 = (lists ?? []).find((l: Loose) => l.user_id === other.id)?.id as string | undefined;
+  check("beide Konten haben eine eigene Standardliste", !!list1 && !!list2 && list1 !== list2);
+  const { data: rows, error: rerr } = await rls1.from("saved_items").select("list_id");
+  const seen = (rows ?? []) as Loose[];
+  check("Bearer-Client Konto 1: nur Zeilen der eigenen Liste sichtbar",
+    !rerr && seen.length >= 1 && seen.every((r) => r.list_id === list1) && !seen.some((r) => r.list_id === list2),
+    rerr ? rerr.message : `${seen.length} Zeilen`);
+  const { data: lists1 } = await rls1.from("saved_lists").select("id");
+  check("Bearer-Client Konto 1: nur die eigene Liste sichtbar", (lists1 ?? []).length === 1 && lists1?.[0]?.id === list1);
+  // Fremde Liste beschreiben muss an der RLS scheitern.
+  const { data: spRow } = await svc.from("spots").select("id").eq("slug", free.slug).maybeSingle();
+  if (list2 && spRow) {
+    const ins = await rls1.from("saved_items").insert({ list_id: list2, spot_id: spRow.id });
+    check("Bearer-Client Konto 1: Einfuegen in fremde Liste wird abgelehnt", !!ins.error, "kein Fehler");
+    const del = await rls1.from("saved_items").delete().eq("list_id", list2);
+    check("Bearer-Client Konto 1: Loeschen in fremder Liste trifft nichts", !del.error && (await savedRows(other.id, free.slug)) === 1);
+  }
+  // Gast mit Anon-Key sieht gar nichts.
+  const { data: anonRows } = await anonClient().from("saved_items").select("id");
+  check("Anon-Client sieht keine Merkungen", (anonRows ?? []).length === 0);
+  // Aufraeumen: Konto 1 entmerken (Konto 2 wird am Ende geloescht, Kaskade).
+  await apiSend("DELETE", `/saved/${free.slug}`, auth);
+}
+
+async function runPatchMe(user: TempUser, token: string): Promise<void> {
+  head("11. PATCH /me");
+  const auth = bearer(token);
+  const svc = serviceClient();
+  const prof = async () => {
+    const { data } = await svc.from("profiles").select("newsletter_opt_in, newsletter_opt_in_at, locale").eq("id", user.id).maybeSingle();
+    return data as Loose;
+  };
+
+  for (const [label, value] of [["ohne Header", null], ["Bearer garbage", "Bearer garbage"]] as const) {
+    const r = await apiSend("PATCH", "/me", value, { body: { newsletter: true } });
+    check(`PATCH /me ${label} -> 401 auth`, r.status === 401 && r.json?.error === "auth", `Status ${r.status}`);
+  }
+  const invalid: [string, Parameters<typeof apiSend>[3]][] = [
+    ["ohne Body", {}],
+    ["leeres Objekt", { body: {} }],
+    ["Sprache xx", { body: { locale: "xx" } }],
+    ["Sprache keine Zeichenkette", { body: { locale: 5 } }],
+    ["newsletter als Text", { body: { newsletter: "yes" } }],
+    ["unbekanntes Feld", { body: { newsletter: true, role: "admin" } }],
+    ["Array statt Objekt", { rawBody: "[]" }],
+    ["kein JSON", { rawBody: "{nope", contentType: "application/json" }],
+    ["falscher Content-Type", { rawBody: '{"newsletter":true}', contentType: "text/plain" }],
+    ["zu gross", { body: { locale: "de", x: "a".repeat(5000) } }],
+  ];
+  for (const [label, opts] of invalid) {
+    const r = await apiSend("PATCH", "/me", auth, opts);
+    check(`PATCH /me ${label} -> 400 invalid`, r.status === 400 && r.json?.error === "invalid", `Status ${r.status}`);
+  }
+  const before = await prof();
+  check("ungueltige Anfragen haben nichts veraendert", before?.newsletter_opt_in === false && before?.newsletter_opt_in_at == null);
+
+  const on = await apiSend("PATCH", "/me", auth, { body: { newsletter: true } });
+  check("newsletter: true -> 200, no-store", on.status === 200 && cc(on).includes("no-store"), `Status ${on.status} ${cc(on)}`);
+  const shape = ["userId", "email", "canSeePro", "locale", "newsletter"];
+  const getMe = await apiGet("/me", auth);
+  check("PATCH-Antwort hat dieselben Felder wie GET /me",
+    shape.every((k) => k in (on.json ?? {})) && Object.keys(on.json ?? {}).sort().join() === Object.keys(getMe.json ?? {}).sort().join());
+  check("PATCH-Antwort: newsletter true, email unveraendert", on.json?.newsletter === true && on.json?.email === user.email);
+  const p1 = await prof();
+  const at = Date.parse(p1?.newsletter_opt_in_at ?? "");
+  check("DB: newsletter_opt_in true mit frischem Zeitstempel", p1?.newsletter_opt_in === true && Number.isFinite(at) && Math.abs(Date.now() - at) < 120_000);
+  const off = await apiSend("PATCH", "/me", auth, { body: { newsletter: false } });
+  check("newsletter: false -> 200, newsletter false", off.status === 200 && off.json?.newsletter === false);
+  const p0 = await prof();
+  check("DB: Widerruf setzt den Zeitstempel zurueck auf null", p0?.newsletter_opt_in === false && p0?.newsletter_opt_in_at === null);
+
+  const loc = await apiSend("PATCH", "/me", auth, { body: { locale: "en" } });
+  check("locale: en -> 200 und locale en", loc.status === 200 && loc.json?.locale === "en", `Status ${loc.status}`);
+  check("DB: profiles.locale = en", (await prof())?.locale === "en");
+  check("GET /me liefert die neue Sprache", (await apiGet("/me", auth)).json?.locale === "en");
+  const both = await apiSend("PATCH", "/me", auth, { body: { locale: "it", newsletter: true } });
+  check("beide Felder zugleich", both.status === 200 && both.json?.locale === "it" && both.json?.newsletter === true);
+  await apiSend("PATCH", "/me", auth, { body: { locale: "de", newsletter: false } });
+  check("zurueck auf de / kein Newsletter", (await prof())?.locale === "de");
+  // Rolle und Pro lassen sich ueber PATCH nicht setzen (Feld unbekannt -> 400, siehe oben); der
+  // Privilegien-Trigger (0016) sperrt sie zusaetzlich in der DB.
+  const rls = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
+    auth: { persistSession: false },
+    global: { headers: { Authorization: `Bearer ${token}` } },
+  });
+  await rls.from("profiles").update({ is_pro: true, role: "admin" }).eq("id", user.id);
+  const { data: priv } = await svc.from("profiles").select("is_pro, role").eq("id", user.id).maybeSingle();
+  check("Bearer-Client kann is_pro/role nicht selbst setzen", (priv as Loose)?.is_pro === false && (priv as Loose)?.role === "user");
+}
+
+async function runLive(truth: Truth, user: TempUser, token: string): Promise<void> {
+  head("12. /spots/{slug}/live");
+  const L = `lang=${LANG}`;
+  const live = await loadLiveTruth();
+  const auth = bearer(token);
+  const keys = (j: Loose) => Object.keys(j ?? {}).sort().join();
+
+  const nf = await apiGet(`/spots/does-not-exist-123/live?${L}`, null);
+  check("live: unbekannter Slug -> 404 not_found", nf.status === 404 && nf.json?.error === "not_found", `Status ${nf.status}`);
+  if (truth.freeSpot) {
+    const f = truth.freeSpot.slug;
+    check("live: ?lang=xx -> 400 invalid", (await apiGet(`/spots/${f}/live?lang=xx`, null)).status === 400);
+    const g = await apiGet(`/spots/${f}/live?${L}`, "Bearer garbage");
+    check("live: Bearer garbage -> 401 auth", g.status === 401 && g.json?.error === "auth", `Status ${g.status}`);
+  }
+
+  await setProfile(user.id, { is_pro: false, role: "user" });
+  if (truth.proSpot) {
+    for (const [label, a] of [["Gast", null], ["Nutzer", auth]] as const) {
+      const r = await apiGet(`/spots/${truth.proSpot.slug}/live?${L}`, a);
+      check(`${label}: gesperrter Pro-Spot -> 200 mit weather/opening/waterTemp alle null`,
+        r.status === 200 && keys(r.json) === "opening,waterTemp,weather" && r.json.weather === null && r.json.opening === null && r.json.waterTemp === null,
+        `Status ${r.status}`);
+      check(`${label}: gesperrter Pro-Spot: Cache-Control private, max-age=300`, cc(r) === "private, max-age=300", cc(r));
+      check(`${label}: gesperrter Pro-Spot: Antwort nennt weder Slug noch Titel`, !leaks(r.text, truth.proSpot.slug) && !leaks(r.text, truth.proSpot.title));
+    }
+    await setProfile(user.id, { is_pro: true });
+    const r = await apiGet(`/spots/${truth.proSpot.slug}/live?${L}`, auth);
+    check("Pro: Pro-Spot -> 200, drei Felder vorhanden (Inhalt je nach Spot)",
+      r.status === 200 && keys(r.json) === "opening,waterTemp,weather", `Status ${r.status}`);
+    await setProfile(user.id, { is_pro: false });
+  } else info("kein Pro-Spot, gesperrte Faelle uebersprungen");
+
+  if (live.activityWithCoords) {
+    const r = await apiGet(`/spots/${live.activityWithCoords}/live?${L}`, null);
+    const days: Loose[] = r.json?.weather?.days ?? [];
+    check("freier Aktiv-Spot: 200, Cache-Control private, max-age=300", r.status === 200 && cc(r) === "private, max-age=300", `Status ${r.status} ${cc(r)}`);
+    check("freier Aktiv-Spot: Wetter mit Tagen { date, tempMax, tempMin, precip, code }",
+      days.length > 0 && days.every((d) => typeof d.date === "string" && ["tempMax", "tempMin", "precip", "code"].every((k) => typeof d[k] === "number")),
+      `${days.length} Tage`);
+    check("Wetter beginnt heute oder spaeter (Europe/Vienna)", days.length > 0 && days[0].date >= new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Vienna" }).format(new Date()));
+    check("live-Antwort verraet nichts ausser den drei Feldern", keys(r.json) === "opening,waterTemp,weather");
+    check("live-Antwort enthaelt keine googlePlaceId", !/placeId|place_id|googlePlace/i.test(r.text));
+  } else info("kein freier Aktiv-Spot mit Position, Wetter uebersprungen");
+
+  if (live.lakeSpot) {
+    const { getLakeReadingByName } = await import("@/lib/water-temp");
+    const web = await getLakeReadingByName(live.lakeSpot.lake);
+    const r = await apiGet(`/spots/${live.lakeSpot.slug}/live?${L}`, null);
+    const wt = r.json?.waterTemp;
+    if (web?.reading) {
+      check("See-Spot: waterTemp == Web-Funktion (tempC, at, source)", wt?.tempC === web.reading.tempC && wt?.at === web.reading.at && wt?.source === web.reading.source && wt?.lake?.slug === web.lake.slug);
+    } else {
+      check("See-Spot: Web-Funktion hat keinen Wert -> API waterTemp null", r.status === 200 && wt === null, `Status ${r.status}`);
+    }
+  } else info("kein freier Spot mit lake_name, Wassertemperatur uebersprungen");
+
+  const hoursSlug = live.manualHours ?? live.anyHours;
+  if (hoursSlug) {
+    const { computeStatus, viennaNowWM } = await import("@/lib/opening-hours");
+    const r = await apiGet(`/spots/${hoursSlug}/live?${L}`, null);
+    const o = r.json?.opening;
+    if (live.manualHours) {
+      check("Spot mit manuellen Zeiten: opening vorhanden, source manual, 7 Tage", !!o && o.source === "manual" && Array.isArray(o.week) && o.week.length === 7, `Status ${r.status}`);
+    } else info("nur Google-Zeiten in der DB: opening kann ohne Places-Schluessel null sein");
+    if (o) {
+      const st = computeStatus(o.week, viennaNowWM(new Date()));
+      check("opening.open == computeStatus (Web-Funktion)", o.open === st.open && o.changeAt === st.changeAt);
+      check("opening: todayIndex 0..6, holidays hat 7 Eintraege", Number.isInteger(o.todayIndex) && o.todayIndex >= 0 && o.todayIndex <= 6 && Array.isArray(o.holidays) && o.holidays.length === 7);
+    }
+  } else info("kein freier Spot mit Oeffnungszeiten, uebersprungen");
+}
+
+async function runDeleteMe(truth: Truth): Promise<void> {
+  head("13. DELETE /me");
+  const victim = await createTempUser();
+  extraUsers.push(victim);
+  const token = victim.session.access_token;
+  const auth = bearer(token);
+  const svc = serviceClient();
+  info("drittes Wegwerf-Konto angelegt");
+
+  for (const [label, value] of [["ohne Header", null], ["Bearer garbage", "Bearer garbage"], ["Anon-Key als Bearer", `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`]] as const) {
+    const r = await apiSend("DELETE", "/me", value);
+    check(`DELETE /me ${label} -> 401 auth`, r.status === 401 && r.json?.error === "auth", `Status ${r.status}`);
+  }
+  // Nur ein echtes "nicht gefunden" heisst "weg"; jeder andere Fehler wirft, damit ein
+  // Netzfehler nie als "Konto geloescht" durchgeht.
+  const exists = async () => {
+    const r = await svc.auth.admin.getUserById(victim.id);
+    if (r.error) {
+      if (r.error.status === 404 || r.error.code === "user_not_found") return false;
+      throw new Error(`getUserById: ${r.error.message}`);
+    }
+    return !!r.data?.user;
+  };
+  for (const [label, opts] of [
+    ["unbekanntes Feld", { body: { foo: 1 } }],
+    ["Code keine Zeichenkette", { body: { appleAuthorizationCode: 5 } }],
+    ["Code leer", { body: { appleAuthorizationCode: "" } }],
+    ["Code zu lang", { body: { appleAuthorizationCode: "a".repeat(3000) } }],
+  ] as [string, Parameters<typeof apiSend>[3]][]) {
+    const r = await apiSend("DELETE", "/me", auth, opts);
+    check(`DELETE /me ${label} -> 400 invalid`, r.status === 400 && r.json?.error === "invalid", `Status ${r.status}`);
+  }
+  check("abgelehnte Anfragen haben das Konto nicht geloescht", await exists());
+
+  // Daten anlegen, die mit verschwinden muessen. Der Aufbau wird geprueft, sonst bewiese
+  // "danach leer" nichts.
+  if (truth.freeSpot) {
+    const put = await apiSend("PUT", `/saved/${truth.freeSpot.slug}`, auth);
+    check("Aufbau: PUT /saved -> 200", put.status === 200, `Status ${put.status}`);
+    check("Aufbau: Merkung steht in saved_items", (await savedRows(victim.id, truth.freeSpot.slug)) === 1);
+  }
+  const nl = await apiSend("PATCH", "/me", auth, { body: { newsletter: true } });
+  check("Aufbau: PATCH /me -> 200", nl.status === 200, `Status ${nl.status}`);
+  const { error: usageErr } = await svc
+    .from("ai_usage")
+    .insert({ subject: `u:${victim.id}`, day: new Date().toISOString().slice(0, 10), count: 1 });
+  check("Aufbau: ai_usage-Zeile eingefuegt", !usageErr, usageErr?.message ?? "");
+  const { data: usageRow } = await svc.from("ai_usage").select("subject").eq("subject", `u:${victim.id}`);
+  check("Aufbau: ai_usage-Zeile ist da", (usageRow ?? []).length === 1);
+
+  const del = await apiSend("DELETE", "/me", auth);
+  check("DELETE /me -> 200 { deleted: true, appleRevoked: null } (kein Apple-Konto), no-store",
+    del.status === 200 && del.json?.deleted === true && del.json?.appleRevoked === null && cc(del).includes("no-store"), `Status ${del.status} ${cc(del)}`);
+  check("auth.users: Konto ist weg", !(await exists()));
+  const { data: pr } = await svc.from("profiles").select("id").eq("id", victim.id).maybeSingle();
+  check("profiles: Zeile ist weg", !pr);
+  const { data: sl } = await svc.from("saved_lists").select("id").eq("user_id", victim.id);
+  check("saved_lists: keine Zeile mehr", (sl ?? []).length === 0);
+  const { data: au } = await svc.from("ai_usage").select("subject").eq("subject", `u:${victim.id}`);
+  check("ai_usage: keine Zeile mehr", (au ?? []).length === 0);
+  const me = await apiGet("/me", auth);
+  check("GET /me danach -> 401 auth", me.status === 401 && me.json?.error === "auth", `Status ${me.status}`);
+  const again = await apiSend("DELETE", "/me", auth);
+  check("DELETE /me ein zweites Mal -> 401 auth (Konto existiert nicht mehr)", again.status === 401 && again.json?.error === "auth", `Status ${again.status}`);
+  if (truth.freeSpot) {
+    const put = await apiSend("PUT", `/saved/${truth.freeSpot.slug}`, auth);
+    check("PUT /saved danach -> 401 auth", put.status === 401 && put.json?.error === "auth", `Status ${put.status}`);
   }
 }
 
@@ -574,6 +1056,21 @@ async function main(): Promise<void> {
       check("unbekannter Slug (Admin-Frage true): Admin-Frage genau 1 Mal", s3.calls === 1, `${s3.calls} Aufrufe`);
     }
   }
+
+  // Phase 3. Jeder Abschnitt ist isoliert: Wirft einer (Netz, Datenbank), steht ein FEHLT
+  // dafuer da, und die uebrigen laufen weiter.
+  const section = async (name: string, fn: () => Promise<void>) => {
+    try {
+      await fn();
+    } catch (e) {
+      check(`Abschnitt "${name}" ohne Ausnahme`, false, (e as Error).message);
+    }
+  };
+  await section("Apple", () => runAppleUnit());
+  await section("Merkliste", () => runSaved(truth, user, token));
+  await section("PATCH /me", () => runPatchMe(user, token));
+  await section("live", () => runLive(truth, user, token));
+  await section("DELETE /me", () => runDeleteMe(truth));
 }
 
 try {

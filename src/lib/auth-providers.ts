@@ -67,6 +67,19 @@ export const enabledAuthProviders = cache(async (): Promise<ReadonlySet<string>>
   }
 });
 
+/**
+ * Darf der Apple-Knopf (Web) gezeigt werden? Zwei Bedingungen:
+ *  1. Apple ist in Supabase eingeschaltet (wie bei Google), und
+ *  2. APPLE_SIWA_SERVICES_ID ist gesetzt (nur Server-ENV): das Zeichen "das Web ist gewollt".
+ * Apple in Supabase allein genügt nicht, denn derselbe Provider trägt auch den nativen
+ * App-Login (nur Bundle-ID). Eine App-only-Einrichtung darf keinen Web-Knopf zeigen, der
+ * ohne Services-ID und Secret auf eine Fehlerseite führt.
+ */
+export async function appleLoginEnabled(): Promise<boolean> {
+  if (!process.env.APPLE_SIWA_SERVICES_ID?.trim()) return false;
+  return (await enabledAuthProviders()).has("apple");
+}
+
 /** Darf der Google-Knopf gezeigt werden? Nur wenn er auch wirklich funktioniert. */
 export async function googleLoginEnabled(): Promise<boolean> {
   return (await enabledAuthProviders()).has("google");

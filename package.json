@@ -44,6 +44,8 @@
     "seed:runde-a": "node --experimental-strip-types --disable-warning=ExperimentalWarning --env-file=.env.local --import ./scripts/lib/alias-hook.mjs scripts/seed-runde-a.ts",
     "app-api:check": "node --experimental-strip-types --disable-warning=ExperimentalWarning --env-file=.env.local --import ./scripts/lib/alias-hook.mjs scripts/app-api-check.ts",
     "app-login-code:check": "node --experimental-strip-types --disable-warning=ExperimentalWarning --env-file=.env.local --import ./scripts/lib/alias-hook.mjs scripts/app-login-code-check.ts",
+    "app-purchase:check": "node --experimental-strip-types --disable-warning=ExperimentalWarning --import ./scripts/lib/alias-hook.mjs scripts/app-purchase-check.ts",
+    "apple-web-secret:check": "node --experimental-strip-types --disable-warning=ExperimentalWarning --import ./scripts/lib/alias-hook.mjs scripts/apple-web-secret-check.ts",
     "pro:check": "node --experimental-strip-types --disable-warning=ExperimentalWarning --import ./scripts/lib/alias-hook.mjs scripts/pro-check.ts",
     "voice:check": "node --experimental-strip-types --disable-warning=ExperimentalWarning --import ./scripts/lib/alias-hook.mjs scripts/voice-check.ts",
     "loudness:check": "node --experimental-strip-types --disable-warning=ExperimentalWarning --import ./scripts/lib/alias-hook.mjs scripts/loudness-check.ts",
@@ -52,6 +54,7 @@
     "tts:normalize-stock": "node --experimental-strip-types --disable-warning=ExperimentalWarning --env-file=.env.local --import ./scripts/lib/alias-hook.mjs scripts/tts-normalize-stock.ts"
   },
   "dependencies": {
+    "@apple/app-store-server-library": "3.1.0",
     "@breezystack/lamejs": "^1.2.7",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",

@@ -26,6 +26,7 @@ const fmt = (iso: string | null) => (iso ? dateFmt.format(new Date(iso)) : "–"
 
 const ERRORS: Record<string, string> = {
   stripe_pro: "Das ist bezahltes Pro. Rückerstattung in Stripe, dann entzieht der Webhook es selbst.",
+  apple_pro: "Das ist bezahltes Pro aus der iOS-App. Erstattung bei Apple, dann entzieht der Server es selbst.",
   forbidden: "Keine Admin-Rechte.",
   auth: "Nicht angemeldet.",
   not_found: "Nutzer nicht gefunden.",
@@ -133,7 +134,9 @@ function UserRow({ user, grant }: { user: AdminUser; grant?: ProGrantEntry }) {
           {user.paidPro ? (
             // Kein Knopf, sondern der Grund. Ein ausgegrauter Knopf sagt „geht nicht",
             // dieser Text sagt „geht woanders" — das ist die Auskunft, die man braucht.
-            <span className="text-[11px] text-muted">nur über Stripe</span>
+            <span className="text-[11px] text-muted">
+              {user.proSource === "apple" ? "nur über Apple" : "nur über Stripe"}
+            </span>
           ) : (
             <button
               type="button"

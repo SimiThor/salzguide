@@ -57,10 +57,11 @@ function toAdminUser(r: Record<string, unknown>): AdminUser {
     role: r.role === "admin" ? "admin" : "user",
     newsletter: r.newsletter_opt_in === true,
     createdAt: String(r.created_at),
-    // Bezahlt ist nur AKTIVES Stripe-Pro. Nach einer Rückerstattung steht pro_source
-    // weiterhin auf 'stripe' (der Webhook setzt nur is_pro=false und lässt die Herkunft
-    // stehen) – so jemandem darf man sehr wohl Pro schenken.
-    paidPro: isPro && proSource === "stripe",
+    // Bezahlt ist nur AKTIVES Stripe- oder Apple-Pro. Nach einer Rückerstattung steht pro_source
+    // weiterhin auf 'stripe'/'apple' (Webhook und Apple-Benachrichtigung setzen nur is_pro=false
+    // und lassen die Herkunft stehen) – so jemandem darf man sehr wohl Pro schenken.
+    // Dieselbe Regel steht in set_user_pro (0038, ab 0075 auch für 'apple').
+    paidPro: isPro && (proSource === "stripe" || proSource === "apple"),
   };
 }
 

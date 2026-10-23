@@ -6,9 +6,9 @@
 // Supabase-Server-Client zieht. Eine Beschriftung von dort zu holen, würde Servercode ins
 // Browser-Bundle ziehen. Hier kann sie gefahrlos stehen.
 
-export type ProSource = "stripe" | "migration" | "comp";
+export type ProSource = "stripe" | "migration" | "comp" | "apple";
 
-export const PRO_SOURCES = ["stripe", "migration", "comp"] as const;
+export const PRO_SOURCES = ["stripe", "migration", "comp", "apple"] as const;
 
 /** Kommt ein Wert aus der Datenbank wirklich aus dem Enum? */
 export function isProSource(value: unknown): value is ProSource {
@@ -28,6 +28,7 @@ const LABEL: Record<ProSource, string> = {
   stripe: "bezahlt",
   migration: "übernommen",
   comp: "geschenkt",
+  apple: "bezahlt (Apple)",
 };
 
 /**

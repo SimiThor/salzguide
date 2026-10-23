@@ -62,6 +62,10 @@ export async function getPendingProNotice(): Promise<ProNoticeCheck> {
     // Pro ohne Herkunft ist ein Datenfehler und sollte nicht vorkommen. Dann lieber
     // schweigen als raten: "wir haben dir Pro geschenkt" an jemanden, der bezahlt hat,
     // wäre schlimmer als gar kein Gruss.
+    // Apple-Käufer haben den Kauf in der App selbst erlebt (grantApplePro setzt
+    // pro_notice_seen_at gleich mit). Fehlte der Haken je, soll das Web ihnen keinen
+    // Geschenk-Gruss zeigen.
+    if (data.pro_source === "apple") return { source: null, guest: false };
     return { source: isProSource(data.pro_source) ? data.pro_source : null, guest: false };
   } catch {
     // Fehler ist nicht "Gast": Sonst hörte der Client nach einem einzigen Aussetzer für
