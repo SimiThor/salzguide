@@ -10,6 +10,7 @@ import {
 import { useLocale, useTranslations } from "next-intl";
 import { Link, usePathname } from "@/i18n/navigation";
 import { trackProGate, type ProGateSurface } from "@/lib/pro-gate-track";
+import { isAppEmbedRoute } from "@/lib/routes";
 import BottomSheet from "@/components/BottomSheet";
 import LockedMedia from "@/components/LockedMedia";
 import { ProWordmark } from "@/components/ProBadge";
@@ -105,7 +106,10 @@ export default function ProGateProvider({ children }: { children: ReactNode }) {
   return (
     <Ctx.Provider value={{ show }}>
       {children}
-      <ProGateSheet open={open} spot={spot} onClose={close} />
+      {/* Das Sheet steht auch geschlossen im HTML, samt Link zum Pro-Kauf. In der App-Ansicht
+          für die iOS-App (lib/routes.ts) darf es keinen Weg zu einem fremden Kauf geben
+          (App-Store-Regel 3.1.1(a)), also dort gar nicht erst rendern. */}
+      {!isAppEmbedRoute(pathname) && <ProGateSheet open={open} spot={spot} onClose={close} />}
     </Ctx.Provider>
   );
 }
