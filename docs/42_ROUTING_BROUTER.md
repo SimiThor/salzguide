@@ -461,7 +461,7 @@ Der Code kennt nur `ROUTING_URL` und `ROUTING_TOKEN`. Deshalb bleibt beides mög
   Slugs ("Tour 1 (Rad, Pro)").
 - `npm run routing:drive`: dieselben Runden durch den echten `stepNav`.
   Braucht `scripts/lib/nav-cases.ts` (PR #309); bis dahin `NAV_CASES=<pfad>`.
-- Spot-Wanderrouten und eigene Runden (Abschnitt 16): `routing:check` Abschnitte 3b, 7d,
+- Spot-Wanderrouten und eigene Runden (Abschnitt 16): `routing:check` Abschnitte 3b, 3c, 7d,
   10b, 10c; `npm run spot-routes:compare -- --out=<ordner>` (nur lesend, lokaler BRouter:
   alle Spots und eigenen Runden gegen das Gespeicherte, Bericht und Screenshots);
   `npm run spot-routes:rewrite` (Trockenlauf; `--write` erst nach Freigabe);
