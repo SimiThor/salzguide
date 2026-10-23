@@ -253,10 +253,15 @@ Regeln für alle Routen:
 - **Kompass/Kartendrehung** über `CLHeading`, kein Extra-Erlaubnis-Tipp.
 - **Offenlegung der Stimme** (synthetisch/geklont/Mensch) vor dem Abspielen, wie im Web
   (docs/39).
-- **Online-Routing in der App** wie im Web: Mapbox Directions direkt aus der App (mit dem
-  App-Token), Kette ab GPS-Position.
+- **Online-Routing in der App:** offen, siehe 6.4. Mapbox erlaubt in Apps den Zugriff nur über
+  seine Mobile-SDKs (Product Terms 2.9.1), ein eigener Aufruf der Directions-API aus der App
+  entfällt damit.
 
 ### 6.3 Offline-Paket
+
+**Achtung, Stand 23.10.2026: der Server-Teil unten ist so nicht erlaubt, siehe 6.4.** Die
+Tabelle `tour_nav_routes` mit gespeicherter Mapbox-Linie und Mapbox-Schritten verstößt gegen
+die Mapbox Product Terms. Offline-Karten über das Maps SDK (`TileStore`) sind erlaubt.
 
 **Server (Web-Repo):**
 - Heute holt die Navigation die Route bei jedem Start live von Mapbox; gespeichert ist nur die
@@ -278,6 +283,33 @@ Regeln für alle Routen:
   Kartenausschnitt (bbox + Puffer), Bild-URLs, Audio-URLs (signiert, 2 h, die App lädt sofort),
   `contentHash`. Gesperrte Stopps bekommen nur die Kostprobe (gleiche Regel wie
   `stopAudioAccess`), freie die Vollfassung. Eine Sprache, eine Stimme.
+
+### 6.4 Mapbox-Bedingungen und Routing (offen, Antons Entscheidung)
+
+Recherche 23.10.2026 gegen die Mapbox Product Terms (Stand 20.10.2026); Bericht mit
+wörtlichen Zitaten im privaten App-Repo (`doku/mapbox-recherche-2026-10-23.md`). Keine
+Rechtsberatung.
+
+- **Speichern verboten:** 2.10.1 "Customer shall not export, download, cache or store results
+  from any request to a Navigation API." Directions, Optimization und Map Matching sind
+  Navigation APIs. Dazu 1.9 (v) und 1.10 (nichts speichern, nichts weitergeben).
+- **Betrifft schon das Web:** `tours.route_geo` (aus `snapTourRoute`, Directions) und
+  `user_tours.route_geo` (Optimization) sind gespeicherte Mapbox-Ergebnisse.
+- **Apps nur über die SDKs** (2.9.1). Live-Routing ohne Speichern ist erlaubt, aber in der App
+  nur über ein Mapbox-SDK.
+- **Offline-Karte** über `TileStore` erlaubt (höchstens 750 Kachelpakete, nicht vorladen
+  oder bündeln). Maps SDK bis 25.000 MAU gratis.
+- **Empfehlung der Recherche:** eigener Router auf OpenStreetMap-Daten (z. B. Valhalla, MIT,
+  auf einem EU-Server). Linie und Abbiegeschritte gehören dann uns (Hinweis "©
+  OpenStreetMap-Mitwirkende"), dürfen gespeichert, offline ausgeliefert und für das
+  Online-Umrouten über eine eigene Route (`/api/app/v1/route`) genutzt werden. Mapbox bleibt
+  für die Kartenanzeige. Alternativen: Mapbox Navigation SDK mit Offline-Routing (teuer: ab
+  100 MAU 0,30 $ je MAU, zweiter Navigations-Kern) oder eine Vertragsausnahme von Mapbox.
+- **Bis zur Entscheidung angehalten:** Server-Teil von 6.3 (`tour_nav_routes`, `/package`),
+  Online-Umrouten in der App, Umstellung von `route_geo` im Web. Weiter gebaut wird alles, was
+  davon nicht abhängt: Karte, Spots, Merkliste, Touren mit Stopps und Audio (Sperrbildschirm,
+  Hintergrund), Stopp-Einladungen nach Standort. Abbiegehinweise und Umrouten im
+  Fahrbildschirm brauchen eine Routing-Quelle und warten auf die Entscheidung.
 
 **App:**
 - Download-Manager (Hintergrund-`URLSession`), Fortschritt je Tour, Größe vorher anzeigen.
@@ -402,7 +434,12 @@ Web-Repo-PRs merged Simon; Migrationen spielt Anton VOR dem Merge im SQL Editor 
 ## 11. Datenschutz und Recht
 
 - **Kein Tracking, kein ATT-Dialog nötig:** Analytics bleibt cookiefrei und ohne
-  Geräte-Kennung; Mapbox-Telemetrie im SDK abschalten (Kein-Cookie-Banner-Linie).
+  Geräte-Kennung. **Mapbox-Telemetrie, offen:** Mapbox verbietet, die SDK-Daten
+  einzuschränken, außer durch ein Opt-out, das der Nutzer selbst wählt (2.9.1; eingebaut im
+  i-Symbol der Karte). Ob in der EU "Standard aus" erlaubt ist, steht nirgends: Mapbox und
+  Datenschutzberatung fragen, VOR externem TestFlight entscheiden. Bis dahin steuert der
+  App-Schalter `SG_MAPBOX_TELEMETRY` es an einer Stelle. Das Mapbox-SDK setzt laut seinem
+  Privacy-Manifest kein Tracking, ein ATT-Dialog bleibt unnötig.
 - **Standort:** wird nur auf dem Gerät verarbeitet; an Mapbox gehen Koordinaten nur für
   Routing und Karten. So in den Apple-Datenschutzangaben und in der Datenschutzerklärung.
 - **Datenschutzerklärung** (Webseite, deutsch fest im Code) um einen App-Abschnitt ergänzen:
@@ -421,6 +458,9 @@ Web-Repo-PRs merged Simon; Migrationen spielt Anton VOR dem Merge im SQL Editor 
 - [ ] Supabase: Apple-Provider mit Bundle-ID aktivieren; **offen: Antons Entscheidung** zur Code-Länge (heute 8, Empfehlung 8; bei 6 "Email OTP Expiration" auf 10 bis 15 Minuten)
 - [ ] Simon: `APP_EMAIL_CODE_ENABLED=1` in Vercel setzen, VOR dem TestFlight-Start (bis dahin ist die Code-Route dunkel)
 - [ ] Google Cloud: iOS-OAuth-Client-ID
-- [ ] Mapbox: eigener Token für die App (nur nötige Rechte), Preise für mobile Apps ansehen
+- [ ] Mapbox: eigener Token für die App (nur nötige Rechte). Preise: siehe 6.4 (Maps SDK bis 25.000 MAU gratis)
+- [ ] **Entscheidung Routing (6.4):** eigener OSM-Router, Navigation SDK oder Vertragsausnahme; dazu, was mit `route_geo` im Web passiert
+- [ ] **Entscheidung Mapbox-Telemetrie (11):** Standard an mit Opt-out oder Standard aus; Mapbox-Support und Datenschutz fragen
+- [ ] App Store Connect: China als Verkaufsland ausschließen (Mapbox Product Terms 2.3)
 - [ ] Privates Repo für die App anlegen, Simon Zugriff geben
 - [ ] Simon über Phase 1 informieren (neue Routen unter `/api/app/v1`)
