@@ -26,14 +26,14 @@ delete process.env.ROUTING_TOKEN;
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { createClient } from "@supabase/supabase-js";
-import { classifyRoute, hikingTimeMinutes, routeCumulativeMeters, routeLengthKm } from "../src/lib/geo.ts";
-import { downsample } from "../src/lib/elevation.ts";
+import { hikingTimeMinutes, routeLengthKm } from "../src/lib/geo.ts";
 import { tourDurationMin } from "../src/lib/routing/chain.ts";
 import { snapSpotRouteCore } from "../src/lib/routing/snap-spot.ts";
 import { routeUserLoop } from "../src/lib/routing/user-loop.ts";
 import type { LngLat } from "../src/lib/routing/types.ts";
 import type { ElevationProfile } from "../src/lib/elevation.ts";
 import { compareLines, NEAR_M, type LineComparison } from "./lib/line-compare.ts";
+import { deriveWaypoints, KP_SPACING_M } from "./lib/spot-routes.ts";
 
 const arg = (n: string, d: string | null = null) => process.argv.find((a) => a.startsWith(`--${n}=`))?.slice(n.length + 3) ?? d;
 const OUT = arg("out");
@@ -53,22 +53,6 @@ const HAUSDORFF_M = 250;
 const NEAR_MIN = 0.6;
 const ASC_PCT = 0.3;
 const ASC_ABS = 50;
-/** Abstand der abgeleiteten Kontrollpunkte auf der gespeicherten Linie. */
-const KP_SPACING_M = 150;
-const KP_MIN = 6;
-const KP_MAX = 40;
-
-/** Kontrollpunkte aus der gespeicherten Linie: Wendepunkt bleibt erhalten (hin&zurück = Hinweg verdoppelt). */
-function deriveWaypoints(line: LngLat[]): { points: LngLat[]; shape: string } {
-  const c = classifyRoute(line);
-  const shape = c.shape === "out-and-back" ? "hin&zurück" : c.closed ? "Rundweg" : "Strecke";
-  const base = c.shape === "out-and-back" ? line.slice(0, c.turnaroundIndex + 1) : line;
-  const lenM = routeCumulativeMeters(base).at(-1) ?? 0;
-  const k = Math.max(KP_MIN, Math.min(KP_MAX, Math.round(lenM / KP_SPACING_M)));
-  const pts = downsample(base, k);
-  return { points: c.shape === "out-and-back" ? [...pts, ...pts.slice(0, -1).reverse()] : pts, shape };
-}
-
 type Row = {
   kind: "spot" | "user";
   label: string;
@@ -360,8 +344,9 @@ function report(spotRows: Row[], userRows: Row[], pngs: string[]): string {
   L.push(`- Hinweise des Dienstes (Kontrollpunkt weit neben der Linie, Kehre): ${ok.filter((r) => r.neu!.warnings.length).length} Spots.`);
   const kp = spotRows.filter((r) => r.storedKp && !r.storedKp.error);
   const kpShort = kp.filter((r) => r.storedKp!.km < r.old.km * 0.7);
+  const kpOff = kp.filter((r) => Math.abs(r.storedKp!.km - r.old.km) > r.old.km * 0.15);
   L.push(``);
-  L.push(`**Gespeicherte Kontrollpunkte (route_waypoints) sind für das Neu-Rechnen NICHT brauchbar:** aus ihnen (so wie "Anpassen" im Admin heute, mit jedem Dienst) werden ${kpShort.length} von ${kp.length} Linien um mehr als 30 % kürzer, ${spotRows.filter((r) => r.storedKp?.error).length} scheitern. Grund: Der WP-Import hat die fertige Linie auf 4 bis 20 Punkte eingedampft (\`waypointsFor\`), bei Hin-und-zurück-Wegen (${spotRows.filter((r) => r.shape === "hin&zurück").length} von ${spotRows.length}) ohne den Wendepunkt. Die Tabelle rechnet deshalb mit Kontrollpunkten aus der gespeicherten Linie selbst (Hinweg alle ${KP_SPACING_M} m, dann verdoppelt). Beim Neu-Rechnen sollten diese Punkte auch als route_waypoints gespeichert werden, sonst zerstört der nächste Klick auf "Anpassen" die Route (Skript-Option --fix-waypoints).`);
+  L.push(`**Gespeicherte Kontrollpunkte (route_waypoints) sind für das Neu-Rechnen NICHT brauchbar:** aus ihnen (so wie "Anpassen" im Admin heute, mit jedem Dienst) werden ${kpShort.length} von ${kp.length} Linien um mehr als 30 % kürzer, ${kpOff.length} weichen um mehr als 15 % in der Länge ab, ${spotRows.filter((r) => r.storedKp?.error).length} scheitern. Grund: Der WP-Import hat die fertige Linie auf 4 bis 20 Punkte eingedampft (\`waypointsFor\`), bei Hin-und-zurück-Wegen (${spotRows.filter((r) => r.shape === "hin&zurück").length} von ${spotRows.length}) ohne den Wendepunkt. Die Tabelle rechnet deshalb mit Kontrollpunkten aus der gespeicherten Linie selbst (Hinweg alle ${KP_SPACING_M} m, dann verdoppelt). Beim Neu-Rechnen sollten diese Punkte auch als route_waypoints gespeichert werden, sonst zerstört der nächste Klick auf "Anpassen" die Route (Skript-Option --fix-waypoints).`);
   L.push(``);
   L.push(`| Spot | Pro | Form | KP | alt km | neu km | Δ | alt ↑/↓ | neu ↑/↓ | Dauer alt (Feld / SAC) | neu SAC | Hausdorff | Mittel | nah | aus gesp. KP | Flags |`);
   L.push(`|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|`);
