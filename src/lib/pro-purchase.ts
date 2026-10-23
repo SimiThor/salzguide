@@ -699,6 +699,20 @@ export async function grantPro(
     .eq("id", id)
     .maybeSingle();
   if (cur?.is_pro && cur?.pro_source === "stripe") return;
+  // Aktives Apple-Pro (Kauf in der iOS-App, lib/apple-purchase.ts) wird nie überschrieben: Sonst
+  // griffe die Apple-Erstattung nicht mehr (sie entzieht nur pro_source = 'apple'), und der
+  // Mensch behielte Pro trotz Rückzahlung. (Gegenüber Geschenk und Übernahme ändert sich nichts:
+  // Dort gewinnt weiter der Stripe-Kauf, damit er erstattbar bleibt. Nur Apple wird geschützt.)
+  // Der Mensch hat jetzt aber zweimal bezahlt, einmal bei Apple und einmal bei Stripe: laut melden,
+  // damit eine der beiden Zahlungen erstattet wird.
+  if (cur?.is_pro && cur?.pro_source === "apple") {
+    await logOps("apple_purchase_manual", {
+      message: "Doppelt bezahlt: Stripe zusätzlich zu Apple. Erstattung prüfen.",
+      detail: { userId: id },
+      group: "apple:double_stripe",
+    });
+    return;
+  }
   const { error } = await svc
     .from("profiles")
     .update({

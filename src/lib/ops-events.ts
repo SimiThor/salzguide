@@ -234,6 +234,14 @@ export const OPS_EVENTS = {
     quietMinutes: 60,
     hint: "Bots klopfen am Login. Der Check hält sie. Nur relevant, wenn gleichzeitig echte Nutzer klagen, sie kämen nicht durch.",
   },
+  apple_revoke_failed: {
+    area: "auth",
+    severity: "error",
+    title: "Apple-Token nicht widerrufen",
+    alertAfter: 1,
+    quietMinutes: 360,
+    hint: "Jemand hat sein Konto mit „Mit Apple anmelden“ gelöscht. Das Konto ist weg, aber Apples Token wurde nicht widerrufen (Apple-Richtlinie 5.1.1). Die Meldung sagt, welcher Fall: „ohne authorizationCode“ = die App hat keinen Code mitgeschickt (Fehler in der App, an Anton melden). „Apple-Widerruf fehlgeschlagen“ = Apple hat abgelehnt oder war nicht erreichbar (Schlüssel, Team-ID und Bundle-ID in Vercel prüfen, ist der Schlüssel in der Apple-Entwicklerkonsole noch gültig?). Der Nutzer kann den Zugriff selbst beenden: Einstellungen, Apple-Konto, Mit Apple anmelden.",
+  },
 
   // ── Zahlung: hier hängt Geld dran ─────────────────────────────────────────────────
   stripe_fulfillment_failed: {
@@ -282,6 +290,75 @@ export const OPS_EVENTS = {
     alertAfter: 0,
     quietMinutes: 720,
     hint: "Ein Kauf aus einem anderen System (alte WordPress-Seite) hat den Webhook erreicht und wurde bewusst nicht verbucht. Nur prüfen, wenn das lange nach dem Ende der alten Seite noch auftaucht.",
+  },
+
+  // ── Apple-Kauf (iOS-App, docs/41 Abschnitt 7) ──────────────────────────────────────
+  apple_purchase_failed: {
+    area: "payment",
+    severity: "error",
+    title: "Apple-Kauf nicht verbucht",
+    // Derselbe Gedanke wie bei stripe_fulfillment_failed: Jemand hat bei Apple gezahlt, und wir
+    // konnten es nicht verbuchen oder nicht freischalten. Sofort, aber "error": Die App
+    // wiederholt den Aufruf (Wiederherstellen, nächster Start), Apple stellt Benachrichtigungen
+    // erneut zu, es löst sich oft von selbst.
+    alertAfter: 1,
+    quietMinutes: 30,
+    hint: "Ein Apple-Kauf oder eine Erstattung konnte nicht verarbeitet werden (Datenbank oder Apple nicht erreichbar, Migration 0074/0075 nicht eingespielt?). Die Meldung nennt den Schritt. Die App versucht es von selbst erneut, Apple stellt Benachrichtigungen mehrfach zu. Hält es an: im Admin unter Nutzer Pro von Hand setzen und die Person anschreiben.",
+  },
+  apple_purchase_invalid: {
+    area: "payment",
+    severity: "warn",
+    title: "Apple-Transaktion abgelehnt",
+    // Einzelne sind harmlos (Testkäufe aus TestFlight im falschen Modus, kaputter Client).
+    // Eine Häufung heisst: Konfiguration (Bundle-ID, App-ID, Umgebung, Wurzelzertifikate)
+    // passt nicht, und KEIN echter Kauf geht durch.
+    alertAfter: 3,
+    quietMinutes: 60,
+    hint: "Die Signatur oder die Angaben einer eingereichten Transaktion stimmen nicht (Grund steht in der Meldung). Wenn es sich häuft und echte Käufer betroffen sind: APPLE_IAP_BUNDLE_ID, APPLE_IAP_PRODUCT_ID, APPLE_IAP_APP_APPLE_ID und APPLE_IAP_ENVIRONMENT in Vercel prüfen. Reine TestFlight-Käufe brauchen APPLE_IAP_ENVIRONMENT=Both oder Sandbox.",
+  },
+  apple_purchase_foreign: {
+    area: "payment",
+    severity: "warn",
+    title: "Apple-Kauf gehört zu anderem Konto",
+    // Kein Alarm, aber ein Mensch hat bezahlt und bekam nichts: Support-Fall. Sofort sichtbar.
+    alertAfter: 1,
+    quietMinutes: 120,
+    hint: "Jemand hat einen Apple-Kauf eingereicht, der einem anderen, noch bestehenden Konto gehört (oder dessen Token auf ein anderes Konto zeigt). Es wurde NICHTS umgebunden. Meist: zweites Konto desselben Menschen. Person fragen, welches Konto sie nutzen will; im Admin Pro von Hand setzen, wenn der Kauf wirklich ihr gehört.",
+  },
+  apple_purchase_manual: {
+    area: "payment",
+    severity: "warn",
+    title: "Apple-Kauf braucht einen Blick",
+    alertAfter: 1,
+    quietMinutes: 120,
+    hint: "Ein Apple-Vorgang, den der Server bewusst nicht allein entscheidet. Die Meldung nennt den Fall: Doppelt bezahlt (Konto hatte schon Pro aus anderer Quelle, Erstattung bei Apple prüfen), Erstattung rückgängig gemacht (REFUND_REVERSED, Pro von Hand setzen, wenn der Käufer es zurückhat).",
+  },
+  apple_notification_invalid: {
+    area: "payment",
+    severity: "warn",
+    title: "Apple-Benachrichtigung abgewiesen",
+    alertAfter: 3,
+    quietMinutes: 120,
+    hint: "Eine Server-Benachrichtigung an /api/app/v1/apple/notifications hatte keine gültige Apple-Signatur oder gehörte zu einer anderen App. Einzelne sind Rauschen (jemand testet die Adresse). Häufung bei echten Erstattungen: Wurzelzertifikate, Bundle-ID und App-ID prüfen, in App Store Connect die Zustellung ansehen.",
+  },
+  apple_notification_app_mismatch: {
+    area: "payment",
+    severity: "error",
+    title: "Apple-Benachrichtigung: andere App",
+    // Eine echte, von Apple signierte Benachrichtigung passt nicht zu unserer Konfiguration. Dann
+    // landet keine Erstattung mehr: Pro bliebe nach einer Rückzahlung stehen. Sofort.
+    alertAfter: 1,
+    quietMinutes: 60,
+    hint: "Apple hat eine signierte Benachrichtigung geschickt, deren Bundle-ID oder App-ID nicht zu APPLE_IAP_BUNDLE_ID bzw. APPLE_IAP_APP_APPLE_ID passt (oder eine Sandbox-Meldung bei APPLE_IAP_ENVIRONMENT=Production). Variablen in Vercel prüfen, solange das nicht stimmt, werden Erstattungen NICHT verarbeitet. Apple stellt die Meldung mehrfach zu.",
+  },
+  apple_notification_ignored: {
+    area: "payment",
+    severity: "info",
+    title: "Apple-Benachrichtigung ohne Aktion",
+    // Typen, die für einen einmaligen Kauf nichts zu tun haben (TEST, CONSUMPTION_REQUEST, ...).
+    alertAfter: 0,
+    quietMinutes: 1440,
+    hint: "Eine gültige Apple-Benachrichtigung, für die der Server nichts tun muss. Nur zur Nachvollziehbarkeit.",
   },
 
   // ── KI: hier hängt ebenfalls Geld dran, nur andersherum ───────────────────────────
@@ -677,5 +754,12 @@ export const OPS_JOBS: readonly OpsJob[] = [
     label: "Wöchentliche Event-Recherche",
     schedule: "montags 05:00 UTC",
     overdueHours: 24 * 10,
+  },
+  {
+    job: "apple-secret",
+    label: "Apple-Secret erneuern (Web-Login)",
+    schedule: "monatlich am 1., 04:00 UTC",
+    // Das Secret gilt 180 Tage. 45 Tage ohne Lauf = ein Lauf verpasst, noch ~135 Tage Puffer.
+    overdueHours: 24 * 45,
   },
 ] as const;

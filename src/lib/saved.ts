@@ -26,13 +26,21 @@ export async function getOrCreateDefaultList(
   supabase: SupabaseClient,
   userId: string,
 ): Promise<string | null> {
-  const { data } = await supabase
-    .from("saved_lists")
-    .select("id")
-    .eq("user_id", userId)
-    .eq("is_default", true)
-    .maybeSingle();
-  if (data) return data.id;
+  // order + limit statt maybeSingle(): Hat ein Rennen (zwei gleichzeitige Erstanfragen) doch
+  // zwei Standardlisten hinterlassen, nehmen wir die älteste, statt mit einem Fehler zu
+  // scheitern. Gegen das Entstehen schützt der Index aus Migration 0073.
+  const find = async () => {
+    const { data } = await supabase
+      .from("saved_lists")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("is_default", true)
+      .order("created_at", { ascending: true })
+      .limit(1);
+    return (data?.[0]?.id as string | undefined) ?? null;
+  };
+  const existing = await find();
+  if (existing) return existing;
 
   const { data: created, error } = await supabase
     .from("saved_lists")
@@ -40,10 +48,29 @@ export async function getOrCreateDefaultList(
     .select("id")
     .single();
   if (error) {
+    // 23505 = eine parallele Anfrage war schneller (Index aus 0073): deren Liste nehmen.
+    if (error.code === "23505") return find();
     console.error("getOrCreateDefaultList:", error.message);
     return null;
   }
   return created.id;
+}
+
+// Slugs der gespeicherten Spots über einen ausdrücklich übergebenen Client (RLS filtert auf
+// die eigenen). Für die App-API (/api/app/v1/saved): Sie übergibt createBearerClient(token),
+// das Web den Cookie-Client. WIRFT bei einem Datenbankfehler; die Web-Fassung unten fängt das
+// (leere Menge), die App antwortet 503, damit sie "nichts gemerkt" nicht mit "Ausfall"
+// verwechselt und lokal Gespeichertes nicht überschreibt.
+export async function getSavedSlugsFor(client: SupabaseClient): Promise<Set<string>> {
+  const { data, error } = await client.from("saved_items").select("spots(slug)");
+  if (error) throw error;
+
+  const set = new Set<string>();
+  for (const row of (data ?? []) as { spots: { slug: string } | { slug: string }[] | null }[]) {
+    const s = Array.isArray(row.spots) ? row.spots[0] : row.spots;
+    if (s?.slug) set.add(s.slug);
+  }
+  return set;
 }
 
 // Slugs der gespeicherten Spots des aktuellen Users (RLS filtert auf eigene)
@@ -55,30 +82,25 @@ export async function getOrCreateDefaultList(
 export async function getSavedSlugs(): Promise<Set<string>> {
   if (!(await currentUserId())) return new Set();
   const supabase = await createClient();
-
-  const { data, error } = await supabase
-    .from("saved_items")
-    .select("spots(slug)");
-  if (error) return new Set();
-
-  const set = new Set<string>();
-  for (const row of (data ?? []) as { spots: { slug: string } | { slug: string }[] | null }[]) {
-    const s = Array.isArray(row.spots) ? row.spots[0] : row.spots;
-    if (s?.slug) set.add(s.slug);
+  try {
+    return await getSavedSlugsFor(supabase);
+  } catch {
+    return new Set();
   }
-  return set;
 }
 
-// Gespeicherte Spots als Karten-Daten (null = nicht eingeloggt)
-export async function getSavedSpots(locale: string): Promise<SavedSpot[] | null> {
-  if (!(await currentUserId())) return null;
-  const supabase = await createClient();
-
-  const { data: items } = await supabase.from("saved_items").select("spot_id");
+// Gespeicherte Spots als Karten-Daten über einen ausdrücklich übergebenen Client (RLS). Wirft
+// bei einem Datenbankfehler (siehe getSavedSlugsFor).
+export async function getSavedSpotsFor(
+  supabase: SupabaseClient,
+  locale: string,
+): Promise<SavedSpot[]> {
+  const { data: items, error: itemsError } = await supabase.from("saved_items").select("spot_id");
+  if (itemsError) throw itemsError;
   const ids = (items ?? []).map((i) => i.spot_id);
   if (ids.length === 0) return [];
 
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("spots")
     .select(
       "slug, emoji, is_pro, type, lat, lng, route_bbox, spot_translations!inner(title, short_desc, lang), media(url, role, sort_order, ai_origin)",
@@ -87,6 +109,7 @@ export async function getSavedSpots(locale: string): Promise<SavedSpot[] | null>
     .eq("status", "published")
     .in("spot_translations.lang", localeWithFallback(locale))
     .order("sort_weight", { ascending: false });
+  if (error) throw error;
 
   return (data ?? []).map((s) => {
     const t = pickTranslation(
@@ -114,4 +137,16 @@ export async function getSavedSpots(locale: string): Promise<SavedSpot[] | null>
       routeBounds: s.type === "activity" ? asBBox(s.route_bbox) : null,
     };
   });
+}
+
+// Gespeicherte Spots als Karten-Daten (null = nicht eingeloggt)
+export async function getSavedSpots(locale: string): Promise<SavedSpot[] | null> {
+  if (!(await currentUserId())) return null;
+  const supabase = await createClient();
+  try {
+    return await getSavedSpotsFor(supabase, locale);
+  } catch {
+    // Wie vorher: Ein Lesefehler zeigt eine leere Liste statt die Seite zu kippen.
+    return [];
+  }
 }

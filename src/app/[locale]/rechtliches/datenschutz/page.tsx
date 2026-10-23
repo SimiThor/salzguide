@@ -43,8 +43,11 @@ export default async function DatenschutzPage({
       <h3>a) Konto &amp; Login</h3>
       <p>
         Für Registrierung und Anmeldung verarbeiten wir deine E-Mail-Adresse. Die Anmeldung erfolgt
-        passwortlos per Magic-Link oder über „Anmelden mit Google“. Bei Google-Login erhalten wir
-        von Google deine E-Mail-Adresse und die Bestätigung, dass sie verifiziert ist. Die Angabe
+        passwortlos per Magic-Link, über „Anmelden mit Google“ oder über „Mit Apple anmelden“. Bei
+        Google-Login erhalten wir von Google deine E-Mail-Adresse und die Bestätigung, dass sie
+        verifiziert ist. Bei der Anmeldung mit Apple erhalten wir von Apple eine stabile Nutzer-ID,
+        deine E-Mail-Adresse (auf Wunsch eine Apple-Weiterleitungsadresse, wenn du
+        „E-Mail-Adresse verbergen“ wählst) und, falls du es freigibst, deinen Namen. Die Angabe
         der E-Mail-Adresse ist für Registrierung, Login und Kauf erforderlich; ohne sie können diese
         Funktionen nicht bereitgestellt werden.
       </p>
@@ -393,6 +396,9 @@ export default async function DatenschutzPage({
         </li>
         <li>
           <strong>Google</strong> – „Anmelden mit Google“ sowie Öffnungszeiten (Google Places), Irland/USA.
+        </li>
+        <li>
+          <strong>Apple</strong> (Apple Distribution International Ltd.) – „Mit Apple anmelden“, Irland/USA.
         </li>
         <li>
           <strong>Mapbox</strong> (mit OpenStreetMap) – Kartendarstellung und, bei der
