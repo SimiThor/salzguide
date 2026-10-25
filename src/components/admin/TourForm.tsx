@@ -427,6 +427,12 @@ export default function TourForm({
         if (req !== snapReq.current) return; // eine neuere Anfrage läuft schon
         if (r.ok && r.routeGeo) {
           const last = lastSnapRef.current;
+          // Länge und Dauer gehören dem Admin: Übernommen werden sie nur in ein LEERES Feld oder
+          // eines, das noch den letzten Maschinenwert trägt (adopt). Die Meldung sagt, was
+          // wirklich passiert ist.
+          const cur0 = formRef.current;
+          const takeKm = adopt(cur0.distanceKm, last?.distanceKm, r.distanceKm) === numText(r.distanceKm);
+          const takeMin = adopt(cur0.durationMin, last?.durationMin, r.durationMin) === numText(r.durationMin);
           setForm((cur) => ({
             ...cur,
             routeGeo: r.routeGeo!,
@@ -441,9 +447,11 @@ export default function TourForm({
           }));
           setLastSnap({ distanceKm: numText(r.distanceKm), durationMin: numText(r.durationMin) });
           setMsg(
-            `✓ Route an die Wege angepasst${
-              r.distanceKm != null ? `: ${r.distanceKm} km, ca. ${r.durationMin} Min` : ""
-            }.`,
+            `✓ Route an die Wege angepasst, neu berechnet: ${r.distanceKm ?? "?"} km, ${r.durationMin ?? "?"} Min${
+              takeKm && takeMin ? " (in die Felder übernommen)" : " (Länge und Dauer im Formular bleiben, wie sie sind)"
+            }.${r.warnings?.length ? ` Hinweise: ${r.warnings.join(" ")}` : ""}${
+              r.attribution ? ` Route: ${r.attribution}` : ""
+            }`,
           );
         } else setErr(adminErrorText(r.error));
       } catch {

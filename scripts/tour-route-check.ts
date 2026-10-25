@@ -269,22 +269,5 @@ console.log("\n7. selectNavVias: nur vor dem Gast, nur zu offenen Halten, gedeck
   else bad("ohne Halte", "Wegpunkte");
 }
 
-// ── 8. Antwort zurücklesen ────────────────────────────────────────────────────────────
-console.log("\n8. alongFromViaWaypoints: Halte und Wegpunkte auf unserer Linie");
-{
-  type Along = { spotAlongM: number[]; viaAlongM: Record<string, number> };
-  const r = out<Along>("08/along-mixed");
-  if (same(r.spotAlongM, [150, 350]) && r.viaAlongM.v1 === 50 && r.viaAlongM.v2 === 250) ok("gemischte Folge", JSON.stringify(r));
-  else bad("gemischt", JSON.stringify(r));
-
-  const r2 = out<Along>("08/along-plain");
-  if (same(r2.spotAlongM, [200, 500]) && Object.keys(r2.viaAlongM).length === 0)
-    ok("ohne Wegpunkte und ohne Ziel: letzter Halt = Routenende (wie bisher)");
-  else bad("ohne Wegpunkte", JSON.stringify(r2));
-  const r3 = out<Along>("08/along-unknown-index");
-  if (same(r3.spotAlongM, [500, 500])) ok("unbekannter waypoint_index wird ignoriert");
-  else bad("unbekannter Index", JSON.stringify(r3));
-}
-
 console.log(failed ? `\n${failed} Probleme.` : "\nAlles in Ordnung.");
 process.exit(failed ? 1 : 0);

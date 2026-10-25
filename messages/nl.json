@@ -160,7 +160,24 @@
     "navWalkIntro": "Om je van halte naar halte te leiden heeft de app je locatie nodig.",
     "navResumeWalk": "Verder lopen, halte {n} van {total}",
     "navDoneContinueWalk": "Verder lopen",
-    "navDoneTitleEnd": "Bij de finish"
+    "navDoneTitleEnd": "Bij de finish",
+    "maneuver": {
+      "left": "Sla linksaf",
+      "right": "Sla rechtsaf",
+      "slightLeft": "Ga licht naar links",
+      "slightRight": "Ga licht naar rechts",
+      "sharpLeft": "Sla scherp linksaf",
+      "sharpRight": "Sla scherp rechtsaf",
+      "keepLeft": "Houd links",
+      "keepRight": "Houd rechts",
+      "straight": "Ga rechtdoor",
+      "uturn": "Keer om",
+      "roundabout": "Neem op de rotonde de {exit}e afslag",
+      "arrive": "Je bent er"
+    },
+    "navUnavailable": "Navigatie is nu niet beschikbaar. Tik om opnieuw te proberen.",
+    "navTooFar": "Te ver van de ronde. Tik om opnieuw te proberen.",
+    "routeAttribution": "Route: © OpenStreetMap-bijdragers"
   },
   "Water": {
     "title": "Watertemperaturen",

@@ -160,7 +160,24 @@
     "navWalkIntro": "A megállótól megállóig vezetéshez szükség van a helyzetedre.",
     "navResumeWalk": "Tovább gyalog, {n}. megálló (összesen {total})",
     "navDoneContinueWalk": "Tovább gyalog",
-    "navDoneTitleEnd": "A célnál"
+    "navDoneTitleEnd": "A célnál",
+    "maneuver": {
+      "left": "Forduljon balra",
+      "right": "Forduljon jobbra",
+      "slightLeft": "Forduljon enyhén balra",
+      "slightRight": "Forduljon enyhén jobbra",
+      "sharpLeft": "Forduljon élesen balra",
+      "sharpRight": "Forduljon élesen jobbra",
+      "keepLeft": "Tartson balra",
+      "keepRight": "Tartson jobbra",
+      "straight": "Haladjon egyenesen",
+      "uturn": "Forduljon vissza",
+      "roundabout": "A körforgalomban a(z) {exit}. kijáraton hajtson ki",
+      "arrive": "Megérkezett"
+    },
+    "navUnavailable": "A navigáció jelenleg nem elérhető. Koppints az újrapróbáláshoz.",
+    "navTooFar": "Túl messze van az útvonaltól. Koppints az újrapróbáláshoz.",
+    "routeAttribution": "Útvonal: © az OpenStreetMap közreműködői"
   },
   "Water": {
     "title": "Vízhőmérséklet",

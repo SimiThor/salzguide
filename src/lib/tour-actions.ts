@@ -11,17 +11,13 @@ import {
   cleanRouteVia,
   chainKeys,
   reconcileVia,
-  flattenChain,
-  chainCoords,
-  tourRouteHash,
-  MAX_DIRECTIONS_COORDS,
-  type ChainStop,
   type RoutePoint,
   type ViaLeg,
 } from "./tour-route";
 import type { TourMode } from "./tour-mode";
 import { getDefaultVoice, getVoiceById } from "./tts-voices";
 import { loadTourVoiceMisses } from "./tts-files";
+import { snapTourRouteCore, type SnapRouteInput as SnapCoreInput, type SnapRouteResult as SnapCoreResult } from "./routing/snap-tour";
 import { routing } from "@/i18n/routing";
 import { localeMeta } from "@/i18n/locales";
 
@@ -548,138 +544,19 @@ export async function translateTourTextsAll(input: TourTexts): Promise<TourTrans
   };
 }
 
-// ── Route an die Fusswege anpassen (Mapbox Walking Directions) ───────────────
+// ── Route an die Wege anpassen (eigener Routendienst, docs/42) ───────────────
 // Anders als bei den KI-Runden wird hier NICHT optimiert: Die Reihenfolge der
 // Stationen ist die kuratierte Entscheidung des Admins und bleibt, wie sie ist.
-// Geholt wird nur die echte Geh-Linie dazwischen (statt Luftlinie über Häuser).
-export type SnapRouteInput = {
-  start: RoutePoint | null;
-  end: RoutePoint | null;
-  pointIds: string[]; // Stationen in kuratierter Reihenfolge
-  // Fortbewegungsart (0064). Sie entscheidet über das Mapbox-Profil UND über die Dauer.
-  // Bis 25.08.2026 war hier "walking" fest verdrahtet, und für eine Radrunde ist das
-  // gleich zweimal falsch: Das Geh-Profil führt durch Fussgängerzonen und über Treppen,
-  // also genau dorthin, wo docs/40 nicht hinwill, und die Dauer wäre Gehzeit. Für Runde A
-  // hiesse das rund zwei Stunden statt einer.
-  mode?: TourMode;
-  // Wegpunkte ohne Geschichte je Abschnitt (0071), aus dem Formular.
-  via?: ViaLeg[];
-};
-export type SnapRouteResult = {
-  ok: boolean;
-  routeGeo?: [number, number][];
-  routeHash?: string;
-  distanceKm?: number;
-  durationMin?: number;
-  // Die Wegpunkte, die WIRKLICH in die Anfrage gingen (nach reconcileVia). Das Formular
-  // uebernimmt sie, damit sein Hash derselbe ist wie der hier gerechnete.
-  via?: ViaLeg[];
-  error?: string;
-};
+// Geholt wird nur die echte Linie dazwischen (statt Luftlinie über Häuser).
+// Bis 23.10.2026 über Mapbox Directions; deren Bedingungen verbieten, das Ergebnis zu
+// speichern (tours.route_geo wird gespeichert). Jetzt BRouter auf OpenStreetMap-Daten.
+// Der Kern steht in lib/routing/snap-tour.ts (server-only), diese Action prüft nur den Admin.
+export type SnapRouteInput = SnapCoreInput;
+export type SnapRouteResult = SnapCoreResult;
 
 export async function snapTourRoute(input: SnapRouteInput): Promise<SnapRouteResult> {
   const gate = await requireAdmin();
   if (!gate.ok) return { ok: false, error: gate.error };
-
-  const pointIds = (input.pointIds ?? []).filter((x) => typeof x === "string" && x);
-  if (pointIds.length < 1)
-    return { ok: false, error: "Bitte zuerst Stationen zur Runde hinzufügen." };
-
-  // Koordinaten kommen aus der DB, nicht aus dem Formular: Der Server soll die Runde
-  // aus dem laufen, was wirklich gespeichert ist.
-  const { data: pts, error: ptsErr } = await gate.supabase
-    .from("tour_points")
-    .select("id, lat, lng")
-    .in("id", pointIds);
-  if (ptsErr) return { ok: false, error: "db" };
-  const byId = new Map(
-    ((pts ?? []) as { id: string; lat: number | null; lng: number | null }[]).map((p) => [p.id, p]),
-  );
-  const stops: ChainStop[] = [];
-  for (const id of pointIds) {
-    const p = byId.get(id);
-    if (!p || p.lat == null || p.lng == null)
-      return { ok: false, error: "Mindestens eine Station hat noch keinen Punkt auf der Karte." };
-    stops.push({ id, coord: [p.lng, p.lat] });
-  }
-
-  // Wegpunkte ohne Geschichte (0071): nur an Abschnitten, die es in dieser Kette gibt. Was
-  // hier wegfaellt, geht mit der Antwort zurueck, damit das Formular denselben Stand hasht
-  // wie der Server. Ohne eigenen Start/Ziel läuft die Runde von der ersten zur letzten
-  // Station.
-  const via = reconcileVia(cleanRouteVia(input.via), chainKeys(input.start, input.end, pointIds)).legs;
-  const chain = chainCoords(flattenChain({ start: input.start, end: input.end, stops, via }));
-  if (chain.length < 2)
-    return { ok: false, error: "Für eine Route braucht es mindestens zwei Punkte." };
-  if (chain.length > MAX_DIRECTIONS_COORDS)
-    return {
-      ok: false,
-      error: `Zu viele Punkte für die Routenberechnung (${chain.length}, erlaubt sind ${MAX_DIRECTIONS_COORDS} inkl. Start, Wegpunkten und Ziel).`,
-    };
-
-  // Eigener SERVER-Token: Der öffentliche NEXT_PUBLIC-Token ist URL-beschränkt, ein
-  // serverseitiger fetch schickt keinen Referer -> Mapbox antwortet 403 (siehe
-  // tour-generate.ts). Fallback nur, damit es lokal nicht hart bricht.
-  const token = process.env.MAPBOX_SERVER_TOKEN ?? process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
-  if (!token)
-    return { ok: false, error: "MAPBOX_SERVER_TOKEN fehlt – bitte in .env.local eintragen." };
-
-  const istRad = input.mode === "bike";
-  const profil = istRad ? "cycling" : "walking";
-  // Dieselbe Anfrageform wie die Rad-Navigation (bike-directions.ts): alles zwischen dem
-  // ersten und dem letzten Punkt ist ein STILLER Wegpunkt (`waypoints=0;<letzter>`, Mapbox
-  // verlangt dazu steps=true). Bis 15.09.2026 gingen die Stationen als echte Zwischenhalte
-  // mit, und die Vorschau war eine andere Linie als die, die der Gast dann faehrt.
-  const coordStr = chain.map((c) => `${c[0]},${c[1]}`).join(";");
-  const url =
-    `https://api.mapbox.com/directions/v5/mapbox/${profil}/${coordStr}` +
-    `?geometries=geojson&overview=full&steps=true&waypoints=0;${chain.length - 1}&access_token=${token}`;
-  try {
-    const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
-    if (!res.ok) {
-      const body = await res.text().catch(() => "");
-      // 403 = fast immer ein URL-beschränkter Token (Referer fehlt serverseitig).
-      console.error("[snapTourRoute] Mapbox", res.status, body.slice(0, 200));
-      return { ok: false, error: `Mapbox antwortet ${res.status}. Bitte Token prüfen.` };
-    }
-    const j = await res.json();
-    const route = Array.isArray(j.routes) ? j.routes[0] : null;
-    const geo = cleanRouteGeo(route?.geometry?.coordinates);
-    if (j.code !== "Ok" || !geo)
-      return {
-        ok: false,
-        error: `Mapbox hat keine ${istRad ? "Rad" : "Geh"}-Route gefunden. Punkte prüfen.`,
-      };
-
-    const distanceKm =
-      typeof route.distance === "number" ? Math.round(route.distance / 100) / 10 : undefined;
-    // Zuschlag je Station: zu Fuss ~2 Minuten (Zuhören und Stehenbleiben), am Rad 1 Minute.
-    // Die Audiotexte einer Radrunde sind rund 55 Sekunden lang, und gehört wird im Fahren;
-    // gestanden wird nur, wer will. Gemessen an den sieben Texten der Runde A: 6 Minuten
-    // Hörzeit auf der ganzen Runde, nicht 14.
-    const proStopMin = istRad ? 1 : 2;
-    const durationMin =
-      typeof route.duration === "number"
-        ? Math.round(route.duration / 60) + stops.length * proStopMin
-        : undefined;
-
-    return {
-      ok: true,
-      routeGeo: geo,
-      routeHash: tourRouteHash({
-        start: input.start,
-        end: input.end,
-        stops,
-        mode: istRad ? "bike" : "walk",
-        via,
-      }),
-      distanceKm,
-      durationMin,
-      via,
-    };
-  } catch (err) {
-    console.error("[snapTourRoute]", err instanceof Error ? err.message : err);
-    return { ok: false, error: "Routendienst gerade nicht erreichbar – bitte nochmal versuchen." };
-  }
+  return snapTourRouteCore(gate.supabase, input);
 }
 

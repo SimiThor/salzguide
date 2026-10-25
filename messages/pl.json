@@ -160,7 +160,24 @@
     "navWalkIntro": "Prowadzenie od przystanku do przystanku wymaga twojej lokalizacji.",
     "navResumeWalk": "Idź dalej, przystanek {n} z {total}",
     "navDoneContinueWalk": "Idź dalej",
-    "navDoneTitleEnd": "U celu"
+    "navDoneTitleEnd": "U celu",
+    "maneuver": {
+      "left": "Skręć w lewo",
+      "right": "Skręć w prawo",
+      "slightLeft": "Skręć lekko w lewo",
+      "slightRight": "Skręć lekko w prawo",
+      "sharpLeft": "Skręć ostro w lewo",
+      "sharpRight": "Skręć ostro w prawo",
+      "keepLeft": "Trzymaj się lewej",
+      "keepRight": "Trzymaj się prawej",
+      "straight": "Jedź prosto",
+      "uturn": "Zawróć",
+      "roundabout": "Na rondzie zjedź {exit}. zjazdem",
+      "arrive": "Jesteś u celu"
+    },
+    "navUnavailable": "Nawigacja jest chwilowo niedostępna. Dotknij, aby spróbować ponownie.",
+    "navTooFar": "Zbyt daleko od trasy. Dotknij, aby spróbować ponownie.",
+    "routeAttribution": "Trasa: © współtwórcy OpenStreetMap"
   },
   "Water": {
     "title": "Temperatura wody",

@@ -12,15 +12,9 @@ import {
   type GeoFix,
   type SpotPhase,
 } from "./bike-nav-core";
-import {
-  fetchBikeRoute,
-  selectNavVias,
-  directionsProfileFor,
-  type BikeRoute,
-  type BikeLegError,
-} from "./bike-directions";
+import { fetchBikeRoute, type BikeRoute, type BikeLegError } from "./bike-directions";
+import type { InstructionFor } from "./routing/types";
 import type { TourMode } from "./tour-mode";
-import type { ViaLeg } from "./tour-route";
 import { useLatestRef } from "./use-latest-ref";
 
 export type BikeNavStatus = "idle" | "loading" | "ready" | "error";
@@ -54,7 +48,7 @@ export type UseBikeNavigation = {
 };
 
 // Eine hängende Anfrage darf den Gast nicht dauerhaft im Ladezustand stehen lassen. 15
-// Sekunden sind grosszügig für eine Directions-Antwort und kurz genug, dass ein Radl an
+// Sekunden sind grosszügig für eine Routen-Antwort und kurz genug, dass ein Radl an
 // der Kreuzung nicht ratlos wartet.
 const FETCH_TIMEOUT_MS = 15_000;
 // Nach einem Fehler von selbst nachfassen: Auf dem Rad ist "tippe hier, um es erneut zu
@@ -67,26 +61,21 @@ export function useBikeNavigation(
   stops: [number, number][],
   fix: GeoFix | null,
   locale: string,
-  // Ziel der Runde, falls es nicht der letzte Stopp ist (Migration 0061, tours.end_lat/lng).
-  // Bei einer Rundtour ist das der Startpunkt. Ohne ihn endet die Navigation am letzten
-  // Stopp, und bei Runde A liegt der 692 m vom Leihrad entfernt.
-  end?: [number, number] | null,
+  // Wohin die Route gefragt wird (POST /api/tours/[slug]/route): Slug der Runde und der Text
+  // der Anweisungen aus den Sprachdateien. Der Server baut Ziel und Wegpunkte selbst.
+  routing: { slug: string; instructionFor: InstructionFor },
   // Wiedereinstieg (bike-nav-memory.ts): Tour-Indizes der Halte, die schon erledigt sind.
   // Die erste Route geht dann nur noch ueber die offenen, genau wie eine Neuberechnung.
   // Gelesen wird der Wert beim ERSTEN Fix, danach nie wieder.
   resumeDone?: ReadonlySet<number> | null,
-  // Wegpunkte ohne Geschichte (tours.route_via), Schluessel = Tour-Index der Halte als
-  // String, "start", "end". Welche davon in eine Anfrage gehen, entscheidet selectNavVias
-  // je Laden: nur die vor dem Gast, nur die zu offenen Halten.
-  vias: ViaLeg[] = [],
-  // Fortbewegung der Runde (tours.mode): waehlt das Mapbox-Profil UND die Zahlentabelle
-  // des Kerns (bike-nav-core, navTuningFor). Aendert sich waehrend einer Runde nie.
+  // Fortbewegung der Runde (tours.mode): waehlt die Zahlentabelle des Kerns (bike-nav-core,
+  // navTuningFor). Der Server waehlt daraus das Profil. Aendert sich waehrend einer Runde nie.
   mode: TourMode = "bike",
 ): UseBikeNavigation {
   // Beide haengen nur an `mode`, und der ist fuer die Lebensdauer des Hooks fest. Als
   // Refs, damit weder loadRoute noch der Fix-Effekt sie als Abhaengigkeit brauchen.
   const tuningRef = useLatestRef(navTuningFor(mode));
-  const profileRef = useLatestRef(directionsProfileFor(mode));
+  const routingRef = useLatestRef(routing);
   const [route, setRoute] = useState<BikeRoute | null>(null);
   const [spotIds, setSpotIds] = useState<number[]>(() => stops.map((_, i) => i));
   const [status, setStatus] = useState<BikeNavStatus>("idle");
@@ -102,11 +91,6 @@ export function useBikeNavigation(
   const spotIdsRef = useLatestRef(spotIds);
   const stopsRef = useLatestRef(stops);
   const localeRef = useLatestRef(locale);
-  // Wie locale: Der Zielpunkt aendert sich waehrend einer Fahrt nicht, und als echte
-  // Abhaengigkeit von loadRoute wuerde ein bei jedem Render neu erzeugtes Array-Literal
-  // aus der Elternkomponente eine Neuberechnung ausloesen.
-  const endRef = useLatestRef(end ?? null);
-  const viasRef = useLatestRef(vias);
   const resumeRef = useLatestRef(resumeDone ?? null);
   const fixRef = useLatestRef(fix);
 
@@ -201,28 +185,19 @@ export function useBikeNavigation(
         };
       };
 
-      // Wegpunkte ohne Geschichte: nur die vor dem Gast, nur zu offenen Halten, gedeckelt
-      // (selectNavVias erklaert die Regeln). Bei einer Neuberechnung zaehlt der Stand der
-      // letzten Route, welche davon schon hinter ihm liegen.
-      const chosenVias = selectNavVias({
-        legs: viasRef.current,
+      // Der Server baut die Kette selbst (Wegpunkte ohne Geschichte nur vor dem Gast und nur zu
+      // offenen Halten, selectNavVias). Bei einer Neuberechnung zaehlt der Stand der letzten
+      // Route, welche davon schon hinter ihm liegen.
+      void fetchBikeRoute({
+        slug: routingRef.current.slug,
+        from: [originFix.lng, originFix.lat],
         keep,
-        stopCoords: stopsRef.current,
-        end: endRef.current,
-        origin: [originFix.lng, originFix.lat],
-        isReroute,
+        locale: localeRef.current,
         alongM: isReroute ? navRef.current.alongM : undefined,
         viaAlongM: routeRef.current?.viaAlongM,
-      });
-      void fetchBikeRoute(
-        [originFix.lng, originFix.lat],
-        targets,
-        localeRef.current,
-        ac.signal,
-        endRef.current,
-        chosenVias,
-        profileRef.current,
-      )
+        signal: ac.signal,
+        instructionFor: routingRef.current.instructionFor,
+      })
         .then((r) => {
           clearTimeout(timeout);
           if (myReq !== reqRef.current) return; // veraltete Antwort verwerfen
@@ -267,7 +242,7 @@ export function useBikeNavigation(
           retryLater();
         });
     },
-    [stopsRef, localeRef, endRef, viasRef, routeRef, clearRetry, fixRef, spotIdsRef, applyEvents, profileRef, tuningRef],
+    [stopsRef, localeRef, routingRef, routeRef, clearRetry, fixRef, spotIdsRef, applyEvents, tuningRef],
   );
 
   // Die Ref auf den aktuellen Stand bringen, damit eine Wiederholung nicht eine alte

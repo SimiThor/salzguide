@@ -203,7 +203,24 @@
     "navWalkIntro": "Die Führung von Stopp zu Stopp braucht deinen Standort.",
     "navResumeWalk": "Weitergehen, Halt {n} von {total}",
     "navDoneContinueWalk": "Weitergehen",
-    "navDoneTitleEnd": "Am Ziel"
+    "navDoneTitleEnd": "Am Ziel",
+    "maneuver": {
+      "left": "Links abbiegen",
+      "right": "Rechts abbiegen",
+      "slightLeft": "Leicht links abbiegen",
+      "slightRight": "Leicht rechts abbiegen",
+      "sharpLeft": "Scharf links abbiegen",
+      "sharpRight": "Scharf rechts abbiegen",
+      "keepLeft": "Links halten",
+      "keepRight": "Rechts halten",
+      "straight": "Geradeaus weiter",
+      "uturn": "Wenden",
+      "roundabout": "Im Kreisverkehr die {exit}. Ausfahrt nehmen",
+      "arrive": "Ziel erreicht"
+    },
+    "navUnavailable": "Navigation gerade nicht verfügbar. Tippen zum Wiederholen.",
+    "navTooFar": "Zu weit von der Runde entfernt. Tippen zum Wiederholen.",
+    "routeAttribution": "Route: © OpenStreetMap-Mitwirkende"
   },
   "Water": {
     "title": "Wassertemperaturen",

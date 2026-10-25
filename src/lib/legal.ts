@@ -25,7 +25,7 @@ export const LEGAL = {
   // unter einer Erklärung von heute ist selbst eine falsche Angabe. Zuletzt: Reichweiten-
   // messung (Datenschutz h) zählt jetzt auch gesehene Pro-Hinweise und gestartete
   // Bezahlvorgänge (11.09.2026).
-  updated: "11. September 2026",
+  updated: "23. Oktober 2026",
 } as const;
 
 // Vollständige Postanschrift als einzeiliger String.

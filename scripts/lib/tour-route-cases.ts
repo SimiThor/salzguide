@@ -23,7 +23,7 @@ import {
   type LngLat,
   type ViaLeg,
 } from "@/lib/tour-route";
-import { buildBikeChain, selectNavVias, alongFromViaWaypoints, type NavVia } from "@/lib/bike-directions";
+import { buildBikeChain, selectNavVias } from "@/lib/bike-directions";
 
 // Flache Rechnung um Salzburg: x nach Osten, y nach Norden, in Metern.
 export const LAT0 = 47.8;
@@ -50,7 +50,6 @@ const FUNCTIONS = {
   viaIdOf,
   selectNavVias,
   buildBikeChain,
-  alongFromViaWaypoints,
 } as const;
 export type TourRouteFn = keyof typeof FUNCTIONS;
 
@@ -313,42 +312,3 @@ def("07/cap-large", "selectNavVias", () => [
 ]);
 def("07/chain-cap-large", "buildBikeChain", () => [S7.start, tenStops7(), S7.start, out("07/cap-large")]);
 def("07/no-stops", "selectNavVias", () => [{ ...base7(), keep: [] }]);
-
-// ── 8. Antwort zurücklesen ────────────────────────────────────────────────────────────
-export const S8 = (() => {
-  const start = P(0, 0);
-  const stops = [P(0, 300), P(100, 300)];
-  const vias: NavVia[] = [
-    { id: "v1", coord: P(0, 150), before: 0 },
-    { id: "v2", coord: P(50, 320), before: 1 },
-  ];
-  // origin, v1, s0, v2, s1, end -> stille Punkte 1..4
-  const cum = [0, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500];
-  const via = [
-    { waypoint_index: 1, geometry_index: 1, distance_from_start: 50 },
-    { waypoint_index: 2, geometry_index: 3, distance_from_start: 150 },
-    { waypoint_index: 3, geometry_index: 5, distance_from_start: 250 },
-    { waypoint_index: 4, geometry_index: 7, distance_from_start: 350 },
-  ];
-  return { start, stops, vias, cum, via };
-})();
-def("08/chain-mixed", "buildBikeChain", () => [S8.start, S8.stops, S8.start, S8.vias]);
-def("08/along-mixed", "alongFromViaWaypoints", () => [
-  (out("08/chain-mixed") as ReturnType<typeof buildBikeChain>).kinds,
-  S8.via,
-  S8.cum,
-  S8.stops.length,
-]);
-def("08/chain-plain", "buildBikeChain", () => [S8.start, S8.stops, null, []]);
-def("08/along-plain", "alongFromViaWaypoints", () => [
-  (out("08/chain-plain") as ReturnType<typeof buildBikeChain>).kinds,
-  [{ waypoint_index: 1, geometry_index: 4, distance_from_start: 200 }],
-  S8.cum,
-  S8.stops.length,
-]);
-def("08/along-unknown-index", "alongFromViaWaypoints", () => [
-  (out("08/chain-plain") as ReturnType<typeof buildBikeChain>).kinds,
-  [{ waypoint_index: 9, geometry_index: 4, distance_from_start: 200 }],
-  S8.cum,
-  S8.stops.length,
-]);

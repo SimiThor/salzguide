@@ -160,7 +160,24 @@
     "navWalkIntro": "Guiding you from stop to stop needs your location.",
     "navResumeWalk": "Keep walking, stop {n} of {total}",
     "navDoneContinueWalk": "Keep walking",
-    "navDoneTitleEnd": "At the finish"
+    "navDoneTitleEnd": "At the finish",
+    "maneuver": {
+      "left": "Turn left",
+      "right": "Turn right",
+      "slightLeft": "Turn slightly left",
+      "slightRight": "Turn slightly right",
+      "sharpLeft": "Turn sharp left",
+      "sharpRight": "Turn sharp right",
+      "keepLeft": "Keep left",
+      "keepRight": "Keep right",
+      "straight": "Continue straight",
+      "uturn": "Make a U-turn",
+      "roundabout": "At the roundabout, take exit {exit}",
+      "arrive": "You have arrived"
+    },
+    "navUnavailable": "Navigation is currently unavailable. Tap to retry.",
+    "navTooFar": "Too far from the tour. Tap to retry.",
+    "routeAttribution": "Route: © OpenStreetMap contributors"
   },
   "Water": {
     "title": "Water temperatures",

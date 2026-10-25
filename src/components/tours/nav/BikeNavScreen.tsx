@@ -20,7 +20,7 @@ import { useTourAudio, type PlayerStop } from "@/components/tours/useTourAudio";
 import { trackProGate } from "@/lib/pro-gate-track";
 import { estimateEtaMin } from "@/lib/nav-format";
 import { sliceAlong, haversineMeters } from "@/lib/geo";
-import { reconcileVia, type ViaLeg } from "@/lib/tour-route";
+import { maneuverKey } from "@/lib/maneuver-text";
 import type { TourDetail, TourStopView } from "@/lib/tour-types";
 
 // Signierte Audio-URLs (getTourDetail, tour-audio-Bucket) laufen nach 2h ab. Eine lange
@@ -117,27 +117,8 @@ export default function BikeNavScreen({
     [geoStops],
   );
 
-  // Ziel der Runde (Migration 0061). Bei einer Rundtour ist es der Startpunkt, und ohne
-  // ihn hoerte die Navigation am LETZTEN SPOT auf: Bei Runde A ist das Muelln, 692 m vom
-  // Leihrad entfernt. Der Gast bekaeme "Ziel erreicht", waehrend sein Rad noch sieben
-  // Minuten weiter steht. Ist kein Ziel gesetzt, bleibt es wie bisher.
-  const endCoord = useMemo<[number, number] | null>(
-    () => (tour.end ? [tour.end.lng, tour.end.lat] : null),
-    [tour.end],
-  );
-  // Wegpunkte ohne Geschichte (tours.route_via), auf die Halte DIESES Bildschirms
-  // umgeschluesselt: Die Abschnitte kennen Punkt-IDs (spotSlug), der Hook kennt Halte nur
-  // als Index in geoStops. Erst an die Kette der Halte MIT Koordinaten anpassen (ein
-  // Abschnitt an einer Station ohne Punkt wird dabei zusammengeklebt, so wie die Navigation
-  // die Station ohnehin nicht anfaehrt), dann umschluesseln.
-  const navVias = useMemo<ViaLeg[]>(() => {
-    const legs = tour.routeVia ?? [];
-    if (!legs.length) return [];
-    const keys = ["start", ...geoStops.map((s) => s.spotSlug), ...(endCoord ? ["end"] : [])];
-    const idx = new Map(geoStops.map((s, i) => [s.spotSlug, String(i)]));
-    const rekey = (k: string) => (k === "start" || k === "end" ? k : (idx.get(k) ?? k));
-    return reconcileVia(legs, keys).legs.map((l) => ({ from: rekey(l.from), to: rekey(l.to), coords: l.coords }));
-  }, [tour.routeVia, geoStops, endCoord]);
+  // Ziel der Runde und Wegpunkte ohne Geschichte kennt der Server (POST /api/tours/[slug]/route
+  // baut die Kette aus der Runde selbst, lib/tour-reroute.ts).
 
   // Gedaechtnis der Runde (bike-nav-memory.ts): im EFFEKT gelesen, nie beim Rendern. Ein
   // gespeicherter Wert, der erst nach dem ersten Bild nachkommt, liesse den Startknopf
@@ -155,7 +136,17 @@ export default function BikeNavScreen({
 
   const { fix, status: gpsStatus, start } = useGeolocationWatch();
   useWakeLock(gpsStatus === "requesting" || gpsStatus === "watching" || gpsStatus === "signal-lost");
-  const bike = useBikeNavigation(stopCoords, fix, locale, endCoord, resumeDone, navVias, mode);
+  // Text der Anweisungen aus den Sprachdateien (Tours.maneuver.*, ohne Strassennamen), stabil
+  // ueber Renders: Der Hook nimmt ihn per Ref und rechnet nie wegen einer neuen Funktion neu.
+  const instructionFor = useCallback(
+    (step: Parameters<typeof maneuverKey>[0]) => {
+      const { key, values } = maneuverKey(step);
+      return t(`maneuver.${key}`, values);
+    },
+    [t],
+  );
+  const routing = useMemo(() => ({ slug: tour.slug, instructionFor }), [tour.slug, instructionFor]);
+  const bike = useBikeNavigation(stopCoords, fix, locale, routing, resumeDone, mode);
 
   const [activeAudioIndex, setActiveAudioIndex] = useState(0);
   const audio = useTourAudio(playerStops, activeAudioIndex, setActiveAudioIndex);
@@ -547,6 +538,7 @@ export default function BikeNavScreen({
         activeIndex={nextRouteSpot >= 0 ? nextRouteSpot : geoStops.length - 1}
         paddingBottom={offeredStop ? 240 : 190}
         recenterLabel={t("navRecenter")}
+        attribution={t("routeAttribution")}
         mode={mode}
       />
 
@@ -620,13 +612,17 @@ export default function BikeNavScreen({
               alte Route steht, bleibt der Status "ready" (use-bike-navigation), und die
               Pille kam nie, obwohl ihr Text genau diesen Fall meint. Gemessen im
               Offline-Szenario des Fahrsimulators am 15.09.2026. */}
+          {/* Die Pille "letzte Route bleibt aktiv" NUR, wenn es eine letzte Route gibt. Ohne sie
+              (der Dienst war von Anfang an nicht da, die Position liegt zu weit von der Runde)
+              waere der Satz falsch: Der Gast braeuchte eine ehrliche Meldung, nicht den
+              Eindruck, es laufe etwas. Tippen wiederholt in beiden Faellen. */}
           {!bike.rerouting && bike.error != null && (
             <button
               type="button"
               onClick={bike.retry}
               className="sg-nav-card pointer-events-auto w-full rounded-full px-3 py-1.5 text-center text-[12px] font-semibold text-accent"
             >
-              {t("navOffline")}
+              {bike.route ? t("navOffline") : bike.error === "too-far" ? t("navTooFar") : t("navUnavailable")}
             </button>
           )}
 

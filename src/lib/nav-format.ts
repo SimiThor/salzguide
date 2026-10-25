@@ -38,7 +38,7 @@ export function maneuverArrowDeg(modifier: string | undefined): number {
 // Directions-`duration` der Etappe, das lief seit dem letzten Fetch schon wieder ab.
 // Stadtrad rund 12 km/h; zu Fuss 4,5 km/h, also etwas unter dem Auslegungstempo von
 // 5 km/h (bike-nav-core, WALK_NAV), weil man an einer Runde stehen bleibt und schaut.
-const FALLBACK_SPEED_MPS: Record<TourMode, number> = { bike: 3.3, walk: 1.25 };
+export const FALLBACK_SPEED_MPS: Record<TourMode, number> = { bike: 3.3, walk: 1.25 };
 // Erst ab hier zaehlt die gemessene Geschwindigkeit. Am Rad 1 m/s (unter dem ist es die
 // Ampel); zu Fuss 0,5 m/s, denn 1 m/s ist schon fast normales Gehtempo, und mit der
 // Rad-Schwelle fiele der Fussgaenger fast immer auf die Pauschale zurueck.

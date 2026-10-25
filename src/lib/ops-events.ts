@@ -625,6 +625,26 @@ export const OPS_EVENTS = {
     quietMinutes: 180,
     hint: "Nur Logbuch, diese Art verschickt keine Mail. Unten steht Direktive und blockierte Herkunft. Kennst du die Herkunft nicht (honey.io, grammarly und ähnliche), war es eine Browser-Erweiterung eines Besuchers — die Richtlinie hat getan, was sie soll, nichts zu tun. Ist es eine von UNS genutzte Quelle (mapbox, supabase, cloudflare, blob), fehlt sie in der CSP in next.config.ts, und dann ist dieser Teil der App für alle kaputt. „Im Zeitfenster\" zählt verschiedene Besucher: eine hohe Zahl heisst „trifft alle\" und damit uns.",
   },
+  routing_failed: {
+    area: "app",
+    severity: "error",
+    title: "Routendienst antwortet nicht",
+    // Einzelne Ausfälle (Neustart des Geo-Servers, ein Netzaussetzer) sind normal. Ein
+    // Muster ist es, wenn drei in einer Stunde fehlschlagen.
+    alertAfter: 3,
+    quietMinutes: 60,
+    hint: "Der eigene Routendienst (BRouter auf dem Geo-Server) liefert keine Route. Die Gruppe nennt den Code: auth = Token abgelehnt (ROUTING_TOKEN in Vercel und im Caddy vergleichen); timeout oder unreachable = Geo-Server oder Caddy prüfen (docker compose ps); bad-response = BRouter-Version oder Antwort kaputt. Solange das anhält, rechnet der Runden-Editor nicht, die App bekommt kein Offline-Paket und kein Umrouten, und die Navigation im Web (Rad und zu Fuß) zeigt \"Navigation gerade nicht verfügbar\" bzw. bleibt auf der alten Linie.",
+  },
+  routing_no_route: {
+    area: "app",
+    severity: "info",
+    title: "Routendienst: kein Weg",
+    // Normal: ein Punkt neben dem Weg, ausserhalb der Wegdaten. Nur im Logbuch, damit ein
+    // ploetzlicher Anstieg auffaellt (Wegdaten oder Profil auf dem Geo-Server weg).
+    alertAfter: 0,
+    quietMinutes: 1440,
+    hint: "Der Routendienst fand zwischen den Punkten keinen Weg. Einzelne sind normal. Viele auf einmal heissen: Wegdaten oder Profil auf dem Geo-Server prüfen (E10_N45, trekking.brf, hiking-mountain.brf).",
+  },
   config_missing: {
     area: "security",
     severity: "critical",

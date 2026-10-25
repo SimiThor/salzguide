@@ -221,7 +221,6 @@ const TOUR_ROUTE_SECTIONS: Record<string, string> = {
   "05": "leg-for-tap",
   "06": "via-helpers",
   "07": "select-nav-vias",
-  "08": "along-from-via-waypoints",
 };
 
 function tourRouteFiles(files: Files) {

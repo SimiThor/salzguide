@@ -73,6 +73,7 @@ export default function NavMap({
   onStopTap,
   paddingBottom = 0,
   recenterLabel,
+  attribution,
   mode = "bike",
 }: {
   /**
@@ -116,12 +117,15 @@ export default function NavMap({
   // fliesst als Kamera-Padding ein, damit der Punkt nicht darunter verschwindet.
   paddingBottom?: number;
   recenterLabel: string;
+  /** Pflichtzeile zur Linie (ODbL): Tours.routeAttribution. */
+  attribution: string;
   /** Fortbewegung der Runde: waehlt Zoom und Neigung (CAMERA). Fest fuer die Lebensdauer. */
   mode?: TourMode;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   // Als Ref, weil die Kamera-Effekte unten ihre Abhaengigkeiten bewusst eng halten.
   const camRef = useLatestRef(CAMERA[mode]);
+  const attributionRef = useLatestRef(attribution);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const puckRef = useRef<mapboxgl.Marker | null>(null);
   const coneRef = useRef<mapboxgl.Marker | null>(null);
@@ -159,7 +163,8 @@ export default function NavMap({
       setMapDead(true);
       return;
     }
-    map.addControl(new mapboxgl.AttributionControl({ compact: true }));
+    // Pflichtzeile zur Linie (ODbL, docs/42 Abschnitt 9): "Route: © OpenStreetMap-Mitwirkende".
+    map.addControl(new mapboxgl.AttributionControl({ compact: true, customAttribution: attributionRef.current }));
     declutterBasemap(map);
     map.on("load", () => {
       // Zuerst die Haarlinie, dann die Route: Was zuerst hinzugefuegt wird, liegt unten.
