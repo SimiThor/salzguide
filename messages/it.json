@@ -692,7 +692,7 @@
       "errorGeneric": "Non ha funzionato. Riprova.",
       "apple": "Accedi con Apple",
       "google": "Accedi con Google",
-      "appleHint": "Hai comprato Pro sul web? Accedi con la stessa email."
+      "appleHint": "Hai già Pro? Accedi con la stessa email."
     },
     "profile": {
       "signOut": "Esci",

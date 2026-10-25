@@ -692,7 +692,7 @@
       "errorGeneric": "没成功。请再试一次。",
       "apple": "通过 Apple 登录",
       "google": "使用 Google 账号登录",
-      "appleHint": "在网页上买过 Pro？请用同一个邮箱登录。"
+      "appleHint": "已经是 Pro？请用同一个邮箱登录。"
     },
     "profile": {
       "signOut": "退出登录",

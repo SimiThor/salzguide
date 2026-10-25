@@ -692,7 +692,7 @@
       "errorGeneric": "Ça n’a pas marché. Réessaie.",
       "apple": "Se connecter avec Apple",
       "google": "Se connecter avec Google",
-      "appleHint": "Pro acheté sur le web ? Connecte-toi avec la même adresse e-mail."
+      "appleHint": "Déjà Pro ? Connecte-toi avec la même adresse e-mail."
     },
     "profile": {
       "signOut": "Se déconnecter",
