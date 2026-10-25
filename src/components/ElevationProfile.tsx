@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import type { ElevationProfile as Profile } from "@/lib/admin-actions";
+import type { ElevationProfile as Profile } from "@/lib/elevation";
 import { DIR_THRESHOLD } from "./useBodyDrag";
 
 // Touch-und-Halten liest ab, ohne dass der Finger wandern muss (wie in Apples Health/Aktien).

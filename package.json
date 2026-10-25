@@ -20,6 +20,8 @@
     "routing:check": "node --experimental-strip-types --disable-warning=ExperimentalWarning --env-file=.env.local --import ./scripts/lib/alias-hook.mjs scripts/routing-check.ts",
     "routing:compare": "node --experimental-strip-types --disable-warning=ExperimentalWarning --env-file=.env.local --import ./scripts/lib/alias-hook.mjs scripts/routing-compare.ts",
     "routing:drive": "node --experimental-strip-types --disable-warning=ExperimentalWarning --env-file=.env.local --import ./scripts/lib/alias-hook.mjs scripts/routing-drive.ts",
+    "spot-routes:compare": "node --experimental-strip-types --disable-warning=ExperimentalWarning --env-file=.env.local --import ./scripts/lib/alias-hook.mjs scripts/spot-routes-compare.ts",
+    "spot-routes:rewrite": "node --experimental-strip-types --disable-warning=ExperimentalWarning --env-file=.env.local --import ./scripts/lib/alias-hook.mjs scripts/spot-routes-rewrite.ts",
     "icons": "node --experimental-strip-types scripts/make-icons.ts",
     "backfill:blur": "node --experimental-strip-types scripts/backfill-blur.ts",
     "render:intro": "node --experimental-strip-types scripts/render-intro.ts",

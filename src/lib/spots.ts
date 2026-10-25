@@ -3,7 +3,7 @@ import { unstable_cache } from "next/cache";
 import { createClient } from "./supabase/server";
 import { createServiceClient } from "./supabase/service";
 import { currentUserId } from "./viewer";
-import type { ElevationProfile } from "./admin-actions";
+import type { ElevationProfile } from "./elevation";
 import { rankShelves, shelfKey } from "./explore-ranking";
 import { haversineMeters, parsePois, type MapPoi } from "./geo";
 import { parseAiOrigin, type AiOrigin } from "./ai-origin";

@@ -11,16 +11,19 @@ import { pickLabel, AUDIO_WALK_FALLBACK } from "./i18n-labels";
 import { pickRoundVoice } from "./tts-rules";
 import { getDefaultVoice, getVoiceById, voiceInfoOf } from "./tts-voices";
 import { loadStopAudio } from "./tours";
+import { planUserLoop } from "./routing/user-loop";
 import type { TourDetail, TourStopView } from "./tour-types";
 
 // KI-Runden-Generator (Schritt 3): aus den Interessen des Nutzers wählt Claude
-// passende POOL-Punkte eines Gebiets, Mapbox baut daraus die effiziente Geh-RUNDE
-// ab dem fixen Gebiets-Startpunkt (z.B. Mirabellplatz) zurück zum Start. Ergebnis ist
-// EPHEMER (nicht gespeichert) und wird als TourDetail zurückgegeben (Teaser/Pro-Gating
-// + Signed-URLs wie überall).
+// passende POOL-Punkte eines Gebiets; die Reihenfolge rechnen wir selbst (Luftlinie, exakt,
+// lib/routing/order.ts) und die Geh-RUNDE ab dem fixen Gebiets-Startpunkt (z.B.
+// Mirabellplatz) zurück zum Start kommt aus EINER Anfrage an unseren Routendienst (BRouter,
+// lib/routing/user-loop.ts). Bis 23.10.2026 tat beides Mapbox Optimization, dessen Ergebnis
+// nicht gespeichert werden darf (docs/42). Ergebnis wird als TourDetail zurückgegeben
+// (Teaser/Pro-Gating + Signed-URLs wie überall) und für den Nutzer gespeichert.
 //
 // BAUEN IST PRO-ONLY (Anton, 07/2026). Vorher galt „Bauen gratis, 2 Stops hören": Jede
-// Generierung kostet aber echtes Geld (Claude + Mapbox), und ein Gratis-Konto konnte
+// Generierung kostet aber echtes Geld (Claude + Routendienst), und ein Gratis-Konto konnte
 // beliebig viele Läufe auslösen, ohne dass je ein Cent zurückkommt. Free bekommt die
 // kuratierten Runden mit ihren Gratis-Stops (free_stops); die eigene Runde ist das
 // Pro-Argument. /touren/bauen zeigt Nicht-Pro dafür die Kauf-Fläche; der Riegel HIER
@@ -131,9 +134,12 @@ export async function generateTour(
     chosen = candidates.slice(0, maxStops);
   }
 
-  // 4) Mapbox: optimale Geh-Runde ab Start, zurück zum Start.
-  const optimized = await optimizeLoop(start, chosen);
-  const ordered = optimized.order;
+  // 4) Reihenfolge (exakt, Luftlinie) und Geh-Runde ab Start zurück zum Start: EINE Anfrage
+  // an den Routendienst. Liefert er nicht (nicht eingerichtet, kein Weg), bleibt die
+  // Reihenfolge und die Linie fehlt; der Client zeichnet dann gerade Striche, wie bisher.
+  const loop = await planUserLoop([start.lng, start.lat], chosen.map((c) => [c.lng, c.lat] as [number, number]));
+  if (!loop.route) console.error("[tour-generate] Runde ohne Linie:", loop.code ?? "?");
+  const ordered = loop.order.map((i) => chosen[i]);
 
   // 5) Audio der gewählten Punkte laden (nur Dateien der Runden-Stimme), gaten, signieren.
   const chosenIdsFinal = ordered.map((c) => c.id);
@@ -201,11 +207,10 @@ export async function generateTour(
     durationSec: x.locked ? null : x.audio.dur,
   }));
 
-  // Dauer ≈ Geh-Zeit (Mapbox) + ~2 Min je Stop (Zuhören/Stehen).
-  const walkMin = optimized.durationS != null ? Math.round(optimized.durationS / 60) : null;
-  const durationMin = walkMin != null ? walkMin + stops.length * 2 : null;
-  const distanceKm =
-    optimized.distanceM != null ? Math.round(optimized.distanceM / 100) / 10 : null;
+  // Dauer = Gehzeit (4,5 km/h) + 2 Min je Stop (Zuhören/Stehen), dieselbe Formel wie bei den
+  // kuratierten Runden (tourDurationMin, docs/42 Abschnitt 4).
+  const durationMin = loop.route?.durationMin ?? null;
+  const distanceKm = loop.route ? Math.round(loop.route.distanceM / 100) / 10 : null;
 
   const fallbackName = pickLabel(AUDIO_WALK_FALLBACK, locale);
   const routeName = (picked?.name ?? "").trim() || fallbackName;
@@ -229,7 +234,7 @@ export async function generateTour(
     voice: voiceInfoOf(roundVoice),
     stops,
     canSeePro,
-    routeGeo: optimized.geo,
+    routeGeo: loop.route?.geo ?? null,
     start,
   };
 
@@ -245,7 +250,7 @@ export async function generateTour(
       ...(input.freeText.trim() ? [input.freeText.trim()] : []),
     ],
     pointIds: chosenIdsFinal,
-    routeGeo: optimized.geo,
+    routeGeo: loop.route?.geo ?? null,
     start,
     distanceKm,
     durationMin,
@@ -331,80 +336,4 @@ Regeln:
   } catch {
     return null;
   }
-}
-
-// ── Mapbox Optimized-Trips: Geh-Runde ab Start (roundtrip) ────────────────────
-async function optimizeLoop(
-  start: LngLat,
-  points: Cand[],
-): Promise<{ order: Cand[]; geo: [number, number][] | null; distanceM: number | null; durationS: number | null }> {
-  // WICHTIG: eigener SERVER-Token, nicht der öffentliche NEXT_PUBLIC-Token. Der öffentliche
-  // ist URL-beschränkt (nur erlaubte Browser-Referer); ein serverseitiger fetch sendet GAR
-  // KEINEN Referer -> Mapbox antwortet 403, und die Runde fiele still auf gerade Linien
-  // zurück. Deshalb MAPBOX_SERVER_TOKEN (nicht URL-beschränkt, bleibt geheim wie ORS_KEY).
-  // Fallback auf den öffentlichen Token nur, damit lokal nichts hart bricht.
-  const token = process.env.MAPBOX_SERVER_TOKEN ?? process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
-  const coords = [start, ...points.map((p) => ({ lat: p.lat, lng: p.lng }))];
-  if (!token || coords.length < 2 || coords.length > 12) {
-    if (!token) console.error("[tour-generate] Kein Mapbox-Token (MAPBOX_SERVER_TOKEN) -> gerade Linien.");
-    return { order: nearestNeighbor(start, points), geo: null, distanceM: null, durationS: null };
-  }
-  const coordStr = coords.map((c) => `${c.lng},${c.lat}`).join(";");
-  const url = `https://api.mapbox.com/optimized-trips/v1/mapbox/walking/${coordStr}?roundtrip=true&source=first&geometries=geojson&overview=full&access_token=${token}`;
-  try {
-    const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
-    if (!res.ok) {
-      const body = await res.text().catch(() => "");
-      // 403 = fast immer ein URL-beschränkter Token (Referer fehlt serverseitig).
-      throw new Error(`Mapbox ${res.status} ${body.slice(0, 200)}`);
-    }
-    const j = await res.json();
-    if (j.code !== "Ok" || !Array.isArray(j.trips) || !j.trips.length) throw new Error("no trip");
-    const trip = j.trips[0];
-    const wps = (j.waypoints as { waypoint_index: number }[]) ?? [];
-    // Input-Index 0 = Start; 1..N = Punkte -> Punkte nach ihrem waypoint_index sortieren.
-    const order = points
-      .map((p, i) => ({ p, wi: wps[i + 1]?.waypoint_index ?? i + 1 }))
-      .sort((a, b) => a.wi - b.wi)
-      .map((x) => x.p);
-    const geo = (trip.geometry?.coordinates as [number, number][] | undefined) ?? null;
-    return {
-      order,
-      geo,
-      distanceM: typeof trip.distance === "number" ? trip.distance : null,
-      durationS: typeof trip.duration === "number" ? trip.duration : null,
-    };
-  } catch (e) {
-    // Nicht mehr still schlucken: ohne Log war unsichtbar, warum die Runde als gerade
-    // Linien ohne Start ankam. Der Fallback bleibt (nie leer ausliefern).
-    console.error(
-      "[tour-generate] optimizeLoop -> gerade Linien:",
-      e instanceof Error ? e.message : e,
-    );
-    return { order: nearestNeighbor(start, points), geo: null, distanceM: null, durationS: null };
-  }
-}
-
-// Greedy Nearest-Neighbor ab Start (Fallback, falls Mapbox nicht verfügbar).
-function nearestNeighbor(start: LngLat, points: Cand[]): Cand[] {
-  const remaining = [...points];
-  const order: Cand[] = [];
-  let cur: LngLat = start;
-  while (remaining.length) {
-    let best = 0;
-    let bestD = Infinity;
-    for (let i = 0; i < remaining.length; i++) {
-      const dx = cur.lng - remaining[i].lng;
-      const dy = cur.lat - remaining[i].lat;
-      const d = dx * dx + dy * dy;
-      if (d < bestD) {
-        bestD = d;
-        best = i;
-      }
-    }
-    const [p] = remaining.splice(best, 1);
-    order.push(p);
-    cur = p;
-  }
-  return order;
 }

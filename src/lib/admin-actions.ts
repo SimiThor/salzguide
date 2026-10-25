@@ -18,7 +18,10 @@ import { writeSpotImages } from "./spot-images";
 import { parseAiOrigin, type AiOrigin } from "./ai-origin";
 import { stripEmDashFields } from "./em-dash";
 import { guardStorageUrl } from "./storage-guard";
-import { parsePois, hikingTimeMinutes, ascentDescent, type MapPoi } from "./geo";
+import { parsePois, type MapPoi } from "./geo";
+import { snapSpotRouteCore, type SpotSnapResult } from "./routing/snap-spot";
+// Höhenprofil: Typ in lib/elevation.ts (ohne server-only), Client und Server lesen dieselbe Form.
+import type { ElevationProfile } from "./elevation";
 import { HOME_KEYS, homeFieldLabel } from "./home-fields";
 import { HOME_FILE_TEXTS } from "./home-source";
 import { keepsPlaceholders, translateHomeTextsWith } from "./home-translate";
@@ -538,125 +541,19 @@ export async function saveSpot(input: SpotInput): Promise<SaveResult> {
   return { ok: true, id: spotId };
 }
 
-// Höhenprofil einer Wanderung (kompakt, für minimalistische Anzeige).
-export type ElevationProfile = {
-  points: { d: number; e: number }[]; // d = km (kumuliert), e = m (Höhe)
-  ascent: number; // Aufstieg in m
-  descent: number; // Abstieg in m
-  min: number; // tiefster Punkt in m
-  max: number; // höchster Punkt in m
-  distanceKm: number;
-};
-
-// Distanz (m) zwischen zwei [lng,lat]-Punkten (Haversine)
-function haversine(a: number[], b: number[]): number {
-  const R = 6371000;
-  const toRad = (x: number) => (x * Math.PI) / 180;
-  const dLat = toRad(b[1] - a[1]);
-  const dLng = toRad(b[0] - a[0]);
-  const s =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(a[1])) * Math.cos(toRad(b[1])) * Math.sin(dLng / 2) ** 2;
-  return 2 * R * Math.asin(Math.sqrt(s));
-}
-
-// Gleichmäßig auf max. n Punkte ausdünnen (erster & letzter bleiben erhalten)
-function downsample<T>(arr: T[], n: number): T[] {
-  if (arr.length <= n) return arr;
-  const out: T[] = [];
-  const step = (arr.length - 1) / (n - 1);
-  for (let i = 0; i < n; i++) out.push(arr[Math.round(i * step)]);
-  return out;
-}
-
-// Wegpunkte an echte Wanderwege anpassen (OpenRouteService foot-hiking).
-// Läuft serverseitig -> ORS_KEY bleibt geheim. Gibt die gesnappte Linie + Höhenprofil zurück.
-export type SnapResult = {
-  ok: boolean;
-  coords?: [number, number][];
-  distanceKm?: number;
-  durationMin?: number;
-  profile?: ElevationProfile | null;
-  error?: string;
-};
+// Wegpunkte an echte Wanderwege anpassen. Seit docs/42 über denselben Routendienst wie die
+// Runden (BRouter, Profil hiking-mountain), vorher openrouteservice. Die Action prüft nur
+// den Admin und reicht an den Kern in lib/routing/snap-spot.ts durch: Jeder Export einer
+// "use server"-Datei wäre ein öffentlicher Endpunkt. Rückgabe wie bisher (Linie,
+// Länge, Gehzeit nach SAC, Höhenprofil) plus Hinweise und die OSM-Zeile für die Vorschau.
+export type SnapResult = SpotSnapResult;
 
 export async function snapRoute(
   waypoints: [number, number][],
 ): Promise<SnapResult> {
   const gate = await requireAdmin();
   if (!gate.ok) return { ok: false, error: gate.error };
-
-  if (waypoints.length < 2) return { ok: false, error: "Mindestens 2 Punkte nötig" };
-  const key = process.env.ORS_KEY;
-  if (!key)
-    return { ok: false, error: "ORS_KEY fehlt – bitte in .env.local eintragen" };
-
-  try {
-    const res = await fetchWithRetry(
-      "https://api.openrouteservice.org/v2/directions/foot-hiking/geojson",
-      {
-        method: "POST",
-        headers: { Authorization: key, "Content-Type": "application/json" },
-        body: JSON.stringify({ coordinates: waypoints, elevation: true }),
-      },
-      2,
-      20000,
-    );
-    if (!res.ok) {
-      const txt = await res.text();
-      return { ok: false, error: `ORS ${res.status}: ${txt.slice(0, 160)}` };
-    }
-    const data = await res.json();
-    const feat = data?.features?.[0];
-    const raw = feat?.geometry?.coordinates as number[][] | undefined;
-    if (!raw || raw.length < 2) return { ok: false, error: "Keine Route gefunden" };
-    const coords = raw.map((c) => [c[0], c[1]] as [number, number]);
-    const props = feat?.properties ?? {};
-    const dist = props?.summary?.distance as number | undefined;
-    const distanceKm = typeof dist === "number" ? dist / 1000 : undefined;
-
-    // Höhenprofil (nur wenn ORS Höhe liefert -> 3D-Koordinaten)
-    let profile: ElevationProfile | null = null;
-    if (raw[0].length >= 3) {
-      let cum = 0;
-      const pts: { d: number; e: number }[] = [];
-      for (let i = 0; i < raw.length; i++) {
-        if (i > 0) cum += haversine(raw[i - 1], raw[i]);
-        pts.push({ d: cum / 1000, e: raw[i][2] });
-      }
-      const eles = pts.map((p) => p.e);
-      // Auf-/Abstieg aus der Höhenreihe, NICHT aus props.ascent/descent: ORS summiert dort
-      // jede Zacke der Höhendaten mit, auch die, die nur Rauschen ist. `ascentDescent`
-      // verschluckt Zacken unter 3 m und ist dieselbe Funktion, mit der die Import-Skripte
-      // rechnen — sonst hat dieselbe Route je nach Weg zwei verschiedene Höhenmeter.
-      const { ascent, descent } = ascentDescent(eles);
-      profile = {
-        points: downsample(pts, 100).map((p) => ({
-          d: Math.round(p.d * 100) / 100,
-          e: Math.round(p.e),
-        })),
-        ascent,
-        descent,
-        min: Math.round(Math.min(...eles)),
-        max: Math.round(Math.max(...eles)),
-        distanceKm: distanceKm ?? cum / 1000,
-      };
-    }
-
-    // Gehzeit SELBST rechnen (SAC, siehe hikingTimeMinutes) statt ORS' optimistischer Dauer:
-    // ehrlich für einen normalen Wanderer, mit echten Höhenmetern (Auf- UND Abstieg). Ohne
-    // Höhenprofil (kein ORS-Höhe) bleibt nur die Horizontalzeit -> immer noch nachvollziehbar.
-    const km = distanceKm ?? profile?.distanceKm;
-    const durationMin =
-      km != null ? hikingTimeMinutes(km, profile?.ascent ?? 0, profile?.descent ?? 0) : undefined;
-
-    return { ok: true, coords, distanceKm, durationMin, profile };
-  } catch {
-    return {
-      ok: false,
-      error: "Routing-Dienst (ORS) gerade nicht erreichbar – bitte nochmal versuchen.",
-    };
-  }
+  return snapSpotRouteCore(waypoints);
 }
 
 // ---- KI-Texte (Claude Sonnet, docs/27) -------------------------------------

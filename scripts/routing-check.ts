@@ -22,7 +22,14 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@supabase/supabase-js";
 import { OSM_ATTRIBUTION, MAX_ROUTE_POINTS, RoutingError, toNavSteps } from "../src/lib/routing/types.ts";
 import { getRoutingProvider } from "../src/lib/routing/index.ts";
-import { BROUTER_PROFILE, BrouterProvider, maneuverFromHint } from "../src/lib/routing/brouter.ts";
+import { BROUTER_PROFILE, BrouterProvider, maneuverFromHint, parseBrouterGeojson } from "../src/lib/routing/brouter.ts";
+import { loopLengthM, orderLoop } from "../src/lib/routing/order.ts";
+import { chunkWaypoints, routeSpotLine, snapSpotRouteCore, SPOT_FALLBACK_PROFILE } from "../src/lib/routing/snap-spot.ts";
+import { LocalRoutingProvider } from "../src/lib/routing/local.ts";
+import type { runRoute } from "../src/lib/routing/run.ts";
+import { planUserLoop, routeUserLoop } from "../src/lib/routing/user-loop.ts";
+import { haversineMeters, hikingTimeMinutes, routeCumulativeMeters } from "../src/lib/geo.ts";
+import type { LngLat } from "../src/lib/routing/types.ts";
 import { MANEUVER_KEYS, maneuverKey } from "../src/lib/maneuver-text.ts";
 import { alongForChain, buildTourChain, dedupePoints, tourDurationMin, travelMinutes } from "../src/lib/routing/chain.ts";
 import { runChain } from "../src/lib/routing/run.ts";
@@ -150,6 +157,30 @@ function memoryStore() {
   return { store, rows, calls };
 }
 
+// ── Zufall mit Saat (gleiche Punkte bei jedem Lauf) und rohe Gewalt für orderLoop ──────────
+function mulberry32(seed: number): () => number {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function bruteForceLoopM(start: LngLat, stops: LngLat[]): number {
+  let best = Infinity;
+  const perm = (rest: number[], acc: number[]) => {
+    if (!rest.length) {
+      best = Math.min(best, loopLengthM(start, stops, acc));
+      return;
+    }
+    for (let i = 0; i < rest.length; i++) perm([...rest.slice(0, i), ...rest.slice(i + 1)], [...acc, rest[i]]);
+  };
+  perm(stops.map((_, i) => i), []);
+  return best;
+}
+
 // ── BRouter-Anfragen zählen ────────────────────────────────────────────────────────────
 let brouterRequests = 0;
 const realFetch = globalThis.fetch;
@@ -197,7 +228,8 @@ async function partOffline(): Promise<void> {
   const src = (p: string) => readFileSync(new URL(`../src/lib/${p}`, import.meta.url), "utf8");
   check("OSM_ATTRIBUTION steht in types.ts ohne server-only", OSM_ATTRIBUTION === "© OpenStreetMap-Mitwirkende" && !/import "server-only"/.test(src("routing/types.ts")));
   check("chain.ts ist ohne server-only (Client und Swift-Port dürfen es lesen)", !/import "server-only"/.test(src("routing/chain.ts")));
-  for (const f of ["routing/run.ts", "routing/index.ts", "routing/brouter.ts", "routing/normalize.ts", "routing/snap-tour.ts", "tour-nav-route.ts", "tour-package.ts", "tour-reroute.ts"])
+  check("order.ts und elevation.ts sind ohne server-only (reine Rechnung, Prüfskripte und Client)", !/import "server-only"/.test(src("routing/order.ts")) && !/import "server-only"/.test(src("elevation.ts")));
+  for (const f of ["routing/run.ts", "routing/index.ts", "routing/brouter.ts", "routing/normalize.ts", "routing/snap-tour.ts", "routing/snap-spot.ts", "routing/user-loop.ts", "tour-nav-route.ts", "tour-package.ts", "tour-reroute.ts"])
     check(`${f} trägt server-only`, /import "server-only"/.test(src(f)));
   check("ops-events.ts bleibt ohne server-only", !/import "server-only"/.test(src("ops-events.ts")));
   check("Katalog: routing_failed (error, Muster ab 3)", OPS_EVENTS.routing_failed.severity === "error" && OPS_EVENTS.routing_failed.alertAfter === 3);
@@ -265,6 +297,98 @@ async function partOffline(): Promise<void> {
   check("Dauer zu Fuss: 4500 m = 60 Min + 2 Min je Stopp", tourDurationMin(4500, "walk", 6) === 72);
   const bb = packageBbox([[13.04, 47.8], [13.05, 47.81]]);
   check("bbox: Puffer von rund 1 km rundum", bb.west < 13.04 - 0.009 && bb.east > 13.05 + 0.009 && bb.south < 47.8 - 0.008 && bb.north > 47.81 + 0.008);
+
+  head("3b. Eigene Runden: Reihenfolge (Luftlinie, exakt); Spot-Spur in Stücken; Höhen");
+  {
+    const rnd = mulberry32(42);
+    const start: LngLat = [13.04, 47.8];
+    for (let n = 2; n <= 8; n++) {
+      const stops: LngLat[] = Array.from({ length: n }, () => [13.0 + rnd() * 0.08, 47.78 + rnd() * 0.05]);
+      const order = orderLoop(start, stops);
+      const best = bruteForceLoopM(start, stops);
+      check(`${n} Stopps: Held-Karp = kürzeste aller Reihenfolgen, jeder Stopp genau einmal`, Math.abs(loopLengthM(start, stops, order) - best) < 1e-6 && order.length === n && new Set(order).size === n, `${loopLengthM(start, stops, order)} gegen ${best}`);
+    }
+    const stops8: LngLat[] = Array.from({ length: 8 }, () => [13.0 + rnd() * 0.08, 47.78 + rnd() * 0.05]);
+    check("deterministisch: zweimal dieselbe Reihenfolge", orderLoop(start, stops8).join() === orderLoop(start, stops8).join());
+    const stops12: LngLat[] = Array.from({ length: 12 }, () => [13.0 + rnd() * 0.08, 47.78 + rnd() * 0.05]);
+    const o12 = orderLoop(start, stops12);
+    check("12 Stopps (über EXACT_MAX): Permutation, nicht länger als die Eingabereihenfolge", o12.length === 12 && new Set(o12).size === 12 && loopLengthM(start, stops12, o12) <= loopLengthM(start, stops12, stops12.map((_, i) => i)));
+    check("0 und 1 Stopp", orderLoop(start, []).length === 0 && orderLoop(start, [stops8[0]]).join() === "0");
+
+    const pts = (n: number): LngLat[] => Array.from({ length: n }, (_, i) => [13.04 + i * 0.001, 47.8]);
+    const sizes = (n: number) => chunkWaypoints(pts(n)).map((c) => c.length).join("+");
+    check("Stücke: 25 -> eins; 26 -> 25+2; 49 -> 25+25; 50 -> 25+25+2 (Überlappung ein Punkt)", sizes(25) === "25" && sizes(26) === "25+2" && sizes(49) === "25+25" && sizes(50) === "25+25+2" && sizes(2) === "2");
+    const c49 = chunkWaypoints(pts(49));
+    check("Nahtstelle: letzter Punkt des einen = erster des nächsten", c49[0][24].join() === c49[1][0].join());
+
+    const geo = (coords: number[][]) => ({ type: "FeatureCollection", features: [{ type: "Feature", geometry: { coordinates: coords }, properties: { "track-length": "100", voicehints: [] } }] });
+    const r3 = parseBrouterGeojson(geo([[13.04, 47.8, 420], [13.041, 47.8, 421.5], [13.041, 47.8, 421.5], [13.042, 47.8, 423]]), [[13.04, 47.8], [13.042, 47.8]], "hiking-mountain");
+    check("Höhe je Punkt aus der dritten Koordinate, doppelte Punkte entfernt (3 statt 4)", r3.geometry.length === 3 && r3.elevationM?.join() === "420,421.5,423");
+    const r2 = parseBrouterGeojson(geo([[13.04, 47.8], [13.041, 47.8], [13.042, 47.8]]), [[13.04, 47.8], [13.042, 47.8]], "hiking-mountain");
+    check("ohne dritte Koordinate: elevationM null", r2.elevationM === null);
+    const rGap = parseBrouterGeojson(geo([[13.04, 47.8, 420], [13.041, 47.8], [13.042, 47.8, 423]]), [[13.04, 47.8], [13.042, 47.8]], "hiking-mountain");
+    check("Lücke in den Höhen: elevationM null (kein Profil mit Löchern)", rGap.elevationM === null);
+  }
+
+  head("3c. Spot-Spur: Stücke parallel, Rückfall je Stück (Attrappe statt Dienst)");
+  {
+    const local = new LocalRoutingProvider();
+    const line = (n: number): LngLat[] => Array.from({ length: n }, (_, i) => [13.04 + i * 0.0005, 47.8 + (i % 2) * 0.0002]);
+    type Compute = typeof runRoute;
+    const okWith = async (points: LngLat[], profile?: string, ms = 0) => {
+      await new Promise((r) => setTimeout(r, ms));
+      return { ok: true as const, route: await local.route({ points, mode: "walk", profile }), ms };
+    };
+    // Rückfall: Wanderprofil reisst die Frist, trekking liefert.
+    const calls: string[] = [];
+    const flaky: Compute = async (input) => {
+      calls.push(input.profile ?? "walk");
+      if (!input.profile) return { ok: false, code: "timeout", ms: 25000 };
+      return okWith(input.points, input.profile);
+    };
+    const r1 = await routeSpotLine(line(10), flaky);
+    check("Frist gerissen: zweiter Durchgang mit trekking, Linie da", r1.ok && r1.line.profiles.join() === SPOT_FALLBACK_PROFILE && calls.join() === `walk,${SPOT_FALLBACK_PROFILE}`, calls.join());
+    check("Rückfall steht als ERSTER Hinweis, nennt Abschnitt und Profil", r1.ok && /^Abschnitt Start bis Ziel: Wanderprofil zu langsam.*mit Profil trekking gerechnet/.test(r1.line.warnings[0] ?? ""), r1.ok ? r1.line.warnings.join(" | ") : r1.code);
+    check("requests zählt Stück plus Rückfall", r1.ok && r1.line.requests === 2);
+    const core1 = await (async () => {
+      process.env.ROUTING_ALLOW_TEST_ADAPTER = "1";
+      const r = await snapSpotRouteCore(line(10), flaky);
+      delete process.env.ROUTING_ALLOW_TEST_ADAPTER;
+      return r;
+    })();
+    check("Admin-Rückgabe trägt den Rückfall-Hinweis zuerst", core1.ok && /trekking/.test(core1.warnings?.[0] ?? ""));
+    // "kein Weg" löst denselben Rückfall aus, mit eigenem Wortlaut.
+    const noway: Compute = async (input) => (!input.profile ? { ok: false, code: "no-route", ms: 10 } : okWith(input.points, input.profile));
+    const r2 = await routeSpotLine(line(5), noway);
+    check("'kein Weg' im Wanderprofil: Rückfall mit Wortlaut 'fand keinen Weg'", r2.ok && /fand keinen Weg, mit Profil trekking/.test(r2.line.warnings[0] ?? ""));
+    // Beide Durchgänge scheitern: Fehler, keine Linie.
+    const dead: Compute = async () => ({ ok: false, code: "timeout", ms: 25000 });
+    const r3 = await routeSpotLine(line(5), dead);
+    check("auch trekking reisst die Frist: Fehler timeout, keine Linie", !r3.ok && r3.code === "timeout");
+    const core3 = await snapSpotRouteCore(line(5), dead);
+    check("Admin liest dann 'nicht erreichbar' (keine erfundene Linie)", !core3.ok && /nicht erreichbar/.test(core3.error ?? ""));
+    // Andere Fehler (auth, invalid) lösen keinen Rückfall aus.
+    const authCalls: string[] = [];
+    const auth: Compute = async (input) => (authCalls.push(input.profile ?? "walk"), { ok: false, code: "auth", ms: 5 });
+    const r4 = await routeSpotLine(line(5), auth);
+    check("auth-Fehler: kein Rückfall, Fehler durchgereicht", !r4.ok && r4.code === "auth" && authCalls.length === 1);
+    // Parallel: drei Stücke, das erste antwortet zuletzt; Reihenfolge und Naht bleiben.
+    const order: number[] = [];
+    let seq = 0;
+    const slowFirst: Compute = async (input) => {
+      const k = seq++;
+      const r = await okWith(input.points, undefined, k === 0 ? 120 : 10);
+      order.push(k);
+      return r;
+    };
+    const pts50 = line(50);
+    const t0 = Date.now();
+    const r5 = await routeSpotLine(pts50, slowFirst);
+    const took = Date.now() - t0;
+    check("50 Punkte: 3 Stücke gleichzeitig (erstes antwortet zuletzt), Linie in Spur-Reihenfolge", r5.ok && r5.line.profiles.length === 3 && order[order.length - 1] === 0 && haversineMeters(r5.line.geometry[0], pts50[0]) < 1 && haversineMeters(r5.line.geometry[r5.line.geometry.length - 1], pts50[49]) < 1, `Antwortreihenfolge ${order.join(",")}`);
+    check("parallel: Gesamtzeit nahe dem langsamsten Stück, nicht der Summe", took < 120 + 60, `${took} ms`);
+    check("Naht ohne Sprung: Länge der Linie = Summe der Stücke", r5.ok && Math.abs((routeCumulativeMeters(r5.line.geometry).at(-1) ?? 0) - r5.line.distanceM) < 1);
+  }
 
   head("4. Paket: Gast gegen Pro (ohne Netz)");
   const stored = fakeStored(bike);
@@ -424,6 +548,16 @@ async function partOffline(): Promise<void> {
     const allow = await snapTourRouteCore(sbL, { start: null, end: null, pointIds: ["a", "b", "c"], mode: "walk" });
     check("mit ROUTING_ALLOW_TEST_ADAPTER=1 erlaubt (nie in Produktion)", allow.ok === true);
     delete process.env.ROUTING_ALLOW_TEST_ADAPTER;
+    const spotNo = await snapSpotRouteCore([COORDS[0], COORDS[1], COORDS[2]]);
+    check("Spot-Kern: Testadapter abgelehnt mit derselben Meldung", !spotNo.ok && /Routendienst nicht eingerichtet: ROUTING_URL setzen/.test(spotNo.error ?? ""));
+    const loopNo = await routeUserLoop(COORDS[0], [COORDS[1], COORDS[2]]);
+    check("Eigene Runde: Testadapter abgelehnt (Code config, keine Linie)", !loopNo.ok && loopNo.code === "config");
+    process.env.ROUTING_ALLOW_TEST_ADAPTER = "1";
+    const spotYes = await snapSpotRouteCore([COORDS[0], COORDS[1], COORDS[2]]);
+    check("Spot-Kern: mit ROUTING_ALLOW_TEST_ADAPTER=1 erlaubt, ohne Höhen kein Profil, Dauer trotzdem", spotYes.ok === true && spotYes.profile === null && typeof spotYes.durationMin === "number");
+    const loopYes = await planUserLoop(COORDS[0], [COORDS[2], COORDS[1]]);
+    check("Eigene Runde: mit ROUTING_ALLOW_TEST_ADAPTER=1 Linie und Reihenfolge", !!loopYes.route && loopYes.order.length === 2);
+    delete process.env.ROUTING_ALLOW_TEST_ADAPTER;
   }
 
   head("8. Speicher tour_nav_routes: Attrappen-Client");
@@ -564,6 +698,51 @@ async function partBrouter(): Promise<void> {
   const downR = await captureConsole(() => snapTourRouteCore(sbOk, { start: null, end: null, pointIds: ["a", "b"], mode: "walk" }));
   check("Dienst aus: Admin liest 'nicht erreichbar'", !downR.result.ok && /nicht erreichbar/.test(downR.result.error ?? ""));
   process.env.ROUTING_URL = BROUTER;
+
+  head("10b. Spot-Wanderung (snapSpotRouteCore) gegen den lokalen BRouter");
+  {
+    brouterRequests = 0;
+    const r = await snapSpotRouteCore([COORDS[0], COORDS[2], COORDS[4]]);
+    check("ok mit Linie, Länge, Dauer, Höhenprofil", r.ok && (r.coords?.length ?? 0) > 20 && (r.distanceKm ?? 0) > 0.3 && typeof r.durationMin === "number" && !!r.profile, r.error);
+    check("genau eine Anfrage", brouterRequests === 1, `${brouterRequests}`);
+    if (r.ok && r.profile && r.coords && r.distanceKm != null) {
+      check("Profil: 2 bis 100 Punkte, ganze Meter, distanceKm = Länge der Anfrage", r.profile.points.length <= 100 && r.profile.points.length >= 2 && Number.isInteger(r.profile.ascent) && Number.isInteger(r.profile.min) && Math.abs(r.profile.distanceKm - r.distanceKm) < 1e-9);
+      check("Dauer = SAC-Formel (hikingTimeMinutes) aus Länge, Auf- und Abstieg", r.durationMin === hikingTimeMinutes(r.distanceKm, r.profile.ascent, r.profile.descent));
+      check("Felder wie bisher (ok, coords, distanceKm, durationMin, profile) plus warnings und OSM-Zeile", ["coords", "distanceKm", "durationMin", "profile"].every((k) => k in r) && Array.isArray(r.warnings) && r.attribution === OSM_ATTRIBUTION);
+      check("Hinweise nennen Start, Punkt n oder Ziel", (r.warnings ?? []).every((w) => /^(Start|Ziel|Punkt \d+)\b|bei (Start|Ziel|Punkt \d+)/.test(w)), (r.warnings ?? []).join(" | "));
+      info(`${r.distanceKm} km, ${r.durationMin} Min, ↑${r.profile.ascent} ↓${r.profile.descent}, ${r.coords.length} Punkte, ${r.warnings?.length ?? 0} Hinweis(e)`);
+    }
+    const many: LngLat[] = Array.from({ length: 30 }, (_, i) => [COORDS[0][0] + (COORDS[2][0] - COORDS[0][0]) * (i / 29), COORDS[0][1] + (COORDS[2][1] - COORDS[0][1]) * (i / 29)]);
+    brouterRequests = 0;
+    const big = await routeSpotLine(many);
+    // Ohne Sprung an der Naht: Die Länge der zusammengesetzten Linie ist die Summe der Stücke.
+    // Ein Sprung läge in der Linie, aber in keinem Stück.
+    const lineM = big.ok ? (routeCumulativeMeters(big.line.geometry).at(-1) ?? 0) : 0;
+    check("30 Kontrollpunkte: 2 Anfragen (25 + Überlappung), eine Linie ohne Sprung an der Naht", big.ok && big.line.requests === 2 && brouterRequests === 2 && Math.abs(lineM - big.line.distanceM) < 1, big.ok ? `${brouterRequests} Anfragen, Linie ${Math.round(lineM)} m, Summe ${Math.round(big.line.distanceM)} m` : big.code);
+    check("beide Stücke mit dem Wanderprofil, kein Rückfall", big.ok && big.line.profiles.join() === "hiking-mountain,hiking-mountain" && big.line.warnings.every((w) => !/trekking/.test(w)));
+    check("Höhe je Punkt der zusammengesetzten Linie", big.ok && big.line.elevationM?.length === big.line.geometry.length);
+    const one = await snapSpotRouteCore([COORDS[0]]);
+    check("ein Punkt: 'Mindestens 2 Punkte nötig' (wie bisher)", !one.ok && one.error === "Mindestens 2 Punkte nötig");
+    const far = await snapSpotRouteCore([COORDS[0], [14.5, 48.5]]);
+    check("Punkt 100 km weg: fester Satz, keine Koordinate", !far.ok && /zu weit/.test(far.error ?? "") && !/\d{2}\.\d/.test(far.error ?? ""), far.error);
+  }
+
+  head("10c. Eigene Runde (planUserLoop) gegen den lokalen BRouter");
+  {
+    const start = COORDS[0];
+    const stops = [COORDS[3], COORDS[1], COORDS[5], COORDS[2]];
+    brouterRequests = 0;
+    const p = await planUserLoop(start, stops);
+    check("eine Anfrage, Linie vorhanden", brouterRequests === 1 && !!p.route, `${brouterRequests} Anfragen, ${p.code ?? ""}`);
+    check("Reihenfolge = exakte Luftlinien-Reihenfolge (orderLoop)", p.order.join() === orderLoop(start, stops).join());
+    if (p.route) {
+      const g = p.route.geo;
+      check("Linie beginnt und endet am Start (unter 60 m)", haversineMeters(g[0], start) < 60 && haversineMeters(g[g.length - 1], start) < 60);
+      check("Dauer = tourDurationMin (4,5 km/h + 2 min je Stopp)", p.route.durationMin === tourDurationMin(p.route.distanceM, "walk", stops.length));
+      check("OSM-Zeile", p.route.attribution === OSM_ATTRIBUTION);
+      info(`${(p.route.distanceM / 1000).toFixed(2)} km, ${p.route.durationMin} Min, Reihenfolge ${p.order.join(",")}`);
+    }
+  }
 
   head("11. Paket: Zwischenspeichern und Hash (echte Linie, Speicher im Arbeitsspeicher)");
   const mem = memoryStore();

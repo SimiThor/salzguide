@@ -6,9 +6,10 @@ Routing hierher; docs/40 soll es noch tun.
 
 **Gebaut (Branch `feat/routing-brouter`, Web-Seite):** Modul `src/lib/routing/*`, Migration
 `0076_tour_nav_routes.sql`, `GET /api/app/v1/tours/{slug}/package`, `POST /api/app/v1/route`,
-`snapTourRoute` im Admin auf BRouter, Prüfung `npm run routing:check`. Noch offen: die
-Umstellung der Web-Navigation (Abschnitt 8, Schritt 6), eigene Runden (Schritt 5) und die
-Folgearbeiten in Abschnitt 15.
+`snapTourRoute` im Admin auf BRouter, Prüfung `npm run routing:check`. **Dazu (Branch
+`feat/spot-routes-brouter`, auf #316):** Spot-Wanderrouten und eigene Runden auf BRouter
+(Abschnitt 16). Noch offen: das Neu-Rechnen der gespeicherten Linien nach Antons Freigabe
+(Abschnitt 16) und die Folgearbeiten in Abschnitt 15.
 
 ## 0. Entscheidung in drei Sätzen
 
@@ -23,13 +24,13 @@ Mapbox bleibt nur für die Kartenanzeige (Web: mapbox-gl, App: Maps SDK mit Tile
 | Stelle | Dienst | Gespeichert? | Urteil |
 |---|---|---|---|
 | `snapTourRoute` (tour-actions.ts), Runden-Editor | Mapbox Directions | ja, `tours.route_geo` | verboten, umstellen |
-| `optimizeLoop` (tour-generate.ts), eigene Runden | Mapbox Optimization | ja, `user_tours.route_geo` | verboten, umstellen |
+| `planUserLoop` (routing/user-loop.ts), eigene Runden | **BRouter** `hiking-mountain`, Reihenfolge aus `routing/order.ts` (umgestellt 23.10., vorher Mapbox Optimization) | ja, `user_tours.route_geo` (gehört uns) | erledigt; 5 alte Mapbox-Linien neu rechnen (Abschnitt 16) |
 | `fetchBikeRoute` (bike-directions.ts), Web-Navigation | **BRouter** über `POST /api/tours/[slug]/route` (umgestellt 23.10., ein System) | nein | erledigt, Mapbox-Directions-Aufruf entfernt (Abschnitt 8.3) |
-| `scripts/seed-runde-a.ts` | Mapbox Directions (Einmalskript) | ja, `route_geo` | **bleibt offen**: schreibt Mapbox-Linien nach `tours.route_geo`; nicht mehr ausführen, bis es auf das Routing-Modul (`snapTourRouteCore`) umgestellt ist |
-| `snapRoute` (admin-actions.ts), `wp:routes` | openrouteservice foot-hiking | ja, Spot-Routen | **eigene Frage**, siehe Abschnitt 13 |
+| `scripts/seed-runde-a.ts` | **BRouter** über `runChain` (umgestellt 23.10., vorher Mapbox Directions; seither nicht erneut ausgeführt) | ja, `route_geo` | erledigt |
+| `snapRoute` (admin-actions.ts) -> `snapSpotRouteCore` (routing/snap-spot.ts), `wp:routes` | **BRouter** `hiking-mountain` (umgestellt 23.10., vorher openrouteservice foot-hiking) | ja, `spots.route_geojson` + `elevation_profile` | erledigt; 48 alte ORS-Linien neu rechnen (Abschnitt 16) |
 
 Stand der Daten am 23.10.: 2 Runden (beide veröffentlicht, beide Pro) und 5 eigene Runden
-tragen eine gespeicherte Mapbox-Linie.
+tragen eine gespeicherte Mapbox-Linie, 48 veröffentlichte Spots eine openrouteservice-Linie.
 
 ## 2. Architektur
 
@@ -239,8 +240,10 @@ der Radrunde werden später angeboten als mit Mapbox (nach 115 m statt sofort am
 | `no-route` | BRouter 400 (kein Weg, Punkt ausserhalb der Wegdaten) | "kein Weg zwischen diesen Punkten" | `no-route` |
 | `invalid` | Grenzen unten | Satz aus der Prüfung | `no-route` |
 
-- Fristen: Server zu BRouter 20 s (Editor, Speichern), 8 s beim Umrouten; Client wie heute
-  15 s (`FETCH_TIMEOUT_MS`). Abbruch durch den Aufrufer (AbortSignal) wird nicht umgedeutet.
+- Fristen: Server zu BRouter 20 s (Editor, Speichern), 8 s beim Umrouten, 25 s je Stück der
+  Spot-Spur (die Stücke laufen parallel, dazu ein Rückfall-Durchgang, Abschnitt 16); Client
+  wie heute 15 s (`FETCH_TIMEOUT_MS`). Abbruch durch den Aufrufer (AbortSignal) wird nicht
+  umgedeutet.
 - Grenzen: 2 bis 25 Punkte (`MAX_ROUTE_POINTS` = `MAX_DIRECTIONS_COORDS`, eine Zahl für
   alle), höchstens 30 km Luftlinie zwischen zwei Punkten, Antwort höchstens 8 MB,
   Linie höchstens 10 000 Punkte. Wegdaten auf dem Server: sechs 5-Grad-Kacheln, 5 bis 20 Grad
@@ -302,10 +305,11 @@ der Radrunde werden später angeboten als mit Mapbox (nach 115 m statt sofort am
    OSM-Hinweis. `MAPBOX_SERVER_TOKEN` wird dort nicht mehr gebraucht.
 4. **Anton rechnet beide Runden im Editor neu** (Vorschau ansehen, speichern). Danach liegt
    keine Mapbox-Linie mehr in `tours`.
-5. **Eigene Runden:** Die Reihenfolge rechnen wir selbst (höchstens 8 Stopps: exakt über
-   alle Reihenfolgen auf Luftlinie, ab Start und zurück, deterministisch), die Linie kommt
-   aus EINER BRouter-Anfrage mit `walk`-Profil. Ein einmaliges Skript rechnet die 5
-   gespeicherten `user_tours.route_geo` mit derselben Reihenfolge (`point_ids`) neu.
+5. **Eigene Runden (gebaut, Abschnitt 16):** Die Reihenfolge rechnen wir selbst
+   (`routing/order.ts`: exakt bis 10 Stopps auf Luftlinie, ab Start und zurück,
+   deterministisch), die Linie kommt aus EINER BRouter-Anfrage mit `walk`-Profil
+   (`routing/user-loop.ts`). `npm run spot-routes:rewrite -- --write --user-tours` rechnet
+   die 5 gespeicherten `user_tours.route_geo` mit derselben Reihenfolge (`point_ids`) neu.
 6. **Web-Navigation auf BRouter (gebaut, ein System):** `fetchBikeRoute` fragt
    `POST /api/tours/[slug]/route` (selbe Herkunft, `foreignOrigin`, Cookie-Betrachter wie die
    Tour-Seite inkl. Entwurfs-Vorschau, 120 Anfragen je IP in 10 min), dahinter derselbe Kern
@@ -457,10 +461,12 @@ Der Code kennt nur `ROUTING_URL` und `ROUTING_TOKEN`. Deshalb bleibt beides mög
   Slugs ("Tour 1 (Rad, Pro)").
 - `npm run routing:drive`: dieselben Runden durch den echten `stepNav`.
   Braucht `scripts/lib/nav-cases.ts` (PR #309); bis dahin `NAV_CASES=<pfad>`.
-- Spot-Wanderrouten (`snapRoute`, `wp:routes`) laufen über openrouteservice; dessen
-  Bedingungen stellen Ergebnisse unter CC-BY-SA 4.0 (Kraxelbande docs/13, Abschnitt 3).
-  Nicht Teil dieses Umbaus, aber derselbe Adapter (`walk` / `hiking-mountain`) könnte sie
-  übernehmen (offene Frage 5).
+- Spot-Wanderrouten und eigene Runden (Abschnitt 16): `routing:check` Abschnitte 3b, 3c, 7d,
+  10b, 10c; `npm run spot-routes:compare -- --out=<ordner>` (nur lesend, lokaler BRouter:
+  alle Spots und eigenen Runden gegen das Gespeicherte, Bericht und Screenshots);
+  `npm run spot-routes:rewrite` (Trockenlauf; `--write` erst nach Freigabe);
+  `scripts/spot-routes-web-check.mjs --base=... --spot=<slug>` (Chrome, Wegwerf-Admin/Pro-
+  Konto: Editor-Meldung, Builder-Runde in der Datenbank, Konto wird gelöscht).
 
 ## 14. Offene Fragen an Anton
 
@@ -473,19 +479,19 @@ Der Code kennt nur `ROUTING_URL` und `ROUTING_TOKEN`. Deshalb bleibt beides mög
 4. ~~Tempo für die angezeigte Dauer~~ entschieden: Tempo der Navigation (Rad 12, zu Fuss
    4,5 km/h), Abschnitt 4. Anton kann es mit `FALLBACK_SPEED_MPS` ändern; das gilt dann auch
    für die Ankunftszeit.
-5. **Spot-Wanderrouten** (openrouteservice, gespeichert): ebenfalls auf BRouter umstellen?
+5. ~~Spot-Wanderrouten auf BRouter umstellen~~ gebaut (Abschnitt 16). Offen: die 48
+   gespeicherten Linien neu rechnen (Skript mit `--fix-waypoints` oder von Hand), das Profil
+   `hiking-mountain` bestätigen, die niedrigeren Höhenmeter stichprobenartig prüfen.
 
 ## 15. Folgearbeiten (nicht Teil dieses Umbaus)
 
 Diese Stellen rufen weiter Mapbox oder openrouteservice auf; bis zur Umstellung bleibt, was
 in Abschnitt 1 steht.
 
-1. **Eigene Runden** (`optimizeLoop` in `tour-generate.ts`, Mapbox Optimization, speichert
-   `user_tours.route_geo`): auf eigene Reihenfolge-Rechnung plus EINE BRouter-Anfrage mit
-   `walk`-Profil umstellen (Abschnitt 8, Schritt 5); die 5 gespeicherten Linien neu rechnen.
-2. **Spot-Wanderrouten** (`snapRoute` in `admin-actions.ts`, `wp:routes`, openrouteservice,
-   gespeichert in `spots.route_geojson`): offene Frage 5; derselbe Adapter (`walk`) könnte sie
-   übernehmen.
+1. ~~Eigene Runden umstellen~~ gebaut (Abschnitt 16); offen nur das Neu-Rechnen der 5
+   gespeicherten Linien (`spot-routes:rewrite -- --write --user-tours`).
+2. ~~Spot-Wanderrouten umstellen~~ gebaut (Abschnitt 16); offen nur das Neu-Rechnen der 48
+   gespeicherten Linien nach Antons Freigabe.
 3. **Pflichtzeile im Web:** "Route: © OpenStreetMap-Mitwirkende" (`Tours.routeAttribution`, 13
    Sprachen) steht im Fahrbildschirm (`customAttribution` der Karte). Offen: Tour-Seite und
    Editor-Karte; im Admin steht sie in der Meldung der Vorschau.
@@ -493,3 +499,85 @@ in Abschnitt 1 steht.
    Anton eine gespeicherte Route nach einem Wegdaten-Update bewusst erneuern will (heute:
    Runde ändern).
 5. **Anstieg** (`ascentM`) steht noch nicht im Paket (nur Auskunft, nicht gespeichert).
+
+## 16. Spot-Wanderrouten und eigene Runden auf BRouter (gebaut 23.10.2026)
+
+Branch `feat/spot-routes-brouter` (auf #316). Ein System: derselbe Adapter, dasselbe Profil
+(`hiking-mountain`), dieselben Fristen und Meldungen wie bei den Runden.
+
+**Code:**
+- `routing/snap-spot.ts` (server-only): `routeSpotLine(waypoints)` schneidet die Spur in
+  Stücke zu je `MAX_ROUTE_POINTS` (25, Überlappung ein Punkt; "Hin & zurück" mit 20
+  Kontrollpunkten ergibt 39), eine Anfrage je Stück (`mode: "walk"`, `purpose: "spot"`), und
+  hängt Linie, Höhen und Länge zusammen. `snapSpotRouteCore` ist der Kern von `snapRoute`
+  (admin-actions.ts): Höhenprofil aus `NormalizedRoute.elevationM` (Format wie bisher,
+  `lib/elevation.ts`, 100 Punkte, `ascentDescent`), Gehzeit SAC (`hikingTimeMinutes`) wie
+  bisher, Testadapter-Riegel wie der Runden-Editor. Rückgabe wie bisher plus `warnings` und
+  `attribution`, beides steht in der Meldung des Formulars. Dauer und Schwierigkeit füllt das
+  Formular weiterhin nur, wenn sie leer sind (Regel aus Abschnitt 4).
+- `routing/order.ts` (rein): `orderLoop` exakt (Held-Karp) bis 10 Stopps, darüber
+  Nächster-Nachbar plus 2-opt, bei Gleichstand der kleinere Index. `routing/user-loop.ts`
+  (server-only): `routeUserLoop` = EINE Anfrage `[Start, Stopps, Start]` (`purpose:
+  "builder"`), Dauer `tourDurationMin(..., "walk", n)`; `planUserLoop` = Reihenfolge plus
+  Linie. `tour-generate.ts` nutzt es statt Mapbox Optimization; liefert der Dienst nicht,
+  bleibt die Reihenfolge und die Linie fehlt (der Client zeichnet gerade Striche, wie bisher).
+- `NormalizedRoute.elevationM` (additiv): die dritte Koordinate aus dem BRouter-GeoJSON,
+  nur für das Spot-Profil, nie in `tour_nav_routes`.
+- Spot-Editor-Seiten: `maxDuration = 60` wie die Runden-Seiten.
+- `scripts/seed-runde-a.ts` (`runChain`) und `wp:routes` (`routeSpotLine`) laufen über das
+  Modul. `ORS_KEY` und `MAPBOX_SERVER_TOKEN` liest kein Code mehr; nach dem Merge aus
+  Vercel und `.env.local` entfernbar.
+
+**Gespeicherte Linien (NICHT ersetzt, Antons Entscheidung):** 48 veröffentlichte Spots
+(`spots.route_geojson`, openrouteservice, CC-BY-SA) und 5 eigene Runden
+(`user_tours.route_geo`, Mapbox). Vergleich `npm run spot-routes:compare -- --out=<ordner>`
+(nur lesend, lokaler BRouter 1.7.10, Wegdaten E10_N45 vom 23.10.2026):
+
+- **Linien:** Kontrollpunkte alle 150 m entlang der alten Linie (bei hin&zurück nur der
+  Hinweg, dann verdoppelt, `scripts/lib/spot-routes.ts`): 48 von 48 Spots gerechnet, Länge
+  Median +1 m, Hausdorff Median 1 m, "nah innerhalb 15 m" Median 100 %. Grösste
+  Abweichungen: nonnberggasse -237 m (Hausdorff 79 m), halleiner-altstadt -154 m,
+  bad-gastein -114 m. Die Linien sind dieselben Wege, nur auf OSM-Daten.
+- **Die gespeicherten `route_waypoints` taugen nicht zum Neu-Rechnen:** Der WP-Import
+  (`waypointsFor`) hat die fertige Linie auf 4 bis 20 Punkte eingedampft, bei 30 von 48
+  Hin-und-zurück-Wegen ohne den Wendepunkt. Aus ihnen entstehen Stummel (freisaalweg 0,41
+  statt 1,04 km, nonnberggasse 0,57 statt 1,51 km), mit jedem Dienst, also auch heute im
+  Admin per "Anpassen". `spot-routes:rewrite -- --fix-waypoints` ersetzt sie durch die
+  abgeleiteten Punkte, damit der nächste Klick die Route nicht zerstört.
+- **Höhenmeter:** BRouter (SRTM in den rd5-Kacheln) liegt meist unter openrouteservice,
+  Median -23 m: Mönchsberg 182 -> 72 m, Gollinger Wasserfall 194 -> 76 m, Falkensteinwand
+  533 -> 205 m. Das Profil auf der Spot-Seite ändert sich sichtbar; das Feld "Dauer" nicht.
+- **Langsam, Ursache und Abhilfe:** `hiking-mountain` verbietet Pfade über SAC T3
+  (`SAC_scale_limit 3`) mit `SAC_access_penalty 999`: Liegt die Spur auf einem Steig mit
+  `sac_scale=alpine_hiking` (Spinnerin, 355 m, cost/km 1 000 000), sucht BRouter nach jeder
+  billigeren Alternative, bis die Strafe billiger ist als der Umweg. Gemessen: dieses 500-m-
+  Teilstück 4 bis 28 s, `trekking` 26 ms und `shortest` 11 ms auf DEMSELBEN Pfad. Abhilfe in
+  `routing/snap-spot.ts` (23.10.2026): alle Stücke parallel (höchstens 3 gleichzeitig), 25 s
+  je Stück (purpose `spot`), und ein Stück, das die Frist reisst oder "kein Weg" meldet, wird
+  einmal mit `trekking` gerechnet; das steht als ERSTER Hinweis in der Antwort ("Abschnitt
+  Punkt 25 bis Ziel: Wanderprofil zu langsam (alpiner Steig über T3?), mit Profil trekking
+  gerechnet. Linie dort prüfen."), im Formular, im Vergleich und im Rewrite-Skript. Scheitert
+  auch trekking, gibt es den Fehler und keine Linie. Zwei Durchgänge zu 25 s bleiben unter der
+  maxDuration 60. Gemessen (lokal, dieselben Spots): Spinnerin 10,0 s -> 4,2 s, Tristkogel
+  3,7 s -> 1,3 s, Almwelt Lofer 0,6 s -> 0,14 s; mit künstlicher Frist 3 s greift der
+  Rückfall (`spot-routes:compare -- --only=spinnerin --budget-ms=3000`): Linie identisch
+  (6,90 km, Hausdorff 8 m), Hinweis gesetzt, 3,0 s. Echte Abhilfe am Server (Antons
+  Entscheidung, Kraxelbande-Infra): ein SalzGuide-Profil mit `SAC_scale_limit 4`, dann
+  rechnet das Wanderprofil solche Steige in Millisekunden ohne Rückfall.
+- **Eigene Runden:** Linien 3 bis 4 % länger (hiking-mountain meidet Hauptstrassen), Dauer
+  nach Formel 6 bis 7 min mehr (4,5 km/h statt Mapbox-Gehzeit), Hausdorff 165 bis 190 m.
+- **Intro-Videos:** `introSourceHash` (lib/intro-hash.ts) hängt an `route_geojson`. Jede neu
+  gerechnete Spot-Linie, per Skript oder per "Anpassen" plus Speichern im Admin, markiert
+  das Intro-Video des Spots als veraltet; es wird neu gerendert.
+
+**Neu rechnen (erst nach Freigabe):** `npm run spot-routes:rewrite` ist ein Trockenlauf;
+`-- --write [--fix-waypoints] [--user-tours] [--only=<slug>] [--force]` schreibt nur
+`route_geojson` + `elevation_profile` (+ `route_waypoints`), bei eigenen Runden `route_geo`,
+`distance_km`, `duration_min`; nie `duration` oder `difficulty`. Linien mit Hausdorff > 250 m
+oder > 15 % Längenunterschied werden ohne `--force` übersprungen. Das Skript leert den
+Katalog-Cache nicht: danach einen Spot im Admin speichern oder neu deployen.
+
+**Offen für Anton:** (1) Profil `hiking-mountain` für Spots bestätigen; (2) Spot-Linien neu
+rechnen, per Skript mit `--fix-waypoints` oder Spot für Spot von Hand; (3) die 5 eigenen
+Runden neu rechnen; (4) Höhenmeter an den drei Beispielen plausibilisieren; (5) nach dem
+Merge `ORS_KEY` und `MAPBOX_SERVER_TOKEN` aus Vercel nehmen.

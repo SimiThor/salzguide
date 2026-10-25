@@ -9,19 +9,13 @@
 // in `src/lib/geo.ts`, weil der Admin sie beim Snappen ebenfalls braucht. Hier steht nur,
 // was um sie herum passiert; die drei werden weitergereicht, damit die Import-Skripte ihre
 // gewohnten Namen behalten und trotzdem nur EINE Fassung existiert.
-import { haversineMeters, routeLengthKm } from "../../src/lib/geo.ts";
+import { routeLengthKm } from "../../src/lib/geo.ts";
 
 export { ascentDescent, formatHikingDuration as formatDuration } from "../../src/lib/geo.ts";
-import { ascentDescent } from "../../src/lib/geo.ts";
-
-/** Gleichmässig auf n Punkte eindampfen, erster und letzter bleiben. */
-export function downsample<T>(arr: T[], n: number): T[] {
-  if (arr.length <= n) return arr;
-  const out: T[] = [];
-  const step = (arr.length - 1) / (n - 1);
-  for (let i = 0; i < n; i++) out.push(arr[Math.round(i * step)]);
-  return out;
-}
+// Eindampfen und Höhenprofil: seit docs/42 in lib/elevation.ts, weil der Admin-Kern
+// (routing/snap-spot.ts) dieselbe Rechnung braucht. Hier nur weitergereicht.
+export { downsample, buildElevationProfile as elevationProfile } from "../../src/lib/elevation.ts";
+import { downsample } from "../../src/lib/elevation.ts";
 
 /**
  * Hin und zurück auf demselben Weg: Aus dem Aufstieg wird beim Rückweg der Abstieg und
@@ -51,26 +45,4 @@ export function waypointsFor(coords: [number, number][]): [number, number][] {
   const km = routeLengthKm(coords);
   const target = Math.max(4, Math.min(20, Math.round((km * 1000) / 400)));
   return downsample(coords, target);
-}
-
-/**
- * Format wie Migration 0006 und wie snapRoute es schreibt:
- * { points:[{d(km), e(m)}], ascent, descent, min, max, distanceKm }, Punkte bei 100 gedeckelt.
- */
-export function elevationProfile(coords: [number, number][], el: number[]) {
-  const pts: { d: number; e: number }[] = [];
-  let cum = 0;
-  for (let i = 0; i < coords.length; i++) {
-    if (i > 0) cum += haversineMeters(coords[i - 1], coords[i]);
-    pts.push({ d: cum / 1000, e: el[i] });
-  }
-  const { ascent, descent } = ascentDescent(el);
-  return {
-    points: downsample(pts, 100).map((p) => ({ d: Math.round(p.d * 100) / 100, e: Math.round(p.e) })),
-    ascent,
-    descent,
-    min: Math.round(Math.min(...el)),
-    max: Math.round(Math.max(...el)),
-    distanceKm: cum / 1000,
-  };
 }

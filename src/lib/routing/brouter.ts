@@ -190,12 +190,17 @@ export function parseBrouterGeojson(payload: unknown, points: LngLat[], profile:
     throw new RoutingError("bad-response", "Die Linie hat mehr Punkte als erlaubt.");
 
   const rawGeometry: LngLat[] = [];
+  // Dritte Koordinate = Höhe in Metern (BRouter schreibt sie aus den SRTM-Daten der rd5-
+  // Dateien). Sie wird nur weitergereicht, nie gespeichert; das Höhenprofil der Spots
+  // entsteht daraus in routing/snap-spot.ts.
+  const rawElevationM: (number | null)[] = [];
   for (const c of rawCoords) {
     const lng = Array.isArray(c) ? num(c[0]) : null;
     const lat = Array.isArray(c) ? num(c[1]) : null;
     if (lng == null || lat == null || lng < -180 || lng > 180 || lat < -90 || lat > 90)
       throw new RoutingError("bad-response", "Die Antwort enthielt eine unbrauchbare Koordinate.");
     rawGeometry.push([lng, lat]);
+    rawElevationM.push(Array.isArray(c) && c.length >= 3 ? num(c[2]) : null);
   }
 
   const props = feature?.properties ?? {};
@@ -235,6 +240,7 @@ export function parseBrouterGeojson(payload: unknown, points: LngLat[], profile:
     },
     warnings,
     labels,
+    rawElevationM,
   });
 }
 
@@ -285,9 +291,9 @@ export class BrouterProvider implements RoutingProvider {
     this.opts = opts;
   }
 
-  async route({ points, mode, labels, signal }: RouteRequest): Promise<NormalizedRoute> {
+  async route({ points, mode, labels, signal, profile: wanted }: RouteRequest): Promise<NormalizedRoute> {
     assertRoutable(points);
-    const profile = this.opts.profileFor?.(mode) ?? BROUTER_PROFILE[mode];
+    const profile = wanted ?? this.opts.profileFor?.(mode) ?? BROUTER_PROFILE[mode];
 
     // Die Adresse kann einen Pfad tragen (".../routing"), deshalb anhängen statt ersetzen.
     const url = new URL(`${this.baseUrl.replace(/\/+$/, "")}/brouter`);

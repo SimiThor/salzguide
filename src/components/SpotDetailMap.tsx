@@ -8,7 +8,7 @@ import SpotMap, { type SpotPoi } from "./SpotMap";
 import { MAP_CTRL_PAD } from "./mapControls";
 import MapPopover, { MapPopoverClose } from "./MapPopover";
 import ElevationProfile from "./ElevationProfile";
-import type { ElevationProfile as Profile } from "@/lib/admin-actions";
+import type { ElevationProfile as Profile } from "@/lib/elevation";
 import { coordAtFraction, classifyRoute, type RouteShape } from "@/lib/geo";
 import { poiEmoji } from "@/lib/poi";
 import { useIsMounted } from "@/lib/use-is-mounted";
