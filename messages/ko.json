@@ -692,7 +692,7 @@
       "errorGeneric": "잘 안 됐어요. 다시 시도해 주세요.",
       "apple": "Apple로 로그인",
       "google": "Google로 로그인",
-      "appleHint": "웹에서 Pro를 구매했나요? 같은 이메일로 로그인하세요."
+      "appleHint": "이미 Pro인가요? 같은 이메일로 로그인하세요."
     },
     "profile": {
       "signOut": "로그아웃",

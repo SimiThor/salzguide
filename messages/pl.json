@@ -692,7 +692,7 @@
       "errorGeneric": "Nie wyszło. Spróbuj jeszcze raz.",
       "apple": "Zaloguj się przez Apple",
       "google": "Zaloguj się przez Google",
-      "appleHint": "Pro kupione w sieci? Zaloguj się tym samym adresem e-mail."
+      "appleHint": "Masz już Pro? Zaloguj się tym samym adresem e-mail."
     },
     "profile": {
       "signOut": "Wyloguj się",

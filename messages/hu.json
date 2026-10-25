@@ -692,7 +692,7 @@
       "errorGeneric": "Nem sikerült. Próbáld újra.",
       "apple": "Bejelentkezés az Apple-lel",
       "google": "Bejelentkezés Google-lel",
-      "appleHint": "Webes Pro-vásárlás? Jelentkezz be ugyanazzal az e-mail-címmel."
+      "appleHint": "Már Pro vagy? Jelentkezz be ugyanazzal az e-mail-címmel."
     },
     "profile": {
       "signOut": "Kijelentkezés",

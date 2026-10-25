@@ -692,7 +692,7 @@
       "errorGeneric": "That didn’t work. Please try again.",
       "apple": "Sign in with Apple",
       "google": "Sign in with Google",
-      "appleHint": "Bought Pro on the web? Log in with the same email."
+      "appleHint": "Already Pro? Log in with the same email."
     },
     "profile": {
       "signOut": "Sign out",
