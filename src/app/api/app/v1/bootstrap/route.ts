@@ -33,7 +33,11 @@ export async function GET(req: Request) {
     const min = process.env.APP_MIN_VERSION;
     const minAppVersion = min && /^\d+\.\d+(\.\d+)?$/.test(min) ? min : "1.0.0";
 
-    const base = `${siteUrl()}/${ctx.lang}/rechtliches`;
+    // Die App-Ansicht (/app/rechtliches/..., lib/routes.ts), nicht die normale Seite: Die App
+    // öffnet die Adressen in ihrem Safari-Fenster, und dort darf keine Website-Navigation zum
+    // Pro-Kauf führen (App-Store-Regel 3.1.1(a)). Gleiche Felder wie bisher, die App öffnet,
+    // was sie bekommt.
+    const base = `${siteUrl()}/${ctx.lang}/app/rechtliches`;
     const body: AppBootstrap = {
       apiVersion: 1,
       lang: ctx.lang,

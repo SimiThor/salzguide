@@ -60,3 +60,22 @@ export function isFullscreenMapRoute(pathname: string): boolean {
 export function isImmersiveRoute(pathname: string): boolean {
   return /^\/touren\/(?:meine\/)?[^/]+\/navigation$/.test(pathname);
 }
+
+// App-Ansicht für die iOS-App (/app/...): Seiten, die die native App in ihrem Safari-Fenster
+// öffnet, heute die Rechtstexte (Adressen aus GET /api/app/v1/bootstrap). Dort darf NICHTS
+// stehen, was auf die Website führt: kein Header, keine Tab-Leiste, keine Fussleiste, keine
+// Toni-Blase, kein Pro-Gruss, kein Zurück-Knopf zur Karte. Grund ist App-Store-Regel 3.1.1(a):
+// In der EU ist jeder Weg aus der App zu einem fremden Kauf verboten, und über die Navigation
+// der Website wäre man mit zwei Tipps beim Stripe-Kauf. Reichweitenmessung läuft dort auch
+// nicht: Die Datenschutzerklärung sagt für die App "kein Tracking".
+//
+// Eigener Pfad statt `?app=1`: Ein Query-Parameter liesse sich nur dynamisch (oder erst nach
+// der Hydration im Browser) auswerten, bis dahin stünde die volle Navigation im HTML. Der
+// Pfad ist beim Vorrendern bekannt, die Seiten bleiben statisch, und die normale Fassung
+// unter /rechtliches rendert unverändert.
+//
+// Wer hier eine Seite ergänzt: Ordner unter src/app/[locale]/app/, Zeile in
+// lib/public-routes.ts, Adresse in api/app/v1/bootstrap/route.ts.
+export function isAppEmbedRoute(pathname: string): boolean {
+  return pathname === "/app" || pathname.startsWith("/app/");
+}

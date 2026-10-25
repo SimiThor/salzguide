@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "@/i18n/navigation";
-import { isMarketingRoute, isImmersiveRoute } from "@/lib/routes";
+import { isAppEmbedRoute, isMarketingRoute, isImmersiveRoute } from "@/lib/routes";
 import BottomNav from "@/components/BottomNav";
 import DesktopHeader from "@/components/DesktopHeader";
 import MobileHeader from "@/components/MobileHeader";
@@ -24,6 +24,21 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
   // Hier, weil AppChrome auf JEDER Seite liegt (auch auf den Marketing-Seiten) und weil
   // das Tap-Feedback nichts ist, um das sich 70 einzelne Komponenten kümmern sollten.
   useTouchActiveState();
+
+  // App-Ansicht für die iOS-App (lib/routes.ts, isAppEmbedRoute): nur der Inhalt. Kein
+  // Header, keine Tab-Leiste, keine Fussleiste, kein Pro-Gruss, keine Reichweitenmessung.
+  // Oben gibt es keinen Header, also nur Luft statt der Header-Höhe; unten keine Fussleiste,
+  // also bringt <main> den Abschluss-Weissraum selbst mit.
+  if (isAppEmbedRoute(pathname)) {
+    return (
+      <>
+        <main className="flex flex-1 flex-col pb-[calc(var(--sg-sab)+3rem)] [--sg-page-top:1.25rem]">
+          {children}
+        </main>
+        <ClientErrorWatch />
+      </>
+    );
+  }
 
   return (
     <>
