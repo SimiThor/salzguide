@@ -13,6 +13,7 @@ import type { FreshLake } from "./water-temp";
 import type { OpeningWeek } from "./opening-hours";
 import type { LngLat, RouteSource, RouteStep } from "./routing/types";
 import type { TourMode } from "./tour-mode";
+import type { AiCards } from "./ai-types";
 
 /** Feste Fehlercodes. Nie rohe Fehlertexte nach außen. */
 export type AppErrorCode =
@@ -24,6 +25,8 @@ export type AppErrorCode =
   // 422, nur POST /route: zwischen den Punkten gibt es keinen Weg (oder ein Punkt liegt
   // ausserhalb der Wegdaten). Die App bleibt auf der alten Linie.
   | "no_route"
+  // 402, nur POST /toni: Tageslimit erreicht. Der Body trägt zusätzlich `scope`.
+  | "limit"
   | "unavailable";
 
 export type AppError = { error: AppErrorCode };
@@ -272,3 +275,42 @@ export type AppReroute = {
     attribution: string;
   };
 };
+
+// ── Toni (KI-Chat, docs/41 Abschnitt 4.3, docs/39) ──────────────────────────────────────
+
+/** Wer fragt, für die Anzeige des Tageslimits: Gast, angemeldet ohne Pro, Pro (Admins zählen als Pro). */
+export type AppToniScope = "guest" | "free" | "pro";
+
+/**
+ * Antwort von GET /toni. `available: false`, wenn der KI-Dienst nicht eingerichtet ist: Die App
+ * blendet den Toni-Tab dann aus. `remaining` ist null, wenn der Zähler nicht lesbar ist (die
+ * App zeigt dann keine Zahl).
+ */
+export type AppToniStatus = {
+  available: boolean;
+  scope: AppToniScope;
+  /** Fragen pro Tag in dieser Stufe (Wiener Kalendertag, eine Zahl für Web und App). */
+  limit: number;
+  remaining: number | null;
+};
+
+/** Body von POST /toni. Wie die Web-Route: der Verlauf als reiner Text, die letzte Nachricht ist die Frage. */
+export type AppToniRequest = {
+  messages: { role: "user" | "assistant"; content: string }[];
+  conversationId?: string | null;
+};
+
+/** Antwort von POST /toni. Die Karten sind dieselben wie im Web (Pro-Spots nur für Pro-Nutzer). */
+export type AppToniReply = {
+  text: string;
+  cards: AiCards;
+  conversationId: string | null;
+  scope: AppToniScope;
+  limit: number;
+  remaining: number | null;
+  /** Immer true (Art. 50 KI-VO, docs/39), wie `aiGenerated` im Web. */
+  aiGenerated: true;
+};
+
+/** 402 von POST /toni. */
+export type AppToniLimit = { error: "limit"; scope: AppToniScope };
