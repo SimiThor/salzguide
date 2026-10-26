@@ -113,6 +113,8 @@
     "generating": "Układamy twoją trasę",
     "genError": "Coś nie wyszło, spróbuj jeszcze raz.",
     "genTooFew": "Na tym obszarze jest jeszcze za mało punktów z nagraniem. Zajrzyj tu niedługo.",
+    "genRateLimit": "Właśnie powstało kilka tras. Spróbuj później.",
+    "genTourLimit": "Masz już {count} tras. Usuń jedną, aby zbudować nową.",
     "yourRoutes": "Twoje trasy",
     "curatedRoutes": "Ułożone przez lokalsów",
     "deleteRoute": "Usuń",

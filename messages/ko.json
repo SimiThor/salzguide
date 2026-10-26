@@ -113,6 +113,8 @@
     "generating": "코스를 만드는 중",
     "genError": "지금은 잘 안 됐어요 – 다시 시도해 주세요.",
     "genTooFew": "이 지역은 아직 오디오가 있는 지점이 너무 적어요. 곧 다시 확인해 주세요.",
+    "genRateLimit": "방금 코스를 여러 개 만들었어요. 나중에 다시 시도해 주세요.",
+    "genTourLimit": "이미 코스가 {count}개 있어요. 하나를 삭제하면 새로 만들 수 있어요.",
     "yourRoutes": "내 코스",
     "curatedRoutes": "로컬 큐레이션",
     "deleteRoute": "삭제",

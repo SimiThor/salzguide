@@ -60,7 +60,7 @@ const API = `${BASE}/api/app/v1`;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Loose = any;
-type Res = { status: number; text: string; json: Loose };
+type Res = { status: number; text: string; json: Loose; headers: Headers };
 
 async function call(
   method: string,
@@ -83,7 +83,7 @@ async function call(
   } catch {
     /* not JSON */
   }
-  return { status: r.status, text, json };
+  return { status: r.status, text, json, headers: r.headers };
 }
 const bearer = (u: TempUser) => `Bearer ${u.session.access_token}`;
 const isErr = (r: Res, status: number, code: string) => r.status === status && r.json?.error === code;
@@ -298,6 +298,37 @@ async function main() {
   const { data: burst } = await svc.from("rate_limits").select("count").eq("subject", limitSubject(A.id, "builder-daily")).maybeSingle();
   check("daily counter is written (limit 10 per 24 h)", (burst?.count ?? 0) >= 3, `count ${burst?.count}`);
 
+  head("6d. Web path: the same counter (enforceBuilderQuota, no AI call)");
+  {
+    const { enforceBuilderQuota } = (await import("@/lib/builder-quota")) as {
+      enforceBuilderQuota: (c: unknown, id: string) => Promise<string>;
+    };
+    const asUser = (u: TempUser) =>
+      createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
+        auth: { persistSession: false },
+        global: { headers: { Authorization: bearer(u) } },
+      });
+    // A used up its 3 runs through the APP route above: the web guard sees the very same counter.
+    check("A: runs made through the app count for the web guard (rate_limit)", (await enforceBuilderQuota(asUser(A), A.id)) === "rate_limit");
+    // B starts fresh: 3 runs pass, the 4th is stopped.
+    const q = [] as string[];
+    for (let i = 0; i < 4; i++) q.push(await enforceBuilderQuota(asUser(B), B.id));
+    check("B: web guard allows 3 runs in 10 minutes, the 4th is rate_limit", q.join(",") === "ok,ok,ok,rate_limit", q.join(","));
+    // Daily: burst row removed, daily row at its maximum.
+    await svc.from("rate_limits").delete().eq("subject", limitSubject(B.id, "builder-burst"));
+    await svc.from("rate_limits").upsert({ subject: limitSubject(B.id, "builder-daily"), window_start: new Date().toISOString(), count: 10 });
+    check("B: the 11th run of the day is rate_limit (daily cap 10)", (await enforceBuilderQuota(asUser(B), B.id)) === "rate_limit");
+    await svc.from("rate_limits").delete().eq("subject", limitSubject(B.id, "builder-daily"));
+    await svc.from("rate_limits").delete().eq("subject", limitSubject(B.id, "builder-burst"));
+    // Static: the web action asks the guard before the AI core.
+    const src = readFileSync(new URL("../src/lib/tour-generate.ts", import.meta.url), "utf8");
+    const g = src.indexOf("enforceBuilderQuota(");
+    const b = src.indexOf("buildAndSaveTour(");
+    check("generateTour calls enforceBuilderQuota before buildAndSaveTour", g > 0 && b > g);
+    const route = readFileSync(new URL("../src/app/api/app/v1/builder/route.ts", import.meta.url), "utf8");
+    check("POST /builder uses the same guard", route.includes("enforceBuilderQuota("));
+  }
+
   // ── 7. Read: list, detail, package ───────────────────────────────────────────
   head("7. A reads its own tour");
   const list = await call("GET", `/my-tours?lang=${LANG}`, bearer(A));
@@ -307,7 +338,8 @@ async function main() {
   check("GET /my-tours/{id}: 200, AppTour shape (lang, tier pro, tour)", det.status === 200 && det.json?.tier === "pro" && dt?.slug === `meine-${tourId}` && dt?.mode === "walk");
   check("Pro: all stops unlocked with signed audio", (dt?.stops ?? []).length >= 2 && dt.stops.every((s: Loose) => !s.locked) && dt.stops.some((s: Loose) => typeof s.audioUrl === "string"));
   check("round trip: end = start (loop)", dt?.end && dt?.start && dt.end.lat === dt.start.lat && dt.end.lng === dt.start.lng);
-  check("Cache-Control is no-store", true && det.status === 200);
+  check("Cache-Control is private, no-store (+ Vary: Authorization)", det.status === 200 && det.headers.get("cache-control") === "private, no-store" && (det.headers.get("vary") ?? "").includes("Authorization"), `cache-control: ${det.headers.get("cache-control")}`);
+  check("GET /my-tours is private, no-store as well", list.headers.get("cache-control") === "private, no-store");
   const pk = await call("GET", `/my-tours/${tourId}/package?lang=${LANG}`, bearer(A));
   const pkg = pk.json;
   if (pk.status === 200) {
@@ -409,6 +441,11 @@ async function main() {
     check("seeded 50 rows for B", !ins.error, ins.error?.message);
     const r = await call("POST", `/builder?lang=${LANG}`, bearer(B), { body: { ...okBody, areaId: areas[0].id } });
     check("B at the cap: 409 limit (before any AI call)", isErr(r, 409, "limit"), `status ${r.status}`);
+    {
+      const { enforceBuilderQuota } = (await import("@/lib/builder-quota")) as { enforceBuilderQuota: (c: unknown, id: string) => Promise<string> };
+      const asB = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, { auth: { persistSession: false }, global: { headers: { Authorization: bearer(B) } } });
+      check("web guard: B at the cap -> limit", (await enforceBuilderQuota(asB, B.id)) === "limit");
+    }
     const used = await svc.from("rate_limits").select("count").eq("subject", limitSubject(B.id, "builder-burst")).maybeSingle();
     check("the refused run did not count against the rate limit", !used.data);
     const bl = await call("GET", `/my-tours?lang=${LANG}`, bearer(B));

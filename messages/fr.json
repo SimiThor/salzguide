@@ -113,6 +113,8 @@
     "generating": "Création de ton parcours",
     "genError": "Ça n'a pas marché – réessaie.",
     "genTooFew": "Pas encore assez de points commentés dans cette zone. Reviens bientôt.",
+    "genRateLimit": "Tu viens de créer plusieurs parcours. Réessaie plus tard.",
+    "genTourLimit": "Tu as déjà {count} parcours. Supprime-en un pour en créer un nouveau.",
     "yourRoutes": "Tes parcours",
     "curatedRoutes": "Sélectionnés par des locaux",
     "deleteRoute": "Supprimer",

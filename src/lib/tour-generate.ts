@@ -2,6 +2,8 @@
 
 import { viewerCanSeePro } from "./spots";
 import { saveUserTour } from "./user-tours";
+import { enforceBuilderQuota } from "./builder-quota";
+import { createClient } from "./supabase/server";
 import { buildAndSaveTour } from "./tour-generate-core";
 import { routing } from "@/i18n/routing";
 import type { TourDetail } from "./tour-types";
@@ -38,6 +40,16 @@ export async function generateTour(
     : DE;
   const canSeePro = await viewerCanSeePro();
   if (!canSeePro) return { ok: false, error: "pro" };
+
+  // Kosten-Grenze: derselbe Zaehler je Konto wie in der App (builder-quota.ts), erst danach
+  // Claude. Ohne Anmeldung kein Lauf; bei Ausfall der Zaehlung "nein".
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "auth" };
+  const quota = await enforceBuilderQuota(supabase, user.id);
+  if (quota !== "ok") return { ok: false, error: quota };
 
   const r = await buildAndSaveTour({
     areaId: input.areaId,

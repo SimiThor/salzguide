@@ -211,7 +211,7 @@ export async function buildAndSaveTour(input: BuildTourInput): Promise<BuildTour
 
   const fallbackName = pickLabel(AUDIO_WALK_FALLBACK, locale);
   const routeName = (picked?.name ?? "").trim() || fallbackName;
-  const routeEmoji = (picked?.emoji ?? "").trim() || "🎧";
+  const routeEmoji = firstGrapheme((picked?.emoji ?? "").trim()) || "🎧";
 
   const tour: TourDetail = {
     slug: "generated",
@@ -254,6 +254,13 @@ export async function buildAndSaveTour(input: BuildTourInput): Promise<BuildTour
   });
 
   return { ok: true, tour, id: saved.ok ? saved.id : undefined, saveError: saved.ok ? undefined : saved.error };
+}
+
+/** Nur das erste Zeichen (Graphem, hoechstens 8 Zeichen): Die KI-Ausgabe soll nie mehr als EIN Emoji speichern. */
+function firstGrapheme(text: string): string {
+  if (!text) return "";
+  const first = [...new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(text)][0]?.segment ?? "";
+  return first.slice(0, 8);
 }
 
 // ── Claude-Auswahl + cooler Name (EIN forced-tool-Call, keine Extra-Kosten) ──

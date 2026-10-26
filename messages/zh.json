@@ -113,6 +113,8 @@
     "generating": "正在生成你的路线",
     "genError": "刚才没成功——请再试一次。",
     "genTooFew": "这个区域目前配音的地点还太少，请稍后再来看看。",
+    "genRateLimit": "你刚刚建了好几条路线，请稍后再试。",
+    "genTourLimit": "你已经有 {count} 条路线。删除一条后才能新建。",
     "yourRoutes": "你的路线",
     "curatedRoutes": "本地人精选",
     "deleteRoute": "删除",

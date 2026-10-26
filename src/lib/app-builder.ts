@@ -8,6 +8,7 @@ import { getPublishedAreas } from "./tours";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { AppBuilderArea, AppBuilderInterest, AppMyTourSummary, AppTourPackage } from "./app-api-types";
 import { MY_TOUR_PREFIX } from "./tour-chain";
+export { BUILDER_MAX_TOURS } from "./builder-limits";
 import { loadUserTourDetail, type UserTourSummary } from "./user-tours-core";
 import type { runChain } from "./routing/run";
 
@@ -17,11 +18,8 @@ import type { runChain } from "./routing/run";
 
 /** Hoechstlaenge des freien Texts (das Web hat keine; die App kappt, der Text geht in einen KI-Prompt). */
 export const BUILDER_MAX_FREE_TEXT = 200;
-/** Hoechstzahl eigener Runden je Konto (das Web hat keine). Haelt die Tabelle und die Liste klein. */
-export const BUILDER_MAX_TOURS = 50;
-/** Bauen kostet Claude und Routendienst: 3 Laeufe in 10 Minuten und 10 am Tag je Konto. */
-export const BUILDER_BURST = { windowSeconds: 600, max: 3 } as const;
-export const BUILDER_DAILY = { windowSeconds: 86_400, max: 10 } as const;
+// Die Kosten-Grenzen (Laeufe, Obergrenze) stehen in builder-limits.ts und werden von
+// builder-quota.ts fuer Web UND App gleich durchgesetzt.
 const MAX_INTERESTS = 8;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;

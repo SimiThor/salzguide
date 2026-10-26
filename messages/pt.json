@@ -113,6 +113,8 @@
     "generating": "A criar a tua volta",
     "genError": "Agora não deu – tenta outra vez.",
     "genTooFew": "Ainda há poucos pontos com áudio nesta zona. Volta em breve.",
+    "genRateLimit": "Acabaste de criar várias voltas. Tenta mais tarde.",
+    "genTourLimit": "Já tens {count} voltas. Elimina uma para criar outra.",
     "yourRoutes": "As tuas voltas",
     "curatedRoutes": "Escolhidas por locais",
     "deleteRoute": "Eliminar",

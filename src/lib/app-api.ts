@@ -4,6 +4,7 @@ import { createHash } from "node:crypto";
 import { DEFAULT_LOCALE, LOCALE_CODES } from "@/i18n/locales";
 import { clientIp } from "@/lib/analytics";
 import { logOps } from "@/lib/ops";
+import { userRateLimit } from "@/lib/user-rate-limit";
 import { createServiceClient } from "@/lib/supabase/service";
 import { appActor, appViewer, createBearerClient } from "@/lib/app-auth";
 import type { User } from "@supabase/supabase-js";
@@ -96,19 +97,7 @@ export async function appUserRateLimit(
   /** true = bei Ausfall der Zaehlung NICHT durchlassen (Routen, die Geld kosten). */
   failClosed = false,
 ): Promise<boolean> {
-  try {
-    const salt = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "salzguide";
-    const hash = createHash("sha256").update(`${userId}:${salt}`).digest("hex").slice(0, 32);
-    const { data, error } = await createServiceClient().rpc("hit_rate_limit", {
-      p_subject: `app-user:${bucket}:${hash}`,
-      p_window_seconds: windowSeconds,
-      p_max: max,
-    });
-    if (failClosed && (error || typeof data !== "boolean")) return false;
-    return data !== false;
-  } catch {
-    return !failClosed;
-  }
+  return userRateLimit(userId, bucket, windowSeconds, max, failClosed);
 }
 
 export type AppContext = { lang: string; userId: string | null; token: string | null };

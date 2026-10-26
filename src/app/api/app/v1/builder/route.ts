@@ -1,17 +1,7 @@
-import {
-  appActGuard,
-  appError,
-  appFailure,
-  appGuard,
-  appJson,
-  appReadJson,
-  appUserRateLimit,
-} from "@/lib/app-api";
+import { appActGuard, appError, appFailure, appGuard, appJson, appReadJson } from "@/lib/app-api";
 import type { AppBuilder, AppBuilderResult } from "@/lib/app-api-types";
 import { appCanSeePro, createBearerClient } from "@/lib/app-auth";
 import {
-  BUILDER_BURST,
-  BUILDER_DAILY,
   BUILDER_INTERESTS,
   BUILDER_MAX_FREE_TEXT,
   BUILDER_MAX_TOURS,
@@ -20,8 +10,9 @@ import {
   parseBuilderBody,
   toMyTourSummary,
 } from "@/lib/app-builder";
+import { enforceBuilderQuota } from "@/lib/builder-quota";
 import { buildAndSaveTour } from "@/lib/tour-generate-core";
-import { countUserTours, insertUserTour, listUserTourSummaries } from "@/lib/user-tours-core";
+import { insertUserTour, listUserTourSummaries } from "@/lib/user-tours-core";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -61,7 +52,7 @@ export async function GET(req: Request) {
  * geprueft und zusaetzlich von der RLS beim Speichern (0072). Bauen kostet Geld (Claude,
  * Routendienst), deshalb: 3 Laeufe in 10 Minuten und 10 am Tag je Konto, bei Ausfall der
  * Zaehlung gilt "nein" (fail-closed), dazu hoechstens 50 gespeicherte Runden je Konto.
- * Das Web hat diese Grenzen nicht.
+ * Dieselben Grenzen und derselbe Zaehler gelten fuer die Web-Aktion generateTour.
  */
 export async function POST(req: Request) {
   const ctx = await appActGuard(req);
@@ -77,14 +68,11 @@ export async function POST(req: Request) {
     if (!(await appCanSeePro(ctx.userId))) return appError("pro", 403);
 
     const client = createBearerClient(ctx.token);
-    const have = await countUserTours(client);
-    if (have === null) return appError("unavailable", 503);
-    if (have >= BUILDER_MAX_TOURS) return appError("limit", 409);
-
-    if (!(await appUserRateLimit(ctx.userId, "builder-burst", BUILDER_BURST.windowSeconds, BUILDER_BURST.max, true)))
-      return appError("rate_limit", 429);
-    if (!(await appUserRateLimit(ctx.userId, "builder-daily", BUILDER_DAILY.windowSeconds, BUILDER_DAILY.max, true)))
-      return appError("rate_limit", 429);
+    // EIN Zaehler je Konto fuer Web und App (builder-quota.ts); bei Ausfall der Zaehlung "nein".
+    const quota = await enforceBuilderQuota(client, ctx.userId);
+    if (quota === "limit") return appError("limit", 409);
+    if (quota === "rate_limit") return appError("rate_limit", 429);
+    if (quota === "unavailable") return appError("unavailable", 503);
 
     const r = await buildAndSaveTour({
       areaId: input.areaId,
