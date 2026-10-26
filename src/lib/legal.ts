@@ -24,8 +24,9 @@ export const LEGAL = {
   // Muss mitwandern, sobald sich der Inhalt der Rechtstexte ändert: Ein "Stand" von gestern
   // unter einer Erklärung von heute ist selbst eine falsche Angabe. Zuletzt: Reichweiten-
   // messung (Datenschutz h) zählt jetzt auch gesehene Pro-Hinweise und gestartete
-  // Bezahlvorgänge (11.09.2026).
-  updated: "23. Oktober 2026",
+  // Bezahlvorgänge (11.09.2026). App-Standort (Datenschutz o): Hintergrund nur während einer
+  // laufenden Tour (26.10.2026).
+  updated: "26. Oktober 2026",
 } as const;
 
 // Vollständige Postanschrift als einzeiliger String.
