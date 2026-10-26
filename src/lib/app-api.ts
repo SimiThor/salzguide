@@ -93,18 +93,21 @@ export async function appUserRateLimit(
   bucket: string,
   windowSeconds: number,
   max: number,
+  /** true = bei Ausfall der Zaehlung NICHT durchlassen (Routen, die Geld kosten). */
+  failClosed = false,
 ): Promise<boolean> {
   try {
     const salt = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "salzguide";
     const hash = createHash("sha256").update(`${userId}:${salt}`).digest("hex").slice(0, 32);
-    const { data } = await createServiceClient().rpc("hit_rate_limit", {
+    const { data, error } = await createServiceClient().rpc("hit_rate_limit", {
       p_subject: `app-user:${bucket}:${hash}`,
       p_window_seconds: windowSeconds,
       p_max: max,
     });
+    if (failClosed && (error || typeof data !== "boolean")) return false;
     return data !== false;
   } catch {
-    return true;
+    return !failClosed;
   }
 }
 
