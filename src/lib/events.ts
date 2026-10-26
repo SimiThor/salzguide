@@ -1,4 +1,5 @@
 import { cache } from "react";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "./supabase/server";
 import { routing } from "@/i18n/routing";
 import { hashTexts, jsonbTranslationStatus, type TranslationState } from "./spot-hash";
@@ -117,14 +118,18 @@ export async function getSavedEventIds(): Promise<{
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { loggedIn: false, ids: [] };
-  const { data, error } = await supabase
-    .from("saved_events")
-    .select("event_id");
+  return { loggedIn: true, ids: await getSavedEventIdsFor(supabase) };
+}
+
+// Variante mit übergebenem Client (App-API: Bearer-Client). Die RLS (saved_events_own)
+// begrenzt auf die eigenen Zeilen; der Aufrufer prüft den Login selbst.
+export async function getSavedEventIdsFor(supabase: SupabaseClient): Promise<string[]> {
+  const { data, error } = await supabase.from("saved_events").select("event_id");
   if (error) {
     if (!isTableMissing(error)) console.error("getSavedEventIds:", error.message);
-    return { loggedIn: true, ids: [] };
+    return [];
   }
-  return { loggedIn: true, ids: (data ?? []).map((r) => r.event_id) };
+  return (data ?? []).map((r) => r.event_id as string);
 }
 
 // Gespeicherte, NOCH nicht vergangene Events des Users (null = nicht eingeloggt).
@@ -138,7 +143,15 @@ export async function getSavedEvents(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return null;
+  return getSavedEventsFor(supabase, locale);
+}
 
+// Variante mit übergebenem Client (App-API: Bearer-Client), gleiche Abfrage und gleicher
+// Auto-Ablauf. Der Aufrufer prüft den Login selbst.
+export async function getSavedEventsFor(
+  supabase: SupabaseClient,
+  locale: string,
+): Promise<EventItem[]> {
   const { data: items, error: itemsErr } = await supabase
     .from("saved_events")
     .select("event_id");

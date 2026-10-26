@@ -8,6 +8,8 @@ import type { ExploreCategory, ExploreData, LockedTeaser, SpotCardData, SpotDeta
 import type { TourDetail, TourSummary } from "./tour-types";
 import type { SavedSpot } from "./saved";
 import type { WeatherDay } from "./weather";
+import type { EventItem } from "./events-format";
+import type { FreshLake } from "./water-temp";
 import type { OpeningWeek } from "./opening-hours";
 import type { LngLat, RouteSource, RouteStep } from "./routing/types";
 import type { TourMode } from "./tour-mode";
@@ -84,7 +86,19 @@ export type AppMe = {
 /** Antwort von GET /saved: Slugs für die Herz-Symbole, Karten für die Liste (nie gesperrt). */
 export type AppSaved = { lang: string; slugs: string[]; spots: SavedSpot[] };
 
-/** Antwort von PUT/DELETE /saved/{slug}. Idempotent: gleicher Aufruf, gleiche Antwort. */
+/**
+ * Antwort von GET /events: kommende Events (Wiener Zeit). `todayKey` ist der heutige Kalendertag,
+ * `maxDay` der letzte Tag, an dem etwas läuft (Ende des auswählbaren Kalenders), beide YYYY-MM-DD.
+ */
+export type AppEvents = { lang: string; todayKey: string; maxDay: string; events: EventItem[] };
+
+/** Antwort von GET /events/saved: gemerkte, noch nicht vergangene Events. */
+export type AppSavedEvents = { lang: string; ids: string[]; events: EventItem[] };
+
+/** Antwort von GET /water: Seen mit aktueller Messung; Spots am See je Stufe maskiert. */
+export type AppWater = { lang: string; tier: AppTier; lakes: FreshLake[] };
+
+/** Antwort von PUT/DELETE /saved/{slug} und /events/{id}/saved. Idempotent: gleicher Aufruf, gleiche Antwort. */
 export type AppSavedState = { saved: boolean };
 
 /** Body von PATCH /me: mindestens ein Feld. `locale` aus den 13 Codes. */
