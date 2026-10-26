@@ -189,6 +189,12 @@ async function main() {
     sGuest.json?.scope === "guest" && sGuest.json?.limit === GUEST_LIMIT && sGuest.json?.remaining === GUEST_LIMIT,
     JSON.stringify(sGuest.json),
   );
+  const sGuestNoDev = await call("GET", "/api/app/v1/toni?lang=de");
+  check(
+    "Gast ohne Geräte-ID: GET liefert Stufe und Limit, aber keinen Zählerstand",
+    sGuestNoDev.status === 200 && sGuestNoDev.json?.scope === "guest" && sGuestNoDev.json?.limit === GUEST_LIMIT && sGuestNoDev.json?.remaining === null,
+    JSON.stringify(sGuestNoDev.json),
+  );
   check("Status ist no-store", (sFree.headers.get("cache-control") ?? "").includes("no-store"));
 
   head("3 Tageslimit je Stufe (402, ohne KI-Aufruf)");
@@ -250,7 +256,8 @@ async function main() {
       if (savePath) writeFileSync(savePath, JSON.stringify(r.json, null, 2));
       check("aiGenerated true und X-AI-Generated-Header", r.json.aiGenerated === true && r.headers.get("x-ai-generated") === "true");
       check("remaining zählt herunter (4 von 5)", r.json.remaining === FREE_LIMIT - 1 && r.json.limit === FREE_LIMIT, JSON.stringify({ rem: r.json.remaining, lim: r.json.limit }));
-      check("kein Gedankenstrich im Text", !/[—–]/.test(String(r.json.text)));
+      // Verboten ist nur U+2014 (em-dash.ts); der Halbgeviertstrich ist erlaubt.
+      check("kein Gedankenstrich (U+2014) im Text", !String(r.json.text).includes("\u2014"));
       const cards = (r.json.cards ?? {}) as { spots?: { slug: string }[] };
       const slugs = (cards.spots ?? []).map((s) => s.slug);
       info(`${slugs.length} Spot-Karten`);
@@ -265,10 +272,37 @@ async function main() {
     }
   }
   if (liveCalls >= 2) {
+    // Pro-Konto: Toni muss einen Pro-Spot kennen und nennen dürfen. Die App-Anfragen tragen keine Cookies; ohne
+    // den Client des Betrachters sähe auch ein zahlender Nutzer die Pro-Spots nicht (RLS 0017).
     await setUsage(`u:${pro.id}`, 0);
     await clearBurst(`u:${pro.id}`);
-    const r = await ask("Ein ruhiger Spot für heute Abend?", { token: pro.session.access_token });
-    check("Pro: 200 mit Text, Limit 15, noch 14", r.status === 200 && r.json?.scope === "pro" && r.json?.limit === PRO_LIMIT && r.json?.remaining === PRO_LIMIT - 1, `status ${r.status} ${JSON.stringify(r.json).slice(0, 200)}`);
+    const { data: proSpots } = await svc
+      .from("spots")
+      .select("slug, spot_translations(title, lang)")
+      .eq("is_pro", true)
+      .eq("status", "published")
+      .limit(1);
+    const target = (proSpots ?? [])[0] as
+      | { slug: string; spot_translations: { title: string; lang: string }[] }
+      | undefined;
+    const title = target?.spot_translations.find((t) => t.lang === "de")?.title;
+    if (!target || !title) {
+      check("Pro-Spot für den Pro-Fall vorhanden", false);
+    } else {
+      const r = await ask(`Erzähl mir etwas über den Spot "${title}" und nenne mir den Link.`, {
+        token: pro.session.access_token,
+      });
+      check(
+        "Pro: 200, Limit 15, noch 14",
+        r.status === 200 && r.json?.scope === "pro" && r.json?.limit === PRO_LIMIT && r.json?.remaining === PRO_LIMIT - 1,
+        `status ${r.status} ${JSON.stringify(r.json).slice(0, 200)}`,
+      );
+      const cards = (r.json?.cards ?? {}) as { spots?: { slug: string }[] };
+      const mentioned =
+        (cards.spots ?? []).some((c) => c.slug === target.slug) ||
+        String(r.json?.text ?? "").includes(`/spot/${target.slug}`);
+      check("Pro: Toni nennt den Pro-Spot (Bearer-Client sieht Pro-Spots)", mentioned);
+    }
   }
 }
 

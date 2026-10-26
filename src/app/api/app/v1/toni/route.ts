@@ -29,7 +29,7 @@ import {
   appReadJson,
 } from "@/lib/app-api";
 import type { AppToniReply, AppToniScope, AppToniStatus } from "@/lib/app-api-types";
-import { appActor, createBearerClient } from "@/lib/app-auth";
+import { appActor, createBearerClient, createGuestClient } from "@/lib/app-auth";
 import { logOps } from "@/lib/ops";
 import { createServiceClient } from "@/lib/supabase/service";
 
@@ -57,9 +57,12 @@ type Who =
       isPro: boolean;
       isOperator: boolean;
     }
-  | { kind: "guest"; subject: string };
+  | { kind: "guest"; subject: string | null };
 
-async function resolveWho(req: Request): Promise<Who | NextResponse> {
+async function resolveWho(
+  req: Request,
+  opts: { deviceOptional?: boolean } = {},
+): Promise<Who | NextResponse> {
   if (req.headers.has("authorization")) {
     const actor = await appActor(req);
     if (!actor.ok) {
@@ -82,6 +85,8 @@ async function resolveWho(req: Request): Promise<Who | NextResponse> {
     };
   }
   const device = req.headers.get("x-sg-device");
+  // GET ohne Kennung: Die App erzeugt sie erst mit der Einwilligung. Dann gibt es nur die Stufe, keinen Zählerstand.
+  if (!device && opts.deviceOptional) return { kind: "guest", subject: null };
   if (!device || !UUID_RE.test(device)) return appError("invalid", 400);
   return { kind: "guest", subject: `g:${device.toLowerCase()}` };
 }
@@ -102,10 +107,10 @@ export async function GET(req: Request) {
   if (!(await appRateLimit(req))) return appError("rate_limit", 429);
   if (!appLang(req)) return appError("invalid", 400);
   try {
-    const who = await resolveWho(req);
+    const who = await resolveWho(req, { deviceOptional: true });
     if (who instanceof NextResponse) return who;
     const limit = limitOf(who);
-    const used = await readAiUsage(who.subject);
+    const used = who.subject ? await readAiUsage(who.subject) : null;
     const body: AppToniStatus = {
       available: Boolean(process.env.ANTHROPIC_API_KEY),
       scope: scopeOf(who),
@@ -125,6 +130,8 @@ export async function POST(req: Request) {
   try {
     const who = await resolveWho(req);
     if (who instanceof NextResponse) return who;
+    const subject = who.subject;
+    if (!subject) return appError("invalid", 400);
 
     // Body-Größe wie im Web: 24 Turns à höchstens 1600 Zeichen bleiben weit unter 100 KB.
     const body = await appReadJson(req, 100_000);
@@ -142,7 +149,7 @@ export async function POST(req: Request) {
     const scope = scopeOf(who);
 
     const admission = await admitAiRequest({
-      subject: who.subject,
+      subject,
       limit,
       isPro: who.kind === "user" ? who.isPro : false,
       scope: who.kind === "guest" ? "guest" : "free",
@@ -170,6 +177,9 @@ export async function POST(req: Request) {
       dateRef: dateRef(lang),
       interests,
       page: null,
+      // Ohne Cookies: Die Spot-Abfragen laufen mit der Identität des Betrachters (RLS 0017), sonst sähe
+      // auch ein Pro-Nutzer keine Pro-Spots.
+      db: who.kind === "user" ? createBearerClient(who.token) : createGuestClient(),
     });
     if ("error" in result) {
       await logOps("ai_provider_error", {

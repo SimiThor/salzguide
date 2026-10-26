@@ -3,6 +3,7 @@
 // Spots + Events vor. Kein "use server" -> reines Server-Util, das die API-Route
 // (src/app/api/ai/chat) nutzt. Wiederverwendet fetchWithRetry + Brand-Voice-Ton.
 import { cache } from "react";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { bcp47, localeMeta } from "@/i18n/locales";
 import { pickLabel, ALL_DAY, CLOSED, TOMORROW, WEATHER_PLACE } from "./i18n-labels";
 import { createClient } from "./supabase/server";
@@ -22,7 +23,7 @@ import {
 import { LAKES, findLake } from "./lakes";
 import { getWeatherFromToday } from "./weather";
 import { buildMapsLink } from "./maps";
-import { getSpotOpeningWeek } from "./opening-hours-server";
+import { getSpotOpeningWeek, getSpotOpeningWeekWith } from "./opening-hours-server";
 import { stripEmDash } from "./em-dash";
 import { stripUnvouchedLinks } from "./ai-links";
 import {
@@ -101,10 +102,15 @@ type SpotCandidate = AiSpotCard & {
 // Veröffentlichte Free-Spots als Kandidaten-Pool (DE-Basis = vollständig; die KI
 // ist ohnehin deutsch-first). includePro=true (Pro-Viewer) nimmt auch Pro-Spots
 // dazu; sonst bleiben sie draußen -> KEIN serverseitiger Pro-Leak (docs/33).
+//
+// `db`: Client des Betrachters. Das Web lässt ihn weg (Cookie-Client wie bisher); die App-API
+// übergibt den Bearer- bzw. Gast-Client, weil ihre Anfragen keine Cookies tragen und die RLS (0017)
+// sonst auch für zahlende Nutzer alle Pro-Spots ausblendet.
 const loadSpotCandidates = cache(async function loadSpotCandidates(
   includePro: boolean,
+  db?: SupabaseClient,
 ): Promise<SpotCandidate[]> {
-  const supabase = await createClient();
+  const supabase = db ?? (await createClient());
   let q = supabase
     .from("spots")
     .select(
@@ -444,6 +450,8 @@ export async function runAssistant(
     dateRef?: string;
     interests?: string | null;
     page?: string | null;
+    /** Client des Betrachters für die Spot-Abfragen (nur App-API). Ohne: Cookie-Client wie im Web. */
+    db?: SupabaseClient;
   },
 ): Promise<AiTurnResult | { error: string }> {
   const key = process.env.ANTHROPIC_API_KEY;
@@ -530,7 +538,7 @@ export async function runAssistant(
 
         if (tu.name === "search_spots") {
           const wish = String(tu.input?.wish ?? "");
-          let pool = await loadSpotCandidates(ctx.isPro);
+          let pool = await loadSpotCandidates(ctx.isPro, ctx.db);
           // Regel-Engine: bei Bade-Wunsch verbotene Badeseen rausfiltern.
           if (SWIM_TRIGGER.test(wish)) {
             pool = pool.filter((s) => {
@@ -637,7 +645,7 @@ export async function runAssistant(
           const slug = String(tu.input?.slug ?? "").trim().toLowerCase();
           let payload: Record<string, unknown> = { found: false };
           if (slug) {
-            const supabase = await createClient();
+            const supabase = ctx.db ?? (await createClient());
             const { data: sp } = await supabase
               .from("spots")
               .select(
@@ -729,10 +737,16 @@ export async function runAssistant(
               let opening: Record<string, unknown> | null = null;
               if (want.includes("hours") && sp.has_opening_hours) {
                 try {
-                  const res = await getSpotOpeningWeek(
-                    slug,
-                    (sp.google_place_id as string | null) ?? null,
-                  );
+                  const res = ctx.db
+                    ? await getSpotOpeningWeekWith(
+                        ctx.db,
+                        slug,
+                        (sp.google_place_id as string | null) ?? null,
+                      )
+                    : await getSpotOpeningWeek(
+                        slug,
+                        (sp.google_place_id as string | null) ?? null,
+                      );
                   if (res) {
                     const now = new Date();
                     const st = computeStatus(res.week, viennaNowWM(now));
@@ -823,7 +837,7 @@ export async function runAssistant(
           let placeName = pickLabel(WEATHER_PLACE, ctx.locale);
           let placeSlug: string | null = null;
           if (spotSlug) {
-            const supabase = await createClient();
+            const supabase = ctx.db ?? (await createClient());
             const { data: sp } = await supabase
               .from("spots")
               .select("slug, lat, lng, is_pro, spot_translations(title, lang)")
