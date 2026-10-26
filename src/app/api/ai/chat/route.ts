@@ -3,14 +3,25 @@
 // -> Anton laufen lassen (Claude + Tools) -> Verlauf (eingeloggt) speichern ->
 // Zähler hochsetzen. Bei Limit: HTTP 402 -> Frontend zeigt Soft-Paywall.
 import { NextResponse, after } from "next/server";
-import { bcp47, LOCALE_CODES } from "@/i18n/locales";
-import { pickLabel, TODAY } from "@/lib/i18n-labels";
+import { LOCALE_CODES } from "@/i18n/locales";
 import { cookies } from "next/headers";
-import { createHash } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { runAssistant } from "@/lib/ai-assistant";
-import type { AiChatMessage } from "@/lib/ai-types";
+import {
+  ADMIN_LIMIT,
+  FREE_LIMIT,
+  GUEST_LIMIT,
+  MAX_INPUT,
+  PRO_LIMIT,
+  admitAiRequest,
+  dateRef,
+  hashedIpSubject,
+  loadInterests,
+  persistTurn,
+  sanitizeMessages,
+  todayLabel,
+} from "@/lib/ai-chat-core";
 import { recordAiInsight } from "@/lib/ai-insights";
 import { logOps, subjectFromRequest } from "@/lib/ops";
 import { foreignOrigin } from "@/lib/same-origin";
@@ -33,103 +44,9 @@ export const runtime = "nodejs";
 // Antworten. Wer nach einer Minute noch auf einen Chat wartet, hat die App längst zugemacht.
 export const maxDuration = 60;
 
-// Zentrale Stellschrauben (Gast 3 · eingeloggt-gratis 5 · Pro 15 · Admin 200).
-const GUEST_LIMIT = 3;
-// Gratis bewusst knapp über dem Gast (Antons Entscheidung, 07/2026): 15 war so hoch,
-// dass praktisch niemand die Limit-Karte (und damit den Pro-Pitch) je gesehen hat, und
-// der Abstand zu Pro (50) fühlte sich nach nichts an. 5 deckt ein echtes Plan-Gespräch,
-// danach steht das Angebot. Die Leiter Gast -> Gratis -> Pro muss dabei stimmen bleiben:
-// jede Stufe spürbar mehr als die davor ("frag Toni öfter" in Ai.paywallGuestBody).
-const FREE_LIMIT = 5;
-// Pro: spürbar mehr als gratis, aber BEWUSST endlich und knapp (Antons Regel, 07/2026).
-// Zwei Gründe. Rechtlich: Toni ist KEIN Pro-Bestandteil und wird nirgends so verkauft —
-// wäre er Teil des Pro-Kaufs, hinge er mit am Widerruf (§ 18 FAGG deckt die digitalen
-// INHALTE ab, keinen KI-Dienst). Wirtschaftlich: Pro ist EINE Zahlung, jede Toni-Anfrage
-// kostet uns danach für immer Anthropic-Geld. 50/Tag hätte einem Dauernutzer erlaubt, die
-// Marge eines Einmal-Kaufs in Wochen aufzufressen; 15 deckt auch einen intensiven
-// Urlaubstag und hält den Worst-Case-Kostentag pro Konto klein (dazu Burst 6/min).
-// Kein "ohne Limit", weder im Text noch im Code.
-const PRO_LIMIT = 15;
-// Admin/Betreiber: großzügig zum Testen, aber BEWUSST endlich (nicht unbegrenzt).
-// Sicherheit: kappt den Worst-Case-Anthropic-Kostentag selbst dann, wenn eine
-// Admin-Session gestohlen würde (Denial-of-Wallet-Schutz). Zusätzlich greift das
-// Burst-Limit (6/min) weiterhin auch für Admins -> die Anfrage-RATE bleibt gedeckelt.
-const ADMIN_LIMIT = 200;
-// Kosten-/DoS-Backstop pro IP & Tag (nur Gäste): fängt das Umgehen des Gast-
-// Cookies (Cookie löschen -> wieder 3 frei) ab, ohne echte Nutzer hinter NAT zu
-// treffen (bewusst großzügig, rein als Abuse-Bremse).
-const IP_GUEST_CAP = 40;
-// Burst-Schutz: max. BURST_MAX Anfragen pro BURST_WINDOW_SECONDS je Subjekt (auch Pro).
-const BURST_WINDOW_SECONDS = 60;
-const BURST_MAX = 6;
-const MAX_INPUT = 800; // Zeichen pro Nachricht (docs/16 §2)
-const MAX_TURNS = 24; // wie viele Verlaufsnachrichten an die KI gehen
 const GUEST_COOKIE = "sg_aid"; // anonyme Geräte-ID für das Gast-Limit
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-// Die Client-IP kommt aus lib/analytics.ts und wird NICHT hier noch einmal ausgelesen.
-// Bis 07/2026 stand dieselbe Funktion in beiden Dateien wortgleich — und ausgerechnet diese
-// Route bildet mit ihr den Besucher-Hash, mit dem ihre KI-Anfragen zu denselben Sitzungen
-// gehören sollen wie die Seitenaufrufe aus /api/track. Zwei Kopien, die genau
-// übereinstimmen müssen, sind eine Kopie zu viel.
-//
-// Client-IP pseudonymisieren (SHA-256 + Server-Secret als Salt) -> kein Klartext-
-// IP in der DB (DSGVO-Datensparsamkeit), aber stabil pro Tag als Abuse-Schlüssel.
-function hashedIpSubject(req: Request): string | null {
-  const ip = clientIp(req);
-  if (!ip) return null;
-  const salt = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "salzguide";
-  const hash = createHash("sha256").update(`${ip}:${salt}`).digest("hex").slice(0, 24);
-  return `ip:${hash}`;
-}
-
-
-function todayLabel(locale: string): string {
-  return new Intl.DateTimeFormat(bcp47(locale), {
-    timeZone: "Europe/Vienna",
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  }).format(new Date());
-}
-
-// Eindeutige Datums-Referenz der nächsten 14 Tage (Europe/Vienna) -> die KI muss
-// Wochentag<->Datum NIE selbst ausrechnen (LLMs verrechnen sich dabei oft).
-function dateRef(locale: string): string {
-  const dl = bcp47(locale);
-  const wd = new Intl.DateTimeFormat(dl, { timeZone: "Europe/Vienna", weekday: "long" });
-  const dm = new Intl.DateTimeFormat(dl, {
-    timeZone: "Europe/Vienna",
-    day: "numeric",
-    month: "numeric",
-  });
-  const now = Date.now();
-  const lines: string[] = [];
-  for (let i = 0; i < 14; i++) {
-    const d = new Date(now + i * 86_400_000);
-    const tag = i === 0 ? ` (${pickLabel(TODAY, locale)})` : "";
-    lines.push(`${wd.format(d)} ${dm.format(d)}${tag}`);
-  }
-  return lines.join(" · ");
-}
-
-// Nur saubere user/assistant-Textnachrichten, gekürzt auf den letzten Abschnitt.
-function sanitizeMessages(raw: unknown): AiChatMessage[] {
-  if (!Array.isArray(raw)) return [];
-  const out: AiChatMessage[] = [];
-  for (const m of raw) {
-    const role = (m as { role?: unknown }).role;
-    const content = (m as { content?: unknown }).content;
-    if ((role !== "user" && role !== "assistant") || typeof content !== "string")
-      continue;
-    const text = content.trim();
-    if (!text) continue;
-    out.push({ role, content: text.slice(0, MAX_INPUT * 2) });
-  }
-  return out.slice(-MAX_TURNS);
-}
 
 export async function POST(req: Request) {
   // CSRF/Cross-Site-Schutz: Die App ruft same-origin auf. Ist ein Origin-Header
@@ -234,106 +151,25 @@ export async function POST(req: Request) {
   // IP-Backstop nur für Gäste (eingeloggte haben ihr eigenes User-Limit).
   const ipSubject = scope === "guest" ? hashedIpSubject(req) : null;
 
-  // 1) Burst-Limit ZUERST (atomar, Kurzzeit-Schutz gegen Hämmern/Concurrency) —
-  // für ALLE, auch Pro. So verbraucht ein geblockter Burst kein Tages-Kontingent.
-  // Best effort: Funktion fehlt (vor Migration 0018) -> durchlassen.
-  try {
-    const { data: allowed } = await service.rpc("hit_ai_burst", {
-      p_subject: subject,
-      p_window_seconds: BURST_WINDOW_SECONDS,
-      p_max: BURST_MAX,
-    });
-    if (allowed === false) {
-      const res = NextResponse.json({ error: "rate_limited" }, { status: 429 });
-      if (setGuestCookie) attachGuestCookie(res, setGuestCookie);
-      return res;
-    }
-  } catch {
-    /* Burst-Backend nicht verfügbar -> nicht blockieren */
+  // Burst-Limit, Tageslimit, IP-Backstop: ausgelagert in lib/ai-chat-core.ts (App teilt es).
+  const admission = await admitAiRequest({
+    subject,
+    limit,
+    isPro,
+    scope,
+    ipSubject,
+    path: "/api/ai/chat",
+  });
+  if (!admission.ok) {
+    const res = NextResponse.json(admission.body, { status: admission.status });
+    if (setGuestCookie) attachGuestCookie(res, setGuestCookie);
+    return res;
   }
-
-  // 2) Free-Limit ATOMAR (bump-first) — schließt die TOCTOU-Race: nebenläufige
-  // Requests können den Zähler nicht mehr gemeinsam unterlaufen (der atomare
-  // Upsert serialisiert). Pro (Infinity) überspringt. Best effort: RPC fehlt
-  // (vor Migration) -> Limit nicht erzwungen. Ein blockierter/fehlschlagender
-  // Request zählt mit (harmlos: er ist ohnehin über dem Limit bzw. selten).
-  let remaining: number | null = null;
-  if (Number.isFinite(limit)) {
-    let count: number | null = null;
-    try {
-      const { data } = await service.rpc("bump_ai_usage", { p_subject: subject });
-      if (typeof data === "number") count = data;
-    } catch {
-      /* RPC nicht verfügbar -> fail-open */
-    }
-    if (count !== null) {
-      remaining = Math.max(0, limit - count);
-      if (count > limit) {
-        // "pro" nach draußen melden: Die Paywall-Karte im Chat zeigt Pro-Nutzern am Limit
-        // KEINEN Kauf-Knopf (sie haben Pro schon) — nur Gast und Gratis bekommen ihren CTA.
-        const res = NextResponse.json(
-          { error: "limit", scope: isPro ? "pro" : scope },
-          { status: 402 },
-        );
-        if (setGuestCookie) attachGuestCookie(res, setGuestCookie);
-        return res;
-      }
-    }
-    // Cookie-Umgehung (frische Gast-ID pro Request) über die IP abfangen — ebenfalls atomar.
-    if (ipSubject) {
-      try {
-        const { data: ipCount } = await service.rpc("bump_ai_usage", {
-          p_subject: ipSubject,
-        });
-        if (typeof ipCount === "number" && ipCount > IP_GUEST_CAP) {
-          // Denial of Wallet: Genau hier läuft jemand auf, der unser Claude-Kontingent
-          // verbrennen will (OWASP LLM, docs/34 §G). Dass die Grenze hält, ist kein Fehler
-          // und deshalb keine Fehlermeldung — aber wenn sie oft hält, wird gerade
-          // automatisiert gefahren, und das will man wissen, BEVOR die Rechnung kommt.
-          // Die Schwelle dafür steht im Katalog, nicht hier.
-          await logOps("ai_ip_cap_hit", {
-            message: "Tageslimit einer Adresse am KI-Chat ausgeschöpft.",
-            path: "/api/ai/chat",
-            subject: ipSubject,
-            group: "ai:ip_cap",
-            detail: { grenze: IP_GUEST_CAP, stand: ipCount },
-          });
-          const res = NextResponse.json({ error: "rate_limited" }, { status: 429 });
-          if (setGuestCookie) attachGuestCookie(res, setGuestCookie);
-          return res;
-        }
-      } catch {
-        /* fail-open */
-      }
-    }
-  }
+  const remaining = admission.remaining;
 
   // Leise Personalisierung: die Kategorien der bereits gemerkten Spots (eigene
   // Daten, RLS-gefiltert) als Interessen-Hinweis. Best effort, nie blockierend.
-  let interests: string | null = null;
-  if (user) {
-    try {
-      const { data: savedRows } = await supabase
-        .from("saved_items")
-        .select("spots(subtype)")
-        .limit(40);
-      const counts = new Map<string, number>();
-      for (const row of (savedRows ?? []) as {
-        spots: { subtype: string | null } | { subtype: string | null }[] | null;
-      }[]) {
-        const sp = Array.isArray(row.spots) ? row.spots[0] : row.spots;
-        const st = sp?.subtype;
-        if (st) counts.set(st, (counts.get(st) ?? 0) + 1);
-      }
-      const top = [...counts.entries()]
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 4)
-        .map(([k]) => k);
-      interests = top.length ? top.join(", ") : null;
-    } catch {
-      /* best effort */
-    }
-  }
+  const interests: string | null = user ? await loadInterests(supabase) : null;
 
   // Seiten-Kontext: hilft Toni, sich auf die aktuelle Seite zu beziehen (z.B.
   // „dieser Spot"). Edge-Case, aber praktisch. Nur öffentliche Seiten, kein Personenbezug.
@@ -490,56 +326,4 @@ function attachGuestCookie(res: NextResponse, aid: string) {
     maxAge: 60 * 60 * 24 * 90,
     path: "/",
   });
-}
-
-// Neuen User-Turn + Antwort in den Verlauf schreiben (Konversation ggf. anlegen).
-// Nutzt den Service-Client -> RLS wird bewusst umgangen, Eigentum manuell geprüft.
-async function persistTurn(
-  service: ReturnType<typeof createServiceClient>,
-  userId: string,
-  conversationId: string | null,
-  userText: string,
-  assistantText: string,
-  cards: unknown,
-): Promise<string> {
-  let convId = conversationId;
-
-  // Vorhandene Konversation nur akzeptieren, wenn sie dem User gehört.
-  if (convId) {
-    const { data: owned } = await service
-      .from("ai_conversations")
-      .select("id")
-      .eq("id", convId)
-      .eq("user_id", userId)
-      .maybeSingle();
-    if (!owned) convId = null;
-  }
-
-  if (!convId) {
-    const { data: created, error } = await service
-      .from("ai_conversations")
-      .insert({ user_id: userId, title: userText.slice(0, 80) })
-      .select("id")
-      .single();
-    if (error || !created) throw error ?? new Error("no conversation");
-    convId = created.id as string;
-  }
-  if (!convId) throw new Error("no conversation id");
-  const cid: string = convId;
-
-  await service.from("ai_messages").insert([
-    { conversation_id: cid, role: "user", content: userText, cards: null },
-    {
-      conversation_id: cid,
-      role: "assistant",
-      content: assistantText,
-      cards,
-    },
-  ]);
-  await service
-    .from("ai_conversations")
-    .update({ updated_at: new Date().toISOString() })
-    .eq("id", cid);
-
-  return cid;
 }
