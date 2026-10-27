@@ -20,6 +20,8 @@ import SpotMap, { type MapMarker } from "./SpotMap";
 import { useSpotSelection } from "./useSpotSelection";
 import { MAP_CTRL_PAD } from "./mapControls";
 import MobileSheet, { type Detent } from "./MobileSheet";
+import UtilityEntries from "./UtilityEntries";
+import type { UtilitySummary } from "@/lib/utility-summary-types";
 import PartnerCredits from "./PartnerCredits";
 import { SHEET_PEEK_VAR, useSheetPeek } from "@/lib/sheet-metrics";
 import { useScrollMemory } from "@/lib/scroll-memory";
@@ -69,11 +71,13 @@ export default function Explore({
   categories,
   savedSlugs = [],
   loggedIn = false,
+  utility,
 }: {
   spots: ExploreSpot[];
   categories: ExploreCategory[];
   savedSlugs?: string[];
   loggedIn?: boolean;
+  utility?: UtilitySummary;
 }) {
   const t = useTranslations("Explore");
   const [season, setSeason] = useState<Season>(naturalSeason);
@@ -504,7 +508,10 @@ export default function Explore({
             </div>
           </section>
         ) : (
-        shelves.map(({ cat, spots: catSpots }, i) => {
+        <>
+        {/* Einstiege zu Events und Wassertemperaturen, nur in "Alle" (wie in der iOS-App). */}
+        {utility && <UtilityEntries summary={utility} />}
+        {shelves.map(({ cat, spots: catSpots }, i) => {
           return (
             // Das erste Regal ist der Anker für die mittlere Stufe des Sheets
             // (EXPLORE_DETENTS). Nur Markierung, keine Optik.
@@ -526,7 +533,8 @@ export default function Explore({
               </Carousel>
             </section>
           );
-        })
+        })}
+        </>
         )}
         {!activeCat && shelves.length === 0 && (
           <p className="px-4 text-sm text-muted">{t("empty")}</p>
@@ -541,7 +549,7 @@ export default function Explore({
       <PartnerCredits className="mt-14 px-4" />
     </>
     );
-  }, [contentKey, activeCat, visibleSpots, shelves, openSpot, t]);
+  }, [contentKey, activeCat, visibleSpots, shelves, openSpot, t, utility]);
 
   return (
     <div className="fixed inset-0 z-0 md:top-[var(--sg-header-h)]">
