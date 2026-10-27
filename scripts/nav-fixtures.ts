@@ -20,6 +20,9 @@
 //   nav-steps/case-21.json   turnAngle / isMereCurve / prepareSteps
 //   nav-format/format.json   nav-format.ts und die Banner-Stufen (nav-urgency.ts)
 //   tour-route/NN-*.json     tour-route-check: tour-route.ts und bike-directions.ts
+//   hike/*.json              Wander-Geometrie aus geo.ts: classifyRoute/isClosedRoute (Rundweg,
+//                            hin/retour, Punkt-zu-Punkt), Wanderzeit (SAC) und ascentDescent;
+//                            Fälle in scripts/lib/hike-cases.ts, echte Routen in hike-routes.json
 //
 // WANN NEU ERZEUGEN: Jedes Mal, wenn sich der TS-Kern ändert (bike-nav-core, geo,
 // nav-steps, nav-format, nav-urgency, tour-route, bike-directions) oder ein Fall in den
@@ -58,6 +61,15 @@ import {
   type StateOp,
 } from "./lib/nav-cases.ts";
 import { tourRouteCalls, evaluate, argsOf } from "./lib/tour-route-cases.ts";
+import {
+  classifyCases,
+  classifyOutput,
+  TIME_INPUTS,
+  timeOutput,
+  ASCENT_SERIES,
+  ascentOutput,
+} from "./lib/hike-cases.ts";
+import { HIKE_SPEED_KMH, HIKE_ASCENT_MH, HIKE_DESCENT_MH, HIKE_BREAK_SHARE, HIKE_BREAK_MAX_MIN } from "../src/lib/geo.ts";
 
 const FORMAT_VERSION = 1;
 
@@ -247,6 +259,35 @@ function tourRouteFiles(files: Files) {
   }
 }
 
+// Wander-Geometrie (geo.ts): Routenform, Wanderzeit, Höhenmeter. Quelle der Fälle: scripts/lib/hike-cases.ts.
+function hikeFiles(files: Files) {
+  files.set(
+    "hike/classify.json",
+    toText({
+      type: "hike-classify",
+      formatVersion: FORMAT_VERSION,
+      cases: classifyCases().map((c) => ({ id: c.id, what: c.what, input: c.route, output: classifyOutput(c.route) })),
+    }),
+  );
+  files.set(
+    "hike/time.json",
+    toText({
+      type: "hike-time",
+      formatVersion: FORMAT_VERSION,
+      constants: { HIKE_SPEED_KMH, HIKE_ASCENT_MH, HIKE_DESCENT_MH, HIKE_BREAK_SHARE, HIKE_BREAK_MAX_MIN },
+      cases: TIME_INPUTS.map(([km, up, down]) => ({ input: { km, up, down }, output: timeOutput(km, up, down) })),
+    }),
+  );
+  files.set(
+    "hike/ascent.json",
+    toText({
+      type: "hike-ascent",
+      formatVersion: FORMAT_VERSION,
+      cases: ASCENT_SERIES.map((c) => ({ label: c.label, input: c.elevations, output: ascentOutput(c.elevations) })),
+    }),
+  );
+}
+
 function manifestFile(files: Files) {
   const names = [...files.keys()].sort();
   const countOf = (dir: string) => names.filter((n) => n.startsWith(`${dir}/`)).length;
@@ -293,6 +334,7 @@ function manifestFile(files: Files) {
         "nav-steps": countOf("nav-steps"),
         "nav-format": countOf("nav-format"),
         "tour-route": countOf("tour-route"),
+        hike: countOf("hike"),
       },
       // Mengen zum Gegenprüfen: je stepnav-Fall Fahrten, Frames je Fahrt (in Reihenfolge) und
       // Operationen; Einträge je Funktion in nav-steps und nav-format; Aufrufe je tour-route-Abschnitt.
@@ -390,6 +432,7 @@ export function buildFixtures(): Files {
   navStepsFile(files);
   navFormatFile(files);
   tourRouteFiles(files);
+  hikeFiles(files);
   manifestFile(files);
   return files;
 }
@@ -398,7 +441,7 @@ export function buildFixtures(): Files {
 //  Schreiben und Vergleichen
 // ═══════════════════════════════════════════════════════════════════════════════════
 
-const SUBDIRS = ["stepnav", "nav-steps", "nav-format", "tour-route"];
+const SUBDIRS = ["stepnav", "nav-steps", "nav-format", "tour-route", "hike"];
 
 function listExisting(dir: string): string[] {
   const out: string[] = [];
