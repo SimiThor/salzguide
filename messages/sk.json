@@ -113,6 +113,8 @@
     "generating": "Zostavujem tvoj okruh",
     "genError": "Teraz to nevyšlo, skús to znova.",
     "genTooFew": "V tejto oblasti máme zatiaľ primálo nahovorených bodov. Mrkni sem čoskoro znova.",
+    "genRateLimit": "Práve vzniklo niekoľko okruhov. Skús to neskôr.",
+    "genTourLimit": "Už máš {count} okruhov. Vymaž jeden a môžeš vytvoriť nový.",
     "yourRoutes": "Tvoje okruhy",
     "curatedRoutes": "Zostavili miestni",
     "deleteRoute": "Vymazať",

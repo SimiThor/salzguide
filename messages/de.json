@@ -156,6 +156,8 @@
     "generating": "Baue deine Runde",
     "genError": "Hat gerade nicht geklappt – bitte nochmal.",
     "genTooFew": "Für dieses Gebiet gibt es noch zu wenige vertonte Punkte. Schau bald wieder vorbei.",
+    "genRateLimit": "Du hast gerade mehrere Runden gebaut. Versuch es später nochmal.",
+    "genTourLimit": "Du hast schon {count} Runden. Lösche eine, dann kannst du eine neue bauen.",
     "yourRoutes": "Deine Runden",
     "curatedRoutes": "Von Locals kuratiert",
     "deleteRoute": "Löschen",

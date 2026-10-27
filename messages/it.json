@@ -113,6 +113,8 @@
     "generating": "Creo il tuo giro",
     "genError": "Ora non ha funzionato – riprova.",
     "genTooFew": "Per questa zona ci sono ancora troppo pochi punti con audio. Torna presto a dare un'occhiata.",
+    "genRateLimit": "Hai appena creato alcuni giri. Riprova più tardi.",
+    "genTourLimit": "Hai già {count} giri. Eliminane uno per crearne un altro.",
     "yourRoutes": "I tuoi giri",
     "curatedRoutes": "Curati dai local",
     "deleteRoute": "Elimina",

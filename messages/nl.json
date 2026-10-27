@@ -113,6 +113,8 @@
     "generating": "Je ronde wordt gemaakt",
     "genError": "Lukte even niet – probeer het opnieuw.",
     "genTooFew": "Voor dit gebied zijn er nog te weinig ingesproken punten. Kom snel weer eens kijken.",
+    "genRateLimit": "Je hebt net een paar rondes gebouwd. Probeer het later opnieuw.",
+    "genTourLimit": "Je hebt al {count} rondes. Verwijder er een om een nieuwe te bouwen.",
     "yourRoutes": "Jouw rondes",
     "curatedRoutes": "Samengesteld door locals",
     "deleteRoute": "Verwijderen",

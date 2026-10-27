@@ -113,6 +113,8 @@
     "generating": "Épül a köröd",
     "genError": "Most nem sikerült, próbáld újra.",
     "genTooFew": "Ehhez a területhez még túl kevés a felmondott pont. Nézz vissza hamarosan.",
+    "genRateLimit": "Épp most több kört építettél. Próbáld újra később.",
+    "genTourLimit": "Már {count} köröd van. Törölj egyet, és építhetsz újat.",
     "yourRoutes": "A te köreid",
     "curatedRoutes": "Localok válogatása",
     "deleteRoute": "Törlés",
