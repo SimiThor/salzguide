@@ -32,6 +32,7 @@ export async function voiceNavPrompt(input: {
 }): Promise<{ ok: boolean; skipped?: boolean; chars?: number; previewUrl?: string; error?: string }> {
   const gate = await requireAdmin();
   if (!gate.ok) return { ok: false, error: gate.error };
+  if (!input || typeof input !== "object") return { ok: false, error: "invalid" };
   if (!isNavPromptKey(input.key) || !isNavLang(input.lang)) return { ok: false, error: "invalid" };
   const voice = await getVoiceById(String(input.voiceId ?? ""));
   if (!voice) return { ok: false, error: "not_found" };
@@ -57,13 +58,10 @@ export async function setNavVoice(voiceId: string): Promise<{ ok: boolean; error
   const voice = await getVoiceById(String(voiceId ?? ""));
   if (!voice) return { ok: false, error: "not_found" };
   if (!navVoiceGate(await planNavPrompts(voice.id))) return { ok: false, error: "nav_voice_incomplete" };
-  // Erst alle löschen, dann eine setzen: Der Partial-Unique-Index lässt nur eine zu. Im
-  // Fenster dazwischen liefert die Manifest-Route "keine Stimme", die App bleibt bei der
-  // System-Stimme.
-  const { error: e1 } = await gate.supabase.from("tts_voices").update({ is_nav: false }).eq("is_nav", true);
-  if (e1) return { ok: false, error: "db" };
-  const { error: e2 } = await gate.supabase.from("tts_voices").update({ is_nav: true }).eq("id", voice.id);
-  if (e2) return { ok: false, error: "db" };
+  // Ein Schritt in der Datenbank (set_nav_voice, Migration 0077): löschen und setzen in
+  // einer Transaktion, nie ein Fenster ohne Stimme.
+  const { error } = await gate.supabase.rpc("set_nav_voice", { p_voice: voice.id });
+  if (error) return { ok: false, error: "db" };
   await logOps("admin_action", { message: "Ansage-Stimme gesetzt", group: "voices", detail: { key: voice.key } });
   return { ok: true };
 }

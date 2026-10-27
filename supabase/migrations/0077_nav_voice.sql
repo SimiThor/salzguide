@@ -48,3 +48,28 @@ alter table public.nav_prompt_files enable row level security;
 drop policy if exists "nav_prompt_files_admin_all" on public.nav_prompt_files;
 create policy "nav_prompt_files_admin_all" on public.nav_prompt_files
   for all to authenticated using (public.is_admin()) with check (public.is_admin());
+
+-- Ansage-Stimme wechseln in EINER Transaktion: die alte löschen und die neue setzen, nie ein
+-- Fenster ohne Stimme (der Partial-Unique-Index lässt immer nur eine zu). SECURITY INVOKER:
+-- RLS (tts_voices_admin_all) gilt weiter, die Admin-Prüfung steht zusätzlich hier, damit ein
+-- Nicht-Admin einen klaren Fehler statt "0 Zeilen" bekommt. Nur für angemeldete Nutzer
+-- aufrufbar, nicht für anon.
+create or replace function public.set_nav_voice(p_voice uuid)
+returns void
+language plpgsql
+security invoker
+set search_path = public
+as $$
+begin
+  if not public.is_admin() then
+    raise exception 'forbidden' using errcode = '42501';
+  end if;
+  if not exists (select 1 from public.tts_voices where id = p_voice) then
+    raise exception 'voice not found' using errcode = 'P0002';
+  end if;
+  update public.tts_voices set is_nav = false where is_nav and id <> p_voice;
+  update public.tts_voices set is_nav = true where id = p_voice;
+end;
+$$;
+revoke all on function public.set_nav_voice(uuid) from public, anon;
+grant execute on function public.set_nav_voice(uuid) to authenticated;
