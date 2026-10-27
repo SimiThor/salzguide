@@ -61,8 +61,35 @@ export function hashedIpSubject(req: Request): string | null {
   const ip = clientIp(req);
   if (!ip) return null;
   const salt = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "salzguide";
-  const hash = createHash("sha256").update(`${ip}:${salt}`).digest("hex").slice(0, 24);
+  const hash = createHash("sha256")
+    .update(`${ipBackstopKey(ip)}:${salt}`)
+    .digest("hex")
+    .slice(0, 24);
   return `ip:${hash}`;
+}
+
+// Wofür der IP-Backstop zählt: IPv4 die volle Adresse (Hash wie bisher), IPv6 nur das /64-Netz.
+// Jeder IPv6-Anschluss (Heimrouter wie VPS) bekommt ein ganzes /64 und darf darin frei Adressen
+// wählen; mit der vollen Adresse wäre der Backstop dort wirkungslos. Ein Haushalt teilt sich das
+// /64 ohnehin, so wie bei IPv4 die eine Adresse hinter dem Router. Unlesbares bleibt unverändert.
+export function ipBackstopKey(ip: string): string {
+  const raw = ip.trim().toLowerCase().replace(/^\[|\]$/g, "").split("%")[0];
+  if (!raw.includes(":")) return raw;
+  const mapped = /^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/.exec(raw);
+  if (mapped) return mapped[1];
+  const halves = raw.split("::");
+  if (halves.length > 2) return raw;
+  const part = (s: string) => (s ? s.split(":") : []);
+  const head = part(halves[0]);
+  const tail = halves.length === 2 ? part(halves[1]) : [];
+  // Eine eingebettete IPv4 am Ende belegt zwei Gruppen (liegt immer hinter dem /64).
+  const width = (g: string[]) => g.length + (g.at(-1)?.includes(".") ? 1 : 0);
+  const missing = 8 - width(head) - width(tail);
+  if (halves.length === 2 ? missing < 1 : missing !== 0) return raw;
+  const groups = [...head, ...Array<string>(halves.length === 2 ? missing : 0).fill("0"), ...tail];
+  const prefix = groups.slice(0, 4);
+  if (!prefix.every((g) => /^[0-9a-f]{1,4}$/.test(g))) return raw;
+  return `${prefix.map((g) => parseInt(g, 16).toString(16)).join(":")}::/64`;
 }
 
 export function todayLabel(locale: string): string {
