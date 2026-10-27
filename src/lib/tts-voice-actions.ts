@@ -4,7 +4,7 @@ import { requireAdmin } from "./admin-guard";
 import { logOps } from "./ops";
 import { slugifyKey } from "./slug";
 import { elevenSpeak, fetchElevenVoiceSettings, validateElevenVoice } from "./tts";
-import { elevenIdForVoice, getVoiceById, getVoices, voiceUsage } from "./tts-voices";
+import { elevenIdForVoice, getNavVoiceId, getVoiceById, getVoices, voiceUsage } from "./tts-voices";
 import {
   ELEVEN_VOICE_ID_RE,
   VOICE_KINDS,
@@ -120,6 +120,7 @@ export async function deleteVoice(id: string): Promise<VoiceActionResult> {
   const v = await getVoiceById(id);
   if (!v) return { ok: false, error: "not_found" };
   if (v.isDefault) return { ok: false, error: "voice_is_default" };
+  if ((await getNavVoiceId()) === id) return { ok: false, error: "voice_is_nav" };
   const usage = await voiceUsage(id);
   if (usage.tours > 0 || usage.files > 0) return { ok: false, error: "voice_in_use" };
   const { error } = await gate.supabase.from("tts_voices").delete().eq("id", id);

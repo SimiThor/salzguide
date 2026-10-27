@@ -44,6 +44,9 @@ const ADMIN_ERRORS: Record<string, string> = {
     "Zum Veröffentlichen braucht jede Station mindestens die deutsche Vertonung mit der Stimme der Runde, und keine Datei darf einen älteren Text sprechen. Erst „Stimme prüfen“ und „Vertonen“ ausführen.",
   voice_in_use: "Diese Stimme spricht noch in Runden oder Dateien und kann nicht gelöscht werden.",
   voice_is_default: "Die Standard-Stimme kann nicht gelöscht werden. Erst eine andere zum Standard machen.",
+  voice_is_nav: "Diese Stimme spricht die Ansagen der Wanderführung und kann nicht gelöscht werden. Erst die Ansage-Stimme entfernen.",
+  nav_voice_incomplete: "Es fehlen noch Ansagen oder sie sind veraltet. Erst alle Dateien erzeugen.",
+  missing_text: "Für diese Ansage fehlt der Text in der Sprachdatei.",
   voice_has_files:
     "Die ElevenLabs-ID lässt sich nicht mehr ändern, weil mit dieser Stimme schon Dateien entstanden sind. Neue Stimme anlegen.",
   bad_voice_id: "Diese ElevenLabs-ID gibt es in unserem Konto nicht.",

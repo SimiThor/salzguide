@@ -48,9 +48,16 @@ const BUCKET = "tour-audio";
  * zu stehen. `tag` nennt eine andere Herkunft als ElevenLabs ("upload": angeglichene
  * Hand-Uploads, lib/tts-files.ts). Muss guardAudioPath (lib/audio-path.ts) passieren.
  */
-export function speechObjectPath(input: { kind?: AudioKind; lang: string; voiceKey: string; tag?: string }): string {
+export function speechObjectPath(input: {
+  kind?: AudioKind;
+  lang: string;
+  voiceKey: string;
+  tag?: string;
+  /** "nav": Ansage der Navigation (lib/nav-voice-files.ts), Dateiname beginnt mit nav-. */
+  part?: "nav";
+}): string {
   const lang = (input.lang || "de").toLowerCase();
-  const teil = input.kind === "kostprobe" ? "kostprobe" : "point";
+  const teil = input.part === "nav" ? "nav" : input.kind === "kostprobe" ? "kostprobe" : "point";
   const key = input.voiceKey.toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 24) || "voice";
   return `${[teil, lang, key, input.tag, crypto.randomUUID()].filter(Boolean).join("-")}.mp3`;
 }
@@ -183,10 +190,11 @@ export async function synthesizeVoice(input: {
   elevenVoiceId: string;
   voiceKey: string;
   settings: VoiceSettings;
+  part?: "nav";
 }): Promise<VoiceResult> {
   const spoken = await elevenSpeak({ text: input.text, elevenVoiceId: input.elevenVoiceId, settings: input.settings });
   if (!spoken.ok) return spoken;
-  const path = speechObjectPath({ kind: input.kind, lang: input.lang, voiceKey: input.voiceKey });
+  const path = speechObjectPath({ kind: input.kind, lang: input.lang, voiceKey: input.voiceKey, part: input.part });
   if (!(await storeSpeech(path, spoken.bytes))) return { ok: false, error: "Upload der Stimme fehlgeschlagen." };
   return {
     ok: true,

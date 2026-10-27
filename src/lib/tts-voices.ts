@@ -73,9 +73,13 @@ export function elevenIdForVoice(v: VoiceRow): string | null {
 /** Wo jede Stimme in Gebrauch ist. Zwei kleine Tabellen, deshalb einmal lesen und zaehlen. */
 export async function voiceUsageAll(): Promise<Record<string, VoiceUsage>> {
   const db = createServiceClient();
-  const [tours, files] = await Promise.all([
+  // nav_prompt_files (0077) zaehlt als Dateien mit: Die ElevenLabs-ID einer Stimme mit
+  // Ansagen ist genauso unveraenderlich, und sie laesst sich nicht loeschen. Fehlt die Tabelle
+  // noch, kommt data = null und es zaehlt nichts.
+  const [tours, files, navFiles] = await Promise.all([
     db.from("tours").select("voice_id"),
     db.from("tour_point_voice_files").select("voice_id"),
+    db.from("nav_prompt_files").select("voice_id"),
   ]);
   const out: Record<string, VoiceUsage> = {};
   const bump = (id: unknown, k: keyof VoiceUsage) => {
@@ -84,7 +88,19 @@ export async function voiceUsageAll(): Promise<Record<string, VoiceUsage>> {
   };
   for (const t of (tours.data as { voice_id: string }[] | null) ?? []) bump(t.voice_id, "tours");
   for (const f of (files.data as { voice_id: string }[] | null) ?? []) bump(f.voice_id, "files");
+  for (const f of (navFiles.data as { voice_id: string }[] | null) ?? []) bump(f.voice_id, "files");
   return out;
+}
+
+/**
+ * Die Stimme der gesprochenen Navigations-Ansagen (tts_voices.is_nav, Migration 0077), oder
+ * null. Eigene Abfrage statt BASE_COLS: Ohne die Migration darf die Stimmenliste nicht
+ * ausfallen, hier kommt dann einfach null.
+ */
+export async function getNavVoiceId(): Promise<string | null> {
+  const { data, error } = await createServiceClient().from("tts_voices").select("id").eq("is_nav", true).maybeSingle();
+  if (error || !data) return null;
+  return (data as { id: string }).id;
 }
 
 export async function voiceUsage(id: string): Promise<VoiceUsage> {
