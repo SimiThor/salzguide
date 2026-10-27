@@ -693,7 +693,7 @@ export async function runAssistant(
                   if (lr?.reading)
                     lake = {
                       name: lr.lake.name,
-                      tempC: lr.reading.tempC,
+                      tempC: Math.round(lr.reading.tempC), // ganze Grad wie die Spot-Karte
                       measuredOn: lr.reading.at.slice(0, 10),
                     };
                 } catch {
