@@ -9,10 +9,12 @@ import {
   appUserRateLimit,
 } from "@/lib/app-api";
 import type { AppReroute } from "@/lib/app-api-types";
-import { appCanSeePro, appViewer } from "@/lib/app-auth";
+import { appCanSeePro, appViewer, createBearerClient } from "@/lib/app-auth";
 import type { LngLat } from "@/lib/routing/types";
 import { planReroute, rerouteTour } from "@/lib/tour-reroute";
+import { myTourIdOf } from "@/lib/tour-chain";
 import { getTourDetailFor } from "@/lib/tours";
+import { loadUserTourDetail } from "@/lib/user-tours-core";
 import { safeTourSlug } from "@/lib/url";
 
 export const runtime = "nodejs";
@@ -84,7 +86,14 @@ export async function POST(req: Request) {
 
     // Wie GET /tours/{slug}: dieselbe Sicht des Betrachters, keine Entwurfs-Vorschau.
     const canSeePro = await appCanSeePro(viewer.userId);
-    const detail = await getTourDetailFor(slug, lang, canSeePro, async () => false);
+    // Eigene Runden ("meine-<id>", docs/41 4.3 /my-tours): nur ihr Eigentuemer, mit dem
+    // Bearer-Client und damit unter der RLS. Gaeste und fremde Runden = 404 wie "gibt es nicht".
+    const myId = myTourIdOf(slug);
+    const detail = myId
+      ? viewer.userId && viewer.token
+        ? await loadUserTourDetail(createBearerClient(viewer.token), myId, lang, async () => canSeePro)
+        : null
+      : await getTourDetailFor(slug, lang, canSeePro, async () => false);
     if (!detail) return appError("not_found", 404);
     if (body.mode !== undefined && body.mode !== detail.mode) return appError("invalid", 400);
 

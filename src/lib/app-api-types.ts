@@ -25,7 +25,10 @@ export type AppErrorCode =
   // 422, nur POST /route: zwischen den Punkten gibt es keinen Weg (oder ein Punkt liegt
   // ausserhalb der Wegdaten). Die App bleibt auf der alten Linie.
   | "no_route"
-  // 402, nur POST /toni: Tageslimit erreicht. Der Body trägt zusätzlich `scope`.
+  // 422, nur POST /builder: Im Gebiet gibt es zu wenige vertonte Punkte fuer eine Runde.
+  | "too_few"
+  // 409 bei POST /builder: Das Konto hat schon die Hoechstzahl eigener Runden.
+  // 402 bei POST /toni: Tageslimit erreicht. Der Body trägt zusätzlich `scope`.
   | "limit"
   | "unavailable";
 
@@ -276,6 +279,59 @@ export type AppReroute = {
   };
 };
 
+// ── Runden-Bauer und Meine Runden (docs/41, 4.3) ───────────────────────────────────────
+
+/** Ein Gebiet, in dem der Bauer eine Runde bauen kann (veroeffentlicht, mit Startpunkt). */
+export type AppBuilderArea = { id: string; name: string };
+
+/** Ein Interesse. `key` ist der Web-Schluessel (Tours.chip.<key>), die App beschriftet selbst. */
+export type AppBuilderInterest = { key: string; emoji: string };
+
+/**
+ * Antwort von GET /builder. `canGenerate` = angemeldet UND Pro (Admins zaehlen mit). Sonst sagt
+ * `blocked` warum: "login" (Gast) oder "pro" (angemeldet, ohne Pro). Die Listen stehen immer
+ * da, damit die App den Bauer auch gesperrt zeigen kann.
+ */
+export type AppBuilder = {
+  lang: string;
+  canGenerate: boolean;
+  blocked: "login" | "pro" | null;
+  areas: AppBuilderArea[];
+  interests: AppBuilderInterest[];
+  /** Hoechstlaenge des freien Texts in Zeichen. */
+  maxFreeText: number;
+  /** Hoechstzahl eigener Runden je Konto. */
+  maxTours: number;
+};
+
+/** Body von POST /builder. Unbekannte Felder = 400 invalid. */
+export type AppBuilderRequest = {
+  areaId: string;
+  /** Teilmenge der Schluessel aus GET /builder, hoechstens 8. */
+  interests: string[];
+  freeText?: string;
+  lang?: string;
+};
+
+/** Antwort von POST /builder: die Runde ist gespeichert; Detail und Paket laufen ueber /my-tours/{id}. */
+export type AppBuilderResult = { lang: string; id: string; tour: AppMyTourSummary };
+
+export type AppMyTourSummary = {
+  id: string;
+  /** "meine-<id>", wie `tour.slug` im Detail (und als `tourSlug` bei POST /route). */
+  slug: string;
+  name: string;
+  emoji: string | null;
+  areaName: string | null;
+  stopCount: number;
+  distanceKm: number | null;
+  durationMin: number | null;
+};
+
+export type AppMyTours = { lang: string; tours: AppMyTourSummary[] };
+
+/** Antwort von DELETE /my-tours/{id}: idempotent, auch wenn es die Runde nicht (mehr) gab. */
+export type AppMyTourDeleted = { deleted: true };
 // ── Toni (KI-Chat, docs/41 Abschnitt 4.3, docs/39) ──────────────────────────────────────
 
 /** Wer fragt, für die Anzeige des Tageslimits: Gast, angemeldet ohne Pro, Pro (Admins zählen als Pro). */

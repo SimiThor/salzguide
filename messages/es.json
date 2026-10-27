@@ -113,6 +113,8 @@
     "generating": "Creando tu ruta",
     "genError": "No ha funcionado esta vez. Inténtalo de nuevo.",
     "genTooFew": "Todavía hay muy pocos puntos narrados en esta zona. Vuelve pronto.",
+    "genRateLimit": "Acabas de crear varias rutas. Inténtalo más tarde.",
+    "genTourLimit": "Ya tienes {count} rutas. Elimina una para crear otra.",
     "yourRoutes": "Tus rutas",
     "curatedRoutes": "Seleccionadas por locales",
     "deleteRoute": "Eliminar",
