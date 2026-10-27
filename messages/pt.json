@@ -291,7 +291,8 @@
     "save": "Guardar",
     "saved": "Guardado",
     "close": "Fechar",
-    "empty": "Ainda não há spots para esta estação."
+    "empty": "Ainda não há spots para esta estação.",
+    "lakesTitle": "Lagos"
   },
   "Map": {
     "unavailable": "O mapa não pode ser mostrado neste dispositivo agora."

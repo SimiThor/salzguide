@@ -291,7 +291,8 @@
     "save": "Save",
     "saved": "Saved",
     "close": "Close",
-    "empty": "No spots for this season yet."
+    "empty": "No spots for this season yet.",
+    "lakesTitle": "Swimming lakes"
   },
   "Map": {
     "unavailable": "The map can't be shown on this device right now."

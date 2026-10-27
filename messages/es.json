@@ -291,7 +291,8 @@
     "save": "Guardar",
     "saved": "Guardado",
     "close": "Cerrar",
-    "empty": "Todavía no hay lugares para esta temporada."
+    "empty": "Todavía no hay lugares para esta temporada.",
+    "lakesTitle": "Lagos"
   },
   "Map": {
     "unavailable": "El mapa no se puede mostrar en este dispositivo en este momento."

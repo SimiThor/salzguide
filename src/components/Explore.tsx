@@ -20,6 +20,8 @@ import SpotMap, { type MapMarker } from "./SpotMap";
 import { useSpotSelection } from "./useSpotSelection";
 import { MAP_CTRL_PAD } from "./mapControls";
 import MobileSheet, { type Detent } from "./MobileSheet";
+import UtilityEntries from "./UtilityEntries";
+import type { UtilitySummary } from "@/lib/utility-summary-types";
 import PartnerCredits from "./PartnerCredits";
 import { SHEET_PEEK_VAR, useSheetPeek } from "@/lib/sheet-metrics";
 import { useScrollMemory } from "@/lib/scroll-memory";
@@ -69,11 +71,13 @@ export default function Explore({
   categories,
   savedSlugs = [],
   loggedIn = false,
+  utility,
 }: {
   spots: ExploreSpot[];
   categories: ExploreCategory[];
   savedSlugs?: string[];
   loggedIn?: boolean;
+  utility?: UtilitySummary;
 }) {
   const t = useTranslations("Explore");
   const [season, setSeason] = useState<Season>(naturalSeason);
@@ -451,8 +455,9 @@ export default function Explore({
 
     return (
     <>
-      {/* Wassertemperaturen sind bewusst NICHT hier prominent, sondern nur dezent
-          im Menü/Header verlinkt (Anton-Entscheidung). */}
+      {/* Events und Wassertemperaturen stehen seit 27.10.2026 ausdrücklich auf Antons Wunsch
+          als zwei Einstiegs-Karten oben im Sheet (UtilityEntries, wie in der iOS-App). Das
+          ersetzt die frühere Entscheidung, Wasser nur dezent im Menü/Header zu verlinken. */}
       <AnimatePresence mode="wait" initial={false}>
         <motion.div
           // Derselbe Schlüssel, der auch die Scroll-Position zurücksetzt (contentKey):
@@ -504,7 +509,17 @@ export default function Explore({
             </div>
           </section>
         ) : (
-        shelves.map(({ cat, spots: catSpots }, i) => {
+        <>
+        {/* Einstiege zu Events und Wassertemperaturen, nur in "Alle" (wie in der iOS-App). */}
+        {/* mb-6 ersetzt den space-y-Abstand (40/48px, Null-Spezifität): Zum ersten Regal sind
+            es hier 24px, damit die Zeile wenig Platz braucht; die mittlere Sheet-Stufe rechnet sie ganz heraus
+            (data-sg="detent-skip", siehe MobileSheet). */}
+        {utility && (
+          <div className="mb-6" data-sg="detent-skip">
+            <UtilityEntries summary={utility} showWater={season === "summer"} />
+          </div>
+        )}
+        {shelves.map(({ cat, spots: catSpots }, i) => {
           return (
             // Das erste Regal ist der Anker für die mittlere Stufe des Sheets
             // (EXPLORE_DETENTS). Nur Markierung, keine Optik.
@@ -526,7 +541,8 @@ export default function Explore({
               </Carousel>
             </section>
           );
-        })
+        })}
+        </>
         )}
         {!activeCat && shelves.length === 0 && (
           <p className="px-4 text-sm text-muted">{t("empty")}</p>
@@ -541,7 +557,7 @@ export default function Explore({
       <PartnerCredits className="mt-14 px-4" />
     </>
     );
-  }, [contentKey, activeCat, visibleSpots, shelves, openSpot, t]);
+  }, [contentKey, activeCat, visibleSpots, shelves, openSpot, t, utility, season]);
 
   return (
     <div className="fixed inset-0 z-0 md:top-[var(--sg-header-h)]">

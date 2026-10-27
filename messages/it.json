@@ -291,7 +291,8 @@
     "save": "Salva",
     "saved": "Salvato",
     "close": "Chiudi",
-    "empty": "Ancora nessuno spot per questa stagione."
+    "empty": "Ancora nessuno spot per questa stagione.",
+    "lakesTitle": "Laghi"
   },
   "Map": {
     "unavailable": "Al momento la mappa non può essere visualizzata su questo dispositivo."

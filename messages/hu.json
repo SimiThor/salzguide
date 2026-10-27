@@ -291,7 +291,8 @@
     "save": "Mentés",
     "saved": "Mentve",
     "close": "Bezárás",
-    "empty": "Ehhez a szezonhoz még nincs spot."
+    "empty": "Ehhez a szezonhoz még nincs spot.",
+    "lakesTitle": "Fürdőtavak"
   },
   "Map": {
     "unavailable": "A térkép ezen az eszközön most nem jeleníthető meg."

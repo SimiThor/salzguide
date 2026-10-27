@@ -362,7 +362,15 @@ export default function MobileSheet({
       if (!el) return d.fallback * containerPx;
       // Die Tab-Leiste liegt über dem Sheet -> ihre Höhe gehört zur Stufe dazu, sonst
       // steht der Anker zwar im Sheet, aber hinter der Leiste.
-      return offsetBottomWithin(el, sheet) + DETENT_AIR + navPx;
+      // Elemente mit data-sg="detent-skip" (z. B. die Einstiegs-Karten über dem ersten Regal)
+      // zählen NICHT zur Stufe: Die Stufe hat dieselbe Höhe wie ohne sie, sie schieben den
+      // Anker nur im Sheet nach unten (Höhe + Abstand darunter). So bleibt die sichtbare
+      // Karte gleich gross und man sieht Pillen, Karten und den oberen Teil des Regals.
+      let skip = 0;
+      for (const n of bodyRef.current?.querySelectorAll<HTMLElement>('[data-sg="detent-skip"]') ?? []) {
+        skip += n.offsetHeight + (parseFloat(getComputedStyle(n).marginBottom) || 0);
+      }
+      return offsetBottomWithin(el, sheet) - skip + DETENT_AIR + navPx;
     });
 
     return [peekPx, ...heights].map((h) =>

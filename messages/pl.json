@@ -291,7 +291,8 @@
     "save": "Zapisz",
     "saved": "Zapisane",
     "close": "Zamknij",
-    "empty": "W tym sezonie nie ma jeszcze żadnych spotów."
+    "empty": "W tym sezonie nie ma jeszcze żadnych spotów.",
+    "lakesTitle": "Jeziora"
   },
   "Map": {
     "unavailable": "Na tym urządzeniu nie da się teraz wyświetlić mapy."
