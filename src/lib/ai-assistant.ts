@@ -620,7 +620,9 @@ export async function runAssistant(
             }
             rows.push({
               name: l.name,
-              tempC: r.tempC,
+              // Ganze Grad schon im Werkzeug-Ergebnis: Sonst schreibt Toni "13,7 °C" in den
+              // Text, während Karten und Chips "14°" zeigen (water-format.ts).
+              tempC: Math.round(r.tempC),
               measuredOn: r.at.slice(0, 10),
               spots: spotsHere.length
                 ? spotsHere.map((s) => ({ title: s.title, slug: s.slug }))

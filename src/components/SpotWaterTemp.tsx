@@ -2,6 +2,7 @@ import { getTranslations } from "next-intl/server";
 import { bcp47 } from "@/i18n/locales";
 import { Link } from "@/i18n/navigation";
 import { getLakeReadingByName } from "@/lib/water-temp";
+import { formatWaterTemp } from "@/lib/water-format";
 
 const CARD =
   "rounded-[18px] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04),0_12px_32px_-20px_rgba(0,0,0,0.28)]";
@@ -25,7 +26,7 @@ export default async function SpotWaterTemp({
     day: "numeric",
     month: "long",
   }).format(new Date(reading.at));
-  const temp = reading.tempC.toLocaleString(loc, { maximumFractionDigits: 1 });
+  const temp = formatWaterTemp(reading.tempC, loc);
   const sourceLabel =
     reading.source === "salzburg" ? "Land Salzburg" : "AGES Badegewässer";
 

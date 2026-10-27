@@ -4,6 +4,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { bcp47 } from "@/i18n/locales";
 import { Link } from "@/i18n/navigation";
 import type { WaterReading } from "@/lib/ai-types";
+import { formatWaterTemp } from "@/lib/water-format";
 
 // Wassertemperatur-Widget – gleicher iOS-Karten-Look wie Wetter/Öffnungszeiten:
 // weiße Karte (p-3, rounded-16), gedämpftes Label + Chevron, weiche Zellen. Die
@@ -51,7 +52,7 @@ export default function AiWaterChips({
                 {date && <span className="ml-1.5 text-[11px] text-muted">{date}</span>}
               </span>
               <span className="shrink-0 text-[15px] font-semibold tabular-nums text-ink">
-                {r.tempC.toLocaleString(dl, { maximumFractionDigits: 1 })}°
+                {formatWaterTemp(r.tempC, dl)}°
               </span>
             </div>
           );
