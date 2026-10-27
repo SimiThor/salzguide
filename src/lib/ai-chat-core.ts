@@ -87,8 +87,13 @@ export function ipBackstopKey(ip: string): string {
   const missing = 8 - width(head) - width(tail);
   if (halves.length === 2 ? missing < 1 : missing !== 0) return raw;
   const groups = [...head, ...Array<string>(halves.length === 2 ? missing : 0).fill("0"), ...tail];
+  const last = groups.at(-1) ?? "";
+  const v4 = last.includes(".");
+  if (v4 && !/^\d{1,3}(\.\d{1,3}){3}$/.test(last)) return raw;
+  if (!groups.slice(0, v4 ? -1 : 8).every((g) => /^[0-9a-f]{1,4}$/.test(g))) return raw;
   const prefix = groups.slice(0, 4);
-  if (!prefix.every((g) => /^[0-9a-f]{1,4}$/.test(g))) return raw;
+  // ::/64 ist nie ein echtes Kunden-Netz (Loopback, mapped, compat): nie zusammenfassen.
+  if (prefix.every((g) => parseInt(g, 16) === 0)) return raw;
   return `${prefix.map((g) => parseInt(g, 16).toString(16)).join(":")}::/64`;
 }
 
