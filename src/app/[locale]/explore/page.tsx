@@ -5,6 +5,7 @@ import { getSavedSlugs } from "@/lib/saved";
 import { isLoggedIn } from "@/lib/viewer";
 import { alternatesFor, ogFor } from "@/lib/metadata";
 import { getUtilitySummary } from "@/lib/utility-summary";
+import type { UtilitySummary } from "@/lib/utility-summary-types";
 import Explore from "@/components/Explore";
 
 // Die Entdecken-Karte (map-first). Lag bis 07/2026 auf „/" — dort liegt jetzt die
@@ -49,7 +50,14 @@ export default async function ExplorePage({
     isLoggedIn(),
     getTranslations("Explore"),
     // Gecacht (5 Min, Service-Client, siehe lib/utility-summary.ts); Fehler = keine Karten.
-    getUtilitySummary().catch(() => ({ hasEvents: false, water: null })),
+    // Bei kaltem Cache kann die Behörden-Quelle Sekunden brauchen: Karten sind Zusatz, die
+    // Seite wartet höchstens 600 ms darauf (der gecachte Pfad ist sofort da).
+    Promise.race([
+      getUtilitySummary(),
+      new Promise<UtilitySummary>((resolve) =>
+        setTimeout(() => resolve({ hasEvents: false, water: null }), 600),
+      ),
+    ]).catch((): UtilitySummary => ({ hasEvents: false, water: null })),
   ]);
 
   return (

@@ -1,5 +1,6 @@
 import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
+import { formatWaterTemp } from "@/lib/water-format";
 import type { UtilitySummary } from "@/lib/utility-summary-types";
 
 // Zwei kleine Einstiegs-Karten über den Regalen von "Alle" (Pendant zur iOS-App):
@@ -25,26 +26,32 @@ function Entry({
       <span aria-hidden="true" className="text-2xl leading-none">
         {emoji}
       </span>
-      <span className="line-clamp-2 text-[15px] font-semibold leading-tight text-ink">{title}</span>
+      <span className="line-clamp-2 hyphens-auto break-words text-[15px] font-semibold leading-tight text-ink">{title}</span>
       <span className="line-clamp-2 text-[13px] leading-snug text-muted">{detail}</span>
     </Link>
   );
 }
 
-export default function UtilityEntries({ summary }: { summary: UtilitySummary }) {
+export default function UtilityEntries({
+  summary,
+  showWater = true,
+}: {
+  summary: UtilitySummary;
+  /** Nur im Sommer: Winterwerte (4-6 °C) helfen niemandem. */
+  showWater?: boolean;
+}) {
   const tEvents = useTranslations("Events");
   const tWater = useTranslations("Water");
   const locale = useLocale();
-  const { hasEvents, water } = summary;
+  const { hasEvents } = summary;
+  const water = showWater ? summary.water : null;
   if (!hasEvents && !water) return null;
 
   let range = "";
   if (water) {
-    const n = new Intl.NumberFormat(locale, { maximumFractionDigits: 0 });
-    range =
-      water.min === water.max
-        ? `${n.format(water.min)} °C`
-        : `${n.format(water.min)}–${n.format(water.max)} °C`;
+    const lo = formatWaterTemp(water.min, locale);
+    const hi = formatWaterTemp(water.max, locale);
+    range = lo === hi ? `${lo} °C` : `${lo}\u2013${hi} °C`;
   }
 
   return (

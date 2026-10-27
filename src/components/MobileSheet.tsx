@@ -365,7 +365,20 @@ export default function MobileSheet({
       return offsetBottomWithin(el, sheet) + DETENT_AIR + navPx;
     });
 
-    return [peekPx, ...heights].map((h) =>
+    // Mindestabstand zwischen einer inhaltsabhängigen Stufe und der obersten: Liegt der
+    // Anker tief im Inhalt (z. B. Einstiegs-Karten über dem ersten Regal) oder ist der
+    // Bildschirm klein, fiele die mittlere Stufe fast oder ganz mit "ganz auf" zusammen
+    // und es gäbe keine mittlere mehr. Deshalb bleibt sie mindestens 120px bzw. 15% der
+    // Containerhöhe (je nachdem, was grösser ist) unter der obersten; sonst wird geklemmt.
+    // "Oberste" = die grösste feste (Anteil-)Stufe; gibt es keine, wird nicht geklemmt.
+    const fixed = heights.filter((_, i) => typeof detents[i] === "number");
+    const topPx = fixed.length ? Math.min(fullPx, Math.max(...fixed)) : Infinity;
+    const minGap = Math.max(120, 0.15 * containerPx);
+    const spaced = heights.map((h, i) =>
+      typeof detents[i] === "number" ? h : Math.min(h, topPx - minGap),
+    );
+
+    return [peekPx, ...spaced].map((h) =>
       // Nie unter Peek und nie über die Sheet-Höhe: ein sehr hohes Regal wird sonst zu
       // einer Stufe, die es nicht gibt.
       peekPx - Math.min(fullPx, Math.max(peekPx, h)),

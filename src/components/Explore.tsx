@@ -455,8 +455,9 @@ export default function Explore({
 
     return (
     <>
-      {/* Wassertemperaturen sind bewusst NICHT hier prominent, sondern nur dezent
-          im Menü/Header verlinkt (Anton-Entscheidung). */}
+      {/* Events und Wassertemperaturen stehen seit 27.10.2026 ausdrücklich auf Antons Wunsch
+          als zwei Einstiegs-Karten oben im Sheet (UtilityEntries, wie in der iOS-App). Das
+          ersetzt die frühere Entscheidung, Wasser nur dezent im Menü/Header zu verlinken. */}
       <AnimatePresence mode="wait" initial={false}>
         <motion.div
           // Derselbe Schlüssel, der auch die Scroll-Position zurücksetzt (contentKey):
@@ -510,7 +511,13 @@ export default function Explore({
         ) : (
         <>
         {/* Einstiege zu Events und Wassertemperaturen, nur in "Alle" (wie in der iOS-App). */}
-        {utility && <UtilityEntries summary={utility} />}
+        {/* mb-6 ersetzt den space-y-Abstand (40/48px, Null-Spezifität): Zum ersten Regal sind
+            es hier 24px, damit die Zeile die mittlere Sheet-Stufe nicht unnötig hochschiebt. */}
+        {utility && (
+          <div className="mb-6">
+            <UtilityEntries summary={utility} showWater={season === "summer"} />
+          </div>
+        )}
         {shelves.map(({ cat, spots: catSpots }, i) => {
           return (
             // Das erste Regal ist der Anker für die mittlere Stufe des Sheets
@@ -549,7 +556,7 @@ export default function Explore({
       <PartnerCredits className="mt-14 px-4" />
     </>
     );
-  }, [contentKey, activeCat, visibleSpots, shelves, openSpot, t, utility]);
+  }, [contentKey, activeCat, visibleSpots, shelves, openSpot, t, utility, season]);
 
   return (
     <div className="fixed inset-0 z-0 md:top-[var(--sg-header-h)]">
