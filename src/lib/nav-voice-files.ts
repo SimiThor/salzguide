@@ -3,7 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createServiceClient } from "./supabase/service";
 import { synthesizeVoice } from "./tts";
 import { elevenIdForVoice } from "./tts-voices";
-import { ttsTextHash, type VoiceRow } from "./tts-rules";
+import { durationFromBytes, ttsTextHash, type VoiceRow } from "./tts-rules";
 import {
   NAV_PROMPT_KEYS,
   isNavLang,
@@ -62,7 +62,9 @@ export async function loadNavTexts(
 }
 
 export async function readNavFiles(db: SupabaseClient, voiceId: string): Promise<NavFileRow[]> {
-  const { data } = await db.from(TABLE).select(COLS).eq("voice_id", voiceId);
+  const { data, error } = await db.from(TABLE).select(COLS).eq("voice_id", voiceId);
+  // Ein Lesefehler ist kein "keine Dateien": Er wirft, die Route antwortet 503.
+  if (error) throw new Error("nav_prompt_files read failed");
   return ((data as Row[] | null) ?? []).map(toFile);
 }
 
@@ -152,7 +154,7 @@ export async function ensureNavPromptFile(input: {
       voice_id: input.voice.id,
       audio_path: r.path,
       text_hash: hash,
-      duration_ms: Math.max(1, Math.round(((r.bytes * 8) / 96000) * 1000)),
+      duration_ms: durationFromBytes(r.bytes) * 1000,
       tts_profile: r.profile,
     },
     { onConflict: "prompt_key,lang,voice_id" },

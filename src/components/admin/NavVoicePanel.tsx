@@ -56,6 +56,7 @@ export default function NavVoicePanel({
   const [progress, setProgress] = useState<string | null>(null);
   const [selected, setSelected] = useState<{ key: NavPromptKey; lang: string } | null>(null);
   const [playUrl, setPlayUrl] = useState<string | null>(null);
+  const [activeFetched, setActiveFetched] = useState<NavPlan | null>(null);
   const lock = useRef(false);
 
   const load = useCallback(async (id: string) => {
@@ -77,8 +78,10 @@ export default function NavVoicePanel({
     navVoicePlan(voiceId)
       .then((r) => {
         if (cancelled) return;
-        if (r.ok && r.plan) setPlan(r.plan);
-        else setErr(adminErrorText(r.error));
+        if (r.ok && r.plan) {
+          setPlan(r.plan);
+          setErr(null);
+        } else setErr(adminErrorText(r.error));
       })
       .catch(() => {
         if (!cancelled) setErr("Gerade nicht erreichbar. Bitte nochmal versuchen.");
@@ -87,6 +90,23 @@ export default function NavVoicePanel({
       cancelled = true;
     };
   }, [voiceId]);
+
+  // Der Stand der AKTIVEN Stimme, auch wenn gerade eine andere gewählt ist: Ändert sich ein
+  // Text nach dem Aktivieren, steht hier sofort, dass etwas offen ist.
+  useEffect(() => {
+    if (!navVoiceId || navVoiceId === voiceId) return;
+    let cancelled = false;
+    navVoicePlan(navVoiceId)
+      .then((r) => {
+        if (!cancelled && r.ok && r.plan) setActiveFetched(r.plan);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [navVoiceId, voiceId]);
+  const activePlan = navVoiceId && navVoiceId === voiceId ? plan : activeFetched;
+  const activeOpen = activePlan ? activePlan.items.length + activePlan.missingText : 0;
 
   const busy = progress !== null;
   const activeName = voices.find((v) => v.id === navVoiceId)?.name ?? null;
@@ -157,7 +177,14 @@ export default function NavVoicePanel({
     <div className="rounded-[16px] bg-white p-5 shadow-sm ring-1 ring-black/[0.04]">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-[15px] font-semibold text-ink">Ansagen der Wanderführung</h2>
-        {activeName ? <span className={STATUS_ACCENT}>Aktiv: {activeName}</span> : <span className="text-[12px] text-muted">System-Stimme</span>}
+        {activeName ? (
+          <span className="flex items-center gap-2">
+            <span className={STATUS_ACCENT}>Aktiv: {activeName}</span>
+            {activeOpen > 0 && <span className={STATUS_ACCENT}>{activeOpen} offen</span>}
+          </span>
+        ) : (
+          <span className="text-[12px] text-muted">System-Stimme</span>
+        )}
       </div>
       {err && <p className="mt-2 text-[13px] font-medium text-accent">{err}</p>}
 

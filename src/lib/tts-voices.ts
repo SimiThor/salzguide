@@ -98,9 +98,23 @@ export async function voiceUsageAll(): Promise<Record<string, VoiceUsage>> {
  * ausfallen, hier kommt dann einfach null.
  */
 export async function getNavVoiceId(): Promise<string | null> {
+  const r = await getNavVoiceState();
+  return r.ok ? r.id : null;
+}
+
+/**
+ * Wie getNavVoiceId, aber ein Datenbankfehler ist KEIN "keine Stimme": Die Manifest-Route
+ * muss ihn von "nichts aktiv" unterscheiden, sonst löscht die App bei einem Aussetzer ihren
+ * Satz. Nur die fehlende Spalte (Migration noch nicht eingespielt, 42703 / PGRST204) gilt als
+ * "keine Stimme".
+ */
+export async function getNavVoiceState(): Promise<{ ok: true; id: string | null } | { ok: false }> {
   const { data, error } = await createServiceClient().from("tts_voices").select("id").eq("is_nav", true).maybeSingle();
-  if (error || !data) return null;
-  return (data as { id: string }).id;
+  if (error) {
+    const code = (error as { code?: string }).code;
+    return code === "42703" || code === "PGRST204" ? { ok: true, id: null } : { ok: false };
+  }
+  return { ok: true, id: data ? (data as { id: string }).id : null };
 }
 
 export async function voiceUsage(id: string): Promise<VoiceUsage> {

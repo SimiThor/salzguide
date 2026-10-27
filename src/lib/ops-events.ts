@@ -391,6 +391,17 @@ export const OPS_EVENTS = {
     quietMinutes: 60,
     hint: "ElevenLabs-Status und Guthaben prüfen, dann die Stimmen-ID unter Einstellungen → Stimmen (Probehören). Bis dahin entstehen keine neuen Aufnahmen.",
   },
+  nav_voice_incomplete: {
+    area: "app",
+    severity: "warn",
+    title: "Aktive Ansage-Stimme unvollständig",
+    // Ein Ansagetext wurde geändert (oder eine Datei ging verloren), nachdem die Stimme
+    // aktiviert war. Die App spricht dann mit der System-Stimme. Eine Mail je Sprache und
+    // Ruhefenster reicht, der Befund ändert sich nicht von allein.
+    alertAfter: 1,
+    quietMinutes: 720,
+    hint: "Unter Einstellungen → Stimmen die Ansagen der Wanderführung öffnen und die fehlenden oder veralteten Dateien neu erzeugen.",
+  },
   ai_ip_cap_hit: {
     area: "ai",
     severity: "warn",
