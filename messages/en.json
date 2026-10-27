@@ -113,6 +113,8 @@
     "generating": "Building your walk",
     "genError": "That didn't work – please try again.",
     "genTooFew": "Not enough narrated points in this area yet. Check back soon.",
+    "genRateLimit": "You've just built a few walks. Try again later.",
+    "genTourLimit": "You already have {count} walks. Delete one to build a new one.",
     "yourRoutes": "Your walks",
     "curatedRoutes": "Curated by locals",
     "deleteRoute": "Delete",
