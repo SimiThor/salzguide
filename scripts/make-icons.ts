@@ -12,16 +12,17 @@
 //
 // DIE BUCHSTABEN SIND PFADE, KEIN TEXT
 //
-// „salz" (Kalam Bold, die Handschrift des App-Symbols) und „SalzGuide" (Inter) sind Konturen aus
-// der jeweiligen Schriftdatei (inklusive Unterschneidung), hier als Pfad eingefroren. Als <text> im SVG wären sie das
+// „salz" (Inter ExtraBold) und „SalzGuide" (Inter Bold) sind Konturen aus der Schriftdatei (inklusive
+// Unterschneidung), hier als Pfad eingefroren. Als <text> im SVG wären sie das
 // nicht: Ein Favicon rendert der Browser ohne unsere Webfont, ein PNG-Rasterer nimmt
 // irgendeine installierte Schrift. Beides ergäbe andere Buchstaben als im Schriftzug der
 // App — oder gar keine. Eingefroren braucht dieses Skript keine installierte Schrift und
 // läuft auf jedem Rechner gleich.
 //
-// Das Symbol ist dasselbe wie das der iOS-App (Antons Entscheidung, 10/2026): „salz" klein, handgeschrieben,
-// leicht nach oben geneigt, Creme auf Rot. Die Handschrift ist der persönliche Akzent (echte Locals statt
-// Firmenlogo); der Schriftzug „SalzGuide" bleibt sachlich in Inter. Der Startbildschirm trägt beides.
+// Das Symbol ist dasselbe wie das der iOS-App (Antons Entscheidung, 10/2026): „salz" klein, in der Schrift
+// des Schriftzugs, Creme auf Rot. Eine Schrift für Symbol und Schriftzug, damit die Marke, die die Leute schon
+// kennen, wiedererkannt wird. Das Symbol trägt ExtraBold statt des Bold aus dem Schriftzug: Bei 16 px verliert
+// eine dünnere Kontur die Rundungen. Der Startbildschirm trägt beides.
 //
 // WELCHE GERÄTE EINEN STARTBILDSCHIRM BEKOMMEN, STEHT NICHT HIER
 //
@@ -65,14 +66,14 @@ interface Glyphs {
   yMax: number;
 }
 
-// Kalam Bold, das Wort „salz", um 0,07 rad (gut 4°) nach oben gedreht wie das App-Symbol der iOS-App
-// (doku/marke/salz-icon.svg im App-Repo). Schrift-Einheiten, 1000 je Geviert.
+// Inter ExtraBold (opsz 32), das Wort „salz" mit derselben leichten Verengung wie der Schriftzug (-0,025 em).
+// Schrift-Einheiten, 2048 je Geviert. Gleiche Form wie das iOS-App-Symbol (doku/marke/salz-icon.svg im App-Repo).
 const MARK: Glyphs = {
-  xMin: 32.7,
-  yMin: -32.7,
-  xMax: 1706.1,
-  yMax: 827.6,
-  d: "M337.0 491.4Q374.9 494.0 415.0 451.7Q455.0 409.4 457.6 373.5Q459.2 349.6 438.3 348.1Q426.3 347.2 402.7 355.1Q379.1 363.0 355.7 361.3Q332.2 359.7 287.9 340.6Q243.7 321.4 245.5 295.5Q246.2 285.5 274.5 268.4Q302.7 251.4 336.0 233.7Q369.4 215.9 398.8 182.4Q428.2 148.9 431.1 107.5Q434.0 66.1 376.6 20.0Q319.2 -26.2 237.9 -31.9Q156.6 -37.6 96.1 -4.7Q35.7 28.1 33.0 67.0Q30.2 106.0 62.1 108.2Q75.1 109.1 93.8 100.4Q145.7 75.0 220.0 80.2Q294.3 85.4 292.9 105.3Q291.5 125.3 261.4 147.7Q231.2 170.2 196.3 188.8Q161.5 207.4 130.9 235.8Q100.3 264.2 98.3 293.2Q94.5 347.0 187.8 417.2Q281.2 487.4 337.0 491.4ZM924.8 301.0Q943.8 286.3 944.8 273.3Q945.7 260.4 936.6 218.6Q927.5 176.9 925.0 154.2Q922.6 131.4 921.0 118.3Q919.5 105.1 919.0 97.6Q918.5 90.0 916.8 78.9Q915.1 67.7 914.0 61.2Q913.0 54.6 911.1 45.9Q909.2 37.3 906.5 32.6Q903.8 27.9 900.2 22.6Q894.8 14.2 880.8 13.2Q866.8 12.2 844.4 38.7Q822.0 65.2 809.2 104.4Q722.2 2.1 658.3 -2.4Q615.4 -5.4 562.2 38.5Q509.0 82.4 505.7 129.8Q502.4 177.2 539.1 267.9Q575.9 358.7 645.0 438.8Q714.0 518.8 786.8 523.9Q828.7 526.8 887.0 481.8Q945.3 436.8 948.2 396.4Q951.0 356.0 924.8 301.0ZM645.5 123.0Q685.4 125.8 748.0 184.8Q810.5 243.9 820.6 327.8Q820.8 339.8 836.6 342.9Q829.6 399.6 813.7 398.5Q773.8 395.7 728.0 340.3Q682.3 285.0 655.0 223.9Q627.7 162.9 629.7 135.0Q630.2 127.0 632.9 124.7Q635.6 122.3 645.5 123.0ZM1114.4 827.6Q1138.4 829.2 1179.3 788.0Q1220.3 746.8 1223.1 706.9Q1225.9 667.0 1221.1 563.9Q1216.3 460.8 1207.6 399.0Q1150.1 32.1 1117.2 29.8Q1095.3 28.3 1060.4 61.4Q1025.5 94.5 1023.9 117.5Q1023.7 119.5 1043.5 223.1Q1063.3 326.8 1079.5 488.8Q1095.7 650.8 1085.5 796.5Q1083.5 825.4 1114.4 827.6ZM1433.5 179.3L1650.4 202.5Q1671.4 204.0 1688.0 195.6Q1704.6 187.3 1706.0 168.3Q1709.3 121.4 1622.3 89.8Q1535.3 58.1 1403.6 48.9Q1355.7 45.5 1309.8 85.4Q1263.9 125.3 1262.0 152.7Q1260.0 180.2 1308.0 225.6Q1355.9 271.1 1413.8 310.7Q1471.7 350.4 1520.3 386.4Q1568.9 422.3 1568.1 433.3Q1567.3 444.3 1513.5 440.5Q1459.6 436.7 1426.1 428.4Q1392.6 420.0 1371.6 418.5Q1350.7 417.1 1321.4 449.6Q1292.0 482.1 1290.6 502.1Q1288.6 530.0 1338.0 548.0Q1387.4 566.0 1449.2 570.3Q1511.1 574.7 1585.1 562.8Q1618.6 556.2 1652.0 516.4Q1685.4 476.6 1687.0 453.7Q1689.9 411.8 1649.8 362.4Q1609.6 312.9 1559.9 278.4Q1510.2 243.8 1468.6 215.3Q1427.0 186.8 1427.3 181.9Q1427.5 178.9 1433.5 179.3Z",
+  xMin: 45.6,
+  yMin: -26.3,
+  xMax: 3657.6,
+  yMax: 1490.0,
+  d: "M562.4 -26.3Q416.0 -26.3 303.1 17.9Q190.2 62.2 122.9 144.1Q55.6 226.1 45.6 338.0L385.4 338.0Q392.8 279.8 437.2 245.3Q481.6 210.9 556.9 210.9Q628.1 210.9 668.1 236.0Q708.0 261.1 708.0 301.5Q708.0 335.6 675.4 357.2Q642.8 378.8 580.2 390.2L388.9 424.1Q232.8 452.3 151.2 531.1Q69.6 609.9 69.6 734.8Q69.6 839.2 126.5 916.3Q183.3 993.4 289.6 1035.6Q395.8 1077.7 543.0 1077.7Q691.0 1077.7 799.1 1033.2Q907.1 988.6 967.3 907.3Q1027.6 826.0 1030.6 713.4L714.1 713.4Q713.1 768.5 668.4 805.3Q623.8 842.0 555.2 842.0Q487.8 842.0 450.4 815.9Q412.9 789.8 412.9 751.5Q412.9 718.1 442.8 696.0Q472.8 674.0 526.7 663.6L739.3 625.1Q902.7 595.2 980.1 525.2Q1057.6 455.2 1057.6 337.4Q1057.6 228.8 995.5 147.0Q933.4 65.2 821.7 19.5Q710.1 -26.3 562.4 -26.3ZM1470.6 -18.3Q1364.9 -18.3 1283.4 16.2Q1201.9 50.7 1155.3 120.3Q1108.7 189.9 1108.7 294.9Q1108.7 384.4 1140.8 444.8Q1172.9 505.2 1229.3 543.0Q1285.8 580.8 1360.2 600.5Q1434.5 620.2 1518.1 627.1Q1613.0 635.0 1669.9 644.7Q1726.7 654.4 1751.6 671.9Q1776.5 689.4 1776.5 721.0L1776.5 726.5Q1776.5 757.9 1758.5 781.5Q1740.5 805.1 1707.7 818.4Q1675.0 831.8 1629.1 831.8Q1582.0 831.8 1546.7 817.5Q1511.5 803.3 1491.3 776.9Q1471.1 750.4 1467.1 714.2L1147.4 714.2Q1155.5 828.6 1214.3 910.2Q1273.1 991.8 1380.6 1035.4Q1488.2 1079.0 1641.3 1079.0Q1756.1 1079.0 1845.0 1054.4Q1934.0 1029.8 1994.8 982.3Q2055.7 934.8 2086.7 866.6Q2117.8 798.4 2117.8 711.3L2117.8 0.0L1781.0 0.0L1781.0 148.5L1777.0 148.5Q1745.9 91.5 1702.8 54.5Q1659.7 17.5 1602.5 -0.4Q1545.4 -18.3 1470.6 -18.3ZM1575.2 207.4Q1632.8 207.4 1679.2 229.0Q1725.6 250.5 1752.6 289.2Q1779.5 328.0 1779.5 380.2L1779.5 475.8Q1765.7 469.8 1746.8 464.1Q1727.9 458.4 1704.2 453.1Q1680.6 447.9 1652.4 442.8Q1624.2 437.7 1592.2 432.5Q1546.4 425.2 1510.9 409.9Q1475.4 394.6 1455.0 370.1Q1434.7 345.6 1434.7 310.7Q1434.7 278.4 1452.5 255.1Q1470.2 231.8 1501.8 219.6Q1533.3 207.4 1575.2 207.4ZM2602.6 1490.0L2602.6 0.0L2257.8 0.0L2257.8 1490.0ZM2744.0 0.0L2744.0 225.8L3245.2 786.0L3245.2 788.5L2744.0 788.5L2744.0 1056.0L3649.0 1056.0L3649.0 816.6L3159.1 268.5L3159.1 266.0L3657.6 266.0L3657.6 0.0Z",
 };
 
 // Inter Bold, das Wort „SalzGuide" am Stück, mit derselben leichten Verengung wie der
@@ -108,9 +109,9 @@ function tile(x: number, y: number, size: number, radius: number): string {
   );
 }
 
-// Höhe von „salz" auf der 512er-Kachel: Das Wort füllt 68 % der Breite wie in der iOS-App. Breiter drängt
+// Höhe von „salz" auf der 512er-Kachel: Das Wort füllt 64 % der Breite wie in der iOS-App. Breiter drängt
 // es an den Rand (Androids maskierbares Symbol schneidet sonst an), schmaler geht es bei 16 px unter.
-const MARK_HEIGHT = Math.round(CANVAS * 0.68 * ((MARK.yMax - MARK.yMin) / (MARK.xMax - MARK.xMin)));
+const MARK_HEIGHT = Math.round(CANVAS * 0.64 * ((MARK.yMax - MARK.yMin) / (MARK.xMax - MARK.xMin)));
 
 /** Das App-Symbol als SVG. `radius` = 0 für die randlose Variante. */
 function appIcon({ radius, size }: { radius: number; size?: number }): string {
