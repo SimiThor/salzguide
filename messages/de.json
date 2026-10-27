@@ -334,7 +334,8 @@
     "save": "Merken",
     "saved": "Gemerkt",
     "close": "Schließen",
-    "empty": "Für diese Saison gibt es noch keine Spots."
+    "empty": "Für diese Saison gibt es noch keine Spots.",
+    "lakesTitle": "Badeseen"
   },
   "Map": {
     "unavailable": "Die Karte kann auf diesem Gerät gerade nicht angezeigt werden."

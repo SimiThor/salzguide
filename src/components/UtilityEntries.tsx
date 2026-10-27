@@ -26,7 +26,7 @@ function Entry({
       <span aria-hidden="true" className="text-2xl leading-none">
         {emoji}
       </span>
-      <span className="line-clamp-2 hyphens-auto break-words text-[15px] font-semibold leading-tight text-ink">{title}</span>
+      <span className="line-clamp-2 break-words text-[15px] font-semibold leading-tight text-ink">{title}</span>
       <span className="line-clamp-2 text-[13px] leading-snug text-muted">{detail}</span>
     </Link>
   );
@@ -41,7 +41,7 @@ export default function UtilityEntries({
   showWater?: boolean;
 }) {
   const tEvents = useTranslations("Events");
-  const tWater = useTranslations("Water");
+  const tExplore = useTranslations("Explore");
   const locale = useLocale();
   const { hasEvents } = summary;
   const water = showWater ? summary.water : null;
@@ -59,7 +59,7 @@ export default function UtilityEntries({
       {hasEvents && (
         <Entry href="/events" emoji="🎉" title={tEvents("title")} detail={tEvents("subtitle")} />
       )}
-      {water && <Entry href="/wasser" emoji="💧" title={tWater("title")} detail={range} />}
+      {water && <Entry href="/wasser" emoji="💧" title={tExplore("lakesTitle")} detail={range} />}
     </div>
   );
 }

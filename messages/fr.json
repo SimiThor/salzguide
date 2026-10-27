@@ -291,7 +291,8 @@
     "save": "Enregistrer",
     "saved": "Enregistré",
     "close": "Fermer",
-    "empty": "Pas encore de spots pour cette saison."
+    "empty": "Pas encore de spots pour cette saison.",
+    "lakesTitle": "Lacs de baignade"
   },
   "Map": {
     "unavailable": "La carte ne peut pas s'afficher sur cet appareil pour le moment."

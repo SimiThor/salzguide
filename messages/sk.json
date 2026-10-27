@@ -291,7 +291,8 @@
     "save": "Uložiť",
     "saved": "Uložené",
     "close": "Zavrieť",
-    "empty": "Pre túto sezónu tu zatiaľ nie sú žiadne spoty."
+    "empty": "Pre túto sezónu tu zatiaľ nie sú žiadne spoty.",
+    "lakesTitle": "Jazerá"
   },
   "Map": {
     "unavailable": "Mapa sa na tomto zariadení teraz nedá zobraziť."

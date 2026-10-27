@@ -512,9 +512,10 @@ export default function Explore({
         <>
         {/* Einstiege zu Events und Wassertemperaturen, nur in "Alle" (wie in der iOS-App). */}
         {/* mb-6 ersetzt den space-y-Abstand (40/48px, Null-Spezifität): Zum ersten Regal sind
-            es hier 24px, damit die Zeile die mittlere Sheet-Stufe nicht unnötig hochschiebt. */}
+            es hier 24px, damit die Zeile wenig Platz braucht; die mittlere Sheet-Stufe rechnet sie ganz heraus
+            (data-sg="detent-skip", siehe MobileSheet). */}
         {utility && (
-          <div className="mb-6">
+          <div className="mb-6" data-sg="detent-skip">
             <UtilityEntries summary={utility} showWater={season === "summer"} />
           </div>
         )}
