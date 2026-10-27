@@ -701,5 +701,15 @@
       "signOut": "Kijelentkezés",
       "deleteAccount": "Fiók törlése"
     }
+  },
+  "NavVoice": {
+    "hike": {
+      "startReached": "A starton vagy. Indulás!",
+      "offTrail": "Letértél az útról.",
+      "backOnTrail": "Újra az úton vagy.",
+      "turnaround": "Elérted a fordulópontot. Most visszafelé jössz.",
+      "wrongWay": "Az ellenkező irányba mész.",
+      "arrived": "Megvan! Megérkeztél."
+    }
   }
 }

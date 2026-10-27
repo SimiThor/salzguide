@@ -701,5 +701,15 @@
       "signOut": "Odhlásit se",
       "deleteAccount": "Smazat účet"
     }
+  },
+  "NavVoice": {
+    "hike": {
+      "startReached": "Jsi na startu. Jdeme!",
+      "offTrail": "Sešel jsi z cesty.",
+      "backOnTrail": "Zpátky na cestě.",
+      "turnaround": "Obrátka dosažena. Teď jde cesta zpátky.",
+      "wrongWay": "Jdeš opačným směrem.",
+      "arrived": "Zvládnuto! Jsi v cíli."
+    }
   }
 }

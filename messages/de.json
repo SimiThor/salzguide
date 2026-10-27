@@ -744,5 +744,15 @@
       "signOut": "Abmelden",
       "deleteAccount": "Konto löschen"
     }
+  },
+  "NavVoice": {
+    "hike": {
+      "startReached": "Du bist am Start. Los geht's!",
+      "offTrail": "Du bist vom Weg abgekommen.",
+      "backOnTrail": "Wieder auf dem Weg.",
+      "turnaround": "Umkehrpunkt erreicht. Jetzt geht's zurück.",
+      "wrongWay": "Du gehst in die andere Richtung.",
+      "arrived": "Geschafft! Du bist am Ziel."
+    }
   }
 }
