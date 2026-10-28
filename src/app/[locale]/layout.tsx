@@ -87,7 +87,8 @@ export default async function LocaleLayout({
   // `App` ebenso: Das sind die Texte der iOS-App (docs/41, Abschnitt 8). Ihr Skript im App-Repo
   // liest messages/*.json direkt, die Website zeigt davon nichts. Beide Namensräume gehören
   // zusammen, sonst wächst die Nutzlast jeder Seite um Texte, die nur das Handy-Programm braucht.
-  const SERVER_ONLY_NAMESPACES = new Set(["Mail", "App"]);
+  // `NavVoice`: Ansagetexte der Wanderführung, nur der Server liest sie (lib/nav-voice-files.ts).
+  const SERVER_ONLY_NAMESPACES = new Set(["Mail", "App", "NavVoice"]);
   const messages = Object.fromEntries(
     Object.entries(await getMessages()).filter(
       ([namespace]) => !SERVER_ONLY_NAMESPACES.has(namespace),

@@ -701,5 +701,15 @@
       "signOut": "로그아웃",
       "deleteAccount": "계정 삭제"
     }
+  },
+  "NavVoice": {
+    "hike": {
+      "startReached": "출발점에 도착했어요. 출발!",
+      "offTrail": "길에서 벗어났어요.",
+      "backOnTrail": "다시 길 위예요.",
+      "turnaround": "반환점에 도착했어요. 이제 돌아가요.",
+      "wrongWay": "반대 방향으로 가고 있어요.",
+      "arrived": "해냈어요! 도착했어요."
+    }
   }
 }

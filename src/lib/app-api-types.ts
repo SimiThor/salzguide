@@ -14,6 +14,7 @@ import type { OpeningWeek } from "./opening-hours";
 import type { LngLat, RouteSource, RouteStep } from "./routing/types";
 import type { TourMode } from "./tour-mode";
 import type { AiCards } from "./ai-types";
+import type { VoiceKind } from "./tts-rules";
 
 /** Feste Fehlercodes. Nie rohe Fehlertexte nach außen. */
 export type AppErrorCode =
@@ -370,3 +371,17 @@ export type AppToniReply = {
 
 /** 402 von POST /toni. */
 export type AppToniLimit = { error: "limit"; scope: AppToniScope };
+
+/**
+ * Antwort von GET /nav-voice: die gesprochenen Navigations-Ansagen einer Sprache. `voice` ist
+ * null und `prompts` leer, solange keine Ansage-Stimme aktiv ist (die App bleibt bei der
+ * System-Stimme). Nur AKTUELLE Clips (Hash gleich dem heutigen Text), `url` ist ein signierter
+ * Link (1 h). Nie die ElevenLabs-ID.
+ */
+export type AppNavVoice = {
+  lang: string;
+  /** Aendert sich, sobald Stimme, ein Pfad oder die Sprache wechselt. */
+  version: string;
+  voice: { name: string; kind: VoiceKind; personName: string | null } | null;
+  prompts: { key: string; hash: string; url: string; durationMs: number | null }[];
+};

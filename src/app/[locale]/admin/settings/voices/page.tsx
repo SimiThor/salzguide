@@ -1,7 +1,8 @@
 import { setRequestLocale } from "next-intl/server";
 import BackButton from "@/components/BackButton";
 import VoiceManager from "@/components/admin/VoiceManager";
-import { getVoices, voiceUsageAll } from "@/lib/tts-voices";
+import NavVoicePanel from "@/components/admin/NavVoicePanel";
+import { getNavVoiceId, getVoices, voiceUsageAll } from "@/lib/tts-voices";
 
 // Die Stimmen der Audio-Runden (tts_voices, Migration 0068): anlegen, Standard setzen,
 // probehören, löschen. Gewählt wird eine Stimme nicht hier, sondern an der Runde
@@ -15,7 +16,7 @@ export default async function AdminVoicesPage({
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const [voices, usage] = await Promise.all([getVoices(), voiceUsageAll()]);
+  const [voices, usage, navVoiceId] = await Promise.all([getVoices(), voiceUsageAll(), getNavVoiceId()]);
   // Die Erzählstimme von heute hat ihre ID noch in der ENV. Sie wird hier als Vorbelegung
   // mitgegeben, damit Anton sie mit einem Klick übernimmt; danach ist die ENV nur noch
   // die Brücke, falls das Feld leer bleibt (tts-rules.ts, elevenIdOf).
@@ -31,6 +32,12 @@ export default async function AdminVoicesPage({
         </p>
       </div>
       <VoiceManager voices={voices} usage={usage} envVoiceId={envVoiceId} />
+      <NavVoicePanel
+        voices={voices
+          .filter((v) => v.kind !== "human" && (v.elevenVoiceId || (v.isDefault && envVoiceId)))
+          .map((v) => ({ id: v.id, name: v.name }))}
+        navVoiceId={navVoiceId}
+      />
     </div>
   );
 }

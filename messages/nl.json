@@ -701,5 +701,15 @@
       "signOut": "Afmelden",
       "deleteAccount": "Account verwijderen"
     }
+  },
+  "NavVoice": {
+    "hike": {
+      "startReached": "Je bent bij de start. Daar gaan we!",
+      "offTrail": "Je bent van het pad af.",
+      "backOnTrail": "Weer op het pad.",
+      "turnaround": "Keerpunt bereikt. Nu gaat het terug.",
+      "wrongWay": "Je gaat de andere kant op.",
+      "arrived": "Gelukt! Je bent er."
+    }
   }
 }

@@ -701,5 +701,15 @@
       "signOut": "退出登录",
       "deleteAccount": "删除账号"
     }
+  },
+  "NavVoice": {
+    "hike": {
+      "startReached": "你已到起点，出发吧！",
+      "offTrail": "你已偏离路径。",
+      "backOnTrail": "又回到路径上了。",
+      "turnaround": "已到折返点，现在往回走。",
+      "wrongWay": "你走的是相反方向。",
+      "arrived": "完成啦！你到了。"
+    }
   }
 }

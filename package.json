@@ -57,6 +57,7 @@
     "apple-web-secret:check": "node --experimental-strip-types --disable-warning=ExperimentalWarning --import ./scripts/lib/alias-hook.mjs scripts/apple-web-secret-check.ts",
     "pro:check": "node --experimental-strip-types --disable-warning=ExperimentalWarning --import ./scripts/lib/alias-hook.mjs scripts/pro-check.ts",
     "voice:check": "node --experimental-strip-types --disable-warning=ExperimentalWarning --import ./scripts/lib/alias-hook.mjs scripts/voice-check.ts",
+    "nav-voice:check": "node --experimental-strip-types --disable-warning=ExperimentalWarning --import ./scripts/lib/alias-hook.mjs scripts/nav-voice-check.ts",
     "loudness:check": "node --experimental-strip-types --disable-warning=ExperimentalWarning --import ./scripts/lib/alias-hook.mjs scripts/loudness-check.ts",
     "spoken:check": "node --experimental-strip-types --disable-warning=ExperimentalWarning --import ./scripts/lib/alias-hook.mjs scripts/spoken-check.ts",
     "tts:backfill-hashes": "node --experimental-strip-types --disable-warning=ExperimentalWarning --env-file=.env.local --import ./scripts/lib/alias-hook.mjs scripts/tts-backfill-hashes.ts",

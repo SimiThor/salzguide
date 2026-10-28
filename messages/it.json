@@ -701,5 +701,15 @@
       "signOut": "Esci",
       "deleteAccount": "Elimina account"
     }
+  },
+  "NavVoice": {
+    "hike": {
+      "startReached": "Sei alla partenza. Si parte!",
+      "offTrail": "Sei uscito dal sentiero.",
+      "backOnTrail": "Di nuovo sul sentiero.",
+      "turnaround": "Punto di inversione raggiunto. Ora si torna indietro.",
+      "wrongWay": "Stai andando nella direzione opposta.",
+      "arrived": "Fatto! Sei arrivato."
+    }
   }
 }
