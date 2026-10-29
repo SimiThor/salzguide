@@ -186,6 +186,6 @@ KI-Features vor dem Bau die Einstufungstabelle in §2 ergänzen.
       veröffentlichten Runde spricht: Simon (Klonung + Nennung im Player, Datum: ____),
       Anton (sobald geklont, Datum: ____). Dazu die ElevenLabs-Bedingungen für Voice
       Clones (Zustimmung der gesprochenen Person) einmal geprüft ablegen.
-- [ ] Einwilligung Simon: gilt sie auch für gesprochene Navigations-Ansagen (Migration 0077)? Vor dem Aktivieren einer geklonten Ansage-Stimme klären.
+- [x] Einwilligung Simon für gesprochene Navigations-Ansagen (Migration 0077): von Simon bestätigt (Antons Auskunft, 29.10.2026); seine Stimme ist seit 29.10.2026 die Ansage-Stimme. Die schriftliche Einwilligung oben muss die Navigation ausdrücklich mit nennen.
 - [ ] 02.12.2026: Frist-Check Art. 50(2) (bei uns bereits erfüllt, nur bestätigen).
 - [ ] Jährlicher Review 08/2027 (§7).
