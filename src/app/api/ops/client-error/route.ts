@@ -32,7 +32,7 @@
 // Mails schicken.
 import { NextResponse, after } from "next/server";
 import { logOps, bumpOpsCounter, subjectFromRequest } from "@/lib/ops";
-import { isChunkLoadError, isWebglInitError } from "@/lib/ops-events";
+import { isChunkLoadError, isWebglInitError, webglOpsKind } from "@/lib/ops-events";
 import { scrubPath, scrubText } from "@/lib/ops-scrub";
 import { foreignOrigin } from "@/lib/same-origin";
 import { clientIp, classifyDevice, isBotUserAgent } from "@/lib/analytics";
@@ -147,7 +147,8 @@ export async function POST(req: Request) {
       const count = await bumpOpsCounter(`ops-client-err:${subject}`, WINDOW_SECONDS);
       if (count > MAX_PER_IP) return;
     }
-    await logOps(chunk ? "client_chunk_load" : webgl ? "client_webgl" : "client_error", {
+    // Fehlende Karte am Desktop: nur Logbuch, keine Mail (siehe webglOpsKind).
+    await logOps(chunk ? "client_chunk_load" : webgl ? webglOpsKind(device) : "client_error", {
       message,
       path,
       subject,
