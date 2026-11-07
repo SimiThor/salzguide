@@ -450,9 +450,15 @@ export const OPS_EVENTS = {
     // Der Totmannschalter. Kritisch, weil am Aufräum-Cron die Löschfristen aus der
     // Datenschutzerklärung hängen: Läuft er nicht, sagt die Erklärung etwas Falsches zu
     // (Art. 13 DSGVO), und niemand würde es merken.
+    //
+    // Der Hinweis nennt BEIDE Ursachen, weil der Alarm sie nicht unterscheiden kann: Er
+    // sieht nur, dass das Lebenszeichen fehlt. Im November 2026 schickte er zwei Wochen
+    // lang „CRON_SECRET prüfen", dabei lief die Event-Recherche an, brauchte aber länger als
+    // Vercels 300 s und wurde vor dem Stempel abgebrochen. Das Unterscheidungsmerkmal: Ist
+    // das Secret falsch, fallen ALLE Crons aus und im Logbuch steht cron_unauthorized.
     alertAfter: 1,
     quietMinutes: 720,
-    hint: "In Vercel unter Settings -> Cron Jobs prüfen, ob der Job noch existiert und aktiv ist, und ob CRON_SECRET dort und in den Umgebungsvariablen gleich ist.",
+    hint: "Laufen die anderen Hintergrund-Jobs, wurde dieser meist nach 300 s abgebrochen: In Vercel unter Logs nach „Task timed out“ suchen. Fallen alle aus, unter Settings -> Cron Jobs prüfen, ob der Job aktiv ist und CRON_SECRET dort und in den Umgebungsvariablen gleich ist.",
   },
   cron_unauthorized: {
     area: "cron",
