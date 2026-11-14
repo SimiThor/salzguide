@@ -60,8 +60,9 @@ export default async function AgbPage({
       <h2>3. Registrierung &amp; Konto</h2>
       <p>
         Für bestimmte Funktionen ist ein kostenloses Konto erforderlich. Die Anmeldung erfolgt
-        passwortlos (Magic-Link) oder über „Anmelden mit Google“. Du bist für die Sicherheit deines
-        E-Mail- bzw. Google-Zugangs verantwortlich. Die Angaben müssen richtig und aktuell sein.
+        passwortlos (Link oder Code per E-Mail), über „Anmelden mit Google“ oder in der iOS-App über
+        „Mit Apple anmelden“. Du bist für die Sicherheit deines E-Mail-, Google- bzw. Apple-Zugangs
+        verantwortlich. Die Angaben müssen richtig und aktuell sein.
       </p>
       {/* Muss beschreiben, was der Code WIRKLICH tut: Seit 07/2026 läuft der Kauf ohne Konto
           davor, und das Konto entsteht aus der bei Stripe angegebenen Adresse (siehe
@@ -144,6 +145,47 @@ export default async function AgbPage({
         an.
       </p>
 
+      <h2>7a. Kauf in der iOS-App</h2>
+      {/* WARUM 7a UND NICHT 8: Eine neue Nummer würde die Punkte 8 bis 15 verschieben, auf die
+          sich Web-Käufer:innen seit ihrem Kauf beziehen können. 7a lässt sie stehen.
+          WARUM STATT 3 BIS 7: Beim In-App-Kauf wickelt Apple Kauf, Zahlung, Rechnung und
+          Erstattung ab (docs/41 Abschnitt 7). Die FAGG-Zustimmung und die Mail-Bestätigung aus
+          dem Web-Bestellvorgang gibt es dort nicht, und das Konto ist VOR dem Kauf nötig (die
+          App bindet den Kauf per appAccountToken an das angemeldete Konto). Der Text muss
+          beschreiben, was lib/apple-purchase-core.ts TUT: ein Kauf gehört genau einem Konto,
+          wird nie von einem lebenden Konto umgebunden, nach einer Kontolöschung an ein neues
+          gebunden, nach einer Erstattung entzogen. Ändert sich eine dieser Regeln, ändert sich
+          dieser Absatz mit. Familienfreigabe ist im Produkt ausgeschaltet. */}
+      <p>
+        In der iOS-App kaufst du SalzGuide Pro als In-App-Kauf über den App Store von Apple. Für
+        diesen Kauf gelten die Punkte 2 und 8 bis 15 dieser AGB unverändert. Statt der Punkte 3 bis
+        7 gilt:
+      </p>
+      <p>
+        Kauf, Zahlung, Rechnung und Erstattung wickelt Apple ab; dafür gelten zusätzlich die
+        Bedingungen von Apple. Den Preis zeigt dir der App Store vor dem Kauf an. Zahlungsdaten
+        erhalten wir nicht.
+      </p>
+      <p>
+        Für den Kauf brauchst du ein kostenloses SalzGuide-Konto (Anmeldung mit einem Code an deine
+        E-Mail-Adresse, mit Apple oder mit Google). Pro wird diesem Konto zugeordnet und gilt in der
+        App und auf salzguide.com, auf allen Geräten, auf denen du angemeldet bist. Ein Kauf gehört
+        genau einem Konto. Über die Familienfreigabe ist er nicht teilbar.
+      </p>
+      <p>
+        Mit „Käufe wiederherstellen“ im Profil ordnest du einen bestehenden Kauf deinem Konto wieder
+        zu, etwa nach einer Neuinstallation. Hast du dein Konto gelöscht, kannst du den Kauf so einem
+        neuen Konto zuordnen. Gehört er noch einem anderen bestehenden Konto, übertragen wir ihn
+        nicht.
+      </p>
+      <p>
+        <strong>
+          Rücktritt (Widerruf) und Erstattung erklärst du gegenüber Apple; es gelten Apples Regeln.
+        </strong>{" "}
+        Das Formular in unserer Widerrufsbelehrung gilt nur für Käufe auf salzguide.com. Erstattet
+        Apple den Kauf, endet der Pro-Zugang aus diesem Kauf.
+      </p>
+
       <h2>8. Nutzungsrechte &amp; Pflichten</h2>
       <p>
         Wir räumen dir ein einfaches, nicht übertragbares Recht zur persönlichen, nicht-kommerziellen
@@ -181,7 +223,7 @@ export default async function AgbPage({
         kannst du jederzeit selbst im Bereich{" "}
         <LegalLink href="/profil/daten">„Deine Daten &amp; Datenschutz“</LegalLink> löschen. Mit der
         Kontolöschung
-        endet auch der Zugang zu Pro-Inhalten.
+        endet auch der Zugang zu Pro-Inhalten; zu einem Kauf in der iOS-App siehe Punkt 7a.
       </p>
 
       <h2>12. Änderung dieser AGB</h2>
