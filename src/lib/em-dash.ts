@@ -69,6 +69,33 @@ export function stripEmDash(text: string, locale?: string): string {
   return out;
 }
 
+// Pausen-Striche in Tonis Chat-Antworten: „Brauwelt – falls ihr Hunger habt" und
+// „2 hodiny - interaktivní". Toni setzt statt des verbotenen U+2014 gern den Halbgeviert-
+// strich oder einen Bindestrich mit Leerzeichen davor und danach. Gelesen wird das genauso
+// als Gedankenstrich (aufgefallen bei den App-Store-Bildern, Polnisch und Tschechisch).
+//
+// Bewusst NUR für Toni und nicht in stripEmDash: stripEmDash muss exakt zu
+// scripts/i18n-check.mjs passen und läuft auch über Spot-, Tour- und Übersetzungstexte.
+// Toni ist Fliesstext im Chat, dort ist ein Strich mit Leerzeichen auf beiden Seiten nie
+// etwas anderes als eine Pause.
+//
+// Was bleibt: Striche ohne Leerzeichen („Ein- und Ausgang", „Salzburg–München", „-5 °C"),
+// Listen am Zeilenanfang („- Gaisberg") und Spannen zwischen Zahlen („9 – 17 Uhr" wird
+// „9–17 Uhr"). Chinesisch bleibt wie in stripEmDash unangetastet.
+const PAUSE_DASH = /(\S)[ \t]+([–-])[ \t]+(?=\S)/g;
+
+export function stripPauseDashes(text: string, locale?: string): string {
+  if (!text || !/[–-]/.test(text)) return text;
+  if (locale && DASH_OK_LOCALES.has(locale)) return text;
+  return text.replace(PAUSE_DASH, (match, before: string, dash: string, offset: number, whole: string) => {
+    const next = whole[offset + match.length] ?? "";
+    if (/\d/.test(before) && /\d/.test(next)) return `${before}${dash}`;
+    // Steht schon ein Satzzeichen davor, ersetzt der Strich nur sich selbst.
+    if (/[,.:;!?]/.test(before)) return `${before} `;
+    return `${before}, `;
+  });
+}
+
 // Säubert alle String-Felder eines KI-Rückgabe-Objekts auf einmal.
 //
 // Warum das hier steht und nicht an jeder Aufrufstelle einzeln: Die KI liefert ihre Texte

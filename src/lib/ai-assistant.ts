@@ -24,7 +24,7 @@ import { LAKES, findLake } from "./lakes";
 import { getWeatherFromToday } from "./weather";
 import { buildMapsLink } from "./maps";
 import { getSpotOpeningWeek, getSpotOpeningWeekWith } from "./opening-hours-server";
-import { stripEmDash } from "./em-dash";
+import { stripEmDash, stripPauseDashes } from "./em-dash";
 import { stripMarkdownExtras } from "./ai-markdown";
 import { stripUnvouchedLinks } from "./ai-links";
 import {
@@ -931,7 +931,10 @@ export async function runAssistant(
     //
     // stripMarkdownExtras: Trennlinien und #-Überschriften zeigen Web und App sonst als
     // rohe Zeichen (siehe ai-markdown.ts).
-    text: stripEmDash(stripMarkdownExtras(base.text), ctx.locale),
+    //
+    // stripPauseDashes: dieselbe Regel für „ – " und „ - " mitten im Satz (nur im Chat,
+    // Begründung in em-dash.ts).
+    text: stripPauseDashes(stripEmDash(stripMarkdownExtras(base.text), ctx.locale), ctx.locale),
     cards: {
       ...base.cards,
       water: water.length ? water : undefined,

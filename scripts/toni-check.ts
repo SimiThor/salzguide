@@ -256,8 +256,10 @@ async function main() {
       if (savePath) writeFileSync(savePath, JSON.stringify(r.json, null, 2));
       check("aiGenerated true und X-AI-Generated-Header", r.json.aiGenerated === true && r.headers.get("x-ai-generated") === "true");
       check("remaining zählt herunter (4 von 5)", r.json.remaining === FREE_LIMIT - 1 && r.json.limit === FREE_LIMIT, JSON.stringify({ rem: r.json.remaining, lim: r.json.limit }));
-      // Verboten ist nur U+2014 (em-dash.ts); der Halbgeviertstrich ist erlaubt.
+      // U+2014 entfernt stripEmDash, Pausen-Striche mit Leerzeichen (\u201e \u2013 ", \u201e - ") stripPauseDashes
+      // (em-dash.ts). Striche ohne Leerzeichen (\u201eEin- und Ausgang", \u201e9\u201317") bleiben erlaubt.
       check("kein Gedankenstrich (U+2014) im Text", !String(r.json.text).includes("\u2014"));
+      check("kein Pausen-Strich (\u2013 oder - mit Leerzeichen) im Text", !/\S[ \t]+[\u2013-][ \t]+\S/.test(String(r.json.text)));
       const cards = (r.json.cards ?? {}) as { spots?: { slug: string }[] };
       const slugs = (cards.spots ?? []).map((s) => s.slug);
       info(`${slugs.length} Spot-Karten`);
