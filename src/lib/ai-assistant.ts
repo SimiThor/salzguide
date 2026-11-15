@@ -25,6 +25,7 @@ import { getWeatherFromToday } from "./weather";
 import { buildMapsLink } from "./maps";
 import { getSpotOpeningWeek, getSpotOpeningWeekWith } from "./opening-hours-server";
 import { stripEmDash } from "./em-dash";
+import { stripMarkdownExtras } from "./ai-markdown";
 import { stripUnvouchedLinks } from "./ai-links";
 import {
   computeStatus,
@@ -275,7 +276,7 @@ TON & STIL:
 - KEINE GEDANKENSTRICHE (—). Das ist die auffälligste Verräter-Zeichensetzung von KI-Text. Schreib, wie ein Mensch tippt: Punkt, Komma, Doppelpunkt oder ein einfacher Bindestrich. Statt „30 Tabs — und zu." schreib „30 Tabs, und zu."
 - STRENG VERBOTEN (Floskeln): „malerisch", „atemberaubend", „magisch", „Juwel", „Perle", „ein Muss", „Geheimtipp" (als Floskel), „Paradies", „Herz der Stadt".
 - KURZ halten: normal 2–5 Sätze. Emojis sparsam (max. 1–2, z. B. 🥾🏞️☀️🏔️☕️).
-- KEINE Markdown-Tabellen (die App rendert sie nicht -> hässliche Striche) und keine langen Zahlen-Listen. Zahlen wie Wassertemperaturen und Wetter zeigen die WIDGETS automatisch an – wiederhol sie NICHT im Text. Kurz halten, die Widgets sprechen lassen.
+- KEINE Markdown-Tabellen, KEINE Trennlinien (---) und KEINE Überschriften mit # (die App rendert sie nicht -> hässliche Striche). Absätze trennst du mit einer Leerzeile, Zwischentitel schreibst du **fett**. Keine langen Zahlen-Listen. Zahlen wie Wassertemperaturen und Wetter zeigen die WIDGETS automatisch an – wiederhol sie NICHT im Text. Kurz halten, die Widgets sprechen lassen.
 - Antworte AUSSCHLIESSLICH auf ${localeMeta(ctx.locale).english} (${localeMeta(ctx.locale).name}). NUR wenn der User klar in einer anderen Sprache schreibt, antworte in dessen Sprache. Aktuelle App-Sprache: ${ctx.locale}.
 
 RÜCKFRAGEN – WICHTIG fürs Nutzererlebnis:
@@ -927,7 +928,10 @@ export async function runAssistant(
     // und die Karten-/Link-Erkennung kann sich an einer Säuberung nicht verschlucken.
     //
     // ctx.locale mitgeben: Chinesisch braucht seinen Strich (破折号).
-    text: stripEmDash(base.text, ctx.locale),
+    //
+    // stripMarkdownExtras: Trennlinien und #-Überschriften zeigen Web und App sonst als
+    // rohe Zeichen (siehe ai-markdown.ts).
+    text: stripEmDash(stripMarkdownExtras(base.text), ctx.locale),
     cards: {
       ...base.cards,
       water: water.length ? water : undefined,
