@@ -97,11 +97,11 @@
     "playingNow": "A reproduzir",
     "rebuild": "Outra volta",
     "buildTitle": "Cria o teu tour",
-    "buildLead": "Diz-nos do que gostas – criamos-te um percurso a pé, sempre de volta ao início.",
+    "buildLead": "Diz-nos do que gostas. A IA cria-te um percurso com os nossos sítios, sempre de volta ao início.",
     "buildCard": "Cria a tua própria volta",
-    "buildCardSub": "Escolhe interesses, montamos-te uma volta em áudio",
-    "buildCardSubPro": "Escolhe interesses, recebe a tua própria volta. Isso vem com o Pro.",
-    "buildProTeaser": "Diz-nos o que te apetece e a IA monta-te a tua própria volta com áudio. Criar voltas próprias é Pro. As voltas escolhidas ficam abertas a todos, com as primeiras paragens grátis.",
+    "buildCardSub": "Escolhe interesses, a IA monta-te uma volta em áudio com os nossos sítios",
+    "buildCardSubPro": "Escolhe interesses, a IA monta-te uma volta com os nossos sítios. Isso vem com o Pro.",
+    "buildProTeaser": "Diz-nos o que te apetece e a IA monta-te a tua própria volta com áudio a partir dos nossos sítios. Criar voltas próprias é Pro. As voltas escolhidas ficam abertas a todos, com as primeiras paragens grátis.",
     "buildNeedLogin": "Inicia sessão para criar",
     "buildNeedLoginBody": "Cria e guarda as tuas próprias voltas em áudio depois de iniciares sessão. As voltas escolhidas por locais podes ouvir sem conta.",
     "login": "Iniciar sessão",
@@ -113,6 +113,8 @@
     "generating": "A criar a tua volta",
     "genError": "Agora não deu – tenta outra vez.",
     "genTooFew": "Ainda há poucos pontos com áudio nesta zona. Volta em breve.",
+    "genRateLimit": "Acabaste de criar várias voltas. Tenta mais tarde.",
+    "genTourLimit": "Já tens {count} voltas. Elimina uma para criar outra.",
     "yourRoutes": "As tuas voltas",
     "curatedRoutes": "Escolhidas por locais",
     "deleteRoute": "Eliminar",
@@ -289,7 +291,8 @@
     "save": "Guardar",
     "saved": "Guardado",
     "close": "Fechar",
-    "empty": "Ainda não há spots para esta estação."
+    "empty": "Ainda não há spots para esta estação.",
+    "lakesTitle": "Lagos"
   },
   "Map": {
     "unavailable": "O mapa não pode ser mostrado neste dispositivo agora."
@@ -697,6 +700,16 @@
     "profile": {
       "signOut": "Terminar sessão",
       "deleteAccount": "Eliminar conta"
+    }
+  },
+  "NavVoice": {
+    "hike": {
+      "startReached": "Chegaste ao início. Vamos!",
+      "offTrail": "Saíste do caminho.",
+      "backOnTrail": "De volta ao caminho.",
+      "turnaround": "Ponto de retorno alcançado. Agora é voltar.",
+      "wrongWay": "Estás a ir no sentido contrário.",
+      "arrived": "Conseguiste! Chegaste ao destino."
     }
   }
 }

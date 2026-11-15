@@ -22,6 +22,11 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 300; // Web-Recherche kann dauern (Vercel Pro: bis 300s)
 
 export async function GET(req: Request): Promise<Response> {
+  const startedAt = Date.now();
+  // Restzeit bis Vercels Limit. Die Aufräumschritte unten starten nur mit genug Luft:
+  // Reisst das Limit, fehlt das Lebenszeichen (finishCron steht am Ende), und genau so sah
+  // der Ausfall im November 2026 aus. Liegengebliebenes holt der nächste Lauf.
+  const timeLeft = () => maxDuration * 1000 - (Date.now() - startedAt);
   const gate = await guardCron(req, "events");
   if (!gate.ok) return gate.response;
 
@@ -47,7 +52,7 @@ export async function GET(req: Request): Promise<Response> {
   // Best effort wie der Rest: Scheitert es, ist das kein Grund, den Cron rot zu färben.
   // Es liegen dann ein paar Kilobyte länger herum, mehr nicht.
   let prunedPreviews = { unlinked: 0, deleted: 0, orphans: 0 };
-  try {
+  if (timeLeft() > 30_000) try {
     const service = createServiceClient();
     prunedPreviews = await prunePreviews(service, service.storage);
   } catch (e) {
@@ -71,7 +76,7 @@ export async function GET(req: Request): Promise<Response> {
   // 25 pro Lauf: Jede Vorschau kostet einen Download plus sharp. Was übrig bleibt, holt der
   // nächste Montag — oder `npm run backfill:blur`, wenn es eilt.
   let previewBackfill = { done: 0, failed: 0, remaining: 0 };
-  try {
+  if (timeLeft() > 45_000) try {
     const service = createServiceClient();
     previewBackfill = await backfillMissingPreviews(service, service.storage, { limit: 25 });
   } catch (e) {
@@ -89,7 +94,7 @@ export async function GET(req: Request): Promise<Response> {
   // prinzipbedingt unreferenzierte Dateien. Der Sweep ist fail-closed (bei jedem
   // Lesefehler wird nichts gelöscht) und lässt Dateien jünger als 48 h in Ruhe.
   let orphanSweep: OrphanSweepResult | null = null;
-  try {
+  if (timeLeft() > 25_000) try {
     orphanSweep = await sweepOrphanMedia(createServiceClient());
   } catch (e) {
     console.error("[cron] orphanSweep:", e instanceof Error ? e.message : e);
@@ -117,6 +122,7 @@ export async function GET(req: Request): Promise<Response> {
     wochen: result.weeks.length,
     neueEvents: result.weeks.reduce((n, w) => n + w.inserted, 0),
     ...(result.error ? { grund: result.error } : {}),
+    ...(result.deferred.length ? { verschoben: result.deferred.join(", ") } : {}),
     // Was zur Freigabe liegt, gehört ins Lebenszeichen: Bleibt die Mail aus, steht hier,
     // ob es nichts zu melden gab oder ob der Versand gehakt hat.
     zurFreigabe: reviewMail.pending,

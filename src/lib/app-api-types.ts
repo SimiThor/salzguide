@@ -8,9 +8,13 @@ import type { ExploreCategory, ExploreData, LockedTeaser, SpotCardData, SpotDeta
 import type { TourDetail, TourSummary } from "./tour-types";
 import type { SavedSpot } from "./saved";
 import type { WeatherDay } from "./weather";
+import type { EventItem } from "./events-format";
+import type { FreshLake } from "./water-temp";
 import type { OpeningWeek } from "./opening-hours";
 import type { LngLat, RouteSource, RouteStep } from "./routing/types";
 import type { TourMode } from "./tour-mode";
+import type { AiCards } from "./ai-types";
+import type { VoiceKind } from "./tts-rules";
 
 /** Feste Fehlercodes. Nie rohe Fehlertexte nach außen. */
 export type AppErrorCode =
@@ -22,6 +26,11 @@ export type AppErrorCode =
   // 422, nur POST /route: zwischen den Punkten gibt es keinen Weg (oder ein Punkt liegt
   // ausserhalb der Wegdaten). Die App bleibt auf der alten Linie.
   | "no_route"
+  // 422, nur POST /builder: Im Gebiet gibt es zu wenige vertonte Punkte fuer eine Runde.
+  | "too_few"
+  // 409 bei POST /builder: Das Konto hat schon die Hoechstzahl eigener Runden.
+  // 402 bei POST /toni: Tageslimit erreicht. Der Body trägt zusätzlich `scope`.
+  | "limit"
   | "unavailable";
 
 export type AppError = { error: AppErrorCode };
@@ -81,7 +90,19 @@ export type AppMe = {
 /** Antwort von GET /saved: Slugs für die Herz-Symbole, Karten für die Liste (nie gesperrt). */
 export type AppSaved = { lang: string; slugs: string[]; spots: SavedSpot[] };
 
-/** Antwort von PUT/DELETE /saved/{slug}. Idempotent: gleicher Aufruf, gleiche Antwort. */
+/**
+ * Antwort von GET /events: kommende Events (Wiener Zeit). `todayKey` ist der heutige Kalendertag,
+ * `maxDay` der letzte Tag, an dem etwas läuft (Ende des auswählbaren Kalenders), beide YYYY-MM-DD.
+ */
+export type AppEvents = { lang: string; todayKey: string; maxDay: string; events: EventItem[] };
+
+/** Antwort von GET /events/saved: gemerkte, noch nicht vergangene Events. */
+export type AppSavedEvents = { lang: string; ids: string[]; events: EventItem[] };
+
+/** Antwort von GET /water: Seen mit aktueller Messung; Spots am See je Stufe maskiert. */
+export type AppWater = { lang: string; tier: AppTier; lakes: FreshLake[] };
+
+/** Antwort von PUT/DELETE /saved/{slug} und /events/{id}/saved. Idempotent: gleicher Aufruf, gleiche Antwort. */
 export type AppSavedState = { saved: boolean };
 
 /** Body von PATCH /me: mindestens ein Feld. `locale` aus den 13 Codes. */
@@ -257,4 +278,110 @@ export type AppReroute = {
     durationMin: number;
     attribution: string;
   };
+};
+
+// ── Runden-Bauer und Meine Runden (docs/41, 4.3) ───────────────────────────────────────
+
+/** Ein Gebiet, in dem der Bauer eine Runde bauen kann (veroeffentlicht, mit Startpunkt). */
+export type AppBuilderArea = { id: string; name: string };
+
+/** Ein Interesse. `key` ist der Web-Schluessel (Tours.chip.<key>), die App beschriftet selbst. */
+export type AppBuilderInterest = { key: string; emoji: string };
+
+/**
+ * Antwort von GET /builder. `canGenerate` = angemeldet UND Pro (Admins zaehlen mit). Sonst sagt
+ * `blocked` warum: "login" (Gast) oder "pro" (angemeldet, ohne Pro). Die Listen stehen immer
+ * da, damit die App den Bauer auch gesperrt zeigen kann.
+ */
+export type AppBuilder = {
+  lang: string;
+  canGenerate: boolean;
+  blocked: "login" | "pro" | null;
+  areas: AppBuilderArea[];
+  interests: AppBuilderInterest[];
+  /** Hoechstlaenge des freien Texts in Zeichen. */
+  maxFreeText: number;
+  /** Hoechstzahl eigener Runden je Konto. */
+  maxTours: number;
+};
+
+/** Body von POST /builder. Unbekannte Felder = 400 invalid. */
+export type AppBuilderRequest = {
+  areaId: string;
+  /** Teilmenge der Schluessel aus GET /builder, hoechstens 8. */
+  interests: string[];
+  freeText?: string;
+  lang?: string;
+};
+
+/** Antwort von POST /builder: die Runde ist gespeichert; Detail und Paket laufen ueber /my-tours/{id}. */
+export type AppBuilderResult = { lang: string; id: string; tour: AppMyTourSummary };
+
+export type AppMyTourSummary = {
+  id: string;
+  /** "meine-<id>", wie `tour.slug` im Detail (und als `tourSlug` bei POST /route). */
+  slug: string;
+  name: string;
+  emoji: string | null;
+  areaName: string | null;
+  stopCount: number;
+  distanceKm: number | null;
+  durationMin: number | null;
+};
+
+export type AppMyTours = { lang: string; tours: AppMyTourSummary[] };
+
+/** Antwort von DELETE /my-tours/{id}: idempotent, auch wenn es die Runde nicht (mehr) gab. */
+export type AppMyTourDeleted = { deleted: true };
+// ── Toni (KI-Chat, docs/41 Abschnitt 4.3, docs/39) ──────────────────────────────────────
+
+/** Wer fragt, für die Anzeige des Tageslimits: Gast, angemeldet ohne Pro, Pro (Admins zählen als Pro). */
+export type AppToniScope = "guest" | "free" | "pro";
+
+/**
+ * Antwort von GET /toni. `available: false`, wenn der KI-Dienst nicht eingerichtet ist: Die App
+ * blendet den Toni-Tab dann aus. `remaining` ist null, wenn der Zähler nicht lesbar ist (die
+ * App zeigt dann keine Zahl).
+ */
+export type AppToniStatus = {
+  available: boolean;
+  scope: AppToniScope;
+  /** Fragen pro Tag in dieser Stufe (Wiener Kalendertag, eine Zahl für Web und App). */
+  limit: number;
+  remaining: number | null;
+};
+
+/** Body von POST /toni. Wie die Web-Route: der Verlauf als reiner Text, die letzte Nachricht ist die Frage. */
+export type AppToniRequest = {
+  messages: { role: "user" | "assistant"; content: string }[];
+  conversationId?: string | null;
+};
+
+/** Antwort von POST /toni. Die Karten sind dieselben wie im Web (Pro-Spots nur für Pro-Nutzer). */
+export type AppToniReply = {
+  text: string;
+  cards: AiCards;
+  conversationId: string | null;
+  scope: AppToniScope;
+  limit: number;
+  remaining: number | null;
+  /** Immer true (Art. 50 KI-VO, docs/39), wie `aiGenerated` im Web. */
+  aiGenerated: true;
+};
+
+/** 402 von POST /toni. */
+export type AppToniLimit = { error: "limit"; scope: AppToniScope };
+
+/**
+ * Antwort von GET /nav-voice: die gesprochenen Navigations-Ansagen einer Sprache. `voice` ist
+ * null und `prompts` leer, solange keine Ansage-Stimme aktiv ist (die App bleibt bei der
+ * System-Stimme). Nur AKTUELLE Clips (Hash gleich dem heutigen Text), `url` ist ein signierter
+ * Link (1 h). Nie die ElevenLabs-ID.
+ */
+export type AppNavVoice = {
+  lang: string;
+  /** Aendert sich, sobald Stimme, ein Pfad oder die Sprache wechselt. */
+  version: string;
+  voice: { name: string; kind: VoiceKind; personName: string | null } | null;
+  prompts: { key: string; hash: string; url: string; durationMs: number | null }[];
 };

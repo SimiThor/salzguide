@@ -579,6 +579,27 @@ async function runAppleUnit(): Promise<void> {
   }
 }
 
+async function runNavVoice(): Promise<void> {
+  head("13. /nav-voice");
+  const r = await apiGet(`/nav-voice?lang=${LANG}`, null);
+  check("nav-voice: Gast -> 200", r.status === 200, `Status ${r.status}`);
+  check("nav-voice: Cache-Control private, no-store", (r.headers.get("cache-control") ?? "") === "private, no-store", r.headers.get("cache-control") ?? "");
+  check("nav-voice: Form {lang, version, voice, prompts}", Object.keys(r.json ?? {}).sort().join() === "lang,prompts,version,voice", Object.keys(r.json ?? {}).join());
+  check("nav-voice: kein ElevenLabs-Bezug in der Antwort", !/eleven_voice_id|elevenVoiceId|xi-api-key/i.test(r.text));
+  const prompts: Loose[] = r.json?.prompts ?? [];
+  if (r.json?.voice === null) {
+    check("nav-voice: ohne aktive Stimme keine Clips", prompts.length === 0);
+    info("keine aktive Ansage-Stimme, Link-Pruefung uebersprungen");
+  } else {
+    check("nav-voice: Stimme nur name/kind/personName", Object.keys(r.json?.voice ?? {}).sort().join() === "kind,name,personName", Object.keys(r.json?.voice ?? {}).join());
+    if (prompts[0]) {
+      const f = await fetch(prompts[0].url, { signal: AbortSignal.timeout(30_000) });
+      check("nav-voice: signierter Link liefert Audio", f.status === 200 && (f.headers.get("content-type") ?? "").startsWith("audio"), `Status ${f.status}`);
+    }
+  }
+  check("nav-voice: ?lang=xx -> 400 invalid", (await apiGet("/nav-voice?lang=xx", null)).status === 400);
+}
+
 async function runSaved(truth: Truth, user: TempUser, token: string): Promise<void> {
   head("10. Merkliste (/saved)");
   const L = `lang=${LANG}`;
@@ -1120,6 +1141,7 @@ async function main(): Promise<void> {
     }
   };
   await section("Apple", () => runAppleUnit());
+  await section("nav-voice", () => runNavVoice());
   await section("Merkliste", () => runSaved(truth, user, token));
   await section("PATCH /me", () => runPatchMe(user, token));
   await section("live", () => runLive(truth, user, token));

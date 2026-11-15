@@ -76,7 +76,7 @@ const isBaseOnly = (key) => BASE_ONLY_NAMESPACES.has(key.split(".")[0]);
 // im App-Repo, das messages/*.json einliest und daraus Localizable.xcstrings baut. Im Web-Code
 // gibt es keinen Leser, und `src/app/[locale]/layout.tsx` nimmt den Namensraum aus dem
 // Browser-Paket heraus (wie `Mail`). Beide Stellen gehören zusammengedacht.
-const NO_STRING_READER = new Set(["Mail", "App"]);
+const NO_STRING_READER = new Set(["Mail", "App", "NavVoice"]);
 const hasObjectReader = (key) => NO_STRING_READER.has(key.split(".")[0]);
 
 // Platzhalter-Namen über den ICU-PARSER statt per Regex. Der alte Regex (/\{\s*(\w+)/)

@@ -3,6 +3,7 @@
 // Spots + Events vor. Kein "use server" -> reines Server-Util, das die API-Route
 // (src/app/api/ai/chat) nutzt. Wiederverwendet fetchWithRetry + Brand-Voice-Ton.
 import { cache } from "react";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { bcp47, localeMeta } from "@/i18n/locales";
 import { pickLabel, ALL_DAY, CLOSED, TOMORROW, WEATHER_PLACE } from "./i18n-labels";
 import { createClient } from "./supabase/server";
@@ -22,8 +23,9 @@ import {
 import { LAKES, findLake } from "./lakes";
 import { getWeatherFromToday } from "./weather";
 import { buildMapsLink } from "./maps";
-import { getSpotOpeningWeek } from "./opening-hours-server";
-import { stripEmDash } from "./em-dash";
+import { getSpotOpeningWeek, getSpotOpeningWeekWith } from "./opening-hours-server";
+import { stripEmDash, stripPauseDashes } from "./em-dash";
+import { stripMarkdownExtras } from "./ai-markdown";
 import { stripUnvouchedLinks } from "./ai-links";
 import {
   computeStatus,
@@ -101,10 +103,15 @@ type SpotCandidate = AiSpotCard & {
 // Veröffentlichte Free-Spots als Kandidaten-Pool (DE-Basis = vollständig; die KI
 // ist ohnehin deutsch-first). includePro=true (Pro-Viewer) nimmt auch Pro-Spots
 // dazu; sonst bleiben sie draußen -> KEIN serverseitiger Pro-Leak (docs/33).
+//
+// `db`: Client des Betrachters. Das Web lässt ihn weg (Cookie-Client wie bisher); die App-API
+// übergibt den Bearer- bzw. Gast-Client, weil ihre Anfragen keine Cookies tragen und die RLS (0017)
+// sonst auch für zahlende Nutzer alle Pro-Spots ausblendet.
 const loadSpotCandidates = cache(async function loadSpotCandidates(
   includePro: boolean,
+  db?: SupabaseClient,
 ): Promise<SpotCandidate[]> {
-  const supabase = await createClient();
+  const supabase = db ?? (await createClient());
   let q = supabase
     .from("spots")
     .select(
@@ -269,7 +276,7 @@ TON & STIL:
 - KEINE GEDANKENSTRICHE (—). Das ist die auffälligste Verräter-Zeichensetzung von KI-Text. Schreib, wie ein Mensch tippt: Punkt, Komma, Doppelpunkt oder ein einfacher Bindestrich. Statt „30 Tabs — und zu." schreib „30 Tabs, und zu."
 - STRENG VERBOTEN (Floskeln): „malerisch", „atemberaubend", „magisch", „Juwel", „Perle", „ein Muss", „Geheimtipp" (als Floskel), „Paradies", „Herz der Stadt".
 - KURZ halten: normal 2–5 Sätze. Emojis sparsam (max. 1–2, z. B. 🥾🏞️☀️🏔️☕️).
-- KEINE Markdown-Tabellen (die App rendert sie nicht -> hässliche Striche) und keine langen Zahlen-Listen. Zahlen wie Wassertemperaturen und Wetter zeigen die WIDGETS automatisch an – wiederhol sie NICHT im Text. Kurz halten, die Widgets sprechen lassen.
+- KEINE Markdown-Tabellen, KEINE Trennlinien (---) und KEINE Überschriften mit # (die App rendert sie nicht -> hässliche Striche). Absätze trennst du mit einer Leerzeile, Zwischentitel schreibst du **fett**. Keine langen Zahlen-Listen. Zahlen wie Wassertemperaturen und Wetter zeigen die WIDGETS automatisch an – wiederhol sie NICHT im Text. Kurz halten, die Widgets sprechen lassen.
 - Antworte AUSSCHLIESSLICH auf ${localeMeta(ctx.locale).english} (${localeMeta(ctx.locale).name}). NUR wenn der User klar in einer anderen Sprache schreibt, antworte in dessen Sprache. Aktuelle App-Sprache: ${ctx.locale}.
 
 RÜCKFRAGEN – WICHTIG fürs Nutzererlebnis:
@@ -444,6 +451,8 @@ export async function runAssistant(
     dateRef?: string;
     interests?: string | null;
     page?: string | null;
+    /** Client des Betrachters für die Spot-Abfragen (nur App-API). Ohne: Cookie-Client wie im Web. */
+    db?: SupabaseClient;
   },
 ): Promise<AiTurnResult | { error: string }> {
   const key = process.env.ANTHROPIC_API_KEY;
@@ -530,7 +539,7 @@ export async function runAssistant(
 
         if (tu.name === "search_spots") {
           const wish = String(tu.input?.wish ?? "");
-          let pool = await loadSpotCandidates(ctx.isPro);
+          let pool = await loadSpotCandidates(ctx.isPro, ctx.db);
           // Regel-Engine: bei Bade-Wunsch verbotene Badeseen rausfiltern.
           if (SWIM_TRIGGER.test(wish)) {
             pool = pool.filter((s) => {
@@ -612,7 +621,9 @@ export async function runAssistant(
             }
             rows.push({
               name: l.name,
-              tempC: r.tempC,
+              // Ganze Grad schon im Werkzeug-Ergebnis: Sonst schreibt Toni "13,7 °C" in den
+              // Text, während Karten und Chips "14°" zeigen (water-format.ts).
+              tempC: Math.round(r.tempC),
               measuredOn: r.at.slice(0, 10),
               spots: spotsHere.length
                 ? spotsHere.map((s) => ({ title: s.title, slug: s.slug }))
@@ -637,7 +648,7 @@ export async function runAssistant(
           const slug = String(tu.input?.slug ?? "").trim().toLowerCase();
           let payload: Record<string, unknown> = { found: false };
           if (slug) {
-            const supabase = await createClient();
+            const supabase = ctx.db ?? (await createClient());
             const { data: sp } = await supabase
               .from("spots")
               .select(
@@ -683,7 +694,7 @@ export async function runAssistant(
                   if (lr?.reading)
                     lake = {
                       name: lr.lake.name,
-                      tempC: lr.reading.tempC,
+                      tempC: Math.round(lr.reading.tempC), // ganze Grad wie die Spot-Karte
                       measuredOn: lr.reading.at.slice(0, 10),
                     };
                 } catch {
@@ -729,10 +740,16 @@ export async function runAssistant(
               let opening: Record<string, unknown> | null = null;
               if (want.includes("hours") && sp.has_opening_hours) {
                 try {
-                  const res = await getSpotOpeningWeek(
-                    slug,
-                    (sp.google_place_id as string | null) ?? null,
-                  );
+                  const res = ctx.db
+                    ? await getSpotOpeningWeekWith(
+                        ctx.db,
+                        slug,
+                        (sp.google_place_id as string | null) ?? null,
+                      )
+                    : await getSpotOpeningWeek(
+                        slug,
+                        (sp.google_place_id as string | null) ?? null,
+                      );
                   if (res) {
                     const now = new Date();
                     const st = computeStatus(res.week, viennaNowWM(now));
@@ -823,7 +840,7 @@ export async function runAssistant(
           let placeName = pickLabel(WEATHER_PLACE, ctx.locale);
           let placeSlug: string | null = null;
           if (spotSlug) {
-            const supabase = await createClient();
+            const supabase = ctx.db ?? (await createClient());
             const { data: sp } = await supabase
               .from("spots")
               .select("slug, lat, lng, is_pro, spot_translations(title, lang)")
@@ -911,7 +928,13 @@ export async function runAssistant(
     // und die Karten-/Link-Erkennung kann sich an einer Säuberung nicht verschlucken.
     //
     // ctx.locale mitgeben: Chinesisch braucht seinen Strich (破折号).
-    text: stripEmDash(base.text, ctx.locale),
+    //
+    // stripMarkdownExtras: Trennlinien und #-Überschriften zeigen Web und App sonst als
+    // rohe Zeichen (siehe ai-markdown.ts).
+    //
+    // stripPauseDashes: dieselbe Regel für „ – " und „ - " mitten im Satz (nur im Chat,
+    // Begründung in em-dash.ts).
+    text: stripPauseDashes(stripEmDash(stripMarkdownExtras(base.text), ctx.locale), ctx.locale),
     cards: {
       ...base.cards,
       water: water.length ? water : undefined,

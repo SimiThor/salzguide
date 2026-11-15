@@ -21,6 +21,7 @@ import { useLatestRef } from "@/lib/use-latest-ref";
 import { bindMapViewMemory, readMapView } from "@/lib/map-view-memory";
 import { declutterBasemap } from "@/lib/map-declutter";
 import { RecenterControl } from "./mapControls";
+import { formatWaterTemp } from "@/lib/water-format";
 
 const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 const BLUE = "#2f8fce"; // eine ruhige Akzentfarbe (Wasser), sonst ink/muted
@@ -32,11 +33,10 @@ const BLUE = "#2f8fce"; // eine ruhige Akzentfarbe (Wasser), sonst ink/muted
 // Griff 26 + pt-1 4 + Titel 32 + mt-1 4 + zwei Zeilen Untertitel 46 + 16 Luft.
 const SHEET_PEEK = { fits: '[data-sg="water-peek"]', fallback: "calc(128px + var(--sg-nav-h))" };
 
-// Temperatur einheitlich formatieren (eine Nachkommastelle, lokalisiert). Bewusst auf
-// Modulebene: so hängt der Marker-Effekt unten nur an der Sprache (ein String) statt an
+// Temperatur einheitlich formatieren (ganze Grad, lokalisiert, siehe water-format.ts). Bewusst
+// auf Modulebene: so hängt der Marker-Effekt unten nur an der Sprache (ein String) statt an
 // einer Funktion, die bei jedem Render neu entstünde und alle Marker neu setzen würde.
-const formatTemp = (v: number, loc: string) =>
-  v.toLocaleString(loc, { maximumFractionDigits: 1 });
+const formatTemp = formatWaterTemp;
 
 export type LakeSpot = {
   slug: string;

@@ -6,6 +6,7 @@
 
 import { createServiceClient } from "./supabase/service";
 import { fetchWithRetry, safeJsonParse } from "./ai-fetch";
+import { describeAnthropicHttpError, describeAnthropicThrow } from "./anthropic-error";
 import { BRAND_VOICE } from "./brand-voice";
 import { stripEmDash } from "./em-dash";
 import { getActiveAnchorsForMonths } from "./anchors";
@@ -22,12 +23,14 @@ export type WeeklyResult = {
   ok: boolean;
   inserted: number;
   skipped: number;
+  untranslated?: number; // Entwürfe ohne Übersetzung (Zeitbudget/Fehler), 🌍 im Admin holt es nach
   error?: string;
 };
 export type WeekResult = WeeklyResult & { weekStart: string };
 export type AutoResult = {
   ok: boolean;
   weeks: { weekStart: string; inserted: number; skipped: number; ok: boolean; error?: string }[];
+  deferred: string[]; // Wochen ohne Zeitbudget in diesem Lauf (nicht protokolliert)
   purged: number;
   error?: string;
 };
@@ -145,12 +148,42 @@ type RawEvent = {
   source_url?: string;
 };
 
+// Ergebnis der Web-Recherche: Text ODER der ehrliche Grund, warum keiner kam.
+export type ResearchOutcome =
+  | { ok: true; text: string; ms: number; calls: number }
+  | { ok: false; reason: string; ms: number; calls: number };
+
+// ═══════════════════════════════════════════════════════════════════════════════════
+//  ZEITBUDGET statt festem Zeitlimit pro Aufruf (Ausfall 11/2026)
+// ═══════════════════════════════════════════════════════════════════════════════════
+//
+// Cron und Admin-Action laufen auf Vercel mit maxDuration = 300 s. Gemessen am 07.11.2026
+// für eine Woche: Recherche 99–125 s, Aufbereiten ~41 s, Übersetzen ~41 s, zusammen ~210 s.
+// Bis dahin bekam die Recherche fest 120 s und wurde nach einem Zeitlimit KOMPLETT neu
+// gestartet. Dauerte sie 125 s, wurde sie abgebrochen und lief ein zweites Mal: Entweder
+// riss auch das (Admin: „Keine Recherche-Ergebnisse"), oder der Lauf überschritt danach die
+// 300 s und Vercel beendete ihn ohne Lebenszeichen (Cron: „seit 262 Stunden nicht gelaufen").
+//
+// Jetzt hat ein Lauf EINE Frist. Die Recherche darf alles nehmen, was bis zur Frist minus
+// Reserve fürs Aufbereiten übrig ist, und wird nach einem Zeitlimit nicht neu gestartet.
+// Wird es knapp, fällt das Übersetzen weg (Deutsch bleibt, der 🌍-Knopf im Admin holt es nach).
+export const WEEK_BUDGET_MS = 270_000; // Frist eines Wochenlaufs ab Start (Limit 300 s)
+const STRUCTURE_RESERVE_MS = 65_000; // für Aufbereiten + Speichern nach der Recherche
+const RESEARCH_MAX_CALL_MS = 200_000; // Obergrenze pro Recherche-Aufruf
+const TRANSLATE_MIN_MS = 25_000; // weniger Restzeit -> keine neue Übersetzungsrunde (~14 s/Runde)
+const MIN_CALL_MS = 10_000; // weniger als das lohnt keinen neuen Aufruf
+
 // Schritt 1: Web-Recherche (Events einer Kalenderwoche, ganzes Land Salzburg).
-async function researchWeek(
+// `deadline` (ms seit Epoch): bis dahin muss die Recherche fertig sein.
+export async function researchWeek(
   fromKey: string,
   toKey: string,
   key: string,
-): Promise<string | null> {
+  opts: { deadline?: number } = {},
+): Promise<ResearchOutcome> {
+  const t0 = Date.now();
+  const deadline = opts.deadline ?? t0 + WEEK_BUDGET_MS - STRUCTURE_RESERVE_MS;
+  let calls = 0;
   const year = fromKey.slice(0, 4);
 
   // Anker-Check: bekannte Jahres-Highlights, deren typisches Zeitfenster den Monat
@@ -212,9 +245,22 @@ UMFANG: KURATIERTE Auswahl der BESTEN Highlights – Richtwert ca. 10–20 Event
     stop_reason?: string;
     content?: { type: string; text?: string }[];
   } | null = null;
+  const fail = (reason: string): ResearchOutcome => ({
+    ok: false,
+    reason,
+    ms: Date.now() - t0,
+    calls,
+  });
 
+  let callTimeoutMs = 0;
   try {
     for (let guard = 0; guard < 8; guard++) {
+      callTimeoutMs = Math.min(RESEARCH_MAX_CALL_MS, deadline - Date.now());
+      if (callTimeoutMs < MIN_CALL_MS)
+        return fail(
+          `Zeitbudget aufgebraucht nach ${Math.round((Date.now() - t0) / 1000)} s und ${calls} Aufruf(en), die Web-Suche war nicht fertig.`,
+        );
+      calls++;
       const res = await fetchWithRetry(
         "https://api.anthropic.com/v1/messages",
         {
@@ -242,9 +288,12 @@ UMFANG: KURATIERTE Auswahl der BESTEN Highlights – Richtwert ca. 10–20 Event
           }),
         },
         1,
-        120000,
+        callTimeoutMs,
+        // Kein Neustart nach Zeitlimit; ein 5xx-Neustart bekommt nur die Restzeit.
+        { retryOnTimeout: false, deadline },
       );
-      if (!res.ok) return null;
+      if (!res.ok)
+        return fail(describeAnthropicHttpError(res.status, await res.text().catch(() => "")));
       last = await res.json();
       if (last?.stop_reason === "pause_turn") {
         messages = [...messages, { role: "assistant", content: last.content }];
@@ -252,8 +301,8 @@ UMFANG: KURATIERTE Auswahl der BESTEN Highlights – Richtwert ca. 10–20 Event
       }
       break;
     }
-  } catch {
-    return null;
+  } catch (err) {
+    return fail(describeAnthropicThrow(err, callTimeoutMs));
   }
 
   const research = (last?.content ?? [])
@@ -261,7 +310,11 @@ UMFANG: KURATIERTE Auswahl der BESTEN Highlights – Richtwert ca. 10–20 Event
     .map((b) => b.text as string)
     .join("\n")
     .trim();
-  return research || null;
+  if (!research)
+    return fail(
+      `Anthropic hat geantwortet, aber ohne Recherche-Text (stop_reason: ${last?.stop_reason ?? "unbekannt"}).`,
+    );
+  return { ok: true, text: research, ms: Date.now() - t0, calls };
 }
 
 // Schritt 2: Recherche-Text -> strukturierte Event-Liste (erzwungenes Tool).
@@ -269,7 +322,8 @@ async function structureWeek(
   research: string,
   fromKey: string,
   key: string,
-): Promise<RawEvent[]> {
+  deadline: number,
+): Promise<{ ok: true; events: RawEvent[] } | { ok: false; reason: string }> {
   const year = fromKey.slice(0, 4);
   const system = `${BRAND_VOICE}
 
@@ -347,27 +401,47 @@ GROUNDING: nur belegte Events, mit konkreter Uhrzeit. Unsicheres Datum -> weglas
 
   // Das Modell liefert die Liste mal als echtes Array, mal als JSON-String,
   // selten leer (nicht-deterministisch) -> bis zu 3 Versuche, erster mit Events gewinnt.
+  //
+  // Scheitern ALLE Versuche an der API (HTTP-Fehler, Zeitlimit), ist das ein Fehler mit Grund
+  // und KEINE leere Woche: Sonst würde die Woche mit 0 Events protokolliert und nie wieder
+  // gesucht. Eine echte, leere Antwort bleibt dagegen eine leere Liste.
+  //
+  // Jeder Versuch bekommt höchstens 90 s, aber nie mehr als bis zur Frist des Laufs.
+  let apiError: string | null = null;
+  let timeoutMs = 0;
   for (let attempt = 0; attempt < 3; attempt++) {
+    timeoutMs = Math.min(90_000, deadline - Date.now());
+    if (timeoutMs < MIN_CALL_MS) {
+      apiError ??= "Zeitbudget aufgebraucht, bevor die Events aufbereitet waren.";
+      break;
+    }
     try {
       const res = await fetchWithRetry(
         "https://api.anthropic.com/v1/messages",
         { method: "POST", headers: AI_HEADERS(key), body },
         1,
-        90000,
+        timeoutMs,
+        { retryOnTimeout: false, deadline },
       );
-      if (!res.ok) continue;
+      if (!res.ok) {
+        apiError = describeAnthropicHttpError(res.status, await res.text().catch(() => ""));
+        // Guthaben, Schlüssel, Modell: ein zweiter Versuch ändert daran nichts.
+        if (res.status >= 400 && res.status < 500 && res.status !== 429) break;
+        continue;
+      }
+      apiError = null;
       const data = await res.json();
       const block = (data.content ?? []).find(
         (b: { type: string; name?: string }) =>
           b.type === "tool_use" && b.name === "weekly_events",
       ) as { input?: unknown } | undefined;
       const events = extractEvents(block?.input);
-      if (events.length > 0) return events;
-    } catch {
-      // nächster Versuch
+      if (events.length > 0) return { ok: true, events };
+    } catch (err) {
+      apiError = describeAnthropicThrow(err, timeoutMs);
     }
   }
-  return [];
+  return apiError ? { ok: false, reason: apiError } : { ok: true, events: [] };
 }
 
 // Robustes Auslesen: das Modell liefert `events` manchmal als echtes Array,
@@ -480,6 +554,7 @@ function toRows(ev: RawEvent, startIso: string, endIso: string): Record<string, 
 async function translateRowsInPlace(
   rows: Record<string, unknown>[],
   key: string,
+  deadline: number,
 ): Promise<void> {
   if (!rows.length) return;
   const byContent = new Map<
@@ -498,12 +573,15 @@ async function translateRowsInPlace(
   const unique = [...byContent.values()];
   const CONC = 5; // begrenzte Parallelität – Rate-Limit-schonend
   for (let i = 0; i < unique.length; i += CONC) {
+    if (deadline - Date.now() < TRANSLATE_MIN_MS) break; // Rest bleibt Deutsch
     const batch = unique.slice(i, i + CONC);
     await Promise.all(
       batch.map(async (u) => {
+        // Jeder Aufruf endet spätestens an der Frist (kein Neustart nach Zeitlimit).
         const r = await translateEventAllLangsOneShot(
           { title: u.title, description: u.description },
           key,
+          { deadline },
         );
         if (r.ok && r.translations && r.sourceHash) {
           for (const row of u.rows) {
@@ -518,22 +596,29 @@ async function translateRowsInPlace(
 
 // EINE Kalenderwoche recherchieren (weekOffset: 0=aktuell,1=nächste,2=übernächste),
 // Drafts anlegen (Dedup + Wochen-Guard) und die Woche im Log vermerken.
-export async function runWeekResearch(weekOffset: number): Promise<WeekResult> {
+// `deadline` (ms seit Epoch): Frist des ganzen Wochenlaufs, Standard WEEK_BUDGET_MS ab jetzt.
+export async function runWeekResearch(
+  weekOffset: number,
+  opts: { deadline?: number } = {},
+): Promise<WeekResult> {
   const key = process.env.ANTHROPIC_API_KEY;
   const now = new Date();
+  const deadline = opts.deadline ?? now.getTime() + WEEK_BUDGET_MS;
   const w = viennaWeekWindow(now, weekOffset);
   const base = { inserted: 0, skipped: 0, weekStart: w.mondayKey };
   if (!key) return { ok: false, ...base, error: "ANTHROPIC_API_KEY fehlt" };
 
-  const research = await researchWeek(w.mondayKey, w.sundayKey, key);
-  if (!research)
-    return {
-      ok: false,
-      ...base,
-      error: "Keine Recherche-Ergebnisse – bitte Anthropic-Guthaben & Web-Suche prüfen.",
-    };
+  const research = await researchWeek(w.mondayKey, w.sundayKey, key, {
+    deadline: deadline - STRUCTURE_RESERVE_MS,
+  });
+  if (!research.ok)
+    return { ok: false, ...base, error: `Recherche gescheitert: ${research.reason}` };
 
-  const raw = await structureWeek(research, w.mondayKey, key);
+  // 5 s Puffer fürs Speichern.
+  const structured = await structureWeek(research.text, w.mondayKey, key, deadline - 5_000);
+  if (!structured.ok)
+    return { ok: false, ...base, error: `Aufbereiten gescheitert: ${structured.reason}` };
+  const raw = structured.events;
   const supabase = createServiceClient();
 
   // Dedup-Set aus bereits vorhandenen Events GENAU dieser Woche.
@@ -572,7 +657,9 @@ export async function runWeekResearch(weekOffset: number): Promise<WeekResult> {
   // Best-effort: nach Inhalt gebündelt (mehrtägige Events teilen sich Titel/Text -> nur 1× über-
   // setzen), ein Claude-Call je Event für ALLE Sprachen, mit begrenzter Parallelität. Schlägt eine
   // Übersetzung fehl, bleibt das Event trotzdem (Deutsch-Fallback); der 🌍-Badge zeigt es an.
-  await translateRowsInPlace(rows, key);
+  // Zeitbudget: Jede Fünfer-Runde startet nur mit genug Restzeit (gemessen ~14 s pro Runde).
+  await translateRowsInPlace(rows, key, deadline - 5_000); // 5 s fürs Speichern
+  const untranslated = rows.filter((r) => !r.translations).length;
 
   if (rows.length) {
     let { error } = await supabase.from("events").insert(rows);
@@ -601,7 +688,7 @@ export async function runWeekResearch(weekOffset: number): Promise<WeekResult> {
     { onConflict: "week_start" },
   );
 
-  return { ok: true, inserted: rows.length, skipped, weekStart: w.mondayKey };
+  return { ok: true, inserted: rows.length, skipped, untranslated, weekStart: w.mondayKey };
 }
 
 // Selbst-Pflege: nie veröffentlichte Entwürfe löschen, deren Event länger als
@@ -622,13 +709,31 @@ async function purgeStaleDrafts(
 // Automatischer Lauf (Cron): aktuelle + nächste + übernächste Woche, aber nur die
 // noch NICHT protokollierten -> jede Woche wird genau einmal gesucht, rollt weiter.
 // Danach alte, nie veröffentlichte Entwürfe aufräumen (Selbst-Pflege).
+//
+// Zeitbudget: Der Cron hat 300 s für ALLES, auch Freigabe-Mail und Aufräumen danach (sonst
+// fehlt das Lebenszeichen). Deshalb endet die Recherche spätestens CRON_RESEARCH_BUDGET_MS
+// nach dem Start, und eine Woche beginnt nur, wenn sie realistisch noch hineinpasst.
+//
+// Praktisch schafft ein Lauf EINE Woche. Im Normalfall reicht das (montags ist nur die
+// übernächste Woche neu). Nach einem Ausfall liegen aber zwei offen, und weil der Cron nur
+// montags läuft, holt er den Rückstand nie von selbst auf: Er bleibt dauerhaft eine Woche
+// hinterher. Deshalb ist eine verschobene Woche ein ROTER Lauf mit klarer Handlungsanweisung
+// (einmal im Admin starten), nicht ein stilles Detail im Lebenszeichen.
+const CRON_RESEARCH_BUDGET_MS = 255_000;
+// Recherche bis ~125 s gemessen + STRUCTURE_RESERVE_MS, sonst startet eine Woche, deren
+// Recherche von vornherein zu wenig Zeit bekommt.
+const MIN_WEEK_MS = 125_000 + STRUCTURE_RESERVE_MS;
+
 export async function runAutoWeeklyResearch(): Promise<AutoResult> {
   const key = process.env.ANTHROPIC_API_KEY;
-  if (!key) return { ok: false, weeks: [], purged: 0, error: "ANTHROPIC_API_KEY fehlt" };
+  if (!key)
+    return { ok: false, weeks: [], deferred: [], purged: 0, error: "ANTHROPIC_API_KEY fehlt" };
 
   const supabase = createServiceClient();
   const now = new Date();
+  const deadline = now.getTime() + CRON_RESEARCH_BUDGET_MS;
   const weeks: AutoResult["weeks"] = [];
+  const deferred: string[] = [];
 
   for (const offset of [0, 1, 2]) {
     const w = viennaWeekWindow(now, offset);
@@ -638,8 +743,12 @@ export async function runAutoWeeklyResearch(): Promise<AutoResult> {
       .eq("week_start", w.mondayKey)
       .maybeSingle();
     if (logged) continue; // schon recherchiert -> nie doppelt suchen
+    if (deadline - Date.now() < MIN_WEEK_MS) {
+      deferred.push(w.mondayKey);
+      continue;
+    }
 
-    const r = await runWeekResearch(offset);
+    const r = await runWeekResearch(offset, { deadline });
     weeks.push({
       weekStart: w.mondayKey,
       inserted: r.inserted,
@@ -664,14 +773,14 @@ export async function runAutoWeeklyResearch(): Promise<AutoResult> {
   // KEINE Woche zu bearbeiten ist Erfolg, nicht Misserfolg: Sind alle drei schon
   // protokolliert, hat der Lauf nichts zu tun und ist korrekt durchgelaufen. Deshalb
   // `every` (auf einer leeren Liste true) und nicht `some`.
-  const ok = weeks.every((w) => w.ok);
   const failed = weeks.filter((w) => !w.ok);
-  return {
-    ok,
-    weeks,
-    purged,
-    // Den ersten echten Grund nach oben durchreichen, damit er in der Alarm-Mail steht und
-    // nicht nur „irgendwas war nicht ok".
-    ...(ok ? {} : { error: failed[0]?.error ?? "Mindestens eine Woche ist gescheitert." }),
-  };
+  const ok = failed.length === 0 && deferred.length === 0;
+  // Den ersten echten Grund nach oben durchreichen, damit er in der Alarm-Mail steht und
+  // nicht nur „irgendwas war nicht ok".
+  const error = failed.length
+    ? (failed[0]?.error ?? "Mindestens eine Woche ist gescheitert.")
+    : deferred.length
+      ? `Zeitbudget reichte nicht für die Woche(n) ab ${deferred.join(", ")}. Bitte im Admin unter Events, KI-Wochenrecherche, von Hand starten.`
+      : undefined;
+  return { ok, weeks, deferred, purged, ...(error ? { error } : {}) };
 }

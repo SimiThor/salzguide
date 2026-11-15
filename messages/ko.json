@@ -97,11 +97,11 @@
     "playingNow": "재생 중",
     "rebuild": "다른 코스",
     "buildTitle": "나만의 투어 만들기",
-    "buildLead": "무엇에 관심 있는지 알려주세요 – 항상 출발지로 돌아오는 도보 코스를 만들어 드려요.",
+    "buildLead": "뭐가 끌리는지 알려주세요. AI가 저희 명소로 항상 출발지로 돌아오는 코스를 만들어 드려요.",
     "buildCard": "나만의 코스 만들기",
-    "buildCardSub": "관심사 선택, 오디오 코스를 만들어 드려요",
-    "buildCardSubPro": "관심사 선택, 나만의 코스 완성. Pro에서 열려요.",
-    "buildProTeaser": "뭐가 끌리는지 알려주면 AI가 나만의 오디오 코스를 만들어 줘요. 나만의 코스 만들기는 Pro 기능이에요. 큐레이션 코스는 누구나 들을 수 있고, 첫 정거장 몇 곳은 무료예요.",
+    "buildCardSub": "관심사 선택, AI가 저희 명소로 오디오 코스를 만들어 드려요",
+    "buildCardSubPro": "관심사 선택, AI가 저희 명소로 나만의 코스를 만들어 드려요. Pro에서 열려요.",
+    "buildProTeaser": "뭐가 끌리는지 알려주면 AI가 저희 명소로 나만의 오디오 코스를 만들어 줘요. 나만의 코스 만들기는 Pro 기능이에요. 큐레이션 코스는 누구나 들을 수 있고, 첫 정거장 몇 곳은 무료예요.",
     "buildNeedLogin": "만들려면 로그인",
     "buildNeedLoginBody": "나만의 오디오 코스는 로그인하면 만들고 저장할 수 있어요. 큐레이션된 코스는 계정 없이도 들을 수 있어요.",
     "login": "로그인",
@@ -113,6 +113,8 @@
     "generating": "코스를 만드는 중",
     "genError": "지금은 잘 안 됐어요 – 다시 시도해 주세요.",
     "genTooFew": "이 지역은 아직 오디오가 있는 지점이 너무 적어요. 곧 다시 확인해 주세요.",
+    "genRateLimit": "방금 코스를 여러 개 만들었어요. 나중에 다시 시도해 주세요.",
+    "genTourLimit": "이미 코스가 {count}개 있어요. 하나를 삭제하면 새로 만들 수 있어요.",
     "yourRoutes": "내 코스",
     "curatedRoutes": "로컬 큐레이션",
     "deleteRoute": "삭제",
@@ -289,7 +291,8 @@
     "save": "저장",
     "saved": "저장됨",
     "close": "닫기",
-    "empty": "이 시즌에는 아직 스팟이 없어요."
+    "empty": "이 시즌에는 아직 스팟이 없어요.",
+    "lakesTitle": "호수"
   },
   "Map": {
     "unavailable": "지금은 이 기기에서 지도를 표시할 수 없습니다."
@@ -697,6 +700,16 @@
     "profile": {
       "signOut": "로그아웃",
       "deleteAccount": "계정 삭제"
+    }
+  },
+  "NavVoice": {
+    "hike": {
+      "startReached": "출발점에 도착했어요. 출발!",
+      "offTrail": "길에서 벗어났어요.",
+      "backOnTrail": "다시 길 위예요.",
+      "turnaround": "반환점에 도착했어요. 이제 돌아가요.",
+      "wrongWay": "반대 방향으로 가고 있어요.",
+      "arrived": "해냈어요! 도착했어요."
     }
   }
 }

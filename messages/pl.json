@@ -97,11 +97,11 @@
     "playingNow": "Leci",
     "rebuild": "Inna trasa",
     "buildTitle": "Ułóż swoją trasę",
-    "buildLead": "Powiedz, na co masz ochotę, a ułożymy ci trasę na spacer, zawsze z powrotem do startu.",
+    "buildLead": "Powiedz, na co masz ochotę. AI ułoży ci trasę z naszych spotów, zawsze z powrotem do startu.",
     "buildCard": "Ułóż własną trasę",
-    "buildCardSub": "Wybierz, co cię interesuje, a ułożymy ci trasę audio",
-    "buildCardSubPro": "Wybierz, co cię interesuje, i masz własną trasę. To jest w Pro.",
-    "buildProTeaser": "Powiedz, na co masz ochotę, a AI ułoży ci własną trasę audio. Układanie własnych tras jest w Pro. Gotowych tras od lokalsów posłuchasz też bez Pro, pierwsze przystanki są za darmo.",
+    "buildCardSub": "Wybierz, co cię interesuje, a AI ułoży ci trasę audio z naszych spotów",
+    "buildCardSubPro": "Wybierz, co cię interesuje, a AI ułoży ci trasę z naszych spotów. To jest w Pro.",
+    "buildProTeaser": "Powiedz, na co masz ochotę, a AI ułoży ci własną trasę audio z naszych spotów. Układanie własnych tras jest w Pro. Gotowych tras od lokalsów posłuchasz też bez Pro, pierwsze przystanki są za darmo.",
     "buildNeedLogin": "Zaloguj się, żeby ułożyć trasę",
     "buildNeedLoginBody": "Własne trasy audio układasz i zapisujesz po zalogowaniu. Gotowych tras od lokalsów posłuchasz też bez konta.",
     "login": "Zaloguj się",
@@ -113,6 +113,8 @@
     "generating": "Układamy twoją trasę",
     "genError": "Coś nie wyszło, spróbuj jeszcze raz.",
     "genTooFew": "Na tym obszarze jest jeszcze za mało punktów z nagraniem. Zajrzyj tu niedługo.",
+    "genRateLimit": "Właśnie powstało kilka tras. Spróbuj później.",
+    "genTourLimit": "Masz już {count} tras. Usuń jedną, aby zbudować nową.",
     "yourRoutes": "Twoje trasy",
     "curatedRoutes": "Ułożone przez lokalsów",
     "deleteRoute": "Usuń",
@@ -289,7 +291,8 @@
     "save": "Zapisz",
     "saved": "Zapisane",
     "close": "Zamknij",
-    "empty": "W tym sezonie nie ma jeszcze żadnych spotów."
+    "empty": "W tym sezonie nie ma jeszcze żadnych spotów.",
+    "lakesTitle": "Jeziora"
   },
   "Map": {
     "unavailable": "Na tym urządzeniu nie da się teraz wyświetlić mapy."
@@ -697,6 +700,16 @@
     "profile": {
       "signOut": "Wyloguj się",
       "deleteAccount": "Usuń konto"
+    }
+  },
+  "NavVoice": {
+    "hike": {
+      "startReached": "Jesteś na starcie. Ruszamy!",
+      "offTrail": "Zboczyłeś ze szlaku.",
+      "backOnTrail": "Znowu na szlaku.",
+      "turnaround": "Dotarłeś do punktu zwrotnego. Teraz wracasz.",
+      "wrongWay": "Idziesz w przeciwnym kierunku.",
+      "arrived": "Udało się! Jesteś u celu."
     }
   }
 }

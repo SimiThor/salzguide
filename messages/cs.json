@@ -97,11 +97,11 @@
     "playingNow": "Hraje",
     "rebuild": "Jiný okruh",
     "buildTitle": "Sestav si vlastní prohlídku",
-    "buildLead": "Řekni nám, na co máš chuť, a my ti sestavíme okruh na procházku, vždy zpátky na start.",
+    "buildLead": "Řekni, na co máš chuť. AI ti z našich spotů sestaví okruh, vždy zpátky na start.",
     "buildCard": "Sestav si vlastní okruh",
-    "buildCardSub": "Vyber si, co tě zajímá, my ti sestavíme audiookruh",
-    "buildCardSubPro": "Vyber si, co tě zajímá, a dostaneš vlastní okruh. To je s Pro.",
-    "buildProTeaser": "Řekni, na co máš chuť, a AI ti sestaví vlastní audiookruh. Sestavování vlastních okruhů je Pro. Okruhy od místních si poslechneš i bez Pro, první zastávky jsou zdarma.",
+    "buildCardSub": "Vyber si, co tě zajímá, a AI ti z našich spotů sestaví audiookruh",
+    "buildCardSubPro": "Vyber si, co tě zajímá, a AI ti z našich spotů sestaví okruh. To je s Pro.",
+    "buildProTeaser": "Řekni, na co máš chuť, a AI ti z našich spotů sestaví vlastní audiookruh. Sestavování vlastních okruhů je Pro. Okruhy od místních si poslechneš i bez Pro, první zastávky jsou zdarma.",
     "buildNeedLogin": "Pro sestavení se přihlas",
     "buildNeedLoginBody": "Vlastní audiookruhy sestavíš a uložíš jako přihlášený uživatel. Okruhy od místních si poslechneš i bez účtu.",
     "login": "Přihlásit se",
@@ -113,6 +113,8 @@
     "generating": "Sestavuju tvůj okruh",
     "genError": "Teď to nevyšlo, zkus to prosím znovu.",
     "genTooFew": "V téhle oblasti je zatím moc málo namluvených bodů. Koukni sem zase brzy.",
+    "genRateLimit": "Právě vzniklo několik okruhů. Zkus to později.",
+    "genTourLimit": "Už máš {count} okruhů. Smaž jeden a můžeš vytvořit nový.",
     "yourRoutes": "Tvoje okruhy",
     "curatedRoutes": "Sestavili místní",
     "deleteRoute": "Smazat",
@@ -289,7 +291,8 @@
     "save": "Uložit",
     "saved": "Uloženo",
     "close": "Zavřít",
-    "empty": "Pro tuhle sezónu zatím nejsou žádné spoty."
+    "empty": "Pro tuhle sezónu zatím nejsou žádné spoty.",
+    "lakesTitle": "Jezera"
   },
   "Map": {
     "unavailable": "Mapa se na tomhle zařízení teď nedá zobrazit."
@@ -697,6 +700,16 @@
     "profile": {
       "signOut": "Odhlásit se",
       "deleteAccount": "Smazat účet"
+    }
+  },
+  "NavVoice": {
+    "hike": {
+      "startReached": "Jsi na startu. Jdeme!",
+      "offTrail": "Sešel jsi z cesty.",
+      "backOnTrail": "Zpátky na cestě.",
+      "turnaround": "Obrátka dosažena. Teď jde cesta zpátky.",
+      "wrongWay": "Jdeš opačným směrem.",
+      "arrived": "Zvládnuto! Jsi v cíli."
     }
   }
 }

@@ -104,9 +104,12 @@ export async function translateEventTo(
 // EFFIZIENT für Batches (KI-Wochenrecherche): EIN Claude-Call übersetzt ein Event in ALLE
 // Ziel-Sprachen auf einmal (statt 1 Call je Sprache). Spart Calls/Zeit/Rate-Limit bei vielen
 // Events. Deutsch = Quelle. Rückgabe wie translateEventTextsWith (translations + sourceHash).
+// `deadline` (ms seit Epoch, optional): Aufruf endet spätestens dann und startet nach einem
+// Zeitlimit nicht neu. Für die Wochenrecherche, die unter Vercels 300 s bleiben muss.
 export async function translateEventAllLangsOneShot(
   input: EventTexts,
   key: string,
+  { deadline }: { deadline?: number } = {},
 ): Promise<EventTranslateAllResult> {
   if (!input.title.trim()) return { ok: false, error: "empty" };
   const targets = routing.locales.filter((l) => l !== "de");
@@ -155,6 +158,7 @@ Language keys: ${langList}.`,
       },
       2,
       90000,
+      deadline === undefined ? {} : { retryOnTimeout: false, deadline },
     );
     if (!res.ok) return { ok: false, error: "all_failed" };
     const data = await res.json();

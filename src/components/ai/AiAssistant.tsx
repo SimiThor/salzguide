@@ -27,6 +27,7 @@ import { useKeyboard } from "@/lib/viewport";
 import type { AiCards, AiUiMessage, SavedApi } from "@/lib/ai-types";
 
 const MAX_INPUT = 800; // spiegelt das Server-Limit
+const MAX_TURNS = 24; // spiegelt das Server-Limit (Verlaufsnachrichten an die KI)
 const emptyCards = (): AiCards => ({ spots: [], events: [] });
 
 // Mood-Pills (docs/16 §2): jede Pill = vorformulierter Wunsch, sofort abgeschickt.
@@ -264,7 +265,11 @@ export default function AiAssistant({
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
-            messages: next.map((m) => ({ role: m.role, content: m.text })),
+            // Nur so viel, wie der Server nimmt (sanitizeMessages): Ein langer Chat sprengt sonst die
+            // 100-KB-Grenze der Route und jede weitere Frage scheitert.
+            messages: next
+              .slice(-MAX_TURNS)
+              .map((m) => ({ role: m.role, content: m.text.slice(0, MAX_INPUT * 2) })),
             conversationId,
             locale,
             page: pathname,

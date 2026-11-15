@@ -140,11 +140,11 @@
     "playingNow": "Läuft",
     "rebuild": "Andere Runde",
     "buildTitle": "Bau dir deine Tour",
-    "buildLead": "Sag uns, worauf du Bock hast – wir bauen dir eine passende Geh-Runde, immer zurück zum Start.",
+    "buildLead": "Sag, worauf du Bock hast. Die KI baut dir aus unseren Spots eine Runde, immer zurück zum Start.",
     "buildCard": "Bau dir deine eigene Runde",
-    "buildCardSub": "Interessen wählen, wir stellen dir eine Audio-Runde zusammen",
-    "buildCardSubPro": "Interessen wählen, eigene Runde bekommen. Das gibt es mit Pro.",
-    "buildProTeaser": "Sag, worauf du Bock hast, und die KI baut dir deine eigene Audio-Runde. Eigene Runden bauen ist Pro. Die kuratierten Runden hörst du auch ohne Pro an, die ersten Stationen sind gratis.",
+    "buildCardSub": "Interessen wählen, die KI baut dir aus unseren Spots eine Audio-Runde",
+    "buildCardSubPro": "Interessen wählen, die KI baut dir aus unseren Spots eine Runde. Das gibt es mit Pro.",
+    "buildProTeaser": "Sag, worauf du Bock hast, und die KI baut dir aus unseren Spots deine eigene Audio-Runde. Eigene Runden bauen ist Pro. Die kuratierten Runden hörst du auch ohne Pro an, die ersten Stationen sind gratis.",
     "buildNeedLogin": "Zum Bauen anmelden",
     "buildNeedLoginBody": "Eigene Audio-Runden baust und speicherst du als angemeldeter Nutzer. Kuratierte Runden kannst du auch ohne Konto anhören.",
     "login": "Anmelden",
@@ -156,6 +156,8 @@
     "generating": "Baue deine Runde",
     "genError": "Hat gerade nicht geklappt – bitte nochmal.",
     "genTooFew": "Für dieses Gebiet gibt es noch zu wenige vertonte Punkte. Schau bald wieder vorbei.",
+    "genRateLimit": "Du hast gerade mehrere Runden gebaut. Versuch es später nochmal.",
+    "genTourLimit": "Du hast schon {count} Runden. Lösche eine, dann kannst du eine neue bauen.",
     "yourRoutes": "Deine Runden",
     "curatedRoutes": "Von Locals kuratiert",
     "deleteRoute": "Löschen",
@@ -332,7 +334,8 @@
     "save": "Merken",
     "saved": "Gemerkt",
     "close": "Schließen",
-    "empty": "Für diese Saison gibt es noch keine Spots."
+    "empty": "Für diese Saison gibt es noch keine Spots.",
+    "lakesTitle": "Badeseen"
   },
   "Map": {
     "unavailable": "Die Karte kann auf diesem Gerät gerade nicht angezeigt werden."
@@ -740,6 +743,16 @@
     "profile": {
       "signOut": "Abmelden",
       "deleteAccount": "Konto löschen"
+    }
+  },
+  "NavVoice": {
+    "hike": {
+      "startReached": "Du bist am Start. Los geht's!",
+      "offTrail": "Du bist vom Weg abgekommen.",
+      "backOnTrail": "Wieder auf dem Weg.",
+      "turnaround": "Umkehrpunkt erreicht. Jetzt geht's zurück.",
+      "wrongWay": "Du gehst in die andere Richtung.",
+      "arrived": "Geschafft! Du bist am Ziel."
     }
   }
 }

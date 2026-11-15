@@ -145,9 +145,30 @@ export const OPS_EVENTS = {
     // wenn WIR etwas gekippt haben. Kommen trotzdem weiter Mails, hat der Absender-Filter
     // die Maschinen nicht erwischt (sie geben sich als Browser aus), DANN erst die Schwelle
     // anheben — nicht vorher, sonst versteckt sie beides auf einmal.
-    alertAfter: 20,
+    //
+    // GENAU DAS KAM AM 07.11.2026: 40 Meldungen an einem Tag, zwei Mails, alle Desktop,
+    // 38 davon mit einem gezählten Aufruf „USA, Desktop, direkt" in derselben Minute. Ein
+    // Renderer ohne Grafikkarte mit Browser-Kennung, über neun Sprachen. Die echten Besucher
+    // derselben Stunden (Österreich, Deutschland, Kroatien, fast alle am Handy) meldeten
+    // nichts. Statt die Schwelle für alle anzuheben, ist Desktop jetzt ein eigener Eintrag
+    // OHNE Mail (client_webgl_desktop, gleich darunter). Hier zählen nur noch Handy, Tablet
+    // und Unbekanntes, und dort gab es in drei Monaten höchstens 5 Meldungen in 6 Stunden.
+    // Darum die Schwelle 10: doppelter Abstand zum Normalfall, und ein echter Ausfall nach
+    // einem Deploy fällt auch an einem ruhigen Tag auf. Fast das ganze Publikum ist am Handy.
+    alertAfter: 10,
     quietMinutes: 360,
-    hint: "Einzelne Treffer sind normal (Hardware-Beschleunigung aus, alte Treiber, zu altes Gerät für WebGL 2). Der Besucher sieht einen Hinweis statt der Karte. Maschinen sind hier schon aussortiert, eine Häufung meint also echte Geräte: Kommt sie direkt nach einem Deploy, hat eine Änderung (CSP, Mapbox-Update) WebGL für ALLE gekippt, dorthin zurückrollen.",
+    hint: "Gezählt werden hier nur Handys und Tablets. Einzelne Treffer sind normal (zu altes Gerät für WebGL 2, Energiesparmodus). Der Besucher sieht einen Hinweis statt der Karte. Eine Häufung direkt nach einem Deploy heisst: Eine Änderung (CSP, Mapbox-Update) hat WebGL für alle gekippt, dorthin zurückrollen.",
+  },
+  client_webgl_desktop: {
+    area: "app",
+    severity: "info",
+    title: "Karte am Desktop nicht darstellbar (WebGL fehlt)",
+    // Nur Logbuch, nie eine Mail. Am Desktop sind es fast immer Maschinen, die sich als
+    // Browser ausgeben (Begründung und Zahlen bei client_webgl direkt darüber). Ein Ausfall,
+    // den WIR verursachen, trifft auch die Handys und mailt dort.
+    alertAfter: 0,
+    quietMinutes: 360,
+    hint: "Meist eine Maschine ohne Grafikkarte, selten ein Rechner mit abgeschalteter Hardware-Beschleunigung. Kein Handlungsbedarf, solange „Karte nicht darstellbar“ für Handys ruhig bleibt.",
   },
   ops_selftest: {
     area: "app",
@@ -391,6 +412,17 @@ export const OPS_EVENTS = {
     quietMinutes: 60,
     hint: "ElevenLabs-Status und Guthaben prüfen, dann die Stimmen-ID unter Einstellungen → Stimmen (Probehören). Bis dahin entstehen keine neuen Aufnahmen.",
   },
+  nav_voice_incomplete: {
+    area: "app",
+    severity: "warn",
+    title: "Aktive Ansage-Stimme unvollständig",
+    // Ein Ansagetext wurde geändert (oder eine Datei ging verloren), nachdem die Stimme
+    // aktiviert war. Die App spricht dann mit der System-Stimme. Eine Mail je Sprache und
+    // Ruhefenster reicht, der Befund ändert sich nicht von allein.
+    alertAfter: 1,
+    quietMinutes: 720,
+    hint: "Unter Einstellungen → Stimmen die Ansagen der Wanderführung öffnen und die fehlenden oder veralteten Dateien neu erzeugen.",
+  },
   ai_ip_cap_hit: {
     area: "ai",
     severity: "warn",
@@ -439,9 +471,15 @@ export const OPS_EVENTS = {
     // Der Totmannschalter. Kritisch, weil am Aufräum-Cron die Löschfristen aus der
     // Datenschutzerklärung hängen: Läuft er nicht, sagt die Erklärung etwas Falsches zu
     // (Art. 13 DSGVO), und niemand würde es merken.
+    //
+    // Der Hinweis nennt BEIDE Ursachen, weil der Alarm sie nicht unterscheiden kann: Er
+    // sieht nur, dass das Lebenszeichen fehlt. Im November 2026 schickte er zwei Wochen
+    // lang „CRON_SECRET prüfen", dabei lief die Event-Recherche an, brauchte aber länger als
+    // Vercels 300 s und wurde vor dem Stempel abgebrochen. Das Unterscheidungsmerkmal: Ist
+    // das Secret falsch, fallen ALLE Crons aus und im Logbuch steht cron_unauthorized.
     alertAfter: 1,
     quietMinutes: 720,
-    hint: "In Vercel unter Settings -> Cron Jobs prüfen, ob der Job noch existiert und aktiv ist, und ob CRON_SECRET dort und in den Umgebungsvariablen gleich ist.",
+    hint: "Laufen die anderen Hintergrund-Jobs, wurde dieser meist nach 300 s abgebrochen: In Vercel unter Logs nach „Task timed out“ suchen. Fallen alle aus, unter Settings -> Cron Jobs prüfen, ob der Job aktiv ist und CRON_SECRET dort und in den Umgebungsvariablen gleich ist.",
   },
   cron_unauthorized: {
     area: "cron",
@@ -659,6 +697,14 @@ export const OPS_EVENTS = {
 export type OpsKind = keyof typeof OPS_EVENTS;
 
 export const OPS_KINDS = Object.keys(OPS_EVENTS) as OpsKind[];
+
+/**
+ * Welche Art eine fehlende Karte bekommt. Desktop meldet nur ins Logbuch, alles andere
+ * zählt für die Mail (Begründung bei client_webgl). `device` aus classifyDevice().
+ */
+export function webglOpsKind(device: string): "client_webgl" | "client_webgl_desktop" {
+  return device === "desktop" ? "client_webgl_desktop" : "client_webgl";
+}
 
 /**
  * Die Regel zu einer Art. Nimmt auch einen unbekannten String, weil die Admin-Ansicht

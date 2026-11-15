@@ -119,6 +119,10 @@ export async function collectTourAudioPaths(sel) {
     push(f.audio_url);
     push(f.teaser_url);
   }
+  // Gesprochene Navigations-Ansagen (Migration 0077). MUSS hier stehen: Ohne diese Zeile
+  // findet der Waisen-Sweep die Clips im Bucket, auf die "keine DB-Zeile zeigt", und loescht
+  // sie 48 Stunden nach dem Erzeugen. Die App haette dann Links auf nichts.
+  for (const n of await sel("nav_prompt_files", "prompt_key,lang,voice_id,audio_path")) push(n.audio_path);
   // Altspalten (vor 0068). Bis 0072 mitlesen: Ein Rueckweg, der Dateien verliert, ist keiner.
   for (const a of await sel("tour_point_audio", "point_id,lang,audio_url,teaser_url")) {
     push(a.audio_url);

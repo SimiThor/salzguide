@@ -4,6 +4,8 @@ import { getExploreData } from "@/lib/spots";
 import { getSavedSlugs } from "@/lib/saved";
 import { isLoggedIn } from "@/lib/viewer";
 import { alternatesFor, ogFor } from "@/lib/metadata";
+import { getUtilitySummary } from "@/lib/utility-summary";
+import type { UtilitySummary } from "@/lib/utility-summary-types";
 import Explore from "@/components/Explore";
 
 // Die Entdecken-Karte (map-first). Lag bis 07/2026 auf „/" — dort liegt jetzt die
@@ -42,11 +44,20 @@ export default async function ExplorePage({
   // zurück), deshalb steht hier keine eigene Auth-Abfrage mehr. currentUserId() ist per
   // React-cache() ohnehin dieselbe Antwort wie die in getSavedSlugs und viewerCanSeePro:
   // ein Aufruf pro Request statt drei Netz-Roundtrips (siehe lib/viewer.ts).
-  const [{ spots, categories }, saved, loggedIn, t] = await Promise.all([
+  const [{ spots, categories }, saved, loggedIn, t, utility] = await Promise.all([
     getExploreData(locale),
     getSavedSlugs(),
     isLoggedIn(),
     getTranslations("Explore"),
+    // Gecacht (5 Min, Service-Client, siehe lib/utility-summary.ts); Fehler = keine Karten.
+    // Bei kaltem Cache kann die Behörden-Quelle Sekunden brauchen: Karten sind Zusatz, die
+    // Seite wartet höchstens 600 ms darauf (der gecachte Pfad ist sofort da).
+    Promise.race([
+      getUtilitySummary(),
+      new Promise<UtilitySummary>((resolve) =>
+        setTimeout(() => resolve({ hasEvents: false, water: null }), 600),
+      ),
+    ]).catch((): UtilitySummary => ({ hasEvents: false, water: null })),
   ]);
 
   return (
@@ -60,6 +71,7 @@ export default async function ExplorePage({
         categories={categories}
         savedSlugs={[...saved]}
         loggedIn={loggedIn}
+        utility={utility}
       />
     </>
   );

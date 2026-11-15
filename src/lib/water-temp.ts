@@ -12,7 +12,7 @@ import {
   viewerCanSeePro,
 } from "./spots";
 import type { AiOrigin } from "./ai-origin";
-import { findLake, type Lake } from "./lakes";
+import { LAKES, findLake, type Lake } from "./lakes";
 
 // Wassertemperaturen aus kostenlosen Behörden-Open-Data:
 //  - Land Salzburg (Hydrografie Seen, ~echtzeit) -> 1h Cache, bevorzugt
@@ -184,7 +184,15 @@ type SpotRow = {
 export async function getLakeSpots(
   locale: string,
 ): Promise<Record<string, LakeSpot[]>> {
-  const canSeePro = await viewerCanSeePro();
+  return getLakeSpotsFor(locale, await viewerCanSeePro());
+}
+
+// Variante mit explizitem Betrachter-Wert (App-API: appCanSeePro). Derselbe Cache, dieselben
+// Schlüssel; die Frage "Pro?" bleibt außerhalb von unstable_cache.
+export async function getLakeSpotsFor(
+  locale: string,
+  canSeePro: boolean,
+): Promise<Record<string, LakeSpot[]>> {
   return unstable_cache(
     () => queryLakeSpots(locale, canSeePro),
     ["lake-spots", locale, canSeePro ? "pro" : "public"],
@@ -245,4 +253,41 @@ export async function getLakeReadingByName(
   if (!lake) return null;
   const maps = await getWaterMaps();
   return { lake, reading: lookupLake(maps, lake, Date.now()) };
+}
+
+// Ein See mit aktueller Messung (Übersicht, Liste + Karte).
+export type FreshLake = {
+  slug: string;
+  name: string;
+  lat: number;
+  lng: number;
+  tempC: number;
+  at: string;
+  source: "salzburg" | "ages";
+  spots: LakeSpot[];
+};
+
+// Nur Seen mit AKTUELLER, plausibler Messung (lookupLake). Gleiche Auswahl wie die Seite
+// /wasser; hier als Funktion, damit die App-API sie nicht nachbauen muss.
+export function freshLakes(
+  maps: WaterMaps,
+  lakeSpots: Record<string, LakeSpot[]>,
+  now: number,
+): FreshLake[] {
+  const out: FreshLake[] = [];
+  for (const l of LAKES) {
+    const r = lookupLake(maps, l, now);
+    if (!r) continue;
+    out.push({
+      slug: l.slug,
+      name: l.name,
+      lat: l.lat,
+      lng: l.lng,
+      tempC: r.tempC,
+      at: r.at,
+      source: r.source,
+      spots: lakeSpots[l.slug] ?? [],
+    });
+  }
+  return out;
 }

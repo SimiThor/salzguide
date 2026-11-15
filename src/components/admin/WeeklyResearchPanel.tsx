@@ -38,9 +38,15 @@ export default function WeeklyResearchPanel({ weeks }: { weeks: WeekInfo[] }) {
       try {
         const r = await runWeekResearchNow(offset);
         if (r.ok) {
+          // Ehrlich bleiben: Fehlte Zeit fürs Übersetzen, steht das hier statt „übersetzt".
+          const untranslated = r.untranslated ?? 0;
+          const lang =
+            untranslated === 0
+              ? "gleich in alle Sprachen übersetzt"
+              : `${untranslated} davon noch ohne Übersetzung (🌍 beim Event)`;
           setMsg({
             ok: true,
-            text: `✓ ${r.inserted} neue Entwürfe – gleich in alle Sprachen übersetzt${r.skipped ? ` · ${r.skipped} übersprungen` : ""}.`,
+            text: `✓ ${r.inserted} neue Entwürfe – ${lang}${r.skipped ? ` · ${r.skipped} übersprungen` : ""}.`,
           });
           router.refresh();
         } else {

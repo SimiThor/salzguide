@@ -97,11 +97,11 @@
     "playingNow": "Sonando",
     "rebuild": "Otra ruta",
     "buildTitle": "Crea tu propio tour",
-    "buildLead": "Dinos qué te apetece y te armamos una ruta a pie que siempre vuelve al inicio.",
+    "buildLead": "Dinos qué te apetece. La IA te arma una ruta con nuestros sitios, siempre de vuelta al inicio.",
     "buildCard": "Crea tu propia ruta",
-    "buildCardSub": "Elige intereses, te preparamos una ruta con audio",
-    "buildCardSubPro": "Elige intereses, consigue tu propia ruta. Eso viene con Pro.",
-    "buildProTeaser": "Dinos qué te apetece y la IA te monta tu propia ruta con audio. Crear rutas propias es Pro. Las rutas seleccionadas quedan abiertas para todos, con las primeras paradas gratis.",
+    "buildCardSub": "Elige intereses, la IA te arma una ruta de audio con nuestros sitios",
+    "buildCardSubPro": "Elige intereses, la IA te arma una ruta con nuestros sitios. Eso viene con Pro.",
+    "buildProTeaser": "Dinos qué te apetece y la IA te monta tu propia ruta con audio a partir de nuestros sitios. Crear rutas propias es Pro. Las rutas seleccionadas quedan abiertas para todos, con las primeras paradas gratis.",
     "buildNeedLogin": "Inicia sesión para crear",
     "buildNeedLoginBody": "Crea y guarda tus propias rutas con audio al iniciar sesión. Las rutas seleccionadas puedes escucharlas sin cuenta.",
     "login": "Iniciar sesión",
@@ -113,6 +113,8 @@
     "generating": "Creando tu ruta",
     "genError": "No ha funcionado esta vez. Inténtalo de nuevo.",
     "genTooFew": "Todavía hay muy pocos puntos narrados en esta zona. Vuelve pronto.",
+    "genRateLimit": "Acabas de crear varias rutas. Inténtalo más tarde.",
+    "genTourLimit": "Ya tienes {count} rutas. Elimina una para crear otra.",
     "yourRoutes": "Tus rutas",
     "curatedRoutes": "Seleccionadas por locales",
     "deleteRoute": "Eliminar",
@@ -289,7 +291,8 @@
     "save": "Guardar",
     "saved": "Guardado",
     "close": "Cerrar",
-    "empty": "Todavía no hay lugares para esta temporada."
+    "empty": "Todavía no hay lugares para esta temporada.",
+    "lakesTitle": "Lagos"
   },
   "Map": {
     "unavailable": "El mapa no se puede mostrar en este dispositivo en este momento."
@@ -697,6 +700,16 @@
     "profile": {
       "signOut": "Cerrar sesión",
       "deleteAccount": "Eliminar cuenta"
+    }
+  },
+  "NavVoice": {
+    "hike": {
+      "startReached": "Ya estás en el inicio. ¡Adelante!",
+      "offTrail": "Te has salido del camino.",
+      "backOnTrail": "De nuevo en el camino.",
+      "turnaround": "Punto de retorno alcanzado. Ahora toca volver.",
+      "wrongWay": "Vas en la dirección contraria.",
+      "arrived": "¡Lo lograste! Has llegado."
     }
   }
 }

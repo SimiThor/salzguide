@@ -97,11 +97,11 @@
     "playingNow": "Playing",
     "rebuild": "New walk",
     "buildTitle": "Build your own tour",
-    "buildLead": "Tell us what you're into – we'll build you a walking loop that always returns to the start.",
+    "buildLead": "Tell us what you're into. The AI builds you a loop from our spots, always back to the start.",
     "buildCard": "Build your own walk",
-    "buildCardSub": "Pick your interests, we put together an audio loop",
-    "buildCardSubPro": "Pick your interests, get your own walk. That comes with Pro.",
-    "buildProTeaser": "Tell us what you are into and the AI builds your own audio walk. Building your own walks is Pro. The curated walks stay open for everyone, with the first stops free.",
+    "buildCardSub": "Pick your interests, the AI builds you an audio loop from our spots",
+    "buildCardSubPro": "Pick your interests, the AI builds you a walk from our spots. That comes with Pro.",
+    "buildProTeaser": "Tell us what you are into and the AI builds your own audio walk from our spots. Building your own walks is Pro. The curated walks stay open for everyone, with the first stops free.",
     "buildNeedLogin": "Sign in to build",
     "buildNeedLoginBody": "Build and save your own audio walks once you're signed in. You can listen to curated walks without an account.",
     "login": "Sign in",
@@ -113,6 +113,8 @@
     "generating": "Building your walk",
     "genError": "That didn't work – please try again.",
     "genTooFew": "Not enough narrated points in this area yet. Check back soon.",
+    "genRateLimit": "You've just built a few walks. Try again later.",
+    "genTourLimit": "You already have {count} walks. Delete one to build a new one.",
     "yourRoutes": "Your walks",
     "curatedRoutes": "Curated by locals",
     "deleteRoute": "Delete",
@@ -289,7 +291,8 @@
     "save": "Save",
     "saved": "Saved",
     "close": "Close",
-    "empty": "No spots for this season yet."
+    "empty": "No spots for this season yet.",
+    "lakesTitle": "Swimming lakes"
   },
   "Map": {
     "unavailable": "The map can't be shown on this device right now."
@@ -697,6 +700,16 @@
     "profile": {
       "signOut": "Sign out",
       "deleteAccount": "Delete account"
+    }
+  },
+  "NavVoice": {
+    "hike": {
+      "startReached": "You are at the start. Off you go!",
+      "offTrail": "You have left the trail.",
+      "backOnTrail": "Back on the trail.",
+      "turnaround": "Turnaround point reached. Now it goes back.",
+      "wrongWay": "You are going the other way.",
+      "arrived": "You made it! You have arrived."
     }
   }
 }

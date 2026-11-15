@@ -97,11 +97,11 @@
     "playingNow": "In riproduzione",
     "rebuild": "Nuovo giro",
     "buildTitle": "Crea il tuo tour",
-    "buildLead": "Dicci cosa ti va – ti creiamo un giro a piedi su misura, sempre di ritorno al punto di partenza.",
+    "buildLead": "Dicci cosa ti va. L’IA ti crea un giro con i nostri posti, sempre di ritorno al punto di partenza.",
     "buildCard": "Crea il tuo giro",
-    "buildCardSub": "Scegli gli interessi, ti mettiamo insieme un giro audio",
-    "buildCardSubPro": "Scegli gli interessi, ottieni il tuo giro. Arriva con Pro.",
-    "buildProTeaser": "Dicci cosa ti va e l’IA ti costruisce il tuo giro audio personale. Creare giri propri è Pro. I giri curati restano aperti a tutti, con le prime tappe gratis.",
+    "buildCardSub": "Scegli gli interessi, l’IA ti crea un giro audio con i nostri posti",
+    "buildCardSubPro": "Scegli gli interessi, l’IA ti crea un giro con i nostri posti. Arriva con Pro.",
+    "buildProTeaser": "Dicci cosa ti va e l’IA ti costruisce il tuo giro audio personale con i nostri posti. Creare giri propri è Pro. I giri curati restano aperti a tutti, con le prime tappe gratis.",
     "buildNeedLogin": "Accedi per creare",
     "buildNeedLoginBody": "Crei e salvi i tuoi giri audio da utente registrato. I giri curati puoi ascoltarli anche senza account.",
     "login": "Accedi",
@@ -113,6 +113,8 @@
     "generating": "Creo il tuo giro",
     "genError": "Ora non ha funzionato – riprova.",
     "genTooFew": "Per questa zona ci sono ancora troppo pochi punti con audio. Torna presto a dare un'occhiata.",
+    "genRateLimit": "Hai appena creato alcuni giri. Riprova più tardi.",
+    "genTourLimit": "Hai già {count} giri. Eliminane uno per crearne un altro.",
     "yourRoutes": "I tuoi giri",
     "curatedRoutes": "Curati dai local",
     "deleteRoute": "Elimina",
@@ -289,7 +291,8 @@
     "save": "Salva",
     "saved": "Salvato",
     "close": "Chiudi",
-    "empty": "Ancora nessuno spot per questa stagione."
+    "empty": "Ancora nessuno spot per questa stagione.",
+    "lakesTitle": "Laghi"
   },
   "Map": {
     "unavailable": "Al momento la mappa non può essere visualizzata su questo dispositivo."
@@ -697,6 +700,16 @@
     "profile": {
       "signOut": "Esci",
       "deleteAccount": "Elimina account"
+    }
+  },
+  "NavVoice": {
+    "hike": {
+      "startReached": "Sei alla partenza. Si parte!",
+      "offTrail": "Sei uscito dal sentiero.",
+      "backOnTrail": "Di nuovo sul sentiero.",
+      "turnaround": "Punto di inversione raggiunto. Ora si torna indietro.",
+      "wrongWay": "Stai andando nella direzione opposta.",
+      "arrived": "Fatto! Sei arrivato."
     }
   }
 }

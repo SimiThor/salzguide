@@ -97,11 +97,11 @@
     "playingNow": "Speelt",
     "rebuild": "Andere ronde",
     "buildTitle": "Stel je eigen tour samen",
-    "buildLead": "Zeg ons waar je zin in hebt – wij maken een wandelronde op maat, altijd terug naar de start.",
+    "buildLead": "Zeg waar je zin in hebt. De AI maakt een ronde uit onze plekken, altijd terug naar de start.",
     "buildCard": "Stel je eigen ronde samen",
-    "buildCardSub": "Kies je interesses, wij stellen een audioronde voor je samen",
-    "buildCardSubPro": "Kies je interesses, krijg je eigen ronde. Dat zit bij Pro.",
-    "buildProTeaser": "Vertel waar je zin in hebt en de AI bouwt je eigen audioronde. Eigen rondes bouwen is Pro. De samengestelde rondes blijven voor iedereen open, met de eerste stops gratis.",
+    "buildCardSub": "Kies je interesses, de AI maakt een audioronde uit onze plekken",
+    "buildCardSubPro": "Kies je interesses, de AI maakt een ronde uit onze plekken. Dat zit bij Pro.",
+    "buildProTeaser": "Vertel waar je zin in hebt en de AI bouwt je eigen audioronde uit onze plekken. Eigen rondes bouwen is Pro. De samengestelde rondes blijven voor iedereen open, met de eerste stops gratis.",
     "buildNeedLogin": "Meld je aan om te bouwen",
     "buildNeedLoginBody": "Eigen audiorondes maak en bewaar je als aangemelde gebruiker. Samengestelde rondes kun je ook zonder account beluisteren.",
     "login": "Aanmelden",
@@ -113,6 +113,8 @@
     "generating": "Je ronde wordt gemaakt",
     "genError": "Lukte even niet – probeer het opnieuw.",
     "genTooFew": "Voor dit gebied zijn er nog te weinig ingesproken punten. Kom snel weer eens kijken.",
+    "genRateLimit": "Je hebt net een paar rondes gebouwd. Probeer het later opnieuw.",
+    "genTourLimit": "Je hebt al {count} rondes. Verwijder er een om een nieuwe te bouwen.",
     "yourRoutes": "Jouw rondes",
     "curatedRoutes": "Samengesteld door locals",
     "deleteRoute": "Verwijderen",
@@ -289,7 +291,8 @@
     "save": "Bewaren",
     "saved": "Bewaard",
     "close": "Sluiten",
-    "empty": "Voor dit seizoen zijn er nog geen spots."
+    "empty": "Voor dit seizoen zijn er nog geen spots.",
+    "lakesTitle": "Zwemmeren"
   },
   "Map": {
     "unavailable": "De kaart kan op dit apparaat nu niet worden getoond."
@@ -697,6 +700,16 @@
     "profile": {
       "signOut": "Afmelden",
       "deleteAccount": "Account verwijderen"
+    }
+  },
+  "NavVoice": {
+    "hike": {
+      "startReached": "Je bent bij de start. Daar gaan we!",
+      "offTrail": "Je bent van het pad af.",
+      "backOnTrail": "Weer op het pad.",
+      "turnaround": "Keerpunt bereikt. Nu gaat het terug.",
+      "wrongWay": "Je gaat de andere kant op.",
+      "arrived": "Gelukt! Je bent er."
     }
   }
 }

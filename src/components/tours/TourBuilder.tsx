@@ -8,6 +8,7 @@ import BackButton from "@/components/BackButton";
 import { generateTour } from "@/lib/tour-generate";
 import AiButton from "@/components/admin/AiButton";
 import { TAG_KEYS, TAG_EMOJI } from "@/lib/tour-tags";
+import { BUILDER_MAX_TOURS } from "@/lib/builder-limits";
 import type { TourDetail } from "@/lib/tour-types";
 import type { PublicArea } from "@/lib/tours";
 
@@ -43,7 +44,15 @@ export default function TourBuilder({ areas }: { areas: PublicArea[] }) {
         setResult(r.tour);
         setPhase("result");
       } else {
-        setErr(r.error === "too_few" ? t("genTooFew") : t("genError"));
+        setErr(
+          r.error === "too_few"
+            ? t("genTooFew")
+            : r.error === "rate_limit"
+              ? t("genRateLimit")
+              : r.error === "limit"
+                ? t("genTourLimit", { count: BUILDER_MAX_TOURS })
+                : t("genError"),
+        );
         setPhase("pick");
       }
     })();
