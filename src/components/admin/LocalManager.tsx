@@ -163,7 +163,7 @@ function LocalForm({
             In alle Sprachen übersetzen
           </AiButton>
         </div>
-        <div className="mt-2 grid gap-2 sm:grid-cols-2">
+        <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
           {LOCALES.map((l) => (
             <label key={l} className="block">
               <span className="mb-1 block text-[11px] font-medium text-muted">

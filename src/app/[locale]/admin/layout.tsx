@@ -45,7 +45,13 @@ export default async function AdminLayout({
     // Der sichtbare Abschluss-Weissraum kommt aus --sg-page-bottom (globals.css), wie
     // auf jeder anderen Seite — vorher stand hier ein eigenes md:pb-16 neben dem
     // md:pb-12 des Footers, zwei Zahlen für denselben Abstand.
-    <div className="mx-auto w-full max-w-[820px] px-4 pb-[calc(var(--sg-nav-h)+var(--sg-page-bottom))] pt-[var(--sg-page-top)] md:pb-[var(--sg-page-bottom)] md:pt-6">
+    //
+    // break-words: Der Admin zeigt fremden Text, den niemand vorher kürzt: Fehlermeldungen,
+    // Links, Mail-Adressen, IDs. Ein einziges Wort ohne Leerzeichen
+    // („document.querySelector(…).content") im Logbuch machte die ganze Seite 444 statt
+    // 393 px breit, und sie liess sich seitlich schieben (16.11.2026). So bricht so ein
+    // Wort am Rand um. Es wirkt nur, wo sonst überstehen würde; normaler Text bleibt gleich.
+    <div className="mx-auto w-full max-w-[820px] break-words px-4pb-[calc(var(--sg-nav-h)+var(--sg-page-bottom))] pt-[var(--sg-page-top)] md:pb-[var(--sg-page-bottom)] md:pt-6">
       <div className="mb-4">
         <AdminNav
           badges={{ "/admin/users": supportCount, "/admin/events": pendingEvents }}

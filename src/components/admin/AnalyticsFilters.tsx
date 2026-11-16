@@ -38,12 +38,15 @@ function FilterSelect({
   children: React.ReactNode;
 }) {
   return (
-    <label className="flex flex-col gap-1 text-[11px] font-medium text-muted">
+    // max-w-full an Label UND Auswahl: Ein <select> ist so breit wie seine längste Option.
+    // Ein Kampagnenname wie „DE AT 18-35 SalzGuide_VarB_…" schob die Seite sonst über den
+    // Bildschirmrand. So kürzt die Auswahl den Text, die Liste zeigt ihn beim Öffnen ganz.
+    <label className="flex min-w-0 max-w-full flex-col gap-1 text-[11px] font-medium text-muted">
       {label}
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="rounded-lg border border-black/10 bg-white px-2 py-1.5 text-[13px] font-normal text-ink outline-none focus:border-accent"
+        className="max-w-full rounded-lg border border-black/10 bg-white px-2 py-1.5 text-[13px] font-normal text-ink outline-none focus:border-accent"
       >
         {children}
       </select>

@@ -689,7 +689,7 @@ export default function PointForm({
           </div>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <div>
             <label className={labelCls}>Emoji</label>
             <input

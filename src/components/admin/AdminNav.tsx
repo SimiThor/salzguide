@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, usePathname } from "@/i18n/navigation";
 import ScrollStrip from "@/components/ScrollStrip";
 
@@ -69,6 +69,15 @@ function activeHref(pathname: string): string {
 export default function AdminNav({ badges = {} }: { badges?: Record<string, number> }) {
   const pathname = usePathname();
   const active = activeHref(pathname);
+  // DER TIPP ZEIGT SICH SOFORT, NICHT ERST NACH DEM LADEN.
+  // Jede Admin-Seite ist dynamisch (Wächter + Zähler + Daten). Hing die weisse Pille am
+  // Pfad, sprang sie erst, wenn die neue Seite fertig vom Server kam, und bis dahin sah
+  // ein Tipp genau so aus wie einer, der nicht angekommen ist (Anton, 16.11.2026). Jetzt
+  // wandert sie beim Tippen, und loading.tsx zeigt darunter sofort das Gerüst.
+  // `from` statt eines Effekts, der den Merker zurücksetzt: Ist der Pfad ein anderer als
+  // beim Tippen, ist die Navigation durch, und der Pfad gilt wieder allein.
+  const [pending, setPending] = useState<{ href: string; from: string } | null>(null);
+  const shown = pending && pending.from === pathname ? pending.href : active;
   const strip = useRef<HTMLDivElement>(null);
   const activeTab = useRef<HTMLAnchorElement>(null);
 
@@ -100,7 +109,9 @@ export default function AdminNav({ badges = {} }: { badges?: Record<string, numb
     <ScrollStrip scrollRef={strip}>
       {/* w-max: der Streifen darf die Reiter NICHT zusammenquetschen. Ohne das würde Flex
           sie schmal rechnen und „Audio-Touren" umbrechen, statt zu scrollen. */}
-      <nav className="flex w-max rounded-full bg-black/5 p-1">
+      {/* sg-native-tap: kein grauer Tap-Blitz, die Pille gibt das Feedback selbst (wie die
+          untere Tab-Leiste, BottomNav.tsx). */}
+      <nav className="sg-native-tap flex w-max rounded-full bg-black/5 p-1">
         {TABS.map((t) => {
           // Ein Abzeichen sagt, dass dort Arbeit liegt, ohne dass man hineinklicken muss.
           // Ohne es klickt man jedes Mal umsonst — oder man vergisst es. Bei den Events
@@ -112,11 +123,20 @@ export default function AdminNav({ badges = {} }: { badges?: Record<string, numb
               key={t.href}
               href={t.href}
               ref={active === t.href ? activeTab : undefined}
+              aria-current={active === t.href ? "page" : undefined}
+              onClick={(e) => {
+                // Neuer Tab/Fenster (Cmd, Strg, Mittelklick): hier wechselt nichts.
+                if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+                if (t.href !== active) setPending({ href: t.href, from: pathname });
+              }}
               // shrink-0 + whitespace-nowrap: eine Pille bleibt eine Pille, auch wenn der
               // Platz knapp wird. Genau das ist der Unterschied zwischen „scrollt" und
               // „quetscht sich zu zweizeiligem Kleinkram".
-              className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-semibold transition ${
-                active === t.href ? "bg-white text-ink shadow-sm" : "text-muted"
+              // Drücken: dieselbe graue Fläche wie unten in der Tab-Leiste plus ein leichtes
+              // Eindrücken. Am Touch springt :active ohne Einblenden an (globals.css,
+              // hover: none) und blendet beim Loslassen weich aus.
+              className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-semibold transition duration-200 active:scale-[0.96] ${
+                shown === t.href ? "bg-white text-ink shadow-sm" : "text-muted active:bg-black/5"
               }`}
             >
               {t.label}

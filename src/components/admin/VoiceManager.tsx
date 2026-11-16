@@ -130,7 +130,7 @@ function VoiceForm({
       onKeyDown={blockEnterSubmit}
       className="space-y-3 rounded-[12px] border border-black/10 bg-black/[0.02] p-3"
     >
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div>
           <label className={labelCls}>
             Name <span className="text-accent">*</span>
@@ -178,7 +178,7 @@ function VoiceForm({
       </div>
       {kind !== "human" && (
         <div className="space-y-2 rounded-[12px] border border-black/10 p-3">
-          <div className="grid gap-3 sm:grid-cols-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
             {SETTING_FIELDS.map((f) => (
               <div key={f.key}>
                 <label className={labelCls}>{f.label}</label>

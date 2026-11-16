@@ -162,7 +162,7 @@ export default function HomeFeaturedManager({ spots, migrationMissing }: AdminHo
           <p className="mt-5 text-[11px] font-semibold uppercase tracking-wider text-muted">
             Verfügbar {full && `(${MAX_HOME_FEATURED} erreicht, erst einen entfernen)`}
           </p>
-          <ul className="mt-2 grid gap-2 sm:grid-cols-2">
+          <ul className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
             {spots.map((s) => {
               const on = chosen.includes(s.slug);
               const blocked = !on && full;
