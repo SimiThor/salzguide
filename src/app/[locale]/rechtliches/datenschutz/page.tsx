@@ -362,8 +362,12 @@ export default async function DatenschutzPage({
             Konto löschen -> DELETE api/app/v1/me (widerruft das Apple-Token)
             Kauf          -> api/app/v1/purchases/apple + apple/notifications, Tabelle
                              apple_purchases (Migration 0075, user_id "on delete set null")
-            Standort      -> nur "Beim Verwenden", kein Hintergrund (SalzNavLocation im App-Repo);
-                             Anfahrt zum Tourstart über POST api/app/v1/route (docs/42)
+            Standort      -> nur "Beim Verwenden"; Hintergrund nur, solange eine gestartete Tour oder
+                             Wanderung läuft (blaue Anzeige, endet mit dem Bildschirm; TourLocationService
+                             in SalzNavLocation, Aufrufer TourStartView und HikeView im App-Repo);
+                             POST api/app/v1/route für die Anfahrt zum Tourstart, für die Tour-Route,
+                             wenn die Tour nicht als Paket auf dem Gerät liegt, und zurück auf die Route
+                             (Approach, TurnNavSession; docs/42)
             Karte         -> Mapbox Maps SDK; Telemetrie-Schalter SG_MAPBOX_TELEMETRY im App-Repo
           Bewusst ein eigener Punkt und nicht in a) oder l) eingearbeitet: Die Web-Navigation in
           l) wird getrennt gepflegt (docs/42), und die App kommt hier an EINER Stelle zusammen.
@@ -399,11 +403,15 @@ export default async function DatenschutzPage({
         </li>
         <li>
           <strong>Standort:</strong> Die App nutzt deinen Standort nur, wenn du es ihr erlaubst,
-          und nur, während du sie verwendest, nie im Hintergrund. Um dich auf der Karte zu zeigen
-          und dich auf einer Tour von Stopp zu Stopp zu führen, wertet dein iPhone den Standort
-          selbst aus; an uns geht er dafür nicht. Lässt du dir den Weg zum Start einer Tour
-          zeigen, schickt die App deine Position an unseren Server, der daraus mit unserem
-          eigenen Routendienst den Weg berechnet (siehe Punkt l). Wir speichern sie dabei nicht.
+          und nur, während du sie verwendest. Im Hintergrund nutzt sie ihn ausschließlich, solange
+          eine von dir gestartete Tour oder Wanderung läuft: Dann führt sie dich auch bei
+          gesperrtem Bildschirm weiter, und iOS zeigt dir das mit der blauen Standortanzeige.
+          Beendest du die Tour oder Wanderung, endet das. Um dich auf der Karte zu zeigen und dich
+          zu führen, wertet dein iPhone den Standort selbst aus; an uns geht er dafür nicht. Für
+          den Weg zum Start einer Tour, für eine Tour, die du nicht offline gespeichert hast, und
+          für den Weg zurück auf die Route schickt die App deine Position an unseren Server, der
+          daraus mit unserem eigenen Routendienst den Weg berechnet (siehe Punkt l). Wir
+          speichern sie dabei nicht.
           Öffnest du einen Weg in Apple Karten, gelten dort die Bestimmungen von Apple. Die
           Erlaubnis kannst du jederzeit in den Einstellungen deines iPhones entziehen.
         </li>
