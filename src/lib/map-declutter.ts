@@ -59,6 +59,60 @@ const HIDE_ALWAYS = new Set(["turning-feature", "turning-feature-outline"]);
 /** Präfix unserer eigenen Ebenen (Route, Marker-Helfer) — die fasst das hier nie an. */
 const OWN_LAYER_PREFIX = "sg-";
 
+// ——— Weiches Relief statt kantiger Schatten-Flächen ————————————————————————
+//
+// Outdoors zeichnet die Berge als vereinfachte Schatten-Flächen aus Vektor-Kacheln
+// (Ebene „hillshade"). Weit herausgezoomt sieht man ihre Dreiecke, und an den
+// Kachelgrenzen laufen harte Linien quer über das Land (Anton, 16.11.2026, in der App
+// gesehen; das Web hat denselben Stil). Ersetzt durch ein Relief aus echten Höhendaten
+// (Mapbox Terrain DEM): stetig, ohne Kanten, wie Apple Karten. Dezent eingestellt
+// (Übertreibung 0,4 bis 0,25, warmer Schatten), damit Marker und Straßen vorne bleiben.
+// Dieselben Werte wie in der iOS-App (MapStyleCleanup.applyRelief): EINE Karte, zwei
+// Oberflächen.
+const VECTOR_HILLSHADE = "hillshade";
+const DEM_SOURCE = "sg-dem";
+const RELIEF_LAYER = "sg-relief";
+const RELIEF_SHADOW = "rgb(69, 64, 46)";
+
+function applyRelief(map: MapboxMap) {
+  const layers = map.getStyle()?.layers;
+  if (!layers) return;
+  const index = layers.findIndex((layer) => layer.id === VECTOR_HILLSHADE);
+  // Kein „hillshade" im Stil (anderer Stil, Umbenennung): nichts anfassen.
+  if (index < 0) return;
+  try {
+    if (!map.getSource(DEM_SOURCE)) {
+      map.addSource(DEM_SOURCE, {
+        type: "raster-dem",
+        url: "mapbox://mapbox.mapbox-terrain-dem-v1",
+        tileSize: 512,
+        maxzoom: 14,
+      });
+    }
+    if (!map.getLayer(RELIEF_LAYER)) {
+      // Direkt über der alten Ebene einhängen: unter Wald-Kanten, Straßen und Beschriftung.
+      const before = layers[index + 1]?.id;
+      map.addLayer(
+        {
+          id: RELIEF_LAYER,
+          type: "hillshade",
+          source: DEM_SOURCE,
+          paint: {
+            "hillshade-exaggeration": ["interpolate", ["linear"], ["zoom"], 5, 0.4, 10, 0.32, 14, 0.25],
+            "hillshade-shadow-color": RELIEF_SHADOW,
+            "hillshade-accent-color": RELIEF_SHADOW,
+            "hillshade-highlight-color": "rgba(255, 255, 255, 0.6)",
+          },
+        },
+        before,
+      );
+    }
+    map.setLayoutProperty(VECTOR_HILLSHADE, "visibility", "none");
+  } catch {
+    /* Style mitten im Wechsel -> beim nächsten style.load wieder */
+  }
+}
+
 function hideClutter(map: MapboxMap) {
   const layers = map.getStyle()?.layers;
   if (!layers) return;
@@ -87,7 +141,7 @@ function hideClutter(map: MapboxMap) {
 
 /**
  * Räumt den Mapbox-Basis-Style auf: fremde Punkte und Namen raus, Straßen- und Ortsnamen
- * bleiben. Gilt für JEDE Karte der Plattform — direkt nach `new mapboxgl.Map(...)`
+ * bleiben, das Relief kommt weich aus Höhendaten. Gilt für JEDE Karte der Plattform — direkt nach `new mapboxgl.Map(...)`
  * aufrufen, egal ob der Style schon geladen ist:
  *
  *   const map = new mapboxgl.Map({ ... });
@@ -97,8 +151,12 @@ function hideClutter(map: MapboxMap) {
  * unangetastet, egal wann sie dazukommen.
  */
 export function declutterBasemap(map: MapboxMap) {
-  if (map.isStyleLoaded()) hideClutter(map);
+  const tidy = () => {
+    hideClutter(map);
+    applyRelief(map);
+  };
+  if (map.isStyleLoaded()) tidy();
   // Auch dann anmelden, wenn oben schon aufgeräumt wurde: `style.load` feuert bei jedem
   // Style-Wechsel erneut, und ein frischer Style bringt die volle Möblierung wieder mit.
-  map.on("style.load", () => hideClutter(map));
+  map.on("style.load", tidy);
 }
