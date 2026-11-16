@@ -51,7 +51,20 @@ export default async function AdminLayout({
     // („document.querySelector(…).content") im Logbuch machte die ganze Seite 444 statt
     // 393 px breit, und sie liess sich seitlich schieben (16.11.2026). So bricht so ein
     // Wort am Rand um. Es wirkt nur, wo sonst überstehen würde; normaler Text bleibt gleich.
-    <div className="mx-auto w-full max-w-[820px] break-words px-4pb-[calc(var(--sg-nav-h)+var(--sg-page-bottom))] pt-[var(--sg-page-top)] md:pb-[var(--sg-page-bottom)] md:pt-6">
+    //
+    // overflow-x-clip: die EINE Sicherung für alle Admin-Seiten. Was trotzdem breiter wird
+    // als der Rahmen (eine neue Tabelle, ein langer Wert), wird am Rahmen abgeschnitten,
+    // statt die ganze Seite seitlich schiebbar zu machen. `clip`, nicht `hidden`: hidden
+    // macht den Rahmen zum Scroll-Behälter, dann klebt nichts Sticky mehr. Die
+    // Reiter-Leisten (ScrollStrip, -mx-4) ragen bewusst in das px-4 hinein; das liegt noch
+    // innerhalb des Rahmens und bleibt sichtbar.
+    // Die Sicherung ersetzt nicht das saubere Layout: Wer eine Seite baut, prüft trotzdem
+    // bei 320 px, dass nichts abgeschnitten wird.
+    //
+    // ACHTUNG Klassenliste: Ein fehlendes Leerzeichen („px-4pb-…") ist für Tailwind eine
+    // unbekannte Klasse und fällt still weg. Genau so fehlte am 16.11.2026 der Seitenrand,
+    // und jede Admin-Seite liess sich 16 px seitlich schieben.
+    <div className="mx-auto w-full max-w-[820px] overflow-x-clip break-words px-4 pb-[calc(var(--sg-nav-h)+var(--sg-page-bottom))] pt-[var(--sg-page-top)] md:pb-[var(--sg-page-bottom)] md:pt-6">
       <div className="mb-4">
         <AdminNav
           badges={{ "/admin/users": supportCount, "/admin/events": pendingEvents }}
