@@ -662,7 +662,13 @@ export async function runWeekResearch(
   const untranslated = rows.filter((r) => !r.translations).length;
 
   if (rows.length) {
-    let { error } = await supabase.from("events").insert(rows);
+    // defaultToNull: false ist Pflicht. Bei einem Sammel-Insert nimmt supabase-js die
+    // Vereinigung aller Schlüssel als Spaltenliste und füllt fehlende Felder mit NULL statt
+    // mit dem Spalten-Standard. Reicht die Zeit nur für einen Teil der Übersetzungen, fehlt
+    // `translations` bei den übrigen Zeilen, und NOT NULL (0032) lässt die ganze Woche
+    // scheitern (Cron „events", 16.11.2026). So bekommen sie den Standard '{}' und bleiben
+    // Deutsch, wie oben gedacht.
+    let { error } = await supabase.from("events").insert(rows, { defaultToNull: false });
     // Vor Migration 0032 existieren translations/source_hash nicht -> ohne sie einfügen (DE-Only).
     if (error && (error.code === "42703" || /column .* does not exist/i.test(error.message))) {
       const stripped = rows.map((r) => {
@@ -671,7 +677,7 @@ export async function runWeekResearch(
           if (k !== "translations" && k !== "source_hash") rest[k] = v;
         return rest;
       });
-      ({ error } = await supabase.from("events").insert(stripped));
+      ({ error } = await supabase.from("events").insert(stripped, { defaultToNull: false }));
     }
     if (error)
       return { ok: false, inserted: 0, skipped, weekStart: w.mondayKey, error: error.message };
