@@ -299,9 +299,9 @@ function SpotPerformanceTable({
             <thead>
               <tr className="text-left text-[11px] uppercase tracking-wide text-muted">
                 <th className="pb-1 font-medium">Spot</th>
-                <th className="pb-1 text-right font-medium">Aufrufe</th>
-                <th className="pb-1 text-right font-medium">Merkungen</th>
-                <th className="pb-1 text-right font-medium">Quote</th>
+                <th className="whitespace-nowrap pb-1 pl-3 text-right font-medium">Aufrufe</th>
+                <th className="whitespace-nowrap pb-1 pl-3 text-right font-medium">Merkungen</th>
+                <th className="whitespace-nowrap pb-1 pl-3 text-right font-medium">Quote</th>
               </tr>
             </thead>
             <tbody>
@@ -315,10 +315,10 @@ function SpotPerformanceTable({
                     <td className="py-1.5 pr-2 font-medium text-ink">
                       <span className="line-clamp-1">{r.title}</span>
                     </td>
-                    <td className="py-1.5 text-right text-ink">{de(r.views)}</td>
-                    <td className="py-1.5 text-right text-muted">{de(r.saves)}</td>
+                    <td className="whitespace-nowrap py-1.5 pl-3 text-right text-ink">{de(r.views)}</td>
+                    <td className="whitespace-nowrap py-1.5 pl-3 text-right text-muted">{de(r.saves)}</td>
                     <td
-                      className={`py-1.5 text-right font-semibold ${
+                      className={`whitespace-nowrap py-1.5 pl-3 text-right font-semibold ${
                         !rateable ? "text-black/25" : weak ? "text-rose-600" : strong ? "text-emerald-600" : "text-muted"
                       }`}
                       title={rateable ? undefined : `Erst ab ${RATE_MIN_VIEWS} Aufrufen aussagekräftig`}
@@ -354,18 +354,20 @@ function CampaignTable({ campaigns }: { campaigns: Campaign[] }) {
             <thead>
               <tr className="text-left text-[11px] uppercase tracking-wide text-muted">
                 <th className="pb-1 font-medium">Kampagne</th>
-                <th className="pb-1 text-right font-medium">Besuche</th>
-                <th className="pb-1 text-right font-medium">Seiten/Besuch</th>
-                <th className="pb-1 text-right font-medium">Bounce</th>
+                {/* pl-3 + nowrap: Am Handy ist die Tabelle breiter als die Karte und scrollt in
+                    sich. Ohne Abstand klebten die Köpfe zu „BESUCHESEITEN/BESUCHBOUNCE". */}
+                <th className="whitespace-nowrap pb-1 pl-3 text-right font-medium">Besuche</th>
+                <th className="whitespace-nowrap pb-1 pl-3 text-right font-medium">Seiten/Besuch</th>
+                <th className="whitespace-nowrap pb-1 pl-3 text-right font-medium">Bounce</th>
               </tr>
             </thead>
             <tbody>
               {campaigns.map((c) => (
                 <tr key={c.campaign} className="border-t border-black/5">
                   <td className="py-1.5 pr-2 font-medium text-ink">{c.campaign}</td>
-                  <td className="py-1.5 text-right text-ink">{c.sessions.toLocaleString("de-AT")}</td>
-                  <td className="py-1.5 text-right text-muted">{de1(c.avgPages)}</td>
-                  <td className="py-1.5 text-right text-muted">{de1(c.bounceRate)} %</td>
+                  <td className="whitespace-nowrap py-1.5 pl-3 text-right text-ink">{c.sessions.toLocaleString("de-AT")}</td>
+                  <td className="whitespace-nowrap py-1.5 pl-3 text-right text-muted">{de1(c.avgPages)}</td>
+                  <td className="whitespace-nowrap py-1.5 pl-3 text-right text-muted">{de1(c.bounceRate)} %</td>
                 </tr>
               ))}
             </tbody>
@@ -696,7 +698,7 @@ export default async function AnalyticsPage({
         title="Verkauft Pro?"
         hint="Zwei Käufe sind ein Erfolg, wenn zwanzig Leute die Pro-Seite gesehen haben, und ein Alarm, wenn es zweitausend waren. Deshalb steht der Nenner daneben."
       />
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <ProPathCard path={data.proPath} answerable={a} reason={a.note} />
         <BarList
           title="Wohin die Aufmerksamkeit geht" subtitle="Aufrufe je Seitenart"
@@ -713,19 +715,19 @@ export default async function AnalyticsPage({
         title="Was fehlt und was ist zu schwach?"
         hint="Links: Wünsche, die Toni nicht erfüllen konnte, also fehlender Inhalt. Rechts: Spots, die gefunden werden und trotzdem niemand merkt, also vorhandener Inhalt, der nicht überzeugt."
       />
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <GapList gaps={insights.gaps} />
         <SpotPerformanceTable
           rows={data.spotPerformance} answerable={a.saves} reason={a.note}
         />
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <BarList title="Top-Spots" subtitle="nach Merkungen" items={data.topSpotsSaved} empty="Noch keine gemerkten Spots." answerable={a.saves} reason={a.note} />
         <BarList title="Spot-Kategorien" subtitle="nach Aufrufen" items={data.spotCategories} empty="Keine Daten." />
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <BarList title="Top-Events" subtitle="nach Merkungen" items={data.topEventsSaved} empty="Noch keine gemerkten Events." answerable={a.saves} reason={a.note} />
         <BarList title="Event-Kategorien" subtitle="nach Merkungen" items={data.eventCategories} labelMap={EVENT_CAT_LABELS} empty="Keine Daten." answerable={a.saves} reason={a.note} />
       </div>
@@ -735,12 +737,17 @@ export default async function AnalyticsPage({
         title="Woher kommen sie?"
         hint="Welcher Kanal bringt Leute, die bleiben. Seiten/Besuch und Bounce sagen mehr über eine Anzeige als die Zahl der Klicks."
       />
-      <div className="grid gap-4 lg:grid-cols-2">
+      {/* grid-cols-1 an JEDEM Raster dieser Seite (und der Admin-Formulare): Ohne Spalten-
+          angabe ist die eine Spalte am Handy `auto` und so breit wie ihr breitester Inhalt.
+          Die Kampagnen-Tabelle zog damit sich UND den Ad-Link daneben über die Seitenbreite,
+          die Seite liess sich seitlich schieben (Anton, 16.11.2026). grid-cols-1 heisst
+          minmax(0, 1fr): Die Spalte ist so breit wie die Seite, Breites scrollt in sich. */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <CampaignTable campaigns={data.campaigns} />
         <AdLinkBuilder baseUrl={baseUrl} />
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
         <BarList title="Quellen" subtitle="nach Aufrufen" items={data.sources} labelMap={SOURCE_LABELS} empty="Keine Daten." />
         <BarList title="Länder" subtitle="nach Aufrufen" items={data.countries} empty="Keine Daten." />
         <BarList title="Sprache" subtitle="nach Aufrufen" items={data.locales} labelMap={LOCALE_LABELS} empty="Keine Daten." />
@@ -768,7 +775,7 @@ export default async function AnalyticsPage({
         <StatCard label="Sichtbarkeit" display={`k ≥ ${insights.kMin}`} sub="kleinere Gruppen verborgen" />
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <BarList title="Was Nutzer wollen" subtitle="Absichten der Anfragen" items={insights.intents} empty="Noch keine Daten." />
         <BarList title="Top-Themen" subtitle="Kategorien der Anfragen" items={insights.categories} empty="Noch keine Daten." />
       </div>
@@ -776,7 +783,7 @@ export default async function AnalyticsPage({
       {/* Die Content-Lücken stehen jetzt oben bei „Was fehlt und was ist zu schwach?" —
           sie sind laut docs/34 §I das wertvollste Produkt-Signal und standen ausgerechnet
           ganz unten am Seitenende. Hier bleiben die Zahlen, die die Lücken einordnen. */}
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <BarList title="Regionen" subtitle="wonach gefragt wird" items={insights.regions} empty="Noch keine Daten." />
         <BarList title="Sprache der Anfragen" items={insights.locales} empty="Noch keine Daten." />
       </div>

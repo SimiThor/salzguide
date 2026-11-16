@@ -35,7 +35,7 @@ export default function AdminNavCard({
   return (
     <Link
       href={href}
-      className="flex items-center gap-4 rounded-[18px] bg-white p-5 shadow-sm ring-1 ring-black/5 transition hover:ring-black/15 active:scale-[0.995]"
+      className="flex items-center gap-4 rounded-[18px] bg-white p-5 shadow-sm ring-1 ring-black/5 transition duration-200 hover:ring-black/15 active:scale-[0.98]"
     >
       <span className="text-[22px]" aria-hidden>
         {emoji}

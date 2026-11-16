@@ -709,7 +709,7 @@ export default function SpotForm({
 
   return (
     <form onSubmit={onSubmit} onKeyDown={blockEnterSubmit} className="space-y-6 pb-12">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold text-ink">
           {isNew ? "Neuer Spot" : "Spot bearbeiten"}
         </h1>
@@ -1403,7 +1403,7 @@ export default function SpotForm({
       {/* Kategorien */}
       <section className="space-y-3 rounded-[16px] bg-white p-5 shadow-sm">
         <h2 className="text-[15px] font-semibold text-ink">Kategorien (Karussells)</h2>
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">Sommer</p>
             <div className="flex flex-col gap-1.5">

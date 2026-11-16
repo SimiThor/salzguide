@@ -286,7 +286,7 @@ export default function EventForm({
 
   return (
     <form onSubmit={onSubmit} onKeyDown={blockEnterSubmit} className="space-y-6 pb-12">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold text-ink">
           {isNew ? "Neues Event" : "Event bearbeiten"}
         </h1>
