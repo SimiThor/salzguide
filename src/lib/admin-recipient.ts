@@ -20,3 +20,28 @@ import { LEGAL } from "./legal";
 export function adminRecipient(): string {
   return process.env.OPS_ALERT_EMAIL?.trim() || LEGAL.email;
 }
+
+/**
+ * Wer die Alarm-Mails (lib/ops-mail.ts) bekommt: die Adresse oben plus OPS_ALERT_CC.
+ *
+ * OPS_ALERT_CC ist eine Komma-Liste weiterer Adressen (Simon, 17.11.2026). Sie gilt NUR für
+ * Alarme, nicht für Clean-Exporte und die Recherche-Erinnerung: Bei einem Alarm sollen beide
+ * Bescheid wissen, die anderen Mails sind Aufgaben für eine Person.
+ *
+ * Die Adressen stehen in der ENV und nicht im Code, weil das Repo öffentlich ist. Was kein
+ * „@" hat, fällt still weg; doppelte Adressen kommen nur einmal vor.
+ */
+export function opsAlertRecipients(): string[] {
+  const extra = (process.env.OPS_ALERT_CC ?? "")
+    .split(",")
+    .map((a) => a.trim())
+    .filter((a) => a.includes("@"));
+  const all = [adminRecipient(), ...extra];
+  const seen = new Set<string>();
+  return all.filter((a) => {
+    const key = a.toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
