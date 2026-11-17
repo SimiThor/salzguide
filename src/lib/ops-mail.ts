@@ -2,7 +2,7 @@ import "server-only";
 import { createServiceClient } from "./supabase/service";
 import { sendEmail } from "./email";
 import { esc, ACCENT, INK, MUTED, CREAM } from "./mail-layout";
-import { adminRecipient } from "./admin-recipient";
+import { opsAlertRecipients } from "./admin-recipient";
 import { siteUrl } from "./site-url";
 import { OPS_EVENTS, SEVERITY_LOOK, type OpsKind } from "./ops-events";
 
@@ -91,18 +91,28 @@ export async function sendOpsAlert(input: OpsAlertInput): Promise<void> {
     // wieder client_errors, mitten im Vorfall. routes:check prüft diesen Link jetzt mit.
     const admin = `${siteUrl()}/de/admin/settings/system`;
 
-    const ok = await sendEmail({
-      to: adminRecipient(),
-      subject,
-      text: renderText(input, admin),
-      html: renderHtml(input, admin),
-      // KEIN Neu-Melden, wenn diese Mail scheitert: sendEmail würde `mail_send_failed`
-      // melden, das wäre wieder ein Alarm, der wieder eine Mail schicken will. Genau hier
-      // bricht die Schleife. Was übrig bleibt, ist die Konsolenzeile unten.
-      quiet: true,
-    });
-    if (!ok) {
-      console.error(`[ops] ALARM NICHT ZUSTELLBAR: ${subject} — ${input.message}`);
+    const text = renderText(input, admin);
+    const html = renderHtml(input, admin);
+
+    // EINE Mail je Empfänger statt einer mit CC: Eine falsch geschriebene Zusatz-Adresse
+    // (Resend antwortet 422) liesse sonst die ganze Mail scheitern, auch für die
+    // Hauptadresse. Nacheinander, nicht parallel: sendEmail hält ohnehin einen Abstand
+    // zwischen zwei Versänden (pace), und die Hauptadresse soll zuerst drankommen.
+    for (const to of opsAlertRecipients()) {
+      const ok = await sendEmail({
+        to,
+        subject,
+        text,
+        html,
+        // KEIN Neu-Melden, wenn diese Mail scheitert: sendEmail würde `mail_send_failed`
+        // melden, das wäre wieder ein Alarm, der wieder eine Mail schicken will. Genau hier
+        // bricht die Schleife. Was übrig bleibt, ist die Konsolenzeile unten.
+        quiet: true,
+      });
+      if (!ok) {
+        // Ohne Adresse: Logs sind kein Ort für Empfänger-Adressen (siehe lib/email.ts).
+        console.error(`[ops] ALARM NICHT ZUSTELLBAR: ${subject} — ${input.message}`);
+      }
     }
   } catch (e) {
     console.error("[ops] Alarm-Versand fehlgeschlagen", e instanceof Error ? e.message : e);

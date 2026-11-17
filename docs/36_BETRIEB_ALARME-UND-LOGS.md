@@ -193,6 +193,8 @@ Admin umgeht es ausdrücklich.
       weiter — ohne die Tabellen schreibt `logOps()` nur auf die Konsole und wirft nicht.
 - [ ] **`OPS_ALERT_EMAIL`** in Vercel setzen (optional; ohne sie geht es an die
       Impressums-Adresse).
+- [ ] **`OPS_ALERT_CC`** in Vercel setzen (optional): weitere Empfänger der Alarme,
+      mit Komma getrennt. Jede Adresse bekommt eine eigene Mail.
 - [ ] **Test-Knopf drücken:** `/admin/settings/system` → „Testalarm schicken". Beweist die
       ganze Kette bis ins Postfach. Nach jeder Änderung an den Mail-Einstellungen wiederholen.
       Er ist ausserdem die Quittung nach einem Kanal-Ausfall: Geht die Testmail durch,
