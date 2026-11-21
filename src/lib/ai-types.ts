@@ -14,6 +14,14 @@ export type AiSpotCard = {
   // können die erste Exposition des Bilds sein und tragen dann das Label.
   imageAiOrigin: AiOrigin | null;
   type: "activity" | "food";
+  /**
+   * Gesperrter Pro-Spot (nur für Betrachter ohne Pro). Dann ist NICHTS daran echt: `slug` ist
+   * `locked-<i>`, `title` das Wort „Geheimtipp“ der Sprache, Text, Emoji und Foto sind leer.
+   * Gezeigt wird nur `previewUrl`, die winzige Blur-Vorschau, wie bei den gesperrten Pins der
+   * Karte (lib/spots.ts). Ein Tipp darauf öffnet den Pro-Hinweis, nie eine Spot-Seite.
+   */
+  locked?: boolean;
+  previewUrl?: string | null;
 };
 
 // Aktuelle Wassertemperatur eines Sees (aus unseren offiziellen Datenquellen).
@@ -66,6 +74,16 @@ export type AiUiMessage = {
   role: "user" | "assistant";
   text: string;
   cards: AiCards;
+};
+
+// Gespeicherter Verlauf (lib/ai-history.ts). Hier und nicht dort, weil der Chat im Client die
+// Typen braucht und ai-history.ts "server-only" ist: Ein Import von dort in eine
+// Client-Komponente bricht jede Seite, obwohl tsc grün bleibt.
+export type AiConversationMeta = { id: string; title: string; updatedAt: string };
+
+export type AiHistory = {
+  conversationId: string | null;
+  messages: AiUiMessage[];
 };
 
 // Merk-Status + Callbacks, die der Chat an die Karten reicht (nur clientseitig,

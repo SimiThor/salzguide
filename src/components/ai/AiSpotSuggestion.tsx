@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import SpotCard from "@/components/SpotCard";
+import LockedSpotCard from "@/components/LockedSpotCard";
 import { toggleSaved } from "@/lib/saved-actions";
 import { Bookmark, BookmarkFilled } from "@/components/icons";
 import type { AiSpotCard } from "@/lib/ai-types";
@@ -27,6 +28,7 @@ export default function AiSpotSuggestion({
   onSavedChange?: (saved: boolean) => void;
 }) {
   const t = useTranslations("Explore");
+  const tPro = useTranslations("Pro");
   const locale = useLocale();
   const gate = useLoginGate();
   const [saved, setSaved] = useState(initialSaved);
@@ -66,6 +68,22 @@ export default function AiSpotSuggestion({
         onSavedChange?.(r.saved);
       }
     });
+  }
+
+  // Gesperrter Geheimtipp (nur ohne Pro): dieselbe unscharfe Karte wie in den Regalen, ein Tipp
+  // öffnet den Pro-Hinweis. Kein Link (es gibt keine Spot-Seite dafür), kein Merken. Der Chat
+  // bleibt offen, der Hinweis legt sich darüber.
+  if (spot.locked) {
+    return (
+      <LockedSpotCard
+        previewUrl={spot.previewUrl}
+        emoji={spot.emoji}
+        lockedLabel={t("lockedLabel")}
+        unlockLabel={tPro("cta")}
+        sizeClassName="w-[210px]"
+        from="toni"
+      />
+    );
   }
 
   return (

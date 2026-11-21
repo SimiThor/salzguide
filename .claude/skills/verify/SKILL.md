@@ -20,11 +20,19 @@ Kein Playwright im Projekt. Browser-Treiber in ein Scratchpad legen, nicht in pa
 cd "$SCRATCHPAD" && npm i playwright-core --silent
 ```
 
-Binary (Playwright-Cache ist schon da, aber NICHT unter dem Namen "Chromium"):
+Binary (Playwright-Cache ist schon da, aber NICHT unter dem Namen "Chromium"). Die Nummer
+wechselt mit jedem Playwright-Update (11/2026: 1243 statt 1228), darum per Muster suchen:
 
+```bash
+ls -d ~/Library/Caches/ms-playwright/chromium-*/chrome-mac-arm64/*.app/Contents/MacOS/* | tail -1
 ```
-~/Library/Caches/ms-playwright/chromium-1228/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing
-```
+
+Der Browser-Bereich der Claude-App taugt für diese Prüfungen nicht: Ist er im Hintergrund,
+laufen Timer und Effekte gedrosselt, und ein Sprung oder eine Animation sieht kaputt aus,
+obwohl sie im echten Chrome geht (21.11.2026, Event-Sprung auf /events?e=).
+
+Im Dev-Modus liegt das Next-Overlay (`nextjs-portal`) über der Tab-Leiste und fängt Tipps ab.
+Vor dem Tippen entfernen: `document.querySelectorAll("nextjs-portal").forEach(n => n.remove())`.
 
 ## Kontext
 

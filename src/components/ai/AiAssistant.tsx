@@ -19,12 +19,11 @@ import {
   loadAiHistory,
   listAiConversations,
   loadAiConversation,
-  type AiConversationMeta,
 } from "@/lib/ai-actions";
 import { getSavedSets } from "@/lib/saved-state-actions";
 import { readToniChat, writeToniChat, clearToniChat } from "@/lib/toni-chat-store";
 import { useKeyboard } from "@/lib/viewport";
-import type { AiCards, AiUiMessage, SavedApi } from "@/lib/ai-types";
+import type { AiCards, AiConversationMeta, AiUiMessage, SavedApi } from "@/lib/ai-types";
 
 const MAX_INPUT = 800; // spiegelt das Server-Limit
 const MAX_TURNS = 24; // spiegelt das Server-Limit (Verlaufsnachrichten an die KI)

@@ -92,9 +92,11 @@ export default function AiCards({
               loggedIn={loggedIn}
               onSavedChange={saved ? (sv) => saved.onEvent(e.id, sv) : undefined}
               showDate
+              // Genau dieses Event öffnen: Die Event-Seite springt per ?e=<id> hin und
+              // markiert es kurz (EventJump in EventsWeek.tsx).
               onOpen={() => {
                 onNavigate?.();
-                router.push("/events");
+                router.push(`/events?e=${encodeURIComponent(e.id)}`);
               }}
             />
           ))}
