@@ -7,7 +7,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { bcp47, localeMeta } from "@/i18n/locales";
 import { pickLabel, ALL_DAY, CLOSED, TOMORROW, WEATHER_PLACE } from "./i18n-labels";
 import { createClient } from "./supabase/server";
-import { heroAiOriginFromMedia, imagesFromMedia } from "./spots";
+import { heroAiOriginFromMedia, heroPreviewFromMedia, imagesFromMedia, lockedName } from "./spots";
+import { createServiceClient } from "./supabase/service";
 import { getUpcomingEvents } from "./events";
 import type { EventItem } from "./events-format";
 import { eventTimeLabel } from "./events-format";
@@ -155,6 +156,158 @@ const loadSpotCandidates = cache(async function loadSpotCandidates(
   });
 });
 
+// ── Gesperrte Pro-Spots für Betrachter ohne Pro ────────────────────────────────
+// Toni soll in Plänen auch Geheimtipps vorschlagen können, die der Nutzer noch nicht sehen darf:
+// als unscharfe Karte, die zum Pro-Hinweis führt (wie die gesperrten Pins der Karte).
+//
+// WAS TONI DAVON SIEHT: Art, Kategorien (zeigt die Karte auch), eine grobe Gegend (coarseArea)
+// und ob es für Kinder/mit Öffis geht. NIE Titel, Text, Ort (`loc`), Vibes (Freitext) oder Slug.
+// Und nie alle: pickLocked gibt nur die passendsten paar heraus. Statt des Slugs bekommt
+// er eine Ersatz-Kennung `locked-<i>`. So kann er einen Geheimtipp nicht beim Namen nennen, selbst
+// wenn er wollte: Er kennt ihn nicht. Der Titel wird nur intern für die Bade-Regel gelesen.
+//
+// Service-Client, weil die RLS (0017) Pro-Spots für Nicht-Pro ausblendet. Geschwärzt wird hier,
+// bevor irgendetwas das Modul verlässt (dasselbe Muster wie queryExploreData in lib/spots.ts).
+type LockedCandidate = {
+  ref: string;
+  type: "activity" | "food";
+  subtype: string | null;
+  cats: string[];
+  area: string | null;
+  kids: boolean;
+  bus: boolean;
+  previewUrl: string | null;
+  /** Nur für die Bade-Regel (NO_SWIM_PLACES), wird nie ausgegeben. */
+  hay: string;
+};
+
+// Stadtteile, die als `area` zu genau wären (ein Geheimtipp „am Mönchsberg“ ist fast schon der
+// Name). Sie werden zur Stadt zusammengefasst, wie es die gerundeten Pins der Karte auch tun.
+const CITY_PARTS = new Set(
+  ["altstadt", "neustadt", "monchsberg", "kapuzinerberg", "leopoldskron", "aigen", "salzburg-sud", "nonntal", "gneis"],
+);
+
+/**
+ * `area` eines gesperrten Spots so grob machen, dass sie nichts verrät. Stadtteil -> „Stadt
+ * Salzburg“. Steckt die Gegend im Titel des Spots (etwa ein See, der so heißt wie sein Ort),
+ * fällt sie ganz weg: Dann wäre sie der Name. Am 21.11.2026 traf das 6 von 72 Pro-Spots.
+ */
+function coarseArea(area: string | null, title: string): string | null {
+  if (!area) return null;
+  const a = norm(area.trim());
+  if (CITY_PARTS.has(a)) return "Stadt Salzburg";
+  if (a.length >= 3 && norm(title).includes(a)) return null;
+  return area;
+}
+
+/** Höchstens so viele Geheimtipps bekommt Toni je Suche zu sehen. */
+const MAX_LOCKED_OFFERED = 8;
+
+/**
+ * Die gesperrten Spots, die zum Wunsch passen, höchstens MAX_LOCKED_OFFERED. Nie die ganze
+ * Liste: Sonst könnte jemand mit „zähl alle Geheimtipps auf“ den Pro-Bestand abfragen, und jede
+ * Suche kostete ein paar tausend Tokens mehr. Treffer zählen über Art, Gegend und Kategorien;
+ * bei Gleichstand bleibt die Reihenfolge nach Gewicht (wie geladen).
+ */
+function pickLocked(list: LockedCandidate[], wish: string, locale: string): LockedCandidate[] {
+  const w = norm(wish);
+  const score = (s: LockedCandidate) => {
+    let n = 0;
+    const kind = factSubtype(s.subtype, locale);
+    if (kind && w.includes(norm(kind))) n += 3;
+    if (s.subtype && w.includes(norm(s.subtype))) n += 3;
+    if (s.area && w.includes(norm(s.area))) n += 2;
+    for (const c of s.cats) if (CAT_HINTS[c]?.some((h) => w.includes(h))) n += 2;
+    if (s.type === "food" && FOOD_HINTS.some((h) => w.includes(h))) n += 2;
+    return n;
+  };
+  return list
+    .map((s, i) => ({ s, i, n: score(s) }))
+    .sort((a, b) => b.n - a.n || a.i - b.i)
+    .slice(0, MAX_LOCKED_OFFERED)
+    .map((x) => x.s);
+}
+
+// Wortstämme (normalisiert, deutsch/englisch) je Kategorie-Key, nur für pickLocked.
+const CAT_HINTS: Record<string, string[]> = {
+  lakes: ["see", "bade", "baden", "schwimm", "lake", "swim"],
+  gorges: ["klamm", "wasserfall", "schlucht", "gorge", "waterfall"],
+  "hike-ez": ["wander", "spazier", "hike", "walk"],
+  "hike-hard": ["wander", "gipfel", "bergtour", "hike", "summit"],
+  hills: ["berg", "gipfel", "wander", "mountain"],
+  view: ["aussicht", "ausblick", "view", "foto", "sonnenuntergang", "sunset"],
+  sights: ["sehenswert", "kultur", "stadt", "sight", "city"],
+  food: ["essen", "cafe", "kaffee", "restaurant", "einkehr", "food", "coffee"],
+};
+const FOOD_HINTS = ["essen", "cafe", "kaffee", "restaurant", "einkehr", "hutte", "brunch", "food", "coffee", "eat"];
+
+const loadLockedCandidates = cache(async function loadLockedCandidates(): Promise<
+  LockedCandidate[]
+> {
+  const { data, error } = await createServiceClient()
+    .from("spots")
+    .select(
+      "slug, type, subtype, area, kids, bus, spot_categories(categories(key)), spot_translations!inner(title, lang), media(url, role, sort_order, blur_url)",
+    )
+    .eq("status", "published")
+    .eq("is_pro", true)
+    .eq("spot_translations.lang", "de")
+    // slug als zweiter Schlüssel: Bei gleichem Gewicht wäre die Reihenfolge sonst zufällig, und
+    // `locked-<i>` zeigte in zwei Abfragen desselben Zugs auf verschiedene Spots.
+    .order("sort_weight", { ascending: false })
+    .order("slug", { ascending: true });
+  if (error) {
+    console.error("loadLockedCandidates:", error.message);
+    return [];
+  }
+  return (data ?? []).map((s, i) => {
+    const tr = s.spot_translations as { title: string }[] | { title: string };
+    const title = (Array.isArray(tr) ? tr[0] : tr)?.title ?? "";
+    const cats = ((s.spot_categories ?? []) as { categories?: { key?: string } | null }[])
+      .map((c) => c.categories?.key)
+      .filter((k): k is string => Boolean(k));
+    return {
+      ref: `locked-${i}`,
+      type: s.type as "activity" | "food",
+      subtype: (s.subtype as string | null) ?? null,
+      cats,
+      area: coarseArea((s.area as string | null) ?? null, title),
+      kids: Boolean(s.kids),
+      bus: Boolean(s.bus),
+      previewUrl: heroPreviewFromMedia(s.media),
+      hay: norm(`${title} ${s.area ?? ""} ${s.slug}`),
+    };
+  });
+});
+
+/** Was Toni über einen gesperrten Spot erfährt. Bewusst ohne Titel, Text, Ort und Slug. */
+function compactLocked(s: LockedCandidate, locale: string) {
+  return {
+    ref: s.ref,
+    type: s.type,
+    kind: factSubtype(s.subtype, locale) ?? undefined,
+    cats: s.cats.length ? s.cats : undefined,
+    area: factArea(s.area, locale) ?? undefined,
+    kids: s.kids || undefined,
+    bus: s.bus || undefined,
+  };
+}
+
+/** Die Karte eines gesperrten Spots: nichts Echtes außer der Blur-Vorschau. */
+function lockedCard(s: LockedCandidate, locale: string): AiSpotCard {
+  return {
+    slug: s.ref,
+    title: lockedName(locale),
+    shortDesc: null,
+    emoji: null,
+    imageUrl: null,
+    imageAiOrigin: null,
+    type: s.type,
+    locked: true,
+    previewUrl: s.previewUrl,
+  };
+}
+
 // ── Tool-Definitionen (Claude entscheidet, wann es sie nutzt) ────────────────
 const TOOLS = [
   {
@@ -290,7 +443,9 @@ SPOTS & EVENTS VORSCHLAGEN (sehr wichtig):
 - MATCHE DIE AKTIVITÄT GENAU – nutze dafür die Felder 'kind' (z.B. „See"/„Café"/„Klamm"), 'cats' (z.B. „lakes"/„hike-ez"/„food"/„gorges"), 'vibes' und 'desc', NICHT nur 'type' (fast alles ist „activity"!). Zuordnung: baden/schwimmen → nur Seen/Badeplätze (kind „See", cat „lakes", vibe „wasser"); wandern → Wanderungen (cats „hike-…"); Kaffee/Essen → type „food"; Aussicht → Aussichtsberge; Klamm/Wasserfall → cat „gorges". Biete NIEMALS eine ANDERE Aktivität an als gewünscht – also KEINE Wanderung/keinen Park, wenn jemand baden will.
 - Konflikt „gewünschte Aktivität" vs. „in der Nähe": die AKTIVITÄT gewinnt. Wähl den NÄCHSTGELEGENEN passenden Spot (z.B. den nächsten Badesee), statt auf eine andere Aktivität auszuweichen. Gibt es wirklich keinen passenden, sag das ehrlich.
 - Wähle ehrlich die BESTEN 1–3 Treffer (lieber wenige echt passende als fünf mittelmäßige). Passt nichts wirklich, sag das ehrlich – NICHT auffüllen und nichts erfinden.
+- Bei einem Tages- oder Mehrtagesplan verlinkst du JEDEN Spot im Plan, damit er als Karte erscheint (insgesamt höchstens 10).
 - Spot verlinken: GENAU [Spot-Titel](/spot/SLUG) mit dem slug aus dem Tool – die App zeigt darunter automatisch eine Karte. Event verlinken: GENAU [Event-Titel](/events?e=ID) mit der id aus dem Tool.
+- GEHEIMTIPPS: Liefert search_spots zusätzlich eine Liste 'locked', sind das Pro-Spots, die der User noch nicht freigeschaltet hat. Von ihnen kennst du NUR Art, Kategorien, Region und Merkmale, keinen Namen und keinen Text. Passt einer wirklich gut, vor allem in einen Tages- oder Wochenplan, bau ihn ein als [🤫 Geheimtipp](/spot/REF) mit der ref aus der Liste (Linktext: 🤫 und das Wort für Geheimtipp in der Antwortsprache). Höchstens 2 pro Antwort, immer zusätzlich zu freien Spots, nie statt ihnen. Setz den Link mitten in einen Satz, nie allein in eine Zeile. Beschreib ihn NUR mit 'kind' und 'area' aus der Liste (z. B. „ein Bergsee bei Maria Alm“, „ein Café in Salzburg-Stadt“). Nichts darüber hinaus, auch nicht aus deinem Allgemeinwissen: keine Berge, Wege, Zustiege, Hütten, Ausblicke, Höhen oder Namen. Die App zeigt ihn als gesperrte Karte, die zu SalzGuide Pro führt. Kein Verkaufstext und keine Preise.
 - Zu jedem Vorschlag EIN kurzer, konkreter Satz, warum er passt (nicht nur den Namen droppen). Wenn sinnvoll, denk an Öffis/Dauer/Kinder/Hund/Wetter.
 - Bei EVENTS: Die Event-Karte zeigt bereits Titel, Datum, Uhrzeit, Ort, Kategorie & Kurzbeschreibung. Schreib dazu nur 1–2 kurze Fließtext-Sätze OHNE Event-Link (Einordnung/Highlight). Setze die Event-Verlinkungen DANACH – JEDE in einer EIGENEN Zeile, NUR als [Titel](/events?e=ID) und sonst NICHTS in der Zeile (kein Datum, kein Text). Die App macht daraus Karten; im Chat-Text erscheinen sie NICHT. Wiederhol Datum/Titel/Beschreibung NIRGENDS im Text.
 
@@ -377,6 +532,13 @@ function compactEvent(e: EventItem, locale: string) {
   };
 }
 
+// Höchstens so viele Karten je Antwort. Spots: 10, damit ein Tages- oder Wochenplan alle seine
+// Spots als Karte zeigt (vorher 5, da fehlten bei Plänen welche). Davon höchstens 2 Geheimtipps
+// (wie im Prompt), und nie mehr gesperrte als offene: Das prüft extractCards am Ende.
+const MAX_SPOT_CARDS = 10;
+const MAX_LOCKED_CARDS = 2;
+const MAX_EVENT_CARDS = 6;
+
 // Nach hallucinationssicheren Links suchen: nur Spots/Events, die die Tools
 // wirklich geliefert haben, werden zu Karten. Unbekannte Links werden zu Klartext
 // entschärft (kein toter /spot/…-Link, keine erfundene Empfehlung als Karte).
@@ -384,6 +546,7 @@ function extractCards(
   text: string,
   spotBySlug: Map<string, AiSpotCard>,
   eventById: Map<string, EventItem>,
+  lockedByRef: Map<string, AiSpotCard> = new Map(),
 ): { text: string; cards: AiCards } {
   const spots: AiSpotCard[] = [];
   const events: EventItem[] = [];
@@ -401,7 +564,7 @@ function extractCards(
     const downgraded = line.replace(eventLink, (_whole, label: string, id: string) => {
       const ev = eventById.get(id);
       if (!ev) return label; // unbekanntes Event -> Klartext
-      if (!seenEvent.has(ev.id) && events.length < 6) {
+      if (!seenEvent.has(ev.id) && events.length < MAX_EVENT_CARDS) {
         seenEvent.add(ev.id);
         events.push(ev);
       }
@@ -414,12 +577,28 @@ function extractCards(
   let cleaned = keptLines.join("\n");
 
   // 2) SPOTS -> Inline-Link behalten (liest sich natürlich im Satz) + Karte.
+  //    Gesperrte Geheimtipps (`locked-<i>`): nur die Karte, der Link wird Klartext. Eine
+  //    Spot-Seite gibt es für sie nicht, der Tipp auf die Karte öffnet den Pro-Hinweis.
+  let lockedCount = 0;
   cleaned = cleaned.replace(
     /\[([^\]]+)\]\(\/spot\/([a-z0-9-]+)\)/g,
     (whole, label: string, slug: string) => {
+      const secret = lockedByRef.get(slug);
+      if (secret) {
+        if (
+          !seenSpot.has(secret.slug) &&
+          spots.length < MAX_SPOT_CARDS &&
+          lockedCount < MAX_LOCKED_CARDS
+        ) {
+          seenSpot.add(secret.slug);
+          spots.push(secret);
+          lockedCount++;
+        }
+        return label;
+      }
       const card = spotBySlug.get(slug);
       if (!card) return label; // unbekannter Spot -> Klartext
-      if (!seenSpot.has(card.slug) && spots.length < 5) {
+      if (!seenSpot.has(card.slug) && spots.length < MAX_SPOT_CARDS) {
         seenSpot.add(card.slug);
         spots.push(card);
       }
@@ -433,7 +612,12 @@ function extractCards(
   cleaned = stripUnvouchedLinks(cleaned);
 
   cleaned = cleaned.replace(/\n{3,}/g, "\n\n").trim();
-  return { text: cleaned, cards: { spots, events } };
+  // Nie mehr Geheimtipps als offene Spots: Eine Antwort, die fast nur aus Sperren besteht, wirkt
+  // wie Werbung. Überzählige gesperrte Karten fallen weg (der Text nennt sie nur als Klartext).
+  const openCount = spots.filter((c) => !c.locked).length;
+  let keepLocked = openCount;
+  const shown = spots.filter((c) => !c.locked || keepLocked-- > 0);
+  return { text: cleaned, cards: { spots: shown, events } };
 }
 
 type AnthropicBlock =
@@ -453,12 +637,21 @@ export async function runAssistant(
     page?: string | null;
     /** Client des Betrachters für die Spot-Abfragen (nur App-API). Ohne: Cookie-Client wie im Web. */
     db?: SupabaseClient;
+    /**
+     * Darf Toni gesperrte Geheimtipps als Karte vorschlagen? Nur wenn der Client sie darstellen
+     * kann: Das Web immer, die App erst ab der Version, die `lockedCards: true` mitschickt. Eine
+     * ältere App zeigte sie sonst als Karte ohne Bild, und ein Tipp öffnete einen falschen Spot.
+     * Ohne Pro-Spots (isPro) ohnehin aus.
+     */
+    lockedCards?: boolean;
   },
 ): Promise<AiTurnResult | { error: string }> {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) return { error: "ANTHROPIC_API_KEY fehlt" };
 
   const spotBySlug = new Map<string, AiSpotCard>();
+  // Gesperrte Geheimtipps nach Ersatz-Kennung (`locked-<i>`), nur ohne Pro gefüllt.
+  const lockedByRef = new Map<string, AiSpotCard>();
   const eventById = new Map<string, EventItem>();
   const waterBySlug = new Map<string, WaterReading>();
   let pendingDirections: AiDirections | null = null;
@@ -548,12 +741,26 @@ export async function runAssistant(
             });
           }
           for (const s of pool) if (!spotBySlug.has(s.slug)) spotBySlug.set(s.slug, s);
+          // Ohne Pro: die gesperrten Spots als Geheimtipps dazu, geschwärzt (siehe oben).
+          // Dieselbe Bade-Regel wie bei den freien Spots.
+          let locked: LockedCandidate[] = [];
+          if (!ctx.isPro && ctx.lockedCards) {
+            locked = await loadLockedCandidates();
+            if (SWIM_TRIGGER.test(wish)) {
+              locked = locked.filter((s) => !NO_SWIM_PLACES.some((p) => s.hay.includes(p)));
+            }
+            locked = pickLocked(locked, wish, ctx.locale);
+            for (const s of locked) {
+              if (!lockedByRef.has(s.ref)) lockedByRef.set(s.ref, lockedCard(s, ctx.locale));
+            }
+          }
           toolResults.push({
             type: "tool_result",
             tool_use_id: tu.id,
             content: JSON.stringify({
               count: pool.length,
               spots: pool.map((s) => compactSpot(s, ctx.locale)),
+              ...(locked.length ? { locked: locked.map((s) => compactLocked(s, ctx.locale)) } : {}),
             }),
           });
         } else if (tu.name === "search_events") {
@@ -915,7 +1122,7 @@ export async function runAssistant(
   }
 
   if (!finalText) return { error: "Keine Antwort" };
-  const base = extractCards(finalText, spotBySlug, eventById);
+  const base = extractCards(finalText, spotBySlug, eventById, lockedByRef);
   // Wassertemperaturen (falls das Tool genutzt wurde): wärmste zuerst, gedeckelt.
   const water = [...waterBySlug.values()]
     .sort((a, b) => b.tempC - a.tempC)

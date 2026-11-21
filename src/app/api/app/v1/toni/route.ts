@@ -180,6 +180,9 @@ export async function POST(req: Request) {
       // Ohne Cookies: Die Spot-Abfragen laufen mit der Identität des Betrachters (RLS 0017), sonst sähe
       // auch ein Pro-Nutzer keine Pro-Spots.
       db: who.kind === "user" ? createBearerClient(who.token) : createGuestClient(),
+      // Geheimtipp-Karten nur für Apps, die sie kennen (seit 11/2026 schicken sie
+      // `lockedCards: true`). Ältere Versionen würden sie als offene Karte ohne Bild zeigen.
+      lockedCards: body.lockedCards === true,
     });
     if ("error" in result) {
       await logOps("ai_provider_error", {

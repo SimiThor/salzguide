@@ -355,9 +355,18 @@ export type AppToniStatus = {
 export type AppToniRequest = {
   messages: { role: "user" | "assistant"; content: string }[];
   conversationId?: string | null;
+  /**
+   * Die App kann gesperrte Geheimtipp-Karten (`locked: true`) darstellen. Ohne dieses Feld schickt
+   * der Server keine, damit ältere App-Versionen nichts Kaputtes zeigen.
+   */
+  lockedCards?: boolean;
 };
 
-/** Antwort von POST /toni. Die Karten sind dieselben wie im Web (Pro-Spots nur für Pro-Nutzer). */
+/**
+ * Antwort von POST /toni. Die Karten sind dieselben wie im Web: offene Pro-Spots nur für
+ * Pro-Nutzer; ohne Pro höchstens geschwärzte Geheimtipp-Karten (`locked: true`), und die nur,
+ * wenn die Anfrage `lockedCards: true` trägt.
+ */
 export type AppToniReply = {
   text: string;
   cards: AiCards;
@@ -371,6 +380,24 @@ export type AppToniReply = {
 
 /** 402 von POST /toni. */
 export type AppToniLimit = { error: "limit"; scope: AppToniScope };
+
+/**
+ * Antwort von GET /toni/conversations: die letzten Chats des angemeldeten Kontos, neueste
+ * zuerst (höchstens 30). Derselbe Verlauf wie im Web, Gäste haben keinen.
+ */
+export type AppToniConversations = {
+  conversations: { id: string; title: string; updatedAt: string }[];
+};
+
+/**
+ * Antwort von GET /toni/conversations/{id}: ein gespeicherter Chat. Die Karten sind so, wie sie
+ * beim Antworten waren (gesperrte Geheimtipps bleiben gesperrt). 404, wenn es den Chat für
+ * dieses Konto nicht gibt.
+ */
+export type AppToniConversation = {
+  conversationId: string;
+  messages: { role: "user" | "assistant"; text: string; cards: AiCards }[];
+};
 
 /**
  * Antwort von GET /nav-voice: die gesprochenen Navigations-Ansagen einer Sprache. `voice` ist

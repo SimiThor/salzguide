@@ -31,6 +31,7 @@ import { isOperatorClient } from "@/lib/analytics-operator";
  * - `tour-stop`: gesperrter Halt im Fahrbildschirm des Rad-Audioguides. Die kaufnächste
  *   Fläche der App (der Gast steht vor dem Ort) und deshalb die, deren Zahl am meisten
  *   sagt – sie gehört mit `checkout_start` verglichen, nicht mit den Spot-Flächen.
+ * - `toni`: gesperrter Geheimtipp als Karte in einer Toni-Antwort (Web und App)
  */
 export const PRO_GATE_SURFACES = [
   "sheet",
@@ -40,6 +41,7 @@ export const PRO_GATE_SURFACES = [
   "water",
   "tour-build",
   "tour-stop",
+  "toni",
 ] as const;
 export type ProGateSurface = (typeof PRO_GATE_SURFACES)[number];
 

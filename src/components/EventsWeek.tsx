@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import {
   dayLabel,
@@ -42,6 +43,40 @@ export default function EventsWeek({
   const [range, setRange] = useState<DayRange | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const savedSet = useMemo(() => new Set(savedIds), [savedIds]);
+  // Das Event, zu dem ein Link wie /events?e=<id> führt (Toni-Karte im Chat). Kurz markiert,
+  // damit man sieht, welches gemeint war, dann wieder normal.
+  const [focusId, setFocusId] = useState<string | null>(null);
+  // Dasselbe Event bleibt danach aufgeklappt (ganze Beschreibung), auch wenn der Ring weg ist.
+  const [targetId, setTargetId] = useState<string | null>(null);
+
+  // Ein Link auf ein Event setzt Filter und Zeitraum zurück: Ist Toni auf dieser Seite offen und
+  // „Party“ gewählt, wäre ein Tradition-Event sonst ausgeblendet und der Sprung liefe ins Leere.
+  // Gescrollt wird erst im Effekt darunter, also nach dem Rendern mit „alles“.
+  const jumpTo = useCallback((id: string) => {
+    setFilter("all");
+    setRange(null);
+    setTargetId(id);
+  }, []);
+
+  useEffect(() => {
+    if (!targetId) return;
+    const el = document.getElementById(`ev-${targetId}`);
+    if (!el) return; // vorbei oder unbekannt: Die Seite bleibt, wie sie ist.
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    // Einen Frame warten: Erst steht die Karte aufgeklappt da, dann wird hingescrollt. Sonst
+    // zielt der Sprung auf die alte, kürzere Höhe. block "center": liegt nie unter der festen
+    // Kopfleiste, egal wie hoch sie gerade ist.
+    const raf = requestAnimationFrame(() => {
+      el.scrollIntoView({ block: "center", behavior: reduce ? "auto" : "smooth" });
+      setFocusId(targetId);
+    });
+    const t = window.setTimeout(() => setFocusId(null), 2400);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.clearTimeout(t);
+    };
+  }, [targetId]);
+
 
   // Nur relevante Filter-Pills anbieten (was tatsächlich vorhanden ist).
   const hasHighlights = useMemo(
@@ -95,6 +130,10 @@ export default function EventsWeek({
 
   return (
     <div className={`mx-auto w-full max-w-[640px] px-4 ${PAD}`}>
+      {/* Suspense: useSearchParams darf die vorgerenderte Seite nicht auf den Client zwingen. */}
+      <Suspense fallback={null}>
+        <EventJump onJump={jumpTo} />
+      </Suspense>
       {/* Kopf: Titel + Datumsauswahl. Die Spanne stand hier früher als reine Angabe —
           jetzt ist sie der Knopf, der den Kalender aufmacht. Deshalb trägt sie das
           Knopf-Aussehen aus lib/ui.ts (flach gefüllt, ohne Rand, mit Press-Feedback) und
@@ -206,12 +245,23 @@ export default function EventsWeek({
                     </h2>
                     <div className="space-y-2.5">
                       {d.events.map((e) => (
-                        <EventCard
+                        // Hülle für den Sprung von /events?e=<id>: id als Ziel, der Ring zeigt
+                        // kurz, welches Event gemeint war. Ein mehrtägiges Event steht nur
+                        // einmal in der Liste (groupByDay), die id ist also eindeutig.
+                        <div
                           key={e.id}
-                          event={e}
-                          saved={savedSet.has(e.id)}
-                          loggedIn={loggedIn}
-                        />
+                          id={`ev-${e.id}`}
+                          className={`rounded-[16px] transition-shadow duration-500 ease-[cubic-bezier(.22,.61,.36,1)] ${
+                            focusId === e.id ? "shadow-[0_0_0_2px_var(--color-accent)]" : ""
+                          }`}
+                        >
+                          <EventCard
+                            event={e}
+                            saved={savedSet.has(e.id)}
+                            loggedIn={loggedIn}
+                            expanded={targetId === e.id}
+                          />
+                        </div>
                       ))}
                     </div>
                   </section>
@@ -235,4 +285,20 @@ export default function EventsWeek({
       )}
     </div>
   );
+}
+
+/**
+ * Liest /events?e=<id> (Toni-Karte im Chat) und meldet das Event nach oben, das dann hinspringt.
+ *
+ * Eigene kleine Komponente in Suspense statt searchParams der Seite: Die Seite wird vorgerendert,
+ * ein Server-Parameter würde sie für alle dynamisch machen. useSearchParams statt einmal
+ * window.location beim Laden, weil Toni auch AUF der Event-Seite offen sein kann: Dann bleibt
+ * die Seite stehen, nur der Parameter ändert sich, und der Sprung muss trotzdem kommen.
+ */
+function EventJump({ onJump }: { onJump: (id: string) => void }) {
+  const id = useSearchParams().get("e");
+  useEffect(() => {
+    if (id) onJump(id);
+  }, [id, onJump]);
+  return null;
 }

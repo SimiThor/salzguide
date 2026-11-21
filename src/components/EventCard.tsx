@@ -50,6 +50,7 @@ export default function EventCard({
   onSavedChange,
   onOpen,
   showDate = false,
+  expanded = false,
 }: {
   event: EventItem;
   saved: boolean;
@@ -61,6 +62,9 @@ export default function EventCard({
   // Optional (KI-Chat): Datum in der Meta-Zeile zeigen. Auf /events & /gespeichert
   // sind die Events nach Tag gruppiert (Datum steht im Abschnitts-Header) -> dort aus.
   showDate?: boolean;
+  // Optional (/events?e=<id>): die ganze Beschreibung statt zwei Zeilen. Für das Event, zu dem
+  // ein Link geführt hat: Wer dort ankommt, will genau dessen Details lesen.
+  expanded?: boolean;
 }) {
   const t = useTranslations("Events");
   const locale = useLocale();
@@ -213,7 +217,9 @@ export default function EventCard({
         </div>
 
         {e.description && (
-          <p className="mt-1.5 line-clamp-2 text-[13px] leading-relaxed text-muted">
+          <p
+            className={`mt-1.5 text-[13px] leading-relaxed text-muted${expanded ? "" : " line-clamp-2"}`}
+          >
             {e.description}
           </p>
         )}

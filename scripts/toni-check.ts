@@ -3,6 +3,7 @@
 // Aufruf: npm run toni:check -- --base=http://localhost:3006 [--live=2]
 //
 // WAS GEPRÜFT WIRD
+//  - Verlauf (ohne KI): Liste und einzelner Chat, nur eigene, Gast 401, kaputte ID 400, fremd 404.
 //  - Anmeldung: Gast braucht eine Geräte-ID, kaputtes Token = 401, anonymes Konto = 401.
 //  - Eingabe: leer, zu lang, falsche Form = 400 invalid, keine Cookies nötig.
 //  - Limits OHNE KI-Aufruf: Der Zähler wird vorab per Service-Key auf das Tageslimit gesetzt
@@ -260,14 +261,33 @@ async function main() {
       // (em-dash.ts). Striche ohne Leerzeichen (\u201eEin- und Ausgang", \u201e9\u201317") bleiben erlaubt.
       check("kein Gedankenstrich (U+2014) im Text", !String(r.json.text).includes("\u2014"));
       check("kein Pausen-Strich (\u2013 oder - mit Leerzeichen) im Text", !/\S[ \t]+[\u2013-][ \t]+\S/.test(String(r.json.text)));
-      const cards = (r.json.cards ?? {}) as { spots?: { slug: string }[] };
-      const slugs = (cards.spots ?? []).map((s) => s.slug);
-      info(`${slugs.length} Spot-Karten`);
-      const { data: proRows } = await svc.from("spots").select("slug").eq("is_pro", true);
+      type Card = { slug: string; title: string; shortDesc: string | null; emoji: string | null; imageUrl: string | null; locked?: boolean };
+      const cards = (r.json.cards ?? {}) as { spots?: Card[] };
+      const spots = cards.spots ?? [];
+      const open = spots.filter((s) => !s.locked);
+      const secret = spots.filter((s) => s.locked);
+      info(`${spots.length} Spot-Karten, davon ${secret.length} Geheimtipps`);
+      const { data: proRows } = await svc
+        .from("spots")
+        .select("slug, spot_translations(title)")
+        .eq("is_pro", true);
       const proSet = new Set((proRows ?? []).map((x: { slug: string }) => x.slug));
-      check("Gratis: keine Pro-Spots in den Karten", slugs.every((s) => !proSet.has(s) && !s.startsWith("locked-")));
+      const proTitles = (proRows ?? []).flatMap((x: { spot_translations: { title: string }[] | null }) =>
+        (x.spot_translations ?? []).map((t) => t.title).filter((t) => t.length >= 6),
+      );
+      check("Gratis: keine Pro-Spots als offene Karte", open.every((s) => !proSet.has(s.slug) && !s.slug.startsWith("locked-")));
+      // Geheimtipps (seit 11/2026): erlaubt, aber vollständig geschwärzt. Nichts Echtes ausser der Blur-Vorschau.
+      check(
+        "Gratis: Geheimtipp-Karten geschwärzt (locked-<i>, kein Text, Emoji, Foto)",
+        secret.every((s) => /^locked-\d+$/.test(s.slug) && !s.shortDesc && !s.emoji && !s.imageUrl && !proTitles.includes(s.title)),
+      );
+      // Diese Anfrage trägt kein `lockedCards: true` (wie eine ältere App): dann gar keine Geheimtipps.
+      check("Gratis ohne lockedCards: keine Geheimtipp-Karten", secret.length === 0);
+      check("höchstens 10 Spot-Karten", spots.length <= 10);
       const text = String(r.json.text);
       check("Gratis: kein Pro-Spot-Slug im Antworttext", ![...proSet].some((s) => text.includes(`/spot/${s}`)));
+      check("Gratis: kein Pro-Spot-Titel im Antworttext", !proTitles.some((t) => text.includes(t)));
+      check("Gratis: kein /spot/locked-Link im Antworttext", !text.includes("/spot/locked-"));
       check("Verlauf gespeichert (conversationId)", typeof r.json.conversationId === "string");
       const used = await svc.from("ai_usage").select("count").eq("subject", `u:${free.id}`).maybeSingle();
       check("Zähler im Web-Schlüssel u:<id> = 1", used.data?.count === 1, JSON.stringify(used.data));
@@ -305,6 +325,45 @@ async function main() {
         String(r.json?.text ?? "").includes(`/spot/${target.slug}`);
       check("Pro: Toni nennt den Pro-Spot (Bearer-Client sieht Pro-Spots)", mentioned);
     }
+  }
+
+  // ── Verlauf (GET /toni/conversations, /toni/conversations/{id}) ─────────────────────────────
+  // Ohne KI: Der Chat wird per Service-Key angelegt, wie persistTurn ihn schreibt. Kostet nichts.
+  head("Verlauf: Liste und einzelner Chat");
+  const conv = await svc
+    .from("ai_conversations")
+    .insert({ user_id: free.id, title: "Prüf-Chat Verlauf" })
+    .select("id")
+    .single();
+  if (conv.error || !conv.data) {
+    check("Prüf-Chat anlegen", false, conv.error?.message);
+  } else {
+    const convId = conv.data.id as string;
+    const lockedCard = {
+      slug: "locked-0", title: "Geheimtipp", shortDesc: null, emoji: null, imageUrl: null,
+      imageAiOrigin: null, type: "activity", locked: true, previewUrl: null,
+    };
+    await svc.from("ai_messages").insert([
+      { conversation_id: convId, role: "user", content: "Plan mir einen Tag", cards: null },
+      { conversation_id: convId, role: "assistant", content: "Hier ist dein Tag.", cards: { spots: [lockedCard], events: [] } },
+    ]);
+    const list = await call("GET", "/api/app/v1/toni/conversations?lang=de", { token: free.session.access_token });
+    const convs = (list.json?.conversations ?? []) as { id: string; title: string }[];
+    check("Liste: 200 und der Prüf-Chat steht drin", list.status === 200 && convs.some((c) => c.id === convId && c.title === "Prüf-Chat Verlauf"), `status ${list.status}`);
+    const one = await call("GET", `/api/app/v1/toni/conversations/${convId}?lang=de`, { token: free.session.access_token });
+    const msgs = (one.json?.messages ?? []) as { role: string; text: string; cards: { spots: { locked?: boolean }[] } }[];
+    check("Chat: 200, zwei Nachrichten in Reihenfolge", one.status === 200 && msgs.length === 2 && msgs[0].role === "user" && msgs[1].role === "assistant", `status ${one.status}`);
+    check("Chat: gesperrte Karte bleibt gesperrt", msgs[1]?.cards?.spots?.[0]?.locked === true);
+    const foreign = await call("GET", `/api/app/v1/toni/conversations/${convId}?lang=de`, { token: pro.session.access_token });
+    check("Fremder Chat: 404", foreign.status === 404, `status ${foreign.status}`);
+    const foreignList = await call("GET", "/api/app/v1/toni/conversations?lang=de", { token: pro.session.access_token });
+    check("Fremde Liste enthält ihn nicht", !((foreignList.json?.conversations ?? []) as { id: string }[]).some((c) => c.id === convId));
+    const guest = await call("GET", "/api/app/v1/toni/conversations?lang=de");
+    check("Gast: 401", guest.status === 401, `status ${guest.status}`);
+    const bad = await call("GET", "/api/app/v1/toni/conversations/nicht-uuid?lang=de", { token: free.session.access_token });
+    check("Kaputte ID: 400", bad.status === 400, `status ${bad.status}`);
+    const unknown = await call("GET", "/api/app/v1/toni/conversations/00000000-0000-4000-8000-000000000000?lang=de", { token: free.session.access_token });
+    check("Unbekannte ID: 404", unknown.status === 404, `status ${unknown.status}`);
   }
 }
 

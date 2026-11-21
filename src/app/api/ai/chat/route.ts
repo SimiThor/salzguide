@@ -218,6 +218,8 @@ export async function POST(req: Request) {
     dateRef: dateRef(locale),
     interests,
     page: pageContext,
+    // Das Web stellt gesperrte Geheimtipp-Karten dar (LockedSpotCard -> ProGate).
+    lockedCards: true,
   });
 
   if ("error" in result) {
