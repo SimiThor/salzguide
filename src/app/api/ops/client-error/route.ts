@@ -32,7 +32,13 @@
 // Mails schicken.
 import { NextResponse, after } from "next/server";
 import { logOps, bumpOpsCounter, subjectFromRequest } from "@/lib/ops";
-import { isChunkLoadError, isWebglInitError, webglOpsKind } from "@/lib/ops-events";
+import {
+  isChunkLoadError,
+  isStreamReaderMissing,
+  isWebglInitError,
+  streamOpsKind,
+  webglOpsKind,
+} from "@/lib/ops-events";
 import { scrubPath, scrubText } from "@/lib/ops-scrub";
 import { foreignOrigin } from "@/lib/same-origin";
 import { clientIp, classifyDevice, isBotUserAgent } from "@/lib/analytics";
@@ -118,6 +124,14 @@ export async function POST(req: Request) {
   // Angreifer per passender Meldung LEISER (info statt warn), die Richtung ist harmlos.
   const chunk = isChunkLoadError(message);
   const webgl = !chunk && isWebglInitError(message);
+  // Fehlender Daten-Strom (getReader) am Desktop: Maschine, nur Logbuch (siehe Katalog).
+  const kind = chunk
+    ? "client_chunk_load"
+    : webgl
+      ? webglOpsKind(device)
+      : isStreamReaderMissing(message)
+        ? streamOpsKind(device)
+        : "client_error";
 
   // ── MASCHINEN OHNE GRAFIK SIND KEINE NACHRICHT ────────────────────────────────────────
   //
@@ -147,8 +161,9 @@ export async function POST(req: Request) {
       const count = await bumpOpsCounter(`ops-client-err:${subject}`, WINDOW_SECONDS);
       if (count > MAX_PER_IP) return;
     }
-    // Fehlende Karte am Desktop: nur Logbuch, keine Mail (siehe webglOpsKind).
-    await logOps(chunk ? "client_chunk_load" : webgl ? webglOpsKind(device) : "client_error", {
+    // Fehlende Karte oder fehlender Daten-Strom am Desktop: nur Logbuch, keine Mail
+    // (siehe webglOpsKind und streamOpsKind).
+    await logOps(kind, {
       message,
       path,
       subject,
@@ -158,7 +173,9 @@ export async function POST(req: Request) {
         ? `chunk-load:${device}`
         : webgl
           ? `webgl:${device}`
-          : `client:${device}:${message.replace(/\d+/g, "#").slice(0, 120)}`,
+          : kind === "client_stream_desktop"
+            ? `stream:${device}`
+            : `client:${device}:${message.replace(/\d+/g, "#").slice(0, 120)}`,
       detail: { geraet: device, herkunft: source, digest, ...(quelle ? { quelle } : {}) },
     });
   });

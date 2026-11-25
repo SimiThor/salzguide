@@ -170,6 +170,22 @@ export const OPS_EVENTS = {
     quietMinutes: 360,
     hint: "Meist eine Maschine ohne Grafikkarte, selten ein Rechner mit abgeschalteter Hardware-Beschleunigung. Kein Handlungsbedarf, solange „Karte nicht darstellbar“ für Handys ruhig bleibt.",
   },
+  client_stream_desktop: {
+    area: "app",
+    severity: "info",
+    title: "Browser ohne Daten-Strom am Desktop (getReader fehlt)",
+    // Nur Logbuch, nie eine Mail. Am 25.11.2026 kamen 12 Meldungen „Cannot read properties
+    // of undefined (reading 'getReader')“ auf /de/pro und /en/pro, eine Alarm-Mail. Jede
+    // hatte eine Sekunde davor einen gezählten Aufruf „USA, Desktop, direkt“, nur /pro,
+    // jede Adresse ein- bis zweimal im Minutentakt: ein Renderer mit Browser-Kennung, dessen
+    // fetch keinen lesbaren Strom liefert. Unser Code ruft getReader nirgends auf (das tut
+    // Next.js beim Laden der Seitendaten). Dasselbe Muster gab es schon im September und
+    // Oktober auf anderen Seiten, immer Desktop. Vom Handy bleibt es ein normaler
+    // „Fehler im Browser“ und mailt, denn dort hiesse es, dass echte Besucher hängen.
+    alertAfter: 0,
+    quietMinutes: 180,
+    hint: "Fast immer eine Maschine, deren Browser keine Daten-Ströme kann. Kein Handlungsbedarf, solange vom Handy kein „Fehler im Browser“ mit getReader kommt.",
+  },
   ops_selftest: {
     area: "app",
     // „Notiz" und trotzdem `alertAfter: 1` — der einzige Eintrag im Katalog, bei dem Stufe
@@ -704,6 +720,24 @@ export const OPS_KINDS = Object.keys(OPS_EVENTS) as OpsKind[];
  */
 export function webglOpsKind(device: string): "client_webgl" | "client_webgl_desktop" {
   return device === "desktop" ? "client_webgl_desktop" : "client_webgl";
+}
+
+/**
+ * Fehlt dem Browser der lesbare Daten-Strom (`response.body.getReader`)? Chrome meldet
+ * „Cannot read properties of undefined (reading 'getReader')“, Safari „undefined is not an
+ * object (evaluating '….getReader')“. Nur wenn getReader auf undefined/null trifft, nicht
+ * bei jeder Meldung, in der das Wort vorkommt.
+ */
+export function isStreamReaderMissing(message: string): boolean {
+  return /getReader/.test(message) && /undefined|null/i.test(message);
+}
+
+/**
+ * Welche Art ein fehlender Daten-Strom bekommt. Desktop nur Logbuch (Begründung bei
+ * client_stream_desktop), alles andere bleibt ein normaler Browser-Fehler mit Mail.
+ */
+export function streamOpsKind(device: string): "client_stream_desktop" | "client_error" {
+  return device === "desktop" ? "client_stream_desktop" : "client_error";
 }
 
 /**
