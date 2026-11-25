@@ -1,11 +1,12 @@
-// Prüft, dass eine fehlende Karte am Desktop nur ins Logbuch geht und vom Handy weiter mailt.
+// Prüft, dass eine fehlende Karte und ein fehlender Daten-Strom (getReader) am Desktop nur ins
+// Logbuch gehen und vom Handy weiter mailen.
 // Aufruf: npm run webgl-alert:check
 //
 // Hintergrund: Am 07.11.2026 kamen zwei Alarm-Mails „Karte nicht darstellbar", ausgelöst von
 // einer Maschine mit Desktop-Browser-Kennung. Echte Besucher waren nicht betroffen. Läuft ohne
 // Netz und ohne Schlüssel.
 import { classifyDevice } from "@/lib/analytics";
-import { OPS_EVENTS, webglOpsKind } from "@/lib/ops-events";
+import { OPS_EVENTS, isStreamReaderMissing, streamOpsKind, webglOpsKind } from "@/lib/ops-events";
 
 let okCount = 0;
 let failed = 0;
@@ -42,6 +43,22 @@ check("ohne Kennung -> zählt für die Mail (lieber eine Mail zu viel)", kindFor
 check("Handy-Schwelle liegt über dem Normalfall (max. 5 in 6 h)", OPS_EVENTS.client_webgl.alertAfter > 5, String(OPS_EVENTS.client_webgl.alertAfter));
 check("Hinweistexte ohne Gedankenstrich",
   !OPS_EVENTS.client_webgl.hint.includes("—") && !OPS_EVENTS.client_webgl_desktop.hint.includes("—"));
+
+// 25.11.2026: Maschine mit Desktop-Kennung ohne lesbaren Daten-Strom, 12 Meldungen auf /pro.
+console.log("\nFehlender Daten-Strom (getReader): welche Art, ob Mail");
+const chrome = "Cannot read properties of undefined (reading 'getReader')";
+const safari = "undefined is not an object (evaluating 'e.body.getReader')";
+const streamKind = (msg: string, ua: string | null) =>
+  isStreamReaderMissing(msg) ? streamOpsKind(classifyDevice(ua)) : "client_error";
+check("Chrome-Wortlaut erkannt", isStreamReaderMissing(chrome));
+check("Safari-Wortlaut erkannt", isStreamReaderMissing(safari));
+check("anderer Fehler mit getReader im Text bleibt normal", !isStreamReaderMissing("getReader failed: network error"));
+check("fremder Fehler bleibt normal", !isStreamReaderMissing("Cannot read properties of undefined (reading 'map')"));
+check("Desktop -> nur Logbuch", streamKind(chrome, UA.desktopChrome) === "client_stream_desktop" && !mails("client_stream_desktop"));
+check("iPhone -> normaler Fehler mit Mail", streamKind(safari, UA.iphone) === "client_error" && mails("client_error"));
+check("Android -> normaler Fehler mit Mail", streamKind(chrome, UA.android) === "client_error");
+check("ohne Kennung -> normaler Fehler mit Mail", streamKind(chrome, null) === "client_error");
+check("Hinweistext ohne Gedankenstrich", !OPS_EVENTS.client_stream_desktop.hint.includes("—"));
 
 console.log(`\n${okCount} ok, ${failed} fehlgeschlagen`);
 if (failed) process.exit(1);
