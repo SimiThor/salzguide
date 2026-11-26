@@ -100,7 +100,7 @@ export async function appUserRateLimit(
   return userRateLimit(userId, bucket, windowSeconds, max, failClosed);
 }
 
-export type AppContext = { lang: string; userId: string | null; token: string | null };
+export type AppContext = { lang: string; userId: string | null; token: string | null; anonymous: boolean };
 
 /**
  * Vorspann jeder Route, in fester Reihenfolge: Limit (429), Sprache (400), Betrachter
@@ -117,27 +117,30 @@ export async function appGuard(req: Request): Promise<AppContext | NextResponse>
   if (!viewer.ok) {
     return viewer.reason === "auth" ? appError("auth", 401) : appError("unavailable", 503);
   }
-  return { lang, userId: viewer.userId, token: viewer.token };
+  return { lang, userId: viewer.userId, token: viewer.token, anonymous: viewer.anonymous };
 }
 
-export type AppActContext = AppContext & { userId: string; token: string; user: User };
+export type AppActContext = AppContext & { userId: string; token: string; user: User; anonymous: boolean };
 
 /**
  * Vorspann jeder SCHREIBENDEN Route: wie appGuard (Limit, Sprache), aber der Betrachter wird
  * zusätzlich beim Auth-Server bestätigt (appActor). Gast, anonyme Anmeldung, gelöschtes oder
  * gesperrtes Konto = 401; Ausfall des Auth-Servers = 503.
  */
-export async function appActGuard(req: Request): Promise<AppActContext | NextResponse> {
+export async function appActGuard(
+  req: Request,
+  opts: { allowAnonymous?: boolean } = {},
+): Promise<AppActContext | NextResponse> {
   if (!(await appRateLimit(req))) return appError("rate_limit", 429);
 
   const lang = appLang(req);
   if (!lang) return appError("invalid", 400);
 
-  const actor = await appActor(req);
+  const actor = await appActor(req, opts);
   if (!actor.ok) {
     return actor.reason === "auth" ? appError("auth", 401) : appError("unavailable", 503);
   }
-  return { lang, userId: actor.userId, token: actor.token, user: actor.user };
+  return { lang, userId: actor.userId, token: actor.token, user: actor.user, anonymous: actor.anonymous };
 }
 
 /**

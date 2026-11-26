@@ -47,6 +47,9 @@ export const currentUserId = cache(async function currentUserId(): Promise<strin
     const { data, error } = await supabase.auth.getClaims();
     if (error) return null;
     const sub = data?.claims?.sub;
+    // Anonyme Konten (Kauf ohne Konto in der iOS-App) gibt es im Web nicht. Ein selbst gesetztes
+    // Cookie eines solchen Kontos ist hier ein Gast: kein Pro, keine Konto-Seiten.
+    if (data?.claims?.is_anonymous === true) return null;
     return typeof sub === "string" && sub ? sub : null;
   } catch {
     // Kein Token, kaputtes Token, Auth nicht erreichbar -> ausgeloggt behandeln. Eine

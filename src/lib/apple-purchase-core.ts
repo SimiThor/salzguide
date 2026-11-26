@@ -11,9 +11,21 @@ import "server-only";
 // DIE REGELN, in einem Satz je Regel:
 //   1. Eine original_transaction_id gehört genau einem Konto (Primärschlüssel).
 //   2. Gehört sie einem LEBENDEN anderen Konto: ablehnen ("foreign"), nie umbinden.
+//  2a. Ausnahme: Das andere Konto ist ANONYM (Kauf ohne Konto in der iOS-App, Apple 5.1.1) und das
+//      anfragende ist ECHT (Anmeldung danach). Dann wandert die Transaktion ins echte Konto, und alle
+//      anonymen Inhaber (Besitzer und anon_holders) verlieren ihr Apple-Pro. Erst wegnehmen, dann
+//      umbinden: Scheitert das Umbinden, holt sich der alte Inhaber Pro beim nächsten Abgleich wieder.
+//      Sicher, weil nur Geräte der zahlenden Apple-ID die von Apple signierte Transaktion haben.
+//  2b. Sind BEIDE anonym (zweites Gerät derselben Apple-ID, wieder ohne Konto), wird geteilt: Das
+//      anfragende Konto kommt in anon_holders und bekommt Pro DAZU. Ein nicht verbrauchbarer Kauf
+//      gilt auf allen Geräten der Apple-ID. Höchstens MAX_ANON_HOLDERS Mit-Inhaber: Sonst ließe sich
+//      ein mitgeschnittenes JWS an beliebig viele frisch angelegte anonyme Konten verteilen. Nie gibt
+//      ein echtes Konto etwas an ein anonymes ab: Ein anonymes Konto bekommt dann "foreign" mit Grund
+//      "needs_sign_in" (still, kein Alarm).
 //   3. Gehört sie niemandem mehr (user_id null, Konto gelöscht): an das angemeldete Konto binden.
 //   4. Neu: der appAccountToken in der Transaktion muss die ID des angemeldeten Kontos sein.
-//      Fehlt er (alte Transaktion), wird an das angemeldete Konto gebunden.
+//      Fehlt er (alte Transaktion), wird an das angemeldete Konto gebunden. Zeigt er auf ein
+//      ANONYMES Konto, gilt Regel 2a (gekauft ohne Konto, verbucht erst nach der Anmeldung).
 //   5. Ist is_pro schon true, wird pro_source NIE geändert (Geschenk, Übernahme, Stripe bleiben).
 //   6. Eine erstattete/entzogene Zeile (revoked_at) wird nie wieder freigeschaltet, auch nicht
 //      durch eine alte, noch gültig signierte Transaktion (Wiedereinspielen nach Erstattung).
@@ -40,6 +52,8 @@ export type PurchaseRow = {
   purchasedAt: string;
   revokedAt: string | null;
   appAccountToken: string | null;
+  /** Anonyme Mit-Inhaber (Regel 2b, Migration 0078). Leer bei allen anderen Käufen. */
+  anonHolders: string[];
 };
 
 export type ProfileState = {
@@ -57,8 +71,11 @@ export interface AppleStore {
   getPurchase(originalTransactionId: string): Promise<PurchaseRow | null>;
   /** true = angelegt, false = die Zeile gab es schon (Primärschlüssel). Andere Fehler werfen. */
   insertPurchase(row: PurchaseRow): Promise<boolean>;
-  /** Bindet NUR, wenn user_id null UND revoked_at null ist. true = diese Zeile wurde geändert. */
-  bindPurchase(originalTransactionId: string, userId: string): Promise<boolean>;
+  /**
+   * Bindet NUR, wenn user_id null UND revoked_at null ist. true = diese Zeile wurde geändert.
+   * `clearHolders`: anon_holders dabei leeren (ein echtes Konto übernimmt, Regel 2a gilt sinngemäß).
+   */
+  bindPurchase(originalTransactionId: string, userId: string, clearHolders: boolean): Promise<boolean>;
   /** Setzt revoked_at, wenn es noch leer ist. */
   markRevoked(originalTransactionId: string, at: string): Promise<void>;
   getProfile(userId: string): Promise<ProfileState | null>;
@@ -93,6 +110,25 @@ export interface AppleStore {
   removeStripeProForCustomer(userId: string, customerId: string): Promise<boolean>;
   /** Gibt es zu dieser ID ein Konto (Profil)? */
   profileExists(userId: string): Promise<boolean>;
+  /** Ist das Konto eine anonyme Anmeldung (Kauf ohne Konto in der iOS-App)? Kein Konto = false. */
+  isAnonymousAccount(userId: string): Promise<boolean>;
+  /**
+   * Regel 2a: Besitzer wechseln UND anon_holders leeren, in einem Schritt, NUR wo user_id = fromUserId,
+   * anon_holders = expectedHolders (genau die freigegebenen) UND revoked_at null. true = geändert. Die
+   * Bedingung steckt im UPDATE: Kam inzwischen ein Mit-Inhaber dazu, scheitert der Umzug, und der
+   * Aufrufer bewertet neu (gibt den neuen dann ebenfalls frei).
+   */
+  moveFromAccount(
+    originalTransactionId: string,
+    fromUserId: string,
+    toUserId: string,
+    expectedHolders: string[],
+  ): Promise<boolean>;
+  /**
+   * Regel 2b: anonymen Mit-Inhaber eintragen, NUR wo user_id = ownerId, revoked_at null UND weniger als
+   * MAX_ANON_HOLDERS eingetragen sind. true = eingetragen oder schon drin.
+   */
+  addAnonHolder(originalTransactionId: string, ownerId: string, holderId: string): Promise<boolean>;
 }
 
 /** Optionen, die aus der Konfiguration kommen. */
@@ -118,11 +154,17 @@ export type GrantResult =
       alreadyEntitledBy: string | null;
       /** Neue Transaktion, deren Token auf ein GELÖSCHTES Konto zeigte: an dieses Konto gebunden. */
       tokenAccountDeleted: boolean;
+      /** Kam von einem anonymen Konto (Regel 2a/2b): umgebunden, geteilt oder dessen Token übernommen. */
+      fromAnonymous: boolean;
     }
   | {
       status: "foreign";
       originalTransactionId: string;
-      reason: "owned_by_other_account" | "token_mismatch";
+      /**
+       * `needs_sign_in`: Der Kauf gehört einem ECHTEN Konto, gefragt hat ein anonymes (Gerät ohne
+       * Anmeldung). Erwartet, kein Alarm; die App bittet um die Anmeldung.
+       */
+      reason: "owned_by_other_account" | "token_mismatch" | "needs_sign_in" | "holder_limit";
     }
   | { status: "revoked"; originalTransactionId: string }
   | {
@@ -144,6 +186,13 @@ export type RevokeResult = {
 // Wie oft ein verlorenes Rennen (ein anderer war schneller) neu bewertet wird, bevor der
 // Aufruf als Fehler endet. Zwei reichen für jeden echten Ablauf, drei lassen Luft.
 const MAX_ATTEMPTS = 3;
+
+/**
+ * Höchstens so viele anonyme Mit-Inhaber je Kauf (Regel 2b), dazu der Besitzer. Großzügig für echte
+ * Geräte einer Apple-ID (iPhone, iPad, Ersatzgerät), eng für ein verteiltes JWS. Dieselbe Zahl steht
+ * in apple_purchase_add_holder (Migration 0078).
+ */
+export const MAX_ANON_HOLDERS = 4;
 
 /**
  * Eine geprüfte Transaktion dem angemeldeten Konto zuordnen und Pro freischalten.
@@ -186,9 +235,65 @@ export async function bindAndGrantApplePro(
         return { status: "revoked", originalTransactionId: id };
       }
 
-      // Regel 2: ein lebendes anderes Konto. Nie umbinden.
+      // Regel 2: ein lebendes anderes Konto. Nie umbinden, außer es ist anonym (Regel 2a/2b).
       if (existing.userId !== null && existing.userId !== userId) {
-        return { status: "foreign", originalTransactionId: id, reason: "owned_by_other_account" };
+        const owner = existing.userId;
+        const requesterAnonymous = await store.isAnonymousAccount(userId);
+        if (!(await store.isAnonymousAccount(owner))) {
+          return {
+            status: "foreign",
+            originalTransactionId: id,
+            reason: requesterAnonymous ? "needs_sign_in" : "owned_by_other_account",
+          };
+        }
+        if (requesterAnonymous) {
+          // Regel 2b: teilen. Schon eingetragen = wiederholter Abgleich dieses Geräts.
+          const known = existing.anonHolders.includes(userId);
+          if (!known && existing.anonHolders.length >= MAX_ANON_HOLDERS) {
+            return { status: "foreign", originalTransactionId: id, reason: "holder_limit" };
+          }
+          if (!known && !(await store.addAnonHolder(id, owner, userId))) continue; // Rennen: neu bewerten
+          const pro = await ensurePro(store, userId, id, now);
+          // Rennen gegen den Umzug ins echte Konto: Hat er zwischen Eintragen und Freischalten die
+          // Mit-Inhaber freigegeben und geleert, stünde dieses Konto mit Pro in keiner Zeile mehr (und
+          // keine Erstattung erreichte es). Nachprüfen, sonst Pro wieder nehmen und neu bewerten.
+          const after = await store.getPurchase(id);
+          if (!after || after.revokedAt || (after.userId !== userId && !after.anonHolders.includes(userId))) {
+            await releaseApplePro(store, userId, id, existing.environment);
+            continue;
+          }
+          return {
+            status: known ? "already" : "granted",
+            originalTransactionId: id,
+            newPurchase: false,
+            rebound: false,
+            tokenAccountDeleted: false,
+            fromAnonymous: true,
+            ...pro,
+          };
+        }
+        // Regel 2a: ins echte Konto. Erst den anonymen Inhabern Pro nehmen, dann umbinden.
+        for (const holder of [owner, ...existing.anonHolders]) {
+          await releaseApplePro(store, holder, id, existing.environment);
+        }
+        // Nur bei unveränderter Liste umziehen (sonst neu lesen, neu freigeben).
+        if (!(await store.moveFromAccount(id, owner, userId, existing.anonHolders))) continue;
+        // Und NACH dem Umzug noch einmal freigeben: Ein Mit-Inhaber kann sich zwischen der ersten
+        // Freigabe und dem Umzug Pro geholt haben (seine Nachprüfung sah ihn noch in der Liste).
+        // Danach kann sich niemand mehr eintragen (die Zeile gehört dem echten Konto).
+        for (const holder of [owner, ...existing.anonHolders]) {
+          await releaseApplePro(store, holder, id, existing.environment);
+        }
+        const pro = await ensurePro(store, userId, id, now);
+        return {
+          status: "granted",
+          originalTransactionId: id,
+          newPurchase: false,
+          rebound: true,
+          tokenAccountDeleted: false,
+          fromAnonymous: true,
+          ...pro,
+        };
       }
 
       // Schon dieses Konto: wiederholter Aufruf. Pro trotzdem sicherstellen ("Reparatur", falls
@@ -201,13 +306,21 @@ export async function bindAndGrantApplePro(
           newPurchase: false,
           rebound: false,
           tokenAccountDeleted: false,
+          fromAnonymous: false,
           ...pro,
         };
       }
 
       // Regel 3: user_id null, das Konto des früheren Käufers ist gelöscht. Binden. Hat in der
       // Zwischenzeit jemand anderes gebunden (Rennen), neu lesen und neu bewerten.
-      if (!(await store.bindPurchase(id, userId))) continue;
+      // Übernimmt ein ECHTES Konto, verlieren übrig gebliebene anonyme Mit-Inhaber ihr Pro (wie 2a).
+      const realTakesOver = !(await store.isAnonymousAccount(userId));
+      if (realTakesOver) {
+        for (const holder of existing.anonHolders) {
+          await releaseApplePro(store, holder, id, existing.environment);
+        }
+      }
+      if (!(await store.bindPurchase(id, userId, realTakesOver))) continue;
       const pro = await ensurePro(store, userId, id, now);
       return {
         status: "granted",
@@ -215,6 +328,7 @@ export async function bindAndGrantApplePro(
         newPurchase: false,
         rebound: true,
         tokenAccountDeleted: false,
+        fromAnonymous: false,
         ...pro,
       };
     }
@@ -226,12 +340,24 @@ export async function bindAndGrantApplePro(
     // Zeigt der Token auf ein Konto, das es NICHT MEHR gibt (Käufer hat sein Konto gelöscht und
     // sich neu angemeldet), gehört die Transaktion dem Menschen vor uns: Nur sein Gerät hat sie.
     // Dann binden wir an das angemeldete Konto und lassen es melden (Handarbeit prüft).
+    // Zeigt er auf ein ANONYMES Konto (ohne Konto gekauft, verbucht wird erst später oder auf
+    // einem anderen Gerät), binden wir ebenfalls an das anfragende Konto (Regel 2a/2b): Kommt das
+    // anonyme Konto später, wird es nach 2b Mit-Inhaber.
     let tokenAccountDeleted = false;
+    let tokenFromAnonymous = false;
     if (tx.appAccountToken !== null && tx.appAccountToken !== userId) {
       if (await store.profileExists(tx.appAccountToken)) {
-        return { status: "foreign", originalTransactionId: id, reason: "token_mismatch" };
+        if (!(await store.isAnonymousAccount(tx.appAccountToken))) {
+          return {
+            status: "foreign",
+            originalTransactionId: id,
+            reason: (await store.isAnonymousAccount(userId)) ? "needs_sign_in" : "token_mismatch",
+          };
+        }
+        tokenFromAnonymous = true;
+      } else {
+        tokenAccountDeleted = true;
       }
-      tokenAccountDeleted = true;
     }
 
     const inserted = await store.insertPurchase({
@@ -242,6 +368,7 @@ export async function bindAndGrantApplePro(
       purchasedAt: tx.purchasedAt,
       revokedAt: null,
       appAccountToken: tx.appAccountToken,
+      anonHolders: [],
     });
     if (!inserted) continue; // ein anderer war schneller: neu lesen
     const pro = await ensurePro(store, userId, id, now);
@@ -251,11 +378,24 @@ export async function bindAndGrantApplePro(
       newPurchase: true,
       rebound: false,
       tokenAccountDeleted,
+      fromAnonymous: tokenFromAnonymous,
       ...pro,
     };
   }
 
   throw new Error("apple purchase: Zuordnung nach mehreren Versuchen nicht stabil");
+}
+
+// Regel 2a, zweite Hälfte: Das anonyme Konto hat die Transaktion abgegeben. Sein Apple-Pro endet,
+// außer ein anderer nicht erstatteter Apple-Kauf trägt es noch. Nur pro_source = 'apple' (im UPDATE).
+async function releaseApplePro(
+  store: AppleStore,
+  fromUserId: string,
+  originalTransactionId: string,
+  environment: "Production" | "Sandbox",
+): Promise<void> {
+  if (await store.hasOtherActivePurchase(fromUserId, originalTransactionId, environment)) return;
+  await store.removeAppleProIfApple(fromUserId);
 }
 
 // Pro sicherstellen. Regel 5: Ist is_pro schon true, wird NICHTS geschrieben, pro_source bleibt.
@@ -329,6 +469,7 @@ export async function applyAppleRevocation(
       purchasedAt: tx.purchasedAt,
       revokedAt: at,
       appAccountToken: tx.appAccountToken,
+      anonHolders: [],
     });
     if (inserted) return { status: "tombstoned", proRemoved: false, switchedToStripe: false, stripeWithoutCustomer: false };
     // Zwischen Lesen und Anlegen kam die Zeile (Kauf wurde verbucht): normal weiter.
@@ -342,17 +483,24 @@ export async function applyAppleRevocation(
   }
 
   const wasRevoked = row.revokedAt !== null;
-  if (!wasRevoked) await store.markRevoked(originalTransactionId, at);
+  if (!wasRevoked) {
+    await store.markRevoked(originalTransactionId, at);
+    // FRISCH lesen: Zwischen dem ersten Lesen und markRevoked kann die Zeile umgebunden worden sein
+    // (Regel 2a/2b). Danach geht das nicht mehr (beide verlangen revoked_at null), also sind
+    // Besitzer und Mit-Inhaber jetzt endgültig.
+    row = (await store.getPurchase(originalTransactionId)) ?? row;
+  }
 
   // Den Entzug IMMER versuchen, auch wenn revoked_at schon stand: Ein früherer Aufruf kann
   // zwischen "erstattet" und "Pro entzogen" gescheitert sein, und die Wiederholung (Apple
-  // stellt erneut zu) muss das heilen.
+  // stellt erneut zu) muss das heilen. Betroffen sind der Besitzer und alle anonymen Mit-Inhaber.
   let proRemoved = false;
   let switchedToStripe = false;
   let stripeWithoutCustomer = false;
-  if (row.userId !== null) {
+  const owners = [row.userId, ...row.anonHolders].filter((u): u is string => u !== null);
+  for (const userId of owners) {
     const stillPaid = await store.hasOtherActivePurchase(
-      row.userId,
+      userId,
       originalTransactionId,
       row.environment,
     );
@@ -360,22 +508,23 @@ export async function applyAppleRevocation(
       // Doppelt bezahlt (Stripe UND Apple): Das Konto hat einen aktiven Stripe-Kauf. Dann den
       // Entzug NICHT ausführen, sondern die Quelle auf 'stripe' stellen: Pro bleibt, und eine
       // spätere Stripe-Erstattung greift wieder (sie filtert auf pro_source = 'stripe').
-      const stripe = await store.hasActiveStripePurchase(row.userId);
+      const stripe = await store.hasActiveStripePurchase(userId);
       if (stripe && stripe.customerId) {
-        switchedToStripe = await store.switchAppleProToStripe(row.userId, stripe.customerId);
+        const switched = await store.switchAppleProToStripe(userId, stripe.customerId);
+        switchedToStripe = switched || switchedToStripe;
         // Rennen: Wurde der Stripe-Kauf zwischen Prüfung und Umstellung erstattet, fand
         // revokePro() (pro_source = 'stripe') noch nichts zu entziehen. Nach der Umstellung noch
         // einmal prüfen und dann selbst entziehen, sonst bliebe Pro nach zwei Erstattungen stehen.
         // revokePro() selbst bleibt unverändert.
-        if (switchedToStripe && !(await store.hasActiveStripePurchase(row.userId))) {
-          proRemoved = await store.removeStripeProForCustomer(row.userId, stripe.customerId);
+        if (switched && !(await store.hasActiveStripePurchase(userId))) {
+          proRemoved = (await store.removeStripeProForCustomer(userId, stripe.customerId)) || proRemoved;
           switchedToStripe = false;
         }
       } else {
         // Kein aktiver Stripe-Kauf, oder einer ohne Kunden-ID (nicht umstellbar: die Stripe-
         // Erstattung fände das Profil nie). Dann wie gehabt entziehen; im zweiten Fall melden.
-        proRemoved = await store.removeAppleProIfApple(row.userId);
-        stripeWithoutCustomer = stripe !== null;
+        proRemoved = (await store.removeAppleProIfApple(userId)) || proRemoved;
+        stripeWithoutCustomer = stripe !== null || stripeWithoutCustomer;
       }
     }
   }

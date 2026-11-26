@@ -400,6 +400,9 @@ export default async function DatenschutzPage({
           Apple einen Kauf, erfahren wir das von Apple und nehmen die Freischaltung zurück.
           Rechtsgrundlage ist die Erfüllung des Vertrags (Art. 6 Abs. 1 lit. b DSGVO). Löschst du
           dein Konto, bleibt der Kauf als Nachweis bestehen, ohne Verknüpfung zu einem Konto.
+          Kaufst du, ohne angemeldet zu sein, legt die App dafür ein anonymes Konto an: nur eine
+          zufällige Kennung, ohne Namen und ohne E-Mail-Adresse, abgelegt im Schlüsselbund deines
+          iPhones. Meldest du dich später an, übertragen wir den Kauf in dein Konto.
         </li>
         <li>
           <strong>Standort:</strong> Die App nutzt deinen Standort nur, wenn du es ihr erlaubst,

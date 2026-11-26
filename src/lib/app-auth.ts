@@ -20,7 +20,8 @@ import { createServiceClient } from "./supabase/service";
 // gesperrter oder gelöschter Account sofort draußen ist.
 
 export type AppAuth =
-  | { ok: true; userId: string | null; token: string | null }
+  /** `anonymous`: anonymes Konto (Kauf ohne Konto in der iOS-App), laut Claim `is_anonymous` im geprüften Token. */
+  | { ok: true; userId: string | null; token: string | null; anonymous: boolean }
   | { ok: false; reason: "auth" | "unavailable" };
 
 // EIN Anon-Client, nur für getClaims(token) mit ausdrücklichem Token. Das Teilen ist
@@ -190,7 +191,7 @@ function isAuthServerOutage(error: { name?: string; status?: number }): boolean 
  */
 export async function appViewer(req: Request): Promise<AppAuth> {
   const header = req.headers.get("authorization");
-  if (header === null) return { ok: true, userId: null, token: null };
+  if (header === null) return { ok: true, userId: null, token: null, anonymous: false };
 
   const m = /^bearer ([^\s]+)$/i.exec(header.trim());
   const token = m?.[1];
@@ -236,7 +237,7 @@ export async function appViewer(req: Request): Promise<AppAuth> {
     ) {
       return { ok: false, reason: "auth" };
     }
-    return { ok: true, userId: sub, token };
+    return { ok: true, userId: sub, token, anonymous: claims?.is_anonymous === true };
   } catch (e) {
     // Echte Netzwerkfehler kommen von auth-js als zurückgegebener AuthRetryableFetchError (oben
     // behandelt). Was hier GEWORFEN ankommt, sind Token-Probleme (z. B. importKey/verify lehnen
@@ -282,7 +283,7 @@ export function createBearerClient(token: string): SupabaseClient {
 }
 
 export type AppActorResult =
-  | { ok: true; userId: string; token: string; user: User }
+  | { ok: true; userId: string; token: string; user: User; anonymous: boolean }
   | { ok: false; reason: "auth" | "unavailable" };
 
 /**
@@ -294,8 +295,15 @@ export type AppActorResult =
  * Gäste und anonyme Anmeldungen (is_anonymous) sind hier draußen: Sie dürfen lesen, aber
  * nichts verändern. Ausfall des Auth-Servers = "unavailable" (503), nie "auth": Die App meldet
  * den Nutzer dabei nicht ab.
+ *
+ * AUSNAHME `allowAnonymous`: Nur Routen, die ein anonymes Konto ausdrücklich brauchen. Das ist der
+ * Apple-Kauf ohne Konto (Apple 5.1.1: ein Einmalkauf darf keine Registrierung verlangen) und
+ * Toni für so einen Käufer. Die Route sieht `anonymous` und entscheidet selbst.
  */
-export async function appActor(req: Request): Promise<AppActorResult> {
+export async function appActor(
+  req: Request,
+  opts: { allowAnonymous?: boolean } = {},
+): Promise<AppActorResult> {
   const viewer = await appViewer(req);
   if (!viewer.ok) return viewer;
   if (!viewer.userId || !viewer.token) return { ok: false, reason: "auth" };
@@ -303,10 +311,10 @@ export async function appActor(req: Request): Promise<AppActorResult> {
     const { data, error } = await getAuthClient().auth.getUser(viewer.token);
     if (error) return { ok: false, reason: isAuthServerOutage(error) ? "unavailable" : "auth" };
     const user = data?.user;
-    if (!user || user.id !== viewer.userId || user.is_anonymous) {
-      return { ok: false, reason: "auth" };
-    }
-    return { ok: true, userId: user.id, token: viewer.token, user };
+    if (!user || user.id !== viewer.userId) return { ok: false, reason: "auth" };
+    const anonymous = user.is_anonymous === true;
+    if (anonymous && !opts.allowAnonymous) return { ok: false, reason: "auth" };
+    return { ok: true, userId: user.id, token: viewer.token, user, anonymous };
   } catch (e) {
     return { ok: false, reason: isAuthRetryableFetchError(e) ? "unavailable" : "auth" };
   }

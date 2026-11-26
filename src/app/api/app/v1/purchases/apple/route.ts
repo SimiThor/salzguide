@@ -36,10 +36,12 @@ const JWS_SHAPE = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
  * Signatur selbst, nimmt NICHTS aus dem Body außer den Signaturen und entscheidet dann
  * anhand der geprüften Angaben (lib/apple-purchase-core.ts).
  *
- * HANDELN: auth.getUser beim Auth-Server (appActGuard). Ein Gast oder gelöschtes Konto kauft nicht.
+ * HANDELN: auth.getUser beim Auth-Server (appActGuard). Ein gelöschtes Konto kauft nicht. Ein
+ * ANONYMES Konto darf (Apple 5.1.1: Einmalkauf ohne Registrierung): Die App legt es beim Kauf ohne
+ * Konto an, nach der Anmeldung wandert der Kauf ins echte Konto (Regel 2a in apple-purchase-core.ts).
  */
 export async function POST(req: Request) {
-  const ctx = await appActGuard(req);
+  const ctx = await appActGuard(req, { allowAnonymous: true });
   if (ctx instanceof Response) return ctx;
 
   const path = new URL(req.url).pathname;

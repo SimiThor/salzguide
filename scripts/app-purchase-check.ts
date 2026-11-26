@@ -34,6 +34,7 @@ import { APPLE_ROOT_SHA256, appleRootCertificates } from "@/lib/apple-roots/inde
 import {
   applyAppleRevocation,
   bindAndGrantApplePro,
+  MAX_ANON_HOLDERS,
   type AppleStore,
   type AppleTx,
   type PurchaseRow,
@@ -312,7 +313,7 @@ class FakeStore implements AppleStore {
   async getPurchase(id: string) {
     this.hook("getPurchase");
     const r = this.purchases.get(id);
-    return r ? { ...r } : null;
+    return r ? { ...r, anonHolders: [...r.anonHolders] } : null;
   }
   async insertPurchase(row: PurchaseRow) {
     this.hook("insertPurchase");
@@ -320,11 +321,12 @@ class FakeStore implements AppleStore {
     this.purchases.set(row.originalTransactionId, { ...row });
     return true;
   }
-  async bindPurchase(id: string, userId: string) {
+  async bindPurchase(id: string, userId: string, clearHolders: boolean) {
     this.hook("bindPurchase");
     const r = this.purchases.get(id);
     if (!r || r.userId !== null || r.revokedAt !== null) return false;
     r.userId = userId;
+    if (clearHolders) r.anonHolders = [];
     return true;
   }
   async markRevoked(id: string, at: string) {
@@ -349,7 +351,7 @@ class FakeStore implements AppleStore {
     this.hook("hasOtherActivePurchase");
     return [...this.purchases.values()].some(
       (r) =>
-        r.userId === userId &&
+        (r.userId === userId || r.anonHolders.includes(userId)) &&
         r.revokedAt === null &&
         r.originalTransactionId !== except &&
         (env === "Sandbox" || r.environment === "Production"),
@@ -377,6 +379,29 @@ class FakeStore implements AppleStore {
   async profileExists(userId: string) {
     this.hook("profileExists");
     return this.profiles.has(userId);
+  }
+  // Konten aus einem Kauf ohne Konto (Supabase is_anonymous).
+  anonymous = new Set<string>();
+  async isAnonymousAccount(userId: string) {
+    this.hook("isAnonymousAccount");
+    return this.profiles.has(userId) && this.anonymous.has(userId);
+  }
+  async moveFromAccount(id: string, from: string, to: string, expected: string[]) {
+    this.hook("moveFromAccount");
+    const r = this.purchases.get(id);
+    if (!r || r.userId !== from || r.revokedAt !== null) return false;
+    if (JSON.stringify(r.anonHolders) !== JSON.stringify(expected)) return false;
+    r.userId = to;
+    r.anonHolders = [];
+    return true;
+  }
+  async addAnonHolder(id: string, owner: string, holder: string) {
+    this.hook("addAnonHolder");
+    const r = this.purchases.get(id);
+    if (!r || r.userId !== owner || r.revokedAt !== null) return false;
+    if (!r.anonHolders.includes(holder) && r.anonHolders.length >= MAX_ANON_HOLDERS) return false;
+    if (!r.anonHolders.includes(holder)) r.anonHolders = [...r.anonHolders, holder];
+    return true;
   }
   async removeAppleProIfApple(userId: string) {
     this.hook("removeAppleProIfApple");
@@ -440,17 +465,235 @@ console.log(" b) Zuordnung zum Konto");
 }
 {
   const s = fresh();
-  s.purchases.set("100", { originalTransactionId: "100", userId: null, productId: PRODUCT, environment: "Production", purchasedAt: now(), revokedAt: null, appAccountToken: "99999999-9999-4999-8999-999999999999" });
+  s.purchases.set("100", { originalTransactionId: "100", userId: null, productId: PRODUCT, environment: "Production", purchasedAt: now(), revokedAt: null, appAccountToken: "99999999-9999-4999-8999-999999999999", anonHolders: [] });
   const r = await bindAndGrantApplePro(s, USER_A, tx({ appAccountToken: "99999999-9999-4999-8999-999999999999" }), now);
   eq("user_id null (Konto geloescht) -> an angemeldetes Konto gebunden", [r.status, r.status === "granted" && r.rebound, r.status === "granted" && r.newPurchase, s.purchases.get("100")?.userId], ["granted", true, false, USER_A]);
   eq("... und Pro gesetzt", s.profiles.get(USER_A), { isPro: true, proSource: "apple" });
 }
 
+console.log(" b2) Kauf ohne Konto (anonymes Konto, Apple 5.1.1)");
+const ANON = "33333333-3333-4333-8333-333333333333";
+const ANON2 = "44444444-4444-4444-8444-444444444444";
+const withAnon = (...ids: string[]) => {
+  const s = fresh();
+  for (const id of ids) {
+    s.profiles.set(id, { isPro: false, proSource: null });
+    s.anonymous.add(id);
+  }
+  return s;
+};
+const row = (over: Partial<PurchaseRow> = {}): PurchaseRow => ({
+  originalTransactionId: "100", userId: ANON, productId: PRODUCT, environment: "Production", purchasedAt: now(),
+  revokedAt: null, appAccountToken: ANON, anonHolders: [], ...over,
+});
+{
+  const s = withAnon(ANON);
+  const r = await bindAndGrantApplePro(s, ANON, tx({ appAccountToken: ANON }), now);
+  eq("anonymes Konto kauft -> granted, Pro", [r.status, s.profiles.get(ANON)?.isPro], ["granted", true]);
+  const moved = await bindAndGrantApplePro(s, USER_A, tx({ appAccountToken: ANON }), now);
+  eq(
+    "2a Anmeldung: Kauf wandert vom anonymen ins echte Konto",
+    [moved.status, moved.status === "granted" && moved.fromAnonymous, moved.status === "granted" && moved.rebound, s.purchases.get("100")?.userId],
+    ["granted", true, true, USER_A],
+  );
+  eq("echtes Konto Pro, anonymes nicht mehr", [s.profiles.get(USER_A)?.isPro, s.profiles.get(ANON)?.isPro], [true, false]);
+  s.profiles.set(ANON2, { isPro: false, proSource: null });
+  s.anonymous.add(ANON2);
+  const back = await bindAndGrantApplePro(s, ANON2, tx({ appAccountToken: ANON }), now);
+  eq("nie zurueck: anonymes Geraet bekommt needs_sign_in, Zeile bleibt beim echten Konto", [back.status === "foreign" && back.reason, s.purchases.get("100")?.userId, s.profiles.get(ANON2)?.isPro], ["needs_sign_in", USER_A, false]);
+}
+{
+  const s = withAnon(ANON, ANON2);
+  await bindAndGrantApplePro(s, ANON, tx({ appAccountToken: ANON }), now);
+  const r = await bindAndGrantApplePro(s, ANON2, tx({ appAccountToken: ANON }), now);
+  eq(
+    "2b zweites Geraet ohne Konto: Pro geteilt, erstes Geraet behaelt Pro",
+    [r.status, s.purchases.get("100")?.userId, s.purchases.get("100")?.anonHolders, s.profiles.get(ANON2)?.isPro, s.profiles.get(ANON)?.isPro],
+    ["granted", ANON, [ANON2], true, true],
+  );
+  const again = await bindAndGrantApplePro(s, ANON2, tx({ appAccountToken: ANON }), now);
+  eq("2b wiederholt: already, kein zweiter Eintrag", [again.status, s.purchases.get("100")?.anonHolders], ["already", [ANON2]]);
+  const first = await bindAndGrantApplePro(s, ANON, tx({ appAccountToken: ANON }), now);
+  eq("erstes Geraet gleicht ab: already, behaelt Pro", [first.status, s.profiles.get(ANON)?.isPro], ["already", true]);
+  const moved = await bindAndGrantApplePro(s, USER_A, tx({ appAccountToken: ANON }), now);
+  eq(
+    "2a mit Mit-Inhaber: echtes Konto uebernimmt, beide anonymen verlieren Pro, Liste leer",
+    [moved.status, s.purchases.get("100")?.userId, s.purchases.get("100")?.anonHolders, s.profiles.get(ANON)?.isPro, s.profiles.get(ANON2)?.isPro, s.profiles.get(USER_A)?.isPro],
+    ["granted", USER_A, [], false, false, true],
+  );
+}
+{
+  const s = withAnon(ANON, ANON2);
+  await bindAndGrantApplePro(s, ANON, tx({ appAccountToken: ANON }), now);
+  await bindAndGrantApplePro(s, ANON2, tx({ appAccountToken: ANON }), now);
+  const rv = await applyAppleRevocation(s, "100", null, now());
+  eq("Erstattung erreicht Besitzer UND Mit-Inhaber", [rv.status, rv.proRemoved, s.profiles.get(ANON)?.isPro, s.profiles.get(ANON2)?.isPro], ["revoked", true, false, false]);
+}
+{
+  const s = withAnon(ANON);
+  const r = await bindAndGrantApplePro(s, USER_A, tx({ appAccountToken: ANON }), now);
+  eq(
+    "ohne Konto gekauft, erst nach der Anmeldung verbucht (Token anonym) -> gebunden",
+    [r.status, r.status === "granted" && r.fromAnonymous, r.status === "granted" && r.newPurchase, s.purchases.get("100")?.userId, s.profiles.get(USER_A)?.isPro],
+    ["granted", true, true, USER_A, true],
+  );
+}
+{
+  const s = withAnon(ANON);
+  const r = await bindAndGrantApplePro(s, ANON, tx({ appAccountToken: USER_B }), now);
+  eq("Token eines echten Kontos, gefragt anonym -> needs_sign_in, nichts verbucht", [r.status === "foreign" && r.reason, s.purchases.size], ["needs_sign_in", 0]);
+  const real = await bindAndGrantApplePro(s, USER_A, tx({ appAccountToken: USER_B }), now);
+  eq("dasselbe von einem echten Konto -> token_mismatch (bleibt laut)", real.status === "foreign" && real.reason, "token_mismatch");
+}
+{
+  const s = withAnon(ANON);
+  s.profiles.set(ANON, { isPro: true, proSource: "apple" });
+  s.purchases.set("100", row());
+  s.purchases.set("101", row({ originalTransactionId: "101" }));
+  await bindAndGrantApplePro(s, USER_A, tx({ appAccountToken: ANON }), now);
+  eq("anderer Kauf haelt das anonyme Pro am Leben", s.profiles.get(ANON)?.isPro, true);
+}
+{
+  const s = withAnon(ANON);
+  s.profiles.set(ANON, { isPro: true, proSource: "comp" });
+  s.purchases.set("100", row());
+  await bindAndGrantApplePro(s, USER_A, tx({ appAccountToken: ANON }), now);
+  eq("Pro aus anderer Quelle am anonymen Konto bleibt (nur pro_source apple endet)", s.profiles.get(ANON), { isPro: true, proSource: "comp" });
+}
+{
+  const s = withAnon(ANON);
+  s.purchases.set("100", row({ revokedAt: now() }));
+  const r = await bindAndGrantApplePro(s, USER_A, tx({ appAccountToken: ANON }), now);
+  eq("erstattete Zeile eines anonymen Kontos wandert nicht", [r.status, s.purchases.get("100")?.userId], ["revoked", ANON]);
+}
+{
+  // Rennen: Zwischen Lesen und Umbinden bindet ein anderes Geraet (echtes Konto B) die Zeile um.
+  const s = withAnon(ANON);
+  s.purchases.set("100", row());
+  s.before.moveFromAccount = () => {
+    s.purchases.get("100")!.userId = USER_B;
+  };
+  const r = await bindAndGrantApplePro(s, USER_A, tx({ appAccountToken: ANON }), now);
+  eq("Rennen beim Umbinden: neu bewertet -> gehoert jetzt B -> foreign", [r.status, s.purchases.get("100")?.userId], ["foreign", USER_B]);
+}
+{
+  // Ausfall zwischen Wegnehmen und Umbinden: Der anonyme Besitzer hat Pro verloren, die Zeile ist
+  // noch seine. Sein naechster Abgleich heilt das (already + ensurePro).
+  const s = withAnon(ANON);
+  s.profiles.set(ANON, { isPro: true, proSource: "apple" });
+  s.purchases.set("100", row());
+  s.failOn.moveFromAccount = true;
+  let threw = false;
+  try {
+    await bindAndGrantApplePro(s, USER_A, tx({ appAccountToken: ANON }), now);
+  } catch {
+    threw = true;
+  }
+  s.failOn.moveFromAccount = false;
+  eq("Ausfall beim Umbinden: Fehler, Zeile bleibt beim anonymen, dessen Pro vorerst weg", [threw, s.purchases.get("100")?.userId, s.profiles.get(ANON)?.isPro], [true, ANON, false]);
+  const heal = await bindAndGrantApplePro(s, ANON, tx({ appAccountToken: ANON }), now);
+  eq("  naechster Abgleich des anonymen Geraets heilt (already, Pro wieder da)", [heal.status, s.profiles.get(ANON)?.isPro], ["already", true]);
+}
+{
+  // Rennen Erstattung gegen Umbinden: Die Erstattung liest Besitzer ANON, dann bindet ein echtes
+  // Konto um und bekommt Pro, erst dann markiert die Erstattung. Der frisch gelesene Besitzer
+  // verliert Pro.
+  const s = withAnon(ANON);
+  s.profiles.set(ANON, { isPro: true, proSource: "apple" });
+  s.purchases.set("100", row());
+  s.before.markRevoked = () => {
+    const r = s.purchases.get("100")!;
+    r.userId = USER_A;
+    s.profiles.set(USER_A, { isPro: true, proSource: "apple" });
+    s.profiles.set(ANON, { isPro: false, proSource: "apple" });
+  };
+  const rv = await applyAppleRevocation(s, "100", null, now());
+  eq("Erstattung nach Umbinden trifft den neuen Besitzer", [rv.status, s.profiles.get(USER_A)?.isPro], ["revoked", false]);
+}
+{
+  const s = withAnon(ANON);
+  await bindAndGrantApplePro(s, ANON, tx({ appAccountToken: ANON }), now);
+  await bindAndGrantApplePro(s, USER_A, tx({ appAccountToken: ANON }), now);
+  const rv = await applyAppleRevocation(s, "100", null, now());
+  eq("Erstattung nach dem Umzug: echtes Konto verliert Pro", [rv.status, s.profiles.get(USER_A)?.isPro], ["revoked", false]);
+}
+{
+  const s = withAnon(ANON);
+  s.purchases.set("100", row());
+  const extra = ["a1", "a2", "a3", "a4", "a5"].map((x, i) => `6666666${i}-6666-4666-8666-666666666666`);
+  for (const id of extra) {
+    s.profiles.set(id, { isPro: false, proSource: null });
+    s.anonymous.add(id);
+  }
+  const out: string[] = [];
+  for (const id of extra) {
+    const r = await bindAndGrantApplePro(s, id, tx({ appAccountToken: ANON }), now);
+    out.push(r.status === "foreign" ? r.reason : r.status);
+  }
+  eq(`Grenze: hoechstens ${MAX_ANON_HOLDERS} anonyme Mit-Inhaber, der naechste bekommt holder_limit`, out, ["granted", "granted", "granted", "granted", "holder_limit"]);
+  eq("  der abgewiesene bekommt kein Pro", s.profiles.get(extra[4])?.isPro, false);
+}
+{
+  // Rennen A: Zwischen Lesen und Umzug traegt sich ein weiteres anonymes Geraet ein (mit Pro).
+  const ANON3 = "77777777-7777-4777-8777-777777777777";
+  const s = withAnon(ANON, ANON3);
+  s.profiles.set(ANON, { isPro: true, proSource: "apple" });
+  s.purchases.set("100", row());
+  s.before.moveFromAccount = () => {
+    s.purchases.get("100")!.anonHolders = [ANON3];
+    s.profiles.set(ANON3, { isPro: true, proSource: "apple" });
+  };
+  const r = await bindAndGrantApplePro(s, USER_A, tx({ appAccountToken: ANON }), now);
+  eq(
+    "Rennen A: Umzug scheitert an der neuen Liste, neu bewertet, auch der neue Mit-Inhaber verliert Pro",
+    [r.status, s.purchases.get("100")?.userId, s.purchases.get("100")?.anonHolders, s.profiles.get(ANON3)?.isPro, s.profiles.get(USER_A)?.isPro],
+    ["granted", USER_A, [], false, true],
+  );
+}
+{
+  // Rennen B: Ein anonymes Geraet traegt sich ein, dann zieht der Kauf ins echte Konto um (Liste
+  // geleert), und erst danach schaltet das Geraet sein Pro frei. Die Nachpruefung nimmt es zurueck.
+  const s = withAnon(ANON, ANON2);
+  s.purchases.set("100", row());
+  s.before.getProfile = () => {
+    const r = s.purchases.get("100")!;
+    r.userId = USER_A;
+    r.anonHolders = [];
+  };
+  const r = await bindAndGrantApplePro(s, ANON2, tx({ appAccountToken: ANON }), now);
+  eq("Rennen B: Mit-Inhaber ohne Zeile behaelt kein Pro, Ergebnis needs_sign_in", [r.status === "foreign" && r.reason, s.profiles.get(ANON2)?.isPro], ["needs_sign_in", false]);
+}
+{
+  // Rennen B2: Ein eingetragener Mit-Inhaber holt sich Pro NACH der ersten Freigabe, aber VOR dem
+  // Umzug (seine Nachpruefung sah ihn noch in der Liste). Die zweite Freigabe nach dem Umzug greift.
+  const ANON3 = "77777777-7777-4777-8777-777777777777";
+  const s = withAnon(ANON, ANON3);
+  s.purchases.set("100", row({ anonHolders: [ANON3] }));
+  s.before.moveFromAccount = () => {
+    s.profiles.set(ANON3, { isPro: true, proSource: "apple" });
+  };
+  const r = await bindAndGrantApplePro(s, USER_A, tx({ appAccountToken: ANON }), now);
+  eq("Rennen B2: Mit-Inhaber verliert Pro trotz spaeter Freischaltung", [r.status, s.purchases.get("100")?.anonHolders, s.profiles.get(ANON3)?.isPro], ["granted", [], false]);
+}
+{
+  // Regel 3 mit Mit-Inhabern: Der anonyme Besitzer wurde geloescht, ein echtes Konto bindet.
+  const s = withAnon(ANON2);
+  s.profiles.set(ANON2, { isPro: true, proSource: "apple" });
+  s.purchases.set("100", row({ userId: null, anonHolders: [ANON2] }));
+  const r = await bindAndGrantApplePro(s, USER_A, tx({ appAccountToken: ANON }), now);
+  eq("Regel 3: echtes Konto bindet, uebrige anonyme Mit-Inhaber verlieren Pro, Liste leer", [r.status, s.purchases.get("100")?.userId, s.purchases.get("100")?.anonHolders, s.profiles.get(ANON2)?.isPro], ["granted", USER_A, [], false]);
+}
+{
+  const s = fresh();
+  s.anonymous.add("55555555-5555-4555-8555-555555555555");
+  eq("Konto ohne Profil zaehlt nie als anonym", await s.isAnonymousAccount("55555555-5555-4555-8555-555555555555"), false);
+}
+
 console.log(" c) Wiederherstellen: viele Transaktionen, jede fuer sich");
 {
   const s = fresh();
-  s.purchases.set("200", { originalTransactionId: "200", userId: USER_B, productId: PRODUCT, environment: "Production", purchasedAt: now(), revokedAt: null, appAccountToken: USER_B });
-  s.purchases.set("300", { originalTransactionId: "300", userId: null, productId: PRODUCT, environment: "Production", purchasedAt: now(), revokedAt: null, appAccountToken: null });
+  s.purchases.set("200", { originalTransactionId: "200", userId: USER_B, productId: PRODUCT, environment: "Production", purchasedAt: now(), revokedAt: null, appAccountToken: USER_B, anonHolders: [] });
+  s.purchases.set("300", { originalTransactionId: "300", userId: null, productId: PRODUCT, environment: "Production", purchasedAt: now(), revokedAt: null, appAccountToken: null, anonHolders: [] });
   const inputs = [tx({ originalTransactionId: "100", appAccountToken: USER_A }), tx({ originalTransactionId: "200", appAccountToken: null }), tx({ originalTransactionId: "300", appAccountToken: null }), tx({ originalTransactionId: "400", appAccountToken: USER_B })];
   const out: string[] = [];
   for (const t of inputs) out.push((await bindAndGrantApplePro(s, USER_A, t, now)).status);
@@ -565,14 +808,14 @@ console.log(" f) Rennen und Ausfaelle beim Zuordnen");
 {
   const s = fresh();
   s.before.insertPurchase = () => {
-    s.purchases.set("100", { originalTransactionId: "100", userId: USER_B, productId: PRODUCT, environment: "Production", purchasedAt: now(), revokedAt: null, appAccountToken: null });
+    s.purchases.set("100", { originalTransactionId: "100", userId: USER_B, productId: PRODUCT, environment: "Production", purchasedAt: now(), revokedAt: null, appAccountToken: null, anonHolders: [] });
   };
   const r = await bindAndGrantApplePro(s, USER_A, tx({ appAccountToken: null }), now);
   eq("Einfuegen verliert das Rennen gegen anderes Konto -> foreign", [r.status, s.purchases.get("100")?.userId, s.profiles.get(USER_A)?.isPro], ["foreign", USER_B, false]);
 }
 {
   const s = fresh();
-  s.purchases.set("100", { originalTransactionId: "100", userId: null, productId: PRODUCT, environment: "Production", purchasedAt: now(), revokedAt: null, appAccountToken: null });
+  s.purchases.set("100", { originalTransactionId: "100", userId: null, productId: PRODUCT, environment: "Production", purchasedAt: now(), revokedAt: null, appAccountToken: null, anonHolders: [] });
   s.before.bindPurchase = () => {
     s.purchases.get("100")!.userId = USER_B;
   };
@@ -834,6 +1077,29 @@ console.log("\n6. Stripe-Weg (grantPro): ueberschreibt Apple-Pro nie, Rest unver
   } finally {
     globalThis.fetch = realFetch;
   }
+}
+
+// ═════════════════════════════════════════════════════════════════════════════════════
+console.log("\n7. Anonyme Konten duerfen nirgends schreiben (Migration 0078)");
+{
+  // Die einschraenkenden Policies no_anonymous_* aus 0078 gelten nur fuer Tabellen, die es beim
+  // Einspielen gab. Jede SPAETERE Migration mit einer Schreib-Policy fuer authenticated muss den Block
+  // erneut ausfuehren, sonst schreibt dort jedes anonyme Konto (Kauf ohne Konto, Apple 5.1.1).
+  const { readdirSync } = await import("node:fs");
+  const dir = join(process.cwd(), "supabase", "migrations");
+  const later = readdirSync(dir).filter((f) => /^\d{4}_.*\.sql$/.test(f) && Number(f.slice(0, 4)) > 78);
+  const open = later.filter((f) => {
+    const sql = readFileSync(join(dir, f), "utf8").toLowerCase();
+    // Jede Schreib-Policy zählt: mit "to authenticated", "to public" oder ganz ohne TO-Klausel (gilt
+    // dann für public, also auch für anonyme Konten).
+    const writes = /create policy[^;]*?for\s+(insert|update|delete|all)\b/.test(sql);
+    return writes && !sql.includes("no_anonymous_insert");
+  });
+  check(
+    "keine spaetere Migration oeffnet Schreib-Policies ohne no_anonymous_* (Block aus 0078 erneut ausfuehren)",
+    open.length === 0,
+    open.join(", "),
+  );
 }
 
 console.log(`\n${passed} bestanden, ${failed} fehlgeschlagen`);

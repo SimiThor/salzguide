@@ -359,10 +359,11 @@ type Row = {
   purchased_at: string;
   revoked_at: string | null;
   app_account_token: string | null;
+  anon_holders: string[] | null;
 };
 
 const COLUMNS =
-  "original_transaction_id, user_id, product_id, environment, purchased_at, revoked_at, app_account_token";
+  "original_transaction_id, user_id, product_id, environment, purchased_at, revoked_at, app_account_token, anon_holders";
 
 function fromRow(r: Row): PurchaseRow {
   return {
@@ -373,6 +374,7 @@ function fromRow(r: Row): PurchaseRow {
     purchasedAt: new Date(r.purchased_at).toISOString(),
     revokedAt: r.revoked_at ? new Date(r.revoked_at).toISOString() : null,
     appAccountToken: r.app_account_token,
+    anonHolders: r.anon_holders ?? [],
   };
 }
 
@@ -404,10 +406,10 @@ export function supabaseAppleStore(): AppleStore {
       if ((error as { code?: string }).code === "23505") return false;
       throw error;
     },
-    async bindPurchase(id, userId) {
+    async bindPurchase(id, userId, clearHolders) {
       const { data, error } = await svc
         .from("apple_purchases")
-        .update({ user_id: userId })
+        .update(clearHolders ? { user_id: userId, anon_holders: [] } : { user_id: userId })
         .eq("original_transaction_id", id)
         .is("user_id", null)
         .is("revoked_at", null)
@@ -449,10 +451,13 @@ export function supabaseAppleStore(): AppleStore {
       return (data?.length ?? 0) > 0;
     },
     async hasOtherActivePurchase(userId, exceptId, refundedEnvironment) {
+      // Besitzer ODER anonymer Mit-Inhaber (Regel 2b). userId kommt aus einem geprüften Token oder
+      // aus der Tabelle; trotzdem nur eine echte UUID in den Filter-Text lassen.
+      if (!UUID_RE.test(userId)) throw new Error("apple purchase: Konto-ID ist keine UUID");
       let q = svc
         .from("apple_purchases")
         .select("original_transaction_id")
-        .eq("user_id", userId)
+        .or(`user_id.eq.${userId},anon_holders.cs.{${userId}}`)
         .is("revoked_at", null)
         .neq("original_transaction_id", exceptId);
       // Nach einer Production-Erstattung hält nur ein anderer Production-Kauf das Pro am Leben.
@@ -503,6 +508,37 @@ export function supabaseAppleStore(): AppleStore {
       const { data, error } = await svc.from("profiles").select("id").eq("id", userId).maybeSingle();
       if (error) throw error;
       return data !== null;
+    },
+    async isAnonymousAccount(userId) {
+      // Die Admin-Schnittstelle von Supabase Auth (Service-Key). Kein Konto = nicht anonym; ein
+      // anderer Fehler wirft (die Route antwortet 503, die App versucht es erneut).
+      const { data, error } = await svc.auth.admin.getUserById(userId);
+      if (error) {
+        if ((error as { status?: number }).status === 404) return false;
+        throw error;
+      }
+      return data.user?.is_anonymous === true;
+    },
+    async moveFromAccount(id, fromUserId, toUserId, expectedHolders) {
+      // Besitzer wechseln UND anon_holders leeren in einem UPDATE (Migration 0078), nur bei
+      // unveränderter Liste der Mit-Inhaber.
+      const { data, error } = await svc.rpc("apple_purchase_move", {
+        p_transaction: id,
+        p_from: fromUserId,
+        p_to: toUserId,
+        p_expected: expectedHolders,
+      });
+      if (error) throw error;
+      return data === true;
+    },
+    async addAnonHolder(id, ownerId, holderId) {
+      const { data, error } = await svc.rpc("apple_purchase_add_holder", {
+        p_transaction: id,
+        p_owner: ownerId,
+        p_holder: holderId,
+      });
+      if (error) throw error;
+      return data === true;
     },
     async removeAppleProIfApple(userId) {
       // Nur wo pro_source = 'apple' (im UPDATE). Wie revokePro() für Stripe: pro_source und
@@ -596,6 +632,24 @@ export async function settleAppleTransactions(
     }
 
     if (r.status === "foreign") {
+      // Erwartet: Ein Gerät ohne Anmeldung meldet einen Kauf, der einem echten Konto gehört (nach
+      // Abmelden oder auf einem weiteren Gerät). Kein Alarm, die App bittet um die Anmeldung.
+      if (r.reason === "needs_sign_in") {
+        results.push({ originalTransactionId: id, status: "foreign" });
+        continue;
+      }
+      if (r.reason === "holder_limit") {
+        // Mehr anonyme Geräte als erlaubt teilen sich einen Kauf: sehr viele eigene Geräte ohne
+        // Anmeldung oder ein weitergegebenes JWS. Gemeldet, nicht freigeschaltet.
+        await logOps("apple_purchase_manual", {
+          message: "Apple-Kauf: Grenze für anonyme Geräte erreicht, nicht geteilt (weitergegebener Kauf?).",
+          subject: opsSubject("user", userId),
+          group: "apple:holder_limit",
+          detail: { originalTransactionId: id },
+        });
+        results.push({ originalTransactionId: id, status: "foreign" });
+        continue;
+      }
       await logOps("apple_purchase_foreign", {
         message:
           r.reason === "token_mismatch"

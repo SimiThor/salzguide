@@ -90,8 +90,11 @@ export async function createCheckoutSession(
 
   const supabase = await createClient();
   const {
-    data: { user },
+    data: { user: rawUser },
   } = await supabase.auth.getUser();
+  // Anonyme Konten (Kauf ohne Konto in der iOS-App) gibt es im Web nicht: ein selbst gesetztes
+  // Cookie davon ist ein Gast (Gast-Bremse, kein Stripe-Kunde je anonymem Konto).
+  const user = rawUser && !rawUser.is_anonymous ? rawUser : null;
 
   // Eingeloggt: an das bestehende Konto binden (wie bisher). Gast: Konto entsteht nach der
   // Zahlung. Beide Wege enden in derselben Stripe-Checkout-Session.
