@@ -113,6 +113,12 @@ export interface AppleStore {
   /** Ist das Konto eine anonyme Anmeldung (Kauf ohne Konto in der iOS-App)? Kein Konto = false. */
   isAnonymousAccount(userId: string): Promise<boolean>;
   /**
+   * Nach Regel 2a: das anonyme Konto, dessen Kauf ins echte Konto gezogen ist, löschen. NUR wenn es
+   * (frisch geprüft) anonym ist UND in keiner Kauf-Zeile mehr Besitzer oder Mit-Inhaber ist. Sonst
+   * bleibt es. true = gelöscht. Wirft bei Speicherfehlern (der Aufrufer meldet, der Kauf gilt).
+   */
+  retireAnonymousAccount(userId: string): Promise<boolean>;
+  /**
    * Regel 2a: Besitzer wechseln UND anon_holders leeren, in einem Schritt, NUR wo user_id = fromUserId,
    * anon_holders = expectedHolders (genau die freigegebenen) UND revoked_at null. true = geändert. Die
    * Bedingung steckt im UPDATE: Kam inzwischen ein Mit-Inhaber dazu, scheitert der Umzug, und der
@@ -156,6 +162,11 @@ export type GrantResult =
       tokenAccountDeleted: boolean;
       /** Kam von einem anonymen Konto (Regel 2a/2b): umgebunden, geteilt oder dessen Token übernommen. */
       fromAnonymous: boolean;
+      /**
+       * Regel 2a: das anonyme Konto, das den Kauf gerade ans echte Konto abgegeben hat. Der Aufrufer
+       * räumt es ab (`retireAnonymousAccount`), sonst bliebe ein leeres Konto im Admin stehen.
+       */
+      anonymousOwnerMoved?: string;
     }
   | {
       status: "foreign";
@@ -292,6 +303,7 @@ export async function bindAndGrantApplePro(
           rebound: true,
           tokenAccountDeleted: false,
           fromAnonymous: true,
+          anonymousOwnerMoved: owner,
           ...pro,
         };
       }

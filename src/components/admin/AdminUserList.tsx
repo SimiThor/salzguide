@@ -112,7 +112,9 @@ function UserRow({ user, grant }: { user: AdminUser; grant?: ProGrantEntry }) {
     <li className="flex flex-col gap-2 px-4 py-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="min-w-0">
-          <p className="truncate text-sm font-medium text-ink">{user.email ?? "(keine E-Mail)"}</p>
+          {/* Ohne E-Mail gibt es nur anonyme Konten aus einem App-Kauf ohne Anmeldung (Apple-Login
+              liefert immer eine Adresse, notfalls die Weiterleitung). */}
+          <p className="truncate text-sm font-medium text-ink">{user.email ?? "Anonymer App-Käufer"}</p>
           <p className="text-[12px] text-muted">
             seit {fmt(user.createdAt)}
             {user.role === "admin" && " · Admin"}
