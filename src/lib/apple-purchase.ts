@@ -519,6 +519,28 @@ export function supabaseAppleStore(): AppleStore {
       }
       return data.user?.is_anonymous === true;
     },
+    async retireAnonymousAccount(userId) {
+      // Drei Riegel vor dem Löschen: gültige ID, frisch als anonym bestätigt, in keiner Kauf-Zeile
+      // mehr (weder Besitzer noch Mit-Inhaber). Ein echtes Konto wird hier nie gelöscht.
+      if (!UUID_RE.test(userId)) return false;
+      const { data: auth, error: authError } = await svc.auth.admin.getUserById(userId);
+      if (authError) {
+        if ((authError as { status?: number }).status === 404) return false;
+        throw authError;
+      }
+      if (auth.user?.is_anonymous !== true) return false;
+      const { data: rows, error } = await svc
+        .from("apple_purchases")
+        .select("original_transaction_id")
+        .or(`user_id.eq.${userId},anon_holders.cs.{${userId}}`)
+        .limit(1);
+      if (error) throw error;
+      if ((rows?.length ?? 0) > 0) return false;
+      // Profil und alles Abhängige gehen per ON DELETE CASCADE bzw. SET NULL mit (0001, 0038, 0075).
+      const { error: deleteError } = await svc.auth.admin.deleteUser(userId);
+      if (deleteError) throw deleteError;
+      return true;
+    },
     async moveFromAccount(id, fromUserId, toUserId, expectedHolders) {
       // Besitzer wechseln UND anon_holders leeren in einem UPDATE (Migration 0078), nur bei
       // unveränderter Liste der Mit-Inhaber.
@@ -702,6 +724,22 @@ export async function settleAppleTransactions(
       isRealSite()
     ) {
       await trackConversion({ locale, device: "other" });
+    }
+
+    // Regel 2a: Das anonyme Konto hat seinen Kauf ans echte Konto abgegeben und ist nun leer.
+    // Löschen, damit es nicht als „(keine E-Mail)“ im Admin stehen bleibt (Anton 26.11.2026). Ein
+    // Fehler hier kostet den Kauf nichts: Er gilt, gemeldet wird leise (nur Logbuch).
+    if (r.status === "granted" && r.anonymousOwnerMoved) {
+      try {
+        await store.retireAnonymousAccount(r.anonymousOwnerMoved);
+      } catch (e) {
+        await logOps("apple_anon_cleanup_failed", {
+          message: `Leeres anonymes Konto nach dem Kauf-Umzug nicht gelöscht: ${e instanceof Error ? e.message : String(e)}`.slice(0, 300),
+          subject: opsSubject("user", r.anonymousOwnerMoved),
+          group: "apple:anon_cleanup",
+          detail: { originalTransactionId: id },
+        });
+      }
     }
 
     results.push({ originalTransactionId: id, status: r.status });

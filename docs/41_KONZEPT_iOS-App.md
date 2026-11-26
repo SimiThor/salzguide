@@ -41,7 +41,9 @@ Begründungen, damit sie nicht neu diskutiert werden:
   Registrierung verlangen. Ohne Anmeldung legt die App beim Kauf (oder Wiederherstellen mit Kauf) ein ANONYMES
   Supabase-Konto an (`signInAnonymously`, nichts einzugeben); Pro hängt weiter an `profiles.is_pro` dieses Kontos.
   Meldet sich der Nutzer an, wandert der Kauf ins echte Konto (Regel 2a, `apple-purchase-core.ts`), dann gilt er auch
-  im Web. Zweites Gerät derselben Apple-ID, wieder ohne Konto: Das zweite anonyme Konto wird Mit-Inhaber
+  im Web. Danach löscht der Server das leere anonyme Konto (`retireAnonymousAccount`: nur wenn anonym und in keiner
+  Kauf-Zeile mehr; scheitert es, gilt der Kauf trotzdem, Meldung `apple_anon_cleanup_failed` nur im Logbuch). Übrige
+  anonyme Konten stehen im Admin als „Anonymer App-Käufer“. Zweites Gerät derselben Apple-ID, wieder ohne Konto: Das zweite anonyme Konto wird Mit-Inhaber
   (`anon_holders`, Regel 2b, höchstens 4 dazu), beide haben Pro; eine Erstattung erreicht alle. Im Web zählt ein
   anonymes Konto nie (`currentUserId()` liefert null), `npm run app-purchase:check` wacht über neue Schreib-Policies. Voraussetzungen: Migration 0078
   (Mit-Inhaber, und anonyme Konten dürfen per RLS nirgends schreiben), dann in Supabase › Authentication ›

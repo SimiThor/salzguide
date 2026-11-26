@@ -286,7 +286,7 @@ try {
 
 // ═════════════════════════════════════════════════════════════════════════════════════
 console.log("\n4. Ops-Katalog kennt die neuen Arten");
-for (const k of ["apple_purchase_failed", "apple_purchase_invalid", "apple_purchase_foreign", "apple_purchase_manual", "apple_notification_invalid", "apple_notification_ignored"]) {
+for (const k of ["apple_purchase_failed", "apple_purchase_invalid", "apple_purchase_foreign", "apple_purchase_manual", "apple_notification_invalid", "apple_notification_ignored", "apple_anon_cleanup_failed"]) {
   check(`Katalog: ${k}`, k in OPS_EVENTS);
 }
 eq("apple_purchase_failed meldet sofort (error, alertAfter 1)", [OPS_EVENTS.apple_purchase_failed.severity, OPS_EVENTS.apple_purchase_failed.alertAfter], ["error", 1]);
@@ -385,6 +385,19 @@ class FakeStore implements AppleStore {
   async isAnonymousAccount(userId: string) {
     this.hook("isAnonymousAccount");
     return this.profiles.has(userId) && this.anonymous.has(userId);
+  }
+  // Gelöschte Konten (Regel 2a, Aufräumen). Wie in Supabase: Profil weg, Kauf-Zeilen auf null.
+  retired: string[] = [];
+  async retireAnonymousAccount(userId: string) {
+    this.hook("retireAnonymousAccount");
+    if (!this.profiles.has(userId) || !this.anonymous.has(userId)) return false;
+    for (const r of this.purchases.values()) {
+      if (r.userId === userId || r.anonHolders.includes(userId)) return false;
+    }
+    this.profiles.delete(userId);
+    this.anonymous.delete(userId);
+    this.retired.push(userId);
+    return true;
   }
   async moveFromAccount(id: string, from: string, to: string, expected: string[]) {
     this.hook("moveFromAccount");
@@ -1031,6 +1044,71 @@ console.log(" k) settleAppleTransactions: Meldungen, Conversion-Bedingung, Sandb
   });
   const brokenNote = await verifyAppleNotification(refundJws, brokenCfg, verifiersKBoth);
   check("kaputte Liste: Benachrichtigung (Erstattung) wird trotzdem angenommen", brokenNote.ok && brokenNote.type === "REFUND", JSON.stringify(brokenNote));
+}
+
+console.log(" k2) Nach dem Umzug: leeres anonymes Konto wird abgeraeumt (Anton 26.11.2026)");
+{
+  const verifiersK2 = makeVerifierFactory(cfgProd, [chain.root]);
+  const lines: string[] = [];
+  const orig = { log: console.log, warn: console.warn, error: console.error };
+  const grab = (...a: unknown[]) => void lines.push(a.map(String).join(" "));
+  const settle = async (s: FakeStore, signed: string[]) => {
+    console.log = console.warn = console.error = grab;
+    try {
+      return await settleAppleTransactions(USER_A, signed, "de", cfgProd, { store: s, verifiers: verifiersK2 });
+    } finally {
+      console.log = orig.log;
+      console.warn = orig.warn;
+      console.error = orig.error;
+    }
+  };
+  const anonRow = (over: Partial<PurchaseRow> = {}): PurchaseRow => ({
+    originalTransactionId: "960", userId: ANON, productId: PRODUCT, environment: "Production", purchasedAt: now(),
+    revokedAt: null, appAccountToken: ANON, anonHolders: [], ...over,
+  });
+  const signed = jws(chain, txPayload({ originalTransactionId: "960", appAccountToken: ANON }));
+
+  const s1 = withAnon(ANON);
+  s1.profiles.set(ANON, { isPro: true, proSource: "apple" });
+  s1.purchases.set("960", anonRow());
+  const out1 = await settle(s1, [signed]);
+  eq("Umzug ins echte Konto: granted, Zeile bei A, A Pro", [out1.map((o) => o.status), s1.purchases.get("960")?.userId, s1.profiles.get(USER_A)?.isPro], [["granted"], USER_A, true]);
+  eq("... anonymes Konto geloescht (Profil weg)", [s1.retired, s1.profiles.has(ANON)], [[ANON], false]);
+
+  // Gleicher Umzug, aber das anonyme Konto besitzt noch einen ZWEITEN Kauf: bleibt stehen.
+  const s2 = withAnon(ANON);
+  s2.profiles.set(ANON, { isPro: true, proSource: "apple" });
+  s2.purchases.set("960", anonRow());
+  s2.purchases.set("961", anonRow({ originalTransactionId: "961", appAccountToken: ANON }));
+  await settle(s2, [signed]);
+  eq("anonymes Konto mit weiterem Kauf bleibt", [s2.retired, s2.profiles.has(ANON), s2.purchases.get("961")?.userId], [[], true, ANON]);
+
+  // ... oder ist anderswo noch Mit-Inhaber: bleibt stehen.
+  const s3 = withAnon(ANON, ANON2);
+  s3.profiles.set(ANON, { isPro: true, proSource: "apple" });
+  s3.purchases.set("960", anonRow());
+  s3.purchases.set("962", anonRow({ originalTransactionId: "962", userId: ANON2, appAccountToken: ANON2, anonHolders: [ANON] }));
+  await settle(s3, [signed]);
+  eq("anonymes Konto, anderswo Mit-Inhaber, bleibt", [s3.retired, s3.profiles.has(ANON)], [[], true]);
+
+  // Ein echtes Konto wird nie geloescht, auch wenn der Speicher danach gefragt wird.
+  const s4 = fresh();
+  eq("echtes Konto: retireAnonymousAccount loescht nie", [await s4.retireAnonymousAccount(USER_B), s4.profiles.has(USER_B)], [false, true]);
+
+  // Loeschen scheitert: Der Kauf gilt trotzdem, leise gemeldet (nur Logbuch).
+  const s5 = withAnon(ANON);
+  s5.profiles.set(ANON, { isPro: true, proSource: "apple" });
+  s5.purchases.set("960", anonRow());
+  s5.failOn.retireAnonymousAccount = true;
+  lines.length = 0;
+  const out5 = await settle(s5, [signed]);
+  eq("Loeschen scheitert -> Kauf trotzdem granted, A Pro", [out5.map((o) => o.status), s5.profiles.get(USER_A)?.isPro], [["granted"], true]);
+  eq("... genau eine leise Meldung", lines.filter((l) => l.includes("apple_anon_cleanup_failed")).length, 1);
+  eq("... und die Art mailt nie", OPS_EVENTS.apple_anon_cleanup_failed.alertAfter, 0);
+
+  // Wiederholter Abgleich desselben Kaufs im echten Konto: nichts mehr abzuraeumen.
+  const out6 = await settle(s1, [signed]);
+  eq("erneuter Abgleich: already, kein zweites Loeschen", [out6.map((o) => o.status), s1.retired.length], [["already"], 1]);
 }
 
 // ═════════════════════════════════════════════════════════════════════════════════════

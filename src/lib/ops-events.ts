@@ -362,6 +362,15 @@ export const OPS_EVENTS = {
     quietMinutes: 120,
     hint: "Jemand hat einen Apple-Kauf eingereicht, der einem anderen, noch bestehenden Konto gehört (oder dessen Token auf ein anderes Konto zeigt). Es wurde NICHTS umgebunden. Meist: zweites Konto desselben Menschen. Person fragen, welches Konto sie nutzen will; im Admin Pro von Hand setzen, wenn der Kauf wirklich ihr gehört.",
   },
+  apple_anon_cleanup_failed: {
+    area: "payment",
+    severity: "info",
+    title: "Leeres anonymes Konto nicht gelöscht",
+    // Nur Logbuch. Der Kauf ist schon im echten Konto, es bleibt nur ein leeres Konto übrig.
+    alertAfter: 0,
+    quietMinutes: 360,
+    hint: "Nach einem Kauf ohne Konto und späterer Anmeldung sollte der Server das anonyme Konto löschen, das hat nicht geklappt. Der Kauf gilt. Im Admin steht dann ein Eintrag „(keine E-Mail)“ ohne Pro, er schadet nicht. Häuft es sich, Supabase Auth (Admin-Schnittstelle) prüfen.",
+  },
   apple_purchase_manual: {
     area: "payment",
     severity: "warn",
