@@ -108,8 +108,12 @@ export async function POST(req: Request) {
   // ── Subjekt + Limit bestimmen ──────────────────────────────────────────────
   const supabase = await createClient();
   const {
-    data: { user },
+    data: { user: rawUser },
   } = await supabase.auth.getUser();
+  // Anonyme Konten (Kauf ohne Konto in der iOS-App) gibt es im Web nicht. Wer sich eins über den
+  // öffentlichen Schlüssel holt und als Cookie setzt, ist hier ein Gast: Gast-Grenze und IP-Backstop,
+  // sonst holte sich jeder mit frischen anonymen Konten die höhere Grenze eines Kontos.
+  const user = rawUser && !rawUser.is_anonymous ? rawUser : null;
 
   let subject: string;
   let limit: number;

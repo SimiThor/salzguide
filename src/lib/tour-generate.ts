@@ -47,7 +47,8 @@ export async function generateTour(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "auth" };
+  // Anonyme Konten bauen keine Runden (die gehören zum Konto, App und Web gleich).
+  if (!user || user.is_anonymous) return { ok: false, error: "auth" };
   const quota = await enforceBuilderQuota(supabase, user.id);
   if (quota !== "ok") return { ok: false, error: quota };
 

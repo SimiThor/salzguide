@@ -19,7 +19,7 @@ weiterläuft, gesprochene Abbiegehinweise, Steuerung am Sperrbildschirm, Touren 
 |---|---|
 | Umfang v1 | Explore, Spots, Merkliste, Login, Pro erkennen + kaufen, Audiotouren mit nativer Navigation (Fuß + Rad), Touren offline |
 | Später (v1.1+) | Story-Maker, Live-Aktivität, Apple Watch (Toni, Events, Wasser und der Runden-Bauer haben ihre Routen in 4.3, Stand Oktober 2026 als PRs) |
-| Kauf | Apple-In-App-Kauf, Einmalkauf (kein Abo), **19,99 €**; nur angemeldet; im Web gekauftes Pro gilt in der App und umgekehrt |
+| Kauf | Apple-In-App-Kauf, Einmalkauf (kein Abo), **19,99 €**; seit 26.11.2026 auch ohne Anmeldung (anonymes Konto, Apple 5.1.1); im Web gekauftes Pro gilt in der App und umgekehrt (mit Konto) |
 | Login | **Code per Mail** (6-8 Stellen, siehe Abschnitt 5; kein Link), **Mit Apple anmelden**, **Google** |
 | Login im Web | **Mit Apple anmelden** kommt auch ins Web (neben Google und Mail-Link), entschieden 23.10.2026. Grund: Wer sich in der App mit Apple und "E-Mail verbergen" anmeldet, hat eine fremde Relay-Adresse und käme sonst im Web nicht an sein Konto (und sein Pro). Ersetzt das Nein vom 17.07.2026. Der Knopf erscheint, wenn Apple in Supabase eingeschaltet UND `APPLE_SIWA_SERVICES_ID` gesetzt ist (`appleLoginEnabled()`, `lib/auth-providers.ts`) |
 | Anbieter im App Store | Anton als Person (Apple-Entwicklerkonto existiert, bezahlt) |
@@ -37,8 +37,16 @@ Begründungen, damit sie nicht neu diskutiert werden:
   WEB galt Antons Nein vom 17.07.2026; es ist seit 23.10.2026 aufgehoben (Abschnitt 5, "Apple im Web"). In der App entfällt der Hauptgrund von damals:
   Der native Weg (`signInWithIdToken`) braucht laut Supabase-Doku nur die Bundle-ID, nicht das
   alle 6 Monate ablaufende Client-Secret. Beim Einrichten prüfen.
-- **Kaufen nur angemeldet:** Pro hängt an `profiles.is_pro`. Nur mit Konto gilt ein App-Kauf
-  auch im Web, und "Käufe wiederherstellen" findet das Konto.
+- **Kaufen ohne Anmeldung (seit 26.11.2026, Apple 5.1.1):** Apple lehnt Apps ab, die vor einem Einmalkauf eine
+  Registrierung verlangen. Ohne Anmeldung legt die App beim Kauf (oder Wiederherstellen mit Kauf) ein ANONYMES
+  Supabase-Konto an (`signInAnonymously`, nichts einzugeben); Pro hängt weiter an `profiles.is_pro` dieses Kontos.
+  Meldet sich der Nutzer an, wandert der Kauf ins echte Konto (Regel 2a, `apple-purchase-core.ts`), dann gilt er auch
+  im Web. Zweites Gerät derselben Apple-ID, wieder ohne Konto: Das zweite anonyme Konto wird Mit-Inhaber
+  (`anon_holders`, Regel 2b, höchstens 4 dazu), beide haben Pro; eine Erstattung erreicht alle. Im Web zählt ein
+  anonymes Konto nie (`currentUserId()` liefert null), `npm run app-purchase:check` wacht über neue Schreib-Policies. Voraussetzungen: Migration 0078
+  (Mit-Inhaber, und anonyme Konten dürfen per RLS nirgends schreiben), dann in Supabase › Authentication ›
+  Sign In / Providers „Allow anonymous sign-ins“ an. Neue Tabellen mit Schreib-Policies: den RLS-Block aus 0078
+  erneut ausführen. Web: `/api/ai/chat` behandelt anonyme Sitzungen als Gast.
 
 ## 2. Leitregeln
 
@@ -375,7 +383,9 @@ Rechtsberatung.
 
 **App:**
 - Ein Produkt, nicht verbrauchbar, z. B. `<bundle-id>.pro`, Preis 19,99 €.
-- Kauf nur angemeldet; `appAccountToken` = Supabase-User-UUID.
+- Kauf angemeldet oder mit anonymem Konto (siehe oben); `appAccountToken` = Supabase-User-UUID des kaufenden Kontos.
+  Anonyme Konten dürfen nur `POST /purchases/apple` und Toni (ohne Pro als Gast); alle anderen Schreib-Routen lehnen
+  sie ab (`appActor`, `allowAnonymous`), der Runden-Bauer meldet ihnen `blocked: "login"`.
 - Nach dem Kauf die signierte Transaktion an `POST /purchases/apple` schicken, dann `/me`
   neu laden. "Käufe wiederherstellen" (`AppStore.sync`) schickt alle Transaktionen erneut.
 - Bereits Pro (im Web gekauft, Geschenk, Admin): Kauf-Knopf ausblenden, wie im Web.

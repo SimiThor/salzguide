@@ -52,6 +52,8 @@ type Who =
   | {
       kind: "user";
       userId: string;
+      /** Anonymes Konto mit Pro (Kauf ohne Konto in der iOS-App): bekommt Pro-Grenzen, aber keinen Verlauf. */
+      anonymous: boolean;
       token: string;
       subject: string;
       isPro: boolean;
@@ -64,7 +66,9 @@ async function resolveWho(
   opts: { deviceOptional?: boolean } = {},
 ): Promise<Who | NextResponse> {
   if (req.headers.has("authorization")) {
-    const actor = await appActor(req);
+    // Anonyme Konten gibt es nur nach einem Kauf ohne Konto (purchases/apple). Die App schickt ihr
+    // Token dann bei JEDER Anfrage mit, also auch hier.
+    const actor = await appActor(req, { allowAnonymous: true });
     if (!actor.ok) {
       return actor.reason === "auth" ? appError("auth", 401) : appError("unavailable", 503);
     }
@@ -75,9 +79,13 @@ async function resolveWho(
       .eq("id", actor.userId)
       .maybeSingle();
     if (error) throw error;
+    // Anonym OHNE Pro (Kauf abgebrochen, erstattet): ein Gast, mit Gast-Grenze und IP-Backstop.
+    // Sonst holte sich jeder mit frisch angelegten anonymen Konten die höhere Grenze eines Kontos.
+    if (actor.anonymous && !data?.is_pro) return { kind: "guest", subject: `g:${actor.userId}` };
     return {
       kind: "user",
       userId: actor.userId,
+      anonymous: actor.anonymous,
       token: actor.token,
       subject: `u:${actor.userId}`,
       isPro: Boolean(data?.is_pro),
@@ -221,7 +229,8 @@ export async function POST(req: Request) {
     // Verlauf speichern wie im Web (nur angemeldet, best effort). Dieselbe Tabelle: Der Chat
     // erscheint damit auch im Web-Verlauf, und die Löschfristen (data-retention.ts) gelten gleich.
     let conversationId: string | null = typeof rawConv === "string" ? rawConv : null;
-    if (who.kind === "user") {
+    // Anonyme Käufer: kein Verlauf. Nach einer Anmeldung wäre er unerreichbar und nicht mehr löschbar.
+    if (who.kind === "user" && !who.anonymous) {
       try {
         conversationId = await persistTurn(
           createServiceClient(),

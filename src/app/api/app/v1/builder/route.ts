@@ -29,11 +29,14 @@ export async function GET(req: Request) {
   const ctx = await appGuard(req);
   if (ctx instanceof Response) return ctx;
   try {
-    const canGenerate = ctx.userId ? await appCanSeePro(ctx.userId) : false;
+    // Ein anonymes Konto (Kauf ohne Konto in der iOS-App) ist hier ein Gast: Eigene Runden gehören zum Konto und
+    // werden über die Geräte abgeglichen, die Schreib-Routen lehnen anonyme Konten ab. Also erst anmelden.
+    const member = ctx.userId !== null && !ctx.anonymous;
+    const canGenerate = member ? await appCanSeePro(ctx.userId!) : false;
     const body: AppBuilder = {
       lang: ctx.lang,
       canGenerate,
-      blocked: canGenerate ? null : ctx.userId ? "pro" : "login",
+      blocked: canGenerate ? null : member ? "pro" : "login",
       areas: await builderAreas(ctx.lang),
       interests: BUILDER_INTERESTS,
       maxFreeText: BUILDER_MAX_FREE_TEXT,
