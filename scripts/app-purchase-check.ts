@@ -41,6 +41,7 @@ import {
   type ProfileState,
   type GrantOptions,
 } from "@/lib/apple-purchase-core";
+import { applyStripeRefund, type StripeRefundStore } from "@/lib/stripe-refund-core";
 import {
   AppleConfigError,
   makeVerifierFactory,
@@ -286,7 +287,7 @@ try {
 
 // ═════════════════════════════════════════════════════════════════════════════════════
 console.log("\n4. Ops-Katalog kennt die neuen Arten");
-for (const k of ["apple_purchase_failed", "apple_purchase_invalid", "apple_purchase_foreign", "apple_purchase_manual", "apple_notification_invalid", "apple_notification_ignored", "apple_anon_cleanup_failed"]) {
+for (const k of ["apple_purchase_failed", "apple_purchase_invalid", "apple_purchase_foreign", "apple_purchase_manual", "apple_notification_invalid", "apple_notification_ignored", "apple_anon_cleanup_failed", "stripe_refund_kept", "stripe_dispute"]) {
   check(`Katalog: ${k}`, k in OPS_EVENTS);
 }
 eq("apple_purchase_failed meldet sofort (error, alertAfter 1)", [OPS_EVENTS.apple_purchase_failed.severity, OPS_EVENTS.apple_purchase_failed.alertAfter], ["error", 1]);
@@ -932,21 +933,38 @@ console.log(" g) Doppelt bezahlt (Stripe + Apple): Erstattung bei Apple nimmt Pr
   process.env.NEXT_PUBLIC_SUPABASE_URL = "http://supabase.invalid";
   process.env.SUPABASE_SERVICE_ROLE_KEY = "dummy-service-key";
   const realFetch = globalThis.fetch;
-  const tables: Record<string, Record<string, unknown>[]> = { profiles: [], pro_purchases: [] };
+  const tables: Record<string, Record<string, unknown>[]> = { profiles: [], pro_purchases: [], apple_purchases: [] };
   globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = new URL(typeof input === "string" ? input : input instanceof URL ? input.href : input.url);
     const table = url.pathname.split("/").pop() as string;
     const rows = tables[table] ?? [];
     const match = (r: Record<string, unknown>) =>
       [...url.searchParams.entries()].every(([k, v]) => {
-        if (k === "select") return true;
+        if (k === "select" || k === "limit") return true;
+        if (k === "or") {
+          // Nur was revokePro braucht: "spalte.eq.wert,spalte.in.(a,b)".
+          const parts = v.replace(/^\(|\)$/g, "").match(/[a-z_]+\.(eq\.[^,]+|in\.\([^)]*\))/g) ?? [];
+          return parts.some((part) => {
+            const [col, op, ...rest] = part.split(".");
+            const val = rest.join(".");
+            if (op === "eq") return String(r[col]) === val;
+            return val.replace(/[()]/g, "").split(",").includes(String(r[col]));
+          });
+        }
         if (v.startsWith("eq.")) return String(r[k]) === v.slice(3);
+        if (v.startsWith("in.")) return v.slice(4, -1).split(",").includes(String(r[k]));
         if (v === "is.null") return r[k] == null;
-        return true;
+        if (v === "not.is.null") return r[k] != null;
+        throw new Error(`Filter ${k}=${v} kennt die Attrappe nicht`);
       });
-    if ((init?.method ?? "GET").toUpperCase() === "PATCH") {
-      for (const r of rows.filter(match)) Object.assign(r, JSON.parse(String(init?.body)));
-      return new Response(null, { status: 204 });
+    const method = (init?.method ?? "GET").toUpperCase();
+    if (method === "PATCH") {
+      const hit = rows.filter(match);
+      for (const r of hit) Object.assign(r, JSON.parse(String(init?.body)));
+      return new Response(JSON.stringify(hit), { status: 200, headers: { "content-type": "application/json" } });
+    }
+    if (method === "GET") {
+      return new Response(JSON.stringify(rows.filter(match)), { status: 200, headers: { "content-type": "application/json" } });
     }
     throw new Error(`unerwartet ${url.href}`);
   }) as typeof fetch;
@@ -966,6 +984,50 @@ console.log(" g) Doppelt bezahlt (Stripe + Apple): Erstattung bei Apple nimmt Pr
     tables.profiles = [old];
     await revokePro("cus_1");
     eq("GEGENPROBE: ohne Kunden-ID am Profil greift revokePro nicht", old.is_pro, true);
+    // Doppelt gekauft (Anton 27.11.2026): Web-Pro plus bezahlter Apple-Kauf. Stripe erstattet, Pro
+    // laeuft ueber Apple weiter, Quelle wird 'apple', der Anspruch ist abgeraeumt.
+    const both: Record<string, unknown> = { id: USER_B, is_pro: true, pro_source: "stripe", stripe_customer_id: "cus_2" };
+    const claim: Record<string, unknown> = { stripe_customer_id: "cus_2", refunded_at: null };
+    tables.profiles = [both];
+    tables.pro_purchases = [claim];
+    tables.apple_purchases = [{ original_transaction_id: "200", user_id: USER_B, environment: "Production", revoked_at: null }];
+    await revokePro("cus_2");
+    eq("echtes revokePro: bezahlter Apple-Kauf haelt Pro, Quelle apple, Anspruch erstattet", [both.is_pro, both.pro_source, claim.refunded_at !== null], [true, "apple", true]);
+    // Nur ein Sandbox-Kauf (TestFlight, kostet nichts): Pro geht.
+    const sb: Record<string, unknown> = { id: USER_B, is_pro: true, pro_source: "stripe", stripe_customer_id: "cus_3" };
+    tables.profiles = [sb];
+    tables.apple_purchases = [{ original_transaction_id: "201", user_id: USER_B, environment: "Sandbox", revoked_at: null }];
+    await revokePro("cus_3");
+    eq("echtes revokePro: Sandbox-Kauf haelt kein Pro", [sb.is_pro, sb.pro_source], [false, "stripe"]);
+    // Je Zahlung im echten Speicher-Code: Kauf 1 erstattet (zweimal zugestellt), Kauf 2 bezahlt.
+    const two: Record<string, unknown> = { id: USER_A, is_pro: true, pro_source: "stripe", stripe_customer_id: "cus_4" };
+    const k1: Record<string, unknown> = { stripe_session_id: "cs_1", stripe_payment_intent: "pi_1", stripe_customer_id: "cus_4", user_id: USER_A, granted_at: "x", refunded_at: null };
+    const k2: Record<string, unknown> = { stripe_session_id: "cs_2", stripe_payment_intent: "pi_2", stripe_customer_id: "cus_4", user_id: USER_A, granted_at: "x", refunded_at: null };
+    tables.profiles = [two];
+    tables.pro_purchases = [k1, k2];
+    tables.apple_purchases = [];
+    await revokePro("cus_4", "pi_1");
+    await revokePro("cus_4", "pi_1");
+    eq("echtes revokePro je Zahlung: Kauf 1 erstattet (zweimal), Kauf 2 und Pro bleiben", [k1.refunded_at !== null, k2.refunded_at, two.is_pro], [true, null, true]);
+    await revokePro("cus_4", "pi_2");
+    eq("echtes revokePro je Zahlung: Kauf 2 erstattet, Pro weg", [k2.refunded_at !== null, two.is_pro], [true, false]);
+    // Alter Kauf ohne payment_intent: unbekannte Zahlung erstattet die ganze Kunden-ID.
+    const old2: Record<string, unknown> = { id: USER_A, is_pro: true, pro_source: "stripe", stripe_customer_id: "cus_5" };
+    const k3: Record<string, unknown> = { stripe_session_id: "cs_3", stripe_payment_intent: null, stripe_customer_id: "cus_5", user_id: USER_A, granted_at: "x", refunded_at: null };
+    tables.profiles = [old2];
+    tables.pro_purchases = [k3];
+    await revokePro("cus_5", "pi_neu");
+    eq("echtes revokePro: alter Kauf ohne payment_intent wird ueber die Kunden-ID erstattet", [k3.refunded_at !== null, old2.is_pro], [true, false]);
+    // Zwei Gast-Kaeufe mit zwei Kunden-IDs im echten Speicher-Code.
+    const guest: Record<string, unknown> = { id: USER_A, is_pro: true, pro_source: "stripe", stripe_customer_id: "cus_6" };
+    const g1: Record<string, unknown> = { stripe_session_id: "cs_6", stripe_payment_intent: "pi_6", stripe_customer_id: "cus_6", user_id: USER_A, granted_at: "x", refunded_at: null };
+    const g2: Record<string, unknown> = { stripe_session_id: "cs_7", stripe_payment_intent: "pi_7", stripe_customer_id: "cus_7", user_id: USER_A, granted_at: "x", refunded_at: null };
+    tables.profiles = [guest];
+    tables.pro_purchases = [g1, g2];
+    await revokePro("cus_6", "pi_6");
+    eq("echtes revokePro: zwei Gast-Kaeufe, erster erstattet, Pro bleibt", guest.is_pro, true);
+    await revokePro("cus_7", "pi_7");
+    eq("echtes revokePro: zweiter (andere Kunden-ID) erstattet, Pro weg", guest.is_pro, false);
   } finally {
     globalThis.fetch = realFetch;
   }
@@ -1086,6 +1148,50 @@ console.log(" k) settleAppleTransactions: Meldungen, Conversion-Bedingung, Sandb
   check("kaputte Liste: Benachrichtigung (Erstattung) wird trotzdem angenommen", brokenNote.ok && brokenNote.type === "REFUND", JSON.stringify(brokenNote));
 }
 
+console.log(" k1) Doppelt bezahlt: Meldung nur bei echtem Geld (Anton 27.11.2026)");
+{
+  const v = makeVerifierFactory(cfgBoth, [chain.root]);
+  const lines: string[] = [];
+  const orig = { log: console.log, warn: console.warn, error: console.error };
+  const settle = async (store: FakeStore, signed: string) => {
+    console.log = console.warn = console.error = (...a: unknown[]) => void lines.push(a.map(String).join(" "));
+    try {
+      return await settleAppleTransactions(USER_A, [signed], "de", cfgBoth, { store, verifiers: v });
+    } finally {
+      console.log = orig.log;
+      console.warn = orig.warn;
+      console.error = orig.error;
+    }
+  };
+  const webPro = () => fresh({ [USER_A]: { isPro: true, proSource: "stripe", stripeCustomerId: "cus_1" } });
+  const prod = await settle(webPro(), jws(chain, txPayload({ originalTransactionId: "960", appAccountToken: USER_A })));
+  eq("Web-Pro plus Production-Apple-Kauf: granted und als doppelt bezahlt gemeldet", [prod.map((o) => o.status), lines.filter((l) => l.includes("Doppelt bezahlt")).length], [["granted"], 1]);
+  lines.length = 0;
+  const sb = await settle(webPro(), jws(chain, txPayload({ environment: "Sandbox", originalTransactionId: "961", appAccountToken: USER_A })));
+  eq("Web-Pro plus Sandbox-Kauf (TestFlight): keine Meldung", [sb.map((o) => o.status), lines.filter((l) => l.includes("apple:double") || l.includes("Doppelt bezahlt")).length], [["granted"], 0]);
+  lines.length = 0;
+  const store = webPro();
+  const tx970 = jws(chain, txPayload({ originalTransactionId: "970", appAccountToken: USER_A }));
+  await settle(store, tx970);
+  lines.length = 0;
+  const restored = await settle(store, tx970);
+  eq("Wiederherstellen desselben Kaufs: keine zweite Doppelt-Meldung", [restored.map((o) => o.status), lines.filter((l) => l.includes("Doppelt bezahlt")).length], [["already"], 0]);
+  // Ohne Anmeldung gekauft (anonym), dann mit dem Web-Pro-Konto angemeldet (Regel 2a): gemeldet.
+  lines.length = 0;
+  const moved = webPro();
+  moved.profiles.set(ANON, { isPro: false, proSource: null });
+  moved.anonymous.add(ANON);
+  await bindAndGrantApplePro(moved, ANON, tx({ originalTransactionId: "980", appAccountToken: ANON }), now);
+  const mv = await settle(moved, jws(chain, txPayload({ originalTransactionId: "980", appAccountToken: ANON })));
+  eq("Gast-Kauf, dann Anmeldung mit Web-Pro-Konto (2a): als doppelt bezahlt gemeldet", [mv.map((o) => o.status), lines.filter((l) => l.includes("Doppelt bezahlt")).length, moved.purchases.get("980")?.userId], [["granted"], 1, USER_A]);
+  lines.length = 0;
+  const mig = await settle(fresh({ [USER_A]: { isPro: true, proSource: "migration" } }), jws(chain, txPayload({ originalTransactionId: "990", appAccountToken: USER_A })));
+  eq("Pro von der alten Seite plus Apple-Kauf: als doppelt bezahlt gemeldet", [mig.map((o) => o.status), lines.filter((l) => l.includes("alten Seite")).length], [["granted"], 1]);
+  lines.length = 0;
+  const gift = await settle(fresh({ [USER_A]: { isPro: true, proSource: "comp" } }), jws(chain, txPayload({ originalTransactionId: "962", appAccountToken: USER_A })));
+  eq("Geschenk-Pro plus Production-Kauf: gemeldet, aber nicht als doppelt bezahlt", [gift.map((o) => o.status), lines.filter((l) => l.includes("Quelle comp")).length, lines.filter((l) => l.includes("Doppelt bezahlt")).length], [["granted"], 1, 0]);
+}
+
 console.log(" k2) Nach dem Umzug: leeres anonymes Konto wird abgeraeumt (Anton 26.11.2026)");
 {
   const verifiersK2 = makeVerifierFactory(cfgProd, [chain.root]);
@@ -1198,6 +1304,303 @@ console.log("\n6. Stripe-Weg (grantPro): ueberschreibt Apple-Pro nie, Rest unver
 }
 
 // ═════════════════════════════════════════════════════════════════════════════════════
+
+console.log("\n8. Stripe-Erstattung bei doppeltem Kauf (Anton 27.11.2026): nie Pro ohne Bezahlung");
+{
+  // Beide Erstattungswege auf DEMSELBEN Stand: der Apple-Weg (FakeStore) und der Stripe-Weg ueber
+  // einen Adapter auf dieselben Tabellen. So lassen sich auch Rennen zwischen beiden pruefen.
+  type Hooks = Partial<Record<keyof StripeRefundStore, () => void | Promise<void>>>;
+  // Web-Kaeufe (pro_purchases) je Zahlung. s.activeStripe (das sieht der Apple-Weg) folgt daraus.
+  type Claim = { pi: string | null; customer: string; userId: string; refunded: boolean };
+  const refundStore = (
+    s: FakeStore,
+    hooks: Hooks = {},
+    fail: Partial<Record<keyof StripeRefundStore, boolean>> = {},
+    claims: Claim[] = [...s.activeStripe].map(([u, c]) => ({ pi: null, customer: c ?? "", userId: u, refunded: false })),
+  ): StripeRefundStore => {
+    const run = async (name: keyof StripeRefundStore) => {
+      if (fail[name]) throw new Error(`Speicher ${name} faellt aus`);
+      const h = hooks[name];
+      if (h) {
+        delete hooks[name];
+        await h();
+      }
+    };
+    const sync = () => {
+      for (const c of claims) {
+        const open = claims.find((x) => x.userId === c.userId && !x.refunded);
+        if (open) s.activeStripe.set(c.userId, open.customer);
+        else s.activeStripe.delete(c.userId);
+      }
+    };
+    return {
+      async markClaimsRefunded(customerId, pi) {
+        await run("markClaimsRefunded");
+        const byPi = pi ? claims.filter((c) => c.pi === pi) : [];
+        const hit = byPi.length > 0 ? byPi : claims.filter((c) => c.customer === customerId);
+        for (const c of hit) c.refunded = true;
+        sync();
+        return [...new Set(hit.map((c) => c.userId))];
+      },
+      async proAccounts(customerId, userIds) {
+        await run("proAccounts");
+        return [...s.profiles]
+          .filter(([u, p]) => p.isPro && (p.proSource === "stripe" || p.proSource === "apple") && (p.stripeCustomerId === customerId || userIds.includes(u)))
+          .map(([u, p]) => ({ id: u, source: p.proSource as "stripe" | "apple" }));
+      },
+      async hasPaidStripePurchase(userId) {
+        await run("hasPaidStripePurchase");
+        return claims.some((c) => c.userId === userId && !c.refunded);
+      },
+      async hasPaidApplePurchase(userId) {
+        await run("hasPaidApplePurchase");
+        return [...s.purchases.values()].some((r) => r.userId === userId && r.revokedAt === null && r.environment === "Production");
+      },
+      async switchStripeProToApple(userId) {
+        await run("switchStripeProToApple");
+        const p = s.profiles.get(userId);
+        if (!p || !p.isPro || p.proSource !== "stripe") return false;
+        p.proSource = "apple";
+        return true;
+      },
+      async removeStripePro(userId) {
+        await run("removeStripePro");
+        const p = s.profiles.get(userId);
+        if (!p || p.proSource !== "stripe" || !p.isPro) return false;
+        p.isPro = false;
+        return true;
+      },
+      async removeApplePro(userId) {
+        await run("removeApplePro");
+        const p = s.profiles.get(userId);
+        if (!p || p.proSource !== "apple" || !p.isPro) return false;
+        p.isPro = false;
+        return true;
+      },
+    };
+  };
+  // Web-Pro (Stripe, cus_1) und danach ein Apple-Kauf desselben Kontos.
+  const doublePaid = async (env: "Production" | "Sandbox" = "Production") => {
+    const s = fresh({ [USER_A]: { isPro: true, proSource: "stripe", stripeCustomerId: "cus_1" } });
+    s.activeStripe.set(USER_A, "cus_1");
+    const r = await bindAndGrantApplePro(s, USER_A, tx({ environment: env }), now);
+    return { s, r };
+  };
+  {
+    const { s, r } = await doublePaid();
+    eq("Ausgang: Apple-Kauf verbucht, Pro bleibt Stripe, als doppelt erkannt", [r.status, s.profiles.get(USER_A)?.proSource, r.status === "granted" && r.alreadyEntitledBy], ["granted", "stripe", "stripe"]);
+    const out = await applyStripeRefund(refundStore(s), "cus_1", null);
+    eq("Stripe erstattet: Pro laeuft ueber Apple weiter", [out.keptByApple, out.removed, s.profiles.get(USER_A)?.isPro, s.profiles.get(USER_A)?.proSource], [[USER_A], [], true, "apple"]);
+    eq("  Stripe-Anspruch ist abgeraeumt", s.activeStripe.has(USER_A), false);
+    const rv = await applyAppleRevocation(s, "100", null, now());
+    eq("  danach erstattet auch Apple: Pro weg (nichts mehr bezahlt)", [rv.proRemoved, s.profiles.get(USER_A)?.isPro], [true, false]);
+    const again = await applyStripeRefund(refundStore(s), "cus_1", null);
+    eq("  Wiederholung der Stripe-Erstattung aendert nichts", [again.keptByApple, again.removed, s.profiles.get(USER_A)?.isPro], [[], [], false]);
+  }
+  {
+    // Umgekehrte Reihenfolge: erst Apple, dann Stripe.
+    const { s } = await doublePaid();
+    await applyAppleRevocation(s, "100", null, now());
+    eq("erst Apple erstattet: Pro bleibt ueber Stripe", [s.profiles.get(USER_A)?.isPro, s.profiles.get(USER_A)?.proSource], [true, "stripe"]);
+    const out = await applyStripeRefund(refundStore(s), "cus_1", null);
+    eq("  dann Stripe: Pro weg, kein Apple-Kauf haelt es", [out.removed, out.keptByApple, s.profiles.get(USER_A)?.isPro], [[USER_A], [], false]);
+  }
+  {
+    const { s } = await doublePaid("Sandbox");
+    const out = await applyStripeRefund(refundStore(s), "cus_1", null);
+    eq("Sandbox-Apple-Kauf (TestFlight, gratis) haelt nach Stripe-Erstattung kein Pro", [out.removed, s.profiles.get(USER_A)?.isPro], [[USER_A], false]);
+  }
+  {
+    const s = fresh({ [USER_A]: { isPro: true, proSource: "stripe", stripeCustomerId: "cus_1" } });
+    s.activeStripe.set(USER_A, "cus_1");
+    const out = await applyStripeRefund(refundStore(s), "cus_1", null);
+    eq("nur Web-Kauf, erstattet: Pro weg wie bisher", [out.removed, s.profiles.get(USER_A)?.isPro], [[USER_A], false]);
+  }
+  {
+    // Apple-Kauf gehoert jemand anderem, dieses Konto ist dort nur anonymer Mit-Inhaber: zaehlt nicht.
+    const { s } = await doublePaid();
+    s.purchases.get("100")!.userId = USER_B;
+    s.purchases.get("100")!.anonHolders = [USER_A];
+    const out = await applyStripeRefund(refundStore(s), "cus_1", null);
+    eq("Mit-Inhaber eines fremden Apple-Kaufs haelt kein Pro", [out.removed, s.profiles.get(USER_A)?.isPro], [[USER_A], false]);
+  }
+  {
+    const { s } = await doublePaid();
+    s.purchases.get("100")!.revokedAt = now();
+    const out = await applyStripeRefund(refundStore(s), "cus_1", null);
+    eq("schon erstatteter Apple-Kauf haelt kein Pro", [out.removed, s.profiles.get(USER_A)?.isPro], [[USER_A], false]);
+  }
+  {
+    const s = fresh({ [USER_A]: { isPro: true, proSource: "comp", stripeCustomerId: "cus_1" } });
+    const out = await applyStripeRefund(refundStore(s), "cus_1", null);
+    eq("geschenktes Pro bleibt unberuehrt", [out.removed, out.keptByApple, s.profiles.get(USER_A)], [[], [], { isPro: true, proSource: "comp", stripeCustomerId: "cus_1" }]);
+  }
+  {
+    const { s } = await doublePaid();
+    let threw = false;
+    try {
+      await applyStripeRefund(refundStore(s, {}, { markClaimsRefunded: true }), "cus_1", null);
+    } catch {
+      threw = true;
+    }
+    eq("Anspruch laesst sich nicht abraeumen: Fehler (Stripe stellt erneut zu), Profil unberuehrt", [threw, s.profiles.get(USER_A)?.proSource, s.activeStripe.has(USER_A)], [true, "stripe", true]);
+  }
+  {
+    // Rennen 1: Apple erstattet GANZ zwischen der ersten Pruefung und der Umstellung. Der Apple-Entzug
+    // fand noch pro_source = 'stripe' vor (und den Stripe-Anspruch schon erstattet): er tat nichts.
+    // Die Nachpruefung nach der Umstellung muss entziehen.
+    const { s } = await doublePaid();
+    const out = await applyStripeRefund(refundStore(s, {
+      switchStripeProToApple: async () => {
+        await applyAppleRevocation(s, "100", null, now());
+      },
+    }), "cus_1", null);
+    eq("Rennen 1: Apple erstattet waehrend der Stripe-Erstattung: Pro weg", [out.removed, out.keptByApple, s.profiles.get(USER_A)?.isPro], [[USER_A], [], false]);
+  }
+  {
+    // Rennen 2: Apple erstattet NACH der Umstellung, vor der Nachpruefung. Der Apple-Entzug findet
+    // pro_source = 'apple' und keinen aktiven Stripe-Kauf mehr: er entzieht selbst.
+    const { s } = await doublePaid();
+    let calls = 0;
+    const hooks: Hooks = {};
+    const store = refundStore(s, hooks);
+    const wrapped: StripeRefundStore = {
+      ...store,
+      async hasPaidApplePurchase(u) {
+        calls += 1;
+        if (calls === 2) await applyAppleRevocation(s, "100", null, now());
+        return store.hasPaidApplePurchase(u);
+      },
+    };
+    const out = await applyStripeRefund(wrapped, "cus_1", null);
+    eq("Rennen 2: Apple erstattet zwischen Umstellung und Nachpruefung: Pro weg", [out.keptByApple, s.profiles.get(USER_A)?.isPro], [[], false]);
+  }
+  {
+    // Rennen 3: Apple-Entzug laeuft, BEVOR der Stripe-Anspruch abgeraeumt ist: Er sieht Stripe noch
+    // aktiv und laesst Pro bei Stripe. Die Stripe-Erstattung danach findet keinen bezahlten Apple-Kauf.
+    const { s } = await doublePaid();
+    const out = await applyStripeRefund(refundStore(s, {
+      markClaimsRefunded: async () => {
+        await applyAppleRevocation(s, "100", null, now());
+      },
+    }), "cus_1", null);
+    eq("Rennen 3: Apple-Entzug vor dem Abraeumen des Anspruchs: Pro weg", [out.removed, s.profiles.get(USER_A)?.isPro], [[USER_A], false]);
+  }
+  {
+    // Rennen 4: Zwischen Pruefung und Umstellung aendert sich das Profil (z. B. Pro von Hand entzogen):
+    // Die Umstellung trifft nichts, und es wird nichts zurueckgegeben.
+    const { s } = await doublePaid();
+    const out = await applyStripeRefund(refundStore(s, {
+      switchStripeProToApple: () => {
+        s.profiles.get(USER_A)!.isPro = false;
+      },
+    }), "cus_1", null);
+    eq("Rennen 4: Profil zwischendurch ohne Pro: bleibt ohne Pro", [out.keptByApple, out.removed, s.profiles.get(USER_A)?.isPro], [[], [], false]);
+  }
+  {
+    // Selbstheilung (Pruefung 27.11.2026): Apple erstattet zwischen Pruefung und Umstellung, dann
+    // faellt die Nachpruefung aus (Datenbankfehler, Webhook 500). Die Quelle steht schon auf 'apple'.
+    // Die Wiederholung durch Stripe muss das Konto trotzdem finden und Pro nehmen.
+    const { s } = await doublePaid();
+    const store = refundStore(s, { switchStripeProToApple: async () => void (await applyAppleRevocation(s, "100", null, now())) });
+    let calls = 0;
+    const flaky: StripeRefundStore = {
+      ...store,
+      async hasPaidApplePurchase(u) {
+        calls += 1;
+        if (calls === 2) throw new Error("Datenbank weg");
+        return store.hasPaidApplePurchase(u);
+      },
+    };
+    let threw = false;
+    try {
+      await applyStripeRefund(flaky, "cus_1", null);
+    } catch {
+      threw = true;
+    }
+    eq("  Abbruch nach der Umstellung: Fehler, Quelle apple, Pro noch da", [threw, s.profiles.get(USER_A)?.proSource, s.profiles.get(USER_A)?.isPro], [true, "apple", true]);
+    const retry = await applyStripeRefund(refundStore(s), "cus_1", null);
+    eq("Selbstheilung: Stripe stellt erneut zu, Pro weg (nichts mehr bezahlt)", [retry.removed, s.profiles.get(USER_A)?.isPro], [[USER_A], false]);
+  }
+  {
+    // Apple-Kaeufer mit einer alten Web-Kunden-ID: Die Erstattung des alten Web-Kaufs nimmt ihm nichts.
+    const s = fresh({ [USER_A]: { isPro: true, proSource: "apple", stripeCustomerId: "cus_1" } });
+    await bindAndGrantApplePro(s, USER_A, tx(), now);
+    const out = await applyStripeRefund(refundStore(s, {}, {}, [{ pi: "pi_old", customer: "cus_1", userId: USER_A, refunded: false }]), "cus_1", "pi_old");
+    eq("Apple-Pro mit alter Web-Kunden-ID bleibt bei Erstattung des alten Web-Kaufs", [out.removed, s.profiles.get(USER_A)], [[], { isPro: true, proSource: "apple", stripeCustomerId: "cus_1" }]);
+  }
+  {
+    // Zwei Konten mit derselben Kunden-ID: Nur das mit bezahltem Apple-Kauf behaelt Pro.
+    const s = fresh({
+      [USER_A]: { isPro: true, proSource: "stripe", stripeCustomerId: "cus_1" },
+      [USER_B]: { isPro: true, proSource: "stripe", stripeCustomerId: "cus_1" },
+    });
+    s.activeStripe.set(USER_A, "cus_1");
+    s.activeStripe.set(USER_B, "cus_1");
+    await bindAndGrantApplePro(s, USER_A, tx(), now);
+    const out = await applyStripeRefund(refundStore(s), "cus_1", null);
+    eq("zwei Konten, eine Kunden-ID: A behaelt (Apple), B verliert", [out.keptByApple, out.removed, s.profiles.get(USER_A)?.isPro, s.profiles.get(USER_B)?.isPro], [[USER_A], [USER_B], true, false]);
+  }
+  {
+    // Je Zahlung: zwei Web-Kaeufe desselben Kunden. Erstattung von Kauf 1 (auch erneut zugestellt)
+    // laesst Kauf 2 und Pro stehen; erst die Erstattung von Kauf 2 nimmt Pro.
+    const s = fresh({ [USER_A]: { isPro: true, proSource: "stripe", stripeCustomerId: "cus_1" } });
+    const claims: Claim[] = [
+      { pi: "pi_1", customer: "cus_1", userId: USER_A, refunded: false },
+      { pi: "pi_2", customer: "cus_1", userId: USER_A, refunded: false },
+    ];
+    s.activeStripe.set(USER_A, "cus_1");
+    const first = await applyStripeRefund(refundStore(s, {}, {}, claims), "cus_1", "pi_1");
+    const again = await applyStripeRefund(refundStore(s, {}, {}, claims), "cus_1", "pi_1");
+    eq("je Zahlung: Erstattung Kauf 1 (zweimal zugestellt) laesst Kauf 2 und Pro", [first.keptByStripe, again.keptByStripe, claims.map((c) => c.refunded), s.profiles.get(USER_A)?.isPro], [[USER_A], [USER_A], [true, false], true]);
+    const second = await applyStripeRefund(refundStore(s, {}, {}, claims), "cus_1", "pi_2");
+    eq("  Erstattung Kauf 2: Pro weg", [second.removed, s.profiles.get(USER_A)?.isPro], [[USER_A], false]);
+  }
+  {
+    // Gast kauft zweimal im Web: zwei Kunden-IDs, das Profil traegt nur die erste (Pruefung 27.11.2026).
+    // Nach beiden Erstattungen darf kein Pro bleiben.
+    const s = fresh({ [USER_A]: { isPro: true, proSource: "stripe", stripeCustomerId: "cus_1" } });
+    const claims: Claim[] = [
+      { pi: "pi_1", customer: "cus_1", userId: USER_A, refunded: false },
+      { pi: "pi_2", customer: "cus_2", userId: USER_A, refunded: false },
+    ];
+    s.activeStripe.set(USER_A, "cus_1");
+    const one = await applyStripeRefund(refundStore(s, {}, {}, claims), "cus_1", "pi_1");
+    eq("zwei Gast-Kaeufe, Kauf 1 erstattet: Pro bleibt (Kauf 2 bezahlt)", [one.keptByStripe, s.profiles.get(USER_A)?.isPro], [[USER_A], true]);
+    const two = await applyStripeRefund(refundStore(s, {}, {}, claims), "cus_2", "pi_2");
+    eq("  Kauf 2 (andere Kunden-ID) erstattet: Konto ueber den Anspruch gefunden, Pro weg", [two.removed, s.profiles.get(USER_A)?.isPro], [[USER_A], false]);
+  }
+  {
+    // Alter Kauf ohne payment_intent in der Tabelle: Die Erstattung (mit unbekannter Zahlung) gilt
+    // fuer die ganze Kunden-ID wie bisher.
+    const s = fresh({ [USER_A]: { isPro: true, proSource: "stripe", stripeCustomerId: "cus_1" } });
+    const claims: Claim[] = [{ pi: null, customer: "cus_1", userId: USER_A, refunded: false }];
+    const out = await applyStripeRefund(refundStore(s, {}, {}, claims), "cus_1", "pi_unbekannt");
+    eq("alter Kauf ohne payment_intent: ganze Kunden-ID erstattet, Pro weg", [claims[0].refunded, out.removed, s.profiles.get(USER_A)?.isPro], [true, [USER_A], false]);
+  }
+  {
+    // Apple-Erstattungs-Benachrichtigung kommt doppelt: zweimal derselbe Entzug, Pro bleibt weg.
+    const { s } = await doublePaid();
+    await applyStripeRefund(refundStore(s), "cus_1", null);
+    await applyAppleRevocation(s, "100", null, now());
+    await applyAppleRevocation(s, "100", null, now());
+    eq("Apple-Erstattung doppelt zugestellt: Pro bleibt weg", s.profiles.get(USER_A)?.isPro, false);
+  }
+}
+console.log("\n8b. Stripe-Webhook: jeder Zweig genau einmal, Streitfaelle nur ueber die neuen Regeln");
+{
+  // Der Webhook laesst sich hier nicht ausfuehren (Stripe-Client). Ein doppelt eingefuegter Block
+  // fiel am 27.11.2026 erst in der Pruefung auf (tsc meldete nichts): Aufbau darum hier festhalten.
+  const src = readFileSync(join(process.cwd(), "src/app/api/stripe/webhook/route.ts"), "utf8");
+  const count = (needle: string) => src.split(needle).length - 1;
+  for (const ev of ["checkout.session.completed", "charge.refunded", "charge.dispute.created", "charge.dispute.funds_withdrawn", "charge.dispute.closed"]) {
+    eq(`Zweig ${ev} genau einmal`, count(`event.type === "${ev}"`), 1);
+  }
+  eq("Signaturpruefung genau einmal", count("constructEventAsync("), 1);
+  eq("Pro wird nur bei Erstattung, abgebuchtem Streitfall und Erstattung nach Wiederoeffnen entzogen", count("await revokePro("), 3);
+  check("charge.dispute.created entzieht nichts", !/charge\.dispute\.created"\)[\s\S]*?revokePro[\s\S]*?charge\.dispute\.funds_withdrawn/.test(src));
+}
+
 console.log("\n7. Anonyme Konten duerfen nirgends schreiben (Migration 0078)");
 {
   // Die einschraenkenden Policies no_anonymous_* aus 0078 gelten nur fuer Tabellen, die es beim

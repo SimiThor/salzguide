@@ -1,6 +1,6 @@
 import type Stripe from "stripe";
 import { stripe, stripeWebhookSecret } from "@/lib/stripe";
-import { fulfillPaidCheckout, revokePro } from "@/lib/pro-purchase";
+import { fulfillPaidCheckout, proPaymentAccounts, reopenDisputedClaims, revokePro } from "@/lib/pro-purchase";
 import { logOps, subjectFromRequest } from "@/lib/ops";
 import { errorMessage } from "@/lib/ops-scrub";
 
@@ -93,12 +93,69 @@ export async function POST(req: Request): Promise<Response> {
         return new Response("fulfillment failed", { status: 500 });
       }
     } else if (event.type === "charge.refunded") {
-      // Vollständige Rückerstattung -> Pro entziehen (fair & sauber).
+      // Vollständige Rückerstattung -> Pro entziehen (fair & sauber), je Zahlung, und nur, wenn kein
+      // anderer bezahlter Kauf (Web oder Apple) das Pro trägt (stripe-refund-core.ts).
       const c = event.data.object as Stripe.Charge;
       if (c.refunded) {
-        const customerId =
-          typeof c.customer === "string" ? c.customer : (c.customer?.id ?? null);
-        if (customerId) await revokePro(customerId);
+        const customerId = idOf(c.customer);
+        if (customerId) await revokePro(customerId, idOf(c.payment_intent));
+      }
+    } else if (event.type === "charge.dispute.created") {
+      // Streitfall eröffnet. Bei einer reinen Anfrage der Bank (warning_*) fließt kein Geld, bei
+      // einer Rückbuchung holt die Bank es mit charge.dispute.funds_withdrawn. Darum hier nur melden.
+      const d = event.data.object as Stripe.Dispute;
+      const pay = await disputedPayment(d);
+      if (pay.ours) {
+        await logOps("stripe_dispute", {
+          message: d.status.startsWith("warning_")
+            ? `Anfrage der Bank zu einem Pro-Kauf (Grund: ${d.reason}). Noch kein Geld abgebucht, Pro bleibt. Im Stripe-Dashboard beantworten.`
+            : `Rückbuchung zu einem Pro-Kauf eröffnet (Grund: ${d.reason}). Pro wird entzogen, sobald die Bank das Geld abbucht.`,
+          detail: { dispute: d.id, charge: pay.chargeId, kunde: pay.customerId, konten: pay.userIds.join(","), betrag: d.amount },
+          group: "stripe:dispute",
+          path: "/api/stripe/webhook",
+        });
+      }
+    } else if (event.type === "charge.dispute.funds_withdrawn") {
+      // Die Bank hat das Geld zurückgeholt (auch eine eskalierte Anfrage): wie eine Erstattung
+      // behandeln (Anton 27.11.2026: nie Pro ohne Bezahlung), außer ein anderer bezahlter Kauf trägt
+      // Pro. Nur für SalzGuide-Zahlungen; das Stripe-Konto teilt sich die alte WordPress-Seite.
+      // Den Streitfall FRISCH lesen: Stripe garantiert keine Reihenfolge und stellt nach einem 500
+      // erneut zu. Ist er inzwischen gewonnen (oder als Anfrage geschlossen), nichts entziehen.
+      const d = await stripe.disputes.retrieve((event.data.object as Stripe.Dispute).id);
+      const pay = await disputedPayment(d);
+      const stillLost = d.status === "needs_response" || d.status === "under_review" || d.status === "lost";
+      // Auch ohne Kunden-ID: Der Anspruch wird über die Zahlung (payment_intent) gefunden.
+      if (pay.ours && stillLost) await revokePro(pay.customerId ?? "", pay.paymentIntent);
+      if (pay.ours && stillLost) {
+        await logOps("stripe_dispute", {
+          message: "Rückbuchung: Die Bank hat das Geld abgebucht. Pro entzogen, außer ein anderer bezahlter Kauf trägt es.",
+          detail: { dispute: d.id, charge: pay.chargeId, kunde: pay.customerId, konten: pay.userIds.join(","), betrag: d.amount },
+          group: "stripe:dispute",
+          path: "/api/stripe/webhook",
+        });
+      }
+    } else if (event.type === "charge.dispute.closed") {
+      const d = event.data.object as Stripe.Dispute;
+      const pay = await disputedPayment(d);
+      if (pay.ours && (d.status === "won" || d.status === "warning_closed")) {
+        // Das Geld ist (wieder) bei uns. War die Zahlung nicht zusätzlich erstattet, gilt der
+        // Anspruch wieder. Pro setzt ein Mensch (wurde es entzogen, steht das Konto in der Meldung).
+        if (!pay.refunded && pay.paymentIntent) {
+          await reopenDisputedClaims(pay.paymentIntent);
+          // Rennen gegen eine Erstattung genau dazwischen: Zahlung noch einmal lesen. Ist sie jetzt
+          // erstattet, den Anspruch wieder schließen (sonst trüge ein Anspruch ohne Geld Pro).
+          const again = await stripe.charges.retrieve(pay.chargeId);
+          if (again.refunded) await revokePro(pay.customerId ?? "", pay.paymentIntent);
+        }
+        await logOps("stripe_dispute", {
+          message:
+            d.status === "won"
+              ? "Rückbuchung gewonnen, das Geld ist zurück. Falls Pro entzogen wurde: im Admin für die genannten Konten wieder setzen."
+              : "Anfrage der Bank geschlossen, es wurde nichts abgebucht. Nichts zu tun, außer Pro fehlt bei den genannten Konten.",
+          detail: { dispute: d.id, charge: pay.chargeId, kunde: pay.customerId, konten: pay.userIds.join(","), status: d.status },
+          group: "stripe:dispute_closed",
+          path: "/api/stripe/webhook",
+        });
       }
     }
   } catch (e) {
@@ -114,4 +171,25 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   return new Response("ok", { status: 200 });
+}
+
+/** ID aus einem Stripe-Feld schälen (String oder aufgelöstes Objekt). */
+function idOf(value: string | { id: string } | null | undefined): string | null {
+  if (!value) return null;
+  return typeof value === "string" ? value : value.id;
+}
+
+/** Die Zahlung hinter einem Streitfall: Kunde, payment_intent, und ob sie ein SalzGuide-Pro-Kauf ist. */
+async function disputedPayment(d: Stripe.Dispute) {
+  const charge = await stripe!.charges.retrieve(idOf(d.charge) as string);
+  const paymentIntent = idOf(charge.payment_intent);
+  const accounts = paymentIntent ? await proPaymentAccounts(paymentIntent) : { known: false, userIds: [] };
+  return {
+    ours: accounts.known,
+    chargeId: charge.id,
+    customerId: idOf(charge.customer),
+    paymentIntent,
+    userIds: accounts.userIds,
+    refunded: charge.refunded,
+  };
 }

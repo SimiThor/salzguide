@@ -707,11 +707,20 @@ export async function settleAppleTransactions(
     }
 
     // Doppelt bezahlt: Das Konto hatte schon Pro aus anderer Quelle (Stripe, Geschenk, Übernahme),
-    // und jetzt gibt es einen Apple-Kauf dazu. pro_source bleibt (Regel), aber jemand sollte die
-    // Erstattung prüfen. Nur beim ersten Verbuchen, nicht bei jedem Wiederherstellen.
-    if (r.alreadyEntitledBy && (r.newPurchase || r.rebound)) {
+    // und jetzt gibt es einen Apple-Kauf dazu (auch: ohne Anmeldung gekauft, dann mit dem Web-Konto
+    // angemeldet, Regel 2a). pro_source bleibt (Regel 5). Nur melden, NIE selbst erstatten: Ob und
+    // was erstattet wird, entscheidet ein Mensch. Nur echtes Geld (Production; ein Sandbox-Kauf aus
+    // TestFlight kostet nichts) und nur beim ersten Verbuchen, nicht bei jedem Wiederherstellen.
+    if (r.alreadyEntitledBy && (r.newPurchase || r.rebound) && verified.tx.environment === "Production") {
+      // comp = geschenkt (nicht bezahlt); migration = auf der alten WordPress-Seite bezahlt (0040).
+      const message =
+        r.alreadyEntitledBy === "stripe"
+          ? "Doppelt bezahlt: Pro über salzguide.com (Stripe) und jetzt ein Apple-Kauf. Der Kunde kann den Apple-Kauf bei Apple zurückgeben. Erstatten wir stattdessen den Web-Kauf, läuft Pro über Apple weiter."
+          : r.alreadyEntitledBy === "migration"
+            ? "Doppelt bezahlt: Pro von der alten Seite übernommen (dort bezahlt) und jetzt ein Apple-Kauf. Der Kunde kann den Apple-Kauf bei Apple zurückgeben."
+            : `Apple-Kauf, obwohl das Konto schon Pro hat (Quelle ${r.alreadyEntitledBy}, nicht bezahlt). Erstattung bei Apple prüfen.`;
       await logOps("apple_purchase_manual", {
-        message: `Apple-Kauf, obwohl das Konto schon Pro hat (Quelle ${r.alreadyEntitledBy}). Erstattung prüfen.`,
+        message,
         subject: opsSubject("user", userId),
         group: "apple:double",
         detail: { originalTransactionId: id, quelle: r.alreadyEntitledBy },
