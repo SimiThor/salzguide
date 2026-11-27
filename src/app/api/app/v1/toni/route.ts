@@ -171,6 +171,14 @@ export async function POST(req: Request) {
           { status: 402, headers: { "Cache-Control": "private, no-store", Vary: "Authorization" } },
         );
       }
+      // Tagesgrenze über alle: eigener Code, damit die App "Toni macht heute Pause" sagt statt "zu viele auf einmal".
+      if (admission.body.error === "ai_paused") {
+        return NextResponse.json(
+          { error: "ai_paused" },
+          { status: 429, headers: { "Cache-Control": "private, no-store", Vary: "Authorization" } },
+        );
+      }
+      if (admission.status === 503) return appError("unavailable", 503);
       return appError("rate_limit", 429);
     }
 

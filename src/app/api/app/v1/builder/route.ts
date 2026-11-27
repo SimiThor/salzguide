@@ -11,6 +11,7 @@ import {
   toMyTourSummary,
 } from "@/lib/app-builder";
 import { enforceBuilderQuota } from "@/lib/builder-quota";
+import { logOps } from "@/lib/ops";
 import { buildAndSaveTour } from "@/lib/tour-generate-core";
 import { insertUserTour, listUserTourSummaries } from "@/lib/user-tours-core";
 
@@ -90,6 +91,12 @@ export async function POST(req: Request) {
       if (r.error === "area") return appError("not_found", 404);
       if (r.error === "too_few" || r.error === "no_start") return appError("too_few", 422);
       if (r.error === "pro") return appError("pro", 403);
+      // Claude hat nicht (brauchbar) geantwortet: wie bei Toni melden, damit ein Ausfall nicht unbemerkt bleibt.
+      await logOps("ai_provider_error", {
+        message: `Runden-Bauer konnte nicht bauen: ${r.error}`,
+        path: "/api/app/v1/builder",
+        group: `ai:builder:${r.error}`,
+      });
       return appError("unavailable", 503);
     }
     if (!r.id) return appError(r.saveError === "pro" ? "pro" : "unavailable", r.saveError === "pro" ? 403 : 503);

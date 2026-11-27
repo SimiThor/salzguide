@@ -230,6 +230,7 @@
     "disclaimer": "Toni는 AI라서 실수할 수 있어요. 나가기 전에 세부 정보는 한 번 더 확인하세요.",
     "transparencyLink": "Toni의 작동 방식",
     "error": "앗, 지금은 잘 안 됐어요. 다시 시도해 주세요.",
+    "paused": "Toni가 잠시 쉬고 있어요. 나중에 다시 와 주세요.",
     "newChat": "새 채팅",
     "history": "기록",
     "historyTitle": "내 채팅",

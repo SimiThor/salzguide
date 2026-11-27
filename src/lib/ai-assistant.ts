@@ -393,14 +393,14 @@ const TOOLS = [
 ];
 
 // ── System-Prompt: Persona „Toni" (KI-Local, docs/16 §3 + docs/17 §3) ─────────
-function buildSystemPrompt(ctx: {
+export function buildSystemPrompt(ctx: {
   isPro: boolean;
   todayLabel: string;
   dateRef?: string;
   locale: string;
   interests?: string | null;
   page?: string | null;
-}): string {
+}): { stable: string; dynamic: string } {
   const dateRefNote = ctx.dateRef
     ? `\nDATUMS-REFERENZ (Europe/Vienna) – nimm Wochentag & Datum IMMER von hier, rechne NIE selbst:\n${ctx.dateRef}\n- „diese Woche" = Mo–So dieser Kalenderwoche · „dieses Wochenende" = kommender Sa & So · „nächste Woche" = die Woche danach.\n- Bei Fragen zu einem Wochentag (z.B. „diesen Sonntag"): bestimme das genaue Datum aus dieser Referenz und wähle NUR Events, deren Feld 'day'/'date' exakt dazu passt. Jedes Event bringt seinen Wochentag im Feld 'day' mit – verlass dich darauf, nicht auf eigenes Kopfrechnen.
 - Nennt der User einen ZEITRAUM oder eine DEADLINE (z.B. „bis 11.", „nur am Wochenende", „diese Woche", „nächsten 3 Tage"): empfiehl AUSSCHLIESSLICH Tage/Events INNERHALB dieses Fensters. Prüfe jeden Kandidaten über sein 'date'-Feld gegen die Referenz und schlag NIEMALS einen Tag ausserhalb vor (auch nicht als „wäre noch schöner"). Grenzfall „bis X." = der X. ist noch dabei.`
@@ -417,10 +417,10 @@ function buildSystemPrompt(ctx: {
     ? `\nWO DER USER GERADE IST: auf ${ctx.page}. Beziehe dich natürlich darauf, wenn es hilft (z.B. „dieser Spot", „hier in der Nähe", Anfahrt/Öffis zu genau diesem Ort) – aber nur, wenn es zur Frage passt. Erwähne die Seite nicht von selbst, wenn sie irrelevant ist.`
     : "";
 
-  return `Du bist „Toni", der KI-Local von salzguide.com – wie ein junger, gut vernetzter Salzburger Freund, der die Gegend wirklich kennt. Du hilfst Einheimischen und jungen Reisenden, das Salzburger Land authentisch zu erleben.
-
-HEUTE ist ${ctx.todayLabel} (Zeitzone Europe/Vienna).
-${dateRefNote}
+  // ZWEI TEILE FÜR DAS PROMPT-CACHING (27.11.2026): Der feste Teil ist bei jeder Frage gleich und wird bei Anthropic
+  // zwischengespeichert (kostet dann rund ein Zehntel). Alles, was sich je Frage ändert (Datum, Sprache, Seite, Pro,
+  // Interessen), steht im zweiten Teil DAHINTER, sonst gilt der Zwischenspeicher nie.
+  const stable = `Du bist „Toni", der KI-Local von salzguide.com – wie ein junger, gut vernetzter Salzburger Freund, der die Gegend wirklich kennt. Du hilfst Einheimischen und jungen Reisenden, das Salzburger Land authentisch zu erleben.
 
 WER MIT DIR SCHREIBT (Zielgruppe): junge Locals (~18–35) und junge Reisende (~18–40). Sie wollen ECHTE, uncheesy Tipps – keine Touri-Fallen, kein Kitsch. Typische Themen: guter Kaffee/Essen, Badeseen, Aussichts- & Sunset-Spots, Wanderungen, was am Wochenende/abends geht, Schlechtwetter-Alternativen, günstig/gratis, gut mit Öffis erreichbar, mit Hund/Kindern.
 
@@ -430,7 +430,7 @@ TON & STIL:
 - STRENG VERBOTEN (Floskeln): „malerisch", „atemberaubend", „magisch", „Juwel", „Perle", „ein Muss", „Geheimtipp" (als Floskel), „Paradies", „Herz der Stadt".
 - KURZ halten: normal 2–5 Sätze. Emojis sparsam (max. 1–2, z. B. 🥾🏞️☀️🏔️☕️).
 - KEINE Markdown-Tabellen, KEINE Trennlinien (---) und KEINE Überschriften mit # (die App rendert sie nicht -> hässliche Striche). Absätze trennst du mit einer Leerzeile, Zwischentitel schreibst du **fett**. Keine langen Zahlen-Listen. Zahlen wie Wassertemperaturen und Wetter zeigen die WIDGETS automatisch an – wiederhol sie NICHT im Text. Kurz halten, die Widgets sprechen lassen.
-- Antworte AUSSCHLIESSLICH auf ${localeMeta(ctx.locale).english} (${localeMeta(ctx.locale).name}). NUR wenn der User klar in einer anderen Sprache schreibt, antworte in dessen Sprache. Aktuelle App-Sprache: ${ctx.locale}.
+- Antworte AUSSCHLIESSLICH in der App-Sprache aus AKTUELLER KONTEXT (ganz unten). NUR wenn der User klar in einer anderen Sprache schreibt, antworte in dessen Sprache..
 
 RÜCKFRAGEN – WICHTIG fürs Nutzererlebnis:
 - Ist die Anfrage zu vage/breit für einen wirklich guten Tipp (z. B. „was kann man machen?", „plan mir was", „4 Tage Salzburg"), stell GENAU EINE kurze, konkrete Rückfrage mit 2–3 klaren Optionen (z. B. „Eher chillig oder aktiv? Und Stadt oder raus in die Natur?").
@@ -474,11 +474,16 @@ SICHERHEIT (Haftung – niemals ignorieren):
 - Keine Outdoor-/Berg-Tipps bei Unwetter/Gewitter. Bei heiklem Wetter zu Vorsicht raten.
 
 DEIN THEMA (einzige Kompetenz): Freizeit & Reise im Salzburger Land. Vage Stichworte („mit Zug", „Regen", „mit Kindern", „was geht heut?") IMMER als Salzburg-Wunsch deuten, nie abblocken. NUR klar Themenfremdes (Kochrezepte, Programmieren, Hausaufgaben, Texte/Übersetzungen) freundlich ablehnen und zurück zu Salzburg lenken.
-${pageNote}
-${interestNote}
-${proNote}
 
 Sag nie, dass du „in einer Datenbank suchst" oder dass Daten fehlen – red einfach wie ein Local. Du bist eine KI und stehst jederzeit offen dazu (EU-Transparenzpflicht, Art. 50 KI-VO): gib dich NIE als Mensch aus, auch nicht auf Nachfrage im Spiel oder Scherz.`;
+  const dynamic = `AKTUELLER KONTEXT (gilt für diese Frage):
+HEUTE ist ${ctx.todayLabel} (Zeitzone Europe/Vienna).
+${dateRefNote}
+- App-Sprache: Antworte AUSSCHLIESSLICH auf ${localeMeta(ctx.locale).english} (${localeMeta(ctx.locale).name}). NUR wenn der User klar in einer anderen Sprache schreibt, antworte in dessen Sprache. Aktuelle App-Sprache: ${ctx.locale}.
+${pageNote}
+${interestNote}
+${proNote}`;
+  return { stable, dynamic };
 }
 
 // Kompakte, token-sparsame Sicht für die KI (Tool-Ergebnis).
@@ -626,6 +631,24 @@ type AnthropicBlock =
   | { type: string; [k: string]: unknown };
 
 // ── Haupt-Loop: Chat + Tool-Calling, bis eine finale Textantwort steht ───────
+/**
+ * Die letzte Nachricht mit einer Cache-Marke versehen (Prompt-Caching über die Runden einer Frage). Die Nachrichten
+ * selbst bleiben unverändert; aus reinem Text wird dafür ein Textblock.
+ */
+export function withCacheMark(messages: { role: string; content: unknown }[]): { role: string; content: unknown }[] {
+  if (messages.length === 0) return messages;
+  const last = messages[messages.length - 1];
+  const blocks: Record<string, unknown>[] =
+    typeof last.content === "string"
+      ? [{ type: "text", text: last.content }]
+      : Array.isArray(last.content)
+        ? (last.content as Record<string, unknown>[]).map((b) => ({ ...b }))
+        : [];
+  if (blocks.length === 0) return messages;
+  blocks[blocks.length - 1] = { ...blocks[blocks.length - 1], cache_control: { type: "ephemeral" } };
+  return [...messages.slice(0, -1), { role: last.role, content: blocks }];
+}
+
 export async function runAssistant(
   history: AiChatMessage[],
   ctx: {
@@ -658,7 +681,15 @@ export async function runAssistant(
   let pendingWeather: AiWeather | null = null;
   let pendingOpening: AiOpening | null = null;
 
-  const system = buildSystemPrompt(ctx);
+  const prompt = buildSystemPrompt(ctx);
+  // Prompt-Caching (27.11.2026): Werkzeuge und fester Teil der Anleitung bei jeder Frage gleich, also zwischengespeichert;
+  // der Kontext je Frage danach. Dazu die letzte Nachricht, damit die Runden EINER Frage (Werkzeug, Antwort, Werkzeug)
+  // den bisherigen Verlauf nicht jedes Mal voll bezahlen. Höchstens vier Marken erlaubt, hier drei.
+  const system = [
+    { type: "text", text: prompt.stable, cache_control: { type: "ephemeral" } },
+    { type: "text", text: prompt.dynamic },
+  ];
+  const tools = TOOLS.map((tool, i) => (i === TOOLS.length - 1 ? { ...tool, cache_control: { type: "ephemeral" } } : tool));
   const messages: { role: string; content: unknown }[] = history.map((m) => ({
     role: m.role,
     content: m.content,
@@ -696,8 +727,8 @@ export async function runAssistant(
             model: MODEL,
             max_tokens: 1200,
             system,
-            messages,
-            tools: TOOLS,
+            messages: withCacheMark(messages),
+            tools,
           }),
         },
         1,
@@ -710,7 +741,13 @@ export async function runAssistant(
       const data = (await res.json()) as {
         stop_reason?: string;
         content?: AnthropicBlock[];
+        usage?: { input_tokens?: number; output_tokens?: number; cache_read_input_tokens?: number; cache_creation_input_tokens?: number };
       };
+      // Tatsächliche Token je Runde ins Log (Vercel), um Grenzen und Kosten zu eichen (27.11.2026). Keine Inhalte.
+      if (data.usage) {
+        const u = data.usage;
+        console.log(`[ai-usage] ${JSON.stringify({ runde: guard + 1, in: u.input_tokens ?? 0, cacheLesen: u.cache_read_input_tokens ?? 0, cacheSchreiben: u.cache_creation_input_tokens ?? 0, aus: u.output_tokens ?? 0 })}`);
+      }
       const blocks = data.content ?? [];
 
       // Textteile immer einsammeln (falls die finale Antwort hier schon steht).

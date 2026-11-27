@@ -54,6 +54,7 @@ export async function fetchWithRetry(
         await sleep(600 * (attempt + 1));
         continue;
       }
+      if (res.status === 400 && url.startsWith("https://api.anthropic.com/")) await noteCreditProblem(res.clone());
       return res;
     } catch (err) {
       lastErr = err;
@@ -69,4 +70,24 @@ export async function fetchWithRetry(
   }
   if (lastRes) return lastRes;
   throw lastErr;
+}
+
+/**
+ * Claude-Guthaben leer (Anton 27.11.2026: kein Zahlungsmittel hinterlegt, nur Aktionsguthaben, das sich SalzGuide mit
+ * Steiner Studio teilt): Anthropic antwortet dann 400 mit "credit balance is too low". Einmal melden, damit es jemand
+ * merkt, bevor Nutzer sich wundern. Wirft nie; ops wird erst hier geladen (dieses Modul bleibt frei von server-only).
+ */
+async function noteCreditProblem(res: Response): Promise<void> {
+  try {
+    const text = (await res.text()).slice(0, 2000);
+    // "credit balance is too low" (Guthaben leer) oder "reached your specified API usage limits" (Limit in der Console).
+    if (!/credit balance|usage limit/i.test(text)) return;
+    const { logOps } = await import("./ops");
+    await logOps("ai_credit_exhausted", {
+      message: "Anthropic lehnt ab: Claude-Guthaben aufgebraucht.",
+      group: "ai:credit",
+    });
+  } catch {
+    /* Meldung ist Zugabe, nie ein Grund für einen zweiten Fehler */
+  }
 }

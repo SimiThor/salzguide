@@ -230,6 +230,7 @@
     "disclaimer": "O Toni é uma IA e pode enganar-se. Confirma os detalhes antes de saíres.",
     "transparencyLink": "Como funciona o Toni",
     "error": "Ups, agora não deu. Tenta outra vez.",
+    "paused": "O Toni está em pausa. Volta mais tarde.",
     "newChat": "Nova conversa",
     "history": "Histórico",
     "historyTitle": "As tuas conversas",

@@ -230,6 +230,7 @@
     "disclaimer": "Toni 是 AI，可能会出错。出发前记得核对一下细节。",
     "transparencyLink": "Toni 的工作原理",
     "error": "哎呀，刚才没成功。请再试一次。",
+    "paused": "Toni 正在休息，请稍后再来。",
     "newChat": "新对话",
     "history": "历史记录",
     "historyTitle": "你的对话",

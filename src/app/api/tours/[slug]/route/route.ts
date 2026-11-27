@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { ipBackstopKey } from "@/lib/ai-chat-core";
 import { LOCALE_CODES } from "@/i18n/locales";
 import { clientIp } from "@/lib/analytics";
 import { appReadJson, appRateLimit, appUserRateLimit } from "@/lib/app-api";
@@ -62,7 +63,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
     // Je IP 120 Anfragen in 10 Minuten (Hotel-WLAN teilt sich eine Adresse); die Navigation
     // rechnet hoechstens alle 10 s (Rad) bzw. 20 s (Fuss) neu.
     const ip = clientIp(req);
-    if (ip && !(await appUserRateLimit(`ip:${ip}`, "webroute", 600, 120))) return fail("rate_limit", 429);
+    if (ip && !(await appUserRateLimit(`ip:${ipBackstopKey(ip)}`, "webroute", 600, 120))) return fail("rate_limit", 429);
 
     // Eigene Runden ("meine-<uuid>", KI-Builder) und kuratierte Runden. Beide laden nur die
     // Kette, mit denselben Regeln wie die Seiten (RLS bzw. veroeffentlicht, Entwurf nur Admin).

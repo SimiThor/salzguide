@@ -1,4 +1,5 @@
 import "server-only";
+import { ipBackstopKey } from "@/lib/ai-chat-core";
 import { NextResponse } from "next/server";
 import { createHash } from "node:crypto";
 import { DEFAULT_LOCALE, LOCALE_CODES } from "@/i18n/locales";
@@ -55,10 +56,12 @@ export function appLang(req: Request): string | null {
 const RATE_WINDOW_SECONDS = 300;
 const RATE_MAX_PER_IP = 300;
 
-// Pseudonymisiert wie in api/track: In rate_limits steht nie eine Klartext-IP.
+// Pseudonymisiert wie in api/track: In rate_limits steht nie eine Klartext-IP. IPv6 zählt je /64-Netz
+// (ipBackstopKey): Jeder IPv6-Anschluss darf in seinem /64 frei Adressen wählen, mit der vollen Adresse
+// wäre die Grenze wirkungslos (Prüfung 27.11.2026).
 function ipSubject(ip: string): string {
   const salt = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "salzguide";
-  return `app-ip:${createHash("sha256").update(`${ip}:${salt}`).digest("hex").slice(0, 32)}`;
+  return `app-ip:${createHash("sha256").update(`${ipBackstopKey(ip)}:${salt}`).digest("hex").slice(0, 32)}`;
 }
 
 /**

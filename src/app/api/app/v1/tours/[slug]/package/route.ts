@@ -1,4 +1,5 @@
 import { appError, appFailure, appGuard, appJson, appUserRateLimit } from "@/lib/app-api";
+import { ipBackstopKey } from "@/lib/ai-chat-core";
 import { appCanSeePro } from "@/lib/app-auth";
 import { clientIp } from "@/lib/analytics";
 import { loadTourPackage } from "@/lib/tour-package";
@@ -27,7 +28,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ slug: st
     // Das Paket kann den Routendienst anstossen und ist die teuerste Leseroute: zusätzlich
     // zur IP-Grenze 30 Abrufe in 10 Minuten je Konto bzw. je IP für Gäste.
     const ip = clientIp(req);
-    const subject = ctx.userId ?? (ip ? `ip:${ip}` : null);
+    const subject = ctx.userId ?? (ip ? `ip:${ipBackstopKey(ip)}` : null);
     if (subject && !(await appUserRateLimit(subject, "package", 600, 30))) return appError("rate_limit", 429);
 
     const canSeePro = await appCanSeePro(ctx.userId);
