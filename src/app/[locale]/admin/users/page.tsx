@@ -6,6 +6,7 @@ import {
   getOpenSupportCount,
   getProMigrations,
   USER_PAGE_SIZE,
+  getGuestLinks,
 } from "@/lib/admin";
 import AdminUserList from "@/components/admin/AdminUserList";
 import { STATUS_ACCENT, STATUS_NEUTRAL } from "@/lib/ui";
@@ -36,6 +37,7 @@ export default async function AdminUsersPage({
   // Erst danach: die Protokollzeilen brauchen die IDs der Nutzer, die wirklich angezeigt
   // werden. Eine Abfrage für die ganze Liste, nicht eine pro Zeile.
   const grants = await getLatestProGrants(users.map((u) => u.id));
+  const guests = await getGuestLinks(users.filter((u) => !u.email).map((u) => u.id));
   const openSupport = await getOpenSupportCount();
   const migration = await getProMigrations();
 
@@ -121,7 +123,7 @@ export default async function AdminUsersPage({
       />
 
       {/* Map -> Array: Eine Map überlebt die Server/Client-Grenze nicht. */}
-      <AdminUserList users={users} grants={Object.fromEntries(grants)} />
+      <AdminUserList users={users} grants={Object.fromEntries(grants)} guests={guests} />
 
       {pages > 1 && (
         <nav className="flex items-center justify-between gap-2">

@@ -1,5 +1,6 @@
 import { pruneExpiredData } from "@/lib/data-retention";
 import { pruneExpiredExports } from "@/lib/intro-export-server";
+import { pruneIdleGuests } from "@/lib/guest-cleanup";
 import { probeMailChannel } from "@/lib/email";
 import { guardCron, finishCron } from "@/lib/cron-guard";
 import { reportOverdueJobs } from "@/lib/ops";
@@ -32,6 +33,10 @@ export async function GET(req: Request): Promise<Response> {
   // Meldet sich selbst ins Logbuch, wenn etwas klemmt (lib/intro-export-server.ts).
   const exportFiles = await pruneExpiredExports();
 
+  // Gast-Konten (Kauf ohne Konto), die 30 Tage niemand benutzt hat und die selbst nichts gekauft haben (lib/guest-cleanup.ts).
+  // Eigenes Ergebnis, kein Einfluss auf `ok`: Die Löschfristen der Datenschutzerklärung hängen nicht daran.
+  const guests = await pruneIdleGuests();
+
   // Erst aufräumen, dann nach überfälligen Läufen sehen. Die Reihenfolge ist Absicht: Fällt
   // die Prüfung aus, war das Aufräumen (die Rechtsfrist) trotzdem schon erledigt.
   //
@@ -62,6 +67,7 @@ export async function GET(req: Request): Promise<Response> {
   await finishCron("cleanup", result.ok, {
     geloeschteKiZaehler: result.aiUsage,
     geloeschteExporte: exportFiles.deleted,
+    geloeschteGastKonten: guests.retired,
     ueberfaellig: overdue,
     // `reason` steht auch bei ok dabei: Der Klopftest fällt bei einem Schluckauf von Resend
     // bewusst ohne Urteil aus, und „offen" wäre dann eine Behauptung, die wir nicht geprüft
@@ -75,6 +81,7 @@ export async function GET(req: Request): Promise<Response> {
     ok: result.ok,
     purgedAiUsage: result.aiUsage,
     purgedExports: exportFiles.deleted,
+    retiredGuests: guests.retired,
     overdue,
     mailChannel: mail,
     failedTables: result.failedTables,

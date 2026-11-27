@@ -6,7 +6,7 @@ import { setUserPro, type ProMailState } from "@/lib/user-actions";
 import { proSourceLabel } from "@/lib/pro-source";
 import { BTN_DANGER_SM, BTN_PRIMARY_SM, BTN_SECONDARY_SM, STATUS_ACCENT, STATUS_NEUTRAL } from "@/lib/ui";
 import ProBadge from "@/components/ProBadge";
-import type { AdminUser, ProGrantEntry } from "@/lib/admin";
+import type { AdminUser, GuestLink, ProGrantEntry } from "@/lib/admin";
 
 // Nutzerliste mit Pro-Schalter.
 //
@@ -68,7 +68,7 @@ function ProState({ user }: { user: AdminUser }) {
   );
 }
 
-function UserRow({ user, grant }: { user: AdminUser; grant?: ProGrantEntry }) {
+function UserRow({ user, grant, guest }: { user: AdminUser; grant?: ProGrantEntry; guest?: GuestLink }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [err, setErr] = useState("");
@@ -114,7 +114,18 @@ function UserRow({ user, grant }: { user: AdminUser; grant?: ProGrantEntry }) {
         <div className="min-w-0">
           {/* Ohne E-Mail gibt es nur anonyme Konten aus einem App-Kauf ohne Anmeldung (Apple-Login
               liefert immer eine Adresse, notfalls die Weiterleitung). */}
-          <p className="truncate text-sm font-medium text-ink">{user.email ?? "Anonymer App-Käufer"}</p>
+          <p className="truncate text-sm font-medium text-ink">{user.email ?? "Gast-Gerät (iOS-App)"}</p>
+          {/* Was das Gast-Konto ist (lib/admin.ts getGuestLinks): selbst gekauft oder geteiltes Gerät eines Kontos. Geräte
+              ohne Kauf und lange unbenutzt räumt der nächtliche Lauf ab (lib/guest-cleanup.ts). */}
+          {!user.email && guest && (
+            <p className="truncate text-[12px] text-muted">
+              {guest.kind === "buyer"
+                ? "Kauf ohne Konto"
+                : guest.kind === "device"
+                  ? `teilt den Kauf von ${guest.ownerEmail ?? "einem Konto"}`
+                  : "ohne Kauf, wird nach 30 Tagen entfernt"}
+            </p>
+          )}
           <p className="text-[12px] text-muted">
             seit {fmt(user.createdAt)}
             {user.role === "admin" && " · Admin"}
@@ -205,8 +216,11 @@ function UserRow({ user, grant }: { user: AdminUser; grant?: ProGrantEntry }) {
 export default function AdminUserList({
   users,
   grants,
+  guests = {},
 }: {
   users: AdminUser[];
+  /** Was die Gast-Konten (ohne E-Mail) sind; siehe getGuestLinks. */
+  guests?: Record<string, GuestLink>;
   /** Jüngste Protokollzeile je Nutzer-ID. Leer, solange Migration 0038 fehlt. */
   grants: Record<string, ProGrantEntry>;
 }) {
@@ -220,7 +234,7 @@ export default function AdminUserList({
   return (
     <ul className="divide-y divide-black/5 overflow-hidden rounded-[16px] bg-white shadow-sm">
       {users.map((u) => (
-        <UserRow key={u.id} user={u} grant={grants[u.id]} />
+        <UserRow key={u.id} user={u} grant={grants[u.id]} guest={guests[u.id]} />
       ))}
     </ul>
   );

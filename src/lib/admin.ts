@@ -1,4 +1,6 @@
 import { createClient } from "./supabase/server";
+import { createServiceClient } from "./supabase/service";
+import { requireAdmin } from "./admin-guard";
 import { aiOriginsFromMedia, imagesFromMedia } from "./spots";
 import type { AiOrigin } from "./ai-origin";
 import { routing } from "@/i18n/routing";
@@ -798,4 +800,51 @@ export async function getHomeContentAdmin(): Promise<AdminHomeContent> {
 export async function getHomeStatus(): Promise<{ state: TranslationState }> {
   const { state } = await getHomeContentAdmin();
   return { state };
+}
+
+/**
+ * Was ein Gast-Konto (ohne E-Mail, anonyme Anmeldung aus der iOS-App) ist, damit es im Admin nicht rätselhaft dasteht
+ * (Anton 27.11.2026): "buyer" = hat selbst ohne Konto gekauft; "device" = ein abgemeldetes Gerät teilt den Kauf eines
+ * anderen Kontos (Regel 2b), mit dessen Adresse. Kauf-Zeilen liest nur der Server (RLS), deshalb Service-Schlüssel und
+ * vorher die Admin-Prüfung.
+ */
+export type GuestLink = { kind: "buyer" } | { kind: "device"; ownerEmail: string | null } | { kind: "none" };
+
+export async function getGuestLinks(userIds: string[]): Promise<Record<string, GuestLink>> {
+  const out: Record<string, GuestLink> = {};
+  const ids = userIds.filter((id) => /^[0-9a-f-]{36}$/i.test(id));
+  if (ids.length === 0) return out;
+  const gate = await requireAdmin();
+  if (!gate.ok) return out;
+  const svc = createServiceClient();
+  const { data, error } = await svc
+    .from("apple_purchases")
+    .select("user_id, anon_holders")
+    .or(`user_id.in.(${ids.join(",")}),anon_holders.ov.{${ids.join(",")}}`);
+  if (error) {
+    console.warn("getGuestLinks übersprungen", error.message);
+    return out;
+  }
+  const owners = new Set<string>();
+  for (const row of data ?? []) {
+    const owner = row.user_id as string | null;
+    if (owner && ids.includes(owner)) out[owner] = { kind: "buyer" };
+    for (const holder of (row.anon_holders as string[] | null) ?? []) {
+      if (ids.includes(holder) && out[holder]?.kind !== "buyer") {
+        out[holder] = { kind: "device", ownerEmail: null };
+        if (owner) owners.add(`${holder}|${owner}`);
+      }
+    }
+  }
+  const ownerIds = [...new Set([...owners].map((p) => p.split("|")[1]))];
+  if (ownerIds.length > 0) {
+    const { data: profiles } = await svc.from("profiles").select("id, email").in("id", ownerIds);
+    const mail = new Map((profiles ?? []).map((p) => [p.id as string, (p.email as string | null) ?? null]));
+    for (const pair of owners) {
+      const [holder, owner] = pair.split("|");
+      if (out[holder]?.kind === "device") out[holder] = { kind: "device", ownerEmail: mail.get(owner) ?? null };
+    }
+  }
+  for (const id of ids) out[id] ??= { kind: "none" };
+  return out;
 }

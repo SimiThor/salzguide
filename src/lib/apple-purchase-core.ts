@@ -73,6 +73,13 @@ export type ProfileState = {
  */
 export interface AppleStore {
   getPurchase(originalTransactionId: string): Promise<PurchaseRow | null>;
+  /** Alle Kauf-Zeilen, in denen das Konto Besitzer ODER anonymer Mit-Inhaber ist. */
+  listHeldPurchases(userId: string): Promise<PurchaseRow[]>;
+  /**
+   * Einen Mit-Inhaber aus EINER Zeile austragen, egal wem sie gehört und ob sie erstattet ist (zum Abmelden eines
+   * Gast-Kontos). NUR wo anon_holders = expectedHolders (sonst Rennen: false).
+   */
+  dropHolder(originalTransactionId: string, holderId: string, expectedHolders: string[]): Promise<boolean>;
   /** true = angelegt, false = die Zeile gab es schon (Primärschlüssel). Andere Fehler werfen. */
   insertPurchase(row: PurchaseRow): Promise<boolean>;
   /**
@@ -567,4 +574,37 @@ export async function applyAppleRevocation(
     switchedToStripe,
     stripeWithoutCustomer,
   };
+}
+
+/**
+ * Ein Gast-Konto (anonym) ist erledigt (Anton 27.11.2026): Das Gerät hat sich angemeldet, oder das Konto ist lange nicht
+ * benutzt. Ohne das bliebe es als Mit-Inhaber eines Kaufs (Regel 2b) für immer im Admin stehen.
+ *
+ * Regeln: Nur anonyme Konten. Ein Gast-Konto, das SELBST einen Kauf besitzt (ohne Konto gekauft), bleibt: Den Kauf holt
+ * Regel 2a beim nächsten Abgleich ins echte Konto und räumt das Konto dabei ab; ohne Anmeldung braucht das Gerät es
+ * weiter. Sonst: aus allen Kauf-Zeilen als Mit-Inhaber austragen, Apple-Pro nehmen, Konto löschen. Kommt das Gerät
+ * doch zurück, holt "Wiederherstellen" Pro sofort wieder (Regel 2b, neues Gast-Konto).
+ */
+export type RetireGuestResult = "retired" | "not_anonymous" | "owns_purchase" | "kept";
+
+export async function retireGuestAccount(store: AppleStore, userId: string): Promise<RetireGuestResult> {
+  if (!(await store.isAnonymousAccount(userId))) return "not_anonymous";
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    const held = await store.listHeldPurchases(userId);
+    if (held.some((row) => row.userId === userId)) return "owns_purchase";
+    let stable = true;
+    for (const row of held) {
+      if (!row.anonHolders.includes(userId)) continue;
+      // Auch aus erstatteten Zeilen und aus Zeilen, deren Besitzer sein Konto gelöscht hat (sonst bliebe das Gast-Konto
+      // dort für immer hängen). Optimistisch gegen die gelesene Liste; geändert = neu lesen.
+      if (!(await store.dropHolder(row.originalTransactionId, userId, row.anonHolders))) stable = false;
+    }
+    if (stable) break;
+  }
+  // Erst wenn das Konto in keiner Zeile mehr steht: Pro nehmen (nie Pro ohne Zeile) und löschen. retireAnonymousAccount
+  // prüft selbst noch einmal "anonym" und "in keiner Zeile".
+  const left = await store.listHeldPurchases(userId);
+  if (left.length > 0) return left.some((row) => row.userId === userId) ? "owns_purchase" : "kept";
+  await store.removeAppleProIfApple(userId);
+  return (await store.retireAnonymousAccount(userId)) ? "retired" : "kept";
 }

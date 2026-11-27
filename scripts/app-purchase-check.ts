@@ -34,6 +34,7 @@ import { APPLE_ROOT_SHA256, appleRootCertificates } from "@/lib/apple-roots/inde
 import {
   applyAppleRevocation,
   bindAndGrantApplePro,
+  retireGuestAccount,
   MAX_ANON_HOLDERS,
   type AppleStore,
   type AppleTx,
@@ -415,6 +416,17 @@ class FakeStore implements AppleStore {
     if (!r || r.userId !== owner || r.revokedAt !== null) return false;
     if (!r.anonHolders.includes(holder) && r.anonHolders.length >= MAX_ANON_HOLDERS) return false;
     if (!r.anonHolders.includes(holder)) r.anonHolders = [...r.anonHolders, holder];
+    return true;
+  }
+  async listHeldPurchases(userId: string) {
+    this.hook("listHeldPurchases");
+    return [...this.purchases.values()].filter((r) => r.userId === userId || r.anonHolders.includes(userId)).map((r) => ({ ...r, anonHolders: [...r.anonHolders] }));
+  }
+  async dropHolder(id: string, holder: string, expected: string[]) {
+    this.hook("dropHolder");
+    const r = this.purchases.get(id);
+    if (!r || JSON.stringify(r.anonHolders) !== JSON.stringify(expected)) return false;
+    r.anonHolders = r.anonHolders.filter((h) => h !== holder);
     return true;
   }
   async dropAnonHolder(id: string, owner: string, holder: string, expected: string[]) {
@@ -1599,6 +1611,73 @@ console.log("\n8b. Stripe-Webhook: jeder Zweig genau einmal, Streitfaelle nur ue
   eq("Signaturpruefung genau einmal", count("constructEventAsync("), 1);
   eq("Pro wird nur bei Erstattung, abgebuchtem Streitfall und Erstattung nach Wiederoeffnen entzogen", count("await revokePro("), 3);
   check("charge.dispute.created entzieht nichts", !/charge\.dispute\.created"\)[\s\S]*?revokePro[\s\S]*?charge\.dispute\.funds_withdrawn/.test(src));
+}
+
+console.log("\n9. Gast-Konten austragen (Anton 27.11.2026: keine verwaisten Gast-Konten)");
+{
+  const { guestIsIdle, pruneIdleGuests } = await import("@/lib/guest-cleanup");
+  const ANON3 = "88888888-8888-4888-8888-888888888888";
+  {
+    const s = withAnon(ANON);
+    eq("echtes Konto: nie", [await retireGuestAccount(s, USER_A), s.profiles.has(USER_A)], ["not_anonymous", true]);
+  }
+  {
+    // Abgemeldetes Geraet teilte den Kauf des echten Kontos (2b), dann Anmeldung: Gast-Konto weg, Besitzer behaelt Pro.
+    const s = withAnon(ANON2);
+    s.purchases.set("100", row({ userId: USER_A, appAccountToken: USER_A, anonHolders: [ANON2] }));
+    s.profiles.set(USER_A, { isPro: true, proSource: "apple" });
+    s.profiles.set(ANON2, { isPro: true, proSource: "apple" });
+    const r = await retireGuestAccount(s, ANON2);
+    eq("Mit-Inhaber: ausgetragen und geloescht, Besitzer behaelt Pro", [r, s.purchases.get("100")?.anonHolders, s.profiles.has(ANON2), s.profiles.get(USER_A)?.isPro, s.purchases.get("100")?.userId], ["retired", [], false, true, USER_A]);
+  }
+  {
+    // Gast hat SELBST gekauft (ohne Konto): bleibt, Regel 2a holt den Kauf bei der Anmeldung.
+    const s = withAnon(ANON);
+    await bindAndGrantApplePro(s, ANON, tx({ appAccountToken: ANON }), now);
+    eq("eigener Gast-Kauf: bleibt", [await retireGuestAccount(s, ANON), s.profiles.get(ANON)?.isPro, s.purchases.get("100")?.userId], ["owns_purchase", true, ANON]);
+  }
+  {
+    const s = withAnon(ANON);
+    eq("Gast ohne jeden Kauf: geloescht", [await retireGuestAccount(s, ANON), s.profiles.has(ANON)], ["retired", false]);
+  }
+  {
+    // Rennen: Zwischen Lesen und Austragen traegt sich ein anderes Geraet ein; neu lesen, dann klappt es.
+    const s = withAnon(ANON2, ANON3);
+    s.purchases.set("100", row({ userId: USER_A, appAccountToken: USER_A, anonHolders: [ANON2] }));
+    s.profiles.set(USER_A, { isPro: true, proSource: "apple" });
+    s.before.dropHolder = () => {
+      s.purchases.get("100")!.anonHolders = [ANON2, ANON3];
+    };
+    const r = await retireGuestAccount(s, ANON2);
+    eq("Rennen beim Austragen: neu gelesen, das andere Geraet bleibt", [r, s.purchases.get("100")?.anonHolders, s.profiles.has(ANON2)], ["retired", [ANON3], false]);
+  }
+  {
+    // Mit-Inhaber einer erstatteten Zeile und einer Zeile ohne Besitzer (Konto geloescht): trotzdem austragbar.
+    const s = withAnon(ANON2);
+    s.purchases.set("100", row({ userId: USER_A, appAccountToken: USER_A, anonHolders: [ANON2], revokedAt: now() }));
+    s.purchases.set("101", row({ originalTransactionId: "101", userId: null, appAccountToken: USER_B, anonHolders: [ANON2] }));
+    eq("Mit-Inhaber erstatteter und besitzerloser Zeilen: ausgetragen und geloescht", [await retireGuestAccount(s, ANON2), s.purchases.get("100")?.anonHolders, s.purchases.get("101")?.anonHolders, s.profiles.has(ANON2)], ["retired", [], [], false]);
+  }
+  {
+    const now = new Date("2026-12-31T00:00:00Z");
+    const old = { id: ANON, is_anonymous: true, created_at: "2026-10-01T00:00:00Z", last_sign_in_at: "2026-10-01T00:00:00Z", updated_at: "2026-10-02T00:00:00Z" };
+    eq("unbenutzt: erst nach 30 Tagen, nur anonym", [guestIsIdle(old, now), guestIsIdle({ ...old, updated_at: "2026-12-20T00:00:00Z" }, now), guestIsIdle({ ...old, is_anonymous: false }, now)], [true, false, false]);
+    const s = withAnon(ANON, ANON2);
+    await bindAndGrantApplePro(s, ANON2, tx({ appAccountToken: ANON2 }), () => now.toISOString());
+    const out = await pruneIdleGuests({
+      store: s,
+      now,
+      listUsers: async (page) => (page === 1 ? [old, { ...old, id: ANON2 }, { ...old, id: USER_A, is_anonymous: false }] : []),
+    });
+    eq("naechtlich: alter Gast ohne Kauf weg, Gast mit eigenem Kauf und echtes Konto bleiben", [out.retired, s.profiles.has(ANON), s.profiles.has(ANON2), s.profiles.has(USER_A)], [1, false, true, true]);
+    // Ein Gast-Geraet, das den Kauf eines echten Kontos teilt, bleibt nachts IMMER (taegliche Nutzung ist nicht messbar).
+    const shared = withAnon(ANON3);
+    shared.purchases.set("100", row({ userId: USER_A, appAccountToken: USER_A, anonHolders: [ANON3] }));
+    shared.profiles.set(USER_A, { isPro: true, proSource: "apple" });
+    shared.profiles.set(ANON3, { isPro: true, proSource: "apple" });
+    const out2 = await pruneIdleGuests({ store: shared, now, listUsers: async (page) => (page === 1 ? [{ ...old, id: ANON3 }] : []) });
+    eq("naechtlich: Gast-Geraet mit geteiltem Kauf bleibt samt Pro", [out2.retired, shared.profiles.get(ANON3)?.isPro, shared.purchases.get("100")?.anonHolders], [0, true, [ANON3]]);
+  }
 }
 
 console.log("\n7. Anonyme Konten duerfen nirgends schreiben (Migration 0078)");
