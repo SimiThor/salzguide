@@ -230,6 +230,7 @@
     "disclaimer": "Toni es una IA y puede equivocarse. Comprueba los detalles antes de salir.",
     "transparencyLink": "Cómo funciona Toni",
     "error": "Vaya, esta vez no ha funcionado. Inténtalo de nuevo.",
+    "paused": "Toni está en pausa. Vuelve más tarde.",
     "newChat": "Nuevo chat",
     "history": "Historial",
     "historyTitle": "Tus chats",

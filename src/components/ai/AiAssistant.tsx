@@ -283,9 +283,11 @@ export default function AiAssistant({
           return;
         }
         if (!res.ok) {
+          // Tagesgrenze aller Toni-Fragen erreicht (ai-chat-core): ehrlich "Pause bis morgen" statt "nochmal versuchen".
+          const body = res.status === 429 ? ((await res.json().catch(() => ({}))) as { error?: string }) : {};
           setMessages(prev);
           setInput(text);
-          setError(t("error"));
+          setError(body.error === "ai_paused" ? t("paused") : t("error"));
           return;
         }
 

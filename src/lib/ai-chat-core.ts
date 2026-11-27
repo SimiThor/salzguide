@@ -171,7 +171,28 @@ export async function readAiUsage(subject: string): Promise<number | null> {
 
 export type AiAdmission =
   | { ok: true; remaining: number | null }
-  | { ok: false; status: 402 | 429; body: { error: string; scope?: string } };
+  | { ok: false; status: 402 | 429 | 503; body: { error: string; scope?: string } };
+
+/**
+ * Obergrenzen über ALLE Fragen an Toni (Web und App, Gast, Gratis und Pro zusammen), je Kalendertag und Kalendermonat
+ * in Wien. Schützen das Claude-Guthaben, das sich SalzGuide mit Steiner Studio teilt (Anton 27.11.2026: SalzGuide soll
+ * im Monat etwa 10 bis 20 $ brauchen). Ein Bot mit vielen Adressen umgeht die Grenzen je Gast und je Adresse, diese
+ * nicht. Erhöhen über AI_GLOBAL_DAILY_CAP und AI_GLOBAL_MONTHLY_CAP in Vercel, ohne neue App. Die tatsächlichen Token je
+ * Frage stehen im Log ("[ai-usage]"), danach lassen sich die Zahlen eichen.
+ */
+export const AI_GLOBAL_DAILY_DEFAULT = 60;
+export const AI_GLOBAL_MONTHLY_DEFAULT = 600;
+
+export function aiGlobalCaps(env: Record<string, string | undefined> = process.env): { day: number; month: number } {
+  const read = (v: string | undefined, fallback: number) => {
+    const n = Number(v);
+    return Number.isInteger(n) && n > 0 ? n : fallback;
+  };
+  return {
+    day: read(env.AI_GLOBAL_DAILY_CAP, AI_GLOBAL_DAILY_DEFAULT),
+    month: read(env.AI_GLOBAL_MONTHLY_CAP, AI_GLOBAL_MONTHLY_DEFAULT),
+  };
+}
 
 /**
  * Burst-Limit, Tageslimit und (nur Gäste) IP-Backstop, in genau dieser Reihenfolge. Setzt den
@@ -189,20 +210,33 @@ export async function admitAiRequest(opts: {
   const { subject, limit, isPro, scope, ipSubject, path } = opts;
   const service = createServiceClient();
 
+  // SEIT 27.11.2026 FAIL-CLOSED: Fällt eine Zählung aus (Datenbank weg, Funktion fehlt), antwortet Toni "gerade nicht
+  // verfügbar" (503), statt ohne Grenzen Claude zu fragen. Vorher fiel jede Zählung offen aus; ein Datenbank-Aussetzer
+  // hätte alle Grenzen auf einmal abgeschaltet. Toni braucht die Datenbank ohnehin (Spots, Events).
+  const guardDown = async (step: string, error: unknown): Promise<AiAdmission> => {
+    await logOps("ai_guard_failed", {
+      message: `KI-Zählung "${step}" nicht verfügbar, Anfrage abgewiesen.`,
+      error,
+      path,
+      group: `ai:guard:${step}`,
+    });
+    return { ok: false, status: 503, body: { error: "unavailable" } };
+  };
+
   // 1) Burst-Limit ZUERST (atomar, Kurzzeit-Schutz gegen Hämmern/Concurrency) —
   // für ALLE, auch Pro. So verbraucht ein geblockter Burst kein Tages-Kontingent.
-  // Best effort: Funktion fehlt (vor Migration 0018) -> durchlassen.
   try {
-    const { data: allowed } = await service.rpc("hit_ai_burst", {
+    const { data: allowed, error } = await service.rpc("hit_ai_burst", {
       p_subject: subject,
       p_window_seconds: BURST_WINDOW_SECONDS,
       p_max: BURST_MAX,
     });
-    if (allowed === false) {
+    if (error || typeof allowed !== "boolean") return guardDown("burst", error);
+    if (!allowed) {
       return { ok: false, status: 429, body: { error: "rate_limited" } };
     }
-  } catch {
-    /* Burst-Backend nicht verfügbar -> nicht blockieren */
+  } catch (e) {
+    return guardDown("burst", e);
   }
 
   // 2) Free-Limit ATOMAR (bump-first) — schließt die TOCTOU-Race: nebenläufige
@@ -214,12 +248,13 @@ export async function admitAiRequest(opts: {
   if (Number.isFinite(limit)) {
     let count: number | null = null;
     try {
-      const { data } = await service.rpc("bump_ai_usage", { p_subject: subject });
-      if (typeof data === "number") count = data;
-    } catch {
-      /* RPC nicht verfügbar -> fail-open */
+      const { data, error } = await service.rpc("bump_ai_usage", { p_subject: subject });
+      if (error || typeof data !== "number") return guardDown("daily", error);
+      count = data;
+    } catch (e) {
+      return guardDown("daily", e);
     }
-    if (count !== null) {
+    {
       remaining = Math.max(0, limit - count);
       if (count > limit) {
         // "pro" nach draußen melden: Die Paywall-Karte im Chat zeigt Pro-Nutzern am Limit
@@ -234,10 +269,11 @@ export async function admitAiRequest(opts: {
     // Cookie-Umgehung (frische Gast-ID pro Request) über die IP abfangen — ebenfalls atomar.
     if (ipSubject) {
       try {
-        const { data: ipCount } = await service.rpc("bump_ai_usage", {
+        const { data: ipCount, error: ipError } = await service.rpc("bump_ai_usage", {
           p_subject: ipSubject,
         });
-        if (typeof ipCount === "number" && ipCount > IP_GUEST_CAP) {
+        if (ipError || typeof ipCount !== "number") return guardDown("ip", ipError);
+        if (ipCount > IP_GUEST_CAP) {
           // Denial of Wallet: Genau hier läuft jemand auf, der unser Claude-Kontingent
           // verbrennen will (OWASP LLM, docs/34 §G). Dass die Grenze hält, ist kein Fehler
           // und deshalb keine Fehlermeldung — aber wenn sie oft hält, wird gerade
@@ -252,13 +288,43 @@ export async function admitAiRequest(opts: {
           });
           return { ok: false, status: 429, body: { error: "rate_limited" } };
         }
-      } catch {
-        /* fail-open */
+      } catch (e) {
+        return guardDown("ip", e);
       }
+    }
+  }
+  // 3) Obergrenzen über alle (Tag und Monat, siehe aiGlobalDailyCap). ZULETZT: Gezählt wird nur, was sonst durchkäme.
+  //    Stünde sie vorne, könnte ein Skript mit lauter abgewiesenen Anfragen (frische Gast-ID, über dem IP-Deckel) den
+  //    gemeinsamen Zähler hochtreiben und Toni für alle abschalten, ohne dass Claude je gefragt wird (Prüfung 27.11.2026).
+  //    Wer an der globalen Grenze scheitert, hat seine persönliche Frage schon gezählt; das ist der kleinere Preis.
+  const caps = aiGlobalCaps();
+  for (const window of [
+    { key: `ai:global-day:${viennaDay()}`, seconds: 2 * 86_400, max: caps.day, label: "Tagesgrenze" },
+    { key: `ai:global-month:${viennaDay().slice(0, 7)}`, seconds: 32 * 86_400, max: caps.month, label: "Monatsgrenze" },
+  ]) {
+    try {
+      const { data: allowed, error } = await service.rpc("hit_rate_limit", {
+        p_subject: window.key,
+        p_window_seconds: window.seconds,
+        p_max: window.max,
+      });
+      if (error || typeof allowed !== "boolean") return guardDown("global", error);
+      if (!allowed) {
+        await logOps("ai_global_cap_hit", {
+          message: `${window.label} aller Toni-Fragen (${window.max}) erreicht. Toni pausiert.`,
+          path,
+          group: `ai:global_cap:${window.label}`,
+          detail: { grenze: window.max },
+        });
+        return { ok: false, status: 429, body: { error: "ai_paused" } };
+      }
+    } catch (e) {
+      return guardDown("global", e);
     }
   }
   return { ok: true, remaining };
 }
+
 
 /**
  * Leise Personalisierung: die Kategorien der bereits gemerkten Spots (eigene Daten, RLS-

@@ -465,6 +465,31 @@ export const OPS_EVENTS = {
     quietMinutes: 720,
     hint: "Unter Einstellungen → Stimmen die Ansagen der Wanderführung öffnen und die fehlenden oder veralteten Dateien neu erzeugen.",
   },
+  ai_global_cap_hit: {
+    area: "ai",
+    severity: "warn",
+    title: "Toni-Grenze über alle erreicht (Tag oder Monat)",
+    // Einmal am Tag reicht: Danach pausiert Toni ohnehin bis zum nächsten Fenster.
+    alertAfter: 1,
+    quietMinutes: 720,
+    hint: "Alle zusammen haben heute (AI_GLOBAL_DAILY_CAP) oder in diesem Monat (AI_GLOBAL_MONTHLY_CAP) so viele Fragen gestellt wie erlaubt, beim Runden-Bauer BUILDER_GLOBAL_DAILY_CAP. Schutz des Claude-Guthabens, das sich SalzGuide mit Steiner Studio teilt. Toni zeigt 'Pause' bis Mitternacht bzw. Monatsende. Echte Nutzer, keine Bots? Dann die Zahl in Vercel erhöhen und das Guthaben in der Anthropic Console prüfen. Kosten je Frage stehen im Vercel-Log unter [ai-usage].",
+  },
+  ai_guard_failed: {
+    area: "ai",
+    severity: "error",
+    title: "KI-Zählung ausgefallen, Toni abgewiesen",
+    alertAfter: 3,
+    quietMinutes: 60,
+    hint: "Eine Zählung für Toni oder den Runden-Bauer (Datenbank-Funktion) antwortet nicht. Aus Sicherheit fragt der Server Claude dann nicht. Meist ist Supabase gerade gestört; sonst die Funktionen hit_ai_burst, bump_ai_usage und hit_rate_limit prüfen.",
+  },
+  ai_credit_exhausted: {
+    area: "ai",
+    severity: "critical",
+    title: "Claude-Guthaben leer",
+    alertAfter: 1,
+    quietMinutes: 180,
+    hint: "Anthropic lehnt ab, weil das Guthaben aufgebraucht ist. Toni und der Runden-Bauer antworten nicht, Steiner Studio ist ebenfalls betroffen (gleiches Konto). In der Anthropic Console unter Billing nachsehen; das Aktionsguthaben kommt monatlich neu.",
+  },
   ai_ip_cap_hit: {
     area: "ai",
     severity: "warn",

@@ -1,4 +1,5 @@
 import { LOCALE_CODES, DEFAULT_LOCALE } from "@/i18n/locales";
+import { ipBackstopKey } from "@/lib/ai-chat-core";
 import { clientIp } from "@/lib/analytics";
 import {
   appError,
@@ -60,7 +61,8 @@ export async function POST(req: Request) {
     if (!viewer.ok) return viewer.reason === "auth" ? appError("auth", 401) : appError("unavailable", 503);
 
     const ip = clientIp(req);
-    const subject = viewer.userId ?? (ip ? `ip:${ip}` : null);
+    // IPv6 je /64 (ipBackstopKey), sonst umgeht ein Anschluss die Grenze mit wechselnden Adressen.
+    const subject = viewer.userId ?? (ip ? `ip:${ipBackstopKey(ip)}` : null);
     if (subject && !(await appUserRateLimit(subject, "route", 600, viewer.userId ? 60 : 120)))
       return appError("rate_limit", 429);
 
