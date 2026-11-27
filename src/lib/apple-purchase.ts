@@ -562,6 +562,20 @@ export function supabaseAppleStore(): AppleStore {
       if (error) throw error;
       return data === true;
     },
+    async dropAnonHolder(id, ownerId, holderId, expected) {
+      // Vergleich der ganzen Liste im UPDATE (Postgres-Array-Literal): Hat sich die Liste seit dem
+      // Lesen geändert, trifft das UPDATE nichts, und der Aufrufer bewertet neu.
+      const { data, error } = await svc
+        .from("apple_purchases")
+        .update({ anon_holders: expected.filter((h) => h !== holderId) })
+        .eq("original_transaction_id", id)
+        .eq("user_id", ownerId)
+        .is("revoked_at", null)
+        .eq("anon_holders", `{${expected.join(",")}}`)
+        .select("original_transaction_id");
+      if (error) throw error;
+      return (data?.length ?? 0) > 0;
+    },
     async removeAppleProIfApple(userId) {
       // Nur wo pro_source = 'apple' (im UPDATE). Wie revokePro() für Stripe: pro_source und
       // pro_since bleiben stehen, damit die Herkunft nicht verloren geht.
@@ -654,15 +668,17 @@ export async function settleAppleTransactions(
     }
 
     if (r.status === "foreign") {
-      // Erwartet: Ein Gerät ohne Anmeldung meldet einen Kauf, der einem echten Konto gehört (nach
-      // Abmelden oder auf einem weiteren Gerät). Kein Alarm, die App bittet um die Anmeldung.
+      // Erwartet: Ein Gerät ohne Anmeldung meldet einen neuen Kauf, dessen appAccountToken auf ein
+      // echtes Konto zeigt, das ihn noch nicht verbucht hat (Regel 4). Kein Alarm, die App bittet um
+      // die Anmeldung. Gehört die Zeile schon dem echten Konto, teilt Regel 2b ohne Anmeldung.
       if (r.reason === "needs_sign_in") {
         results.push({ originalTransactionId: id, status: "foreign" });
         continue;
       }
       if (r.reason === "holder_limit") {
-        // Mehr anonyme Geräte als erlaubt teilen sich einen Kauf: sehr viele eigene Geräte ohne
-        // Anmeldung oder ein weitergegebenes JWS. Gemeldet, nicht freigeschaltet.
+        // Mehr anonyme Geräte als erlaubt teilen sich einen Kauf eines ANONYMEN Besitzers (bei einem
+        // echten Besitzer verdrängt Regel 2b den ältesten): sehr viele eigene Geräte ohne Anmeldung
+        // oder ein weitergegebenes JWS. Gemeldet, nicht freigeschaltet.
         await logOps("apple_purchase_manual", {
           message: "Apple-Kauf: Grenze für anonyme Geräte erreicht, nicht geteilt (weitergegebener Kauf?).",
           subject: opsSubject("user", userId),

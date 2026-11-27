@@ -150,11 +150,12 @@ export default async function AgbPage({
           sich Web-Käufer:innen seit ihrem Kauf beziehen können. 7a lässt sie stehen.
           WARUM STATT 3 BIS 7: Beim In-App-Kauf wickelt Apple Kauf, Zahlung, Rechnung und
           Erstattung ab (docs/41 Abschnitt 7). Die FAGG-Zustimmung und die Mail-Bestätigung aus
-          dem Web-Bestellvorgang gibt es dort nicht, und das Konto ist VOR dem Kauf nötig (die
-          App bindet den Kauf per appAccountToken an das angemeldete Konto). Der Text muss
-          beschreiben, was lib/apple-purchase-core.ts TUT: ein Kauf gehört genau einem Konto,
-          wird nie von einem lebenden Konto umgebunden, nach einer Kontolöschung an ein neues
-          gebunden, nach einer Erstattung entzogen. Ändert sich eine dieser Regeln, ändert sich
+          dem Web-Bestellvorgang gibt es dort nicht. Seit 26.11.2026 geht der Kauf ohne Konto (Apple
+          5.1.1, anonymes Konto im Hintergrund), seit 27.11.2026 gilt er auch auf abgemeldeten
+          Geräten derselben Apple-ID. Der Text muss beschreiben, was lib/apple-purchase-core.ts TUT:
+          ein Kauf gehört genau einem Konto, wird nie von einem lebenden echten Konto umgebunden,
+          gilt mit auf Geräten derselben Apple-ID ohne Anmeldung, nach einer Kontolöschung an ein
+          neues gebunden, nach einer Erstattung entzogen. Ändert sich eine dieser Regeln, ändert sich
           dieser Absatz mit. Familienfreigabe ist im Produkt ausgeschaltet. */}
       <p>
         In der iOS-App kaufst du SalzGuide Pro als In-App-Kauf über den App Store von Apple. Für
@@ -167,15 +168,17 @@ export default async function AgbPage({
         erhalten wir nicht.
       </p>
       <p>
-        Für den Kauf brauchst du ein kostenloses SalzGuide-Konto (Anmeldung mit einem Code an deine
-        E-Mail-Adresse, mit Apple oder mit Google). Pro wird diesem Konto zugeordnet und gilt in der
-        App und auf salzguide.com, auf allen Geräten, auf denen du angemeldet bist. Ein Kauf gehört
-        genau einem Konto. Über die Familienfreigabe ist er nicht teilbar.
+        Für den Kauf brauchst du kein Konto. Pro gilt dann in der App auf allen Geräten mit derselben
+        Apple-ID. Meldest du dich an (mit einem Code an deine E-Mail-Adresse, mit Apple oder mit
+        Google), ordnen wir den Kauf deinem SalzGuide-Konto zu. Pro gilt dann auch auf salzguide.com
+        und auf allen Geräten, auf denen du angemeldet bist. Ein Kauf gehört genau einem Konto. Über
+        die Familienfreigabe ist er nicht teilbar.
       </p>
       <p>
-        Mit „Käufe wiederherstellen“ im Profil ordnest du einen bestehenden Kauf deinem Konto wieder
-        zu, etwa nach einer Neuinstallation. Hast du dein Konto gelöscht, kannst du den Kauf so einem
-        neuen Konto zuordnen. Gehört er noch einem anderen bestehenden Konto, übertragen wir ihn
+        Mit „Käufe wiederherstellen“ holst du einen bestehenden Kauf zurück, etwa nach einer
+        Neuinstallation, auch ohne Anmeldung. Du findest es im Pro-Fenster der App und, wenn du
+        angemeldet bist, im Profil. Hast du dein Konto gelöscht, kannst du den Kauf so einem neuen
+        Konto zuordnen. Gehört er noch einem anderen bestehenden Konto, übertragen wir ihn
         nicht.
       </p>
       <p>

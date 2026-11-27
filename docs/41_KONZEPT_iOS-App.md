@@ -44,7 +44,9 @@ Begründungen, damit sie nicht neu diskutiert werden:
   im Web. Danach löscht der Server das leere anonyme Konto (`retireAnonymousAccount`: nur wenn anonym und in keiner
   Kauf-Zeile mehr; scheitert es, gilt der Kauf trotzdem, Meldung `apple_anon_cleanup_failed` nur im Logbuch). Übrige
   anonyme Konten stehen im Admin als „Anonymer App-Käufer“. Zweites Gerät derselben Apple-ID, wieder ohne Konto: Das zweite anonyme Konto wird Mit-Inhaber
-  (`anon_holders`, Regel 2b, höchstens 4 dazu), beide haben Pro; eine Erstattung erreicht alle. Im Web zählt ein
+  (`anon_holders`, Regel 2b, höchstens 4 dazu), beide haben Pro; eine Erstattung erreicht alle. Seit 27.11.2026 auch,
+  wenn der Kauf schon einem echten Konto gehört (abgemeldetes Gerät, Apple 3.1.1: Wiederherstellen ohne Anmeldung); ist
+  die Liste dann voll, verdrängt das neue Gerät den ältesten Mit-Inhaber (jedes Abmelden legt ein neues anonymes Konto an). Im Web zählt ein
   anonymes Konto nie (`currentUserId()` liefert null), `npm run app-purchase:check` wacht über neue Schreib-Policies. Voraussetzungen: Migration 0078
   (Mit-Inhaber, und anonyme Konten dürfen per RLS nirgends schreiben), dann in Supabase › Authentication ›
   Sign In / Providers „Allow anonymous sign-ins“ an. Neue Tabellen mit Schreib-Policies: den RLS-Block aus 0078
