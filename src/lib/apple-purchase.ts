@@ -391,6 +391,26 @@ export function supabaseAppleStore(): AppleStore {
       if (error) throw error;
       return data ? fromRow(data as Row) : null;
     },
+    async listHeldPurchases(userId) {
+      if (!UUID_RE.test(userId)) throw new Error("apple purchase: Konto-ID ist keine UUID");
+      const { data, error } = await svc
+        .from("apple_purchases")
+        .select(COLUMNS)
+        .or(`user_id.eq.${userId},anon_holders.cs.{${userId}}`)
+        .limit(50);
+      if (error) throw error;
+      return (data ?? []).map((r) => fromRow(r as Row));
+    },
+    async dropHolder(id, holderId, expected) {
+      const { data, error } = await svc
+        .from("apple_purchases")
+        .update({ anon_holders: expected.filter((h) => h !== holderId) })
+        .eq("original_transaction_id", id)
+        .eq("anon_holders", `{${expected.join(",")}}`)
+        .select("original_transaction_id");
+      if (error) throw error;
+      return (data?.length ?? 0) > 0;
+    },
     async insertPurchase(row) {
       const { error } = await svc.from("apple_purchases").insert({
         original_transaction_id: row.originalTransactionId,
