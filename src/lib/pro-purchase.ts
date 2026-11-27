@@ -5,7 +5,8 @@ import { createServiceClient } from "./supabase/service";
 import { formatProPrice } from "./pro";
 import { LEGAL } from "./legal";
 import { sendEmail } from "./email";
-import { logOps } from "./ops";
+import { logOps, opsSubject } from "./ops";
+import { applyStripeRefund } from "./stripe-refund-core";
 import { errorMessage } from "./ops-scrub";
 import { renderProPurchase } from "./pro-purchase-mail";
 import { trackConversion } from "./analytics";
@@ -736,34 +737,183 @@ export async function grantPro(
 }
 
 /**
- * Pro entziehen — nur, was aus Stripe stammt. Geschenktes ('comp') und übernommenes
- * ('migration') Pro bleibt stehen, auch wenn derselbe Mensch einmal etwas zurückerstattet
- * bekommt.
+ * Pro entziehen nach einer vollen Stripe-Erstattung oder einem Chargeback — nur, was aus Stripe
+ * stammt. Geschenktes ('comp') und übernommenes ('migration') Pro bleibt stehen. Trägt ein anderer
+ * bezahlter Web-Kauf oder ein bezahlter Apple-Kauf das Pro (doppelt gekauft, Anton 27.11.2026),
+ * bleibt es. Die Regeln und ihre Reihenfolge stehen in stripe-refund-core.ts.
+ * `paymentIntent`: die erstattete Zahlung (null = unbekannt, dann gilt die ganze Kunden-ID).
  */
-export async function revokePro(customerId: string): Promise<void> {
+export async function revokePro(customerId: string, paymentIntent: string | null = null): Promise<void> {
   const svc = createServiceClient();
-  await svc
-    .from("profiles")
-    .update({ is_pro: false })
-    .eq("stripe_customer_id", customerId)
-    .eq("pro_source", "stripe");
+  const result = await applyStripeRefund(
+    {
+      // Den ANSPRUCH abräumen, nicht nur das Profil.
+      //
+      // Das Profil ist die eine Quelle für Pro, pro_purchases ist die zweite: handle_new_user
+      // (Migration 0053) schaltet beim Anlegen eines Kontos frei, wenn dort ein bezahlter Kauf
+      // offen steht. Wurde das Konto nie angelegt — ein Aussetzer im richtigen Moment reicht —,
+      // findet die Zeile darüber niemanden, dem sie Pro entziehen könnte. Der Anspruch blieb
+      // dann liegen, und die nächste Anmeldung mit dieser Adresse machte daraus Pro. Bezahlt
+      // war da längst nichts mehr. Seit 27.11.2026 ZUERST, mit Fehler und je Zahlung.
+      async markClaimsRefunded(id, pi) {
+        // Je Zahlung, wenn die Zahlung bei uns bekannt ist; sonst wie früher die ganze Kunden-ID.
+        let byPayment = false;
+        if (pi) {
+          const { data: known, error: lookupError } = await svc
+            .from("pro_purchases")
+            .select("stripe_session_id")
+            .eq("stripe_payment_intent", pi)
+            .limit(1);
+          if (lookupError) throw lookupError;
+          byPayment = (known?.length ?? 0) > 0;
+        }
+        // Ohne bekannte Zahlung und ohne Kunden-ID gibt es nichts, wonach sich suchen ließe.
+        if (!byPayment && !id) return [];
+        const column = byPayment ? "stripe_payment_intent" : "stripe_customer_id";
+        const value = byPayment ? (pi as string) : id;
+        const { data: rows, error: readError } = await svc
+          .from("pro_purchases")
+          .select("user_id")
+          .eq(column, value);
+        if (readError) throw readError;
+        const { error } = await svc
+          .from("pro_purchases")
+          .update({ refunded_at: new Date().toISOString() })
+          .eq(column, value)
+          .is("refunded_at", null);
+        if (error) throw error;
+        return [...new Set((rows ?? []).map((r) => r.user_id as string | null).filter((u): u is string => !!u))];
+      },
+      async proAccounts(id, userIds) {
+        // Beide Werte gehen in einen Filtertext: nur, was wirklich wie eine Kunden-ID bzw. UUID aussieht.
+        const ids = userIds.filter((u) => UUID_RE.test(u));
+        const parts = [
+          ...(/^cus_[A-Za-z0-9]+$/.test(id) ? [`stripe_customer_id.eq.${id}`] : []),
+          ...(ids.length > 0 ? [`id.in.(${ids.join(",")})`] : []),
+        ];
+        if (parts.length === 0) return [];
+        const filter = parts.join(",");
+        const { data, error } = await svc
+          .from("profiles")
+          .select("id, pro_source")
+          .or(filter)
+          .eq("is_pro", true)
+          .in("pro_source", ["stripe", "apple"]);
+        if (error) throw error;
+        return (data ?? []).map((r) => ({ id: r.id as string, source: r.pro_source as "stripe" | "apple" }));
+      },
+      async hasPaidStripePurchase(userId) {
+        const { data, error } = await svc
+          .from("pro_purchases")
+          .select("stripe_session_id")
+          .eq("user_id", userId)
+          .not("granted_at", "is", null)
+          .is("refunded_at", null)
+          .limit(1);
+        if (error) throw error;
+        return (data?.length ?? 0) > 0;
+      },
+      async hasPaidApplePurchase(userId) {
+        const { data, error } = await svc
+          .from("apple_purchases")
+          .select("original_transaction_id")
+          .eq("user_id", userId)
+          .eq("environment", "Production")
+          .is("revoked_at", null)
+          .limit(1);
+        if (error) throw error;
+        return (data?.length ?? 0) > 0;
+      },
+      async switchStripeProToApple(userId) {
+        const { data, error } = await svc
+          .from("profiles")
+          .update({ pro_source: "apple" })
+          .eq("id", userId)
+          .eq("pro_source", "stripe")
+          .eq("is_pro", true)
+          .select("id");
+        if (error) throw error;
+        return (data?.length ?? 0) > 0;
+      },
+      async removeStripePro(userId) {
+        const { data, error } = await svc
+          .from("profiles")
+          .update({ is_pro: false })
+          .eq("id", userId)
+          .eq("pro_source", "stripe")
+          .eq("is_pro", true)
+          .select("id");
+        if (error) throw error;
+        return (data?.length ?? 0) > 0;
+      },
+      async removeApplePro(userId) {
+        const { data, error } = await svc
+          .from("profiles")
+          .update({ is_pro: false })
+          .eq("id", userId)
+          .eq("pro_source", "apple")
+          .eq("is_pro", true)
+          .select("id");
+        if (error) throw error;
+        return (data?.length ?? 0) > 0;
+      },
+    },
+    customerId,
+    paymentIntent,
+  );
+  for (const userId of result.keptByApple) {
+    await logOps("stripe_refund_kept", {
+      message: "Web-Kauf erstattet, Pro läuft über einen bezahlten Apple-Kauf weiter (doppelt gekauft).",
+      subject: opsSubject("user", userId),
+      group: "stripe:kept_by_apple",
+      detail: { stripeCustomer: customerId },
+    });
+  }
+  for (const userId of result.keptByStripe) {
+    await logOps("stripe_refund_kept", {
+      message: "Web-Kauf erstattet, Pro läuft über einen weiteren bezahlten Web-Kauf weiter.",
+      subject: opsSubject("user", userId),
+      group: "stripe:kept_by_stripe",
+      detail: { stripeCustomer: customerId },
+    });
+  }
+}
 
-  // Und den ANSPRUCH abräumen, nicht nur das Profil.
-  //
-  // Das Profil ist die eine Quelle für Pro, pro_purchases ist die zweite: handle_new_user
-  // (Migration 0053) schaltet beim Anlegen eines Kontos frei, wenn dort ein bezahlter Kauf
-  // offen steht. Wurde das Konto nie angelegt — ein Aussetzer im richtigen Moment reicht —,
-  // findet die Zeile darüber niemanden, dem sie Pro entziehen könnte. Der Anspruch blieb
-  // dann liegen, und die nächste Anmeldung mit dieser Adresse machte daraus Pro. Bezahlt
-  // war da längst nichts mehr.
-  //
-  // Reihenfolge egal, beide Aufräumarbeiten sind unabhängig und wiederholbar.
+/**
+ * Gehört diese Stripe-Zahlung zu einem SalzGuide-Pro-Kauf? Das Stripe-Konto teilt sich SalzGuide
+ * mit der alten WordPress-Seite: Ein Chargeback auf eine WordPress-Zahlung geht uns nichts an.
+ * Liefert die Konten (user_id) der Ansprüche, leer = keine SalzGuide-Zahlung (oder noch keinem
+ * Konto gutgeschrieben).
+ */
+export async function proPaymentAccounts(paymentIntent: string): Promise<{ known: boolean; userIds: string[] }> {
+  const svc = createServiceClient();
+  const { data, error } = await svc
+    .from("pro_purchases")
+    .select("user_id")
+    .eq("stripe_payment_intent", paymentIntent);
+  if (error) throw error;
+  const rows = data ?? [];
+  return {
+    known: rows.length > 0,
+    userIds: [...new Set(rows.map((r) => r.user_id as string | null).filter((u): u is string => !!u))],
+  };
+}
+
+/**
+ * Streitfall zu unseren Gunsten beendet (gewonnen oder Anfrage ohne Abbuchung geschlossen): Der
+ * Anspruch dieser Zahlung gilt wieder (refunded_at zurück auf null). Pro setzt ein Mensch im Admin
+ * (Meldung im Webhook); der Anspruch muss trotzdem stimmen, sonst entzöge eine spätere Apple-
+ * Erstattung das wieder gesetzte Pro (sie sieht keinen bezahlten Web-Kauf). Nur aufrufen, wenn die
+ * Zahlung NICHT erstattet ist (charge.refunded false).
+ */
+export async function reopenDisputedClaims(paymentIntent: string): Promise<void> {
+  const svc = createServiceClient();
   const { error } = await svc
     .from("pro_purchases")
-    .update({ refunded_at: new Date().toISOString() })
-    .eq("stripe_customer_id", customerId)
-    .is("refunded_at", null);
-  if (error) console.error("[pro] Anspruch nach Rückerstattung nicht abgeräumt", customerId, error.message);
+    .update({ refunded_at: null })
+    .eq("stripe_payment_intent", paymentIntent)
+    .not("refunded_at", "is", null);
+  if (error) throw error;
 }
 
 async function findProfileByCustomer(

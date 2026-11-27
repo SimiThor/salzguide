@@ -371,6 +371,23 @@ export const OPS_EVENTS = {
     quietMinutes: 360,
     hint: "Nach einem Kauf ohne Konto und späterer Anmeldung sollte der Server das anonyme Konto löschen, das hat nicht geklappt. Der Kauf gilt. Im Admin steht dann ein Eintrag „(keine E-Mail)“ ohne Pro, er schadet nicht. Häuft es sich, Supabase Auth (Admin-Schnittstelle) prüfen.",
   },
+  stripe_refund_kept: {
+    area: "payment",
+    severity: "info",
+    title: "Erstattet, Pro bleibt (anderer bezahlter Kauf)",
+    // Nur Logbuch: Der Server hat richtig entschieden, es ist nichts zu tun.
+    alertAfter: 0,
+    quietMinutes: 360,
+    hint: "Ein Web-Kauf wurde erstattet (oder per Chargeback zurückgebucht), aber das Konto hat noch einen anderen bezahlten Kauf (Apple oder Web). Pro bleibt deshalb. Nichts zu tun.",
+  },
+  stripe_dispute: {
+    area: "payment",
+    severity: "warn",
+    title: "Stripe-Rückbuchung (Chargeback)",
+    alertAfter: 1,
+    quietMinutes: 60,
+    hint: "Eine Bank hat eine Web-Zahlung für Pro angefochten (Zahlungen der alten WordPress-Seite werden ignoriert). Eine Anfrage nimmt nichts weg. Bucht die Bank das Geld ab (charge.dispute.funds_withdrawn), nimmt der Server Pro wie bei einer Erstattung, außer ein anderer bezahlter Kauf trägt es. Gewonnen oder Anfrage geschlossen: Der Anspruch gilt wieder, Pro bei den genannten Konten im Admin von Hand setzen, falls es fehlt. Den Streitfall im Stripe-Dashboard unter Zahlungen › Angefochten beantworten. Der Webhook braucht dafür charge.dispute.created, charge.dispute.funds_withdrawn und charge.dispute.closed.",
+  },
   apple_purchase_manual: {
     area: "payment",
     severity: "warn",
