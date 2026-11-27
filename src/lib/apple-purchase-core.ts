@@ -16,12 +16,16 @@ import "server-only";
 //      anonymen Inhaber (Besitzer und anon_holders) verlieren ihr Apple-Pro. Erst wegnehmen, dann
 //      umbinden: Scheitert das Umbinden, holt sich der alte Inhaber Pro beim nächsten Abgleich wieder.
 //      Sicher, weil nur Geräte der zahlenden Apple-ID die von Apple signierte Transaktion haben.
-//  2b. Sind BEIDE anonym (zweites Gerät derselben Apple-ID, wieder ohne Konto), wird geteilt: Das
-//      anfragende Konto kommt in anon_holders und bekommt Pro DAZU. Ein nicht verbrauchbarer Kauf
-//      gilt auf allen Geräten der Apple-ID. Höchstens MAX_ANON_HOLDERS Mit-Inhaber: Sonst ließe sich
-//      ein mitgeschnittenes JWS an beliebig viele frisch angelegte anonyme Konten verteilen. Nie gibt
-//      ein echtes Konto etwas an ein anonymes ab: Ein anonymes Konto bekommt dann "foreign" mit Grund
-//      "needs_sign_in" (still, kein Alarm).
+//  2b. Fragt ein ANONYMES Konto (Gerät derselben Apple-ID ohne Anmeldung), wird geteilt, egal ob
+//      der Besitzer anonym oder echt ist: Das anfragende Konto kommt in anon_holders und bekommt Pro
+//      DAZU. Ein nicht verbrauchbarer Kauf gilt auf allen Geräten der Apple-ID, auch abgemeldet
+//      (Apple 3.1.1: Wiederherstellen ohne Anmeldung; vorher verlangte ein abgemeldetes Gerät die
+//      Anmeldung, App-Review-Prüfung 27.11.2026). Der Besitzer bleibt, wer er ist. Höchstens
+//      MAX_ANON_HOLDERS Mit-Inhaber gleichzeitig: Sonst ließe sich ein mitgeschnittenes JWS an beliebig
+//      viele frisch angelegte anonyme Konten verteilen. Ist die Liste voll, gilt: Bei einem ECHTEN
+//      Besitzer verdrängt das neue Gerät den ältesten Mit-Inhaber (der verliert sein Apple-Pro). Jedes
+//      Abmelden legt in der App ein neues anonymes Konto an; ohne Verdrängen wäre die Liste nach vier
+//      Abmelde-Runden voll. Bei einem ANONYMEN Besitzer bleibt es bei "holder_limit" (Meldung).
 //   3. Gehört sie niemandem mehr (user_id null, Konto gelöscht): an das angemeldete Konto binden.
 //   4. Neu: der appAccountToken in der Transaktion muss die ID des angemeldeten Kontos sein.
 //      Fehlt er (alte Transaktion), wird an das angemeldete Konto gebunden. Zeigt er auf ein
@@ -135,6 +139,16 @@ export interface AppleStore {
    * MAX_ANON_HOLDERS eingetragen sind. true = eingetragen oder schon drin.
    */
   addAnonHolder(originalTransactionId: string, ownerId: string, holderId: string): Promise<boolean>;
+  /**
+   * Regel 2b bei ECHTEM Besitzer und voller Liste: `holderId` austragen, NUR wo user_id = ownerId,
+   * revoked_at null UND anon_holders = expectedHolders (sonst Rennen: false, neu bewerten).
+   */
+  dropAnonHolder(
+    originalTransactionId: string,
+    ownerId: string,
+    holderId: string,
+    expectedHolders: string[],
+  ): Promise<boolean>;
 }
 
 /** Optionen, die aus der Konfiguration kommen. */
@@ -246,22 +260,29 @@ export async function bindAndGrantApplePro(
         return { status: "revoked", originalTransactionId: id };
       }
 
-      // Regel 2: ein lebendes anderes Konto. Nie umbinden, außer es ist anonym (Regel 2a/2b).
+      // Regel 2: ein lebendes anderes Konto. Nie umbinden, außer es ist anonym (Regel 2a); ein
+      // anonymes anfragendes Konto teilt (Regel 2b).
       if (existing.userId !== null && existing.userId !== userId) {
         const owner = existing.userId;
         const requesterAnonymous = await store.isAnonymousAccount(userId);
-        if (!(await store.isAnonymousAccount(owner))) {
-          return {
-            status: "foreign",
-            originalTransactionId: id,
-            reason: requesterAnonymous ? "needs_sign_in" : "owned_by_other_account",
-          };
+        const ownerAnonymous = await store.isAnonymousAccount(owner);
+        if (!requesterAnonymous && !ownerAnonymous) {
+          return { status: "foreign", originalTransactionId: id, reason: "owned_by_other_account" };
         }
         if (requesterAnonymous) {
           // Regel 2b: teilen. Schon eingetragen = wiederholter Abgleich dieses Geräts.
           const known = existing.anonHolders.includes(userId);
           if (!known && existing.anonHolders.length >= MAX_ANON_HOLDERS) {
-            return { status: "foreign", originalTransactionId: id, reason: "holder_limit" };
+            if (ownerAnonymous) {
+              return { status: "foreign", originalTransactionId: id, reason: "holder_limit" };
+            }
+            // Echter Besitzer: den ältesten Mit-Inhaber verdrängen, dann neu bewerten (trägt ein).
+            // Erst Pro nehmen, dann austragen: Scheitert das Austragen (Rennen), steht er noch in der
+            // Liste und holt sich Pro beim nächsten Abgleich zurück; nie Pro ohne Zeile.
+            const oldest = existing.anonHolders[0];
+            await releaseApplePro(store, oldest, id, existing.environment);
+            await store.dropAnonHolder(id, owner, oldest, existing.anonHolders);
+            continue;
           }
           if (!known && !(await store.addAnonHolder(id, owner, userId))) continue; // Rennen: neu bewerten
           const pro = await ensurePro(store, userId, id, now);

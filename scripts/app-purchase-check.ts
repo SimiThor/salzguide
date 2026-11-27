@@ -416,6 +416,14 @@ class FakeStore implements AppleStore {
     if (!r.anonHolders.includes(holder)) r.anonHolders = [...r.anonHolders, holder];
     return true;
   }
+  async dropAnonHolder(id: string, owner: string, holder: string, expected: string[]) {
+    this.hook("dropAnonHolder");
+    const r = this.purchases.get(id);
+    if (!r || r.userId !== owner || r.revokedAt !== null) return false;
+    if (JSON.stringify(r.anonHolders) !== JSON.stringify(expected)) return false;
+    r.anonHolders = r.anonHolders.filter((h) => h !== holder);
+    return true;
+  }
   async removeAppleProIfApple(userId: string) {
     this.hook("removeAppleProIfApple");
     const p = this.profiles.get(userId);
@@ -513,7 +521,12 @@ const row = (over: Partial<PurchaseRow> = {}): PurchaseRow => ({
   s.profiles.set(ANON2, { isPro: false, proSource: null });
   s.anonymous.add(ANON2);
   const back = await bindAndGrantApplePro(s, ANON2, tx({ appAccountToken: ANON }), now);
-  eq("nie zurueck: anonymes Geraet bekommt needs_sign_in, Zeile bleibt beim echten Konto", [back.status === "foreign" && back.reason, s.purchases.get("100")?.userId, s.profiles.get(ANON2)?.isPro], ["needs_sign_in", USER_A, false]);
+  // Abgemeldetes Geraet derselben Apple-ID (App Review 27.11.2026): teilt mit, Besitzer bleibt das echte Konto.
+  eq("2b auch beim echten Besitzer: anonymes Geraet teilt, Zeile bleibt beim echten Konto", [back.status, s.purchases.get("100")?.userId, s.purchases.get("100")?.anonHolders, s.profiles.get(ANON2)?.isPro, s.profiles.get(USER_A)?.isPro], ["granted", USER_A, [ANON2], true, true]);
+  const realAgain = await bindAndGrantApplePro(s, USER_B, tx({ appAccountToken: ANON }), now);
+  eq("anderes echtes Konto bleibt aussen vor", [realAgain.status === "foreign" && realAgain.reason, s.purchases.get("100")?.userId], ["owned_by_other_account", USER_A]);
+  await applyAppleRevocation(s, "100", null, now());
+  eq("Erstattung nimmt dem echten Besitzer und dem Mit-Inhaber Pro", [s.profiles.get(USER_A)?.isPro, s.profiles.get(ANON2)?.isPro], [false, false]);
 }
 {
   const s = withAnon(ANON, ANON2);
@@ -647,6 +660,32 @@ const row = (over: Partial<PurchaseRow> = {}): PurchaseRow => ({
   eq("  der abgewiesene bekommt kein Pro", s.profiles.get(extra[4])?.isPro, false);
 }
 {
+  // Echter Besitzer: Jedes Abmelden legt in der App ein neues anonymes Konto an. Die Liste darf nicht
+  // volllaufen: Das neue Geraet verdraengt den aeltesten Mit-Inhaber (App-Review-Pruefung 27.11.2026).
+  const s = withAnon(ANON);
+  s.purchases.set("100", row({ userId: USER_A, appAccountToken: USER_A }));
+  s.profiles.set(USER_A, { isPro: true, proSource: "apple" });
+  const extra = ["b1", "b2", "b3", "b4", "b5"].map((x, i) => `7777777${i}-7777-4777-8777-777777777777`);
+  for (const id of extra) {
+    s.profiles.set(id, { isPro: false, proSource: null });
+    s.anonymous.add(id);
+  }
+  const out: string[] = [];
+  for (const id of extra) {
+    const r = await bindAndGrantApplePro(s, id, tx({ appAccountToken: USER_A }), now);
+    out.push(r.status === "foreign" ? r.reason : r.status);
+  }
+  eq("Echter Besitzer, volle Liste: das fuenfte Geraet verdraengt das aelteste", out, ["granted", "granted", "granted", "granted", "granted"]);
+  eq("  Liste: die vier juengsten, Besitzer unveraendert", [s.purchases.get("100")?.anonHolders, s.purchases.get("100")?.userId], [extra.slice(1), USER_A]);
+  eq("  der verdraengte verliert Pro, der neue und der Besitzer haben es", [s.profiles.get(extra[0])?.isPro, s.profiles.get(extra[4])?.isPro, s.profiles.get(USER_A)?.isPro], [false, true, true]);
+  // Besitzer loescht sein Konto (Zeile auf null), dann bindet ein neues echtes Konto (Regel 3):
+  // Die uebrigen anonymen Mit-Inhaber verlieren Pro.
+  s.purchases.get("100")!.userId = null;
+  s.profiles.delete(USER_A);
+  const rebound = await bindAndGrantApplePro(s, USER_B, tx({ appAccountToken: USER_A }), now);
+  eq("  nach Loeschung bindet ein neues echtes Konto, Mit-Inhaber verlieren Pro", [rebound.status, s.purchases.get("100")?.userId, extra.slice(1).map((id) => s.profiles.get(id)?.isPro)], ["granted", USER_B, [false, false, false, false]]);
+}
+{
   // Rennen A: Zwischen Lesen und Umzug traegt sich ein weiteres anonymes Geraet ein (mit Pro).
   const ANON3 = "77777777-7777-4777-8777-777777777777";
   const s = withAnon(ANON, ANON3);
@@ -674,7 +713,8 @@ const row = (over: Partial<PurchaseRow> = {}): PurchaseRow => ({
     r.anonHolders = [];
   };
   const r = await bindAndGrantApplePro(s, ANON2, tx({ appAccountToken: ANON }), now);
-  eq("Rennen B: Mit-Inhaber ohne Zeile behaelt kein Pro, Ergebnis needs_sign_in", [r.status === "foreign" && r.reason, s.profiles.get(ANON2)?.isPro], ["needs_sign_in", false]);
+  // Nach dem Umzug neu bewertet: Das Geraet teilt jetzt mit dem echten Konto (Regel 2b), steht also wieder in einer Zeile.
+  eq("Rennen B: neu bewertet, Mit-Inhaber beim echten Konto", [r.status, s.purchases.get("100")?.userId, s.purchases.get("100")?.anonHolders, s.profiles.get(ANON2)?.isPro], ["granted", USER_A, [ANON2], true]);
 }
 {
   // Rennen B2: Ein eingetragener Mit-Inhaber holt sich Pro NACH der ersten Freigabe, aber VOR dem

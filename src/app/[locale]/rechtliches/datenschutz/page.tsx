@@ -399,10 +399,13 @@ export default async function DatenschutzPage({
           mit deinem Konto, damit Pro freigeschaltet ist, in der App und auf der Website. Erstattet
           Apple einen Kauf, erfahren wir das von Apple und nehmen die Freischaltung zurück.
           Rechtsgrundlage ist die Erfüllung des Vertrags (Art. 6 Abs. 1 lit. b DSGVO). Löschst du
-          dein Konto, bleibt der Kauf als Nachweis bestehen, ohne Verknüpfung zu einem Konto.
+          dein Konto, bleibt der Kauf als Nachweis bestehen, ohne Verknüpfung zu deinem Konto.
           Kaufst du, ohne angemeldet zu sein, legt die App dafür ein anonymes Konto an: nur eine
           zufällige Kennung, ohne Namen und ohne E-Mail-Adresse, abgelegt im Schlüsselbund deines
-          iPhones. Meldest du dich später an, übertragen wir den Kauf in dein Konto.
+          iPhones. Meldest du dich später an, übertragen wir den Kauf in dein Konto. Nutzt du die App
+          auf einem Gerät mit derselben Apple-ID ohne Anmeldung, verbinden wir den Kauf auch mit der
+          anonymen Kennung dieses Geräts (höchstens vier Geräte), damit Pro dort gilt. Diese
+          Verbindung bleibt, bis Apple den Kauf erstattet oder ein neues Gerät sie ersetzt.
         </li>
         <li>
           <strong>Standort:</strong> Die App nutzt deinen Standort nur, wenn du es ihr erlaubst,
